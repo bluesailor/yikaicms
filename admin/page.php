@@ -19,6 +19,28 @@ requirePermission('content');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
+    if ($action === 'create') {
+        $name = post('name');
+        if (empty($name)) {
+            error('请输入页面名称');
+        }
+        $slug = resolveSlug('', $name, 'channels', 0);
+        $parentId = postInt('parent_id');
+        $id = channelModel()->create([
+            'parent_id' => $parentId,
+            'name' => $name,
+            'slug' => $slug,
+            'type' => 'page',
+            'status' => 1,
+            'is_nav' => 1,
+            'sort_order' => 0,
+            'created_at' => time(),
+            'updated_at' => time(),
+        ]);
+        adminLog('page', 'create', '创建单页：' . $name);
+        success(['id' => $id]);
+    }
+
     if ($action === 'toggle_status') {
         $id = postInt('id');
         $channel = channelModel()->find($id);
@@ -67,8 +89,12 @@ $currentMenu = 'page';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="mb-6">
+<div class="mb-6 flex items-center justify-between">
     <p class="text-gray-500">管理公司简介、企业文化等独立页面内容。单页内容直接存储在栏目中。</p>
+    <button onclick="showCreateModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        添加单页
+    </button>
 </div>
 
 <!-- 列表 -->
@@ -155,7 +181,68 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
+<!-- 添加单页弹窗 -->
+<div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <h3 class="font-bold text-gray-800">添加单页</h3>
+            <button type="button" onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm text-gray-700 mb-1">页面名称 <span class="text-red-500">*</span></label>
+                <input type="text" id="createName" class="w-full border rounded px-4 py-2" placeholder="如：公司简介">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-700 mb-1">所属栏目</label>
+                <select id="createParent" class="w-full border rounded px-4 py-2">
+                    <option value="0">顶级（无上级）</option>
+                    <?php foreach ($pages as $p): ?>
+                    <?php if (!$p['parent_id']): ?>
+                    <option value="<?php echo $p['id']; ?>"><?php echo e($p['name']); ?></option>
+                    <?php endif; ?>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button type="button" onclick="createPage()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded transition">
+                创建并编辑内容
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+function showCreateModal() {
+    document.getElementById('createModal').classList.remove('hidden');
+    document.getElementById('createModal').classList.add('flex');
+    document.getElementById('createName').value = '';
+    document.getElementById('createName').focus();
+}
+
+function closeCreateModal() {
+    document.getElementById('createModal').classList.add('hidden');
+    document.getElementById('createModal').classList.remove('flex');
+}
+
+async function createPage() {
+    var name = document.getElementById('createName').value.trim();
+    if (!name) { showMessage('请输入页面名称', 'error'); return; }
+    var formData = new FormData();
+    formData.append('action', 'create');
+    formData.append('name', name);
+    formData.append('parent_id', document.getElementById('createParent').value);
+    var response = await fetch('', { method: 'POST', body: formData });
+    var data = await safeJson(response);
+    if (data.code === 0) {
+        showMessage('创建成功，正在跳转...');
+        setTimeout(function() { location.href = '/admin/page_edit.php?id=' + data.data.id; }, 500);
+    } else {
+        showMessage(data.msg, 'error');
+    }
+}
+
 async function deletePage(id, name) {
     if (!confirm('确定要删除单页「' + name + '」吗？\n关联的页面内容也会一并删除，此操作不可恢复。')) return;
     const formData = new FormData();
