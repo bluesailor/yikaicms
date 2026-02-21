@@ -1,0 +1,8 @@
+{
+    "name": "后台菜单排序",
+    "slug": "menu-sort",
+    "description": "自定义后台侧栏菜单的显示顺序，支持拖拽排序菜单分组和菜单项",
+    "version": "1.0.0",
+    "author": "Yikai CMS",
+    "require_cms": "1.0.0"
+}

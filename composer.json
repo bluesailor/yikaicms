@@ -1,0 +1,8 @@
+{
+    "require-dev": {
+        "vimeo/psalm": "6.4.0"
+    },
+    "require": {
+        "overtrue/pinyin": "^6.0"
+    }
+}

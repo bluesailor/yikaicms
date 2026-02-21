@@ -1,0 +1,128 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 禁止访问隐藏文件
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^\.env - [F,L]
+
+    # 禁止访问敏感目录
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^storage/ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule ^install/sql/ - [F,L]
+
+    # 禁止访问敏感文件
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+
+    # 伪静态规则
+
+    # 新闻文章系统
+    # /news.html -> /news.php
+    # /news/page/2.html -> /news.php?page=2
+    # /news/company-news.html -> /news.php?cat=company-news
+    # /news/company-news/page/2.html -> /news.php?cat=company-news&page=2
+    # /news/article/1.html -> /article.php?id=1
+    RewriteRule ^news\.html$ /news.php [L,QSA]
+    RewriteRule ^news/page/(\d+)\.html$ /news.php?page=$1 [L,QSA]
+    RewriteRule ^news/article/(\d+)\.html$ /article.php?id=$1 [L,QSA]
+    # /news/article/my-slug.html -> /article.php?slug=my-slug
+    RewriteRule ^news/article/([a-z0-9_-]+)\.html$ /article.php?slug=$1 [L,QSA]
+    RewriteRule ^news/([a-z0-9_-]+)/page/(\d+)\.html$ /news.php?cat=$1&page=$2 [L,QSA]
+    RewriteRule ^news/([a-z0-9_-]+)\.html$ /news.php?cat=$1 [L,QSA]
+
+    # 栏目列表页 (支持ID和slug)
+    # /list/1.html -> /list.php?id=1
+    # /list/1/page/2.html -> /list.php?id=1&page=2
+    # /news.html -> /list.php?slug=news
+    # /news/page/2.html -> /list.php?slug=news&page=2
+    RewriteRule ^list/(\d+)\.html$ /list.php?id=$1 [L,QSA]
+    RewriteRule ^list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=$1&page=$2 [L,QSA]
+
+    # 案例详情页
+    # /case/1.html -> /detail.php?id=1
+    # /case/my-slug.html -> /detail.php?slug=my-slug
+    RewriteRule ^case/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+    RewriteRule ^case/([a-z0-9_-]+)\.html$ /detail.php?slug=$1 [L,QSA]
+
+    # 招聘详情页
+    # /job/1.html -> /job_detail.php?id=1
+    RewriteRule ^job/(\d+)\.html$ /job_detail.php?id=$1 [L,QSA]
+
+    # 下载详情页
+    # /download/detail/1.html -> /detail.php?id=1
+    RewriteRule ^download/detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+
+    # 详情页 (支持ID格式)
+    # /detail/1.html -> /detail.php?id=1
+    RewriteRule ^detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+
+    # 产品详情页 (数字ID优先匹配)
+    # /product/1.html -> /product.php?id=1
+    RewriteRule ^product/(\d+)\.html$ /product.php?id=$1 [L,QSA]
+
+    # 产品详情页 (分类slug + 产品slug)
+    # /product/smart-device/iot-gateway.html -> /product.php?slug=iot-gateway
+    RewriteRule ^product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /product.php?slug=$2 [L,QSA]
+
+    # 产品分类页 (带分页)
+    # /product/category-slug/page/2.html -> /list.php?slug=product&cat=category-slug&page=2
+    RewriteRule ^product/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=product&cat=$1&page=$2 [L,QSA]
+
+    # 产品分类页
+    # /product/category-slug.html -> /list.php?slug=product&cat=category-slug
+    RewriteRule ^product/([a-z0-9_-]+)\.html$ /list.php?slug=product&cat=$1 [L,QSA]
+
+    # 特殊页面（独立PHP文件，优先于通用规则）
+    # /about/history.html -> /history.php
+    RewriteRule ^about/history\.html$ /history.php [L]
+    # /contact.html -> /contact.php
+    RewriteRule ^contact\.html$ /contact.php [L]
+
+    # 单页 (支持多级slug)
+    # /page/1.html -> /page.php?id=1
+    # /about.html -> /page.php?slug=about
+    # /about/company.html -> /page.php?slug=company (子页面)
+    RewriteRule ^page/(\d+)\.html$ /page.php?id=$1 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /page.php?parent=$1&slug=$2 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)\.html$ /page.php?slug=$1 [L,QSA]
+
+    # 如果请求的文件或目录不存在
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+</IfModule>
+
+# 禁止目录浏览
+Options -Indexes
+
+# 设置默认文档
+DirectoryIndex index.php index.html
+
+# 设置PHP配置
+<IfModule mod_php.c>
+    php_value upload_max_filesize 20M
+    php_value post_max_size 25M
+    php_value max_execution_time 300
+</IfModule>
+
+# 缓存静态文件
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+</IfModule>
+
+# GZIP压缩
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json
+</IfModule>

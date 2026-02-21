@@ -1,0 +1,8 @@
+{
+    "name": "数据库备份",
+    "version": "1.0.0",
+    "description": "后台一键导出数据库为SQL文件，支持选择表、结构与数据分离导出。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.0.0"
+}

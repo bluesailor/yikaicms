@@ -1,0 +1,8 @@
+{
+    "name": "返回顶部",
+    "version": "1.0.0",
+    "description": "在页面右下角显示返回顶部按钮，滚动超过一屏后自动出现，点击平滑滚动回顶部。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.0.0"
+}

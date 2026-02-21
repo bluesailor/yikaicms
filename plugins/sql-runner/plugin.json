@@ -1,0 +1,8 @@
+{
+    "name": "SQL执行器",
+    "version": "1.0.0",
+    "description": "后台执行SQL语句和导入SQL备份文件，支持MySQL和SQLite。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.0.0"
+}

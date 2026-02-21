@@ -1,0 +1,8 @@
+{
+    "name": "搜索替换",
+    "version": "1.0.0",
+    "description": "后台数据库批量搜索替换工具，支持选择表和字段，预览匹配数量后执行替换。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.0.0"
+}

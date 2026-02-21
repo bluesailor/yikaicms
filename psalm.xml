@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="5"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+    findUnusedBaselineEntry="true"
+    findUnusedCode="true"
+>
+    <projectFiles>
+        <file name="article.php" />
+        <file name="contact.php" />
+        <file name="detail.php" />
+        <file name="history.php" />
+        <file name="index.php" />
+        <file name="list.php" />
+        <file name="news.php" />
+        <file name="page.php" />
+        <file name="product.php" />
+        <directory name="admin" />
+        <directory name="config" />
+        <directory name="includes" />
+        <directory name="install" />
+        <directory name="lang" />
+        <directory name="plugins" />
+        <ignoreFiles>
+            <directory name="vendor" />
+        </ignoreFiles>
+    </projectFiles>
+</psalm>

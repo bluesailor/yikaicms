@@ -1,0 +1,5 @@
+-- 轮播图按钮字段
+ALTER TABLE yikai_banners ADD COLUMN btn1_text VARCHAR(50) NOT NULL DEFAULT '' COMMENT '按钮1文字' AFTER subtitle;
+ALTER TABLE yikai_banners ADD COLUMN btn1_url VARCHAR(255) NOT NULL DEFAULT '' COMMENT '按钮1链接' AFTER btn1_text;
+ALTER TABLE yikai_banners ADD COLUMN btn2_text VARCHAR(50) NOT NULL DEFAULT '' COMMENT '按钮2文字' AFTER btn1_url;
+ALTER TABLE yikai_banners ADD COLUMN btn2_url VARCHAR(255) NOT NULL DEFAULT '' COMMENT '按钮2链接' AFTER btn2_text;

@@ -1,0 +1,9 @@
+# Prevent PHP execution in uploads directory
+<FilesMatch "\.(?:php[0-9]?|phtml|pht|phps)$">
+    Require all denied
+</FilesMatch>
+
+# Disable script execution
+Options -ExecCGI
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8
+AddType text/plain .php .phtml .php3 .php4 .php5 .php7 .php8

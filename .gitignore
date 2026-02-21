@@ -1,0 +1,48 @@
+# Configuration (contains credentials)
+config/config.php
+installed.lock
+
+# Runtime data
+storage/database.sqlite
+storage/logs/*.log
+storage/cache/*
+storage/login_throttle/*
+!storage/logs/.gitkeep
+!storage/cache/.gitkeep
+!storage/login_throttle/.gitkeep
+
+# Uploads (user content)
+uploads/images/*
+uploads/files/*
+uploads/videos/*
+!uploads/images/.gitkeep
+!uploads/files/.gitkeep
+!uploads/videos/.gitkeep
+
+# Build tools
+tailwindcss
+tailwindcss.exe
+tailwindcss-windows-x64.exe
+assets/css/src/
+
+# Build output
+releases/
+
+# Dependencies
+vendor/
+node_modules/
+
+# IDE & OS
+.claude/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Dev files
+*.bak
+*.rar
+*.log
+docs/
