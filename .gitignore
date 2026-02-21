@@ -15,9 +15,11 @@ storage/login_throttle/*
 uploads/images/*
 uploads/files/*
 uploads/videos/*
+uploads/albums/*
 !uploads/images/.gitkeep
 !uploads/files/.gitkeep
 !uploads/videos/.gitkeep
+!uploads/albums/.gitkeep
 
 # Build tools
 tailwindcss
