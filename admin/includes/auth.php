@@ -37,6 +37,11 @@ function checkLogin(): void
     // 自动校验 CSRF：所有 POST 请求必须携带 _token
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
+
+        // 演示模式：拦截所有写操作
+        if (defined('DEMO_MODE') && DEMO_MODE) {
+            error('演示模式下不允许修改操作');
+        }
     }
 }
 

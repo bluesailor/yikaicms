@@ -356,5 +356,11 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                 </div>
             </header>
 
+            <?php if (defined('DEMO_MODE') && DEMO_MODE): ?>
+            <div class="bg-amber-500 text-white text-center py-2 text-sm font-medium">
+                当前为演示模式，所有修改操作已禁用
+            </div>
+            <?php endif; ?>
+
             <!-- 页面内容 -->
             <main class="p-6">

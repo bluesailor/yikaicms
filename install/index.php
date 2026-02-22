@@ -14,6 +14,12 @@ define('ROOT_PATH', dirname(__DIR__));
 // 检查是否已安装（允许step=4显示完成页面）
 $step = (int)($_GET['step'] ?? 1);
 if (file_exists(ROOT_PATH . '/installed.lock') && $step !== 4) {
+    // AJAX 请求返回 JSON 提示，而非重定向（防止空响应导致前端报错）
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => '系统已安装。如需重新安装，请先删除根目录下的 installed.lock 文件。']);
+        exit;
+    }
     header('Location: /');
     exit;
 }
@@ -121,6 +127,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // 捕获所有输出，防止 PHP 警告污染 JSON 响应
     ob_start();
     header('Content-Type: application/json; charset=utf-8');
+
+    // 捕获致命错误，确保返回 JSON
+    register_shutdown_function(function () {
+        $error = error_get_last();
+        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'PHP Fatal: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']]);
+        }
+    });
 
     $action = $_POST['action'];
 
@@ -632,7 +647,13 @@ $envAllPass = checkAllPass($envChecks);
                     try {
                         const response = await fetch('', { method: 'POST', body: formData });
                         progressBar.style.width = '80%';
-                        const data = await response.json();
+                        const text = await response.text();
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (parseErr) {
+                            throw new Error(text || '服务器返回空响应，请检查 PHP 错误日志');
+                        }
                         progressBar.style.width = '100%';
 
                         document.getElementById('installProgress').classList.add('hidden');
@@ -652,7 +673,7 @@ $envAllPass = checkAllPass($envChecks);
                         document.getElementById('installProgress').classList.add('hidden');
                         const errResult = document.getElementById('installResult');
                         errResult.classList.remove('hidden');
-                        errResult.innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded"></div>';
+                        errResult.innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded break-all"></div>';
                         errResult.querySelector('div').textContent = 'Error: ' + e.message;
                         document.getElementById('stepButtons').classList.remove('hidden');
                     }
