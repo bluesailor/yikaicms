@@ -140,6 +140,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
+            <?php elseif ($item['type'] === 'footer_nav'): ?>
+            <!-- 页脚导航编辑器 -->
+            <?php $navData = json_decode($item['value'], true) ?: []; ?>
+            <div>
+                <label class="text-gray-700 font-medium block mb-1">
+                    <?php echo e($item['name']); ?>
+                    <?php if ($item['tip']): ?>
+                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($item['tip']); ?></span>
+                    <?php endif; ?>
+                </label>
+                <input type="hidden" name="settings[footer_nav]" id="footerNavJson">
+                <div id="footerNavEditor" class="space-y-3"></div>
+                <button type="button" onclick="addFooterNavGroup()" class="mt-3 text-sm text-primary hover:text-secondary cursor-pointer inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    添加分组
+                </button>
+            </div>
+            <script>
+            var _footerNavData = <?php echo json_encode($navData, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+            </script>
+
             <?php else: ?>
             <!-- 普通设置项 -->
             <?php
@@ -447,6 +468,7 @@ async function restoreAllDefaults() {
 document.getElementById('settingForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     collectFooterColumns();
+    collectFooterNav();
 
     const formData = new FormData(this);
 
@@ -463,6 +485,99 @@ document.getElementById('settingForm').addEventListener('submit', async function
         showMessage('请求失败', 'error');
     }
 });
+
+// ========== 页脚导航编辑器 ==========
+function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+function renderFooterNav(data) {
+    var editor = document.getElementById('footerNavEditor');
+    if (!editor) return;
+    editor.innerHTML = '';
+    (data || []).forEach(function(group, gi) {
+        editor.insertAdjacentHTML('beforeend', renderNavGroup(group, gi));
+    });
+}
+
+function renderNavGroup(group, gi) {
+    var linksHtml = '';
+    (group.links || []).forEach(function(link, li) {
+        linksHtml += renderNavLink(link, gi, li);
+    });
+    return '<div class="fnav-group border rounded-lg p-3 bg-white" data-gi="' + gi + '">' +
+        '<div class="flex items-center gap-3 mb-2">' +
+            '<input type="text" class="fnav-title flex-1 border rounded px-3 py-1.5 text-sm" placeholder="分组标题（如：法律条款，留空则不显示标题）" value="' + escHtml(group.title) + '">' +
+            '<button type="button" onclick="removeFooterNavGroup(' + gi + ')" class="text-gray-300 hover:text-red-400 cursor-pointer" title="删除分组">' +
+                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
+            '</button>' +
+        '</div>' +
+        '<div class="fnav-links space-y-2 ml-6">' + linksHtml + '</div>' +
+        '<button type="button" onclick="addFooterNavLink(' + gi + ')" class="ml-6 mt-2 text-xs text-primary hover:text-secondary cursor-pointer inline-flex items-center gap-1">' +
+            '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> 添加链接' +
+        '</button>' +
+    '</div>';
+}
+
+function renderNavLink(link, gi, li) {
+    var selSelf = (link.target || '_self') !== '_blank' ? ' selected' : '';
+    var selBlank = (link.target || '_self') === '_blank' ? ' selected' : '';
+    return '<div class="fnav-link flex items-center gap-2">' +
+        '<input type="text" class="fnav-name border rounded px-2 py-1 text-sm w-28" placeholder="名称" value="' + escHtml(link.name) + '">' +
+        '<input type="text" class="fnav-url flex-1 border rounded px-2 py-1 text-sm" placeholder="链接地址 如 /privacy.html" value="' + escHtml(link.url) + '">' +
+        '<select class="fnav-target border rounded px-2 py-1 text-sm w-24">' +
+            '<option value="_self"' + selSelf + '>本窗口</option>' +
+            '<option value="_blank"' + selBlank + '>新窗口</option>' +
+        '</select>' +
+        '<button type="button" onclick="this.closest(\'.fnav-link\').remove()" class="text-gray-300 hover:text-red-400 cursor-pointer">' +
+            '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
+        '</button>' +
+    '</div>';
+}
+
+function addFooterNavGroup() {
+    var editor = document.getElementById('footerNavEditor');
+    if (!editor) return;
+    var gi = editor.querySelectorAll('.fnav-group').length;
+    editor.insertAdjacentHTML('beforeend', renderNavGroup({title: '', links: [{name: '', url: '', target: '_self'}]}, gi));
+}
+
+function removeFooterNavGroup(gi) {
+    var groups = document.querySelectorAll('#footerNavEditor .fnav-group');
+    if (groups[gi]) groups[gi].remove();
+}
+
+function addFooterNavLink(gi) {
+    var groups = document.querySelectorAll('#footerNavEditor .fnav-group');
+    if (!groups[gi]) return;
+    var container = groups[gi].querySelector('.fnav-links');
+    container.insertAdjacentHTML('beforeend', renderNavLink({name: '', url: '', target: '_self'}, gi, container.children.length));
+}
+
+function collectFooterNav() {
+    var editor = document.getElementById('footerNavEditor');
+    if (!editor) return;
+    var groups = [];
+    editor.querySelectorAll('.fnav-group').forEach(function(el) {
+        var title = el.querySelector('.fnav-title').value.trim();
+        var links = [];
+        el.querySelectorAll('.fnav-link').forEach(function(lEl) {
+            var name = lEl.querySelector('.fnav-name').value.trim();
+            var url = lEl.querySelector('.fnav-url').value.trim();
+            var target = lEl.querySelector('.fnav-target').value;
+            if (name && url) links.push({name: name, url: url, target: target});
+        });
+        if (title || links.length > 0) groups.push({title: title, links: links});
+    });
+    document.getElementById('footerNavJson').value = JSON.stringify(groups);
+}
+
+// 初始化页脚导航编辑器
+if (typeof _footerNavData !== 'undefined' && document.getElementById('footerNavEditor')) {
+    renderFooterNav(_footerNavData);
+}
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

@@ -118,6 +118,44 @@ if ($footerBgImage) {
             <?php endif; ?>
         </div>
 
+        <!-- 页脚导航 -->
+        <?php
+        $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+        if (!empty($footerNav)):
+        ?>
+        <div class="border-t border-gray-700">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex flex-wrap gap-x-8 gap-y-3 justify-center text-sm">
+                    <?php foreach ($footerNav as $group): ?>
+                        <?php $groupLinks = $group['links'] ?? []; ?>
+                        <?php if (!empty($group['title'])): ?>
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span class="text-white font-medium"><?php echo e($group['title']); ?></span>
+                            <?php foreach ($groupLinks as $li => $link): ?>
+                            <?php if ($li > 0): ?><span class="opacity-40 mx-2">|</span><?php endif; ?>
+                            <a href="<?php echo e($link['url']); ?>"
+                               <?php echo ($link['target'] ?? '_self') === '_blank' ? 'target="_blank" rel="nofollow"' : ''; ?>
+                               class="hover:text-white transition">
+                                <?php echo e($link['name']); ?>
+                            </a>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <?php foreach ($groupLinks as $li => $link): ?>
+                        <?php if ($li > 0): ?><span class="opacity-40 mx-2">|</span><?php endif; ?>
+                        <a href="<?php echo e($link['url']); ?>"
+                           <?php echo ($link['target'] ?? '_self') === '_blank' ? 'target="_blank" rel="nofollow"' : ''; ?>
+                           class="hover:text-white transition">
+                            <?php echo e($link['name']); ?>
+                        </a>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- 版权信息 -->
         <div class="border-t border-gray-700">
             <div class="container mx-auto px-4 py-4 flex flex-wrap gap-4 items-center justify-between text-sm">
@@ -149,6 +187,35 @@ if ($footerBgImage) {
             menu?.classList.toggle('hidden');
             hamburger?.classList.toggle('active');
         });
+    </script>
+
+    <!-- 通用 Lightbox -->
+    <div id="ik-lightbox" class="fixed inset-0 z-[200] bg-black/80 hidden items-center justify-center cursor-zoom-out" onclick="if(event.target===this){this.classList.add('hidden');this.classList.remove('flex');document.body.style.overflow=''}">
+        <button onclick="this.parentElement.classList.add('hidden');this.parentElement.classList.remove('flex');document.body.style.overflow=''" class="absolute top-4 right-4 text-white/80 hover:text-white text-4xl leading-none cursor-pointer">&times;</button>
+        <img id="ik-lightbox-img" src="" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl" onclick="event.stopPropagation()">
+    </div>
+    <script>
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('a[data-lightbox]');
+        if (!link) return;
+        if (link.dataset.lightbox === 'album') return;
+        e.preventDefault();
+        var box = document.getElementById('ik-lightbox');
+        document.getElementById('ik-lightbox-img').src = link.href;
+        box.classList.remove('hidden');
+        box.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var box = document.getElementById('ik-lightbox');
+            if (!box.classList.contains('hidden')) {
+                box.classList.add('hidden');
+                box.classList.remove('flex');
+                document.body.style.overflow = '';
+            }
+        }
+    });
     </script>
 
     <?php if (!empty($extraJs)): ?>

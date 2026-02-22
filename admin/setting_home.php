@@ -20,6 +20,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings = $_POST['settings'] ?? [];
     settingModel()->saveBatch($settings);
 
+    // 更新页脚导航中的"首页"链接
+    $homeInFooterNav = (int)($_POST['home_footer_nav'] ?? 0);
+    $homeUrl = '/';
+    $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+
+    // 移除已有的"首页"链接
+    foreach ($footerNav as &$group) {
+        $group['links'] = array_values(array_filter($group['links'] ?? [], function($link) use ($homeUrl) {
+            return ($link['url'] ?? '') !== $homeUrl;
+        }));
+    }
+    unset($group);
+
+    if ($homeInFooterNav) {
+        $homeText = trim($settings['nav_home_text'] ?? '') ?: config('nav_home_text', '') ?: '首页';
+        if (empty($footerNav)) {
+            $footerNav[] = ['title' => '', 'links' => []];
+        }
+        $footerNav[0]['links'][] = ['name' => $homeText, 'url' => '/', 'target' => '_self'];
+    }
+
+    // 清理空分组
+    $footerNav = array_values(array_filter($footerNav, function($g) {
+        return !empty($g['links']);
+    }));
+    settingModel()->set('footer_nav', json_encode($footerNav, JSON_UNESCAPED_UNICODE));
+
     adminLog('setting', 'update', '更新首页设置');
     success();
 }
@@ -149,7 +176,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <form id="settingForm">
     <!-- 导航首页文字 -->
     <div class="bg-white rounded-lg shadow mb-6 max-w-6xl">
-        <div class="p-5">
+        <div class="p-5 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <label class="text-gray-700 text-sm">
                     导航「首页」文字
@@ -159,6 +186,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="text" name="settings[nav_home_text]"
                            value="<?php echo e(config('nav_home_text', '')); ?>"
                            class="w-full border rounded px-3 py-2 text-sm" placeholder="首页">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <label class="text-gray-700 text-sm">菜单位置</label>
+                <div class="md:col-span-3 flex gap-4">
+                    <label class="flex items-center">
+                        <input type="hidden" name="settings[nav_home_show]" value="0">
+                        <input type="checkbox" name="settings[nav_home_show]" value="1" <?php echo config('nav_home_show', '1') !== '0' ? 'checked' : ''; ?> class="mr-2">
+                        主菜单
+                    </label>
+                    <label class="flex items-center">
+                        <?php
+                        $homeInFooter = false;
+                        $footerNavCheck = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+                        foreach ($footerNavCheck as $fGroup) {
+                            foreach (($fGroup['links'] ?? []) as $fLink) {
+                                if (($fLink['url'] ?? '') === '/') { $homeInFooter = true; break 2; }
+                            }
+                        }
+                        ?>
+                        <input type="hidden" name="home_footer_nav" value="0">
+                        <input type="checkbox" name="home_footer_nav" value="1" <?php echo $homeInFooter ? 'checked' : ''; ?> class="mr-2">
+                        页脚导航
+                    </label>
                 </div>
             </div>
         </div>

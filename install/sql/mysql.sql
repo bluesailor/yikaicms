@@ -684,6 +684,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 ('65', 'footer', 'footer_bg_color', '#1f2937', 'color', '背景颜色', '十六进制颜色值', NULL, '2'),
 ('66', 'footer', 'footer_bg_image', '', 'image', '背景图片', '设置后覆盖背景颜色', NULL, '3'),
 ('67', 'footer', 'footer_text_color', '#9ca3af', 'color', '文字颜色', '十六进制颜色值', NULL, '4'),
+('93', 'footer', 'footer_nav', '[]', 'footer_nav', '页脚导航', '版权栏上方的导航链接分组', NULL, '5'),
 ('68', 'basic', 'site_url', '', 'text', '站点域名', '如 https://www.example.com（不含末尾斜杠）', NULL, '0'),
 ('69', 'code', 'custom_head_code', '', 'code', 'Head 代码', '插入到 </head> 前的代码，如网站验证、SEO meta 标签等', NULL, '1'),
 ('70', 'code', 'custom_body_code', '', 'code', 'Body 代码', '插入到 </body> 前的代码，如统计代码、在线客服等', NULL, '2'),

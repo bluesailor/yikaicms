@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 单页编辑
+ * Yikai CMS - 单页编辑（富文本模式）
  *
  * PHP 8.0+
  */
@@ -55,8 +55,11 @@ $contentRecord = contentModel()->queryOne(
     [$id]
 );
 
+$contentType = 'html';
+
 if ($contentRecord) {
     $page['content'] = $contentRecord['content'];
+    $contentType = $contentRecord['content_type'] ?? 'html';
 }
 
 // 处理保存
@@ -77,17 +80,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newContent = $_POST['content'] ?? '';
 
     if ($contentRecord) {
-        // 更新已有内容记录
         contentModel()->updateById((int)$contentRecord['id'], [
             'content' => $newContent,
+            'content_type' => 'html',
+            'blocks_data' => null,
             'updated_at' => time(),
         ]);
     } else {
-        // 没有内容记录则创建一条
         contentModel()->create([
             'channel_id' => $id,
             'title' => post('name'),
             'content' => $newContent,
+            'content_type' => 'html',
+            'blocks_data' => null,
             'status' => 1,
             'created_at' => time(),
             'updated_at' => time(),
@@ -105,12 +110,26 @@ $currentMenu = 'page';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="mb-6">
+<div class="mb-6 flex items-center justify-between">
     <a href="/admin/page.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         返回单页列表
     </a>
+    <a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+        切换到排版编辑器
+    </a>
 </div>
+
+<?php if ($contentType === 'blocks'): ?>
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+    <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <div class="text-sm text-amber-800">
+        <p>此页面当前使用<strong>排版编辑器</strong>管理内容。在此处保存将切换为富文本模式，排版布局信息将丢失。</p>
+        <p class="mt-1"><a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="text-primary hover:underline font-medium">前往排版编辑器</a></p>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php if ($redirectTarget): ?>
 <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">

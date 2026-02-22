@@ -142,7 +142,7 @@
     </script>
 
     <!-- 媒体库选择弹窗 -->
-    <div id="mediaPickerModal" class="fixed inset-0 z-[60] hidden">
+    <div id="mediaPickerModal" class="fixed inset-0 hidden" style="z-index:9999">
         <div class="absolute inset-0 bg-black/50" onclick="_mpClose()"></div>
         <div class="relative mx-auto my-6 bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col" style="max-height:calc(100vh - 3rem)">
             <div class="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
