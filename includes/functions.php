@@ -1639,3 +1639,149 @@ function renderFormTemplate(string $slug): string
 
     return $html;
 }
+
+/**
+ * 将排版模式 JSON 数据渲染为 HTML
+ */
+function renderBlocksToHtml(string $blocksJson): string
+{
+    $sections = json_decode($blocksJson, true);
+    if (!is_array($sections) || empty($sections)) {
+        return '';
+    }
+
+    $paddingMap = ['none' => 'py-0', 'sm' => 'py-4', 'md' => 'py-8', 'lg' => 'py-12', 'xl' => 'py-16'];
+    $maxWidthMap = ['default' => 'max-w-6xl', 'narrow' => 'max-w-4xl', 'wide' => 'max-w-7xl', 'full' => 'max-w-full'];
+    $spacerMap = ['sm' => 'h-4', 'md' => 'h-8', 'lg' => 'h-16', 'xl' => 'h-24'];
+    $headingSizeMap = ['h1' => 'text-3xl', 'h2' => 'text-2xl', 'h3' => 'text-xl', 'h4' => 'text-lg'];
+    $gapMap = ['none' => 'gap-0', 'sm' => 'gap-2', 'md' => 'gap-4', 'lg' => 'gap-8', 'xl' => 'gap-12'];
+    $alignItemsMap = ['start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end'];
+    $justifyItemsMap = ['start' => 'justify-items-start', 'center' => 'justify-items-center', 'end' => 'justify-items-end'];
+
+    $html = '';
+
+    foreach ($sections as $section) {
+        $settings = $section['settings'] ?? [];
+        $padding = $paddingMap[$settings['padding'] ?? 'md'] ?? 'py-8';
+        $maxWidth = $maxWidthMap[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';
+
+        $style = '';
+        if (!empty($settings['bg_color'])) {
+            $bgColor = htmlspecialchars($settings['bg_color']);
+            $bgOpacity = isset($settings['bg_opacity']) ? (int)$settings['bg_opacity'] : 100;
+            if ($bgOpacity < 100 && preg_match('/^#([0-9a-fA-F]{6})$/', $bgColor, $m)) {
+                $r = hexdec(substr($m[1], 0, 2));
+                $g = hexdec(substr($m[1], 2, 2));
+                $b = hexdec(substr($m[1], 4, 2));
+                $a = round($bgOpacity / 100, 2);
+                $style .= 'background-color:rgba(' . $r . ',' . $g . ',' . $b . ',' . $a . ');';
+            } else {
+                $style .= 'background-color:' . $bgColor . ';';
+            }
+        }
+        if (!empty($settings['bg_image'])) {
+            $style .= 'background-image:url(' . htmlspecialchars($settings['bg_image']) . ');background-size:cover;background-position:center;';
+        }
+        $styleAttr = $style ? ' style="' . $style . '"' : '';
+
+        $columns = $section['columns'] ?? [];
+        $colCount = count($columns);
+        if ($colCount < 1) continue;
+
+        $gap = $gapMap[$settings['gap'] ?? 'lg'] ?? 'gap-8';
+        $gridClass = '';
+        if ($colCount > 1) {
+            $gridClass = 'grid grid-cols-1 md:grid-cols-' . $colCount . ' ' . $gap;
+            if (!empty($alignItemsMap[$settings['align_items'] ?? ''])) {
+                $gridClass .= ' ' . $alignItemsMap[$settings['align_items']];
+            }
+            if (!empty($justifyItemsMap[$settings['justify_items'] ?? ''])) {
+                $gridClass .= ' ' . $justifyItemsMap[$settings['justify_items']];
+            }
+        }
+
+        $html .= '<section class="' . $padding . '"' . $styleAttr . '>';
+        $html .= '<div class="' . $maxWidth . ' mx-auto px-4">';
+        if ($gridClass) {
+            $html .= '<div class="' . $gridClass . '">';
+        }
+
+        foreach ($columns as $col) {
+            if ($colCount > 1) $html .= '<div>';
+            foreach ($col['elements'] ?? [] as $el) {
+                $type = $el['type'] ?? '';
+                $data = $el['data'] ?? [];
+                switch ($type) {
+                    case 'heading':
+                        $level = in_array($data['level'] ?? '', ['h1','h2','h3','h4']) ? $data['level'] : 'h2';
+                        $size = $headingSizeMap[$level];
+                        $html .= '<' . $level . ' class="' . $size . ' font-bold mb-4">' . htmlspecialchars($data['text'] ?? '') . '</' . $level . '>';
+                        break;
+                    case 'text':
+                        $html .= '<div class="prose prose-lg max-w-none">' . ($data['html'] ?? '') . '</div>';
+                        break;
+                    case 'image':
+                        $src = htmlspecialchars($data['src'] ?? '');
+                        $alt = htmlspecialchars($data['alt'] ?? '');
+                        if ($src) {
+                            $clickAction = $data['click_action'] ?? '';
+                            $imgTag = '<img class="w-full rounded-lg" src="' . $src . '" alt="' . $alt . '" loading="lazy">';
+                            if ($clickAction === 'lightbox') {
+                                $html .= '<a href="' . $src . '" data-lightbox class="block cursor-zoom-in">' . $imgTag . '</a>';
+                            } elseif ($clickAction === 'link' && !empty($data['link_url'])) {
+                                $linkUrl = htmlspecialchars($data['link_url']);
+                                $target = !empty($data['link_new_tab']) ? ' target="_blank" rel="noopener"' : '';
+                                $html .= '<a href="' . $linkUrl . '"' . $target . ' class="block">' . $imgTag . '</a>';
+                            } else {
+                                $html .= $imgTag;
+                            }
+                        }
+                        break;
+                    case 'button':
+                        $text = htmlspecialchars($data['text'] ?? '');
+                        $url = htmlspecialchars($data['url'] ?? '#');
+                        $target = !empty($data['new_tab']) ? ' target="_blank" rel="noopener"' : '';
+                        $html .= '<div class="mt-2"><a class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg transition" href="' . $url . '"' . $target . '>' . $text . '</a></div>';
+                        break;
+                    case 'icon':
+                        $icon = htmlspecialchars($data['icon'] ?? 'star');
+                        $iconSizeMap = ['sm' => '24', 'md' => '32', 'lg' => '48', 'xl' => '64'];
+                        $iconSize = $iconSizeMap[$data['size'] ?? 'md'] ?? '32';
+                        $iconColor = htmlspecialchars($data['color'] ?? '');
+                        $iconStyle = $iconColor ? ' style="color:' . $iconColor . '"' : '';
+                        $iconText = htmlspecialchars($data['text'] ?? '');
+                        $html .= '<div class="text-center my-2"' . $iconStyle . '>';
+                        $html .= '<svg width="' . $iconSize . '" height="' . $iconSize . '" class="inline-block" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="/assets/icons/feather-sprite.svg#' . $icon . '"></use></svg>';
+                        if ($iconText) {
+                            $html .= '<div class="mt-1 text-sm">' . $iconText . '</div>';
+                        }
+                        $html .= '</div>';
+                        break;
+                    case 'code':
+                        $html .= $data['html'] ?? '';
+                        break;
+                    case 'divider':
+                        $divStyle = htmlspecialchars($data['style'] ?? 'solid');
+                        $divWidth = max(1, min(3, (int)($data['width'] ?? 1)));
+                        $divColor = htmlspecialchars($data['color'] ?? '#e5e7eb');
+                        $divSpacingMap = ['sm' => 'my-2', 'md' => 'my-4', 'lg' => 'my-8'];
+                        $divSpacing = $divSpacingMap[$data['spacing'] ?? 'md'] ?? 'my-4';
+                        $html .= '<hr class="' . $divSpacing . ' border-0" style="border-top:' . $divWidth . 'px ' . $divStyle . ' ' . $divColor . '">';
+                        break;
+                    case 'spacer':
+                        $size = $spacerMap[$data['size'] ?? 'md'] ?? 'h-8';
+                        $html .= '<div class="' . $size . '"></div>';
+                        break;
+                }
+            }
+            if ($colCount > 1) $html .= '</div>';
+        }
+
+        if ($gridClass) {
+            $html .= '</div>';
+        }
+        $html .= '</div></section>';
+    }
+
+    return $html;
+}

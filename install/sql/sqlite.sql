@@ -666,6 +666,7 @@ INSERT INTO yikai_settings ("group", "key", value, type, name, tip, sort_order) 
 ('footer', 'footer_bg_color', '#1f2937', 'color', '背景颜色', '十六进制颜色值', 2),
 ('footer', 'footer_bg_image', '', 'image', '背景图片', '设置后覆盖背景颜色', 3),
 ('footer', 'footer_text_color', '#9ca3af', 'color', '文字颜色', '十六进制颜色值', 4),
+('footer', 'footer_nav', '[]', 'footer_nav', '页脚导航', '版权栏上方的导航链接分组', 5),
 -- 代码注入
 ('code', 'custom_head_code', '', 'code', 'Head 代码', '插入到 </head> 前的代码', 1),
 ('code', 'custom_body_code', '', 'code', 'Body 代码', '插入到 </body> 前的代码', 2),

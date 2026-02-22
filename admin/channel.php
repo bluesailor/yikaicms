@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'seo_title' => post('seo_title'),
             'seo_keywords' => post('seo_keywords'),
             'seo_description' => post('seo_description'),
-            'is_nav' => postInt('is_nav', 1),
+            'is_nav' => postInt('is_nav'),
             'is_home' => postInt('is_home'),
             'status' => postInt('status', 1),
             'sort_order' => postInt('sort_order'),
@@ -72,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error('URL别名已存在');
         }
 
+        // 获取旧slug（用于更新页脚导航中的URL）
+        $oldSlug = '';
+        if ($id > 0) {
+            $oldCh = channelModel()->find($id);
+            $oldSlug = $oldCh ? $oldCh['slug'] : '';
+        }
+
         if ($id > 0) {
             channelModel()->updateById($id, $data);
             adminLog('channel', 'update', '更新栏目：' . $data['name']);
@@ -80,6 +87,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = channelModel()->create($data);
             adminLog('channel', 'create', '创建栏目：' . $data['name']);
         }
+
+        // 更新页脚导航
+        $isFooterNav = postInt('is_footer_nav');
+        $newUrl = '/' . $data['slug'] . '.html';
+        $oldUrl = $oldSlug ? '/' . $oldSlug . '.html' : '';
+        $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+
+        // 移除旧URL（slug可能已变更）
+        if ($oldUrl) {
+            foreach ($footerNav as &$group) {
+                $group['links'] = array_values(array_filter($group['links'] ?? [], function($link) use ($oldUrl) {
+                    return ($link['url'] ?? '') !== $oldUrl;
+                }));
+            }
+            unset($group);
+        }
+
+        if ($isFooterNav) {
+            // 检查新URL是否已存在
+            $exists = false;
+            foreach ($footerNav as $group) {
+                foreach (($group['links'] ?? []) as $link) {
+                    if (($link['url'] ?? '') === $newUrl) {
+                        $exists = true;
+                        break 2;
+                    }
+                }
+            }
+            if (!$exists) {
+                if (empty($footerNav)) {
+                    $footerNav[] = ['title' => '', 'links' => []];
+                }
+                $footerNav[0]['links'][] = ['name' => $data['name'], 'url' => $newUrl, 'target' => '_self'];
+            }
+        }
+
+        // 清理空分组
+        $footerNav = array_values(array_filter($footerNav, function($g) {
+            return !empty($g['links']);
+        }));
+
+        settingModel()->set('footer_nav', json_encode($footerNav, JSON_UNESCAPED_UNICODE));
 
         success(['id' => $id]);
     }
@@ -124,6 +173,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'sort_footer_nav') {
+        $urls = $_POST['urls'] ?? [];
+        $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+
+        // 扁平化所有链接，建立 url => link 映射
+        $allLinks = [];
+        foreach ($footerNav as $group) {
+            foreach (($group['links'] ?? []) as $link) {
+                $allLinks[$link['url'] ?? ''] = $link;
+            }
+        }
+
+        // 按新顺序重建
+        $newLinks = [];
+        foreach ($urls as $url) {
+            if (isset($allLinks[$url])) {
+                $newLinks[] = $allLinks[$url];
+            }
+        }
+
+        $newFooterNav = empty($newLinks) ? [] : [['title' => '', 'links' => $newLinks]];
+        settingModel()->set('footer_nav', json_encode($newFooterNav, JSON_UNESCAPED_UNICODE));
+        success();
+    }
+
     // 切换产品分类的导航显示
     if ($action === 'toggle_cat_nav') {
         $catId = postInt('cat_id');
@@ -155,6 +229,53 @@ foreach ($channelTree as $ch) {
         $productChannelIds[] = (int)$ch['id'];
     }
 }
+// 获取页脚导航中的URL列表（用于显示菜单位置）
+$footerNavUrls = [];
+$footerNavData = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+foreach ($footerNavData as $group) {
+    foreach (($group['links'] ?? []) as $link) {
+        $footerNavUrls[] = $link['url'] ?? '';
+    }
+}
+$homeInFooterNav = in_array('/', $footerNavUrls);
+
+// 按 footer_nav JSON 顺序构建页脚栏目列表
+$footerNavItems = [];
+foreach ($footerNavData as $group) {
+    foreach (($group['links'] ?? []) as $link) {
+        $url = $link['url'] ?? '';
+        if ($url === '/') {
+            $footerNavItems[] = ['type' => 'home', 'link' => $link];
+        } else {
+            $matched = false;
+            foreach ($channelTree as $ch) {
+                if ('/' . $ch['slug'] . '.html' === $url) {
+                    $footerNavItems[] = ['type' => 'channel', 'channel' => $ch, 'link' => $link];
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                $footerNavItems[] = ['type' => 'external', 'link' => $link];
+            }
+        }
+    }
+}
+
+// 三分法：主导航 / 页脚导航(由footerNavItems控制) / 未定义
+$mainNavChannels = [];
+$undefinedChannels = [];
+foreach ($channelTree as $ch) {
+    $chUrl = '/' . $ch['slug'] . '.html';
+    if (!empty($ch['is_nav'])) {
+        $mainNavChannels[] = $ch;
+    } elseif (!in_array($chUrl, $footerNavUrls)) {
+        $undefinedChannels[] = $ch;
+    }
+}
+
+$activeTab = $_GET['tab'] ?? 'main';
+
 $editId = getInt('edit');
 $editChannel = $editId > 0 ? channelModel()->find($editId) : null;
 
@@ -167,117 +288,286 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- 栏目列表 -->
     <div class="lg:col-span-2">
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b flex justify-between items-center">
-                <h2 class="font-bold text-gray-800">栏目列表 <span class="text-xs text-gray-400 font-normal ml-2">拖动排序</span></h2>
-                <a href="?edit=0" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition inline-flex items-center gap-1">
+        <div class="bg-white rounded-lg shadow" x-data="{ tab: '<?php echo e($activeTab); ?>' }">
+            <!-- Tab 导航 -->
+            <div class="px-6 py-3 border-b flex items-center gap-1 flex-wrap">
+                <button @click="tab='main'" :class="tab==='main' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'"
+                        class="px-3 py-2 text-sm font-medium border-b-2 transition cursor-pointer">
+                    主导航栏目<span class="ml-1 text-xs text-gray-400">(<?php echo count($mainNavChannels) + 1; ?>)</span>
+                </button>
+                <button @click="tab='footer'" :class="tab==='footer' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'"
+                        class="px-3 py-2 text-sm font-medium border-b-2 transition cursor-pointer">
+                    页脚导航栏目<span class="ml-1 text-xs text-gray-400">(<?php echo count($footerNavItems); ?>)</span>
+                </button>
+                <button @click="tab='none'" :class="tab==='none' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'"
+                        class="px-3 py-2 text-sm font-medium border-b-2 transition cursor-pointer">
+                    未定义位置<span class="ml-1 text-xs text-gray-400">(<?php echo count($undefinedChannels); ?>)</span>
+                </button>
+                <div class="flex-1"></div>
+                <a href="?edit=0&tab=<?php echo e($activeTab); ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     添加栏目
                 </a>
             </div>
 
-            <!-- 首页（固定在顶部，不可排序） -->
-            <div class="px-4 pt-4">
-                <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <span class="text-blue-300">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                    </span>
-                    <span class="font-medium text-gray-800 flex-1"><?php echo e(config('nav_home_text', '') ?: '首页'); ?></span>
-                    <span class="text-xs text-gray-400">网站首页导航文字</span>
-                    <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm">编辑</a>
+            <!-- Tab 1: 主导航栏目 -->
+            <div x-show="tab==='main'" x-cloak>
+                <!-- 首页（固定） -->
+                <div class="px-4 pt-4">
+                    <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <span class="text-blue-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        </span>
+                        <span class="font-medium text-gray-800 flex-1"><?php echo e(config('nav_home_text', '') ?: '首页'); ?></span>
+                        <span class="text-xs text-gray-400">固定</span>
+                        <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm">编辑</a>
+                    </div>
+                </div>
+
+                <?php if (!empty($mainNavChannels)): ?>
+                <div class="p-4 pt-2">
+                    <div id="sortable-root" class="space-y-2" data-parent="0">
+                        <?php foreach ($mainNavChannels as $ch): ?>
+                        <div class="channel-item" data-id="<?php echo $ch['id']; ?>">
+                            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm group">
+                                <span class="drag-handle-root cursor-grab text-gray-300 hover:text-gray-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                </span>
+                                <span class="font-medium text-gray-800 flex-1">
+                                    <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
+                                </span>
+                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <?php if (in_array('/' . $ch['slug'] . '.html', $footerNavUrls)): ?>
+                                <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600">页脚</span>
+                                <?php endif; ?>
+                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
+                                        class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
+                                    <?php echo $ch['status'] ? '显示' : '隐藏'; ?>
+                                </button>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="text-primary hover:underline text-sm">编辑栏目</a>
+                                <?php if (($ch['type'] ?? '') === 'page'): ?>
+                                <?php if (($ch['slug'] ?? '') === 'contact'): ?>
+                                <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm">联系设置</a>
+                                <?php else: ?>
+                                <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
+                                <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (empty($ch['is_system'])): ?>
+                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
+                                        class="text-red-400 hover:text-red-600 text-sm">删除</button>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (!empty($ch['children'])): ?>
+                            <div class="sortable-children ml-8 mt-2 space-y-2" data-parent="<?php echo $ch['id']; ?>">
+                                <?php foreach ($ch['children'] as $child): ?>
+                                <div class="channel-item" data-id="<?php echo $child['id']; ?>">
+                                    <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm group">
+                                        <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                        </span>
+                                        <span class="text-gray-300 text-xs">└</span>
+                                        <span class="text-gray-700 flex-1">
+                                            <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($child['name']); ?></a>
+                                        </span>
+                                        <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
+                                        <button onclick="toggleField(<?php echo $child['id']; ?>, 'status', <?php echo $child['status'] ? 0 : 1; ?>)"
+                                                class="text-xs px-2 py-0.5 rounded <?php echo $child['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
+                                            <?php echo $child['status'] ? '显示' : '隐藏'; ?>
+                                        </button>
+                                        <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="text-primary hover:underline text-sm">编辑栏目</a>
+                                        <?php if (($child['type'] ?? '') === 'page'): ?>
+                                        <?php if (($child['slug'] ?? '') === 'contact'): ?>
+                                        <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm">联系设置</a>
+                                        <?php else: ?>
+                                        <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
+                                        <?php endif; ?>
+                                        <?php endif; ?>
+                                        <?php if (empty($child['is_system'])): ?>
+                                        <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
+                                                class="text-red-400 hover:text-red-600 text-sm">删除</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php if ($ch['type'] === 'product' && !empty($productCats)): ?>
+                            <div class="ml-8 mt-2 space-y-2">
+                                <div class="flex items-center gap-2 px-4 py-1.5">
+                                    <span class="text-xs text-gray-400">以下为产品分类（自动同步）</span>
+                                    <a href="/admin/product_category.php" class="text-xs text-primary hover:underline">管理分类</a>
+                                </div>
+                                <?php foreach ($productCats as $cat): ?>
+                                <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm">
+                                    <span class="text-amber-300 text-xs">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path></svg>
+                                    </span>
+                                    <span class="text-gray-300 text-xs">└</span>
+                                    <span class="text-gray-700 flex-1"><?php echo e($cat['name']); ?></span>
+                                    <span class="text-xs text-amber-500">产品分类</span>
+                                    <button onclick="toggleCatNav(<?php echo $cat['id']; ?>, <?php echo !empty($cat['is_nav']) ? 0 : 1; ?>)"
+                                            class="text-xs px-2 py-0.5 rounded <?php echo !empty($cat['is_nav']) ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'; ?>">
+                                        导航<?php echo !empty($cat['is_nav']) ? '开' : '关'; ?>
+                                    </button>
+                                    <a href="/admin/product_category.php" class="text-primary hover:underline text-sm">编辑</a>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="px-6 py-8 text-center text-gray-400 text-sm">暂无主导航栏目</div>
+                <?php endif; ?>
+                <div class="px-4 pb-2">
+                    <p class="text-xs text-gray-400">拖动排序调整导航栏显示顺序</p>
                 </div>
             </div>
 
-            <?php if (empty($channelTree)): ?>
-            <div class="px-6 py-8 text-center text-gray-500">暂无栏目</div>
-            <?php else: ?>
-            <div class="p-4 pt-2">
-                <div id="sortable-root" class="space-y-2" data-parent="0">
-                    <?php foreach ($channelTree as $ch): ?>
-                    <div class="channel-item" data-id="<?php echo $ch['id']; ?>">
-                        <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm group">
-                            <span class="drag-handle-root cursor-grab text-gray-300 hover:text-gray-500">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                            </span>
-                            <span class="font-medium text-gray-800 flex-1">
-                                <a href="?edit=<?php echo $ch['id']; ?>" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
-                            </span>
-                            <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
-                            <button onclick="toggleField(<?php echo $ch['id']; ?>, 'is_nav', <?php echo $ch['is_nav'] ? 0 : 1; ?>)"
-                                    class="text-xs px-2 py-0.5 rounded <?php echo $ch['is_nav'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                导航<?php echo $ch['is_nav'] ? '开' : '关'; ?>
-                            </button>
-                            <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
-                                    class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                <?php echo $ch['status'] ? '显示' : '隐藏'; ?>
-                            </button>
-                            <a href="?edit=<?php echo $ch['id']; ?>" class="text-primary hover:underline text-sm">编辑</a>
-                            <?php if (empty($ch['is_system'])): ?>
-                            <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                    class="text-red-400 hover:text-red-600 text-sm">删除</button>
-                            <?php endif; ?>
+            <!-- Tab 2: 页脚导航栏目 -->
+            <div x-show="tab==='footer'" x-cloak>
+                <?php if (!empty($footerNavItems)): ?>
+                <div class="p-4">
+                    <div id="sortable-footer" class="space-y-2">
+                        <?php foreach ($footerNavItems as $fi): ?>
+                        <?php if ($fi['type'] === 'home'): ?>
+                        <div class="footer-nav-item" data-url="/">
+                            <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <span class="drag-handle-footer cursor-grab text-blue-300 hover:text-blue-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                </span>
+                                <span class="text-blue-300">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                                </span>
+                                <span class="font-medium text-gray-800 flex-1"><?php echo e($fi['link']['name'] ?? '首页'); ?></span>
+                                <span class="text-xs text-gray-400">/</span>
+                                <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm">编辑</a>
+                            </div>
                         </div>
-                        <?php if (!empty($ch['children'])): ?>
-                        <div class="sortable-children ml-8 mt-2 space-y-2" data-parent="<?php echo $ch['id']; ?>">
-                            <?php foreach ($ch['children'] as $child): ?>
-                            <div class="channel-item" data-id="<?php echo $child['id']; ?>">
-                                <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm group">
-                                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                                    </span>
+                        <?php elseif ($fi['type'] === 'channel'): ?>
+                        <?php $ch = $fi['channel']; ?>
+                        <div class="footer-nav-item" data-url="<?php echo e($fi['link']['url']); ?>">
+                            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm">
+                                <span class="drag-handle-footer cursor-grab text-gray-300 hover:text-gray-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                </span>
+                                <span class="font-medium text-gray-800 flex-1">
+                                    <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
+                                </span>
+                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <?php if (!empty($ch['is_nav'])): ?>
+                                <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600">主导航</span>
+                                <?php endif; ?>
+                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
+                                        class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
+                                    <?php echo $ch['status'] ? '显示' : '隐藏'; ?>
+                                </button>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="text-primary hover:underline text-sm">编辑栏目</a>
+                                <?php if (($ch['type'] ?? '') === 'page'): ?>
+                                <?php if (($ch['slug'] ?? '') === 'contact'): ?>
+                                <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm">联系设置</a>
+                                <?php else: ?>
+                                <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
+                                <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (empty($ch['is_system'])): ?>
+                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
+                                        class="text-red-400 hover:text-red-600 text-sm">删除</button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="footer-nav-item" data-url="<?php echo e($fi['link']['url']); ?>">
+                            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm">
+                                <span class="drag-handle-footer cursor-grab text-gray-300 hover:text-gray-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                </span>
+                                <span class="font-medium text-gray-800 flex-1"><?php echo e($fi['link']['name'] ?? ''); ?></span>
+                                <span class="text-xs text-gray-400"><?php echo e($fi['link']['url'] ?? ''); ?></span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-600">外部链接</span>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="px-6 py-8 text-center text-gray-400 text-sm">暂无页脚导航栏目</div>
+                <?php endif; ?>
+                <div class="px-4 pb-2">
+                    <p class="text-xs text-gray-400">拖动排序调整页脚导航显示顺序，详细管理请到 <a href="/admin/setting.php?tab=footer" class="text-primary hover:underline">系统设置 > 页脚</a></p>
+                </div>
+            </div>
+
+            <!-- Tab 3: 未定义位置栏目 -->
+            <div x-show="tab==='none'" x-cloak>
+                <?php if (!empty($undefinedChannels)): ?>
+                <div class="p-4">
+                    <div class="space-y-2">
+                        <?php foreach ($undefinedChannels as $ch): ?>
+                        <div>
+                            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm">
+                                <span class="font-medium text-gray-800 flex-1">
+                                    <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
+                                </span>
+                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
+                                        class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
+                                    <?php echo $ch['status'] ? '显示' : '隐藏'; ?>
+                                </button>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="text-primary hover:underline text-sm">编辑栏目</a>
+                                <?php if (($ch['type'] ?? '') === 'page'): ?>
+                                <?php if (($ch['slug'] ?? '') === 'contact'): ?>
+                                <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm">联系设置</a>
+                                <?php else: ?>
+                                <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
+                                <?php endif; ?>
+                                <?php endif; ?>
+                                <?php if (empty($ch['is_system'])): ?>
+                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
+                                        class="text-red-400 hover:text-red-600 text-sm">删除</button>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (!empty($ch['children'])): ?>
+                            <div class="ml-8 mt-2 space-y-2">
+                                <?php foreach ($ch['children'] as $child): ?>
+                                <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm">
                                     <span class="text-gray-300 text-xs">└</span>
                                     <span class="text-gray-700 flex-1">
-                                        <a href="?edit=<?php echo $child['id']; ?>" class="hover:text-primary"><?php echo e($child['name']); ?></a>
+                                        <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="hover:text-primary"><?php echo e($child['name']); ?></a>
                                     </span>
                                     <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
-                                    <button onclick="toggleField(<?php echo $child['id']; ?>, 'is_nav', <?php echo $child['is_nav'] ? 0 : 1; ?>)"
-                                            class="text-xs px-2 py-0.5 rounded <?php echo $child['is_nav'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                        导航<?php echo $child['is_nav'] ? '开' : '关'; ?>
-                                    </button>
                                     <button onclick="toggleField(<?php echo $child['id']; ?>, 'status', <?php echo $child['status'] ? 0 : 1; ?>)"
                                             class="text-xs px-2 py-0.5 rounded <?php echo $child['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
                                         <?php echo $child['status'] ? '显示' : '隐藏'; ?>
                                     </button>
-                                    <a href="?edit=<?php echo $child['id']; ?>" class="text-primary hover:underline text-sm">编辑</a>
+                                    <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="text-primary hover:underline text-sm">编辑栏目</a>
+                                    <?php if (($child['type'] ?? '') === 'page'): ?>
+                                    <?php if (($child['slug'] ?? '') === 'contact'): ?>
+                                    <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm">联系设置</a>
+                                    <?php else: ?>
+                                    <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
+                                    <?php endif; ?>
+                                    <?php endif; ?>
                                     <?php if (empty($child['is_system'])): ?>
                                     <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
                                             class="text-red-400 hover:text-red-600 text-sm">删除</button>
                                     <?php endif; ?>
                                 </div>
+                                <?php endforeach; ?>
                             </div>
-                            <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
-                        <?php endif; ?>
-
-                        <?php if ($ch['type'] === 'product' && !empty($productCats)): ?>
-                        <!-- 同步的产品分类 -->
-                        <div class="ml-8 mt-2 space-y-2">
-                            <div class="flex items-center gap-2 px-4 py-1.5">
-                                <span class="text-xs text-gray-400">以下为产品分类（自动同步）</span>
-                                <a href="/admin/product_category.php" class="text-xs text-primary hover:underline">管理分类</a>
-                            </div>
-                            <?php foreach ($productCats as $cat): ?>
-                            <div class="flex items-center gap-3 px-4 py-2.5 bg-amber-50 rounded-lg border border-amber-200 hover:shadow-sm">
-                                <span class="text-amber-300 text-xs">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path></svg>
-                                </span>
-                                <span class="text-gray-300 text-xs">└</span>
-                                <span class="text-gray-700 flex-1"><?php echo e($cat['name']); ?></span>
-                                <span class="text-xs text-amber-500">产品分类</span>
-                                <button onclick="toggleCatNav(<?php echo $cat['id']; ?>, <?php echo !empty($cat['is_nav']) ? 0 : 1; ?>)"
-                                        class="text-xs px-2 py-0.5 rounded <?php echo !empty($cat['is_nav']) ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                    导航<?php echo !empty($cat['is_nav']) ? '开' : '关'; ?>
-                                </button>
-                                <a href="/admin/product_category.php" class="text-primary hover:underline text-sm">编辑</a>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
                     </div>
-                    <?php endforeach; ?>
                 </div>
+                <?php else: ?>
+                <div class="px-6 py-8 text-center text-gray-400 text-sm">所有栏目均已分配位置</div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -393,15 +683,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
 
-                <div class="flex gap-4">
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_nav" value="1" <?php echo ($editChannel['is_nav'] ?? 1) ? 'checked' : ''; ?> class="mr-2">
-                        显示在导航
-                    </label>
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_home" value="1" <?php echo ($editChannel['is_home'] ?? 0) ? 'checked' : ''; ?> class="mr-2">
-                        显示在首页
-                    </label>
+                <div>
+                    <label class="block text-gray-700 text-sm mb-1">菜单位置</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="is_nav" value="1" <?php echo ($editChannel['is_nav'] ?? 1) ? 'checked' : ''; ?> class="mr-2">
+                            主菜单
+                        </label>
+                        <label class="flex items-center">
+                            <?php
+                            $editInFooterNav = false;
+                            if ($editChannel) {
+                                $editChannelUrl = '/' . ($editChannel['slug'] ?? '') . '.html';
+                                $editInFooterNav = in_array($editChannelUrl, $footerNavUrls);
+                            }
+                            ?>
+                            <input type="checkbox" name="is_footer_nav" value="1" <?php echo $editInFooterNav ? 'checked' : ''; ?> class="mr-2">
+                            页脚导航
+                        </label>
+                    </div>
                 </div>
 
                 <div class="border-t pt-4">
@@ -415,6 +715,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                   placeholder="SEO描述"><?php echo e($editChannel['seo_description'] ?? ''); ?></textarea>
                     </div>
                 </div>
+
+                <?php if ($editChannel && ($editChannel['type'] ?? '') === 'page'): ?>
+                <?php if (($editChannel['slug'] ?? '') === 'contact'): ?>
+                <a href="/admin/setting_contact.php"
+                   class="block w-full text-center bg-gray-700 hover:bg-gray-800 text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    联系设置
+                </a>
+                <?php else: ?>
+                <a href="/admin/page_edit.php?id=<?php echo $editChannel['id']; ?>"
+                   class="block w-full text-center bg-gray-700 hover:bg-gray-800 text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    编辑页面内容
+                </a>
+                <?php endif; ?>
+                <?php endif; ?>
 
                 <div class="flex gap-2">
                     <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
@@ -447,6 +763,9 @@ document.getElementById('redirectType').addEventListener('change', function() {
 });
 document.getElementById('redirectType').dispatchEvent(new Event('change'));
 
+// 当前 tab
+var currentTab = new URLSearchParams(location.search).get('tab') || 'main';
+
 // 表单提交
 document.getElementById('channelForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -458,7 +777,7 @@ document.getElementById('channelForm').addEventListener('submit', async function
 
         if (data.code === 0) {
             showMessage('保存成功');
-            setTimeout(function() { location.href = '?'; }, 1000);
+            setTimeout(function() { location.href = '?tab=' + currentTab; }, 1000);
         } else {
             showMessage(data.msg, 'error');
         }
@@ -539,7 +858,7 @@ async function saveSort(container) {
 }
 
 // 初始化拖放排序
-// 顶级栏目排序
+// 顶级栏目排序（主导航）
 var root = document.getElementById('sortable-root');
 if (root) {
     new Sortable(root, {
@@ -561,6 +880,34 @@ document.querySelectorAll('.sortable-children').forEach(function(el) {
         onEnd: function() { saveSort(el); }
     });
 });
+
+// 页脚导航排序
+var footerSortable = document.getElementById('sortable-footer');
+if (footerSortable) {
+    new Sortable(footerSortable, {
+        handle: '.drag-handle-footer',
+        animation: 200,
+        ghostClass: 'opacity-30',
+        chosenClass: 'shadow-lg',
+        onEnd: function() { saveFooterSort(footerSortable); }
+    });
+}
+
+async function saveFooterSort(container) {
+    var items = container.querySelectorAll(':scope > .footer-nav-item');
+    var formData = new FormData();
+    formData.append('action', 'sort_footer_nav');
+    items.forEach(function(item) {
+        formData.append('urls[]', item.dataset.url);
+    });
+    try {
+        var response = await fetch('', { method: 'POST', body: formData });
+        var data = await safeJson(response);
+        if (data.code === 0) {
+            showMessage('排序已保存');
+        }
+    } catch (err) {}
+}
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

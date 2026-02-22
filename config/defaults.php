@@ -53,6 +53,7 @@ return [
         'footer_bg_color'       => ['value' => '#1f2937', 'type' => 'color', 'name' => '背景颜色', 'tip' => '十六进制颜色值', 'sort_order' => 2],
         'footer_bg_image'       => ['value' => '', 'type' => 'image', 'name' => '背景图片', 'tip' => '设置后覆盖背景颜色', 'sort_order' => 3],
         'footer_text_color'     => ['value' => '#9ca3af', 'type' => 'color', 'name' => '文字颜色', 'tip' => '十六进制颜色值', 'sort_order' => 4],
+        'footer_nav'            => ['value' => '[]', 'type' => 'footer_nav', 'name' => '页脚导航', 'tip' => '版权栏上方的导航链接分组', 'sort_order' => 5],
     ],
 
     // ============================================================

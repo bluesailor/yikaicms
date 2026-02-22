@@ -83,6 +83,15 @@ $pages = channelModel()->query(
     ['page']
 );
 
+// 获取页脚导航URL列表
+$footerNavUrls = [];
+$footerNavData = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+foreach ($footerNavData as $group) {
+    foreach (($group['links'] ?? []) as $link) {
+        $footerNavUrls[] = $link['url'] ?? '';
+    }
+}
+
 $pageTitle = '单页管理';
 $currentMenu = 'page';
 
@@ -107,6 +116,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">页面名称</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">所属栏目</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">URL</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">菜单位置</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
@@ -141,6 +151,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <code class="text-xs bg-gray-100 px-2 py-1 rounded">/<?php echo e($item['slug']); ?>.html</code>
                     </td>
+                    <td class="px-4 py-3 text-center">
+                        <?php
+                        $itemUrl = '/' . $item['slug'] . '.html';
+                        $inMain = !empty($item['is_nav']);
+                        $inFooter = in_array($itemUrl, $footerNavUrls);
+                        ?>
+                        <?php if ($inMain): ?>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600">主导航</span>
+                        <?php endif; ?>
+                        <?php if ($inFooter): ?>
+                        <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600">页脚</span>
+                        <?php endif; ?>
+                        <?php if (!$inMain && !$inFooter): ?>
+                        <span class="text-xs text-gray-400">无</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="px-4 py-3 text-center text-sm text-gray-500">
                         <?php echo $item['sort_order']; ?>
                     </td>
@@ -173,7 +199,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($pages)): ?>
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无单页数据</td>
+                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无单页数据</td>
                 </tr>
                 <?php endif; ?>
             </tbody>
