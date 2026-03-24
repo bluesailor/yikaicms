@@ -60,10 +60,14 @@ if ($contentType === 'html' && $htmlContent && !$blocksData) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = resolveSlug(post('slug'), post('name'), 'channels', $id);
 
+    $postBlocksData = $_POST['blocks_data'] ?? '[]';
+    $renderedHtml = renderBlocksToHtml($postBlocksData);
+
     $channelData = [
         'name' => post('name'),
         'slug' => $slug,
         'description' => post('description'),
+        'content' => $renderedHtml,
         'image' => post('image'),
         'seo_title' => post('seo_title'),
         'seo_keywords' => post('seo_keywords'),
@@ -71,9 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
-    $postBlocksData = $_POST['blocks_data'] ?? '[]';
-    $renderedHtml = renderBlocksToHtml($postBlocksData);
+    channelModel()->updateById($id, $channelData);
 
+    // 同步到 contents 表（向后兼容）
     if ($contentRecord) {
         contentModel()->updateById((int)$contentRecord['id'], [
             'content' => $renderedHtml,
@@ -93,8 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'updated_at' => time(),
         ]);
     }
-
-    channelModel()->updateById($id, $channelData);
     adminLog('page', 'edit', '排版编辑单页：' . $channelData['name']);
     success();
 }

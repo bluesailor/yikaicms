@@ -144,7 +144,7 @@ require_once INCLUDES_PATH . 'header.php';
                 <!-- 职位详情 -->
                 <?php if ($job['content']): ?>
                 <div class="p-6 md:p-8 prose prose-lg max-w-none">
-                    <?php echo $job['content']; ?>
+                    <?php echo sanitizeHtml($job['content']); ?>
                 </div>
                 <?php endif; ?>
 

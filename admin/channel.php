@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'icon' => post('icon'),
             'image' => post('image'),
             'description' => post('description'),
+            'content' => $_POST['content'] ?? '',
             'link_url' => post('link_url'),
             'link_target' => post('link_target', '_self'),
             'redirect_type' => post('redirect_type', 'auto'),
