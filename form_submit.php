@@ -14,6 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// 表单提交频率限制
+$clientIp = getClientIp();
+$throttleRemain = checkFormThrottle($clientIp);
+if ($throttleRemain > 0) {
+    echo json_encode(['code' => 1, 'msg' => '提交过于频繁，请' . ceil($throttleRemain / 60) . '分钟后再试']);
+    exit;
+}
+
 $slug = trim(post('form_slug', ''));
 if (empty($slug)) {
     echo json_encode(['code' => 1, 'msg' => '无效表单']);
@@ -86,6 +94,9 @@ $data = [
 ];
 
 formModel()->create($data);
+
+// 记录提交频率
+recordFormSubmit($clientIp);
 
 $msg = $template['success_message'] ?: '提交成功，感谢您的反馈！';
 echo json_encode(['code' => 0, 'msg' => $msg]);

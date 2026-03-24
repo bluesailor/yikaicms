@@ -66,10 +66,13 @@ if ($contentRecord) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = resolveSlug(post('slug'), post('name'), 'channels', $id);
 
+    $newContent = $_POST['content'] ?? '';
+
     $channelData = [
         'name' => post('name'),
         'slug' => $slug,
         'description' => post('description'),
+        'content' => $newContent,
         'image' => post('image'),
         'seo_title' => post('seo_title'),
         'seo_keywords' => post('seo_keywords'),
@@ -77,8 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
-    $newContent = $_POST['content'] ?? '';
+    channelModel()->updateById($id, $channelData);
 
+    // 同步到 contents 表（向后兼容）
     if ($contentRecord) {
         contentModel()->updateById((int)$contentRecord['id'], [
             'content' => $newContent,
@@ -98,8 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'updated_at' => time(),
         ]);
     }
-
-    channelModel()->updateById($id, $channelData);
     adminLog('page', 'edit', '编辑单页：' . $channelData['name']);
     success();
 }

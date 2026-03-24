@@ -1,8 +1,29 @@
 {
+    "name": "yikai/ikaicms",
+    "description": "A lightweight enterprise CMS built with PHP 8.0+, no framework dependency.",
+    "type": "project",
+    "keywords": ["cms", "content-management", "php", "enterprise", "lightweight"],
+    "homepage": "https://www.yikaicms.com",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yikai",
+            "homepage": "https://www.yikaicms.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "ext-pdo": "*",
+        "ext-mbstring": "*",
+        "ext-json": "*",
+        "ext-gd": "*",
+        "overtrue/pinyin": "^6.0"
+    },
     "require-dev": {
         "vimeo/psalm": "6.4.0"
     },
-    "require": {
-        "overtrue/pinyin": "^6.0"
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
     }
 }

@@ -242,7 +242,7 @@ require_once INCLUDES_PATH . 'header.php';
                 <!-- Tab 内容 -->
                 <?php if ($hasContent): ?>
                 <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail">
-                    <?php echo $product['content']; ?>
+                    <?php echo sanitizeHtml($product['content']); ?>
                 </div>
                 <?php endif; ?>
 

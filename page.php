@@ -92,8 +92,19 @@ if ($redirectType === 'url' && !empty($channel['redirect_url'])) {
 }
 // redirectType === 'none' 时不跳转，显示自身内容
 
-// 获取单页内容（从 contents 表获取该栏目的第一条内容）
-$content = contentModel()->getFirstByChannel($channelId);
+// 单页内容直接从栏目表读取
+$content = null;
+if (!empty($channel['content'])) {
+    $content = [
+        'title'   => $channel['name'],
+        'cover'   => $channel['image'] ?? '',
+        'content' => $channel['content'],
+        'images'  => null,
+    ];
+} else {
+    // 向后兼容：如果栏目表没内容，回退到 contents 表
+    $content = contentModel()->getFirstByChannel($channelId);
+}
 
 // 页面信息
 $pageTitle = $channel['seo_title'] ?: $channel['name'];

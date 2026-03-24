@@ -781,6 +781,184 @@ function friendlyTime(int $time): string
 // ============================================================
 
 /**
+ * 净化富文本HTML，移除危险标签和属性，保留安全的格式化标签
+ */
+function sanitizeHtml(string $html): string
+{
+    if ($html === '') return '';
+
+    // 允许的标签白名单
+    $allowedTags = '<p><br><b><i><u><s><em><strong><small><sub><sup>'
+        . '<h1><h2><h3><h4><h5><h6>'
+        . '<ul><ol><li><dl><dt><dd>'
+        . '<table><thead><tbody><tfoot><tr><th><td><caption><colgroup><col>'
+        . '<a><img><figure><figcaption>'
+        . '<blockquote><pre><code><hr><div><span>'
+        . '<video><source><audio><iframe>';
+
+    // 第一步：移除 script/style 标签及其内容
+    $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
+    $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
+
+    // 第二步：strip_tags 保留白名单
+    $html = strip_tags($html, $allowedTags);
+
+    // 第三步：移除事件属性（on*）和 javascript: 协议
+    $html = preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html);
+    $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*javascript\s*:/i', 'data-removed="1"', $html);
+
+    // 第四步：限制 iframe src 为可信来源（如有需要可扩展）
+    $html = preg_replace_callback(
+        '/<iframe\b([^>]*)>/i',
+        function ($matches) {
+            $attrs = $matches[1];
+            // 只允许常见视频平台
+            if (preg_match('/src\s*=\s*["\']([^"\']+)["\']/i', $attrs, $srcMatch)) {
+                $src = $srcMatch[1];
+                $trusted = ['youtube.com', 'youtu.be', 'bilibili.com', 'player.bilibili.com', 'v.qq.com', 'youku.com'];
+                $allowed = false;
+                foreach ($trusted as $domain) {
+                    if (str_contains($src, $domain)) {
+                        $allowed = true;
+                        break;
+                    }
+                }
+                if (!$allowed) {
+                    return '<!-- iframe removed -->';
+                }
+            }
+            return $matches[0];
+        },
+        $html
+    );
+
+    return $html;
+}
+
+/**
+ * 表单提交频率限制：检查是否被限流
+ * 返回剩余锁定秒数（0=未限流）
+ */
+function checkFormThrottle(string $ip, string $formSlug = ''): int
+{
+    $dir = STORAGE_PATH . '/form_throttle/';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+
+    $key = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $ip);
+    $file = $dir . $key . '.json';
+
+    if (!file_exists($file)) return 0;
+
+    $data = json_decode(file_get_contents($file), true);
+    if (!$data) return 0;
+
+    $maxSubmits = 5;       // 每个时间窗口最多提交次数
+    $windowSeconds = 300;  // 时间窗口：5分钟
+
+    $elapsed = time() - ($data['last'] ?? 0);
+    if ($elapsed > $windowSeconds) {
+        @unlink($file);
+        return 0;
+    }
+
+    if (($data['count'] ?? 0) >= $maxSubmits) {
+        return $windowSeconds - $elapsed;
+    }
+
+    return 0;
+}
+
+/**
+ * 记录一次表单提交
+ */
+function recordFormSubmit(string $ip): void
+{
+    $dir = STORAGE_PATH . '/form_throttle/';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+
+    $key = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $ip);
+    $file = $dir . $key . '.json';
+
+    $handle = fopen($file, 'c+');
+    if (!$handle) return;
+    flock($handle, LOCK_EX);
+
+    $content = stream_get_contents($handle);
+    $data = $content ? (json_decode($content, true) ?: ['count' => 0, 'last' => 0]) : ['count' => 0, 'last' => 0];
+
+    if (time() - ($data['last'] ?? 0) > 300) {
+        $data = ['count' => 0, 'last' => 0];
+    }
+
+    $data['count'] = ($data['count'] ?? 0) + 1;
+    $data['last'] = time();
+
+    ftruncate($handle, 0);
+    rewind($handle);
+    fwrite($handle, json_encode($data));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+}
+
+/**
+ * 简单文件缓存：获取
+ */
+function cacheGet(string $key): mixed
+{
+    $file = STORAGE_PATH . '/cache/' . md5($key) . '.cache';
+    if (!file_exists($file)) return null;
+
+    $data = unserialize(file_get_contents($file));
+    if (!is_array($data) || !isset($data['expire'], $data['value'])) return null;
+
+    if ($data['expire'] > 0 && $data['expire'] < time()) {
+        @unlink($file);
+        return null;
+    }
+
+    return $data['value'];
+}
+
+/**
+ * 简单文件缓存：设置
+ * @param int $ttl 缓存秒数，0=永不过期
+ */
+function cacheSet(string $key, mixed $value, int $ttl = 300): void
+{
+    $dir = STORAGE_PATH . '/cache/';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+
+    $file = $dir . md5($key) . '.cache';
+    $data = [
+        'expire' => $ttl > 0 ? time() + $ttl : 0,
+        'value' => $value,
+    ];
+    file_put_contents($file, serialize($data), LOCK_EX);
+}
+
+/**
+ * 简单文件缓存：删除
+ */
+function cacheDelete(string $key): void
+{
+    $file = STORAGE_PATH . '/cache/' . md5($key) . '.cache';
+    if (file_exists($file)) @unlink($file);
+}
+
+/**
+ * 清空所有缓存
+ */
+function cacheClear(): void
+{
+    $dir = STORAGE_PATH . '/cache/';
+    if (!is_dir($dir)) return;
+    foreach (glob($dir . '*.cache') as $file) {
+        @unlink($file);
+    }
+}
+
+/**
  * 获取客户端IP
  */
 function getClientIp(): string

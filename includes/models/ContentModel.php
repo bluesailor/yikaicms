@@ -29,9 +29,14 @@ class ContentModel extends Model
             $params[] = $filters['type'];
         }
         if (!empty($filters['keyword'])) {
-            $where[] = '(c.title LIKE ? OR c.summary LIKE ?)';
-            $params[] = '%' . $filters['keyword'] . '%';
-            $params[] = '%' . $filters['keyword'] . '%';
+            if (!db()->isSqlite()) {
+                $where[] = 'MATCH(c.title, c.summary) AGAINST(? IN BOOLEAN MODE)';
+                $params[] = '+' . str_replace(' ', ' +', trim($filters['keyword']));
+            } else {
+                $where[] = '(c.title LIKE ? OR c.summary LIKE ?)';
+                $params[] = '%' . $filters['keyword'] . '%';
+                $params[] = '%' . $filters['keyword'] . '%';
+            }
         }
         if (!empty($filters['is_recommend'])) {
             $where[] = 'c.is_recommend = 1';
@@ -79,9 +84,14 @@ class ContentModel extends Model
             $params[] = $filters['type'];
         }
         if (!empty($filters['keyword'])) {
-            $where[] = '(title LIKE ? OR summary LIKE ?)';
-            $params[] = '%' . $filters['keyword'] . '%';
-            $params[] = '%' . $filters['keyword'] . '%';
+            if (!db()->isSqlite()) {
+                $where[] = 'MATCH(title, summary) AGAINST(? IN BOOLEAN MODE)';
+                $params[] = '+' . str_replace(' ', ' +', trim($filters['keyword']));
+            } else {
+                $where[] = '(title LIKE ? OR summary LIKE ?)';
+                $params[] = '%' . $filters['keyword'] . '%';
+                $params[] = '%' . $filters['keyword'] . '%';
+            }
         }
 
         $whereSQL = implode(' AND ', $where);

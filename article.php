@@ -138,7 +138,7 @@ require_once INCLUDES_PATH . 'header.php';
                     <!-- 文章正文 -->
                     <div class="p-6 md:p-8">
                         <div class="prose prose-lg max-w-none content-body">
-                            <?php echo $article['content']; ?>
+                            <?php echo sanitizeHtml($article['content']); ?>
                         </div>
                     </div>
 
