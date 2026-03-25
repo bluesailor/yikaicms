@@ -131,6 +131,20 @@ if ($channel['parent_id'] > 0) {
 // 获取导航
 $navChannels = getNavChannels();
 
+// SEO: OpenGraph & canonical
+$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$canonicalUrl = $siteUrl . channelUrl($channel);
+if (!empty($channel['image'])) {
+    $ogImage = $channel['image'];
+}
+$jsonLd = [
+    '@context' => 'https://schema.org',
+    '@type' => 'WebPage',
+    'name' => $pageTitle,
+    'description' => $pageDescription,
+    'url' => $canonicalUrl,
+];
+
 // 引入头部
 require_once INCLUDES_PATH . 'header.php';
 ?>
@@ -232,7 +246,7 @@ while ($tempChannel) {
                                data-lightbox="album"
                                data-title="<?php echo e($photo['title']); ?>"
                                class="block aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                <img src="<?php echo e(thumbnail($photo['image'], 'medium')); ?>"
+                                <img loading="lazy" src="<?php echo e(thumbnail($photo['image'], 'medium')); ?>"
                                      alt="<?php echo e($photo['title']); ?>"
                                      class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
                             </a>
@@ -254,7 +268,7 @@ while ($tempChannel) {
                 <article class="bg-white rounded-lg shadow p-6 md:p-8">
                     <?php if ($content['cover']): ?>
                     <div class="mb-6">
-                        <img src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg">
                     </div>
                     <?php endif; ?>
@@ -271,7 +285,7 @@ while ($tempChannel) {
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <?php foreach ($images as $image): ?>
                             <a href="<?php echo e($image); ?>" target="_blank" class="block aspect-square rounded overflow-hidden">
-                                <img src="<?php echo e($image); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
+                                <img loading="lazy" src="<?php echo e($image); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
                             </a>
                             <?php endforeach; ?>
                         </div>

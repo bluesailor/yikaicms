@@ -1279,12 +1279,23 @@ function uploadFile(array $file, string $type = 'images'): array
         $thumbs = generateThumbnails($filepath, $ext);
     }
 
+    // 自动生成 WebP 副本（非 WebP 图片且 GD 支持 WebP）
+    $webpUrl = '';
+    if (in_array($ext, ['jpg', 'jpeg', 'png']) && function_exists('imagewebp')) {
+        $webpPath = preg_replace('/\.\w+$/', '.webp', $filepath);
+        $webpResult = convertToWebp($filepath, $webpPath, $ext);
+        if ($webpResult) {
+            $webpUrl = preg_replace('/\.\w+$/', '.webp', '/uploads/' . $type . '/' . date('Ym') . '/' . $filename);
+        }
+    }
+
     // 返回信息
     $url = '/uploads/' . $type . '/' . date('Ym') . '/' . $filename;
     return [
         'name' => $file['name'],
         'path' => $filepath,
         'url' => $url,
+        'webp_url' => $webpUrl,
         'ext' => $ext,
         'size' => $file['size'],
         'width' => $width,
@@ -1431,6 +1442,49 @@ function thumbnail(?string $url, string $size = 'thumb'): string
     $thumbPath = ROOT_PATH . $thumbUrl;
     if (file_exists($thumbPath)) {
         return $thumbUrl;
+    }
+
+    return $url;
+}
+
+/**
+ * 将图片转换为 WebP 格式
+ */
+function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $quality = 80): bool
+{
+    $srcImage = match ($srcExt) {
+        'jpg', 'jpeg' => @imagecreatefromjpeg($srcPath),
+        'png'         => @imagecreatefrompng($srcPath),
+        default       => false,
+    };
+
+    if (!$srcImage) return false;
+
+    if ($srcExt === 'png') {
+        imagepalettetotruecolor($srcImage);
+        imagealphablending($srcImage, true);
+        imagesavealpha($srcImage, true);
+    }
+
+    $result = imagewebp($srcImage, $dstPath, $quality);
+    imagedestroy($srcImage);
+    return $result;
+}
+
+/**
+ * 获取图片的 WebP URL（如果存在）
+ * 用法: webpUrl('/uploads/images/202602/img.jpg')
+ */
+function webpUrl(?string $url): string
+{
+    if (empty($url)) return '';
+
+    $webp = preg_replace('/\.(jpe?g|png)$/i', '.webp', $url);
+    if ($webp === $url) return $url;
+
+    $webpPath = ROOT_PATH . $webp;
+    if (file_exists($webpPath)) {
+        return $webp;
     }
 
     return $url;

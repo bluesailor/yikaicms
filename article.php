@@ -47,6 +47,29 @@ $currentSlug = 'news';
 // 获取导航
 $navChannels = getNavChannels();
 
+// SEO: OpenGraph & JSON-LD
+$ogType = 'article';
+$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$canonicalUrl = $siteUrl . '/news/article/' . ($article['slug'] ?: $article['id']) . '.html';
+if (!empty($article['cover'])) {
+    $ogImage = $article['cover'];
+}
+$jsonLd = [
+    '@context' => 'https://schema.org',
+    '@type' => 'Article',
+    'headline' => $article['title'],
+    'description' => $pageDescription,
+    'datePublished' => date('c', (int)$article['publish_time']),
+    'dateModified' => date('c', (int)($article['updated_at'] ?: $article['publish_time'])),
+    'publisher' => [
+        '@type' => 'Organization',
+        'name' => config('site_name', 'Yikai CMS'),
+    ],
+];
+if (!empty($article['cover'])) {
+    $jsonLd['image'] = $siteUrl . $article['cover'];
+}
+
 // 引入头部
 require_once INCLUDES_PATH . 'header.php';
 ?>
@@ -209,7 +232,7 @@ require_once INCLUDES_PATH . 'header.php';
                            class="flex gap-3 p-4 hover:bg-gray-50 transition">
                             <?php if ($related['cover']): ?>
                             <div class="flex-shrink-0 w-20 h-14 overflow-hidden rounded">
-                                <img src="<?php echo e(thumbnail($related['cover'], 'thumb')); ?>" alt="<?php echo e($related['title']); ?>"
+                                <img loading="lazy" src="<?php echo e(thumbnail($related['cover'], 'thumb')); ?>" alt="<?php echo e($related['title']); ?>"
                                      class="w-full h-full object-cover">
                             </div>
                             <?php endif; ?>

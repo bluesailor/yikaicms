@@ -19,6 +19,10 @@ $pageDescription = config('site_description');
 $banners = getBanners('home', 5);
 $navChannels = getNavChannels();
 
+// SEO: canonical
+$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$canonicalUrl = $siteUrl . '/';
+
 // 获取首页展示的栏目（is_home=1）
 $homeChannels = channelModel()->getHomeChannels();
 

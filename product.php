@@ -95,6 +95,32 @@ $productChannel = getChannelBySlug('product');
 // 当前菜单高亮
 $currentSlug = 'product';
 
+// SEO: OpenGraph & JSON-LD
+$ogType = 'product';
+$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$canonicalUrl = $siteUrl . productUrl($product);
+if (!empty($product['cover'])) {
+    $ogImage = $product['cover'];
+}
+$jsonLd = [
+    '@context' => 'https://schema.org',
+    '@type' => 'Product',
+    'name' => $product['title'],
+    'description' => $pageDescription,
+    'url' => $canonicalUrl,
+];
+if (!empty($product['cover'])) {
+    $jsonLd['image'] = $siteUrl . $product['cover'];
+}
+if (!empty($product['price']) && $product['price'] > 0) {
+    $jsonLd['offers'] = [
+        '@type' => 'Offer',
+        'price' => $product['price'],
+        'priceCurrency' => 'CNY',
+        'availability' => 'https://schema.org/InStock',
+    ];
+}
+
 // 引入头部
 require_once INCLUDES_PATH . 'header.php';
 ?>
@@ -133,7 +159,7 @@ require_once INCLUDES_PATH . 'header.php';
                     <?php if (!empty($productImages)): ?>
                     <!-- 主图 -->
                     <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4">
-                        <img src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
+                        <img loading="lazy" src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
                              id="mainImage" class="w-full h-full object-contain">
                     </div>
                     <!-- 缩略图 -->
@@ -142,7 +168,7 @@ require_once INCLUDES_PATH . 'header.php';
                         <?php foreach ($productImages as $i => $img): ?>
                         <button onclick="changeImage('<?php echo e($img); ?>')"
                                 class="flex-shrink-0 w-20 h-20 border-2 rounded overflow-hidden hover:border-primary transition <?php echo $i === 0 ? 'border-primary' : 'border-gray-200'; ?>">
-                            <img src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
+                            <img loading="lazy" src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
                         </button>
                         <?php endforeach; ?>
                     </div>
@@ -273,7 +299,7 @@ require_once INCLUDES_PATH . 'header.php';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
                 <?php if ($prevProduct['cover']): ?>
-                <img src="<?php echo e($prevProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                <img loading="lazy" src="<?php echo e($prevProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <div class="min-w-0">
                     <div class="text-xs text-gray-400 mb-1">上一个产品</div>
@@ -291,7 +317,7 @@ require_once INCLUDES_PATH . 'header.php';
                     <div class="font-medium text-dark group-hover:text-primary transition truncate"><?php echo e($nextProduct['title']); ?></div>
                 </div>
                 <?php if ($nextProduct['cover']): ?>
-                <img src="<?php echo e($nextProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                <img loading="lazy" src="<?php echo e($nextProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <svg class="w-5 h-5 text-gray-400 group-hover:text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -310,7 +336,7 @@ require_once INCLUDES_PATH . 'header.php';
                 <a href="<?php echo productUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition">
                     <div class="aspect-[4/3] overflow-hidden">
                         <?php if ($item['cover']): ?>
-                        <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                        <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         <?php else: ?>
                         <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">

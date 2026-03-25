@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/includes/header.php';
                         <!-- 图片区域 -->
                         <?php if ($event['image']): ?>
                         <div class="relative h-48 overflow-hidden">
-                            <img src="<?php echo e($event['image']); ?>" alt="<?php echo e($event['title']); ?>"
+                            <img loading="lazy" src="<?php echo e($event['image']); ?>" alt="<?php echo e($event['title']); ?>"
                                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                             <!-- 日期徽章 -->
