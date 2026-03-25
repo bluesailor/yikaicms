@@ -29,7 +29,7 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
                 <p class="text-gray-600 text-sm leading-relaxed mb-6"><?php echo e($tm['content'] ?? ''); ?></p>
                 <div class="flex items-center">
                     <?php if (!empty($tm['avatar'])): ?>
-                    <img src="<?php echo e($tm['avatar']); ?>" alt="<?php echo e($tm['name'] ?? ''); ?>" class="w-12 h-12 rounded-full object-cover mr-4">
+                    <img loading="lazy" src="<?php echo e($tm['avatar']); ?>" alt="<?php echo e($tm['name'] ?? ''); ?>" class="w-12 h-12 rounded-full object-cover mr-4">
                     <?php else: ?>
                     <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold mr-4">
                         <?php echo e(mb_substr($tm['name'] ?? '', 0, 1)); ?>

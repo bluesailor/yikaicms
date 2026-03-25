@@ -159,7 +159,7 @@ require_once INCLUDES_PATH . 'header.php';
             <a href="/news/article/<?php echo $item['id']; ?>.html" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
                 <?php if ($item['cover']): ?>
                 <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden">
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                          class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                 </div>
                 <?php endif; ?>

@@ -109,7 +109,7 @@ require_once INCLUDES_PATH . 'header.php';
                 <?php endif; ?>
                 <h3 class="font-bold text-dark mb-2"><?php echo e($card['label']); ?></h3>
                 <?php if (preg_match('/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i', $card['value'])): ?>
-                <img src="<?php echo e($card['value']); ?>" alt="<?php echo e($card['label']); ?>" class="max-h-24 mx-auto">
+                <img loading="lazy" src="<?php echo e($card['value']); ?>" alt="<?php echo e($card['label']); ?>" class="max-h-24 mx-auto">
                 <?php else: ?>
                 <p class="text-gray-600"><?php echo nl2br(e($card['value'])); ?></p>
                 <?php endif; ?>
@@ -135,11 +135,11 @@ require_once INCLUDES_PATH . 'header.php';
             <!-- 地图或二维码 -->
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <?php if ($mapImage = config('contact_map')): ?>
-                <img src="<?php echo e($mapImage); ?>" alt="地图" class="w-full h-full object-cover">
+                <img loading="lazy" src="<?php echo e($mapImage); ?>" alt="地图" class="w-full h-full object-cover">
                 <?php elseif ($qrcode = config('contact_qrcode')): ?>
                 <div class="h-full flex flex-col items-center justify-center p-8">
                     <h3 class="text-xl font-bold text-dark mb-6">扫码联系我们</h3>
-                    <img src="<?php echo e($qrcode); ?>" alt="二维码" class="w-48 h-48">
+                    <img loading="lazy" src="<?php echo e($qrcode); ?>" alt="二维码" class="w-48 h-48">
                     <p class="text-gray-500 mt-4">微信扫一扫</p>
                 </div>
                 <?php else: ?>

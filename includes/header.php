@@ -30,6 +30,16 @@ $showMemberEntry = config('show_member_entry', '0') === '1';
 // 页面标题
 $fullTitle = !empty($pageTitle) ? $pageTitle . ' - ' . $siteName : $siteName;
 
+// SEO 变量（各页面可在 require header.php 前设置）
+$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
+$ogType = $ogType ?? 'website';
+$ogImage = $ogImage ?? config('site_logo', '');
+if ($ogImage && !str_starts_with($ogImage, 'http')) {
+    $ogImage = $siteUrl . $ogImage;
+}
+$ogDescription = $pageDescription ?? $siteDescription;
+
 // 获取导航栏目（带子栏目）
 if (!isset($navChannels)) {
     $navChannels = getNavChannels();
@@ -109,7 +119,39 @@ function getChannelUrl(array $channel): string {
     <meta name="keywords" content="<?php echo e($pageKeywords ?? $siteKeywords); ?>">
     <meta name="description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
     <title><?php echo e($fullTitle); ?></title>
+    <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
+    <!-- OpenGraph -->
+    <meta property="og:title" content="<?php echo e($fullTitle); ?>">
+    <meta property="og:description" content="<?php echo e($ogDescription); ?>">
+    <meta property="og:type" content="<?php echo e($ogType); ?>">
+    <meta property="og:url" content="<?php echo e($canonicalUrl); ?>">
+    <meta property="og:site_name" content="<?php echo e($siteName); ?>">
+    <?php if ($ogImage): ?>
+    <meta property="og:image" content="<?php echo e($ogImage); ?>">
+    <?php endif; ?>
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo e($fullTitle); ?>">
+    <meta name="twitter:description" content="<?php echo e($ogDescription); ?>">
+    <?php if ($ogImage): ?>
+    <meta name="twitter:image" content="<?php echo e($ogImage); ?>">
+    <?php endif; ?>
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    <?php echo json_encode(array_filter([
+        '@context' => 'https://schema.org',
+        '@type' => 'Organization',
+        'name' => $siteName,
+        'url' => $siteUrl,
+        'logo' => $ogImage ?: null,
+    ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    </script>
+    <?php if (!empty($jsonLd)): ?>
+    <script type="application/ld+json">
+    <?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    </script>
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <link rel="stylesheet" href="/assets/css/style.css">
     <style>:root { --color-primary: <?php echo config('primary_color', '#3B82F6'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>

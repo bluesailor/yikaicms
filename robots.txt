@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: /sitemap.xml
+
+# Disallow sensitive paths
+Disallow: /admin/
+Disallow: /config/
+Disallow: /includes/
+Disallow: /storage/
+Disallow: /vendor/
+Disallow: /install/
+Disallow: /member/
+Disallow: /api/
+
+# Disallow query strings on static pages
+Disallow: /*?*
+
+# Allow assets
+Allow: /assets/
+Allow: /uploads/

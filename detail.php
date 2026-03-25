@@ -56,6 +56,25 @@ if ($channel && $channel['type'] === 'download') {
 // 获取导航
 $navChannels = getNavChannels();
 
+// SEO: OpenGraph & JSON-LD
+$ogType = 'article';
+$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$canonicalUrl = $siteUrl . contentUrl($content);
+if (!empty($content['cover'])) {
+    $ogImage = $content['cover'];
+}
+$jsonLd = [
+    '@context' => 'https://schema.org',
+    '@type' => 'Article',
+    'headline' => $content['title'],
+    'description' => $pageDescription,
+    'datePublished' => date('c', (int)$content['publish_time']),
+    'dateModified' => date('c', (int)($content['updated_at'] ?: $content['publish_time'])),
+];
+if (!empty($content['cover'])) {
+    $jsonLd['image'] = $siteUrl . $content['cover'];
+}
+
 // 引入头部
 require_once INCLUDES_PATH . 'header.php';
 ?>
@@ -134,7 +153,7 @@ require_once INCLUDES_PATH . 'header.php';
                     <?php if ($content['channel_type'] === 'case' && $content['cover']): ?>
                     <!-- 案例封面图 -->
                     <div class="px-6 md:px-8 pt-6">
-                        <img src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg">
                     </div>
                     <?php endif; ?>
@@ -145,7 +164,7 @@ require_once INCLUDES_PATH . 'header.php';
                         <div class="flex flex-wrap gap-8">
                             <?php if ($content['cover']): ?>
                             <div class="w-full md:w-80">
-                                <img src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                                <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
                                      class="w-full rounded-lg">
                             </div>
                             <?php endif; ?>
@@ -208,7 +227,7 @@ require_once INCLUDES_PATH . 'header.php';
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <?php foreach ($images as $image): ?>
                             <a href="<?php echo e($image); ?>" target="_blank" class="block aspect-square rounded overflow-hidden">
-                                <img src="<?php echo e($image); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
+                                <img loading="lazy" src="<?php echo e($image); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
                             </a>
                             <?php endforeach; ?>
                         </div>
@@ -270,7 +289,7 @@ require_once INCLUDES_PATH . 'header.php';
                         <a href="<?php echo contentUrl($item); ?>" class="flex gap-3 group">
                             <?php if ($item['cover']): ?>
                             <div class="w-20 h-16 flex-shrink-0 rounded overflow-hidden">
-                                <img src="<?php echo e(thumbnail($item['cover'], 'thumb')); ?>" class="w-full h-full object-cover">
+                                <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'thumb')); ?>" class="w-full h-full object-cover">
                             </div>
                             <?php endif; ?>
                             <h4 class="flex-1 text-sm text-gray-700 group-hover:text-primary transition line-clamp-2">

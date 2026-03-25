@@ -16,7 +16,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <?php if ($aboutLayout === 'image_left'): ?>
             <!-- 左图右文 -->
             <div class="relative">
-                <img src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>
@@ -59,7 +59,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <?php endif; ?>
             </div>
             <div class="relative">
-                <img src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>

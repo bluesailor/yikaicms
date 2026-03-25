@@ -45,7 +45,7 @@ $contents = $hChannel['contents'];
             <a href="<?php echo productUrl($item); ?>" class="product-item block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
                 <div class="relative overflow-hidden aspect-[4/3]">
                     <?php if ($item['cover']): ?>
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                     <?php else: ?>
                     <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
                         <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +78,7 @@ $contents = $hChannel['contents'];
             <a href="<?php echo contentUrl($item); ?>" class="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition group">
                 <div class="relative overflow-hidden aspect-[4/3]">
                     <?php if ($item['cover']): ?>
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                     <?php else: ?>
                     <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
                         <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +112,7 @@ $contents = $hChannel['contents'];
             <a href="<?php echo $itemUrl; ?>" class="block bg-white rounded-lg overflow-hidden hover:shadow-lg transition group">
                 <?php if ($item['cover']): ?>
                 <div class="overflow-hidden h-40">
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                 </div>
                 <?php endif; ?>
                 <div class="p-4">

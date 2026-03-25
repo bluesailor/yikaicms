@@ -455,7 +455,7 @@ $horizRootChannel = $channel;
             <a href="<?php echo productUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition relative">
                 <div class="aspect-[4/3] overflow-hidden relative">
                     <?php if ($item['cover']): ?>
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                          class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                     <?php else: ?>
                     <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
@@ -676,7 +676,7 @@ $horizRootChannel = $channel;
                     <a href="<?php echo $isProductType ? productUrl($item) : contentUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition relative">
                         <div class="aspect-[4/3] overflow-hidden relative">
                             <?php if ($item['cover']): ?>
-                            <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                            <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                                  class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                             <?php else: ?>
                             <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
@@ -903,7 +903,7 @@ $horizRootChannel = $channel;
             <a href="<?php echo contentUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition">
                 <div class="aspect-[4/3] overflow-hidden">
                     <?php if ($item['cover']): ?>
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                          class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                     <?php else: ?>
                     <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
@@ -971,7 +971,7 @@ $horizRootChannel = $channel;
             <a href="<?php echo contentUrl($item); ?>" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
                 <?php if ($item['cover']): ?>
                 <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden">
-                    <img src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                          class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                 </div>
                 <?php endif; ?>
