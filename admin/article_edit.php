@@ -19,7 +19,7 @@ $id = getInt('id');
 $article = null;
 
 if ($id > 0) {
-    $article = articleModel()->find($id);
+    $article = contentModel()->find($id);
     if (!$article) {
         header('Location: /admin/article.php');
         exit;
@@ -29,7 +29,8 @@ if ($id > 0) {
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
-        'category_id' => postInt('category_id'),
+        'channel_id' => postInt('channel_id'),
+        'type' => 'article',
         'title' => post('title'),
         'subtitle' => post('subtitle'),
         'slug' => post('slug'),
@@ -50,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error('请输入文章标题');
     }
 
-    $data['slug'] = resolveSlug($data['slug'], $data['title'], 'articles', $id);
+    $data['slug'] = resolveSlug($data['slug'], $data['title'], 'contents', $id);
 
     // 发布时间
     $publishTime = post('publish_time');
@@ -61,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($id > 0) {
-        articleModel()->updateById($id, $data);
+        contentModel()->updateById($id, $data);
         adminLog('article', 'update', "更新文章ID: $id");
     } else {
         $data['created_at'] = time();
@@ -69,15 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($data['publish_time'])) {
             $data['publish_time'] = $data['status'] == 1 ? time() : 0;
         }
-        $id = articleModel()->create($data);
+        $id = contentModel()->create($data);
         adminLog('article', 'create', "创建文章ID: $id");
     }
 
     success(['id' => $id]);
 }
 
-// 获取分类树
-$categories = articleCategoryModel()->getFlatOptions();
+// 获取栏目树（news 下的子栏目）
+$newsChannel = getChannelBySlug('news');
+$newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
+$categories = $newsChannelId > 0 ? channelModel()->getFlatList($newsChannelId) : [];
 
 $pageTitle = $article ? '编辑文章' : '添加文章';
 $currentMenu = 'article';
@@ -126,10 +129,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-2">所属分类</label>
-                        <input type="hidden" name="category_id" id="categoryIdInput" value="<?php echo (int)($article['category_id'] ?? 0); ?>">
+                        <input type="hidden" name="channel_id" id="categoryIdInput" value="<?php echo (int)($article['channel_id'] ?? 0); ?>">
                         <div class="border rounded p-3 max-h-60 overflow-y-auto space-y-1" id="categoryTree">
                             <?php
-                            $currentCatId = (int)($article['category_id'] ?? 0);
+                            $currentCatId = (int)($article['channel_id'] ?? 0);
                             // 收集当前分类的所有父ID
                             $checkedIds = [];
                             if ($currentCatId > 0) {

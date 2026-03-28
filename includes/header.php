@@ -28,13 +28,19 @@ $topbarLeft = config('topbar_left', '');
 $showMemberEntry = config('show_member_entry', '0') === '1';
 
 // 页面标题
-$fullTitle = !empty($pageTitle) ? $pageTitle . ' - ' . $siteName : $siteName;
+// 首页支持独立 SEO 标题
+$seoTitle = config('seo_title', '');
+if (empty($pageTitle) && !empty($seoTitle)) {
+    $fullTitle = $seoTitle;
+} else {
+    $fullTitle = !empty($pageTitle) ? $pageTitle . ' - ' . $siteName : $siteName;
+}
 
 // SEO 变量（各页面可在 require header.php 前设置）
 $siteUrl = rtrim(config('site_url', SITE_URL), '/');
 $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
 $ogType = $ogType ?? 'website';
-$ogImage = $ogImage ?? config('site_logo', '');
+$ogImage = $ogImage ?? config('seo_og_image', '') ?: config('site_logo', '');
 if ($ogImage && !str_starts_with($ogImage, 'http')) {
     $ogImage = $siteUrl . $ogImage;
 }
@@ -118,6 +124,15 @@ function getChannelUrl(array $channel): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="keywords" content="<?php echo e($pageKeywords ?? $siteKeywords); ?>">
     <meta name="description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
+    <?php if ($baiduVerify = config('seo_baidu_verify')): ?>
+    <meta name="baidu-site-verification" content="<?php echo e($baiduVerify); ?>">
+    <?php endif; ?>
+    <?php if ($googleVerify = config('seo_google_verify')): ?>
+    <meta name="google-site-verification" content="<?php echo e($googleVerify); ?>">
+    <?php endif; ?>
+    <?php if ($bingVerify = config('seo_bing_verify')): ?>
+    <meta name="msvalidate.01" content="<?php echo e($bingVerify); ?>">
+    <?php endif; ?>
     <title><?php echo e($fullTitle); ?></title>
     <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">

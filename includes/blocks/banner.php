@@ -10,12 +10,16 @@
             <?php if (!empty($banners)): ?>
                 <?php foreach ($banners as $banner): ?>
                 <div class="swiper-slide">
-                    <?php if ($banner['link_url']): ?>
-                    <a href="<?php echo e($banner['link_url']); ?>" target="<?php echo e($banner['link_target']); ?>" class="block w-full h-full">
+                    <?php if (!empty($banner['image'])): ?>
+                        <?php if ($banner['link_url']): ?>
+                        <a href="<?php echo e($banner['link_url']); ?>" target="<?php echo e($banner['link_target']); ?>" class="block w-full h-full">
+                            <img src="<?php echo e($banner['image']); ?>" alt="<?php echo e($banner['title']); ?>" class="w-full h-full object-cover">
+                        </a>
+                        <?php else: ?>
                         <img src="<?php echo e($banner['image']); ?>" alt="<?php echo e($banner['title']); ?>" class="w-full h-full object-cover">
-                    </a>
+                        <?php endif; ?>
                     <?php else: ?>
-                    <img src="<?php echo e($banner['image']); ?>" alt="<?php echo e($banner['title']); ?>" class="w-full h-full object-cover">
+                        <div class="w-full h-full bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900"></div>
                     <?php endif; ?>
                     <?php if ($banner['title']): ?>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">

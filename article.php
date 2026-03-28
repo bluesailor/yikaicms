@@ -12,11 +12,11 @@ require_once __DIR__ . '/includes/init.php';
 $id = getInt('id');
 $slug = get('slug');
 
-// 获取文章
+// 获取文章（从统一内容表）
 if ($slug) {
-    $article = articleModel()->findBySlug($slug);
+    $article = contentModel()->findBySlug($slug);
 } elseif ($id > 0) {
-    $article = articleModel()->getPublished($id);
+    $article = contentModel()->getPublished($id);
 } else {
     $article = null;
 }
@@ -27,7 +27,7 @@ if (!$article) {
 }
 
 // 更新浏览量
-articleModel()->incrementViews((int)$article['id']);
+contentModel()->incrementViews((int)$article['id']);
 
 // 页面信息
 $pageTitle = $article['title'];
@@ -35,11 +35,11 @@ $pageKeywords = $article['tags'] ?: config('site_keywords');
 $pageDescription = $article['summary'] ?: cutStr(strip_tags($article['content']), 150);
 
 // 获取上一篇和下一篇
-$prevArticle = articleModel()->getPrev((int)$article['category_id'], (int)$article['publish_time'], (int)$article['id']);
-$nextArticle = articleModel()->getNext((int)$article['category_id'], (int)$article['publish_time'], (int)$article['id']);
+$prevArticle = contentModel()->getPrev((int)$article['channel_id'], (int)$article['id']);
+$nextArticle = contentModel()->getNext((int)$article['channel_id'], (int)$article['id']);
 
 // 获取相关文章
-$relatedArticles = articleModel()->getRelated((int)$article['category_id'], (int)$article['id']);
+$relatedArticles = contentModel()->getRelated((int)$article['channel_id'], (int)$article['id']);
 
 // 当前菜单高亮
 $currentSlug = 'news';
@@ -86,10 +86,10 @@ require_once INCLUDES_PATH . 'header.php';
             <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>
             <span>/</span>
             <a href="/news.html" class="hover:text-white"><?php echo __('news_title'); ?></a>
-            <?php if ($article['category_name']): ?>
+            <?php if (($article['channel_name'] ?? '')): ?>
             <span>/</span>
-            <a href="/news/<?php echo e($article['category_slug']); ?>.html" class="hover:text-white">
-                <?php echo e($article['category_name']); ?>
+            <a href="/news/<?php echo e(($article['channel_slug'] ?? '')); ?>.html" class="hover:text-white">
+                <?php echo e(($article['channel_name'] ?? '')); ?>
             </a>
             <?php endif; ?>
             <span>/</span>
@@ -114,9 +114,9 @@ require_once INCLUDES_PATH . 'header.php';
                         <p class="mt-2 text-gray-500"><?php echo e($article['subtitle']); ?></p>
                         <?php endif; ?>
                         <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                            <?php if ($article['category_name']): ?>
-                            <a href="/news/<?php echo e($article['category_slug']); ?>.html" class="text-primary hover:underline">
-                                <?php echo e($article['category_name']); ?>
+                            <?php if (($article['channel_name'] ?? '')): ?>
+                            <a href="/news/<?php echo e(($article['channel_slug'] ?? '')); ?>.html" class="text-primary hover:underline">
+                                <?php echo e(($article['channel_name'] ?? '')); ?>
                             </a>
                             <?php endif; ?>
                             <?php if ($article['author']): ?>

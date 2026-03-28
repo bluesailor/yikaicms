@@ -33,21 +33,13 @@ $productCategories = productCategoryModel()->getTopLevel(6);
 $homeChannelsMap = [];
 foreach ($homeChannels as &$hChannel) {
     if ($hChannel['type'] === 'product') {
-        // 产品类型：从产品表获取
+        // 产品类型：优先推荐产品，没有则显示最新
         $hChannel['contents'] = getProducts(0, 8, 0, ['is_recommend' => true]);
+        if (empty($hChannel['contents'])) {
+            $hChannel['contents'] = getProducts(0, 8, 0);
+        }
         $hChannel['is_product'] = true;
         $hChannel['categories'] = $productCategories;
-    } elseif ($hChannel['slug'] === 'news') {
-        // 新闻资讯：从文章表获取
-        $newsParent = articleCategoryModel()->findBySlug('news');
-        if ($newsParent) {
-            $catIds = articleCategoryModel()->getChildIds((int)$newsParent['id']);
-            $hChannel['contents'] = articleModel()->getByCategoryIds($catIds, 6);
-        } else {
-            $hChannel['contents'] = [];
-        }
-        $hChannel['is_product'] = false;
-        $hChannel['is_article'] = true;
     } else {
         // 其他类型：从内容表获取
         $hChannel['contents'] = getContents((int)$hChannel['id'], 6, 0, ['include_children' => true]);

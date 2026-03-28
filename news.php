@@ -2,6 +2,7 @@
 /**
  * Yikai CMS - 新闻文章列表页
  *
+ * 合并后使用 ContentModel + ChannelModel
  * PHP 8.0+
  */
 
@@ -14,14 +15,18 @@ $categorySlug = get('cat', '');
 $categoryId = getInt('cat_id', 0);
 $category = null;
 
-// 通过 slug 获取分类
+// 获取 news 顶级栏目
+$newsChannel = getChannelBySlug('news');
+$newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
+
+// 通过 slug 获取子栏目
 if ($categorySlug) {
-    $category = articleCategoryModel()->findBySlug($categorySlug);
+    $category = channelModel()->findWhere(['slug' => $categorySlug, 'status' => 1]);
     if ($category) {
         $categoryId = (int)$category['id'];
     }
 } elseif ($categoryId > 0) {
-    $category = articleCategoryModel()->findWhere(['id' => $categoryId, 'status' => 1]);
+    $category = getChannel($categoryId);
 }
 
 // 页面信息
@@ -32,11 +37,10 @@ $pageDescription = ($category['seo_description'] ?? '') ?: config('site_descript
 // 当前菜单高亮
 $currentSlug = 'news';
 
-// 获取"新闻资讯"顶级分类及其子分类
-$newsParent = articleCategoryModel()->findBySlug('news');
+// 获取子栏目（用于分类导航）
 $categories = [];
-if ($newsParent) {
-    $categories = articleCategoryModel()->where(['parent_id' => (int)$newsParent['id'], 'status' => 1]);
+if ($newsChannelId > 0) {
+    $categories = channelModel()->where(['parent_id' => $newsChannelId, 'status' => 1]);
 }
 
 // 搜索关键词
@@ -47,25 +51,17 @@ $page = max(1, getInt('page', 1));
 $perPage = 10;
 $offset = ($page - 1) * $perPage;
 
-// 确定要查询的分类ID
-$queryCategoryId = 0;
-$filters = [];
-
-if ($categoryId > 0) {
-    $queryCategoryId = $categoryId;
-    $filters['include_children'] = false;
-} elseif ($newsParent) {
-    $queryCategoryId = (int)$newsParent['id'];
-    $filters['include_children'] = true;
-}
+// 确定要查询的栏目 ID
+$queryChannelId = $categoryId > 0 ? $categoryId : $newsChannelId;
+$filters = ['include_children' => true];
 
 if ($keyword !== '') {
     $filters['keyword'] = $keyword;
 }
 
 // 获取文章总数和列表
-$total = articleModel()->getCount($queryCategoryId, $filters);
-$articles = articleModel()->getList($queryCategoryId, $perPage, $offset, $filters);
+$total = contentModel()->getCount($queryChannelId, $filters);
+$articles = contentModel()->getList($queryChannelId, $perPage, $offset, $filters);
 
 // 获取导航
 $navChannels = getNavChannels();
@@ -177,10 +173,10 @@ require_once INCLUDES_PATH . 'header.php';
                         <?php echo e($item['summary'] ?: cutStr(strip_tags($item['content']), 120)); ?>
                     </p>
                     <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
-                        <?php if ($item['category_name']): ?>
-                        <span class="text-primary"><?php echo e($item['category_name']); ?></span>
+                        <?php if ($item['channel_name'] ?? ''): ?>
+                        <span class="text-primary"><?php echo e($item['channel_name']); ?></span>
                         <?php endif; ?>
-                        <?php if ($item['author']): ?>
+                        <?php if ($item['author'] ?? ''): ?>
                         <span><?php echo e($item['author']); ?></span>
                         <?php endif; ?>
                         <span><?php echo date('Y-m-d', (int)$item['publish_time']); ?></span>

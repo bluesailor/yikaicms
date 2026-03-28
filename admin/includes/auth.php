@@ -69,6 +69,20 @@ function doLogin(string $username, string $password): array
 
     if (!$user || !password_verify($password, $user['password'])) {
         recordLoginFailure();
+        // 记录登录失败日志（不依赖 session）
+        adminLogModel()->log([
+            'admin_id'     => 0,
+            'admin_name'   => $username,
+            'module'       => 'auth',
+            'action'       => 'login_fail',
+            'description'  => '登录失败：用户名或密码错误',
+            'url'          => $_SERVER['REQUEST_URI'] ?? '',
+            'method'       => 'POST',
+            'request_data' => json_encode(['username' => $username], JSON_UNESCAPED_UNICODE),
+            'ip'           => getClientIp(),
+            'user_agent'   => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'created_at'   => time(),
+        ]);
         return ['success' => false, 'message' => '用户名或密码错误'];
     }
 
@@ -113,8 +127,8 @@ function checkLoginThrottle(): int
     $data = json_decode(file_get_contents($file), true);
     if (!$data) return 0;
 
-    $maxAttempts = 5;
-    $lockMinutes = 15;
+    $maxAttempts = (int)config('login_max_attempts', 5);
+    $lockMinutes = (int)config('login_lock_minutes', 15);
 
     if (($data['count'] ?? 0) >= $maxAttempts) {
         $elapsed = time() - ($data['last'] ?? 0);
