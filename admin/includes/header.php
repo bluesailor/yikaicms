@@ -19,7 +19,7 @@ $sidebarGroups = [
     'article' => ['article', 'download', 'job'],
     'media'   => ['media', 'album', 'banner', 'timeline', 'link'],
     'data'    => ['form', 'form_design', 'member', 'setting_member'],
-    'system'  => ['setting', 'setting_home', 'setting_contact', 'setting_email', 'user', 'role', 'log', 'system', 'upgrade', 'online_upgrade', 'plugin', 'system_log'],
+    'system'  => ['setting', 'setting_home', 'setting_contact', 'setting_email', 'setting_seo', 'setting_security', 'user', 'role', 'log', 'system', 'upgrade', 'online_upgrade', 'plugin', 'system_log'],
 ];
 $activeGroup = '';
 foreach ($sidebarGroups as $group => $_menuItems) {
@@ -271,6 +271,20 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                     </svg>
                     <?php echo __('admin_setting_email'); ?>
+                </a>
+
+                <a href="/admin/setting_seo.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'setting_seo' ? 'active' : ''; ?>">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    SEO 设置
+                </a>
+
+                <a href="/admin/setting_security.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'setting_security' ? 'active' : ''; ?>">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    安全设置
                 </a>
 
                 <?php if (isSuperAdmin()): ?>

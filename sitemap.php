@@ -10,9 +10,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+// 检查是否启用
+if (config('seo_sitemap_enabled', '1') !== '1') {
+    header('HTTP/1.1 404 Not Found');
+    exit;
+}
+
 header('Content-Type: application/xml; charset=utf-8');
 
-// 缓存 sitemap 10 分钟
+// 缓存（使用后台配置的缓存时间）
+$sitemapTtl = (int)config('seo_sitemap_ttl', 600);
 $cached = cacheGet('sitemap_xml');
 if ($cached !== null) {
     echo $cached;
@@ -80,19 +87,19 @@ foreach ($contents as $content) {
 
 // 产品
 $products = db()->fetchAll(
-    "SELECT p.id, p.title, p.slug, p.cover, p.publish_time, p.updated_at,
+    "SELECT p.id, p.title, p.slug, p.cover, p.created_at, p.updated_at,
             pc.slug as category_slug
      FROM " . DB_PREFIX . "products p
      LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
      WHERE p.status = 1
-     ORDER BY p.publish_time DESC
+     ORDER BY p.updated_at DESC, p.id DESC
      LIMIT 5000"
 );
 
 foreach ($products as $product) {
     $url = [
         'loc'        => $siteUrl . productUrl($product),
-        'lastmod'    => date('Y-m-d', (int)($product['updated_at'] ?: $product['publish_time'])),
+        'lastmod'    => date('Y-m-d', (int)($product['updated_at'] ?: $product['created_at'])),
         'changefreq' => 'monthly',
         'priority'   => '0.6',
     ];
@@ -126,6 +133,6 @@ foreach ($urls as $url) {
 $xml .= "</urlset>\n";
 
 // 写入缓存
-cacheSet('sitemap_xml', $xml, 600);
+cacheSet('sitemap_xml', $xml, $sitemapTtl);
 
 echo $xml;

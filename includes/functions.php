@@ -852,8 +852,8 @@ function checkFormThrottle(string $ip, string $formSlug = ''): int
     $data = json_decode(file_get_contents($file), true);
     if (!$data) return 0;
 
-    $maxSubmits = 5;       // 每个时间窗口最多提交次数
-    $windowSeconds = 300;  // 时间窗口：5分钟
+    $maxSubmits = (int)config('form_max_submits', 5);
+    $windowSeconds = (int)config('form_throttle_minutes', 5) * 60;
 
     $elapsed = time() - ($data['last'] ?? 0);
     if ($elapsed > $windowSeconds) {
@@ -886,7 +886,8 @@ function recordFormSubmit(string $ip): void
     $content = stream_get_contents($handle);
     $data = $content ? (json_decode($content, true) ?: ['count' => 0, 'last' => 0]) : ['count' => 0, 'last' => 0];
 
-    if (time() - ($data['last'] ?? 0) > 300) {
+    $windowSeconds = (int)config('form_throttle_minutes', 5) * 60;
+    if (time() - ($data['last'] ?? 0) > $windowSeconds) {
         $data = ['count' => 0, 'last' => 0];
     }
 

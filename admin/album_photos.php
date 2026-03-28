@@ -78,6 +78,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 更新相册图片数量
         albumModel()->updatePhotoCount($albumId);
 
+        // 如果相册没有封面，自动设第一张为封面
+        $currentAlbum = albumModel()->find($albumId);
+        if ($currentAlbum && empty($currentAlbum['cover']) && !empty($uploaded)) {
+            albumModel()->updateById($albumId, ['cover' => $uploaded[0]['url']]);
+        }
+
         success(['uploaded' => $uploaded, 'count' => count($uploaded)]);
     }
 
