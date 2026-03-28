@@ -1,5 +1,5 @@
 {
-    "name": "yikai/ikaicms",
+    "name": "yikai/yikaicms",
     "description": "A lightweight enterprise CMS built with PHP 8.0+, no framework dependency.",
     "type": "project",
     "keywords": ["cms", "content-management", "php", "enterprise", "lightweight"],
