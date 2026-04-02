@@ -67,36 +67,26 @@ $articles = contentModel()->getList($queryChannelId, $perPage, $offset, $filters
 $navChannels = getNavChannels();
 
 // 引入头部
-require_once INCLUDES_PATH . 'header.php';
+require_once theme_path('layouts/header.php');
 ?>
 
 <!-- 页面头部 -->
-<section class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-16 relative overflow-hidden">
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary rounded-full blur-3xl"></div>
-    </div>
-    <div class="container mx-auto px-4 relative">
-        <!-- 面包屑导航 -->
-        <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
-            <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>
-            <span>/</span>
-            <?php if ($category): ?>
-            <a href="/news.html" class="hover:text-white"><?php echo __('news_title'); ?></a>
-            <span>/</span>
-            <span class="text-white"><?php echo e($category['name']); ?></span>
-            <?php else: ?>
-            <span class="text-white"><?php echo __('news_title'); ?></span>
-            <?php endif; ?>
-        </div>
-        <div class="text-center">
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4"><?php echo e($pageTitle); ?></h1>
-            <?php if ($category && $category['description']): ?>
-            <p class="text-gray-300 text-lg max-w-2xl mx-auto"><?php echo e($category['description']); ?></p>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
+<?php
+$breadcrumbItems = [];
+if ($category) {
+    $breadcrumbItems[] = ['name' => __('news_title'), 'url' => '/news.html'];
+    $breadcrumbItems[] = ['name' => $category['name'], 'url' => ''];
+} else {
+    $breadcrumbItems[] = ['name' => __('news_title'), 'url' => ''];
+}
+$heroChannel = $category ?: ($newsChannel ?: ['name' => __('news_title'), 'description' => '', 'image' => '']);
+// Ensure channel var is set for page-hero partial
+$_heroChannelBackup = $channel ?? null;
+$channel = $heroChannel;
+require theme_path('partials/page-hero.php');
+$channel = $_heroChannelBackup;
+unset($_heroChannelBackup);
+?>
 
 <!-- 分类导航 + 搜索 -->
 <div class="bg-white border-b">
@@ -229,4 +219,4 @@ require_once INCLUDES_PATH . 'header.php';
     </div>
 </section>
 
-<?php require_once INCLUDES_PATH . 'footer.php'; ?>
+<?php require_once theme_path('layouts/footer.php'); ?>

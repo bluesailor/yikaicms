@@ -13,6 +13,83 @@ if (!defined('ROOT_PATH')) {
 }
 
 // ============================================================
+// 主题系统
+// ============================================================
+
+/**
+ * 获取当前主题名称
+ */
+function currentTheme(): string
+{
+    static $theme = null;
+    if ($theme === null) {
+        $theme = config('current_theme', 'default');
+    }
+    return $theme;
+}
+
+/**
+ * 获取主题模板文件路径
+ * 优先从当前主题目录加载，回退到 includes/ 默认模板
+ *
+ * @param string $file 相对路径，如 'layouts/header.php', 'blocks/banner.php'
+ * @return string 绝对路径
+ */
+function theme_path(string $file): string
+{
+    $themePath = ROOT_PATH . '/themes/' . currentTheme() . '/' . $file;
+    if (file_exists($themePath)) {
+        return $themePath;
+    }
+    // 回退：layouts/ → includes/, blocks/ → includes/blocks/, partials/ → includes/partials/
+    $fallback = match (true) {
+        str_starts_with($file, 'layouts/') => INCLUDES_PATH . basename($file),
+        str_starts_with($file, 'pages/')   => ROOT_PATH . basename($file),
+        default                            => INCLUDES_PATH . $file,
+    };
+    return $fallback;
+}
+
+/**
+ * 获取主题静态资源 URL
+ *
+ * @param string $file 相对路径，如 'css/style.css', 'js/theme.js'
+ * @return string URL 路径
+ */
+function theme_asset(string $file): string
+{
+    $theme = currentTheme();
+    $path = ROOT_PATH . "/themes/{$theme}/assets/{$file}";
+    if (file_exists($path)) {
+        return "/themes/{$theme}/assets/{$file}";
+    }
+    return "/assets/{$file}";
+}
+
+/**
+ * 获取所有已安装主题列表
+ */
+function getThemes(): array
+{
+    $themesDir = ROOT_PATH . '/themes/';
+    $themes = [];
+    if (!is_dir($themesDir)) return $themes;
+
+    foreach (scandir($themesDir) as $dir) {
+        if ($dir === '.' || $dir === '..') continue;
+        $jsonFile = $themesDir . $dir . '/theme.json';
+        if (file_exists($jsonFile)) {
+            $info = json_decode(file_get_contents($jsonFile), true);
+            if ($info) {
+                $info['slug'] = $dir;
+                $themes[] = $info;
+            }
+        }
+    }
+    return $themes;
+}
+
+// ============================================================
 // 输入输出函数
 // ============================================================
 
@@ -205,23 +282,50 @@ function resolveSlug(string $input, string $title, string $table, int $excludeId
 
 /**
  * 获取当前语言
+ * 前台使用 site_lang，后台使用 admin_lang
+ * 优先级：数据库设置 > config.php 常量 > 默认 zh-CN
  */
 function getLang(): string
 {
-    return 'zh-CN';
+    static $lang = null;
+    if ($lang !== null) return $lang;
+
+    $isAdmin = str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/');
+
+    // 尝试从数据库读取
+    try {
+        $settings = new SettingModel();
+        if ($isAdmin) {
+            $lang = $settings->get('admin_lang', '');
+        }
+        if (empty($lang)) {
+            $lang = $settings->get('site_lang', '');
+        }
+    } catch (\Throwable $e) {
+        // 数据库未初始化时忽略
+    }
+
+    // 兜底：config.php 常量
+    if (empty($lang)) {
+        if ($isAdmin && defined('ADMIN_LANG')) {
+            $lang = ADMIN_LANG;
+        } elseif (defined('SITE_LANG')) {
+            $lang = SITE_LANG;
+        } else {
+            $lang = 'zh-CN';
+        }
+    }
+
+    return $lang;
 }
 
 /**
- * 初始化语言（固定中文）
+ * 初始化语言（预留）
  */
 function initLang(): void
 {
-    // 固定使用中文
 }
 
-/**
- * 加载语言包
- */
 function loadLangData(): array
 {
     global $_LANG_DATA;
@@ -230,8 +334,15 @@ function loadLangData(): array
         return $_LANG_DATA;
     }
 
-    $langFile = ROOT_PATH . '/lang/zh-CN.php';
-    $_LANG_DATA = file_exists($langFile) ? require $langFile : [];
+    $lang = getLang();
+    $langFile = ROOT_PATH . '/lang/' . $lang . '.php';
+
+    // 先加载目标语言，再用中文兜底
+    $fallback = ROOT_PATH . '/lang/zh-CN.php';
+    $fallbackData = file_exists($fallback) ? require $fallback : [];
+    $langData = ($lang !== 'zh-CN' && file_exists($langFile)) ? require $langFile : [];
+
+    $_LANG_DATA = array_merge($fallbackData, $langData);
 
     return $_LANG_DATA;
 }
@@ -910,7 +1021,7 @@ function cacheGet(string $key): mixed
     $file = STORAGE_PATH . '/cache/' . md5($key) . '.cache';
     if (!file_exists($file)) return null;
 
-    $data = unserialize(file_get_contents($file));
+    $data = unserialize(file_get_contents($file), ['allowed_classes' => false]);
     if (!is_array($data) || !isset($data['expire'], $data['value'])) return null;
 
     if ($data['expire'] > 0 && $data['expire'] < time()) {

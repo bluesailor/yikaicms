@@ -39,6 +39,7 @@ if (!file_exists($adminPage)) {
 $pluginMeta = getPluginMeta($pluginSlug);
 
 $currentMenu = 'plugin';
+$pageTitle = ($pluginMeta['name'] ?? $pluginSlug);
 
-// 加载插件管理页面
+// 加载插件管理页面（插件自行包含 header/footer）
 require_once $adminPage;

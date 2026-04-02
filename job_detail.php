@@ -44,7 +44,7 @@ $currentChannelId = $channel ? (int)$channel['id'] : 0;
 $navChannels = getNavChannels();
 
 // 引入头部
-require_once INCLUDES_PATH . 'header.php';
+require_once theme_path('layouts/header.php');
 ?>
 
 <!-- 面包屑 -->
@@ -164,4 +164,4 @@ require_once INCLUDES_PATH . 'header.php';
     </div>
 </section>
 
-<?php require_once INCLUDES_PATH . 'footer.php'; ?>
+<?php require_once theme_path('layouts/footer.php'); ?>

@@ -1,0 +1,8 @@
+{
+    "name": "Default",
+    "description": "YikaiCMS 默认主题，简洁大方的企业官网模板",
+    "version": "1.0.0",
+    "author": "Yikai",
+    "screenshot": "assets/images/screenshot.png",
+    "supports": ["banner", "about", "stats", "testimonials", "advantage", "cta", "channel"]
+}

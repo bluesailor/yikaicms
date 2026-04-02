@@ -7,9 +7,12 @@
         </div>
     </div>
 
+    <!-- 通用CSS -->
+    <style>button, a[href], [onclick] { cursor: pointer; }</style>
+
     <!-- 通用脚本 -->
     <script src="/assets/swiper/swiper-bundle.min.js"></script>
-    <script src="/assets/wangeditor/index.js"></script>
+    <script src="/assets/tinymce/tinymce.min.js"></script>
     <script>
     // CSRF Token 自动注入
     (function() {
@@ -99,45 +102,63 @@
     }
 
     /**
-     * 初始化 wangEditor 编辑器
-     * @param {string} toolbarSelector - 工具栏容器选择器
-     * @param {string} editorSelector - 编辑区容器选择器
-     * @param {object} options - 配置项 { placeholder, html, uploadUrl, onChange }
-     * @returns {object} editor 实例
+     * 初始化 TinyMCE 编辑器
+     * @param {string} selector - textarea 选择器
+     * @param {object} options - 配置项 { height, placeholder, uploadUrl }
      */
-    function initWangEditor(toolbarSelector, editorSelector, options = {}) {
-        const { createEditor, createToolbar } = window.wangEditor;
+    function initTinyEditor(selector, options = {}) {
+        var lang = document.documentElement.lang || 'zh-CN';
+        var tinymceLang = lang === 'ja' ? 'ja' : 'zh_CN';
 
-        const editor = createEditor({
-            selector: editorSelector,
-            html: options.html || '',
-            config: {
-                placeholder: options.placeholder || '请输入内容...',
-                MENU_CONF: {
-                    uploadImage: {
-                        server: options.uploadUrl || '/admin/upload.php',
-                        fieldName: 'file',
-                        meta: { type: 'images' },
-                        customInsert(res, insertFn) {
-                            if (res.code === 0) {
-                                insertFn(res.data.url, '', '');
-                            }
-                        }
-                    }
-                },
-                onChange(editor) {
-                    if (options.onChange) options.onChange(editor);
-                }
+        tinymce.init({
+            selector: selector,
+            language: tinymceLang,
+            height: options.height || 500,
+            menubar: 'file edit view insert format tools table',
+            plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
+            toolbar: 'undo redo | styles | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | removeformat code fullscreen',
+            images_upload_handler: function(blobInfo) {
+                return new Promise(function(resolve, reject) {
+                    var fd = new FormData();
+                    fd.append('file', blobInfo.blob(), blobInfo.filename());
+                    fd.append('type', 'images');
+                    fetch(options.uploadUrl || '/admin/upload.php', { method: 'POST', body: fd })
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            if (d.code === 0) resolve(d.data.url);
+                            else reject(d.msg || 'Upload failed');
+                        })
+                        .catch(function() { reject('Upload failed'); });
+                });
+            },
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; line-height: 1.8; } img { max-width: 100%; height: auto; }',
+            branding: false, promotion: false, convert_urls: false,
+            setup: function(editor) {
+                editor.on('change', function() {
+                    tinymce.triggerSave();
+                });
             }
         });
+    }
 
-        const toolbar = createToolbar({
-            editor,
-            selector: toolbarSelector,
-            config: {}
-        });
+    /**
+     * 兼容旧代码：initWangEditor 映射到 initTinyEditor
+     */
+    function initWangEditor(toolbarSelector, editorSelector, options = {}) {
+        // 将 wangEditor 容器转换为 textarea
+        var container = document.querySelector(editorSelector);
+        if (container && container.tagName !== 'TEXTAREA') {
+            var textarea = document.createElement('textarea');
+            textarea.name = container.getAttribute('data-name') || 'content';
+            textarea.className = 'tinymce-auto';
+            textarea.innerHTML = options.html || container.innerHTML;
+            container.parentNode.replaceChild(textarea, container);
 
-        return editor;
+            var toolbar = document.querySelector(toolbarSelector);
+            if (toolbar) toolbar.remove();
+
+            initTinyEditor('.tinymce-auto', options);
+        }
     }
     </script>
 

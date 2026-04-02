@@ -104,12 +104,12 @@ $blocksConfig = $migratedConfig;
 
 // 区块模板映射
 $blockTemplates = [
-    'banner'       => INCLUDES_PATH . 'blocks/banner.php',
-    'about'        => INCLUDES_PATH . 'blocks/about.php',
-    'stats'        => INCLUDES_PATH . 'blocks/stats.php',
-    'testimonials' => INCLUDES_PATH . 'blocks/testimonials.php',
-    'advantage'    => INCLUDES_PATH . 'blocks/advantage.php',
-    'cta'          => INCLUDES_PATH . 'blocks/cta.php',
+    'banner'       => theme_path('blocks/banner.php'),
+    'about'        => theme_path('blocks/about.php'),
+    'stats'        => theme_path('blocks/stats.php'),
+    'testimonials' => theme_path('blocks/testimonials.php'),
+    'advantage'    => theme_path('blocks/advantage.php'),
+    'cta'          => theme_path('blocks/cta.php'),
 ];
 
 // Swiper轮播图资源
@@ -171,7 +171,7 @@ new Swiper(".banner-swiper", {
 </script>';
 
 // 引入头部
-require_once INCLUDES_PATH . 'header.php';
+require_once theme_path('layouts/header.php');
 
 // 动态渲染首页区块
 foreach ($blocksConfig as $block) {
@@ -183,12 +183,12 @@ foreach ($blocksConfig as $block) {
         $channelId = (int)substr($type, 8);
         $currentChannel = $homeChannelsMap[$channelId] ?? null;
         if ($currentChannel) {
-            require INCLUDES_PATH . 'blocks/channel.php';
+            require theme_path('blocks/channel.php');
         }
     } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
         require $blockTemplates[$type];
     }
 }
 
-require_once INCLUDES_PATH . 'footer.php';
+require_once theme_path('layouts/footer.php');
 ?>

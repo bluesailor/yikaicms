@@ -87,6 +87,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="flex border-b">
         <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">产品列表</a>
         <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">分类管理</a>
+        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">品牌管理</a>
+        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">标签管理</a>
         <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">产品设置</a>
     </div>
 </div>

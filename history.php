@@ -58,32 +58,15 @@ require_once ROOT_PATH . '/includes/header.php';
 ?>
 
 <!-- 页面头部 -->
-<section class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-16 relative overflow-hidden">
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary rounded-full blur-3xl"></div>
-    </div>
-    <div class="container mx-auto px-4 relative">
-        <!-- 面包屑导航 -->
-        <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
-            <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>
-            <span>/</span>
-            <?php if ($aboutChannel): ?>
-            <a href="<?php echo channelUrl($aboutChannel); ?>" class="hover:text-white">
-                <?php echo e($aboutChannel['name']); ?>
-            </a>
-            <span>/</span>
-            <?php endif; ?>
-            <span class="text-white"><?php echo __('nav_history'); ?></span>
-        </div>
-        <div class="text-center">
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4"><?php echo __('nav_history'); ?></h1>
-            <p class="text-gray-300 text-lg max-w-2xl mx-auto">
-                记录我们成长的每一个重要时刻，见证从创立到辉煌的蜕变历程
-            </p>
-        </div>
-    </div>
-</section>
+<?php
+$breadcrumbItems = [];
+if ($aboutChannel) {
+    $breadcrumbItems[] = ['name' => $aboutChannel['name'], 'url' => channelUrl($aboutChannel)];
+}
+$breadcrumbItems[] = ['name' => __('nav_history'), 'url' => ''];
+$channel = ['name' => __('nav_history'), 'description' => '记录我们成长的每一个重要时刻，见证从创立到辉煌的蜕变历程', 'image' => ''];
+require theme_path('partials/page-hero.php');
+?>
 
 <!-- 时间线主体 -->
 <section class="py-16 bg-gradient-to-b from-gray-50 to-white">

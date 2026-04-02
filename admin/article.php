@@ -41,6 +41,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'batch_publish') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids)) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            db()->execute("UPDATE " . DB_PREFIX . "contents SET status = 1 WHERE id IN ({$placeholders})", $ids);
+            adminLog('article', 'batch_publish', '批量发布：' . implode(',', $ids));
+        }
+        success();
+    }
+
+    if ($action === 'batch_unpublish') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids)) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            db()->execute("UPDATE " . DB_PREFIX . "contents SET status = 0 WHERE id IN ({$placeholders})", $ids);
+            adminLog('article', 'batch_unpublish', '批量下架：' . implode(',', $ids));
+        }
+        success();
+    }
+
     if ($action === 'toggle_status') {
         $id = postInt('id');
         $newStatus = contentModel()->toggle($id, 'status');
@@ -221,9 +241,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
                     <td class="px-4 py-3 text-gray-400 text-xs"><?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?></td>
                     <td class="px-4 py-3">
-                        <div class="flex gap-2">
-                            <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-primary hover:underline">编辑</a>
-                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:underline">删除</button>
+                        <div class="flex gap-3 items-center">
+                            <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1" title="编辑">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                编辑
+                            </a>
+                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-700" title="删除">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -236,7 +261,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 底部操作栏 & 分页 -->
     <div class="px-4 py-3 border-t flex items-center justify-between">
         <div class="flex items-center gap-2">
-            <button onclick="batchDelete()" class="text-sm text-red-500 hover:underline">批量删除</button>
+            <button onclick="batchAction('batch_publish')" class="border px-3 py-1 rounded text-sm hover:bg-green-50 text-green-600">批量发布</button>
+            <button onclick="batchAction('batch_unpublish')" class="border px-3 py-1 rounded text-sm hover:bg-yellow-50 text-yellow-600">批量下架</button>
+            <button onclick="batchAction('batch_delete')" class="border px-3 py-1 rounded text-sm hover:bg-red-50 text-red-600">批量删除</button>
         </div>
         <?php if ($total > $perPage): ?>
         <div class="flex items-center gap-2 text-sm">
@@ -289,12 +316,13 @@ async function deleteItem(id) {
     const data = await postAction('delete', { id });
     if (data.code === 0) { document.getElementById('row-' + id)?.remove(); showMessage('已删除'); }
 }
-async function batchDelete() {
+async function batchAction(action) {
     const ids = [...document.querySelectorAll('.row-check:checked')].map(cb => cb.value);
-    if (!ids.length) { showMessage('请选择要删除的文章', 'error'); return; }
-    if (!confirm('确定批量删除 ' + ids.length + ' 篇文章？')) return;
-    const data = await postAction('batch_delete', { ids });
-    if (data.code === 0) location.reload();
+    if (!ids.length) { showMessage('请先选择文章', 'error'); return; }
+    const labels = { batch_publish: '发布', batch_unpublish: '下架', batch_delete: '删除' };
+    if (!confirm('确定' + (labels[action] || '操作') + '选中的 ' + ids.length + ' 篇文章？')) return;
+    const data = await postAction(action, { ids });
+    if (data.code === 0) { showMessage('操作成功'); setTimeout(() => location.reload(), 1000); }
 }
 </script>
 
