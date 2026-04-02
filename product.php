@@ -122,7 +122,7 @@ if (!empty($product['price']) && $product['price'] > 0) {
 }
 
 // 引入头部
-require_once INCLUDES_PATH . 'header.php';
+require_once theme_path('layouts/header.php');
 ?>
 
 <!-- 面包屑 -->
@@ -239,6 +239,38 @@ require_once INCLUDES_PATH . 'header.php';
                             在线咨询
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </a>
+                    </div>
+
+                    <!-- 产品询盘表单 -->
+                    <div class="border-t pt-5 mt-4">
+                        <h3 class="text-sm font-bold text-dark mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                            产品询盘
+                        </h3>
+                        <form id="inquiryForm" class="space-y-3">
+                            <input type="hidden" name="form_slug" value="product-inquiry">
+                            <input type="hidden" name="product_id" value="<?php echo (int)$product['id']; ?>">
+                            <input type="hidden" name="product_title" value="<?php echo e($product['title']); ?>">
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="text" name="name" required placeholder="您的姓名 *"
+                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+                                <input type="tel" name="phone" required placeholder="联系电话 *"
+                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="email" name="email" placeholder="邮箱地址"
+                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+                                <input type="text" name="company" placeholder="公司名称"
+                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+                            </div>
+                            <textarea name="content" required rows="3" placeholder="请描述您的需求 *"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none resize-y"><?php echo e('我对产品【' . $product['title'] . '】感兴趣，请联系我。'); ?></textarea>
+                            <button type="submit" id="inquiryBtn"
+                                    class="w-full bg-primary hover:bg-secondary text-white py-2.5 rounded text-sm font-medium transition">
+                                提交询盘
+                            </button>
+                            <p id="inquiryMsg" class="text-sm text-center hidden"></p>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -391,6 +423,40 @@ document.querySelectorAll('.product-tab').forEach(function(tab) {
         document.getElementById('tab-' + target).classList.remove('hidden');
     });
 });
+
+// 产品询盘表单提交
+document.getElementById('inquiryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('inquiryBtn');
+    var msg = document.getElementById('inquiryMsg');
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+    msg.classList.add('hidden');
+
+    var formData = new FormData(this);
+    fetch('/form_submit.php', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            msg.classList.remove('hidden');
+            if (data.code === 0) {
+                msg.className = 'text-sm text-center text-green-600';
+                msg.textContent = data.msg;
+                document.getElementById('inquiryForm').reset();
+            } else {
+                msg.className = 'text-sm text-center text-red-600';
+                msg.textContent = data.msg;
+            }
+            btn.disabled = false;
+            btn.textContent = '提交询盘';
+        })
+        .catch(function(err) {
+            msg.classList.remove('hidden');
+            msg.className = 'text-sm text-center text-red-600';
+            msg.textContent = '网络错误，请重试';
+            btn.disabled = false;
+            btn.textContent = '提交询盘';
+        });
+});
 </script>
 
-<?php require_once INCLUDES_PATH . 'footer.php'; ?>
+<?php require_once theme_path('layouts/footer.php'); ?>

@@ -1,0 +1,8 @@
+{
+    "name": "Minimal",
+    "description": "极简风格主题，大留白、无装饰、注重内容呈现，适合设计公司和创意工作室",
+    "version": "1.0.0",
+    "author": "Yikai",
+    "screenshot": "assets/images/screenshot.png",
+    "supports": ["banner", "about", "stats", "testimonials", "advantage", "cta", "channel"]
+}

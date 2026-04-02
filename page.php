@@ -146,7 +146,7 @@ $jsonLd = [
 ];
 
 // 引入头部
-require_once INCLUDES_PATH . 'header.php';
+require_once theme_path('layouts/header.php');
 ?>
 
 <?php
@@ -164,58 +164,13 @@ while ($tempChannel) {
 ?>
 
 <!-- 页面头部 -->
-<?php if ($channel['image']): ?>
-<section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($channel['image']); ?>')">
-    <div class="absolute inset-0 bg-black/60"></div>
-    <div class="container mx-auto px-4 relative">
-        <!-- 面包屑导航 -->
-        <div class="flex items-center gap-2 text-sm text-gray-300 mb-6">
-            <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>
-            <?php foreach ($breadcrumbs as $i => $bc): ?>
-            <span>/</span>
-            <?php if ($i === count($breadcrumbs) - 1): ?>
-            <span class="text-white"><?php echo e($bc['name']); ?></span>
-            <?php else: ?>
-            <a href="<?php echo channelUrl($bc); ?>" class="hover:text-white"><?php echo e($bc['name']); ?></a>
-            <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
-        <div class="text-center">
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4"><?php echo e($channel['name']); ?></h1>
-            <?php if ($channel['description']): ?>
-            <p class="text-gray-200 text-lg max-w-2xl mx-auto"><?php echo e($channel['description']); ?></p>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
-<?php else: ?>
-<section class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-16 relative overflow-hidden">
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary rounded-full blur-3xl"></div>
-    </div>
-    <div class="container mx-auto px-4 relative">
-        <!-- 面包屑导航 -->
-        <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
-            <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>
-            <?php foreach ($breadcrumbs as $i => $bc): ?>
-            <span>/</span>
-            <?php if ($i === count($breadcrumbs) - 1): ?>
-            <span class="text-white"><?php echo e($bc['name']); ?></span>
-            <?php else: ?>
-            <a href="<?php echo channelUrl($bc); ?>" class="hover:text-white"><?php echo e($bc['name']); ?></a>
-            <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
-        <div class="text-center">
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4"><?php echo e($channel['name']); ?></h1>
-            <?php if ($channel['description']): ?>
-            <p class="text-gray-300 text-lg max-w-2xl mx-auto"><?php echo e($channel['description']); ?></p>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
-<?php endif; ?>
+<?php
+$breadcrumbItems = [];
+foreach ($breadcrumbs as $bc) {
+    $breadcrumbItems[] = ['name' => $bc['name'], 'url' => channelUrl($bc)];
+}
+require theme_path('partials/page-hero.php');
+?>
 
 <section class="py-12">
     <div class="container mx-auto px-4">
@@ -411,4 +366,4 @@ document.addEventListener('keydown', (e) => {
 </script>
 <?php endif; ?>
 
-<?php require_once INCLUDES_PATH . 'footer.php'; ?>
+<?php require_once theme_path('layouts/footer.php'); ?>

@@ -154,7 +154,7 @@ return [
     'admin_media' => '媒体库',
     'admin_banner' => '轮播图',
     'admin_timeline' => '发展历程',
-    'admin_form' => '表单数据',
+    'admin_form' => '询盘管理',
     'admin_link' => '合作伙伴',
     'admin_system' => '系统设置',
     'admin_setting' => '基本设置',

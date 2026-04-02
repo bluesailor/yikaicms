@@ -78,22 +78,34 @@ foreach ($fields as $field) {
     $formData[$key] = $value;
 }
 
+// 产品询盘关联
+$productId    = (int)post('product_id', '0');
+$productTitle = trim(post('product_title', ''));
+$source       = $productId > 0 ? 'product' : ($slug === 'product-inquiry' ? 'product' : 'contact');
+
 // 存入 ik_forms
 $data = [
-    'type'       => $slug,
-    'name'       => $formData['name'] ?? '',
-    'phone'      => $formData['phone'] ?? '',
-    'email'      => $formData['email'] ?? '',
-    'company'    => $formData['company'] ?? '',
-    'content'    => $formData['content'] ?? '',
-    'extra'      => json_encode($formData, JSON_UNESCAPED_UNICODE),
-    'ip'         => getClientIp(),
-    'user_agent' => mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
-    'status'     => 0,
-    'created_at' => time(),
+    'type'          => $slug,
+    'product_id'    => $productId,
+    'product_title' => $productTitle,
+    'source'        => $source,
+    'name'          => $formData['name'] ?? '',
+    'phone'         => $formData['phone'] ?? '',
+    'email'         => $formData['email'] ?? '',
+    'company'       => $formData['company'] ?? '',
+    'content'       => $formData['content'] ?? '',
+    'extra'         => json_encode($formData, JSON_UNESCAPED_UNICODE),
+    'ip'            => getClientIp(),
+    'user_agent'    => mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
+    'status'        => 0,
+    'created_at'    => time(),
 ];
 
 formModel()->create($data);
+
+// 邮件通知
+require_once __DIR__ . '/includes/mail_notify.php';
+notifyNewInquiry($data);
 
 // 记录提交频率
 recordFormSubmit($clientIp);

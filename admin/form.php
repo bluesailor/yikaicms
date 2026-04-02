@@ -16,9 +16,19 @@ checkLogin();
 requirePermission('form');
 
 $statusLabels = [
-    0 => '待处理',
-    1 => '已处理',
-    2 => '无效',
+    0 => '新询盘',
+    1 => '已联系',
+    2 => '跟进中',
+    3 => '成交',
+    4 => '失败',
+];
+
+$statusColors = [
+    0 => 'bg-blue-100 text-blue-600',
+    1 => 'bg-yellow-100 text-yellow-600',
+    2 => 'bg-purple-100 text-purple-600',
+    3 => 'bg-green-100 text-green-600',
+    4 => 'bg-gray-100 text-gray-500',
 ];
 
 // 处理 AJAX
@@ -69,17 +79,22 @@ if ($viewId) {
 // 查询参数
 $type = get('type');
 $status = get('status', '');
+$source = get('source', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
 $perPage = 20;
 
 $offset = ($page - 1) * $perPage;
-$filters = array_filter(['type' => $type, 'status' => $status, 'keyword' => $keyword], fn($v) => $v !== '');
+$filters = array_filter(['type' => $type, 'status' => $status, 'source' => $source, 'keyword' => $keyword], fn($v) => $v !== '');
+
+// 状态统计
+$statusCounts = formModel()->getStatusCounts();
+$totalAll = array_sum($statusCounts);
 $result = formModel()->getList($filters, $perPage, $offset);
 $total = $result['total'];
 $forms = $result['items'];
 
-$pageTitle = '表单数据';
+$pageTitle = '询盘管理';
 $currentMenu = 'form';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -88,27 +103,38 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">表单数据</a>
+        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">询盘管理</a>
         <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">表单设计</a>
     </div>
+</div>
+
+<!-- 状态快捷筛选 -->
+<div class="flex gap-2 mb-4 flex-wrap">
+    <a href="?<?php echo $source ? 'source=' . e($source) . '&' : ''; ?>"
+       class="px-3 py-1.5 text-sm rounded-lg <?php echo $status === '' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'; ?>">
+        全部 <span class="text-xs opacity-70">(<?php echo $totalAll; ?>)</span>
+    </a>
+    <?php foreach ($statusLabels as $k => $v): ?>
+    <a href="?status=<?php echo $k; ?><?php echo $source ? '&source=' . e($source) : ''; ?>"
+       class="px-3 py-1.5 text-sm rounded-lg <?php echo $status === (string)$k ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'; ?>">
+        <?php echo $v; ?> <span class="text-xs opacity-70">(<?php echo $statusCounts[$k] ?? 0; ?>)</span>
+    </a>
+    <?php endforeach; ?>
 </div>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center">
         <form class="flex flex-wrap gap-3 items-center">
-            <select name="type" class="border rounded px-3 py-2">
-                <option value="">全部类型</option>
-                <option value="contact" <?php echo $type === 'contact' ? 'selected' : ''; ?>>联系留言</option>
-                <option value="apply" <?php echo $type === 'apply' ? 'selected' : ''; ?>>报名申请</option>
+            <select name="source" class="border rounded px-3 py-2">
+                <option value="">全部来源</option>
+                <option value="product" <?php echo $source === 'product' ? 'selected' : ''; ?>>产品询盘</option>
+                <option value="contact" <?php echo $source === 'contact' ? 'selected' : ''; ?>>联系留言</option>
             </select>
 
-            <select name="status" class="border rounded px-3 py-2">
-                <option value="">全部状态</option>
-                <?php foreach ($statusLabels as $k => $v): ?>
-                <option value="<?php echo $k; ?>" <?php echo $status === (string)$k ? 'selected' : ''; ?>><?php echo $v; ?></option>
-                <?php endforeach; ?>
-            </select>
+            <?php if ($status !== ''): ?>
+            <input type="hidden" name="status" value="<?php echo e($status); ?>">
+            <?php endif; ?>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                    class="border rounded px-3 py-2" placeholder="搜索...">
@@ -131,7 +157,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left">
                             <input type="checkbox" id="checkAll">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">来源</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">产品</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">电话</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容</th>
@@ -147,9 +174,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>">
                         </td>
                         <td class="px-4 py-3">
-                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                <?php echo e($item['type']); ?>
+                            <?php $itemSource = $item['source'] ?? 'contact'; ?>
+                            <span class="text-xs px-2 py-1 rounded <?php echo $itemSource === 'product' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'; ?>">
+                                <?php echo $itemSource === 'product' ? '产品询盘' : '联系留言'; ?>
                             </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm max-w-[150px] truncate">
+                            <?php if (!empty($item['product_id']) && (int)$item['product_id'] > 0): ?>
+                            <a href="/product/<?php echo (int)$item['product_id']; ?>.html" target="_blank" class="text-primary hover:underline" title="<?php echo e($item['product_title'] ?? ''); ?>">
+                                <?php echo e(cutStr($item['product_title'] ?? '', 20)); ?>
+                            </a>
+                            <?php else: ?>
+                            <span class="text-gray-400">-</span>
+                            <?php endif; ?>
                         </td>
                         <td class="px-4 py-3 font-medium"><?php echo e($item['name']); ?></td>
                         <td class="px-4 py-3"><?php echo e($item['phone']); ?></td>
@@ -157,15 +194,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo e(cutStr($item['content'] ?? '', 50)); ?>
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <span class="text-xs px-2 py-1 rounded <?php
-                                echo match((int)$item['status']) {
-                                    0 => 'bg-yellow-100 text-yellow-600',
-                                    1 => 'bg-green-100 text-green-600',
-                                    2 => 'bg-gray-100 text-gray-500',
-                                    default => ''
-                                };
-                            ?>">
-                                <?php echo $statusLabels[$item['status']] ?? '-'; ?>
+                            <span class="text-xs px-2 py-1 rounded <?php echo $statusColors[(int)$item['status']] ?? ''; ?>">
+                                <?php echo $statusLabels[(int)$item['status']] ?? '-'; ?>
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
@@ -185,7 +215,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php endforeach; ?>
                     <?php if (empty($forms)): ?>
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无数据</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无数据</td>
                     </tr>
                     <?php endif; ?>
                 </tbody>
@@ -205,7 +235,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
                 <?php
                 $totalPages = ceil($total / $perPage);
-                $queryString = http_build_query(array_filter(['type' => $type, 'status' => $status, 'keyword' => $keyword]));
+                $queryString = http_build_query(array_filter(['type' => $type, 'status' => $status, 'source' => $source, 'keyword' => $keyword]));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 ?>
                 <?php if ($page > 1): ?>
@@ -267,8 +297,13 @@ function escapeHtml(str) {
 
 function showDetail(item) {
     document.getElementById('detailId').value = item.id;
+    let productLine = '';
+    if (item.product_id && parseInt(item.product_id) > 0) {
+        productLine = `<p><span class="text-gray-500">关联产品：</span><a href="/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
+    }
     document.getElementById('detailContent').innerHTML = `
         <div class="space-y-3">
+            ${productLine}
             <p><span class="text-gray-500">姓名：</span>${escapeHtml(item.name)}</p>
             <p><span class="text-gray-500">电话：</span>${escapeHtml(item.phone)}</p>
             <p><span class="text-gray-500">邮箱：</span>${escapeHtml(item.email)}</p>

@@ -178,7 +178,7 @@ class Database
         $sql = sprintf(
             'INSERT INTO %s (%s) VALUES (%s)',
             DB_PREFIX . $table,
-            implode(', ', $fields),
+            implode(', ', array_map(fn($f) => "`$f`", $fields)),
             implode(', ', $placeholders)
         );
 
@@ -219,7 +219,7 @@ class Database
      */
     public function update(string $table, array $data, string $where, array $whereParams = []): int
     {
-        $sets = array_map(fn($field) => "$field = ?", array_keys($data));
+        $sets = array_map(fn($field) => "`$field` = ?", array_keys($data));
 
         $sql = sprintf(
             'UPDATE %s SET %s WHERE %s',

@@ -187,6 +187,9 @@ DROP TABLE IF EXISTS `yikai_forms`;
 CREATE TABLE `yikai_forms` (
     `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `type` varchar(20) NOT NULL DEFAULT 'contact' COMMENT '类型：contact/apply/custom',
+    `product_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '关联产品ID',
+    `product_title` varchar(255) NOT NULL DEFAULT '' COMMENT '产品名称快照',
+    `source` varchar(30) NOT NULL DEFAULT 'contact' COMMENT '来源: contact/product/custom',
     `name` varchar(50) NOT NULL DEFAULT '' COMMENT '姓名',
     `phone` varchar(20) NOT NULL DEFAULT '' COMMENT '电话',
     `email` varchar(100) NOT NULL DEFAULT '' COMMENT '邮箱',
@@ -195,15 +198,17 @@ CREATE TABLE `yikai_forms` (
     `extra` text COMMENT '额外字段JSON',
     `ip` varchar(45) NOT NULL DEFAULT '',
     `user_agent` varchar(500) NOT NULL DEFAULT '',
-    `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '状态：0待处理 1已处理 2无效',
+    `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '状态：0新询盘 1已联系 2跟进中 3成交 4失败',
     `follow_admin` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '跟进人',
     `follow_note` text COMMENT '跟进备注',
     `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
     KEY `idx_type` (`type`),
+    KEY `idx_product` (`product_id`),
+    KEY `idx_source` (`source`),
     KEY `idx_status` (`status`),
     KEY `idx_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='表单数据';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='询盘数据';
 
 -- -----------------------------------------------------------
 -- 操作日志
@@ -379,12 +384,56 @@ CREATE TABLE `yikai_product_categories` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品分类';
 
 -- -----------------------------------------------------------
+-- 品牌表
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS `yikai_brands`;
+CREATE TABLE `yikai_brands` (
+    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` varchar(100) NOT NULL COMMENT '品牌名',
+    `slug` varchar(100) NOT NULL DEFAULT '',
+    `logo` varchar(255) NOT NULL DEFAULT '' COMMENT '品牌Logo',
+    `country` varchar(50) NOT NULL DEFAULT '' COMMENT '国家/产地',
+    `description` text COMMENT '品牌介绍',
+    `url` varchar(255) NOT NULL DEFAULT '' COMMENT '官网',
+    `sort_order` int(11) NOT NULL DEFAULT 0,
+    `status` tinyint(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='品牌管理';
+
+-- -----------------------------------------------------------
+-- 产品标签表
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS `yikai_product_tags`;
+CREATE TABLE `yikai_product_tags` (
+    `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `group_name` varchar(50) NOT NULL COMMENT '标签组',
+    `name` varchar(100) NOT NULL COMMENT '标签名',
+    `slug` varchar(100) NOT NULL DEFAULT '',
+    `sort_order` int(11) NOT NULL DEFAULT 0,
+    `status` tinyint(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`),
+    KEY `idx_group` (`group_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品标签';
+
+-- -----------------------------------------------------------
+-- 产品标签关联表
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS `yikai_product_tag_map`;
+CREATE TABLE `yikai_product_tag_map` (
+    `product_id` int(11) UNSIGNED NOT NULL,
+    `tag_id` int(11) UNSIGNED NOT NULL,
+    PRIMARY KEY (`product_id`, `tag_id`),
+    KEY `idx_tag` (`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品标签关联';
+
+-- -----------------------------------------------------------
 -- 产品表
 -- -----------------------------------------------------------
 DROP TABLE IF EXISTS `yikai_products`;
 CREATE TABLE `yikai_products` (
     `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `category_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '分类ID',
+    `brand_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '品牌ID',
     `title` varchar(255) NOT NULL COMMENT '产品名称',
     `subtitle` varchar(255) NOT NULL DEFAULT '' COMMENT '副标题',
     `slug` varchar(255) NOT NULL DEFAULT '' COMMENT 'URL别名',
@@ -667,6 +716,9 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 ('47', 'email', 'mail_notify_form', '0', 'text', '表单提交通知', '1开启/0关闭', NULL, '9'),
 ('48', 'basic', 'product_layout', 'sidebar', 'select', '产品列表版式', '', '{"sidebar":"侧栏模式","top":"顶栏模式"}', '11'),
 ('53', 'basic', 'show_price', '0', 'select', '显示产品价格', '前台是否显示产品价格', '{"0":"不显示","1":"显示"}', '12'),
+('54', 'basic', 'site_lang', 'zh-CN', 'select', '前台语言', '前台页面显示语言', '{"zh-CN":"中文","ja":"日本語"}', '13'),
+('55', 'basic', 'admin_lang', 'zh-CN', 'select', '后台语言', '管理后台显示语言', '{"zh-CN":"中文","ja":"日本語"}', '14'),
+('56', 'system', 'cms_version', '1.3.0', 'text', 'CMS版本号', '系统自动维护，请勿手动修改', NULL, '0'),
 ('49', 'home', 'home_show_links', '1', 'select', '显示合作伙伴', '是否在页脚显示合作伙伴', NULL, '24'),
 ('52', 'contact', 'contact_cards', '[{"icon":"phone","label":"联系电话","value":"400-888-8888"},{"icon":"email","label":"电子邮箱","value":"contact@example.com"},{"icon":"location","label":"公司地址","value":"上海市浦东新区XX路XX号"}]', 'contact_cards', '联系信息卡片', '联系我们页面顶部展示的信息卡片，最多4个', NULL, '0'),
 ('50', 'contact', 'contact_form_title', '在线留言', 'text', '表单标题', '', NULL, '10'),

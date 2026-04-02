@@ -1,8 +1,8 @@
 <?php
 /**
- * Yikai CMS - 邮件设置
+ * Yikai CMS - 邮件配置
  *
- * PHP 8.0+
+ * SMTP 配置 + 邮件模板管理 + 测试发送
  */
 
 declare(strict_types=1);
@@ -15,78 +15,107 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
-// 处理保存
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = post('action', 'save');
+// Tab 定义
+$tabs = [
+    'smtp' => [
+        'icon'  => 'fa-server',
+        'title' => 'SMTP 配置',
+    ],
+    'register' => [
+        'icon'  => 'fa-user-plus',
+        'title' => '会员注册',
+        'hint'  => '{{username}} {{email}} {{site_name}} {{site_url}} {{date}}',
+        'keys'  => ['mail_tpl_register_subject', 'mail_tpl_register_body'],
+    ],
+    'forgot' => [
+        'icon'  => 'fa-key',
+        'title' => '找回密码',
+        'hint'  => '{{username}} {{email}} {{reset_link}} {{site_name}} {{site_url}} {{date}}',
+        'keys'  => ['mail_tpl_forgot_subject', 'mail_tpl_forgot_body'],
+    ],
+    'reset' => [
+        'icon'  => 'fa-lock',
+        'title' => '重置密码',
+        'hint'  => '{{username}} {{email}} {{site_name}} {{site_url}} {{date}}',
+        'keys'  => ['mail_tpl_reset_subject', 'mail_tpl_reset_body'],
+    ],
+    'inquiry' => [
+        'icon'  => 'fa-envelope-open-text',
+        'title' => '询盘通知',
+        'hint'  => '{{product_title}} {{name}} {{phone}} {{email}} {{company}} {{content}} {{ip}} {{site_name}} {{site_url}} {{date}}',
+        'keys'  => ['mail_tpl_inquiry_subject', 'mail_tpl_inquiry_body'],
+    ],
+];
 
-    if ($action === 'test') {
-        // 测试发送邮件
-        $testEmail = post('test_email');
-        if (!$testEmail || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
-            error('请输入有效的测试邮箱');
-        }
+$activeTab = get('tab', 'smtp');
+if (!isset($tabs[$activeTab])) $activeTab = 'smtp';
 
-        // 获取邮件配置
-        $smtpHost = config('smtp_host');
-        $smtpPort = (int)config('smtp_port', 465);
-        $smtpUser = config('smtp_user');
-        $smtpPass = config('smtp_pass');
-        $smtpSecure = config('smtp_secure', 'ssl');
-        $mailFrom = config('mail_from', $smtpUser);
-        $mailName = config('mail_from_name', config('site_name'));
-
-        if (!$smtpHost || !$smtpUser || !$smtpPass) {
-            error('请先配置SMTP服务器信息');
-        }
-
-        // 发送测试邮件
-        $result = sendMail(
-            $testEmail,
-            '测试邮件 - ' . config('site_name'),
-            '<h2>邮件配置测试成功</h2><p>如果您收到这封邮件，说明邮件配置正确。</p><p>发送时间：' . date('Y-m-d H:i:s') . '</p>'
-        );
-
-        if ($result === true) {
-            success([], '测试邮件发送成功，请检查收件箱');
-        } else {
-            error('发送失败：' . $result);
-        }
+// ============================================================
+// AJAX: 测试发送
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'test') {
+    $testEmail = post('test_email');
+    if (!$testEmail || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+        error('请输入有效的测试邮箱');
     }
 
-    // 保存设置
-    $settings = $_POST['settings'] ?? [];
+    $result = sendMail(
+        $testEmail,
+        '测试邮件 - ' . config('site_name'),
+        '这是一封测试邮件，用于验证 SMTP 配置是否正确。' . "\n\n" . '发送时间：' . date('Y-m-d H:i:s')
+    );
 
+    if ($result === true) {
+        success([], '测试邮件发送成功，请检查收件箱');
+    } else {
+        error('发送失败：' . $result);
+    }
+}
+
+// ============================================================
+// POST 保存
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') {
+    $settings = $_POST['settings'] ?? [];
     foreach ($settings as $key => $value) {
         settingModel()->set($key, $value);
     }
 
-    adminLog('setting', 'update', '更新邮件设置');
+    $tab = post('_save_tab', 'smtp');
+    adminLog('setting', 'update', '更新邮件设置: ' . ($tabs[$tab]['title'] ?? 'SMTP'));
     success();
 }
 
-// 获取邮件设置
-$settings = settingModel()->getByGroup('email');
-
-// 转为键值对
-$emailConfig = [];
-foreach ($settings as $item) {
-    $emailConfig[$item['key']] = $item['value'];
-}
-
-$pageTitle = '邮件设置';
+$pageTitle = '邮件配置';
 $currentMenu = 'setting_email';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="mb-6">
-    <p class="text-gray-500">配置SMTP邮件服务器，用于发送系统通知、表单提醒等邮件。</p>
+    <p class="text-gray-500">配置SMTP邮件服务器和各类邮件通知模板。</p>
 </div>
 
+<!-- Tab 导航 -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="flex border-b overflow-x-auto">
+        <?php foreach ($tabs as $tabId => $tab): ?>
+        <a href="?tab=<?php echo e($tabId); ?>"
+           class="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition <?php echo $activeTab === $tabId ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
+            <i class="fa-solid <?php echo e($tab['icon']); ?> mr-1.5"></i><?php echo e($tab['title']); ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<?php if ($activeTab === 'smtp'): ?>
+<!-- ============ SMTP 配置 ============ -->
 <form id="settingForm" class="space-y-6">
+    <input type="hidden" name="_save_tab" value="smtp">
+
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">SMTP服务器配置</h2>
+            <h2 class="font-bold text-gray-800">SMTP 服务器配置</h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
@@ -95,25 +124,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <span class="text-gray-400 text-sm block">如：smtp.qq.com</span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="text" name="settings[smtp_host]"
-                           value="<?php echo e($emailConfig['smtp_host'] ?? ''); ?>"
-                           placeholder="smtp.example.com"
-                           class="w-full border rounded px-4 py-2">
+                    <input type="text" name="settings[smtp_host]" value="<?php echo e(config('smtp_host')); ?>"
+                           placeholder="smtp.example.com" class="w-full border rounded px-4 py-2">
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     SMTP端口
                     <span class="text-gray-400 text-sm block">SSL常用465，TLS常用587</span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="number" name="settings[smtp_port]"
-                           value="<?php echo e($emailConfig['smtp_port'] ?? '465'); ?>"
+                    <input type="number" name="settings[smtp_port]" value="<?php echo e(config('smtp_port', '465')); ?>"
                            class="w-full border rounded px-4 py-2">
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     加密方式
@@ -121,42 +145,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[smtp_secure]" class="w-full border rounded px-4 py-2">
-                        <option value="ssl" <?php echo ($emailConfig['smtp_secure'] ?? 'ssl') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
-                        <option value="tls" <?php echo ($emailConfig['smtp_secure'] ?? '') === 'tls' ? 'selected' : ''; ?>>TLS</option>
-                        <option value="" <?php echo ($emailConfig['smtp_secure'] ?? '') === '' ? 'selected' : ''; ?>>无</option>
+                        <option value="ssl" <?php echo config('smtp_secure', 'ssl') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                        <option value="tls" <?php echo config('smtp_secure') === 'tls' ? 'selected' : ''; ?>>TLS</option>
+                        <option value="" <?php echo config('smtp_secure') === '' ? 'selected' : ''; ?>>无</option>
                     </select>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     SMTP用户名
                     <span class="text-gray-400 text-sm block">通常是完整邮箱地址</span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="text" name="settings[smtp_user]"
-                           value="<?php echo e($emailConfig['smtp_user'] ?? ''); ?>"
-                           placeholder="your@email.com"
-                           class="w-full border rounded px-4 py-2">
+                    <input type="text" name="settings[smtp_user]" value="<?php echo e(config('smtp_user')); ?>"
+                           placeholder="your@email.com" class="w-full border rounded px-4 py-2">
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     SMTP密码
                     <span class="text-gray-400 text-sm block">QQ邮箱需使用授权码</span>
                 </label>
                 <div class="md:col-span-3">
-                    <div class="relative pwd-toggle">
-                        <input type="password" name="settings[smtp_pass]"
-                               value="<?php echo e($emailConfig['smtp_pass'] ?? ''); ?>"
-                               placeholder="密码或授权码"
-                               class="w-full border rounded px-4 py-2 pr-10">
-                        <button type="button" onclick="togglePassword(this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                            <svg class="eye-open w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                            <svg class="eye-closed w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
-                        </button>
-                    </div>
+                    <input type="text" name="settings[smtp_pass]" value="<?php echo e(config('smtp_pass')); ?>"
+                           placeholder="密码或授权码" class="w-full border rounded px-4 py-2 font-mono" autocomplete="off">
                 </div>
             </div>
         </div>
@@ -164,7 +176,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">发件人设置</h2>
+            <h2 class="font-bold text-gray-800">发件人 / 通知设置</h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
@@ -173,55 +185,39 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <span class="text-gray-400 text-sm block">留空则使用SMTP用户名</span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="text" name="settings[mail_from]"
-                           value="<?php echo e($emailConfig['mail_from'] ?? ''); ?>"
-                           placeholder="留空使用SMTP用户名"
+                    <input type="text" name="settings[mail_from]" value="<?php echo e(config('mail_from')); ?>"
                            class="w-full border rounded px-4 py-2">
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     发件人名称
-                    <span class="text-gray-400 text-sm block">收件人看到的发件人名称</span>
+                    <span class="text-gray-400 text-sm block">留空使用站点名称</span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="text" name="settings[mail_from_name]"
-                           value="<?php echo e($emailConfig['mail_from_name'] ?? ''); ?>"
-                           placeholder="留空使用站点名称"
+                    <input type="text" name="settings[mail_from_name]" value="<?php echo e(config('mail_from_name')); ?>"
                            class="w-full border rounded px-4 py-2">
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">通知设置</h2>
-        </div>
-        <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     管理员邮箱
-                    <span class="text-gray-400 text-sm block">接收表单提交通知</span>
+                    <span class="text-gray-400 text-sm block">接收询盘通知</span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="text" name="settings[mail_admin]"
-                           value="<?php echo e($emailConfig['mail_admin'] ?? ''); ?>"
-                           placeholder="admin@example.com"
-                           class="w-full border rounded px-4 py-2">
+                    <input type="text" name="settings[mail_admin]" value="<?php echo e(config('mail_admin')); ?>"
+                           placeholder="admin@example.com" class="w-full border rounded px-4 py-2">
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    表单提交通知
-                    <span class="text-gray-400 text-sm block">有新表单提交时发送通知</span>
+                    询盘提交通知
+                    <span class="text-gray-400 text-sm block">有新询盘时发送通知</span>
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[mail_notify_form]" class="w-full border rounded px-4 py-2">
-                        <option value="1" <?php echo ($emailConfig['mail_notify_form'] ?? '0') === '1' ? 'selected' : ''; ?>>开启</option>
-                        <option value="0" <?php echo ($emailConfig['mail_notify_form'] ?? '0') === '0' ? 'selected' : ''; ?>>关闭</option>
+                        <option value="1" <?php echo config('mail_notify_form') === '1' ? 'selected' : ''; ?>>开启</option>
+                        <option value="0" <?php echo config('mail_notify_form') !== '1' ? 'selected' : ''; ?>>关闭</option>
                     </select>
                 </div>
             </div>
@@ -234,7 +230,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 保存设置
             </button>
             <button type="button" onclick="testEmail()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded transition">
-                发送测试邮件
+                <i class="fa-solid fa-paper-plane mr-1"></i>发送测试邮件
             </button>
         </div>
     </div>
@@ -245,20 +241,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h3 class="font-bold text-gray-800">发送测试邮件</h3>
-            <button type="button" onclick="closeTestModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
+            <button type="button" onclick="closeTestModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div class="p-6">
             <p class="text-gray-500 mb-4">请先保存设置，然后输入接收测试邮件的邮箱地址：</p>
             <input type="email" id="testEmailInput" placeholder="your@email.com"
+                   value="<?php echo e(config('mail_admin')); ?>"
                    class="w-full border rounded px-4 py-2 mb-4">
             <button type="button" onclick="sendTestEmail()"
                     class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded transition">
                 发送测试
             </button>
+            <p id="testResult" class="text-sm text-center mt-3 hidden"></p>
         </div>
     </div>
 </div>
@@ -266,58 +260,116 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 document.getElementById('settingForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-
     const formData = new FormData(this);
-
     try {
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
-
-        if (data.code === 0) {
-            showMessage('保存成功');
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+        if (data.code === 0) showMessage('保存成功');
+        else showMessage(data.msg, 'error');
+    } catch (err) { showMessage('请求失败', 'error'); }
 });
 
 function testEmail() {
     document.getElementById('testModal').classList.remove('hidden');
     document.getElementById('testModal').classList.add('flex');
 }
-
 function closeTestModal() {
     document.getElementById('testModal').classList.add('hidden');
     document.getElementById('testModal').classList.remove('flex');
 }
-
 async function sendTestEmail() {
     const email = document.getElementById('testEmailInput').value;
-    if (!email) {
-        showMessage('请输入测试邮箱', 'error');
-        return;
-    }
-
+    if (!email) { showMessage('请输入测试邮箱', 'error'); return; }
     const formData = new FormData();
     formData.append('action', 'test');
     formData.append('test_email', email);
-
     try {
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
-
-        if (data.code === 0) {
-            showMessage(data.msg);
-            closeTestModal();
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+        if (data.code === 0) { showMessage(data.msg); closeTestModal(); }
+        else showMessage(data.msg, 'error');
+    } catch (err) { showMessage('请求失败', 'error'); }
 }
 </script>
+
+<?php else: ?>
+<!-- ============ 模板编辑 ============ -->
+<?php
+    $tab = $tabs[$activeTab];
+    $subjectKey = $tab['keys'][0];
+    $bodyKey    = $tab['keys'][1];
+?>
+<form id="tplForm" class="space-y-6">
+    <input type="hidden" name="_save_tab" value="<?php echo e($activeTab); ?>">
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b">
+            <h2 class="font-bold text-gray-800">
+                <i class="fa-solid <?php echo e($tab['icon']); ?> mr-2 text-gray-400"></i><?php echo e($tab['title']); ?> 邮件模板
+            </h2>
+            <?php if (!empty($tab['hint'])): ?>
+            <p class="text-xs text-gray-400 mt-1">
+                可用变量（点击插入）：
+                <?php foreach (explode(' ', $tab['hint']) as $var): ?>
+                <code class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 cursor-pointer hover:bg-blue-100 hover:text-blue-600 transition" onclick="insertVar('<?php echo e($var); ?>')"><?php echo e($var); ?></code>
+                <?php endforeach; ?>
+            </p>
+            <?php endif; ?>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">邮件标题</label>
+                <div class="md:col-span-3">
+                    <input type="text" name="settings[<?php echo e($subjectKey); ?>]"
+                           value="<?php echo e(config($subjectKey)); ?>"
+                           class="w-full border rounded px-4 py-2"
+                           placeholder="请输入邮件标题...">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">邮件内容</label>
+                <div class="md:col-span-3">
+                    <textarea name="settings[<?php echo e($bodyKey); ?>]" rows="14" id="tplBody"
+                              class="w-full border rounded px-4 py-2 font-mono text-sm leading-relaxed"
+                              placeholder="请输入邮件正文..."><?php echo e(config($bodyKey)); ?></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center gap-4">
+            <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">
+                保存模板
+            </button>
+            <span class="text-xs text-gray-400">修改后立即生效，发送时自动替换变量</span>
+        </div>
+    </div>
+</form>
+
+<script>
+document.getElementById('tplForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    try {
+        const response = await fetch('', { method: 'POST', body: formData });
+        const data = await safeJson(response);
+        if (data.code === 0) showMessage('保存成功');
+        else showMessage(data.msg, 'error');
+    } catch (err) { showMessage('请求失败', 'error'); }
+});
+
+function insertVar(varName) {
+    const textarea = document.getElementById('tplBody');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    textarea.value = text.substring(0, start) + varName + text.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + varName.length;
+    textarea.focus();
+}
+</script>
+
+<?php endif; ?>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

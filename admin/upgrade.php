@@ -170,6 +170,194 @@ $upgrades = [
         },
     ],
 
+    [
+        'id'    => '20260329_language_settings',
+        'title' => '多语言支持',
+        'desc'  => '新增前台语言和后台语言设置项，支持中文和日本語切换。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'site_lang'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
+                ('basic', 'site_lang', 'zh-CN', 'select', '前台语言', '前台页面显示语言', '{\"zh-CN\":\"中文\",\"ja\":\"日本語\"}', 13),
+                ('basic', 'admin_lang', 'zh-CN', 'select', '后台语言', '管理后台显示语言', '{\"zh-CN\":\"中文\",\"ja\":\"日本語\"}', 14)",
+        ],
+    ],
+
+    [
+        'id'    => '20260329_translate_settings',
+        'title' => '翻译API配置',
+        'desc'  => '新增翻译API设置项（DeepL/Google Translate），支持语言包自动翻译。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'translate_api'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
+                ('translate', 'translate_api', 'deepl', 'select', '翻译API', '选择翻译服务提供商', '{\"deepl\":\"DeepL\",\"google\":\"Google Translate\"}', 1),
+                ('translate', 'translate_api_key', '', 'text', 'API Key', 'DeepL: 注册 https://www.deepl.com/pro-api 获取免费Key', NULL, 2)",
+        ],
+    ],
+
+    [
+        'id'    => '20260329_cms_version_in_db',
+        'title' => '版本号写入数据库',
+        'desc'  => '将 CMS 版本号存入 settings 表，升级后自动更新，便于版本检测和管理。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'cms_version'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
+                ('system', 'cms_version', '" . (defined('CMS_VERSION') ? CMS_VERSION : '1.3.0') . "', 'text', 'CMS版本号', '系统自动维护，请勿手动修改', NULL, 0)",
+        ],
+    ],
+
+    [
+        'id'    => '20260330_brands_table',
+        'title' => '品牌管理',
+        'desc'  => '新增品牌管理表(yikai_brands)，支持品牌Logo、产地、介绍等，产品可关联品牌。',
+        'check' => function () {
+            return db()->tableExists('brands');
+        },
+        'sqls' => [
+            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "brands` (
+                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `name` varchar(100) NOT NULL COMMENT '品牌名',
+                `slug` varchar(100) NOT NULL DEFAULT '',
+                `logo` varchar(255) NOT NULL DEFAULT '' COMMENT '品牌Logo',
+                `country` varchar(50) NOT NULL DEFAULT '' COMMENT '国家/产地',
+                `description` text COMMENT '品牌介绍',
+                `url` varchar(255) NOT NULL DEFAULT '' COMMENT '官网',
+                `sort_order` int(11) NOT NULL DEFAULT 0,
+                `status` tinyint(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='品牌管理'",
+        ],
+    ],
+
+    [
+        'id'    => '20260330_product_tags',
+        'title' => '产品标签系统',
+        'desc'  => '新增产品标签表和标签关联表，支持按材质、用途等多维度分组标签筛选。',
+        'check' => function () {
+            return db()->tableExists('product_tags');
+        },
+        'sqls' => [
+            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_tags` (
+                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `group_name` varchar(50) NOT NULL COMMENT '标签组',
+                `name` varchar(100) NOT NULL COMMENT '标签名',
+                `slug` varchar(100) NOT NULL DEFAULT '',
+                `sort_order` int(11) NOT NULL DEFAULT 0,
+                `status` tinyint(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (`id`),
+                KEY `idx_group` (`group_name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品标签'",
+            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "product_tag_map` (
+                `product_id` int(11) UNSIGNED NOT NULL,
+                `tag_id` int(11) UNSIGNED NOT NULL,
+                PRIMARY KEY (`product_id`, `tag_id`),
+                KEY `idx_tag` (`tag_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品标签关联'",
+        ],
+    ],
+
+    [
+        'id'    => '20260330_product_brand_id',
+        'title' => '产品表增加品牌字段',
+        'desc'  => '产品表新增 brand_id 字段，关联品牌管理。',
+        'check' => function () {
+            $columns = db()->fetchAll("SHOW COLUMNS FROM " . DB_PREFIX . "products LIKE 'brand_id'");
+            return !empty($columns);
+        },
+        'sqls' => [
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `brand_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '品牌ID' AFTER `category_id`",
+        ],
+    ],
+
+    // --- 询盘系统 ---
+
+    [
+        'id'    => '20260331_inquiry_fields',
+        'title' => '表单表增加询盘字段',
+        'desc'  => '表单表新增 product_id、product_title、source 字段，支持产品询盘关联。',
+        'check' => function () {
+            $columns = db()->fetchAll("SHOW COLUMNS FROM " . DB_PREFIX . "forms LIKE 'product_id'");
+            return !empty($columns);
+        },
+        'sqls' => [
+            "ALTER TABLE `" . DB_PREFIX . "forms` ADD COLUMN `product_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '关联产品ID' AFTER `type`",
+            "ALTER TABLE `" . DB_PREFIX . "forms` ADD COLUMN `product_title` varchar(255) NOT NULL DEFAULT '' COMMENT '产品名称快照' AFTER `product_id`",
+            "ALTER TABLE `" . DB_PREFIX . "forms` ADD COLUMN `source` varchar(30) NOT NULL DEFAULT 'contact' COMMENT '来源: contact/product/custom' AFTER `product_title`",
+            "ALTER TABLE `" . DB_PREFIX . "forms` ADD KEY `idx_product` (`product_id`)",
+            "ALTER TABLE `" . DB_PREFIX . "forms` ADD KEY `idx_source` (`source`)",
+        ],
+    ],
+
+    [
+        'id'    => '20260331_inquiry_form_template',
+        'title' => '创建产品询盘表单模板',
+        'desc'  => '自动创建 product-inquiry 表单模板，用于产品详情页内联询盘。',
+        'check' => function () {
+            $row = db()->fetchOne("SELECT id FROM " . DB_PREFIX . "form_templates WHERE slug = 'product-inquiry'");
+            return !empty($row);
+        },
+        'sqls' => [],
+        'php'  => function () {
+            db()->execute(
+                "INSERT INTO " . DB_PREFIX . "form_templates (name, slug, fields, success_message, status, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+                [
+                    '产品询盘',
+                    'product-inquiry',
+                    "[text* name \"您的姓名\"]\n[tel* phone \"联系电话\"]\n[email email \"邮箱地址\"]\n[text company \"公司名称\"]\n[textarea* content \"请描述您的需求\"]",
+                    '询盘已提交，我们将尽快与您联系！',
+                    time(),
+                ]
+            );
+            return '产品询盘模板创建成功';
+        },
+    ],
+
+    [
+        'id'    => '20260401_mail_templates',
+        'title' => '初始化邮件通知模板',
+        'desc'  => '写入会员注册、找回密码、重置密码、询盘通知 4 套邮件模板默认内容。',
+        'check' => function () {
+            $row = db()->fetchOne("SELECT id FROM " . DB_PREFIX . "settings WHERE `key` = 'mail_tpl_register_subject'");
+            return !empty($row);
+        },
+        'sqls' => [],
+        'php'  => function () {
+            $templates = [
+                'mail_tpl_register_subject' => '欢迎注册 — {{site_name}}',
+                'mail_tpl_register_body'    => "{{username}}，您好！\n\n欢迎注册 {{site_name}}！您的帐号已创建成功。\n\n请登录会员中心管理您的帐号：\n{{site_url}}/member/\n\n如有任何问题，请随时联系我们。\n\n{{site_name}}\n{{date}}",
+                'mail_tpl_forgot_subject'   => '密码找回 — {{site_name}}',
+                'mail_tpl_forgot_body'      => "{{username}}，您好！\n\n您正在进行密码找回操作，请点击以下链接重置密码：\n{{reset_link}}\n\n链接有效期为 30 分钟，如非本人操作请忽略此邮件。\n\n{{site_name}}\n{{date}}",
+                'mail_tpl_reset_subject'    => '密码已重置 — {{site_name}}',
+                'mail_tpl_reset_body'       => "{{username}}，您好！\n\n您的密码已成功重置。如非本人操作，请立即联系我们修改密码。\n\n{{site_name}}\n{{date}}",
+                'mail_tpl_inquiry_subject'  => '新询盘通知：{{product_title}} — {{site_name}}',
+                'mail_tpl_inquiry_body'     => "您收到一条新的产品询盘：\n\n产品：{{product_title}}\n姓名：{{name}}\n电话：{{phone}}\n邮箱：{{email}}\n公司：{{company}}\n内容：{{content}}\n\n时间：{{date}}\nIP：{{ip}}\n\n后台查看：{{site_url}}/admin/form.php",
+            ];
+            $count = 0;
+            foreach ($templates as $key => $value) {
+                $exists = db()->fetchOne("SELECT id FROM " . DB_PREFIX . "settings WHERE `key` = ?", [$key]);
+                if (!$exists) {
+                    db()->execute(
+                        "INSERT INTO " . DB_PREFIX . "settings (`group`, `key`, `value`, `type`, `name`, `sort_order`) VALUES (?, ?, ?, 'textarea', ?, ?)",
+                        ['email', $key, $value, $key, 20 + $count]
+                    );
+                    $count++;
+                }
+            }
+            return "已插入 {$count} 个邮件模板";
+        },
+    ],
+
     // --- 未来升级项追加到这里 ---
 
 ];
@@ -257,6 +445,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             $results[$up['id']] = ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
+    // 升级完成后，自动更新数据库中的版本号
+    $currentVersion = defined('CMS_VERSION') ? CMS_VERSION : '1.3.0';
+    try {
+        $exists = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'cms_version'");
+        if ($exists) {
+            db()->execute("UPDATE " . DB_PREFIX . "settings SET `value` = ? WHERE `key` = 'cms_version'", [$currentVersion]);
+        }
+    } catch (\Throwable $e) {}
+
     header('Content-Type: application/json');
     echo json_encode(['code' => 0, 'data' => $results]);
     exit;

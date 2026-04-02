@@ -22,9 +22,18 @@ class FormModel extends Model
             $where[] = 'status = ?';
             $params[] = (int) $filters['status'];
         }
+        if (!empty($filters['source'])) {
+            $where[] = 'source = ?';
+            $params[] = $filters['source'];
+        }
+        if (!empty($filters['product_id'])) {
+            $where[] = 'product_id = ?';
+            $params[] = (int) $filters['product_id'];
+        }
         if (!empty($filters['keyword'])) {
-            $where[] = '(name LIKE ? OR phone LIKE ? OR content LIKE ?)';
+            $where[] = '(name LIKE ? OR phone LIKE ? OR content LIKE ? OR product_title LIKE ?)';
             $kw = '%' . $filters['keyword'] . '%';
+            $params[] = $kw;
             $params[] = $kw;
             $params[] = $kw;
             $params[] = $kw;
@@ -55,5 +64,20 @@ class FormModel extends Model
             'follow_admin' => $adminName,
             'follow_note'  => $note,
         ]);
+    }
+
+    /**
+     * 各状态数量统计
+     */
+    public function getStatusCounts(): array
+    {
+        $rows = db()->fetchAll(
+            "SELECT status, COUNT(*) as cnt FROM {$this->tableName()} GROUP BY status"
+        );
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int)$row['status']] = (int)$row['cnt'];
+        }
+        return $counts;
     }
 }

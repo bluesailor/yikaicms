@@ -29,6 +29,9 @@ return [
         'banner_height_mobile'  => ['value' => '300', 'type' => 'number', 'name' => '轮播图高度(移动)', 'tip' => '单位像素', 'sort_order' => 10],
         'product_layout'        => ['value' => 'sidebar', 'type' => 'select', 'name' => '产品列表版式', 'tip' => '', 'options' => '{"sidebar":"侧栏模式","top":"顶栏模式"}', 'sort_order' => 11],
         'show_price'            => ['value' => '0', 'type' => 'select', 'name' => '显示产品价格', 'tip' => '前台是否显示产品价格', 'options' => '{"0":"不显示","1":"显示"}', 'sort_order' => 12],
+        'site_lang'             => ['value' => 'zh-CN', 'type' => 'select', 'name' => '前台语言', 'tip' => '前台页面显示语言', 'options' => '{"zh-CN":"中文","ja":"日本語"}', 'sort_order' => 13],
+        'admin_lang'            => ['value' => 'zh-CN', 'type' => 'select', 'name' => '后台语言', 'tip' => '管理后台显示语言', 'options' => '{"zh-CN":"中文","ja":"日本語"}', 'sort_order' => 14],
+        'current_theme'         => ['value' => 'default', 'type' => 'text', 'name' => '当前主题', 'tip' => 'themes/ 目录下的主题文件夹名', 'sort_order' => 15],
     ],
 
     // ============================================================
@@ -93,6 +96,15 @@ return [
         'mail_from_name'        => ['value' => '', 'type' => 'text', 'name' => '发件人名称', 'tip' => '留空使用站点名称', 'sort_order' => 7],
         'mail_admin'            => ['value' => '', 'type' => 'text', 'name' => '管理员邮箱', 'tip' => '接收表单提交通知', 'sort_order' => 8],
         'mail_notify_form'      => ['value' => '0', 'type' => 'text', 'name' => '表单提交通知', 'tip' => '1开启/0关闭', 'sort_order' => 9],
+        // 邮件模板
+        'mail_tpl_register_subject'  => ['value' => '欢迎注册 — {{site_name}}', 'type' => 'text', 'name' => '注册确认标题', 'sort_order' => 20],
+        'mail_tpl_register_body'     => ['value' => "{{username}}，您好！\n\n欢迎注册 {{site_name}}！您的帐号已创建成功。\n\n请登录会员中心管理您的帐号：\n{{site_url}}/member/\n\n{{site_name}}\n{{date}}", 'type' => 'textarea', 'name' => '注册确认内容', 'sort_order' => 21],
+        'mail_tpl_forgot_subject'    => ['value' => '密码找回 — {{site_name}}', 'type' => 'text', 'name' => '找回密码标题', 'sort_order' => 22],
+        'mail_tpl_forgot_body'       => ['value' => "{{username}}，您好！\n\n您正在进行密码找回操作，请点击以下链接重置密码：\n{{reset_link}}\n\n链接有效期为 30 分钟，如非本人操作请忽略此邮件。\n\n{{site_name}}\n{{date}}", 'type' => 'textarea', 'name' => '找回密码内容', 'sort_order' => 23],
+        'mail_tpl_reset_subject'     => ['value' => '密码已重置 — {{site_name}}', 'type' => 'text', 'name' => '重置密码标题', 'sort_order' => 24],
+        'mail_tpl_reset_body'        => ['value' => "{{username}}，您好！\n\n您的密码已成功重置。如非本人操作，请立即联系我们。\n\n{{site_name}}\n{{date}}", 'type' => 'textarea', 'name' => '重置密码内容', 'sort_order' => 25],
+        'mail_tpl_inquiry_subject'   => ['value' => '新询盘通知：{{product_title}} — {{site_name}}', 'type' => 'text', 'name' => '询盘通知标题', 'sort_order' => 26],
+        'mail_tpl_inquiry_body'      => ['value' => "您收到一条新的产品询盘：\n\n产品：{{product_title}}\n姓名：{{name}}\n电话：{{phone}}\n邮箱：{{email}}\n公司：{{company}}\n内容：{{content}}\n\n时间：{{date}}\nIP：{{ip}}\n\n后台查看：{{site_url}}/admin/form.php", 'type' => 'textarea', 'name' => '询盘通知内容', 'sort_order' => 27],
     ],
 
     // ============================================================
@@ -148,6 +160,14 @@ return [
     'member' => [
         'allow_member_register' => ['value' => '0', 'type' => 'switch', 'name' => '允许会员注册', 'tip' => '关闭后前台将无法注册新会员', 'sort_order' => 1],
         'download_require_login' => ['value' => '0', 'type' => 'switch', 'name' => '下载需要登录', 'tip' => '开启后下载文件需要会员登录', 'sort_order' => 2],
+    ],
+
+    // ============================================================
+    // 翻译设置
+    // ============================================================
+    'translate' => [
+        'translate_api'         => ['value' => 'deepl', 'type' => 'select', 'name' => '翻译API', 'tip' => '选择翻译服务提供商', 'options' => '{"deepl":"DeepL","google":"Google Translate"}', 'sort_order' => 1],
+        'translate_api_key'     => ['value' => '', 'type' => 'text', 'name' => 'API Key', 'tip' => 'DeepL: 注册 https://www.deepl.com/pro-api 获取免费Key', 'sort_order' => 2],
     ],
 
 ];

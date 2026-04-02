@@ -1,0 +1,106 @@
+/* Minimal Theme - Style Overrides */
+
+/* Typography */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.01em;
+}
+
+/* Header */
+header a {
+    text-decoration: none;
+}
+
+/* Hamburger override for minimal style */
+.hamburger span {
+    background-color: #374151;
+    height: 1px;
+}
+
+/* Banner: remove navigation arrows styling for cleaner look */
+.banner-swiper .swiper-button-prev,
+.banner-swiper .swiper-button-next {
+    display: none;
+}
+
+.banner-swiper .swiper-pagination-bullet {
+    background: #9ca3af;
+    opacity: 0.4;
+}
+
+.banner-swiper .swiper-pagination-bullet-active {
+    background: #111827;
+    opacity: 1;
+}
+
+/* Category filter buttons active state */
+.category-btn.active {
+    border-color: #111827;
+    color: #111827;
+}
+
+/* Cards: no shadow anywhere */
+.shadow, .shadow-md, .shadow-lg, .shadow-xl {
+    box-shadow: none !important;
+}
+
+/* Section title bar override: hide default */
+.section-title-bar {
+    display: none;
+}
+
+/* Links: subtle underline on hover */
+a {
+    text-decoration: none;
+}
+
+/* Content area: clean typography */
+.prose {
+    font-size: 0.938rem;
+    line-height: 1.8;
+    color: #4b5563;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    color: #111827;
+}
+
+/* Mobile menu: clean animation */
+#mobileMenu {
+    animation: minimal-fade-in 0.2s ease;
+}
+
+@keyframes minimal-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Image containers: no rounded corners */
+img {
+    border-radius: 0;
+}
+
+.rounded, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-full {
+    border-radius: 0 !important;
+}
+
+/* Override for specific elements that should remain round */
+.swiper-pagination-bullet {
+    border-radius: 50% !important;
+}
+
+/* Scrollbar: minimal */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+}

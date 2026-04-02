@@ -71,32 +71,19 @@ if (!empty($article['cover'])) {
 }
 
 // 引入头部
-require_once INCLUDES_PATH . 'header.php';
+require_once theme_path('layouts/header.php');
 ?>
 
 <!-- 页面头部 -->
-<section class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-12 relative overflow-hidden">
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-secondary rounded-full blur-3xl"></div>
-    </div>
-    <div class="container mx-auto px-4 relative">
-        <!-- 面包屑导航 -->
-        <div class="flex items-center gap-2 text-sm text-gray-400">
-            <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>
-            <span>/</span>
-            <a href="/news.html" class="hover:text-white"><?php echo __('news_title'); ?></a>
-            <?php if (($article['channel_name'] ?? '')): ?>
-            <span>/</span>
-            <a href="/news/<?php echo e(($article['channel_slug'] ?? '')); ?>.html" class="hover:text-white">
-                <?php echo e(($article['channel_name'] ?? '')); ?>
-            </a>
-            <?php endif; ?>
-            <span>/</span>
-            <span class="text-white"><?php echo e(cutStr($article['title'], 30)); ?></span>
-        </div>
-    </div>
-</section>
+<?php
+$breadcrumbItems = [['name' => __('news_title'), 'url' => '/news.html']];
+if ($article['channel_name'] ?? '') {
+    $breadcrumbItems[] = ['name' => $article['channel_name'], 'url' => '/news/' . e($article['channel_slug'] ?? '') . '.html'];
+}
+$breadcrumbItems[] = ['name' => cutStr($article['title'], 30), 'url' => ''];
+$channel = ['name' => $article['title'], 'description' => '', 'image' => ''];
+require theme_path('partials/page-hero.php');
+?>
 
 <!-- 文章内容 -->
 <section class="py-12">
@@ -264,4 +251,4 @@ require_once INCLUDES_PATH . 'header.php';
     </div>
 </section>
 
-<?php require_once INCLUDES_PATH . 'footer.php'; ?>
+<?php require_once theme_path('layouts/footer.php'); ?>

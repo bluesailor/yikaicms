@@ -118,7 +118,7 @@ function getChannelUrl(array $channel): string {
 
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="<?php echo getLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
