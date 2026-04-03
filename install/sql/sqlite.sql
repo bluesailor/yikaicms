@@ -173,6 +173,9 @@ DROP TABLE IF EXISTS yikai_forms;
 CREATE TABLE yikai_forms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL DEFAULT 'contact',
+    product_id INTEGER NOT NULL DEFAULT 0,
+    product_title TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'contact',
     name TEXT NOT NULL DEFAULT '',
     phone TEXT NOT NULL DEFAULT '',
     email TEXT NOT NULL DEFAULT '',
@@ -189,6 +192,8 @@ CREATE TABLE yikai_forms (
 CREATE INDEX idx_forms_type ON yikai_forms(type);
 CREATE INDEX idx_forms_status ON yikai_forms(status);
 CREATE INDEX idx_forms_created ON yikai_forms(created_at);
+CREATE INDEX idx_forms_product ON yikai_forms(product_id);
+CREATE INDEX idx_forms_source ON yikai_forms(source);
 
 -- -----------------------------------------------------------
 -- 操作日志
@@ -363,6 +368,7 @@ DROP TABLE IF EXISTS yikai_products;
 CREATE TABLE yikai_products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     category_id INTEGER NOT NULL DEFAULT 0,
+    brand_id INTEGER NOT NULL DEFAULT 0,
     title TEXT NOT NULL,
     subtitle TEXT NOT NULL DEFAULT '',
     slug TEXT NOT NULL DEFAULT '',
@@ -568,8 +574,50 @@ CREATE TABLE yikai_form_templates (
     created_at INTEGER NOT NULL DEFAULT 0
 );
 
+-- -----------------------------------------------------------
+-- 品牌管理
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS yikai_brands;
+CREATE TABLE yikai_brands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL DEFAULT '',
+    logo TEXT NOT NULL DEFAULT '',
+    country TEXT NOT NULL DEFAULT '',
+    description TEXT,
+    url TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    status INTEGER NOT NULL DEFAULT 1
+);
+
+-- -----------------------------------------------------------
+-- 产品标签
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS yikai_product_tags;
+CREATE TABLE yikai_product_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_name TEXT NOT NULL,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    status INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX idx_product_tags_group ON yikai_product_tags(group_name);
+
+-- -----------------------------------------------------------
+-- 产品标签关联
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS yikai_product_tag_map;
+CREATE TABLE yikai_product_tag_map (
+    product_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (product_id, tag_id)
+);
+CREATE INDEX idx_tag_map_tag ON yikai_product_tag_map(tag_id);
+
 INSERT INTO yikai_form_templates (id, name, slug, fields, success_message, status, created_at) VALUES
-(1, '联系表单', 'contact', '[{"key":"name","label":"姓名","type":"text","required":true,"placeholder":"请输入姓名"},{"key":"phone","label":"电话","type":"tel","required":true,"placeholder":"请输入电话"},{"key":"email","label":"邮箱","type":"email","required":false,"placeholder":"请输入邮箱"},{"key":"company","label":"公司","type":"text","required":false,"placeholder":"请输入公司名称"},{"key":"content","label":"留言内容","type":"textarea","required":true,"placeholder":"请输入留言内容"}]', '提交成功，感谢您的反馈！', 1, strftime('%s','now'));
+(1, '联系表单', 'contact', '[{"key":"name","label":"姓名","type":"text","required":true,"placeholder":"请输入姓名"},{"key":"phone","label":"电话","type":"tel","required":true,"placeholder":"请输入电话"},{"key":"email","label":"邮箱","type":"email","required":false,"placeholder":"请输入邮箱"},{"key":"company","label":"公司","type":"text","required":false,"placeholder":"请输入公司名称"},{"key":"content","label":"留言内容","type":"textarea","required":true,"placeholder":"请输入留言内容"}]', '提交成功，感谢您的反馈！', 1, strftime('%s','now')),
+(2, '产品询盘', 'product-inquiry', '[{"key":"name","label":"您的姓名","type":"text","required":true,"placeholder":"请输入姓名"},{"key":"phone","label":"联系电话","type":"tel","required":true,"placeholder":"请输入电话"},{"key":"email","label":"邮箱地址","type":"email","required":false,"placeholder":"请输入邮箱"},{"key":"company","label":"公司名称","type":"text","required":false,"placeholder":"请输入公司名称"},{"key":"content","label":"请描述您的需求","type":"textarea","required":true,"placeholder":"请描述您的需求"}]', '询盘已提交，我们将尽快与您联系！', 1, strftime('%s','now'));
 
 PRAGMA foreign_keys = ON;
 
@@ -599,6 +647,10 @@ INSERT INTO yikai_settings ("group", "key", value, type, name, tip, sort_order) 
 ('basic', 'banner_height_mobile', '300', 'number', '轮播图高度(移动)', '单位像素', 10),
 ('basic', 'product_layout', 'sidebar', 'select', '产品列表版式', '', 11),
 ('basic', 'show_price', '0', 'select', '显示产品价格', '前台是否显示产品价格', 12),
+('basic', 'site_lang', 'zh-CN', 'select', '前台语言', '前台界面显示语言', 13),
+('basic', 'admin_lang', 'zh-CN', 'select', '后台语言', '后台界面显示语言', 14),
+-- 系统
+('system', 'cms_version', '1.4.0', 'text', 'CMS版本号', '系统自动维护，请勿手动修改', 0),
 -- 联系方式
 ('contact', 'contact_cards', '[{"icon":"phone","label":"联系电话","value":"400-888-8888"},{"icon":"email","label":"电子邮箱","value":"contact@example.com"},{"icon":"location","label":"公司地址","value":"上海市浦东新区XX路XX号"}]', 'contact_cards', '联系信息卡片', '联系我们页面顶部展示的信息卡片', 0),
 ('contact', 'contact_phone', '400-888-8888', 'text', '联系电话', '', 1),
@@ -682,7 +734,19 @@ INSERT INTO yikai_settings ("group", "key", value, type, name, tip, sort_order) 
 ('email', 'mail_notify_form', '0', 'text', '表单提交通知', '1开启/0关闭', 9),
 -- 会员设置
 ('member', 'allow_member_register', '0', 'switch', '允许会员注册', '是否允许前台会员注册', 1),
-('member', 'download_require_login', '0', 'switch', '下载需要登录', '下载文件是否需要会员登录', 2);
+('member', 'download_require_login', '0', 'switch', '下载需要登录', '下载文件是否需要会员登录', 2),
+-- 翻译设置
+('translate', 'translate_api', 'deepl', 'select', '翻译API', '选择翻译服务提供商', 1),
+('translate', 'translate_api_key', '', 'text', 'API Key', 'DeepL: 注册获取免费Key', 2),
+-- 邮件模板
+('email', 'mail_tpl_register_subject', '欢迎注册 — {{site_name}}', 'textarea', 'mail_tpl_register_subject', '', 20),
+('email', 'mail_tpl_register_body', '{{username}}，您好！\n\n欢迎注册 {{site_name}}！您的帐号已创建成功。\n\n请登录会员中心管理您的帐号：\n{{site_url}}/member/\n\n如有任何问题，请随时联系我们。\n\n{{site_name}}\n{{date}}', 'textarea', 'mail_tpl_register_body', '', 21),
+('email', 'mail_tpl_forgot_subject', '密码找回 — {{site_name}}', 'textarea', 'mail_tpl_forgot_subject', '', 22),
+('email', 'mail_tpl_forgot_body', '{{username}}，您好！\n\n您正在进行密码找回操作，请点击以下链接重置密码：\n{{reset_link}}\n\n链接有效期为 30 分钟，如非本人操作请忽略此邮件。\n\n{{site_name}}\n{{date}}', 'textarea', 'mail_tpl_forgot_body', '', 23),
+('email', 'mail_tpl_reset_subject', '密码已重置 — {{site_name}}', 'textarea', 'mail_tpl_reset_subject', '', 24),
+('email', 'mail_tpl_reset_body', '{{username}}，您好！\n\n您的密码已成功重置。如非本人操作，请立即联系我们修改密码。\n\n{{site_name}}\n{{date}}', 'textarea', 'mail_tpl_reset_body', '', 25),
+('email', 'mail_tpl_inquiry_subject', '新询盘通知：{{product_title}} — {{site_name}}', 'textarea', 'mail_tpl_inquiry_subject', '', 26),
+('email', 'mail_tpl_inquiry_body', '您收到一条新的产品询盘：\n\n产品：{{product_title}}\n姓名：{{name}}\n电话：{{phone}}\n邮箱：{{email}}\n公司：{{company}}\n内容：{{content}}\n\n时间：{{date}}\nIP：{{ip}}\n\n后台查看：{{site_url}}/admin/form.php', 'textarea', 'mail_tpl_inquiry_body', '', 27);
 
 -- ============================================================
 -- 初始栏目（标准企业站）
@@ -745,14 +809,8 @@ UPDATE yikai_channels SET content = '<h2>关于我们</h2>
 <p>欢迎通过左侧菜单了解更多关于我们的信息。</p>' WHERE id = 1;
 
 -- ============================================================
--- 初始文章分类（对应新闻栏目）
+-- 旧文章分类表（保留结构，不插入数据，已由 channels 统一管理）
 -- ============================================================
-
-INSERT INTO yikai_article_categories (id, parent_id, name, slug, description, status, sort_order, created_at) VALUES
-(1, 4, '公司新闻', 'company-news', '公司最新动态和重要公告', 1, 1, strftime('%s', 'now')),
-(2, 4, '行业动态', 'industry-news', '行业最新资讯和趋势分析', 1, 2, strftime('%s', 'now')),
-(3, 0, '技术分享', 'tech-share', '技术文章和经验分享', 1, 3, strftime('%s', 'now')),
-(4, 0, '新闻资讯', 'news', '新闻资讯栏目', 1, 1, strftime('%s', 'now'));
 
 -- ============================================================
 -- 初始示例内容
@@ -992,14 +1050,8 @@ INSERT INTO yikai_contents (channel_id, type, title, summary, content, cover, is
 '', 0, 0, 0, 0, 1, strftime('%s','now'), strftime('%s','now'), 1);
 
 -- ============================================================
--- 初始文章（对应文章分类）
+-- 旧文章表（保留结构，不插入数据，已由 contents 统一管理）
 -- ============================================================
-
-INSERT INTO yikai_articles (category_id, title, slug, summary, content, cover, author, is_top, is_recommend, status, views, publish_time, created_at, updated_at, admin_id) VALUES
-(1, '公司荣获"年度最佳科技创新奖"', 'company-award-2024', '在刚刚结束的行业年度评选中，我公司凭借出色的技术创新能力荣获殊荣。', '<p>在日前举办的2024年度行业颁奖典礼上，我公司凭借在技术创新领域的突出表现，荣获"年度最佳科技创新奖"。</p><p>此次获奖是对公司多年来坚持自主创新的肯定。</p><p>公司CEO表示："这个奖项是对全体员工努力的认可，我们将继续保持创新精神，为客户创造更大价值。"</p>', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80', '管理员', 1, 1, 1, 128, strftime('%s','now'), strftime('%s','now'), strftime('%s','now'), 1),
-(1, '公司与战略合作伙伴签署合作协议', 'partnership-agreement', '公司与多家行业领先企业达成战略合作，共同推进行业发展。', '<p>近日，公司与多家行业领先企业签署战略合作协议，将在技术研发、市场拓展等领域开展深度合作。</p><p>此次合作将有效整合各方资源优势，共同推进行业技术进步。</p>', '', '管理员', 0, 1, 1, 86, strftime('%s','now'), strftime('%s','now'), strftime('%s','now'), 1),
-(2, '数字化转型趋势报告发布', 'digital-transformation-report', '最新行业研究报告显示，企业数字化转型已成为必然趋势。', '<p>近日，某权威研究机构发布了《2024年企业数字化转型趋势报告》。</p><p>报告指出，超过80%的企业已将数字化转型列入战略规划，预计未来三年内数字化投入将持续增长。</p>', '', '管理员', 0, 0, 1, 56, strftime('%s','now'), strftime('%s','now'), strftime('%s','now'), 1),
-(3, 'PHP 8.0 新特性详解', 'php8-new-features', '详细介绍PHP 8.0版本带来的新特性和性能优化。', '<p>PHP 8.0 带来了众多新特性，包括JIT编译器、命名参数、联合类型等。</p><h3>主要新特性</h3><ul><li>JIT 编译器 - 显著提升性能</li><li>命名参数 - 更灵活的函数调用</li><li>联合类型 - 更强的类型系统</li></ul>', '', '技术部', 0, 0, 1, 234, strftime('%s','now'), strftime('%s','now'), strftime('%s','now'), 1);
 
 -- ============================================================
 -- 初始轮播图

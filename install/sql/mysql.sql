@@ -653,7 +653,8 @@ CREATE TABLE `yikai_form_templates` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='表单模板';
 
 INSERT INTO `yikai_form_templates` (`id`, `name`, `slug`, `fields`, `success_message`, `status`, `created_at`) VALUES
-(1, '联系表单', 'contact', '[{\"key\":\"name\",\"label\":\"姓名\",\"type\":\"text\",\"required\":true,\"placeholder\":\"请输入姓名\"},{\"key\":\"phone\",\"label\":\"电话\",\"type\":\"tel\",\"required\":true,\"placeholder\":\"请输入电话\"},{\"key\":\"email\",\"label\":\"邮箱\",\"type\":\"email\",\"required\":false,\"placeholder\":\"请输入邮箱\"},{\"key\":\"company\",\"label\":\"公司\",\"type\":\"text\",\"required\":false,\"placeholder\":\"请输入公司名称\"},{\"key\":\"content\",\"label\":\"留言内容\",\"type\":\"textarea\",\"required\":true,\"placeholder\":\"请输入留言内容\"}]', '提交成功，感谢您的反馈！', 1, UNIX_TIMESTAMP());
+(1, '联系表单', 'contact', '[{\"key\":\"name\",\"label\":\"姓名\",\"type\":\"text\",\"required\":true,\"placeholder\":\"请输入姓名\"},{\"key\":\"phone\",\"label\":\"电话\",\"type\":\"tel\",\"required\":true,\"placeholder\":\"请输入电话\"},{\"key\":\"email\",\"label\":\"邮箱\",\"type\":\"email\",\"required\":false,\"placeholder\":\"请输入邮箱\"},{\"key\":\"company\",\"label\":\"公司\",\"type\":\"text\",\"required\":false,\"placeholder\":\"请输入公司名称\"},{\"key\":\"content\",\"label\":\"留言内容\",\"type\":\"textarea\",\"required\":true,\"placeholder\":\"请输入留言内容\"}]', '提交成功，感谢您的反馈！', 1, UNIX_TIMESTAMP()),
+(2, '产品询盘', 'product-inquiry', '[{\"key\":\"name\",\"label\":\"您的姓名\",\"type\":\"text\",\"required\":true,\"placeholder\":\"请输入姓名\"},{\"key\":\"phone\",\"label\":\"联系电话\",\"type\":\"tel\",\"required\":true,\"placeholder\":\"请输入电话\"},{\"key\":\"email\",\"label\":\"邮箱地址\",\"type\":\"email\",\"required\":false,\"placeholder\":\"请输入邮箱\"},{\"key\":\"company\",\"label\":\"公司名称\",\"type\":\"text\",\"required\":false,\"placeholder\":\"请输入公司名称\"},{\"key\":\"content\",\"label\":\"请描述您的需求\",\"type\":\"textarea\",\"required\":true,\"placeholder\":\"请描述您的需求\"}]', '询盘已提交，我们将尽快与您联系！', 1, UNIX_TIMESTAMP());
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -760,7 +761,17 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 ('88', 'header', 'show_member_entry', '0', 'select', '显示会员入口', '导航栏显示会员登录/注册入口', '{"0":"隐藏","1":"显示"}', '3'),
 ('89', 'member', 'allow_member_register', '0', 'switch', '允许会员注册', '是否允许前台会员注册', NULL, '1'),
 ('90', 'member', 'download_require_login', '0', 'switch', '下载需要登录', '下载文件是否需要会员登录', NULL, '2'),
-('91', 'home', 'home_links_title', '合作伙伴', 'text', '链接区块标题', '页脚合作伙伴区块的标题', NULL, '25');
+('91', 'home', 'home_links_title', '合作伙伴', 'text', '链接区块标题', '页脚合作伙伴区块的标题', NULL, '25'),
+('95', 'translate', 'translate_api', 'deepl', 'select', '翻译API', '选择翻译服务提供商', '{\"deepl\":\"DeepL\",\"google\":\"Google Translate\"}', '1'),
+('96', 'translate', 'translate_api_key', '', 'text', 'API Key', 'DeepL: 注册获取免费Key', NULL, '2'),
+('100', 'email', 'mail_tpl_register_subject', '欢迎注册 — {{site_name}}', 'textarea', 'mail_tpl_register_subject', '', NULL, '20'),
+('101', 'email', 'mail_tpl_register_body', '{{username}}，您好！\\n\\n欢迎注册 {{site_name}}！您的帐号已创建成功。\\n\\n请登录会员中心管理您的帐号：\\n{{site_url}}/member/\\n\\n如有任何问题，请随时联系我们。\\n\\n{{site_name}}\\n{{date}}', 'textarea', 'mail_tpl_register_body', '', NULL, '21'),
+('102', 'email', 'mail_tpl_forgot_subject', '密码找回 — {{site_name}}', 'textarea', 'mail_tpl_forgot_subject', '', NULL, '22'),
+('103', 'email', 'mail_tpl_forgot_body', '{{username}}，您好！\\n\\n您正在进行密码找回操作，请点击以下链接重置密码：\\n{{reset_link}}\\n\\n链接有效期为 30 分钟，如非本人操作请忽略此邮件。\\n\\n{{site_name}}\\n{{date}}', 'textarea', 'mail_tpl_forgot_body', '', NULL, '23'),
+('104', 'email', 'mail_tpl_reset_subject', '密码已重置 — {{site_name}}', 'textarea', 'mail_tpl_reset_subject', '', NULL, '24'),
+('105', 'email', 'mail_tpl_reset_body', '{{username}}，您好！\\n\\n您的密码已成功重置。如非本人操作，请立即联系我们修改密码。\\n\\n{{site_name}}\\n{{date}}', 'textarea', 'mail_tpl_reset_body', '', NULL, '25'),
+('106', 'email', 'mail_tpl_inquiry_subject', '新询盘通知：{{product_title}} — {{site_name}}', 'textarea', 'mail_tpl_inquiry_subject', '', NULL, '26'),
+('107', 'email', 'mail_tpl_inquiry_body', '您收到一条新的产品询盘：\\n\\n产品：{{product_title}}\\n姓名：{{name}}\\n电话：{{phone}}\\n邮箱：{{email}}\\n公司：{{company}}\\n内容：{{content}}\\n\\n时间：{{date}}\\nIP：{{ip}}\\n\\n后台查看：{{site_url}}/admin/form.php', 'textarea', 'mail_tpl_inquiry_body', '', NULL, '27');
 
 INSERT INTO `yikai_channels` (`id`, `parent_id`, `name`, `slug`, `type`, `album_id`, `icon`, `image`, `description`, `content`, `link_url`, `link_target`, `redirect_type`, `redirect_url`, `seo_title`, `seo_keywords`, `seo_description`, `is_nav`, `is_home`, `status`, `is_system`, `sort_order`, `created_at`, `updated_at`) VALUES
 ('1', '0', '关于我们', 'about', 'page', '0', '', '', '了解我们的企业文化与发展历程', NULL, '', '_self', 'auto', '', '', '', '', '1', '0', '1', '1', '1', '1770899116', '0'),
@@ -785,17 +796,7 @@ INSERT INTO `yikai_channels` (`id`, `parent_id`, `name`, `slug`, `type`, `album_
 ('29', '0', '隐私政策', 'privacy', 'page', '0', '', '', '网站隐私政策', NULL, '', '_self', 'none', '', '', '', '', '0', '0', '1', '1', '98', '1770899116', '0'),
 ('30', '0', '服务条款', 'terms', 'page', '0', '', '', '网站服务条款', NULL, '', '_self', 'none', '', '', '', '', '0', '0', '1', '1', '99', '1770899116', '0');
 
-INSERT INTO `yikai_article_categories` (`id`, `parent_id`, `name`, `slug`, `image`, `description`, `seo_title`, `seo_keywords`, `seo_description`, `status`, `sort_order`, `created_at`) VALUES
-('1', '4', '公司新闻', 'company-news', '', '公司最新动态和重要公告', '', '', '', '1', '1', '1770899116'),
-('2', '4', '行业动态', 'industry-news', '', '行业最新资讯和趋势分析', '', '', '', '1', '2', '1770899116'),
-('3', '0', '技术分享', 'tech-share', '', '技术文章和经验分享', '', '', '', '1', '3', '1770899116'),
-('4', '0', '新闻资讯', 'news', '', '新闻资讯栏目', '', '', '', '1', '1', '1770899116');
-
-INSERT INTO `yikai_articles` (`id`, `category_id`, `title`, `subtitle`, `slug`, `cover`, `summary`, `content`, `author`, `source`, `tags`, `is_top`, `is_recommend`, `is_hot`, `views`, `likes`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES
-('1', '1', '公司荣获"年度最佳科技创新奖"', '', '', '', '在刚刚结束的行业年度评选中，我公司凭借出色的技术创新能力荣获殊荣。', '<p>在日前举办的2024年度行业颁奖典礼上，我公司凭借在技术创新领域的突出表现，荣获"年度最佳科技创新奖"。</p><p>公司CEO表示："这个奖项是对全体员工努力的认可，我们将继续保持创新精神，为客户创造更大价值。"</p>', '管理员', '', '', '1', '1', '0', '7', '0', '1', '1770899116', '1770899116', '1770899116', '1'),
-('2', '1', '公司与战略合作伙伴签署合作协议', '', 'partnership-agreement', '', '公司与多家行业领先企业达成战略合作，共同推进行业发展。', '<p>近日，公司与多家行业领先企业签署战略合作协议，将在技术研发、市场拓展等领域开展深度合作。</p>', '管理员', '', '', '0', '1', '0', '0', '0', '1', '1770899116', '1770899116', '1770899116', '1'),
-('3', '2', '数字化转型趋势报告发布', '', 'digital-transformation-report', '', '最新行业研究报告显示，企业数字化转型已成为必然趋势。', '<p>近日，某权威研究机构发布了《2024年企业数字化转型趋势报告》。</p><p>报告指出，超过80%的企业已将数字化转型列入战略规划。</p>', '管理员', '', '', '0', '0', '0', '2', '0', '1', '1770899116', '1770899116', '1770899116', '1'),
-('4', '3', 'PHP 8.0 新特性详解', '', 'php8-new-features', '', '详细介绍PHP 8.0版本带来的新特性和性能优化。', '<p>PHP 8.0 带来了众多新特性，包括JIT编译器、命名参数、联合类型等。</p><h3>主要新特性</h3><ul><li>JIT 编译器</li><li>命名参数</li><li>联合类型</li></ul>', '技术部', '', '', '0', '0', '0', '1', '0', '1', '1770899116', '1770899116', '1770899116', '1');
+-- 旧文章分类/文章表保留结构，不插入数据（已由 channels + contents 统一管理）
 
 INSERT INTO `yikai_product_categories` (`id`, `parent_id`, `name`, `slug`, `image`, `description`, `seo_title`, `seo_keywords`, `seo_description`, `status`, `is_nav`, `sort_order`, `created_at`) VALUES
 ('1', '0', '智能设备', 'smart-device', '', '智能硬件设备产品系列', '', '', '', '1', '1', '1', '1770899116'),
@@ -824,7 +825,7 @@ INSERT INTO `yikai_contents` (`id`, `channel_id`, `type`, `title`, `subtitle`, `
 ('15', '30', 'article', '服务条款', '', '', '', NULL, '使用本网站前请仔细阅读以下服务条款。', '<h2>服务条款</h2>\n<p>欢迎访问本网站。请在使用本网站服务之前，仔细阅读以下条款。使用本网站即表示您同意遵守以下条款和条件。</p>\n\n<h3>一、服务说明</h3>\n<p>本网站提供的信息和服务仅供参考。我们保留随时修改、暂停或终止服务的权利，恕不另行通知。</p>\n\n<h3>二、用户行为规范</h3>\n<p>在使用本网站时，您同意：</p>\n<ul>\n<li>不得利用本网站从事违法活动</li>\n<li>不得上传或传播含有病毒、恶意代码的内容</li>\n<li>不得侵犯他人的知识产权或其他合法权益</li>\n<li>不得干扰或破坏网站的正常运行</li>\n<li>遵守中华人民共和国相关法律法规</li>\n</ul>\n\n<h3>三、知识产权</h3>\n<p>本网站的所有内容，包括但不限于文字、图片、音频、视频、软件、程序、版面设计等，均受著作权法和其他知识产权法律法规保护。未经我们书面许可，任何人不得复制、转载、修改或用于商业用途。</p>\n\n<h3>四、免责声明</h3>\n<ul>\n<li>本网站内容仅供一般性参考，不构成任何建议或承诺。</li>\n<li>我们不保证网站内容的准确性、完整性和及时性。</li>\n<li>对于因使用本网站而产生的任何直接或间接损失，我们不承担责任。</li>\n<li>本网站可能包含第三方网站的链接，我们对这些网站的内容不承担任何责任。</li>\n</ul>\n\n<h3>五、账号管理</h3>\n<p>如果您在本网站注册了账号，您有责任妥善保管您的账号信息和密码。因账号信息泄露导致的任何损失由您自行承担。</p>\n\n<h3>六、隐私保护</h3>\n<p>我们重视您的隐私保护，具体请参阅我们的<a href=\"/privacy.html\">隐私政策</a>。</p>\n\n<h3>七、条款修改</h3>\n<p>我们保留随时修改本服务条款的权利。修改后的条款将在本页面发布，继续使用本网站即表示您接受修改后的条款。</p>\n\n<h3>八、适用法律</h3>\n<p>本服务条款受中华人民共和国法律管辖。因本条款引起的任何争议，双方应友好协商解决。</p>\n\n<h3>九、联系方式</h3>\n<p>如果您对本服务条款有任何疑问，请通过网站联系方式与我们取得联系。</p>', '', '', '', '', '0', '0.00', NULL, '', '', NULL, '0', '0', '0', '0', '0', '', '', '', '1', '1770899116', '1770899116', '0', '1');
 
 INSERT INTO `yikai_banners` (`id`, `position`, `title`, `subtitle`, `btn1_text`, `btn1_url`, `btn2_text`, `btn2_url`, `image`, `image_mobile`, `link_url`, `link_target`, `start_time`, `end_time`, `status`, `sort_order`, `created_at`) VALUES
-('1', 'home', '数字化转型解决方案', '助力企业实现智能化升级', '关于我们', '/about.html', '下载中心', '/download.html', '/uploads/images/202602/20260214234920_22c6c8dc.jpg', '', '/about.html', '_self', '0', '0', '1', '1', '1770899116'),
+('1', 'home', '数字化转型解决方案', '助力企业实现智能化升级', '关于我们', '/about.html', '下载中心', '/download.html', 'https://picsum.photos/1920/600?random=1', '', '/about.html', '_self', '0', '0', '1', '1', '1770899116'),
 ('2', 'home', '专业的技术服务团队', '7x24小时为您保驾护航', '查看详情', '/about.html', '', '', 'https://picsum.photos/1920/600?random=2', '', '/about.html', '_self', '0', '0', '1', '2', '1770899116'),
 ('3', 'home', '创新引领未来', '持续创新，追求卓越', '', '', '', '', 'https://picsum.photos/1920/600?random=3', '', '/about.html', '_self', '0', '0', '1', '3', '1770899116');
 

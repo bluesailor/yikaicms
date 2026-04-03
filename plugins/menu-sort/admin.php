@@ -68,19 +68,27 @@ $defaultGroups = [
     'data' => [
         'label' => '互动数据',
         'items' => [
-            'form'   => '表单管理',
-            'member' => '会员管理',
+            'form'    => '询盘管理',
+            'member'  => '会员管理',
         ]
     ],
     'system' => [
         'label' => '系统设置',
         'items' => [
-            'setting'  => '系统设置',
-            'user'     => '管理员',
-            'plugin'   => '插件管理',
-            'upgrade'  => '系统升级',
-            'system'   => '系统信息',
-            'log'      => '操作日志',
+            'setting'          => '站点设置',
+            'setting_home'     => '首页设置',
+            'setting_contact'  => '联系设置',
+            'setting_email'    => '邮件设置',
+            'setting_seo'      => 'SEO 设置',
+            'setting_ai'       => 'AI 设置',
+            'setting_security' => '安全设置',
+            'translate'        => '多语言翻译',
+            'theme'            => '主题管理',
+            'user'             => '管理员',
+            'plugin'           => '插件管理',
+            'upgrade'          => '系统升级',
+            'system'           => '系统信息',
+            'log'              => '操作日志',
         ]
     ],
 ];

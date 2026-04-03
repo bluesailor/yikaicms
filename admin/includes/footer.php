@@ -116,7 +116,8 @@
             height: options.height || 500,
             menubar: 'file edit view insert format tools table',
             plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
-            toolbar: 'undo redo | styles | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | removeformat code fullscreen',
+            toolbar: 'undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | removeformat code fullscreen',
+            font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px 36px 48px',
             images_upload_handler: function(blobInfo) {
                 return new Promise(function(resolve, reject) {
                     var fd = new FormData();

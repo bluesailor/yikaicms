@@ -45,12 +45,30 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="swiper-slide">
-                    <div class="w-full h-full bg-gradient-to-r from-blue-600 to-blue-800"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="text-center text-white px-4">
+                    <img src="https://picsum.photos/1920/600?random=1" alt="Banner 1" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                        <div class="text-center text-white px-4 w-full max-w-4xl">
                             <h2 class="text-3xl md:text-5xl font-bold mb-4"><?php echo e(config('site_name', 'Yikai CMS')); ?></h2>
                             <p class="text-lg md:text-2xl mb-6"><?php echo e(config('site_description', '专业的企业内容管理系统')); ?></p>
-                            <a href="/contact.html" class="inline-block bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full text-lg transition"><?php echo __('nav_contact'); ?></a>
+                            <a href="/contact.html" class="inline-block bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition pointer-events-auto"><?php echo __('nav_contact'); ?></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://picsum.photos/1920/600?random=2" alt="Banner 2" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                        <div class="text-center text-white px-4 w-full max-w-4xl">
+                            <h2 class="text-3xl md:text-5xl font-bold mb-4"><?php echo __('quality_service'); ?></h2>
+                            <p class="text-lg md:text-2xl mb-6"><?php echo __('quality_service_desc'); ?></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://picsum.photos/1920/600?random=3" alt="Banner 3" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                        <div class="text-center text-white px-4 w-full max-w-4xl">
+                            <h2 class="text-3xl md:text-5xl font-bold mb-4"><?php echo __('about_us'); ?></h2>
+                            <p class="text-lg md:text-2xl mb-6"><?php echo __('about_us_desc'); ?></p>
                         </div>
                     </div>
                 </div>

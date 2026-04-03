@@ -74,6 +74,7 @@ define('UPLOAD_FILE_TYPES', ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
 define('ADMIN_LOGIN_PATH', '/admin/login.php');
 define('SESSION_NAME', 'IKAICMS_SESSION');
 define('CSRF_TOKEN_NAME', '_token');
+define('ENCRYPT_KEY', 'CHANGE_ME_TO_RANDOM_STRING');  // API Key 加密密钥
 
 // ============================================================
 // 时区

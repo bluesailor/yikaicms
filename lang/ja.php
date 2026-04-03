@@ -211,4 +211,10 @@ return [
     'setting_contact_address' => '所在地',
     'setting_icp' => '届出番号',
     'setting_show_price' => '製品価格を表示',
+
+    // Banner デフォルトテキスト
+    'quality_service' => '高品質サービス',
+    'quality_service_desc' => 'お客様一人ひとりに専門的で効率的なソリューションを提供します',
+    'about_us' => '私たちについて',
+    'about_us_desc' => '長年の業界経験で、信頼できるパートナーです',
 ];

@@ -478,7 +478,7 @@ $envAllPass = checkAllPass($envChecks);
 
                     <!-- 测试按钮 -->
                     <div class="mt-6">
-                        <button type="button" id="testDbBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition">
+                        <button type="button" id="testDbBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
                             <?php echo $L['db_test']; ?>
                         </button>
                         <span id="testResult" class="ml-4"></span>
@@ -558,12 +558,12 @@ $envAllPass = checkAllPass($envChecks);
                         <div class="flex gap-2">
                             <div class="relative flex-1">
                                 <input type="password" name="admin_pass" id="admin_pass" class="w-full border rounded px-3 py-2 pr-10" required minlength="6">
-                                <button type="button" onclick="togglePassword('admin_pass')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <button type="button" onclick="togglePassword('admin_pass')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                                     <svg class="eye-open w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                     <svg class="eye-closed w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
                                 </button>
                             </div>
-                            <button type="button" onclick="generatePassword()" class="px-3 py-2 border rounded text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap" title="随机生成密码">随机生成</button>
+                            <button type="button" onclick="generatePassword()" class="px-3 py-2 border rounded text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap cursor-pointer" title="随机生成密码">随机生成</button>
                         </div>
                         <p class="text-sm text-gray-500 mt-1"><?php echo $L['admin_pass_tip']; ?></p>
                     </div>
@@ -588,7 +588,7 @@ $envAllPass = checkAllPass($envChecks);
                     <a href="?step=2&lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
                         <?php echo $L['prev']; ?>
                     </a>
-                    <button type="button" id="installBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                    <button type="button" id="installBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition cursor-pointer">
                         <?php echo $L['finish']; ?>
                     </button>
                 </div>
