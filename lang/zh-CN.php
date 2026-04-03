@@ -211,4 +211,10 @@ return [
     'setting_contact_address' => '联系地址',
     'setting_icp' => 'ICP备案号',
     'setting_show_price' => '显示产品价格',
+
+    // Banner 默认文案
+    'quality_service' => '优质服务',
+    'quality_service_desc' => '我们致力于为每一位客户提供专业、高效的解决方案',
+    'about_us' => '关于我们',
+    'about_us_desc' => '多年行业经验，值得您的信赖与选择',
 ];

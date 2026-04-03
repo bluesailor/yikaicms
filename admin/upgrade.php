@@ -15,6 +15,43 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
+// 检测表中是否存在指定字段（兼容 MySQL 和 SQLite）
+function _columnExists(string $table, string $column): bool
+{
+    $tableName = DB_PREFIX . $table;
+    if (db()->isSqlite()) {
+        $cols = db()->fetchAll("PRAGMA table_info('{$tableName}')");
+        foreach ($cols as $col) {
+            if ($col['name'] === $column) return true;
+        }
+        return false;
+    }
+    $cols = db()->fetchAll("SHOW COLUMNS FROM `{$tableName}` LIKE '{$column}'");
+    return !empty($cols);
+}
+
+// 将 MySQL DDL 转为 SQLite 兼容语法
+function _sqlToSqlite(string $sql): ?string
+{
+    // 跳过 ADD KEY / ADD INDEX
+    if (preg_match('/ALTER\s+TABLE\s+.*\s+ADD\s+(KEY|INDEX)\s+/i', $sql)) {
+        return null;
+    }
+    $sql = preg_replace('/\)\s*ENGINE=.*$/i', ')', $sql);
+    $sql = preg_replace('/\s+COMMENT\s+\'[^\']*\'/i', '', $sql);
+    $sql = preg_replace('/\bUNSIGNED\b/i', '', $sql);
+    $sql = preg_replace('/\bAUTO_INCREMENT\b/i', 'AUTOINCREMENT', $sql);
+    $sql = preg_replace('/\bint\(\d+\)/i', 'INTEGER', $sql);
+    $sql = preg_replace('/\bINTEGER\s+NOT\s+NULL\s+AUTOINCREMENT/i', 'INTEGER PRIMARY KEY AUTOINCREMENT', $sql);
+    $sql = preg_replace('/\s+AFTER\s+`[^`]+`/i', '', $sql);
+    $sql = preg_replace('/\bINSERT\s+IGNORE\b/i', 'INSERT OR IGNORE', $sql);
+    if (stripos($sql, 'AUTOINCREMENT') !== false) {
+        $sql = preg_replace('/,\s*PRIMARY\s+KEY\s*\(`id`\)/i', '', $sql);
+    }
+    $sql = preg_replace('/,\s*KEY\s+`[^`]+`\s*\([^)]+\)/i', '', $sql);
+    return $sql;
+}
+
 // 升级项定义：每项包含 id、描述、检测方法、执行SQL
 $upgrades = [
 
@@ -272,8 +309,7 @@ $upgrades = [
         'title' => '产品表增加品牌字段',
         'desc'  => '产品表新增 brand_id 字段，关联品牌管理。',
         'check' => function () {
-            $columns = db()->fetchAll("SHOW COLUMNS FROM " . DB_PREFIX . "products LIKE 'brand_id'");
-            return !empty($columns);
+            return _columnExists('products', 'brand_id');
         },
         'sqls' => [
             "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `brand_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '品牌ID' AFTER `category_id`",
@@ -287,8 +323,7 @@ $upgrades = [
         'title' => '表单表增加询盘字段',
         'desc'  => '表单表新增 product_id、product_title、source 字段，支持产品询盘关联。',
         'check' => function () {
-            $columns = db()->fetchAll("SHOW COLUMNS FROM " . DB_PREFIX . "forms LIKE 'product_id'");
-            return !empty($columns);
+            return _columnExists('forms', 'product_id');
         },
         'sqls' => [
             "ALTER TABLE `" . DB_PREFIX . "forms` ADD COLUMN `product_id` int(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT '关联产品ID' AFTER `type`",
@@ -356,6 +391,33 @@ $upgrades = [
             }
             return "已插入 {$count} 个邮件模板";
         },
+    ],
+
+    [
+        'id'    => '20260404_ai_logs',
+        'title' => 'AI 调用日志表',
+        'desc'  => '新增 AI 调用日志表，记录每次 AI 请求的供应商、模型、Token 用量和状态。',
+        'check' => function () {
+            return db()->tableExists('ai_logs');
+        },
+        'sqls' => [
+            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "ai_logs` (
+                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `provider` varchar(30) NOT NULL,
+                `model` varchar(50) NOT NULL DEFAULT '',
+                `action` varchar(50) NOT NULL DEFAULT '',
+                `prompt_tokens` int(11) NOT NULL DEFAULT 0,
+                `completion_tokens` int(11) NOT NULL DEFAULT 0,
+                `total_tokens` int(11) NOT NULL DEFAULT 0,
+                `success` tinyint(1) NOT NULL DEFAULT 1,
+                `error_msg` varchar(500) NOT NULL DEFAULT '',
+                `admin_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+                `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_provider` (`provider`),
+                KEY `idx_created` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI调用日志'",
+        ],
     ],
 
     // --- 未来升级项追加到这里 ---
@@ -436,6 +498,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
                 $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: '升级成功'];
             } else {
                 foreach ($up['sqls'] as $sql) {
+                    if (db()->isSqlite()) {
+                        $sql = _sqlToSqlite($sql);
+                        if ($sql === null) continue;
+                    }
                     db()->execute($sql);
                 }
                 $results[$up['id']] = ['status' => 'success', 'message' => '升级成功'];
