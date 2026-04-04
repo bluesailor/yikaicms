@@ -12,7 +12,7 @@ $contents = $hChannel['contents'];
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
-        <div class="text-center mb-12">
+        <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2">
                 <span class="text-primary"><?php echo e(mb_substr($hChannel['name'], 0, 2)); ?></span><?php echo e(mb_substr($hChannel['name'], 2)); ?>
             </h2>

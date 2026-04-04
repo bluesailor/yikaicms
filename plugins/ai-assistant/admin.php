@@ -1,23 +1,15 @@
 <?php
 /**
- * Yikai CMS - AI 设置
+ * AI 助手插件 - 设置页面
+ * 通过 /admin/plugin_page.php?plugin=ai-assistant 访问
  */
 
-declare(strict_types=1);
-
-define('ROOT_PATH', dirname(__DIR__));
-require_once ROOT_PATH . '/config/config.php';
-require_once ROOT_PATH . '/includes/functions.php';
-require_once ROOT_PATH . '/admin/includes/auth.php';
-if (!class_exists('AiService')) {
-    require_once ROOT_PATH . '/includes/AiService.php';
+if (!defined('ROOT_PATH')) {
+    exit('Access Denied');
 }
 
-checkLogin();
-requirePermission('*');
+require_once __DIR__ . '/AiService.php';
 
-$currentMenu = 'setting_ai';
-$pageTitle = 'AI 设置';
 $providers = AiService::getProviders();
 
 // 保存 / 测试
@@ -33,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         settingModel()->set('ai_model', $_POST['ai_model'] ?? '');
         settingModel()->set('ai_base_url', $_POST['ai_base_url'] ?? '');
-        adminLog('setting', 'ai', '更新 AI 设置');
+        adminLog('plugin', 'ai', '更新 AI 设置');
         echo json_encode(['code' => 0, 'msg' => '设置已保存']);
         exit;
     }
@@ -56,10 +48,18 @@ $maskedApiKey = $rawApiKey ? (substr($rawApiKey, 0, 4) . str_repeat('*', max(0, 
 $currentModel = config('ai_model', '');
 $currentBaseUrl = config('ai_base_url', '');
 
+$pageTitle = 'AI 助手设置';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="max-w-3xl mx-auto">
+    <div class="mb-4">
+        <a href="/admin/plugin.php" class="text-sm text-gray-500 hover:text-primary inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            返回插件管理
+        </a>
+    </div>
+
     <form id="aiForm">
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -72,7 +72,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" onclick="saveAiSettings()" class="bg-primary hover:bg-secondary text-white px-5 py-2 rounded transition text-sm cursor-pointer">保存设置</button>
                 </div>
             </div>
+
             <div class="p-6 space-y-6">
+                <!-- 供应商 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">AI 供应商</label>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -87,18 +89,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php endforeach; ?>
                     </div>
                 </div>
+
+                <!-- API Key -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
                     <input type="text" name="ai_api_key" id="aiApiKey" value="<?php echo e($maskedApiKey); ?>"
                            class="w-full border rounded-lg px-4 py-2.5 text-sm font-mono tracking-wide" placeholder="sk-..."
                            onfocus="if(this.value.indexOf('***')!==-1){this.value='';this.style.color=''}">
-                    <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? '已保存，输入新 Key 后保存即替换' : '请填写 API Key'; ?></p>
+                    <p class="text-xs text-gray-400 mt-1" id="apiKeyHint"><?php echo $maskedApiKey ? '已保存，输入新 Key 后保存即替换' : '请填写 API Key'; ?></p>
                 </div>
+
+                <!-- 模型 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">模型</label>
                     <input type="hidden" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>">
                     <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
                 </div>
+
+                <!-- Base URL -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">自定义 API 地址 <span class="font-normal text-gray-400">（可选）</span></label>
                     <input type="text" name="ai_base_url" id="aiBaseUrl" value="<?php echo e($currentBaseUrl); ?>"
@@ -110,6 +118,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div id="testResult" class="hidden mt-4 px-4 py-3 rounded-lg text-sm"></div>
 
+    <!-- 用量统计 -->
     <?php
     $logTable = DB_PREFIX . 'ai_logs';
     $hasLogTable = false;
@@ -147,6 +156,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php endif; ?>
 
+    <!-- API Key 获取 -->
     <div class="mt-6 bg-gray-50 rounded-lg p-6 text-sm text-gray-500">
         <h3 class="font-medium text-gray-700 mb-3">API Key 获取方式</h3>
         <div class="space-y-2">
@@ -192,7 +202,8 @@ function onProviderChange() {
         b.textContent = m; b.onclick = function(){ selectModel(m); }; grid.appendChild(b);
     });
     grid.querySelectorAll('button').forEach(function(b){ b.className = 'model-btn'; });
-    selectModel(currentModel); updateProviderStyle();
+    selectModel(currentModel);
+    updateProviderStyle();
     document.getElementById('aiBaseUrl').placeholder = '留空使用：' + cfg.base_url;
 }
 onProviderChange();

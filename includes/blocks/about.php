@@ -15,7 +15,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <?php if ($aboutLayout === 'image_left'): ?>
             <!-- 左图右文 -->
-            <div class="relative">
+            <div class="relative" data-animate="fade-right">
                 <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
@@ -28,7 +28,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 </div>
                 <?php endif; ?>
             </div>
-            <div>
+            <div data-animate="fade-left">
                 <h2 class="text-3xl font-bold text-dark mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(config('site_name', '')); ?>
                 </h2>
@@ -44,7 +44,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             </div>
             <?php else: ?>
             <!-- 左文右图（默认） -->
-            <div>
+            <div data-animate="fade-right">
                 <h2 class="text-3xl font-bold text-dark mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(config('site_name', '')); ?>
                 </h2>
@@ -58,7 +58,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 </a>
                 <?php endif; ?>
             </div>
-            <div class="relative">
+            <div class="relative" data-animate="fade-left">
                 <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">

@@ -344,6 +344,12 @@
     </script>
 
     <?php if (!empty($extraJs)) echo $extraJs; ?>
+    <?php
+    // AI 助手 JS（编辑页面 + 已配置 API Key + 面板 HTML 已嵌入）
+    if (config('ai_api_key') && isset($GLOBALS['_ai_panel_loaded'])) {
+        include __DIR__ . '/ai_panel_js.php';
+    }
+    ?>
     <?php do_action('ik_admin_footer_scripts'); ?>
 </body>
 </html>

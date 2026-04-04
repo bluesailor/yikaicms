@@ -11,14 +11,14 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
-        <div class="text-center mb-12">
+        <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2">
                 <span class="text-primary"><?php echo e(mb_substr($tmTitle, 0, 2)); ?></span><?php echo e(mb_substr($tmTitle, 2)); ?>
             </h2>
             <span class="section-title-bar"></span>
             <p class="text-gray-500 mt-4"><?php echo e($tmDesc); ?></p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" data-stagger>
             <?php foreach ($testimonials as $tm): ?>
             <div class="bg-white rounded-lg shadow-md p-6 relative">
                 <div class="absolute top-4 right-4 text-primary opacity-10">
