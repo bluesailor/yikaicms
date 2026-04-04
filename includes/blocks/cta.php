@@ -6,7 +6,7 @@ $bg = getBlockBg($block ?? [], 'bg-primary text-white');
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
-    <div class="<?php echo $bg['container']; ?> text-center <?php echo $bg['content']; ?>">
+    <div class="<?php echo $bg['container']; ?> text-center <?php echo $bg['content']; ?>" data-animate="fade-up">
         <h2 class="text-3xl font-bold mb-2"><?php echo e(config('home_cta_title', '准备好开始合作了吗？')); ?></h2>
         <span class="section-title-bar section-title-bar-light"></span>
         <p class="text-xl opacity-90 mb-8 mt-4"><?php echo e(config('home_cta_desc', '联系我们，获取专业的解决方案')); ?></p>

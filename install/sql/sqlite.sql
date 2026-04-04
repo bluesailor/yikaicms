@@ -619,6 +619,24 @@ INSERT INTO yikai_form_templates (id, name, slug, fields, success_message, statu
 (1, '联系表单', 'contact', '[{"key":"name","label":"姓名","type":"text","required":true,"placeholder":"请输入姓名"},{"key":"phone","label":"电话","type":"tel","required":true,"placeholder":"请输入电话"},{"key":"email","label":"邮箱","type":"email","required":false,"placeholder":"请输入邮箱"},{"key":"company","label":"公司","type":"text","required":false,"placeholder":"请输入公司名称"},{"key":"content","label":"留言内容","type":"textarea","required":true,"placeholder":"请输入留言内容"}]', '提交成功，感谢您的反馈！', 1, strftime('%s','now')),
 (2, '产品询盘', 'product-inquiry', '[{"key":"name","label":"您的姓名","type":"text","required":true,"placeholder":"请输入姓名"},{"key":"phone","label":"联系电话","type":"tel","required":true,"placeholder":"请输入电话"},{"key":"email","label":"邮箱地址","type":"email","required":false,"placeholder":"请输入邮箱"},{"key":"company","label":"公司名称","type":"text","required":false,"placeholder":"请输入公司名称"},{"key":"content","label":"请描述您的需求","type":"textarea","required":true,"placeholder":"请描述您的需求"}]', '询盘已提交，我们将尽快与您联系！', 1, strftime('%s','now'));
 
+-- -----------------------------------------------------------
+-- AI 调用日志
+-- -----------------------------------------------------------
+DROP TABLE IF EXISTS yikai_ai_logs;
+CREATE TABLE yikai_ai_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT NOT NULL DEFAULT '',
+    model TEXT NOT NULL DEFAULT '',
+    action TEXT NOT NULL DEFAULT '',
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    success INTEGER NOT NULL DEFAULT 1,
+    error_msg TEXT NOT NULL DEFAULT '',
+    admin_id INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 PRAGMA foreign_keys = ON;
 
 -- ============================================================

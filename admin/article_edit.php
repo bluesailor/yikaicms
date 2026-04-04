@@ -92,6 +92,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="flex gap-6">
         <!-- 主内容区 -->
         <div class="flex-1 space-y-6">
+            <?php include __DIR__ . '/includes/ai_panel.php'; ?>
+
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
                     <div>
@@ -101,10 +103,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">副标题</label>
-                        <input type="text" name="subtitle" value="<?php echo e($article['subtitle'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="可选">
+                        <label class="block text-gray-700 mb-1">URL别名 (Slug)</label>
+                        <input type="text" name="slug" value="<?php echo e($article['slug'] ?? ''); ?>"
+                               class="w-full border rounded px-4 py-2 text-sm text-gray-500" placeholder="如：company-news，留空自动生成">
                     </div>
+
+                    <input type="hidden" name="subtitle" value="<?php echo e($article['subtitle'] ?? ''); ?>">
 
                     <div>
                         <label class="block text-gray-700 mb-1">文章摘要</label>
@@ -112,23 +116,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                   placeholder="文章摘要，用于列表展示"><?php echo e($article['summary'] ?? ''); ?></textarea>
                     </div>
 
-                    <!-- AI 助手工具栏 -->
-                    <?php if (config('ai_api_key')): ?>
-                    <div class="flex items-center gap-2 py-2 px-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-lg">
-                        <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                        <span class="text-xs text-gray-500">AI 助手</span>
-                        <button type="button" onclick="aiGenerate('generate_article')" class="text-xs bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full transition cursor-pointer">生成文章</button>
-                        <button type="button" onclick="aiGenerate('generate_summary')" class="text-xs bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full transition cursor-pointer">生成摘要</button>
-                        <button type="button" onclick="aiGenerate('generate_seo')" class="text-xs bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 px-3 py-1 rounded-full transition cursor-pointer">SEO 优化</button>
-                        <button type="button" onclick="aiGenerate('polish')" class="text-xs bg-white border border-green-200 text-green-600 hover:bg-green-50 px-3 py-1 rounded-full transition cursor-pointer">内容润色</button>
-                        <span id="aiStatus" class="text-xs text-gray-400 ml-auto"></span>
-                    </div>
-                    <?php endif; ?>
-
                     <div>
                         <label class="block text-gray-700 mb-1">文章内容</label>
                         <textarea name="content" id="contentEditor" class="tinymce-editor"><?php echo e($article['content'] ?? ''); ?></textarea>
                     </div>
+
+                    <?php /* AI 助手面板由 admin/includes/footer.php 自动注入 */ ?>
+
                 </div>
             </div>
         </div>
@@ -176,11 +170,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-gray-700 mb-1">URL别名 (Slug)</label>
-                        <input type="text" name="slug" value="<?php echo e($article['slug'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="如：company-news，留空自动生成">
-                    </div>
 
                     <div>
                         <label class="block text-gray-700 mb-1">发布状态</label>
@@ -403,7 +392,8 @@ function pickCoverFromMedia() {
 </script>
 
 <?php
-$extraJs = '<script>
+$extraJs = <<<'JSEOF'
+<script>
 initTinyEditor(".tinymce-editor");
 
 document.getElementById("editForm").addEventListener("submit", async function(e) {
@@ -422,70 +412,8 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
     }
 });
 
-// AI 助手
-function aiGenerate(action) {
-    var status = document.getElementById("aiStatus");
-    if (!status) return;
-    var title = document.querySelector("input[name=title]").value;
-    tinymce.triggerSave();
-    var content = document.getElementById("contentEditor").value;
-    var summary = document.querySelector("textarea[name=summary]");
-
-    if ((action === "generate_article" || action === "generate_seo") && !title) {
-        showMessage("请先填写文章标题", "error");
-        return;
-    }
-    if ((action === "polish") && !content) {
-        showMessage("请先编写内容再润色", "error");
-        return;
-    }
-
-    var labels = {generate_article: "AI 生成文章（将覆盖当前内容）", generate_summary: "AI 生成摘要", generate_seo: "AI 生成 SEO 信息", polish: "AI 润色当前内容（将覆盖）"};
-    if (!confirm(labels[action] + "？")) return;
-
-    status.textContent = "AI 生成中...";
-    var btns = document.querySelectorAll("[onclick^=aiGenerate]");
-    btns.forEach(function(b){ b.disabled = true; b.style.opacity = 0.5; });
-
-    var fd = new FormData();
-    fd.append("action", action);
-    fd.append("title", title);
-    fd.append("content", content);
-    if (summary) fd.append("summary", summary.value);
-
-    fetch("/admin/api_ai.php", { method: "POST", body: fd })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-        if (!data.success) {
-            showMessage("AI 错误: " + data.error, "error");
-            return;
-        }
-        if (action === "generate_article" || action === "polish") {
-            tinymce.get("contentEditor").setContent(data.content);
-            showMessage("内容已生成");
-        } else if (action === "generate_summary") {
-            if (summary) summary.value = data.content;
-            showMessage("摘要已生成");
-        } else if (action === "generate_seo") {
-            if (data.seo) {
-                var fields = {seo_title: "seo_title", seo_keywords: "seo_keywords", seo_description: "seo_description"};
-                for (var k in fields) {
-                    var el = document.querySelector("[name=" + fields[k] + "]");
-                    if (el && data.seo[k]) el.value = data.seo[k];
-                }
-                showMessage("SEO 信息已生成");
-            } else {
-                showMessage("AI 返回格式异常", "error");
-            }
-        }
-    })
-    .catch(function(e){ showMessage("请求失败: " + e.message, "error"); })
-    .finally(function(){
-        status.textContent = "";
-        btns.forEach(function(b){ b.disabled = false; b.style.opacity = 1; });
-    });
-}
-</script>';
+</script>
+JSEOF;
 
 require_once ROOT_PATH . '/admin/includes/footer.php';
 ?>

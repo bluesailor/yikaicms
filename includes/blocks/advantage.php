@@ -14,13 +14,13 @@ $advDefaults = [
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
-        <div class="text-center mb-12">
+        <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold mb-2"><?php echo __('home_our_advantage'); ?></h2>
             <span class="section-title-bar section-title-bar-light"></span>
             <p class="text-gray-400 mt-4"><?php echo e(config('home_advantage_desc', '专业团队，优质服务，值得信赖')); ?></p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" data-stagger>
             <?php for ($i = 0; $i < 4; $i++):
                 $n = $i + 1;
                 $iconKey = config("home_adv_{$n}_icon", $advDefaults[$i]['icon']);
