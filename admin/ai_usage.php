@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - AI 用量详情
+ * ikaiCMS - AI 用量详情
  */
 
 declare(strict_types=1);
@@ -152,15 +152,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <table class="w-full text-sm">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500">时间</th>
+                    <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo __('admin_created_at'); ?></th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500">操作员</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500">供应商</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500">模型</th>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500">操作</th>
+                    <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
                     <th class="text-right px-4 py-3 font-medium text-gray-500">输入</th>
                     <th class="text-right px-4 py-3 font-medium text-gray-500">输出</th>
                     <th class="text-right px-4 py-3 font-medium text-gray-500">合计</th>
-                    <th class="text-center px-4 py-3 font-medium text-gray-500">状态</th>
+                    <th class="text-center px-4 py-3 font-medium text-gray-500"><?php echo __('admin_status'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -196,10 +196,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条，第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
         <div class="flex gap-1">
             <?php if ($page > 1): ?>
-            <a href="?page=<?php echo $page - 1; ?>&provider=<?php echo e($filterProvider); ?>&date=<?php echo e($filterDate); ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50">上一页</a>
+            <a href="?page=<?php echo $page - 1; ?>&provider=<?php echo e($filterProvider); ?>&date=<?php echo e($filterDate); ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
             <?php if ($page < $totalPages): ?>
-            <a href="?page=<?php echo $page + 1; ?>&provider=<?php echo e($filterProvider); ?>&date=<?php echo e($filterDate); ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50">下一页</a>
+            <a href="?page=<?php echo $page + 1; ?>&provider=<?php echo e($filterProvider); ?>&date=<?php echo e($filterDate); ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50"><?php echo __('list_next_page'); ?></a>
             <?php endif; ?>
         </div>
     </div>

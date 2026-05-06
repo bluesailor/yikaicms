@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 媒体库 JSON API
+ * ikaiCMS - 媒体库 JSON API
  *
  * 供媒体库选择弹窗调用，返回 JSON 数据
  * GET  ?action=list&type=image&keyword=xxx&page=1

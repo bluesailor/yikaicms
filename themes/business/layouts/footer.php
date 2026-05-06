@@ -5,7 +5,7 @@ $siteName = config('site_name', 'Yikai CMS');
 $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
 ?>
 
-    <!-- CTA 联系区 -->
+    <!-- CTA Contact Area -->
     <?php if (!isset($hideCta) || !$hideCta): ?>
     <section class="cta-gradient py-16 text-white text-center">
         <div class="container mx-auto px-4">
@@ -26,7 +26,7 @@ $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
     </section>
     <?php endif; ?>
 
-    <!-- 页脚 -->
+    <!-- footer -->
     <footer class="bg-slate-900 text-gray-400">
         <?php if (!empty($footerNav)): ?>
         <div class="border-b border-slate-800">

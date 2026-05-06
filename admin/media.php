@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 媒体库管理
+ * ikaiCMS - 媒体库管理
  *
  * PHP 8.0+
  */
@@ -70,7 +70,7 @@ $result = mediaModel()->getList($filters, $perPage, $offset);
 $total = $result['total'];
 $mediaList = $result['items'];
 
-$pageTitle = '媒体库';
+$pageTitle = __('admin_media');
 $currentMenu = 'media';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -88,22 +88,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </select>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                   class="border rounded px-3 py-2" placeholder="搜索文件名...">
+                   class="border rounded px-3 py-2" placeholder="<?php echo __('admin_search'); ?>...">
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                搜索
+                <?php echo __('admin_search'); ?>
             </button>
         </form>
 
         <div class="flex gap-2">
             <button onclick="batchDelete()" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                批量删除
+                <?php echo __('admin_batch_delete'); ?>
             </button>
             <button onclick="uploadFiles()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                上传文件
+                <?php echo __('admin_upload_file'); ?>
             </button>
         </div>
     </div>
@@ -156,11 +156,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                     <button onclick="copyUrl('<?php echo e($item['url']); ?>')"
                             class="bg-white text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-100">
-                        复制
+                        <?php echo __('admin_copy'); ?>
                     </button>
                     <button onclick="deleteMedia(<?php echo $item['id']; ?>)"
                             class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">
-                        删除
+                        <?php echo __('admin_delete'); ?>
                     </button>
                 </div>
             </div>
@@ -186,12 +186,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php if ($page > 1): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                上一页</a>
+                <?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
             <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
             <?php if ($page < $totalPages): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                下一页
+                <?php echo __('list_next_page'); ?>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </a>
             <?php endif; ?>
@@ -205,7 +205,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeUploadModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800">上传文件</h3>
+            <h3 class="font-bold text-gray-800"><?php echo __('btn_upload_file'); ?></h3>
             <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div class="p-6">
@@ -314,7 +314,7 @@ function copyUrl(url) {
 }
 
 async function deleteMedia(id) {
-    if (!confirm('确定要删除吗？')) return;
+    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
 
     const formData = new FormData();
     formData.append('action', 'delete');
@@ -324,7 +324,7 @@ async function deleteMedia(id) {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         document.querySelector(`[data-id="${id}"]`)?.remove();
     } else {
         showMessage(data.msg, 'error');
@@ -348,7 +348,7 @@ async function batchDelete() {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

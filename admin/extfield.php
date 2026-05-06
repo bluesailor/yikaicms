@@ -95,8 +95,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Owner 切换 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="?owner_type=content" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $ownerType === 'content' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">内容扩展字段</a>
-        <a href="?owner_type=product" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $ownerType === 'product' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">产品扩展字段</a>
+        <a href="?owner_type=content" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $ownerType === 'content' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('extfield_content'); ?></a>
+        <a href="?owner_type=product" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $ownerType === 'product' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('extfield_product'); ?></a>
     </div>
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -112,7 +112,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">排序</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('label_sort_order'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标识</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
@@ -142,7 +142,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($fields)): ?>
-                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无扩展字段，点击右上角"添加字段"开始。</td></tr>
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo __('extfield_empty'); ?></td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -164,18 +164,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">字段标识 <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('extfield_key'); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="field_key" id="editKey" required class="w-full border rounded px-4 py-2 font-mono" placeholder="e.g. material">
                     <p class="text-xs text-gray-400 mt-1">小写字母开头，字母/数字/下划线</p>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">字段名称 <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('extfield_name'); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="field_name" id="editName" required class="w-full border rounded px-4 py-2" placeholder="e.g. 材质">
                 </div>
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">字段类型</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('extfield_type'); ?></label>
                 <select name="field_type" id="editType" class="w-full border rounded px-4 py-2">
                     <?php foreach (ExtFieldModel::TYPES as $k => $v): ?>
                     <option value="<?php echo e($k); ?>"><?php echo e($v); ?></option>
@@ -189,7 +189,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">占位提示</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('extfield_placeholder'); ?></label>
                 <input type="text" name="placeholder" id="editPlaceholder" class="w-full border rounded px-4 py-2">
             </div>
 
@@ -200,7 +200,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">排序</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" id="editSort" value="0" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>

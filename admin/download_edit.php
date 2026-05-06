@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 下载编辑
+ * ikaiCMS - 下载编辑
  *
  * PHP 8.0+
  */
@@ -24,28 +24,6 @@ $download = $isEdit ? downloadModel()->find($id) : null;
 if ($isEdit && !$download) {
     header('Location: /admin/download.php');
     exit;
-}
-
-// 翻译创建
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
-    $srcId = postInt('src_id');
-    $toLang = post('to_lang');
-    $src = downloadModel()->find($srcId);
-    if (!$src) error('源内容不存在');
-
-    $translated = aiTranslateFields($src['title'], $src['description'] ?? '', $toLang);
-    $newData = $src;
-    unset($newData['id']);
-    $newData['title'] = $translated['title'];
-    $newData['description'] = $translated['summary'];
-    $newData['lang'] = $toLang;
-    $newData['status'] = 0;
-    $newData['download_count'] = 0;
-    $newData['created_at'] = time();
-    $newData['updated_at'] = time();
-    $newId = downloadModel()->create($newData);
-    adminLog('download', 'translate', "翻译下载 #{$srcId} → {$toLang} #{$newId}");
-    success(['id' => $newId], '翻译完成');
 }
 
 // 处理保存
@@ -86,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取分类
 $categories = downloadCategoryModel()->getActive();
 
-$pageTitle = $isEdit ? '编辑下载' : '添加下载';
+$pageTitle = $isEdit ? __('admin_edit') : __('admin_add');
 $currentMenu = 'download';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -95,14 +73,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="mb-6">
     <a href="/admin/download.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        返回下载列表
+        <?php echo __('admin_back'); ?>
     </a>
 </div>
-
-<?php
-$langSwitcher = ['table' => 'downloads', 'model' => downloadModel(), 'item' => $download, 'edit_url' => '/admin/download_edit.php'];
-include __DIR__ . '/includes/lang_switcher_edit.php';
-?>
 
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -110,34 +83,34 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="font-bold text-gray-800">基本信息</h2>
+                    <h2 class="font-bold text-gray-800"><?php echo __('admin_basic_info'); ?></h2>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">文件名称 <span class="text-red-500">*</span></label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_file_name'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($download['title'] ?? ''); ?>" required
                                class="w-full border rounded px-4 py-2" placeholder="如：产品使用手册 V2.0">
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">文件描述</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_file_desc'); ?></label>
                         <textarea name="description" rows="3" class="w-full border rounded px-4 py-2"
                                   placeholder="简要描述文件内容..."><?php echo e($download['description'] ?? ''); ?></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">封面图片</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_cover_image'); ?></label>
                         <input type="text" name="cover" id="coverInput" value="<?php echo e($download['cover'] ?? ''); ?>"
                                class="w-full border rounded px-3 py-2 text-sm mb-2" placeholder="可选，用于列表展示">
                         <div class="flex gap-2">
                             <button type="button" onclick="uploadCover()"
                                     class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                上传图片</button>
+                                <?php echo __('admin_upload_image'); ?></button>
                             <button type="button" onclick="pickCoverFromMedia()"
                                     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                媒体库</button>
+                                <?php echo __("admin_media_library"); ?></button>
                         </div>
                         <?php if (!empty($download['cover'])): ?>
                         <img src="<?php echo e($download['cover']); ?>" id="coverPreview" class="h-20 mt-2 rounded">
@@ -148,7 +121,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
 
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="font-bold text-gray-800">文件上传</h2>
+                    <h2 class="font-bold text-gray-800"><?php echo __('label_file_upload'); ?></h2>
                 </div>
                 <div class="p-6 space-y-4">
                     <!-- 上传方式选择 -->
@@ -156,12 +129,12 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="radio" name="is_external" value="0" <?php echo empty($download['is_external']) ? 'checked' : ''; ?>
                                    onchange="toggleUploadMode()" class="text-primary">
-                            <span>上传文件</span>
+                            <span><?php echo __('btn_upload_file'); ?></span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="radio" name="is_external" value="1" <?php echo !empty($download['is_external']) ? 'checked' : ''; ?>
                                    onchange="toggleUploadMode()" class="text-primary">
-                            <span>外部链接</span>
+                            <span><?php echo __('label_external_link'); ?></span>
                         </label>
                     </div>
 
@@ -252,11 +225,11 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
         <div class="space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="font-bold text-gray-800">发布设置</h2>
+                    <h2 class="font-bold text-gray-800"><?php echo __('label_publish_settings'); ?></h2>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">所属分类</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_category'); ?></label>
                         <select name="category_id" class="w-full border rounded px-4 py-2">
                             <option value="0">未分类</option>
                             <?php foreach ($categories as $cat): ?>
@@ -269,32 +242,32 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">排序</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                         <input type="number" name="sort_order" value="<?php echo $download['sort_order'] ?? 0; ?>"
                                class="w-full border rounded px-4 py-2" placeholder="数字越大越靠前">
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">下载条件</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_download_condition'); ?></label>
                         <div class="flex gap-4 mt-1">
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input type="radio" name="require_login" value="0" class="text-primary"
                                        <?php echo empty($download['require_login']) ? 'checked' : ''; ?>>
-                                <span class="text-sm">游客</span>
+                                <span class="text-sm"><?php echo __('label_guest'); ?></span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input type="radio" name="require_login" value="1" class="text-primary"
                                        <?php echo !empty($download['require_login']) ? 'checked' : ''; ?>>
-                                <span class="text-sm">限登录会员</span>
+                                <span class="text-sm"><?php echo __('label_member_only'); ?></span>
                             </label>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">状态</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                         <select name="status" class="w-full border rounded px-4 py-2">
-                            <option value="1" <?php echo ($download['status'] ?? 1) == 1 ? 'selected' : ''; ?>>发布</option>
-                            <option value="0" <?php echo ($download['status'] ?? 1) == 0 ? 'selected' : ''; ?>>隐藏</option>
+                            <option value="1" <?php echo ($download['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
+                            <option value="0" <?php echo ($download['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_hide'); ?></option>
                         </select>
                     </div>
                 </div>
@@ -303,7 +276,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             <div class="bg-white rounded-lg shadow p-6">
                 <button type="submit" class="w-full bg-primary hover:bg-secondary text-white px-8 py-3 rounded transition inline-flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
+                    <?php echo __("btn_save"); ?>
                 </button>
             </div>
         </div>
@@ -345,7 +318,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
     this.value = '';
 });
@@ -406,7 +379,7 @@ document.getElementById('fileInput').addEventListener('change', async function()
                     document.getElementById('uploadedFileSize').textContent = formatFileSize(file.size);
                     document.getElementById('uploadedFile').classList.remove('hidden');
 
-                    showMessage('上传成功');
+                    showMessage('<?php echo __('admin_success'); ?>');
                 } else {
                     showMessage(data.msg, 'error');
                 }
@@ -415,14 +388,14 @@ document.getElementById('fileInput').addEventListener('change', async function()
 
         xhr.onerror = function() {
             document.getElementById('uploadProgress').classList.add('hidden');
-            showMessage('上传失败', 'error');
+            showMessage('<?php echo __('admin_fail'); ?>', 'error');
         };
 
         xhr.open('POST', '/admin/upload.php', true);
         xhr.send(formData);
     } catch (err) {
         document.getElementById('uploadProgress').classList.add('hidden');
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -478,7 +451,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
             <?php if (!$isEdit): ?>
             setTimeout(() => location.href = '/admin/download_edit.php?id=' + data.data.id, 1000);
             <?php endif; ?>

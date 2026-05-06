@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 站点设置
+ * ikaiCMS - 站点设置
  *
  * PHP 8.0+
  */
@@ -51,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settingModel()->saveBatch($settings);
 
     adminLog('setting', 'update', '更新站点设置');
-    do_action('setting_saved', $settings);
     success();
 }
 
@@ -64,51 +63,11 @@ $groupMap = [
 ];
 $group = $groupMap[$tab] ?? 'basic';
 
-// 多语言：页脚和首页设置支持按语言配置
-$defaultLang = config('site_lang', 'zh-CN');
-$hasMultiLang = isMultiLangEnabled('channels');
-$settingLang = get('lang', $defaultLang);
-$allLangs = availableLanguages();
-if ($hasMultiLang && !isset($allLangs[$settingLang])) $settingLang = $defaultLang;
-$langSuffix = ($hasMultiLang && $settingLang !== $defaultLang) ? '_' . $settingLang : '';
-
 $items = settingModel()->getByGroup($group);
-// 过滤掉管理菜单、AI设置、以及其他语言的翻译记录
-$otherLangSuffixes = [];
-foreach ($allLangs as $lc => $ll) {
-    if ($lc !== $settingLang) $otherLangSuffixes[] = '_' . $lc;
-}
-$items = array_filter($items, function($item) use ($otherLangSuffixes) {
-    if (str_starts_with($item['key'], 'admin_menu_') || str_starts_with($item['key'], 'ai_') || $item['key'] === 'current_theme') return false;
-    foreach ($otherLangSuffixes as $suf) {
-        if (str_ends_with($item['key'], $suf)) return false;
-    }
-    return true;
-});
-
-// 非默认语言时，替换可翻译字段的值为对应语言版本
-$translatableKeys = [
-    // basic
-    'site_name', 'site_description', 'site_keywords', 'seo_title',
-    // header
-    'nav_home_text', 'topbar_left',
-    // footer
-    'footer_columns', 'footer_nav', 'home_links_title',
-];
-if ($langSuffix) {
-    foreach ($items as &$_item) {
-        if (in_array($_item['key'], $translatableKeys)) {
-            $_item['_original_key'] = $_item['key'];
-            $_item['key'] = $_item['key'] . $langSuffix;
-            $_item['value'] = config($_item['key'], '');
-        }
-    }
-    unset($_item);
-}
-
+$items = array_filter($items, fn($item) => !str_starts_with($item['key'], 'admin_menu_') && !str_starts_with($item['key'], 'ai_') && $item['key'] !== 'current_theme');
 $groupDefaults = getDefaults($group);
 
-$pageTitle = '站点设置';
+$pageTitle = __('setting_page_title');
 $currentMenu = 'setting';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -117,36 +76,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/setting.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">基本设置</a>
-        <a href="/admin/setting.php?tab=header" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">页头设置</a>
-        <a href="/admin/setting.php?tab=footer" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">页脚设置</a>
-        <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">代码注入</a>
+        <a href="/admin/setting.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
+        <a href="/admin/setting.php?tab=header" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
+        <a href="/admin/setting.php?tab=footer" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
+        <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
     </div>
 </div>
-
-<?php if ($hasMultiLang && count($allLangs) > 1 && $tab !== 'code'): ?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言版本：</span>
-    <?php foreach ($allLangs as $lc => $ll): ?>
-    <a href="?tab=<?php echo e($tab); ?>&lang=<?php echo e($lc); ?>"
-       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $settingLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
-        <?php echo e($ll); ?>
-        <?php echo $lc === $defaultLang ? '<span class="ml-1 opacity-70">(默认)</span>' : ''; ?>
-    </a>
-    <?php endforeach; ?>
-    <?php if ($settingLang !== $defaultLang): ?>
-    <span class="text-xs text-amber-500 ml-2">编辑 <?php echo e($allLangs[$settingLang] ?? $settingLang); ?> 版本，留空则使用默认语言内容</span>
-    <?php endif; ?>
-</div>
-<?php endif; ?>
 
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800"><?php echo ['basic'=>'基本设置','header'=>'页头设置','footer'=>'页脚设置','code'=>'代码注入'][$tab] ?? '设置'; ?></h2>
-            <button type="button" onclick="restoreAllDefaults()" class="text-xs text-gray-400 hover:text-red-500 transition inline-flex items-center gap-1" title="恢复当前分组所有设置为出厂默认值">
+            <h2 class="font-bold text-gray-800"><?php echo ['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab] ?? __('setting_tab_basic'); ?></h2>
+            <button type="button" onclick="restoreAllDefaults()" class="text-xs text-gray-400 hover:text-red-500 transition inline-flex items-center gap-1" title="<?php echo __('setting_restore_all_tip'); ?>">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                恢复默认值
+                <?php echo __('setting_restore_defaults'); ?>
             </button>
         </div>
         <div class="p-6 space-y-4">
@@ -157,16 +100,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php $columnsData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
-                    <?php echo e($item['name']); ?>
+                    <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
                     <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($item['tip']); ?></span>
+                    <span class="text-gray-400 text-sm font-normal ml-2"><?php $__tip = __('setting_' . $item['key'] . '_tip'); echo e($__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : $item['tip']); ?></span>
                     <?php endif; ?>
                 </label>
                 <input type="hidden" name="settings[footer_columns]" id="footerColumnsJson">
                 <div class="text-xs text-gray-400 mb-2 mt-1">
-                    内容支持占位符：<code class="bg-gray-100 px-1 rounded">{{site_description}}</code> 站点简介、
-                    <code class="bg-gray-100 px-1 rounded">{{contact_info}}</code> 联系方式、
-                    <code class="bg-gray-100 px-1 rounded">{{qrcode}}</code> 二维码，也可输入自定义文字
+                    <?php echo __('setting_footer_placeholder_hint'); ?>
                 </div>
                 <div id="footerColumnsEditor" class="space-y-3">
                     <?php for ($ci = 0; $ci < 4; $ci++): ?>
@@ -175,23 +116,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="flex gap-3 items-start">
                             <span class="text-gray-300 text-sm pt-2 w-5 flex-shrink-0"><?php echo $ci + 1; ?></span>
                             <div class="flex-1">
-                                <label class="text-xs text-gray-400 block mb-1">标题</label>
-                                <input type="text" class="fcol-title w-full border rounded px-3 py-1.5 text-sm" placeholder="栏目标题" value="<?php echo e($col['title'] ?? ''); ?>">
+                                <label class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_title'); ?></label>
+                                <input type="text" class="fcol-title w-full border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __('setting_col_title'); ?>" value="<?php echo e($col['title'] ?? ''); ?>">
                             </div>
                             <div class="w-24 flex-shrink-0">
-                                <label class="text-xs text-gray-400 block mb-1">占列</label>
+                                <label class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_span'); ?></label>
                                 <select class="fcol-span w-full border rounded px-2 py-1.5 text-sm">
-                                    <option value="1" <?php echo ($col['col_span'] ?? 1) == 1 ? 'selected' : ''; ?>>1列</option>
-                                    <option value="2" <?php echo ($col['col_span'] ?? 1) == 2 ? 'selected' : ''; ?>>2列</option>
+                                    <option value="1" <?php echo ($col['col_span'] ?? 1) == 1 ? 'selected' : ''; ?>>1<?php echo __('setting_col_unit'); ?></option>
+                                    <option value="2" <?php echo ($col['col_span'] ?? 1) == 2 ? 'selected' : ''; ?>>2<?php echo __('setting_col_unit'); ?></option>
                                 </select>
                             </div>
-                            <button type="button" class="fcol-clear text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="清空此行">
+                            <button type="button" class="fcol-clear text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('setting_clear_row'); ?>">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
                         <div class="mt-2 ml-8">
-                            <label class="text-xs text-gray-400 block mb-1">内容</label>
-                            <textarea class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="3" placeholder="文字内容或占位符如 {{contact_info}}"><?php echo e($col['content'] ?? ''); ?></textarea>
+                            <label class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
+                            <textarea class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="3" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
                         </div>
                     </div>
                     <?php endfor; ?>
@@ -203,16 +144,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php $navData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
-                    <?php echo e($item['name']); ?>
+                    <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
                     <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($item['tip']); ?></span>
+                    <span class="text-gray-400 text-sm font-normal ml-2"><?php $__tip = __('setting_' . $item['key'] . '_tip'); echo e($__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : $item['tip']); ?></span>
                     <?php endif; ?>
                 </label>
                 <input type="hidden" name="settings[footer_nav]" id="footerNavJson">
                 <div id="footerNavEditor" class="space-y-3"></div>
                 <button type="button" onclick="addFooterNavGroup()" class="mt-3 text-sm text-primary hover:text-secondary cursor-pointer inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    添加分组
+                    <?php echo __('setting_add_group'); ?>
                 </button>
             </div>
             <script>
@@ -228,12 +169,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    <?php echo e($item['name']); ?>
+                    <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
                     <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm block"><?php echo e($item['tip']); ?></span>
+                    <span class="text-gray-400 text-sm block"><?php $__tip = __('setting_' . $item['key'] . '_tip'); echo e($__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : $item['tip']); ?></span>
                     <?php endif; ?>
                     <?php if ($isModified && $defaultValue !== ''): ?>
-                    <span class="text-gray-300 text-xs block mt-1 truncate" title="<?php echo e($defaultValue); ?>">默认: <?php echo e(mb_strimwidth($defaultValue, 0, 30, '...')); ?></span>
+                    <span class="text-gray-300 text-xs block mt-1 truncate" title="<?php echo e($defaultValue); ?>"><?php echo __('setting_default'); ?>: <?php echo e(mb_strimwidth($defaultValue, 0, 30, '...')); ?></span>
                     <?php endif; ?>
                 </label>
                 <div class="md:col-span-3">
@@ -250,12 +191,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <button type="button" onclick="uploadImage('<?php echo e($item['key']); ?>')"
                                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                            上传
+                            <?php echo __('btn_upload'); ?>
                         </button>
                         <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            媒体库
+                            <?php echo __("admin_media_library"); ?>
                         </button>
                     </div>
                     <?php if ($item['value']): ?>
@@ -268,9 +209,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         $options = json_decode($item['options'] ?? '{}', true) ?: [];
                         if (empty($options)) {
                             $defaultOptions = [
-                                'show_price' => ['0' => '不显示', '1' => '显示'],
+                                'show_price' => ['0' => __('setting_hide'), '1' => __('setting_show')],
                             ];
-                            $options = $defaultOptions[$item['key']] ?? ['0' => '否', '1' => '是'];
+                            $options = $defaultOptions[$item['key']] ?? ['0' => __('setting_no'), '1' => __('setting_yes')];
                         }
                         foreach ($options as $optKey => $optLabel):
                         ?>
@@ -284,18 +225,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if ($item['key'] === 'primary_color'): ?>
                     <!-- 预设配色方案 -->
                     <div class="mb-3" id="colorPresets">
-                        <div class="text-xs text-gray-400 mb-2">快速选择配色方案</div>
+                        <div class="text-xs text-gray-400 mb-2"><?php echo __('setting_color_presets'); ?></div>
                         <div class="flex flex-wrap gap-2">
                             <?php
                             $presets = [
-                                ['name' => '经典蓝',   'primary' => '#3B82F6', 'secondary' => '#1D4ED8'],
-                                ['name' => '翡翠绿',   'primary' => '#10B981', 'secondary' => '#059669'],
-                                ['name' => '中国红',   'primary' => '#EF4444', 'secondary' => '#DC2626'],
-                                ['name' => '活力橙',   'primary' => '#F97316', 'secondary' => '#EA580C'],
-                                ['name' => '优雅紫',   'primary' => '#8B5CF6', 'secondary' => '#7C3AED'],
-                                ['name' => '青碧',     'primary' => '#06B6D4', 'secondary' => '#0891B2'],
-                                ['name' => '玫瑰粉',   'primary' => '#F43F5E', 'secondary' => '#E11D48'],
-                                ['name' => '琥珀金',   'primary' => '#F59E0B', 'secondary' => '#D97706'],
+                                ['name' => 'クラシックブルー', 'primary' => '#3B82F6', 'secondary' => '#1D4ED8'],
+                                ['name' => 'エメラルド',     'primary' => '#10B981', 'secondary' => '#059669'],
+                                ['name' => 'レッド',         'primary' => '#EF4444', 'secondary' => '#DC2626'],
+                                ['name' => 'オレンジ',       'primary' => '#F97316', 'secondary' => '#EA580C'],
+                                ['name' => 'パープル',       'primary' => '#8B5CF6', 'secondary' => '#7C3AED'],
+                                ['name' => 'シアン',         'primary' => '#06B6D4', 'secondary' => '#0891B2'],
+                                ['name' => 'ローズ',         'primary' => '#F43F5E', 'secondary' => '#E11D48'],
+                                ['name' => 'アンバー',       'primary' => '#F59E0B', 'secondary' => '#D97706'],
                             ];
                             $currentPrimary = config('primary_color', '#3B82F6');
                             $currentSecondary = config('secondary_color', '#1D4ED8');
@@ -332,7 +273,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <textarea name="settings[<?php echo e($item['key']); ?>]" rows="8"
                               class="w-full border rounded px-4 py-2 font-mono text-sm bg-gray-50"
                               spellcheck="false"
-                              placeholder="<?php echo e($item['tip']); ?>"><?php echo e($item['value']); ?></textarea>
+                              placeholder="<?php $__tip = __('setting_' . $item['key'] . '_tip'); echo e($__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : $item['tip']); ?>"><?php echo e($item['value']); ?></textarea>
 
                     <?php elseif ($item['type'] === 'number'): ?>
                     <input type="number" name="settings[<?php echo e($item['key']); ?>]"
@@ -348,9 +289,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" class="restore-btn text-xs text-gray-400 hover:text-primary mt-1 inline-flex items-center gap-1 transition"
                             data-key="<?php echo e($item['key']); ?>"
                             data-default="<?php echo e($defaultValue); ?>"
-                            title="恢复为默认值: <?php echo e(mb_strimwidth($defaultValue, 0, 50, '...')); ?>">
+                            title="<?php echo __('setting_restore_to_default'); ?>: <?php echo e(mb_strimwidth($defaultValue, 0, 50, '...')); ?>">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        恢复默认
+                        <?php echo __('setting_restore_default'); ?>
                     </button>
                     <?php endif; ?>
                 </div>
@@ -364,7 +305,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow p-6 text-center">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            保存设置
+            <?php echo __('btn_save_settings'); ?>
         </button>
     </div>
 </form>
@@ -394,7 +335,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             data = JSON.parse(text);
         } catch (e) {
             console.error('上传响应:', text);
-            showMessage('上传失败：服务器返回异常', 'error');
+            showMessage('<?php echo __('setting_upload_error'); ?>', 'error');
             return;
         }
 
@@ -408,13 +349,13 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('input_' + currentImageKey).parentNode.parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
-            showMessage(data.msg || '上传失败', 'error');
+            showMessage(data.msg || '<?php echo __('setting_upload_failed'); ?>', 'error');
         }
     } catch (err) {
         console.error('上传错误:', err);
-        showMessage('上传失败: ' + err.message, 'error');
+        showMessage('<?php echo __('setting_upload_failed'); ?>: ' + err.message, 'error');
     }
 
     this.value = '';
@@ -503,23 +444,23 @@ document.querySelectorAll('.restore-btn').forEach(function(btn) {
             }
         }
         this.remove();
-        showMessage('已恢复默认值，请保存');
+        showMessage('<?php echo __('setting_restored_save'); ?>');
     });
 });
 
 // 恢复全部默认值
 async function restoreAllDefaults() {
-    if (!confirm('确定要恢复当前分组所有设置为出厂默认值吗？此操作不可撤销。')) return;
+    if (!confirm('<?php echo __('setting_restore_all_confirm'); ?>')) return;
     const formData = new FormData();
     formData.append('action', 'restore_defaults');
     formData.append('group', '<?php echo e($group); ?>');
     const response = await fetch(location.href, { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('已恢复默认值');
+        showMessage('<?php echo __('setting_restored'); ?>');
         setTimeout(function() { location.reload(); }, 800);
     } else {
-        showMessage(data.msg || '恢复失败', 'error');
+        showMessage(data.msg || '<?php echo __('setting_restore_failed'); ?>', 'error');
     }
 }
 
@@ -535,12 +476,12 @@ document.getElementById('settingForm').addEventListener('submit', async function
         const data = await safeJson(response);
 
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage('<?php echo __('admin_request_failed'); ?>', 'error');
     }
 });
 
@@ -567,14 +508,14 @@ function renderNavGroup(group, gi) {
     });
     return '<div class="fnav-group border rounded-lg p-3 bg-white" data-gi="' + gi + '">' +
         '<div class="flex items-center gap-3 mb-2">' +
-            '<input type="text" class="fnav-title flex-1 border rounded px-3 py-1.5 text-sm" placeholder="分组标题（如：法律条款，留空则不显示标题）" value="' + escHtml(group.title) + '">' +
-            '<button type="button" onclick="removeFooterNavGroup(' + gi + ')" class="text-gray-300 hover:text-red-400 cursor-pointer" title="删除分组">' +
+            '<input type="text" class="fnav-title flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __('setting_nav_group_placeholder'); ?>" value="' + escHtml(group.title) + '">' +
+            '<button type="button" onclick="removeFooterNavGroup(' + gi + ')" class="text-gray-300 hover:text-red-400 cursor-pointer" title="<?php echo __('setting_delete_group'); ?>">' +
                 '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
             '</button>' +
         '</div>' +
         '<div class="fnav-links space-y-2 ml-6">' + linksHtml + '</div>' +
         '<button type="button" onclick="addFooterNavLink(' + gi + ')" class="ml-6 mt-2 text-xs text-primary hover:text-secondary cursor-pointer inline-flex items-center gap-1">' +
-            '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> 添加链接' +
+            '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> <?php echo __('setting_add_link'); ?>' +
         '</button>' +
     '</div>';
 }
@@ -583,11 +524,11 @@ function renderNavLink(link, gi, li) {
     var selSelf = (link.target || '_self') !== '_blank' ? ' selected' : '';
     var selBlank = (link.target || '_self') === '_blank' ? ' selected' : '';
     return '<div class="fnav-link flex items-center gap-2">' +
-        '<input type="text" class="fnav-name border rounded px-2 py-1 text-sm w-28" placeholder="名称" value="' + escHtml(link.name) + '">' +
-        '<input type="text" class="fnav-url flex-1 border rounded px-2 py-1 text-sm" placeholder="链接地址 如 /privacy.html" value="' + escHtml(link.url) + '">' +
+        '<input type="text" class="fnav-name border rounded px-2 py-1 text-sm w-28" placeholder="<?php echo __('setting_link_name'); ?>" value="' + escHtml(link.name) + '">' +
+        '<input type="text" class="fnav-url flex-1 border rounded px-2 py-1 text-sm" placeholder="<?php echo __('setting_link_url_placeholder'); ?>" value="' + escHtml(link.url) + '">' +
         '<select class="fnav-target border rounded px-2 py-1 text-sm w-24">' +
-            '<option value="_self"' + selSelf + '>本窗口</option>' +
-            '<option value="_blank"' + selBlank + '>新窗口</option>' +
+            '<option value="_self"' + selSelf + '><?php echo __('setting_target_self'); ?></option>' +
+            '<option value="_blank"' + selBlank + '><?php echo __('setting_target_blank'); ?></option>' +
         '</select>' +
         '<button type="button" onclick="this.closest(\'.fnav-link\').remove()" class="text-gray-300 hover:text-red-400 cursor-pointer">' +
             '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +

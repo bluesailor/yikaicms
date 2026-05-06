@@ -89,7 +89,7 @@ $isTransparentHeader = !empty($isHomePage);
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
-    <!-- 导航栏 -->
+    <!-- Navigation bar -->
     <header class="<?php echo $isTransparentHeader ? 'nav-transparent' : 'nav-solid shadow-lg'; ?> transition-all duration-300">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16 md:h-20">
@@ -102,7 +102,7 @@ $isTransparentHeader = !empty($isHomePage);
                     <?php endif; ?>
                 </a>
 
-                <!-- 桌面导航 -->
+                <!-- Desktop navigation -->
                 <nav class="hidden md:flex items-center gap-1">
                     <?php if (config('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="nav-link px-4 py-2 text-sm font-medium transition <?php echo isset($isHomePage) && $isHomePage ? 'text-white font-bold' : ''; ?>">
@@ -133,20 +133,20 @@ $isTransparentHeader = !empty($isHomePage);
                     <?php endif; ?>
                     <?php endforeach; ?>
 
-                    <!-- CTA按钮 -->
+                    <!-- CTA button -->
                     <a href="/contact.html" class="ml-3 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
                         <?php echo __('detail_consult'); ?>
                     </a>
                 </nav>
 
-                <!-- 移动端菜单按钮 -->
+                <!-- mobile menu button -->
                 <button id="mobileMenuBtn" class="md:hidden p-2 text-white" aria-label="<?php echo __('menu_label'); ?>">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
             </div>
         </div>
 
-        <!-- 移动端菜单 -->
+        <!-- Mobile menu -->
         <nav id="mobileMenu" class="md:hidden hidden bg-slate-800 border-t border-slate-700">
             <div class="container mx-auto px-4 py-4">
                 <?php if (config('nav_home_show', '1') !== '0'): ?>
@@ -168,5 +168,5 @@ $isTransparentHeader = !empty($isHomePage);
 
     <?php do_action('ik_header_after'); ?>
 
-    <!-- 主内容 -->
+    <!-- Main content -->
     <main class="flex-1">

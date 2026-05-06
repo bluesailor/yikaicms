@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 后台认证模块
+ * ikaiCMS - 后台认证模块
  *
  * PHP 8.0+
  */
@@ -20,11 +20,7 @@ initLang();
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
-require_once ROOT_PATH . '/includes/HtmlCache.php';
 require_once ROOT_PATH . '/includes/plugin.php';
-
-// 后台启动完成，供插件挂载后台初始化逻辑
-do_action('admin_init');
 
 /**
  * 检查登录状态
@@ -70,7 +66,7 @@ function doLogin(string $username, string $password): array
     // 暴力破解防护：检查登录失败次数
     $lockout = checkLoginThrottle();
     if ($lockout > 0) {
-        return ['success' => false, 'message' => "登录失败次数过多，请 {$lockout} 分钟后重试"];
+        return ['success' => false, 'message' => "ログイン失敗回数が多すぎます。{$lockout}分後に再試行してください"];
     }
 
     $user = userModel()->findWhere(['username' => $username, 'status' => 1]);
@@ -91,7 +87,7 @@ function doLogin(string $username, string $password): array
             'user_agent'   => $_SERVER['HTTP_USER_AGENT'] ?? '',
             'created_at'   => time(),
         ]);
-        return ['success' => false, 'message' => '用户名或密码错误'];
+        return ['success' => false, 'message' => 'ユーザー名またはパスワードが正しくありません'];
     }
 
     // 登录成功，清除失败记录

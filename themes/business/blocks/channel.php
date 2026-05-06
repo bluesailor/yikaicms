@@ -12,7 +12,7 @@ $isDark = str_contains($sectionBg, 'dark');
 ?>
 <section class="py-20 <?php echo $sectionBg; ?>">
     <div class="container mx-auto px-4">
-        <!-- 标题 -->
+        <!-- title -->
         <div class="flex items-end justify-between mb-12" data-animate="fade-up">
             <div>
                 <h2 class="text-3xl font-bold <?php echo $isDark ? 'text-white' : 'text-dark'; ?> mb-3"><?php echo e($hChannel['name']); ?></h2>
@@ -30,7 +30,7 @@ $isDark = str_contains($sectionBg, 'dark');
         <?php if (!empty($contents)): ?>
 
         <?php if ($hChannel['is_product'] ?? false): ?>
-        <!-- 产品网格 -->
+        <!-- Product grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-6" data-stagger>
             <?php foreach (array_slice($contents, 0, 6) as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="block group">
@@ -49,7 +49,7 @@ $isDark = str_contains($sectionBg, 'dark');
         </div>
 
         <?php elseif ($channelType === 'case'): ?>
-        <!-- 案例网格 -->
+        <!-- Case Grid -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-6" data-stagger>
             <?php foreach (array_slice($contents, 0, 6) as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
@@ -64,7 +64,7 @@ $isDark = str_contains($sectionBg, 'dark');
         </div>
 
         <?php else: ?>
-        <!-- 文章网格（深色背景，只显示有封面图的） -->
+        <!-- Article grid (dark background, only displaying those with cover images) -->
         <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6" data-stagger>
             <?php foreach (array_slice($withCover, 0, 4) as $item): ?>
@@ -79,7 +79,7 @@ $isDark = str_contains($sectionBg, 'dark');
         </div>
         <?php endif; ?>
 
-        <!-- 移动端查看更多 -->
+        <!-- View more on mobile -->
         <div class="mt-8 text-center md:hidden">
             <a href="<?php echo channelUrl($hChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full text-sm transition">
                 <?php echo __('home_view_all'); ?> &raquo;

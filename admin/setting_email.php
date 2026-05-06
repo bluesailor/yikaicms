@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 邮件配置
+ * ikaiCMS - 邮件配置
  *
  * SMTP 配置 + 邮件模板管理 + 测试发送
  */
@@ -147,7 +147,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <select name="settings[smtp_secure]" class="w-full border rounded px-4 py-2">
                         <option value="ssl" <?php echo config('smtp_secure', 'ssl') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
                         <option value="tls" <?php echo config('smtp_secure') === 'tls' ? 'selected' : ''; ?>>TLS</option>
-                        <option value="" <?php echo config('smtp_secure') === '' ? 'selected' : ''; ?>>无</option>
+                        <option value="" <?php echo config('smtp_secure') === '' ? 'selected' : ''; ?>><?php echo __('none'); ?></option>
                     </select>
                 </div>
             </div>
@@ -192,7 +192,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     发件人名称
-                    <span class="text-gray-400 text-sm block">留空使用站点名称</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_empty_site_name'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[mail_from_name]" value="<?php echo e(config('mail_from_name')); ?>"
@@ -216,8 +216,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[mail_notify_form]" class="w-full border rounded px-4 py-2">
-                        <option value="1" <?php echo config('mail_notify_form') === '1' ? 'selected' : ''; ?>>开启</option>
-                        <option value="0" <?php echo config('mail_notify_form') !== '1' ? 'selected' : ''; ?>>关闭</option>
+                        <option value="1" <?php echo config('mail_notify_form') === '1' ? 'selected' : ''; ?>><?php echo __('email_on'); ?></option>
+                        <option value="0" <?php echo config('mail_notify_form') !== '1' ? 'selected' : ''; ?>><?php echo __('email_off'); ?></option>
                     </select>
                 </div>
             </div>
@@ -227,10 +227,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex flex-wrap gap-4">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">
-                保存设置
+                <?php echo __('admin_save'); ?>
             </button>
             <button type="button" onclick="testEmail()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded transition">
-                <i class="fa-solid fa-paper-plane mr-1"></i>发送测试邮件
+                <i class="fa-solid fa-paper-plane mr-1"></i><?php echo __('email_send_test_btn'); ?>
             </button>
         </div>
     </div>
@@ -240,7 +240,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="testModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">发送测试邮件</h3>
+            <h3 class="font-bold text-gray-800"><?php echo __('email_send_test_btn'); ?></h3>
             <button type="button" onclick="closeTestModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div class="p-6">
@@ -264,7 +264,7 @@ document.getElementById('settingForm').addEventListener('submit', async function
     try {
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
-        if (data.code === 0) showMessage('保存成功');
+        if (data.code === 0) showMessage('<?php echo __('admin_saved'); ?>');
         else showMessage(data.msg, 'error');
     } catch (err) { showMessage('请求失败', 'error'); }
 });
@@ -318,7 +318,7 @@ async function sendTestEmail() {
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">邮件标题</label>
+                <label class="text-gray-700 pt-2"><?php echo __('email_subject'); ?></label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[<?php echo e($subjectKey); ?>]"
                            value="<?php echo e(config($subjectKey)); ?>"
@@ -327,7 +327,7 @@ async function sendTestEmail() {
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">邮件内容</label>
+                <label class="text-gray-700 pt-2"><?php echo __('email_body'); ?></label>
                 <div class="md:col-span-3">
                     <textarea name="settings[<?php echo e($bodyKey); ?>]" rows="14" id="tplBody"
                               class="w-full border rounded px-4 py-2 font-mono text-sm leading-relaxed"
@@ -340,7 +340,7 @@ async function sendTestEmail() {
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center gap-4">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">
-                保存模板
+                <?php echo __('admin_save'); ?>
             </button>
             <span class="text-xs text-gray-400">修改后立即生效，发送时自动替换变量</span>
         </div>
@@ -354,7 +354,7 @@ document.getElementById('tplForm').addEventListener('submit', async function(e) 
     try {
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
-        if (data.code === 0) showMessage('保存成功');
+        if (data.code === 0) showMessage('<?php echo __('admin_saved'); ?>');
         else showMessage(data.msg, 'error');
     } catch (err) { showMessage('请求失败', 'error'); }
 });

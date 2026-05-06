@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 图库相册管理（简化版）
+ * ikaiCMS - 图库相册管理（简化版）
  *
  * PHP 8.0+
  */
@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取相册列表
 $albums = albumModel()->all();
 
-$pageTitle = '图库相册';
+$pageTitle = __('admin_album');
 $currentMenu = 'album';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -135,11 +135,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex gap-2">
             <button onclick="openUploadModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                上传图片
+                <?php echo __('admin_upload_image'); ?>
             </button>
             <a href="/admin/album_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                新建相册
+                <?php echo __('admin_add'); ?>
             </a>
         </div>
     </div>
@@ -183,19 +183,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    管理图片
+                    <?php echo __('admin_manage'); ?>
                 </a>
                 <div class="flex items-center gap-2">
                     <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                             class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                        <?php echo $item['status'] ? '显示' : '隐藏'; ?>
+                        <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                     </button>
-                    <a href="/admin/album_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-500 hover:text-primary" title="编辑">
+                    <a href="/admin/album_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-500 hover:text-primary" title="<?php echo __('admin_edit'); ?>">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </a>
-                    <button onclick="deleteAlbum(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')" class="text-gray-500 hover:text-red-600" title="删除">
+                    <button onclick="deleteAlbum(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')" class="text-gray-500 hover:text-red-600" title="<?php echo __('admin_delete'); ?>">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
@@ -379,7 +379,7 @@ async function deleteAlbum(id, name) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     }
 }

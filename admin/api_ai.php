@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - AI API 接口
+ * ikaiCMS - AI API 接口
  *
  * 供后台编辑器调用的 AJAX 端点
  */
@@ -50,7 +50,7 @@ if (!$ai->isConfigured()) {
     exit;
 }
 
-$siteName = config('site_name', 'Yikai CMS');
+$siteName = config('site_name', 'ikaiCMS');
 $siteDesc = config('site_description', '');
 
 AiService::$action = $action;

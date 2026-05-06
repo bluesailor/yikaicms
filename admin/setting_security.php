@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 安全设置
+ * ikaiCMS - 安全设置
  *
  * PHP 8.0+
  */
@@ -52,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success([], '已清除 ' . $count . ' 条限流记录');
     }
 
-    // 保存设置
     $settings = $_POST['settings'] ?? [];
     settingModel()->saveBatch($settings);
 
@@ -116,10 +115,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b overflow-x-auto">
-        <a href="/admin/setting_security.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'login' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">登录安全</a>
-        <a href="/admin/setting_security.php?tab=login_logs" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'login_logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">登录记录</a>
-        <a href="/admin/setting_security.php?tab=upload" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'upload' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">上传安全</a>
-        <a href="/admin/setting_security.php?tab=logs" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">日志管理</a>
+        <a href="/admin/setting_security.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'login' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_login_security'); ?></a>
+        <a href="/admin/setting_security.php?tab=login_logs" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'login_logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_login_history'); ?></a>
+        <a href="/admin/setting_security.php?tab=upload" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'upload' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_upload_security'); ?></a>
+        <a href="/admin/setting_security.php?tab=logs" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_log_management'); ?></a>
     </div>
 </div>
 
@@ -128,13 +127,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">登录保护</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sec_login_protection'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     最大失败次数
-                    <span class="text-gray-400 text-sm block">超过后锁定该 IP</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_lock_ip_after'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[login_max_attempts]"
@@ -148,7 +147,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     锁定时长（分钟）
-                    <span class="text-gray-400 text-sm block">登录失败超限后锁定时间</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_lock_duration_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[login_lock_minutes]"
@@ -162,7 +161,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     Session 超时（分钟）
-                    <span class="text-gray-400 text-sm block">后台无操作自动退出</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_session_timeout_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[session_timeout]"
@@ -176,7 +175,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     密码最小长度
-                    <span class="text-gray-400 text-sm block">管理员密码的最低字符数</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_password_min_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[password_min_length]"
@@ -191,13 +190,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">访问控制</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sec_access_control'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     后台 IP 白名单
-                    <span class="text-gray-400 text-sm block">限制只有指定 IP 可访问后台</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_ip_whitelist_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <textarea name="settings[admin_ip_whitelist]" rows="4"
@@ -214,13 +213,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">表单防刷</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sec_form_throttle'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     最大提交次数
-                    <span class="text-gray-400 text-sm block">同一 IP 在时间窗口内的提交上限</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_max_submissions_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[form_max_submits]"
@@ -233,7 +232,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     时间窗口（分钟）
-                    <span class="text-gray-400 text-sm block">限流重置周期</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('sec_time_window_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[form_throttle_minutes]"
@@ -247,7 +246,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">保存设置</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
@@ -256,16 +255,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800">登录记录</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sec_login_history'); ?></h2>
             <span class="text-sm text-gray-400">共 <?php echo number_format($loginTotal); ?> 条</span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-50 text-left">
-                        <th class="px-6 py-3 font-medium text-gray-500">时间</th>
+                        <th class="px-6 py-3 font-medium text-gray-500"><?php echo __('admin_created_at'); ?></th>
                         <th class="px-6 py-3 font-medium text-gray-500">用户</th>
-                        <th class="px-6 py-3 font-medium text-gray-500">操作</th>
+                        <th class="px-6 py-3 font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
                         <th class="px-6 py-3 font-medium text-gray-500">IP 地址</th>
                         <th class="px-6 py-3 font-medium text-gray-500">浏览器</th>
                     </tr>
@@ -333,10 +332,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <div class="flex gap-2">
                 <?php if ($loginPage > 1): ?>
-                <a href="?tab=login_logs&page=<?php echo $loginPage - 1; ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50">上一页</a>
+                <a href="?tab=login_logs&page=<?php echo $loginPage - 1; ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
                 <?php if ($loginPage * $loginPerPage < $loginTotal): ?>
-                <a href="?tab=login_logs&page=<?php echo $loginPage + 1; ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50">下一页</a>
+                <a href="?tab=login_logs&page=<?php echo $loginPage + 1; ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50"><?php echo __('list_next_page'); ?></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -427,7 +426,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">保存设置</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
@@ -508,7 +507,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php endif; ?>
 
 <script>
-// 保存设置
 document.getElementById('settingForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData(this);
@@ -516,7 +514,7 @@ document.getElementById('settingForm')?.addEventListener('submit', async functio
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }

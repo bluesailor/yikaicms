@@ -26,55 +26,10 @@ if ($id > 0) {
     }
 }
 
-// 翻译创建
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(post('action'), ['translate', 'create_translation']) && $product && isMultiLangEnabled('products')) {
-    $toLang = post('to_lang') ?: post('target_lang');
-    $allLangsCheck = availableLanguages();
-    if (!isset($allLangsCheck[$toLang])) error('非法语言');
-    if ($toLang === ($product['lang'] ?? '')) error('不能翻译为相同语言');
-
-    $groupId = (int)($product['translation_group_id'] ?? 0);
-    if ($groupId === 0) {
-        $groupId = (int)$product['id'];
-        productModel()->updateById((int)$product['id'], ['translation_group_id' => $groupId]);
-    }
-
-    $existing = productModel()->queryOne("SELECT id FROM " . productModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
-    if ($existing) success(['id' => (int)$existing['id'], 'redirect' => '/admin/product_edit.php?id=' . $existing['id']], '翻译已存在');
-
-    $translated = aiTranslateFields($product['title'], $product['summary'] ?? '', $toLang);
-
-    // 查找对应语言分类
-    $targetCatId = 0;
-    if ($product['category_id'] > 0) {
-        $srcCat = db()->fetchOne("SELECT * FROM " . DB_PREFIX . "product_categories WHERE id = ?", [$product['category_id']]);
-        if ($srcCat) {
-            $catGroupId = (int)($srcCat['translation_group_id'] ?: $srcCat['id']);
-            $targetCat = db()->fetchOne("SELECT id FROM " . DB_PREFIX . "product_categories WHERE translation_group_id = ? AND lang = ?", [$catGroupId, $toLang]);
-            if ($targetCat) $targetCatId = (int)$targetCat['id'];
-        }
-    }
-
-    $newData = $product;
-    unset($newData['id']);
-    $newData['title'] = $translated['title'];
-    $newData['summary'] = $translated['summary'];
-    $newData['lang'] = $toLang;
-    $newData['translation_group_id'] = $groupId;
-    $newData['category_id'] = $targetCatId;
-    $newData['slug'] = '';
-    $newData['status'] = 0;
-    $newData['views'] = 0;
-    $newData['created_at'] = time();
-    $newData['updated_at'] = time();
-    $newData['admin_id'] = $_SESSION['admin_id'];
-    $newId = productModel()->create($newData);
-    adminLog('product', 'translate', "翻译产品 #{$product['id']} → {$toLang} #{$newId}");
-    success(['id' => $newId, 'redirect' => '/admin/product_edit.php?id=' . $newId]);
-}
-
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedType = post('product_type', 'custom');
+    if (!in_array($postedType, ['standard', 'custom'], true)) $postedType = 'custom';
     $data = [
         'category_id' => postInt('category_id'),
         'title' => post('title'),
@@ -87,18 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'content' => $_POST['content'] ?? '',
         'specs' => post('specs'),
         'tags' => post('tags'),
+        'product_type' => $postedType,
+        'material' => trim(post('material')),
+        'scene'    => trim(post('scene')),
         'is_top' => postInt('is_top'),
         'is_recommend' => postInt('is_recommend'),
         'is_hot' => postInt('is_hot'),
         'is_new' => postInt('is_new'),
-        'sort_order' => postInt('sort_order'),
         'status' => postInt('status', 1),
         'updated_at' => time(),
     ];
-
-    if (isMultiLangEnabled('products')) {
-        $data['lang'] = post('lang', config('site_lang', 'zh-CN'));
-    }
 
     if (empty($data['title'])) {
         error('请输入产品名称');
@@ -112,26 +65,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'products', $id);
 
-    // 过滤器：允许插件在入库前修改数据
-    $data = apply_filters('before_save_product', $data, $id);
-
-    $isUpdate = $id > 0;
-    if ($isUpdate) {
+    if ($id > 0) {
         productModel()->updateById($id, $data);
         adminLog('product', 'update', "更新产品ID: $id");
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
-        $id = (int)productModel()->create($data);
+        $id = productModel()->create($data);
         adminLog('product', 'create', "创建产品ID: $id");
     }
-
-    // 保存扩展字段
-    if (!empty($_POST['ext_fields']) && is_array($_POST['ext_fields'])) {
-        metaModel()->setBatch('product', (int)$id, $_POST['ext_fields']);
-    }
-
-    do_action('after_save_product', (int)$id, $data, $isUpdate);
 
     success(['id' => $id]);
 }
@@ -154,11 +96,6 @@ $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php
-$langSwitcher = ['table' => 'products', 'model' => productModel(), 'item' => $product, 'edit_url' => '/admin/product_edit.php'];
-include __DIR__ . '/includes/lang_switcher_edit.php';
-?>
-
 <form id="editForm" class="space-y-6">
     <div class="flex flex-col lg:flex-row gap-6">
         <!-- 主内容区 -->
@@ -166,32 +103,32 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">产品名称 <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_product_name'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($product['title'] ?? ''); ?>" required
                                class="w-full border rounded px-4 py-2 text-lg" placeholder="请输入产品名称">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-gray-700 mb-1">副标题</label>
+                            <label class="block text-gray-700 mb-1"><?php echo __('label_subtitle'); ?></label>
                             <input type="text" name="subtitle" value="<?php echo e($product['subtitle'] ?? ''); ?>"
-                                   class="w-full border rounded px-4 py-2" placeholder="可选">
+                                   class="w-full border rounded px-4 py-2" placeholder="<?php echo __('optional'); ?>">
                         </div>
                         <div>
-                            <label class="block text-gray-700 mb-1">产品型号</label>
+                            <label class="block text-gray-700 mb-1"><?php echo __('label_product_model'); ?></label>
                             <input type="text" name="model" value="<?php echo e($product['model'] ?? ''); ?>"
-                                   class="w-full border rounded px-4 py-2" placeholder="可选">
+                                   class="w-full border rounded px-4 py-2" placeholder="<?php echo __('optional'); ?>">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">产品摘要</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_product_summary'); ?></label>
                         <textarea name="summary" rows="3" class="w-full border rounded px-4 py-2"
                                   placeholder="产品简介，用于列表展示"><?php echo e($product['summary'] ?? ''); ?></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">产品详情</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_product_detail'); ?></label>
                         <div id="toolbar-container" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
                         <div id="editor-container" class="border rounded-b-lg" style="min-height: 400px;"></div>
                         <input type="hidden" name="content" id="contentInput">
@@ -209,19 +146,19 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             <!-- 图片画廊（多图，lightbox 前端展示） -->
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-2">图片画廊</h3>
-                <p class="text-xs text-gray-500 mb-3">除封面外的附加展示图，前台详情页会以画廊（lightbox）形式呈现。鼠标悬停可排序/删除。</p>
+                <p class="text-xs text-gray-500 mb-3">除封面外的附加展示图，前台详情页会以画廊形式呈现。鼠标悬停可排序/删除，支持拖拽排序。</p>
                 <input type="hidden" name="images" id="imagesInput" value="<?php echo e($product['images'] ?? ''); ?>">
                 <div id="galleryPreview" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-3"></div>
                 <div class="flex gap-2">
                     <button type="button" onclick="uploadGalleryImage()"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        上传图片（可多选）
+                        <?php echo __('admin_upload_image') ?: '上传图片'; ?>（可多选）
                     </button>
                     <button type="button" onclick="pickGalleryFromMedia()"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        媒体库
+                        <?php echo __('admin_media_library') ?: '媒体库'; ?>
                     </button>
                 </div>
             </div>
@@ -230,10 +167,10 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
         <!-- 侧边栏 -->
         <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">发布设置</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-2">所属分类</label>
+                        <label class="block text-gray-700 mb-2"><?php echo __('label_category'); ?></label>
                         <input type="hidden" name="category_id" id="categoryIdInput" value="<?php echo (int)($product['category_id'] ?? 0); ?>">
                         <div class="border rounded p-3 max-h-60 overflow-y-auto space-y-1" id="categoryTree">
                             <?php
@@ -264,63 +201,100 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                             </label>
                             <?php endforeach; ?>
                             <?php if (empty($categories)): ?>
-                            <div class="text-sm text-gray-400 text-center py-2">暂无分类，请先在分类管理中创建</div>
+                            <div class="text-sm text-gray-400 text-center py-2"><?php echo __('empty_no_category'); ?></div>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">URL别名 (Slug)</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                         <input type="text" name="slug" value="<?php echo e($product['slug'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2" placeholder="如：iot-gateway，留空自动生成">
                     </div>
 
-                    <?php if (isMultiLangEnabled('products')): ?>
                     <div>
-                        <label class="block text-gray-700 mb-1">语言</label>
-                        <select name="lang" class="w-full border rounded px-4 py-2">
-                            <?php $currentLang = $product['lang'] ?? config('site_lang', 'zh-CN'); ?>
-                            <?php foreach (availableLanguages() as $lk => $lv): ?>
-                            <option value="<?php echo e($lk); ?>" <?php echo $currentLang === $lk ? 'selected' : ''; ?>><?php echo e($lv); ?></option>
+                        <label class="block text-gray-700 mb-2">商品类型</label>
+                        <?php $ptype = $product['product_type'] ?? 'custom'; ?>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-start gap-2 border rounded-lg p-3 cursor-pointer hover:bg-gray-50 <?php echo $ptype === 'standard' ? 'border-primary bg-blue-50' : 'border-gray-200'; ?>">
+                                <input type="radio" name="product_type" value="standard" class="mt-1" <?php echo $ptype === 'standard' ? 'checked' : ''; ?>>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-800">標準製品</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">既製品・定型文言、直接下单</div>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-2 border rounded-lg p-3 cursor-pointer hover:bg-gray-50 <?php echo $ptype === 'custom' ? 'border-primary bg-blue-50' : 'border-gray-200'; ?>">
+                                <input type="radio" name="product_type" value="custom" class="mt-1" <?php echo $ptype === 'custom' ? 'checked' : ''; ?>>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-800">オーダー製作</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">定制品・文字/尺寸可协商</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-1">素材 (Material)</label>
+                        <?php
+                        $materialOptions = ['木材', 'アクリル', 'アルミ複合板', 'ステンレス', '複合板', 'その他'];
+                        $curMaterial = $product['material'] ?? '';
+                        ?>
+                        <input type="text" name="material" value="<?php echo e($curMaterial); ?>"
+                               list="materialList"
+                               class="w-full border rounded px-4 py-2" placeholder="例：木材、アクリル、ステンレス">
+                        <datalist id="materialList">
+                            <?php foreach ($materialOptions as $opt): ?>
+                            <option value="<?php echo e($opt); ?>">
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
+                        <p class="text-xs text-gray-400 mt-1">用于前台"素材で絞り込み"筛选，可自由填写或从候选中选</p>
                     </div>
-                    <?php endif; ?>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">发布状态</label>
+                        <label class="block text-gray-700 mb-1">使用シーン (Scene)</label>
+                        <?php
+                        $sceneOptions = ['オフィス', '店舗', 'レストラン', 'カフェ', '美容院', 'クリニック', '住宅'];
+                        $curScene = $product['scene'] ?? '';
+                        ?>
+                        <input type="text" name="scene" value="<?php echo e($curScene); ?>"
+                               list="sceneList"
+                               class="w-full border rounded px-4 py-2" placeholder="例：オフィス、店舗、住宅">
+                        <datalist id="sceneList">
+                            <?php foreach ($sceneOptions as $opt): ?>
+                            <option value="<?php echo e($opt); ?>">
+                            <?php endforeach; ?>
+                        </datalist>
+                        <p class="text-xs text-gray-400 mt-1">用于前台"使用シーンで絞り込み"筛选</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_publish_status'); ?></label>
                         <select name="status" class="w-full border rounded px-4 py-2">
-                            <option value="1" <?php echo ($product['status'] ?? 1) == 1 ? 'selected' : ''; ?>>上架</option>
-                            <option value="0" <?php echo ($product['status'] ?? 1) == 0 ? 'selected' : ''; ?>>下架</option>
+                            <option value="1" <?php echo ($product['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('status_on'); ?></option>
+                            <option value="0" <?php echo ($product['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('status_off'); ?></option>
                         </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-gray-700 mb-1">排序</label>
-                        <input type="number" name="sort_order" value="<?php echo (int)($product['sort_order'] ?? 0); ?>" class="w-full border rounded px-4 py-2">
-                        <p class="text-xs text-gray-400 mt-1">数字越小越靠前，默认 0</p>
                     </div>
 
                     <div class="flex flex-wrap gap-4">
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_top" value="1"
                                    <?php echo ($product['is_top'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>置顶</span>
+                            <span><?php echo __('admin_top'); ?></span>
                         </label>
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_recommend" value="1"
                                    <?php echo ($product['is_recommend'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>推荐</span>
+                            <span><?php echo __('admin_recommend'); ?></span>
                         </label>
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_hot" value="1"
                                    <?php echo ($product['is_hot'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>热门</span>
+                            <span><?php echo __('admin_hot'); ?></span>
                         </label>
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_new" value="1"
                                    <?php echo ($product['is_new'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>新品</span>
+                            <span><?php echo __('status_new'); ?></span>
                         </label>
                     </div>
                 </div>
@@ -336,7 +310,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                                class="w-full border rounded px-4 py-2" placeholder="0表示面议">
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">市场价</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_market_price'); ?></label>
                         <input type="number" step="0.01" name="market_price" value="<?php echo $product['market_price'] ?? ''; ?>"
                                class="w-full border rounded px-4 py-2" placeholder="可选，用于对比">
                     </div>
@@ -345,22 +319,22 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             <?php endif; ?>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">产品图片</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_images'); ?></h3>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-1">封面图</label>
                         <input type="text" name="cover" id="coverInput"
                                value="<?php echo e($product['cover'] ?? ''); ?>"
-                               class="w-full border rounded px-3 py-2 text-sm" placeholder="图片地址">
+                               class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo __('label_image_url'); ?>">
                         <div class="flex gap-2 mt-2">
                             <button type="button" onclick="uploadCover()"
                                     class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                                上传图片</button>
+                                <?php echo __('admin_upload_image'); ?></button>
                             <button type="button" onclick="pickCoverFromMedia()"
                                     class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                媒体库</button>
+                                <?php echo __("admin_media_library"); ?></button>
                         </div>
                         <div id="coverPreview" class="mt-2">
                             <?php if (!empty($product['cover'])): ?>
@@ -372,11 +346,11 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">产品标签</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_tags'); ?></h3>
                 <div class="space-y-3">
                     <div>
                         <input type="text" name="tags" id="tagsInput" value="<?php echo e($product['tags'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="多个标签用逗号分隔">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo __('label_tags_hint'); ?>">
                     </div>
                     <div id="selectedTags" class="flex flex-wrap gap-1.5"></div>
                     <?php if (!empty($hotTags)): ?>
@@ -422,35 +396,14 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             <span class="text-xs text-gray-400 mr-auto hidden sm:inline">请确认后保存</span>
             <a href="/admin/product.php" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                返回
+                <?php echo __('admin_back'); ?>
             </a>
             <button type="submit" class="px-8 py-2 bg-primary hover:bg-secondary text-white rounded transition inline-flex items-center gap-1 text-sm font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                保存
+                <?php echo __("btn_save"); ?>
             </button>
-            <?php if ($product && isMultiLangEnabled('products')): ?>
-            <div class="relative" x-data="{ open: false }">
-                <button type="button" @click="open = !open" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition inline-flex items-center gap-1 text-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-                    翻译为…
-                </button>
-                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-1 bg-white rounded shadow-lg border py-1 min-w-[120px] z-50">
-                    <?php foreach (availableLanguages() as $lk => $lv):
-                        if ($lk === ($product['lang'] ?? config('site_lang', 'zh-CN'))) continue;
-                    ?>
-                    <a href="javascript:void(0)" onclick="translateTo('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><?php echo e($lv); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
         </div>
     </div>
-
-    <?php
-        $extFieldOwnerType = 'product';
-        $extFieldOwnerId = (int)$id;
-        require __DIR__ . '/includes/extfield_render.php';
-    ?>
 </form>
 
 <input type="file" id="coverFileInput" class="hidden" accept="image/*">
@@ -479,12 +432,12 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             coverImg.src = data.data.url;
             coverImg.className = 'w-full rounded';
             document.getElementById('coverPreview').appendChild(coverImg);
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -501,7 +454,7 @@ function pickCoverFromMedia() {
     });
 }
 
-// === 多图画廊管理（网格预览 + JSON 存储） ===
+// === 多图ギャラリー管理 ===
 // 兼容读取：JSON 数组 / 换行分隔 / 历史的 || 分隔
 function parseGalleryInput(raw) {
     raw = (raw || '').trim();
@@ -525,7 +478,7 @@ function renderGallery() {
     var box = document.getElementById('galleryPreview');
     if (!box) return;
     if (galleryImages.length === 0) {
-        box.innerHTML = '<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded">暂无图片，点击下方按钮添加</div>';
+        box.innerHTML = '<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded"><?php echo __('admin_gallery_empty') ?: '暂无图片，点击下方按钮添加'; ?></div>';
         return;
     }
     box.innerHTML = galleryImages.map(function(url, i) {
@@ -535,7 +488,7 @@ function renderGallery() {
                '  <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">' +
                (i > 0 ? '    <button type="button" onclick="galleryMove(' + i + ',-1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="左移">←</button>' : '') +
                (i < galleryImages.length - 1 ? '    <button type="button" onclick="galleryMove(' + i + ',1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="右移">→</button>' : '') +
-               '    <button type="button" onclick="removeGalleryImage(' + i + ')" class="text-white bg-red-500 hover:bg-red-600 rounded w-7 h-7 text-sm" title="删除">×</button>' +
+               '    <button type="button" onclick="removeGalleryImage(' + i + ')" class="text-white bg-red-500 hover:bg-red-600 rounded w-7 h-7 text-sm" title="<?php echo __('btn_delete'); ?>">×</button>' +
                '  </div>' +
                '  <div class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded pointer-events-none">' + (i + 1) + '</div>' +
                '</div>';
@@ -559,23 +512,22 @@ function renderGallery() {
     });
 }
 
-function addGalleryImage(url) {
-    if (!url) return;
-    galleryImages.push(url);
-    syncGallery();
-}
-
-function removeGalleryImage(i) {
-    galleryImages.splice(i, 1);
-    syncGallery();
-}
-
 function galleryMove(i, dir) {
     var j = i + dir;
     if (j < 0 || j >= galleryImages.length) return;
     var tmp = galleryImages[i];
     galleryImages[i] = galleryImages[j];
     galleryImages[j] = tmp;
+    syncGallery();
+}
+
+function addGalleryImage(url) {
+    galleryImages.push(url);
+    syncGallery();
+}
+
+function removeGalleryImage(i) {
+    galleryImages.splice(i, 1);
     syncGallery();
 }
 
@@ -602,7 +554,7 @@ function pickGalleryFromMedia() {
     openMediaPicker(function(url) { addGalleryImage(url); });
 }
 
-// 首次渲染前把历史 || 格式的输入值规整成 JSON（防止保存时还是旧格式）
+// 首次渲染前把历史 || 格式规整为 JSON
 syncGallery();
 
 // === 规格参数管理 ===
@@ -823,25 +775,6 @@ renderSpecs();
         });
     });
 })();
-
-async function translateTo(lang) {
-    if (!confirm('Copy and create ' + lang + ' version?')) return;
-    var formData = new FormData();
-    formData.append('action', 'translate');
-    formData.append('target_lang', lang);
-    try {
-        var response = await fetch('', { method: 'POST', body: formData });
-        var data = await safeJson(response);
-        if (data.code === 0 && data.data.redirect) {
-            showMessage('OK');
-            setTimeout(function(){ location.href = data.data.redirect; }, 800);
-        } else {
-            showMessage(data.msg || 'Error', 'error');
-        }
-    } catch (e) {
-        showMessage('Error', 'error');
-    }
-}
 </script>
 
 <?php
@@ -867,7 +800,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage("保存成功");
+        showMessage("<?php echo __('msg_save_success'); ?>");
         setTimeout(function() { location.href = "/admin/product.php"; }, 1000);
     } else {
         showMessage(data.msg, "error");

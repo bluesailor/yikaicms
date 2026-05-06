@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 发展历程管理
+ * ikaiCMS - 发展历程管理
  *
  * PHP 8.0+
  */
@@ -107,47 +107,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
-    if ($action === 'batch_delete') {
-        $ids = $_POST['ids'] ?? [];
-        if (!empty($ids)) {
-            foreach ($ids as $delId) {
-                timelineModel()->deleteById((int)$delId);
-            }
-            adminLog('timeline', 'batch_delete', '批量删除：' . implode(',', $ids));
-        }
-        success();
-    }
-
-    if ($action === 'save_sort_setting') {
-        settingModel()->set('timeline_sort', post('timeline_sort', 'desc'));
-        success();
-    }
-
     exit;
 }
 
 // 获取列表
 $timelines = timelineModel()->all();
 
-$pageTitle = '发展历程';
+$pageTitle = __('admin_timeline');
 $currentMenu = 'timeline';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php $timelineSort = config('timeline_sort', 'desc'); ?>
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
-    <div class="p-4 flex flex-wrap justify-between items-center gap-3">
-        <div class="flex items-center gap-4">
-            <span class="text-gray-500 text-sm">共 <?php echo count($timelines); ?> 条记录</span>
-            <div class="flex items-center gap-2 text-sm">
-                <span class="text-gray-500">前台排序：</span>
-                <select id="sortSetting" onchange="saveSortSetting(this.value)" class="border rounded px-2 py-1 text-sm">
-                    <option value="desc" <?php echo $timelineSort === 'desc' ? 'selected' : ''; ?>>最新在前</option>
-                    <option value="asc" <?php echo $timelineSort === 'asc' ? 'selected' : ''; ?>>最早在前</option>
-                </select>
-            </div>
+    <div class="p-4 flex justify-between items-center">
+        <div class="text-gray-500 text-sm">
+            拖拽排序 · 共 <?php echo count($timelines); ?> 条记录
         </div>
         <div class="flex gap-2">
             <a href="/history.php" target="_blank" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
@@ -168,20 +144,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 w-8"><input type="checkbox" onclick="document.querySelectorAll('.tl-check').forEach(c=>c.checked=this.checked)"></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10">排序</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标题</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10"><?php echo __('admin_sort_order'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容摘要</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">颜色</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('timeline_color'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y" id="sortableList">
                 <?php foreach ($timelines as $item): ?>
                 <tr class="hover:bg-gray-50" data-id="<?php echo $item['id']; ?>">
-                    <td class="px-4 py-3"><input type="checkbox" class="tl-check" value="<?php echo $item['id']; ?>"></td>
                     <td class="px-4 py-3">
                         <span class="cursor-move text-gray-400 hover:text-gray-600">&#9776;</span>
                     </td>
@@ -224,18 +198,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $item['status'] ? '显示' : '隐藏'; ?>
+                            <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            编辑</button>
+                            <?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteItem(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            删除</button>
+                            <?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -246,12 +220,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endif; ?>
             </tbody>
         </table>
-    </div>
-    <div id="batchBar" class="px-4 py-3 border-t hidden">
-        <button type="button" onclick="batchDelete()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            批量删除 (<span id="batchCount">0</span>)
-        </button>
     </div>
 </div>
 
@@ -275,7 +243,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            value="<?php echo date('Y'); ?>" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">月份</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('timeline_month'); ?></label>
                     <select name="month" id="editMonth" class="w-full border rounded px-4 py-2">
                         <option value="0">不显示</option>
                         <?php for ($i = 1; $i <= 12; $i++): ?>
@@ -317,7 +285,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                         选择
                     </button>
-                    <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">媒体库</button>
+                    <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <div id="imagePreview" class="mt-2"></div>
             </div>
@@ -325,7 +293,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 样式 -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">图标</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('timeline_icon'); ?></label>
                     <select name="icon" id="editIcon" class="w-full border rounded px-4 py-2">
                         <?php foreach ($iconOptions as $key => $label): ?>
                         <option value="<?php echo $key; ?>"><?php echo $label; ?></option>
@@ -333,7 +301,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </select>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">颜色</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('timeline_color'); ?></label>
                     <select name="color" id="editColor" class="w-full border rounded px-4 py-2">
                         <?php foreach ($colorOptions as $key => $label): ?>
                         <option value="<?php echo $key; ?>"><?php echo $label; ?></option>
@@ -345,24 +313,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 排序和状态 -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">排序</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" id="editSortOrder" value="0" class="w-full border rounded px-4 py-2">
                     <p class="text-xs text-gray-400 mt-1">数字越大越靠前</p>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">状态</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                     <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
-                        <option value="1">显示</option>
-                        <option value="0">隐藏</option>
+                        <option value="1"><?php echo __('admin_show'); ?></option>
+                        <option value="0"><?php echo __('admin_hide'); ?></option>
                     </select>
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
+                    <?php echo __("btn_save"); ?>
                 </button>
             </div>
         </form>
@@ -423,7 +391,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('保存成功');
+        showMessage('<?php echo __('admin_saved'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -455,7 +423,7 @@ async function deleteItem(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -491,46 +459,15 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             uploadedImg.src = data.data.url;
             uploadedImg.className = 'h-20 rounded';
             document.getElementById('imagePreview').appendChild(uploadedImg);
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
     this.value = '';
 });
-
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('tl-check') || e.target.closest('th')) {
-        var cnt = document.querySelectorAll('.tl-check:checked').length;
-        document.getElementById('batchBar').classList.toggle('hidden', cnt === 0);
-        document.getElementById('batchCount').textContent = cnt;
-    }
-});
-
-async function batchDelete() {
-    var checked = document.querySelectorAll('.tl-check:checked');
-    if (checked.length === 0) { showMessage('请选择要删除的项', 'error'); return; }
-    if (!confirm('确定要删除选中的 ' + checked.length + ' 项吗？')) return;
-    var fd = new FormData();
-    fd.append('action', 'batch_delete');
-    checked.forEach(function(el) { fd.append('ids[]', el.value); });
-    var resp = await fetch('', { method: 'POST', body: fd });
-    var data = await safeJson(resp);
-    if (data.code === 0) { showMessage('删除成功'); setTimeout(function(){ location.reload(); }, 500); }
-    else showMessage(data.msg || '失败', 'error');
-}
-
-async function saveSortSetting(val) {
-    var fd = new FormData();
-    fd.append('action', 'save_sort_setting');
-    fd.append('timeline_sort', val);
-    var resp = await fetch('', { method: 'POST', body: fd });
-    var data = await safeJson(resp);
-    if (data.code === 0) showMessage('排序设置已保存');
-    else showMessage(data.msg || '失败', 'error');
-}
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

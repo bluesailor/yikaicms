@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 首页设置（区块拖拽排序）
+ * ikaiCMS - 首页设置（区块拖拽排序）
  *
  * PHP 8.0+
  */
@@ -14,20 +14,6 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
-
-// 多语言
-$defaultLang = config('site_lang', 'zh-CN');
-$hasMultiLang = isMultiLangEnabled('channels');
-$settingLang = get('lang', $defaultLang);
-$allLangs = availableLanguages();
-if ($hasMultiLang && !isset($allLangs[$settingLang])) $settingLang = $defaultLang;
-$langSuffix = ($hasMultiLang && $settingLang !== $defaultLang) ? '_' . $settingLang : '';
-$homeTranslatableKeys = ['home_about_content', 'home_testimonials',
-    'home_stat_1_text', 'home_stat_2_text', 'home_stat_3_text', 'home_stat_4_text',
-    'home_advantage_desc', 'home_adv_1_title', 'home_adv_1_desc', 'home_adv_2_title', 'home_adv_2_desc',
-    'home_adv_3_title', 'home_adv_3_desc', 'home_adv_4_title', 'home_adv_4_desc',
-    'home_cta_title', 'home_cta_desc', 'home_testimonials_title', 'home_testimonials_desc',
-    'home_links_title', 'home_about_tag_title', 'home_about_tag_desc'];
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -68,32 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取全部 home 组设置
 $allSettings = settingModel()->getByGroup('home');
 
-// 构建 key => row 映射，过滤掉其他语言的翻译记录
+// 构建 key => row 映射
 $settingsMap = [];
-$otherLangSuffixes = [];
-foreach ($allLangs as $lc => $ll) {
-    if ($lc !== $settingLang) $otherLangSuffixes[] = '_' . $lc;
-}
 foreach ($allSettings as $item) {
-    $skip = false;
-    foreach ($otherLangSuffixes as $suf) {
-        if (str_ends_with($item['key'], $suf)) { $skip = true; break; }
-    }
-    if (!$skip) $settingsMap[$item['key']] = $item;
-}
-// 非默认语言时，替换可翻译字段为对应语言版本
-if ($langSuffix) {
-    foreach ($homeTranslatableKeys as $tk) {
-        $langKey = $tk . $langSuffix;
-        $langVal = config($langKey, '');
-        $settingsMap[$tk] = ['key' => $langKey, 'value' => $langVal, 'type' => $settingsMap[$tk]['type'] ?? 'text'];
-    }
+    $settingsMap[$item['key']] = $item;
 }
 
-// 获取首页展示的栏目（仅默认语言，区块配置以默认语言栏目ID为基准）
+// 获取首页展示的栏目（用于动态生成区块）
 $homeChannelRows = channelModel()->query(
-    "SELECT id, name FROM " . channelModel()->tableName() . " WHERE is_home = 1 AND parent_id = 0 AND status = 1 AND lang = ? ORDER BY sort_order ASC",
-    [$defaultLang]
+    "SELECT id, name FROM " . channelModel()->tableName() . " WHERE is_home = 1 AND parent_id = 0 AND status = 1 ORDER BY sort_order ASC"
 );
 
 // 区块配置
@@ -200,24 +169,8 @@ $currentMenu = 'setting_home';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php if ($hasMultiLang && count($allLangs) > 1): ?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言版本：</span>
-    <?php foreach ($allLangs as $lc => $ll): ?>
-    <a href="?lang=<?php echo e($lc); ?>"
-       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $settingLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
-        <?php echo e($ll); ?>
-        <?php echo $lc === $defaultLang ? '<span class="ml-1 opacity-70">(默认)</span>' : ''; ?>
-    </a>
-    <?php endforeach; ?>
-    <?php if ($settingLang !== $defaultLang): ?>
-    <span class="text-xs text-amber-500 ml-2">编辑 <?php echo e($allLangs[$settingLang]); ?> 版本的文案，留空则使用默认语言</span>
-    <?php endif; ?>
-</div>
-<?php endif; ?>
-
 <div class="mb-6">
-    <p class="text-gray-500">拖拽调整版块顺序，开关控制显示/隐藏，展开编辑版块内容。</p>
+    <p class="text-gray-500"><?php echo __('home_editor_hint'); ?></p>
 </div>
 
 <form id="settingForm">
@@ -327,7 +280,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">版块样式</h4>
                         <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">背景图片</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo __('home_bg_image'); ?></label>
                                 <div class="flex gap-1">
                                     <input type="text" class="block-bg-image flex-1 border rounded px-2 py-1.5 text-xs"
                                            value="<?php echo e($block['bg_image'] ?? ''); ?>" placeholder="图片URL">
@@ -405,7 +358,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     ?>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                         <label class="text-gray-700 text-sm pt-2">
-                            <?php echo e($item['name']); ?>
+                            <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
                             <?php if ($item['tip']): ?>
                             <span class="text-gray-400 text-xs block"><?php echo e($item['tip']); ?></span>
                             <?php endif; ?>
@@ -453,7 +406,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                         class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    媒体库
+                                    <?php echo __("admin_media_library"); ?>
                                 </button>
                             </div>
                             <?php if ($item['value']): ?>
@@ -493,18 +446,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         </div>
                                     </div>
                                     <div class="w-24 flex-shrink-0">
-                                        <label class="text-xs text-gray-400 block mb-1">姓名</label>
+                                        <label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_name'); ?></label>
                                         <input type="text" class="tm-name w-full border rounded px-2 py-1.5 text-sm" value="<?php echo e($tm['name'] ?? ''); ?>">
                                     </div>
                                     <div class="w-32 flex-shrink-0">
-                                        <label class="text-xs text-gray-400 block mb-1">公司</label>
+                                        <label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_company'); ?></label>
                                         <input type="text" class="tm-company w-full border rounded px-2 py-1.5 text-sm" value="<?php echo e($tm['company'] ?? ''); ?>">
                                     </div>
                                     <div class="flex-1">
-                                        <label class="text-xs text-gray-400 block mb-1">评价内容</label>
+                                        <label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_content'); ?></label>
                                         <input type="text" class="tm-content w-full border rounded px-2 py-1.5 text-sm" value="<?php echo e($tm['content'] ?? ''); ?>">
                                     </div>
-                                    <button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="删除">
+                                    <button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('admin_delete'); ?>">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                     </button>
                                 </div>
@@ -538,7 +491,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 ?>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                     <label class="text-gray-700 text-sm pt-2">
-                        <?php echo e($item['name']); ?>
+                        <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
                         <?php if ($item['tip']): ?>
                         <span class="text-gray-400 text-xs block"><?php echo e($item['tip']); ?></span>
                         <?php endif; ?>
@@ -569,7 +522,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="max-w-6xl mt-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            保存设置
+            <?php echo __('btn_save_settings'); ?>
         </button>
     </div>
 </form>
@@ -655,13 +608,13 @@ function addTestimonial() {
         '<button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="上传头像">' +
         '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>' +
         '</button></div></div>' +
-        '<div class="w-24 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">姓名</label>' +
+        '<div class="w-24 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_name'); ?></label>' +
         '<input type="text" class="tm-name w-full border rounded px-2 py-1.5 text-sm"></div>' +
-        '<div class="w-32 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">公司</label>' +
+        '<div class="w-32 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_company'); ?></label>' +
         '<input type="text" class="tm-company w-full border rounded px-2 py-1.5 text-sm"></div>' +
-        '<div class="flex-1"><label class="text-xs text-gray-400 block mb-1">评价内容</label>' +
+        '<div class="flex-1"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_content'); ?></label>' +
         '<input type="text" class="tm-content w-full border rounded px-2 py-1.5 text-sm"></div>' +
-        '<button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="删除">' +
+        '<button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('admin_delete'); ?>">' +
         '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
         '</button></div>';
     editor.appendChild(div);
@@ -774,12 +727,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 }
                 preview.src = data.data.url;
             }
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -813,7 +766,7 @@ document.getElementById('settingForm').addEventListener('submit', async function
         var data = await safeJson(response);
 
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }

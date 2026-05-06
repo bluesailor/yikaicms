@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 文章编辑
+ * ikaiCMS - 文章编辑
  *
  * PHP 8.0+
  */
@@ -24,47 +24,6 @@ if ($id > 0) {
         header('Location: /admin/article.php');
         exit;
     }
-}
-
-// 处理翻译创建
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
-    $srcId = postInt('src_id');
-    $toLang = post('to_lang');
-    $src = contentModel()->find($srcId);
-    if (!$src) error('源内容不存在');
-
-    $groupId = (int)($src['translation_group_id'] ?: $srcId);
-    if (!$src['translation_group_id']) {
-        contentModel()->updateById($srcId, ['translation_group_id' => $srcId]);
-    }
-    $existing = contentModel()->queryOne("SELECT id FROM " . contentModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
-    if ($existing) success(['id' => (int)$existing['id']], '翻译已存在');
-
-    $translated = aiTranslateFields($src['title'], $src['summary'] ?? '', $toLang);
-    $newId = contentModel()->create([
-        'channel_id' => findTranslatedChannelId((int)$src['channel_id'], $toLang),
-        'type' => $src['type'],
-        'title' => $translated['title'],
-        'summary' => $translated['summary'],
-        'content' => $src['content'],
-        'cover' => $src['cover'] ?? '',
-        'author' => $src['author'] ?? '',
-        'source' => $src['source'] ?? '',
-        'tags' => $src['tags'] ?? '',
-        'is_top' => 0,
-        'is_recommend' => (int)($src['is_recommend'] ?? 0),
-        'is_hot' => (int)($src['is_hot'] ?? 0),
-        'sort_order' => (int)($src['sort_order'] ?? 0),
-        'status' => 0,
-        'lang' => $toLang,
-        'translation_group_id' => $groupId,
-        'publish_time' => time(),
-        'created_at' => time(),
-        'updated_at' => time(),
-        'admin_id' => $_SESSION['admin_id'] ?? 0,
-    ]);
-    adminLog('article', 'translate', "翻译文章 #{$srcId} → {$toLang} #{$newId}");
-    success(['id' => $newId], '翻译完成');
 }
 
 // 处理保存
@@ -123,47 +82,42 @@ $newsChannel = getChannelBySlug('news');
 $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
 $categories = $newsChannelId > 0 ? channelModel()->getFlatList($newsChannelId) : [];
 
-$pageTitle = $article ? '编辑文章' : '添加文章';
+$pageTitle = $article ? __('admin_edit') : __('admin_add');
 $currentMenu = 'article';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php
-$langSwitcher = ['table' => 'contents', 'model' => contentModel(), 'item' => $article, 'edit_url' => '/admin/article_edit.php', 'type' => 'article'];
-include __DIR__ . '/includes/lang_switcher_edit.php';
-?>
-
 <form id="editForm" class="space-y-6">
-    <div class="flex flex-col lg:flex-row gap-6">
+    <div class="flex gap-6">
         <!-- 主内容区 -->
-        <div class="flex-1 min-w-0 space-y-6">
+        <div class="flex-1 space-y-6">
             <?php include __DIR__ . '/includes/ai_panel.php'; ?>
 
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">文章标题 <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_article_title'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($article['title'] ?? ''); ?>" required
-                               class="w-full border rounded px-4 py-2 text-lg" placeholder="请输入文章标题">
+                               class="w-full border rounded px-4 py-2 text-lg" placeholder="<?php echo __('label_article_title'); ?>">
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">URL别名 (Slug)</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                         <input type="text" name="slug" value="<?php echo e($article['slug'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2 text-sm text-gray-500" placeholder="如：company-news，留空自动生成">
+                               class="w-full border rounded px-4 py-2 text-sm text-gray-500" placeholder="<?php echo __('label_slug_hint'); ?>">
                     </div>
 
                     <input type="hidden" name="subtitle" value="<?php echo e($article['subtitle'] ?? ''); ?>">
 
                     <div>
-                        <label class="block text-gray-700 mb-1">文章摘要</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_article_summary'); ?></label>
                         <textarea name="summary" rows="3" class="w-full border rounded px-4 py-2"
-                                  placeholder="文章摘要，用于列表展示"><?php echo e($article['summary'] ?? ''); ?></textarea>
+                                  placeholder="<?php echo __('label_article_summary'); ?>"><?php echo e($article['summary'] ?? ''); ?></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">文章内容</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_article_content'); ?></label>
                         <textarea name="content" id="contentEditor" class="tinymce-editor"><?php echo e($article['content'] ?? ''); ?></textarea>
                     </div>
 
@@ -174,12 +128,12 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
         </div>
 
         <!-- 侧边栏 -->
-        <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
+        <div class="w-80 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">发布设置</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-2">所属分类</label>
+                        <label class="block text-gray-700 mb-2"><?php echo __('label_category'); ?></label>
                         <input type="hidden" name="channel_id" id="categoryIdInput" value="<?php echo (int)($article['channel_id'] ?? 0); ?>">
                         <div class="border rounded p-3 max-h-60 overflow-y-auto space-y-1" id="categoryTree">
                             <?php
@@ -211,22 +165,22 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                             </label>
                             <?php endforeach; ?>
                             <?php if (empty($categories)): ?>
-                            <div class="text-sm text-gray-400 text-center py-2">暂无分类，请先在分类管理中创建</div>
+                            <div class="text-sm text-gray-400 text-center py-2"><?php echo __('empty_no_category'); ?></div>
                             <?php endif; ?>
                         </div>
                     </div>
 
 
                     <div>
-                        <label class="block text-gray-700 mb-1">发布状态</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_publish_status'); ?></label>
                         <select name="status" class="w-full border rounded px-4 py-2">
-                            <option value="1" <?php echo ($article['status'] ?? 1) == 1 ? 'selected' : ''; ?>>发布</option>
-                            <option value="0" <?php echo ($article['status'] ?? 1) == 0 ? 'selected' : ''; ?>>草稿</option>
+                            <option value="1" <?php echo ($article['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
+                            <option value="0" <?php echo ($article['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">发布时间</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_publish_time'); ?></label>
                         <input type="datetime-local" name="publish_time"
                                value="<?php echo $article['publish_time'] ? date('Y-m-d\TH:i', (int)$article['publish_time']) : ''; ?>"
                                class="w-full border rounded px-4 py-2">
@@ -236,37 +190,37 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_top" value="1"
                                    <?php echo ($article['is_top'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>置顶</span>
+                            <span><?php echo __('admin_top'); ?></span>
                         </label>
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_recommend" value="1"
                                    <?php echo ($article['is_recommend'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>推荐</span>
+                            <span><?php echo __('admin_recommend'); ?></span>
                         </label>
                         <label class="flex items-center gap-2">
                             <input type="checkbox" name="is_hot" value="1"
                                    <?php echo ($article['is_hot'] ?? 0) ? 'checked' : ''; ?>>
-                            <span>热门</span>
+                            <span><?php echo __('admin_hot'); ?></span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">封面图片</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_cover_image'); ?></h3>
                 <div class="space-y-2">
                     <input type="text" name="cover" id="coverInput"
                            value="<?php echo e($article['cover'] ?? ''); ?>"
-                           class="w-full border rounded px-3 py-2 text-sm" placeholder="图片地址">
+                           class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo __('label_image_url'); ?>">
                     <div class="flex gap-2">
                         <button type="button" onclick="uploadCover()"
                                 class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                            上传图片</button>
+                            <?php echo __('admin_upload_image'); ?></button>
                         <button type="button" onclick="pickCoverFromMedia()"
                                 class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            媒体库</button>
+                            <?php echo __('admin_media_library'); ?></button>
                     </div>
                     <div id="coverPreview">
                         <?php if (!empty($article['cover'])): ?>
@@ -277,41 +231,36 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">其他信息</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_other_info'); ?></h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">作者</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_author'); ?></label>
                         <input type="text" name="author" value="<?php echo e($article['author'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2">
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">来源</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_source'); ?></label>
                         <input type="text" name="source" value="<?php echo e($article['source'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2">
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">标签</label>
+                        <label class="block text-gray-700 mb-1"><?php echo __('label_tags'); ?></label>
                         <input type="text" name="tags" value="<?php echo e($article['tags'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="多个标签用逗号分隔">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo __('label_tags_hint'); ?>">
                     </div>
                 </div>
             </div>
 
-        </div>
-    </div>
-
-    <!-- 底部 sticky 操作栏 -->
-    <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
-        <div class="flex gap-3 justify-end items-center">
-            <span class="text-xs text-gray-400 mr-auto hidden sm:inline">请确认后保存</span>
-            <a href="/admin/article.php" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                返回
-            </a>
-            <button type="submit" class="px-8 py-2 bg-primary hover:bg-secondary text-white rounded transition inline-flex items-center gap-1 text-sm font-medium">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                保存
-            </button>
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <?php echo __('btn_save'); ?>
+                </button>
+                <a href="/admin/article.php" class="flex-1 text-center border py-2 rounded hover:bg-gray-100 transition inline-flex items-center justify-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    <?php echo __('admin_back'); ?>
+                </a>
+            </div>
         </div>
     </div>
 </form>
@@ -419,12 +368,12 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             coverImg.src = data.data.url;
             coverImg.className = 'w-full rounded';
             document.getElementById('coverPreview').appendChild(coverImg);
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -456,7 +405,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage("保存成功");
+        showMessage("<?php echo __('msg_save_success'); ?>");
         setTimeout(function() { location.href = "/admin/article.php"; }, 1000);
     } else {
         showMessage(data.msg, "error");

@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 退出登录
+ * ikaiCMS - 退出登录
  */
 
 declare(strict_types=1);

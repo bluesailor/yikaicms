@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 表单管理
+ * ikaiCMS - 表单管理
  *
  * PHP 8.0+
  */
@@ -16,11 +16,11 @@ checkLogin();
 requirePermission('form');
 
 $statusLabels = [
-    0 => '新询盘',
-    1 => '已联系',
-    2 => '跟进中',
-    3 => '成交',
-    4 => '失败',
+    0 => __('inq_status_new'),
+    1 => __('inq_status_contacted'),
+    2 => __('inq_status_following'),
+    3 => __('inq_status_won'),
+    4 => __('inq_status_lost'),
 ];
 
 $statusColors = [
@@ -94,7 +94,7 @@ $result = formModel()->getList($filters, $perPage, $offset);
 $total = $result['total'];
 $forms = $result['items'];
 
-$pageTitle = '询盘管理';
+$pageTitle = __('admin_form');
 $currentMenu = 'form';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -103,8 +103,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">询盘管理</a>
-        <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">表单设计</a>
+        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('inq_tab_data'); ?></a>
+        <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('inq_tab_design'); ?></a>
     </div>
 </div>
 
@@ -112,7 +112,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="flex gap-2 mb-4 flex-wrap">
     <a href="?<?php echo $source ? 'source=' . e($source) . '&' : ''; ?>"
        class="px-3 py-1.5 text-sm rounded-lg <?php echo $status === '' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'; ?>">
-        全部 <span class="text-xs opacity-70">(<?php echo $totalAll; ?>)</span>
+        <?php echo __('all'); ?> <span class="text-xs opacity-70">(<?php echo $totalAll; ?>)</span>
     </a>
     <?php foreach ($statusLabels as $k => $v): ?>
     <a href="?status=<?php echo $k; ?><?php echo $source ? '&source=' . e($source) : ''; ?>"
@@ -127,9 +127,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-4 flex flex-wrap gap-4 items-center">
         <form class="flex flex-wrap gap-3 items-center">
             <select name="source" class="border rounded px-3 py-2">
-                <option value="">全部来源</option>
-                <option value="product" <?php echo $source === 'product' ? 'selected' : ''; ?>>产品询盘</option>
-                <option value="contact" <?php echo $source === 'contact' ? 'selected' : ''; ?>>联系留言</option>
+                <option value=""><?php echo __('inq_filter_all_src'); ?></option>
+                <option value="product" <?php echo $source === 'product' ? 'selected' : ''; ?>><?php echo __('inq_source_product'); ?></option>
+                <option value="contact" <?php echo $source === 'contact' ? 'selected' : ''; ?>><?php echo __('inq_source_contact'); ?></option>
             </select>
 
             <?php if ($status !== ''): ?>
@@ -137,11 +137,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                   class="border rounded px-3 py-2" placeholder="搜索...">
+                   class="border rounded px-3 py-2" placeholder="<?php echo __('admin_search'); ?>...">
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                筛选
+                <?php echo __('admin_filter'); ?>
             </button>
         </form>
     </div>
@@ -157,14 +157,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left">
                             <input type="checkbox" id="checkAll">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">来源</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">产品</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">电话</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">时间</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('label_source'); ?></th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_product'); ?></th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('inq_th_name'); ?></th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('inq_th_phone'); ?></th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('inq_th_content'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -176,7 +176,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-3">
                             <?php $itemSource = $item['source'] ?? 'contact'; ?>
                             <span class="text-xs px-2 py-1 rounded <?php echo $itemSource === 'product' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'; ?>">
-                                <?php echo $itemSource === 'product' ? '产品询盘' : '联系留言'; ?>
+                                <?php echo $itemSource === 'product' ? __('inq_source_product') : __('inq_source_contact'); ?>
                             </span>
                         </td>
                         <td class="px-4 py-3 text-sm max-w-[150px] truncate">
@@ -205,17 +205,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <button type="button" onclick="showDetail(<?php echo htmlspecialchars(json_encode($item, JSON_HEX_TAG | JSON_HEX_AMP), ENT_QUOTES); ?>)"
                                     class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                查看</button>
+                                <?php echo __('inq_btn_view'); ?></button>
                             <button type="button" onclick="deleteForm(<?php echo $item['id']; ?>)"
                                     class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                删除</button>
+                                <?php echo __('admin_delete'); ?></button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($forms)): ?>
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无数据</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                     </tr>
                     <?php endif; ?>
                 </tbody>
@@ -226,13 +226,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex gap-2">
                 <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100 inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    批量删除
+                    <?php echo __('admin_batch_delete'); ?>
                 </button>
             </div>
 
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
+                <span class="text-sm text-gray-500"><?php echo sprintf(__('list_total'), $total); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
                 $queryString = http_build_query(array_filter(['type' => $type, 'status' => $status, 'source' => $source, 'keyword' => $keyword]));
@@ -241,12 +241,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if ($page > 1): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    上一页</a>
+                    <?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
-                <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+                <span class="text-sm"><?php echo sprintf(__('inq_page_x_of_y'), $page, $totalPages); ?></span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                    下一页
+                    <?php echo __('list_next_page'); ?>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </a>
                 <?php endif; ?>
@@ -261,7 +261,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800">表单详情</h3>
+            <h3 class="font-bold text-gray-800"><?php echo __('inq_detail_title'); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div class="p-6" id="detailContent"></div>
@@ -274,10 +274,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <option value="<?php echo $k; ?>"><?php echo $v; ?></option>
                     <?php endforeach; ?>
                 </select>
-                <input type="text" name="note" placeholder="备注" class="flex-1 border rounded px-3 py-2">
+                <input type="text" name="note" placeholder="<?php echo __('inq_note_placeholder'); ?>" class="flex-1 border rounded px-3 py-2">
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    更新</button>
+                    <?php echo __('inq_btn_update'); ?></button>
             </form>
         </div>
     </div>
@@ -299,18 +299,18 @@ function showDetail(item) {
     document.getElementById('detailId').value = item.id;
     let productLine = '';
     if (item.product_id && parseInt(item.product_id) > 0) {
-        productLine = `<p><span class="text-gray-500">关联产品：</span><a href="/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
+        productLine = `<p><span class="text-gray-500"><?php echo __('inq_field_product'); ?>：</span><a href="/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
     }
     document.getElementById('detailContent').innerHTML = `
         <div class="space-y-3">
             ${productLine}
-            <p><span class="text-gray-500">姓名：</span>${escapeHtml(item.name)}</p>
-            <p><span class="text-gray-500">电话：</span>${escapeHtml(item.phone)}</p>
-            <p><span class="text-gray-500">邮箱：</span>${escapeHtml(item.email)}</p>
-            <p><span class="text-gray-500">公司：</span>${escapeHtml(item.company)}</p>
-            <p><span class="text-gray-500">内容：</span>${escapeHtml(item.content)}</p>
-            <p><span class="text-gray-500">IP：</span>${escapeHtml(item.ip)}</p>
-            <p><span class="text-gray-500">备注：</span>${escapeHtml(item.follow_note)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_th_name'); ?>：</span>${escapeHtml(item.name)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_th_phone'); ?>：</span>${escapeHtml(item.phone)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_th_email'); ?>：</span>${escapeHtml(item.email)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_th_company'); ?>：</span>${escapeHtml(item.company)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_th_content'); ?>：</span>${escapeHtml(item.content)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_field_ip'); ?>：</span>${escapeHtml(item.ip)}</p>
+            <p><span class="text-gray-500"><?php echo __('inq_field_note'); ?>：</span>${escapeHtml(item.follow_note)}</p>
         </div>
     `;
     document.querySelector('#statusForm select').value = item.status;
@@ -327,7 +327,7 @@ document.getElementById('statusForm').addEventListener('submit', async function(
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('更新成功');
+        showMessage('<?php echo __('inq_update_success'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -335,14 +335,14 @@ document.getElementById('statusForm').addEventListener('submit', async function(
 });
 
 async function deleteForm(id) {
-    if (!confirm('确定要删除吗？')) return;
+    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -352,17 +352,17 @@ async function deleteForm(id) {
 async function batchDelete() {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) {
-        showMessage('请选择要删除的项', 'error');
+        showMessage('<?php echo __('admin_please_select'); ?>', 'error');
         return;
     }
-    if (!confirm(`确定要删除选中的 ${checked.length} 项吗？`)) return;
+    if (!confirm(`<?php echo sprintf(__('inq_confirm_batch_del'), 0); ?>`.replace('0', checked.length))) return;
     const formData = new FormData();
     formData.append('action', 'batch_delete');
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

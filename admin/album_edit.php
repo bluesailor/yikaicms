@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 相册编辑（简化版）
+ * ikaiCMS - 相册编辑（简化版）
  *
  * PHP 8.0+
  */
@@ -84,7 +84,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- URL别名 -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">URL别名</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('admin_slug'); ?></label>
                 <input type="text" name="slug" value="<?php echo e($album['slug'] ?? ''); ?>"
                        class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                        placeholder="留空自动生成，如：honor">
@@ -93,7 +93,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 封面图 -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">封面图片</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_cover_image'); ?></label>
                 <div class="flex items-start gap-4">
                     <div id="coverPreview" class="w-40 h-30 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300">
                         <?php if (!empty($album['cover'])): ?>
@@ -142,16 +142,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 排序和状态 -->
             <div class="grid grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">排序</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" value="<?php echo $album['sort_order'] ?? 0; ?>"
                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <p class="text-xs text-gray-400 mt-1">数字越大越靠前</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">状态</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_status'); ?></label>
                     <select name="status" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        <option value="1" <?php echo ($album['status'] ?? 1) == 1 ? 'selected' : ''; ?>>显示</option>
-                        <option value="0" <?php echo ($album['status'] ?? 1) == 0 ? 'selected' : ''; ?>>隐藏</option>
+                        <option value="1" <?php echo ($album['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_show'); ?></option>
+                        <option value="0" <?php echo ($album['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_hide'); ?></option>
                     </select>
                 </div>
             </div>
@@ -159,21 +159,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <!-- 操作按钮 -->
         <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between rounded-b-lg">
-            <a href="/admin/album.php" class="text-gray-500 hover:text-gray-700">返回列表</a>
+            <a href="/admin/album.php" class="text-gray-500 hover:text-gray-700"><?php echo __('btn_back_list'); ?></a>
             <div class="flex gap-3">
                 <?php if ($album): ?>
                 <a href="/admin/album_photos.php?id=<?php echo $id; ?>" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    管理图片
+                    <?php echo __('admin_manage'); ?>
                 </a>
                 <?php endif; ?>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    保存
+                    <?php echo __("btn_save"); ?>
                 </button>
             </div>
         </div>
@@ -200,7 +200,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
             </div>
             <?php if (empty($photos)): ?>
-            <div class="text-center py-8 text-gray-500">暂无图片</div>
+            <div class="text-center py-8 text-gray-500"><?php echo __('empty_no_image'); ?></div>
             <?php endif; ?>
         </div>
         <div class="px-6 py-4 border-t bg-gray-50 flex justify-end rounded-b-lg flex-shrink-0">
@@ -236,7 +236,7 @@ document.getElementById('coverFile').addEventListener('change', async function()
             showMessage(result.msg || '上传失败', 'error');
         }
     } catch (e) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -294,7 +294,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const result = await safeJson(response);
 
         if (result.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(() => {
                 <?php if ($album): ?>
                 location.reload();

@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 角色管理
+ * ikaiCMS - 角色管理
  *
  * PHP 8.0+
  */
@@ -132,7 +132,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">权限</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">管理员数</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -164,10 +164,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
-                                class="text-primary hover:underline text-sm mr-2">编辑</button>
+                                class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
                         <?php if (!$isSuperRole): ?>
                         <button onclick="deleteRole(<?php echo $item['id']; ?>)"
-                                class="text-red-600 hover:underline text-sm">删除</button>
+                                class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -201,7 +201,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div>
                 <label class="block text-gray-700 mb-1">描述</label>
-                <input type="text" name="description" id="editDescription" class="w-full border rounded px-4 py-2" placeholder="可选">
+                <input type="text" name="description" id="editDescription" class="w-full border rounded px-4 py-2" placeholder="<?php echo __('optional'); ?>">
             </div>
 
             <div>
@@ -220,10 +220,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
+                    <?php echo __('admin_save'); ?>
                 </button>
             </div>
         </form>
@@ -284,7 +284,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg, 'error');
@@ -303,7 +303,7 @@ async function deleteRole(id) {
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('删除成功');
+            showMessage('<?php echo __('admin_deleted'); ?>');
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg, 'error');

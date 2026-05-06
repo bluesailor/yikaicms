@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 单页排版编辑器（高级模式）
+ * ikaiCMS - 单页排版编辑器（高级模式）
  *
  * PHP 8.0+
  */
@@ -71,54 +71,6 @@ if ($contentType === 'html' && $htmlContent && !$blocksData) {
     $autoConvert = true;
 }
 
-// 翻译创建
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
-    $srcId = postInt('src_id');
-    $toLang = post('to_lang');
-    $src = channelModel()->find($srcId);
-    if (!$src || $src['type'] !== 'page') error('源页面不存在');
-
-    $groupId = (int)($src['translation_group_id'] ?: $srcId);
-    if (!$src['translation_group_id']) {
-        channelModel()->updateById($srcId, ['translation_group_id' => $srcId]);
-    }
-    $existing = channelModel()->queryOne("SELECT id FROM " . channelModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
-    if ($existing) success(['id' => (int)$existing['id']], '翻译已存在');
-
-    $translated = aiTranslateFields($src['name'], $src['description'] ?? '', $toLang);
-    $slug = $src['slug'] ? $toLang . '-' . $src['slug'] : '';
-    if ($slug) {
-        $slugExists = channelModel()->queryOne("SELECT id FROM " . channelModel()->tableName() . " WHERE slug = ?", [$slug]);
-        if ($slugExists) {
-            channelModel()->updateById((int)$slugExists['id'], ['name' => $translated['title'], 'lang' => $toLang, 'translation_group_id' => $groupId, 'updated_at' => time()]);
-            success(['id' => (int)$slugExists['id']], '翻译已更新');
-        }
-    }
-    $newId = channelModel()->create([
-        'parent_id' => findTranslatedChannelId((int)$src['parent_id'], $toLang) ?: (int)$src['parent_id'],
-        'name' => $translated['title'],
-        'slug' => $slug,
-        'type' => 'page',
-        'lang' => $toLang,
-        'translation_group_id' => $groupId,
-        'description' => $translated['summary'],
-        'content' => $src['content'],
-        'image' => $src['image'] ?? '',
-        'icon' => $src['icon'] ?? '',
-        'seo_title' => '',
-        'seo_keywords' => '',
-        'seo_description' => '',
-        'is_nav' => (int)($src['is_nav'] ?? 1),
-        'is_home' => (int)($src['is_home'] ?? 0),
-        'status' => (int)($src['status'] ?? 1),
-        'sort_order' => (int)($src['sort_order'] ?? 0),
-        'created_at' => time(),
-        'updated_at' => time(),
-    ]);
-    adminLog('page', 'translate', "翻译单页 #{$srcId} → {$toLang} #{$newId}");
-    success(['id' => $newId], '翻译完成');
-}
-
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = resolveSlug(post('slug'), post('name'), 'channels', $id);
@@ -170,57 +122,52 @@ $currentMenu = 'page';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php
-$langSwitcher = ['table' => 'channels', 'model' => channelModel(), 'item' => $page, 'edit_url' => '/admin/page_edit_advance.php'];
-include __DIR__ . '/includes/lang_switcher_edit.php';
-?>
-
 <div class="mb-6 flex items-center justify-between">
     <a href="/admin/page.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        返回单页列表
+        <?php echo __('page_back_to_list'); ?>
     </a>
-    <a href="/admin/page_edit.php?id=<?php echo $id; ?>&amp;mode=simple" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+    <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-        切换到富文本编辑器
+        <?php echo __('page_switch_simple'); ?>
     </a>
 </div>
 
 <form id="editForm" class="space-y-6" x-data="pageBuilder()" x-init="init()">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">基本信息</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('admin_basic_info'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">页面名称 <span class="text-red-500">*</span></label>
+                    <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_name'); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="name" value="<?php echo e($page['name']); ?>" required
                            class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">URL别名 (Slug)</label>
+                    <label class="block text-sm text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                     <input type="text" name="slug" value="<?php echo e($page['slug']); ?>"
                            class="w-full border rounded px-4 py-2" placeholder="如：about-us，留空自动生成">
                 </div>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">页面描述</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_page_desc'); ?></label>
                 <textarea name="description" rows="2" class="w-full border rounded px-4 py-2"><?php echo e($page['description']); ?></textarea>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">封面图片</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_cover_image'); ?></label>
                 <input type="text" name="image" id="imageInput" value="<?php echo e($page['image']); ?>"
                        class="w-full border rounded px-3 py-2 text-sm mb-2">
                 <div class="flex gap-2">
                     <button type="button" onclick="uploadImage()"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        上传图片</button>
+                        <?php echo __('admin_upload_image'); ?></button>
                     <button type="button" onclick="pickImageFromMedia()"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        媒体库</button>
+                        <?php echo __("admin_media_library"); ?></button>
                 </div>
                 <?php if ($page['image']): ?>
                 <img src="<?php echo e($page['image']); ?>" id="imagePreview" class="h-24 mt-2 rounded">
@@ -232,7 +179,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
     <!-- 排版编辑器 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800">排版内容</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('label_layout_content'); ?></h2>
             <span class="text-xs text-gray-400">拖拽区块排序 / 每个区块可设置列数、背景、间距</span>
         </div>
         <div class="p-6">
@@ -273,7 +220,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 </button>
                                 <button type="button" @click="removeSection(si)"
-                                        class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="删除">
+                                        class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo __('admin_delete'); ?>">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 </button>
                             </div>
@@ -301,7 +248,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                                     </button>
                                                     <button type="button" @click="removeElement(si,ci,ei)"
-                                                            class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="删除">
+                                                            class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo __('admin_delete'); ?>">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                                     </button>
                                                 </div>
@@ -572,21 +519,21 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">SEO设置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('admin_seo_settings'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div>
-                <label class="block text-sm text-gray-700 mb-1">SEO标题</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('admin_seo_title'); ?></label>
                 <input type="text" name="seo_title" value="<?php echo e($page['seo_title']); ?>"
-                       class="w-full border rounded px-4 py-2" placeholder="留空使用页面名称">
+                       class="w-full border rounded px-4 py-2" placeholder="<?php echo __('pe_seo_title_ph'); ?>">
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">SEO关键词</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('admin_seo_keywords'); ?></label>
                 <input type="text" name="seo_keywords" value="<?php echo e($page['seo_keywords']); ?>"
-                       class="w-full border rounded px-4 py-2" placeholder="多个关键词用逗号分隔">
+                       class="w-full border rounded px-4 py-2" placeholder="<?php echo __('pe_seo_keywords_ph'); ?>">
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">SEO描述</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('admin_seo_description'); ?></label>
                 <textarea name="seo_description" rows="2" class="w-full border rounded px-4 py-2"><?php echo e($page['seo_description']); ?></textarea>
             </div>
         </div>
@@ -595,7 +542,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
     <div class="bg-white rounded-lg shadow p-6 flex items-center gap-4">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            保存
+            <?php echo __("btn_save"); ?>
         </button>
         <span id="saveMsg" class="text-sm hidden"></span>
     </div>
@@ -709,7 +656,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                 <div class="flex gap-2">
                     <input type="text" id="settingBgImage" placeholder="图片URL" class="flex-1 border rounded px-3 py-2 text-sm">
                     <button type="button" onclick="uploadSectionBgImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="上传本地图片">上传</button>
-                    <button type="button" onclick="pickSectionBgImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="从媒体库选择">媒体库</button>
+                    <button type="button" onclick="pickSectionBgImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="从媒体库选择"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <input type="file" id="sectionBgFileInput" class="hidden" accept="image/*">
             </div>
@@ -732,7 +679,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
             <div id="modal-editor" class="border rounded-b-lg" style="min-height: 300px;"></div>
         </div>
         <div class="px-6 py-3 border-t flex justify-end gap-2 shrink-0">
-            <button type="button" onclick="closeTextEditor()" class="px-4 py-2 border rounded hover:bg-gray-100 text-sm cursor-pointer">取消</button>
+            <button type="button" onclick="closeTextEditor()" class="px-4 py-2 border rounded hover:bg-gray-100 text-sm cursor-pointer"><?php echo __('admin_cancel'); ?></button>
             <button type="button" onclick="saveTextEditor()" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm cursor-pointer">确定</button>
         </div>
     </div>
@@ -764,9 +711,9 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('imageInput').parentNode.parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else { showMessage(data.msg, 'error'); }
-    } catch (err) { showMessage('上传失败', 'error'); }
+    } catch (err) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
     this.value = '';
 });
 function pickImageFromMedia() {
@@ -805,9 +752,9 @@ document.getElementById('sectionBgFileInput').addEventListener('change', async f
         var data = await safeJson(resp);
         if (data.code === 0) {
             document.getElementById('settingBgImage').value = data.data.url;
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else { showMessage(data.msg || '上传失败', 'error'); }
-    } catch (e) { showMessage('上传失败', 'error'); }
+    } catch (e) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
     this.value = '';
 });
 function setSectionCols(n) {
