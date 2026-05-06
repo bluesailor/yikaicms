@@ -18,7 +18,7 @@ if ($fid > 0) {
     $file = downloadModel()->find($fid);
     if (!$file || empty($file['file_url']) || (int)$file['status'] !== 1) {
         header('HTTP/1.1 404 Not Found');
-        exit('文件不存在');
+        exit(__('error_file_not_found'));
     }
 
     // 检查单条下载的登录限制
@@ -49,4 +49,4 @@ if ($id > 0) {
 }
 
 header('HTTP/1.1 404 Not Found');
-exit('文件不存在');
+exit(__('error_file_not_found'));

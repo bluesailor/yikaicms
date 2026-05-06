@@ -22,8 +22,10 @@ $stats = [
     'media' => mediaModel()->count(),
 ];
 
-// 最新内容
-$latestContents = contentModel()->where([], 'id DESC', 10);
+// 最新内容（关联栏目类型）
+$latestContents = contentModel()->query(
+    'SELECT c.*, ch.type AS channel_type FROM ' . contentModel()->tableName() . ' c LEFT JOIN ' . channelModel()->tableName() . ' ch ON c.channel_id = ch.id ORDER BY c.id DESC LIMIT 10'
+);
 
 // 最新表单
 $latestForms = formModel()->where([], 'id DESC', 10);
@@ -33,6 +35,46 @@ $currentMenu = 'dashboard';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<!-- 快捷入口 -->
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+    <a href="/admin/setting.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <span class="text-sm text-gray-600 font-medium">基本设置</span>
+    </a>
+    <a href="/admin/setting_home.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        </div>
+        <span class="text-sm text-gray-600 font-medium">首页设置</span>
+    </a>
+    <a href="/admin/setting_contact.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 bg-cyan-50 rounded-lg flex items-center justify-center group-hover:bg-cyan-100 transition">
+            <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        </div>
+        <span class="text-sm text-gray-600 font-medium">联系设置</span>
+    </a>
+    <a href="/admin/theme.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center group-hover:bg-purple-100 transition">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+        </div>
+        <span class="text-sm text-gray-600 font-medium">模板选择</span>
+    </a>
+    <a href="/admin/banner.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center group-hover:bg-amber-100 transition">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <span class="text-sm text-gray-600 font-medium">轮播图</span>
+    </a>
+    <a href="/admin/channel.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center group-hover:bg-rose-100 transition">
+            <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        </div>
+        <span class="text-sm text-gray-600 font-medium">栏目管理</span>
+    </a>
+</div>
 
 <!-- 统计卡片 -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -112,7 +154,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded mr-2">
                             <?php echo e($item['type']); ?>
                         </span>
-                        <a href="/admin/content_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-700 hover:text-primary truncate max-w-xs">
+                        <?php
+                        $editUrl = ($item['channel_type'] ?? '') === 'page'
+                            ? '/admin/page_edit_advance.php?id=' . $item['channel_id']
+                            : '/admin/article_edit.php?id=' . $item['id'];
+                        ?>
+                        <a href="<?php echo $editUrl; ?>" class="text-gray-700 hover:text-primary truncate max-w-xs">
                             <?php echo e($item['title']); ?>
                         </a>
                     </div>

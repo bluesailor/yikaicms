@@ -25,6 +25,29 @@ if ($isEdit && !$job) {
     exit;
 }
 
+// 翻译创建
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
+    $srcId = postInt('src_id');
+    $toLang = post('to_lang');
+    $src = jobModel()->find($srcId);
+    if (!$src) error('源内容不存在');
+
+    $translated = aiTranslateFields($src['title'], $src['summary'] ?? '', $toLang);
+    $newData = $src;
+    unset($newData['id']);
+    $newData['title'] = $translated['title'];
+    $newData['summary'] = $translated['summary'];
+    $newData['lang'] = $toLang;
+    $newData['status'] = 0;
+    $newData['views'] = 0;
+    $newData['created_at'] = time();
+    $newData['updated_at'] = time();
+    $newData['admin_id'] = $_SESSION['admin_id'] ?? 0;
+    $newId = jobModel()->create($newData);
+    adminLog('job', 'translate', "翻译招聘 #{$srcId} → {$toLang} #{$newId}");
+    success(['id' => $newId], '翻译完成');
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
@@ -75,6 +98,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         返回招聘列表
     </a>
 </div>
+
+<?php
+$langSwitcher = ['table' => 'jobs', 'model' => jobModel(), 'item' => $job, 'edit_url' => '/admin/job_edit.php'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
+?>
 
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

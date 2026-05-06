@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(300);
+
 // 页面信息
 $isHomePage = true;
 $pageTitle = '';
@@ -49,8 +51,8 @@ foreach ($homeChannels as &$hChannel) {
 }
 unset($hChannel);
 
-// 获取关于我们栏目（用于简介区块）
-$aboutChannel = getChannelBySlug('about');
+// 获取关于我们栏目（用于简介区块，多语言感知）
+$aboutChannel = getChannelBySlug('about', true);
 
 // 轮播图高度配置
 $bannerHeightPC = (int)config('banner_height_pc', 650);
@@ -60,7 +62,7 @@ $bannerHeightMobile = (int)config('banner_height_mobile', 300);
 $primaryColor = config('primary_color', '#3B82F6');
 
 // 客户评价数据
-$testimonials = json_decode(config('home_testimonials', '[]'), true) ?: [];
+$testimonials = json_decode(configJsonLang('home_testimonials') ?: '[]', true) ?: [];
 
 // 区块配置（顺序+开关）
 $blocksConfig = json_decode(config('home_blocks_config', ''), true);
@@ -191,4 +193,5 @@ foreach ($blocksConfig as $block) {
 }
 
 require_once theme_path('layouts/footer.php');
+HtmlCache::end();
 ?>

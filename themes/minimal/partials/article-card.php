@@ -15,7 +15,7 @@
     <?php endif; ?>
     <div class="p-5">
         <div class="text-xs text-gray-300 mb-3">
-            <?php echo date('Y.m.d', (int)$item['publish_time']); ?>
+            <?php echo date('Y.m.d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?>
         </div>
         <h3 class="text-sm text-gray-700 group-hover:text-gray-900 transition line-clamp-2">
             <?php if ($item['is_top']): ?>

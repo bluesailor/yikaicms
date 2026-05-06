@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 产品编辑
+ * ikaiCMS - 产品编辑
  *
  * PHP 8.0+
  */
@@ -26,6 +26,53 @@ if ($id > 0) {
     }
 }
 
+// 翻译创建
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(post('action'), ['translate', 'create_translation']) && $product && isMultiLangEnabled('products')) {
+    $toLang = post('to_lang') ?: post('target_lang');
+    $allLangsCheck = availableLanguages();
+    if (!isset($allLangsCheck[$toLang])) error('非法语言');
+    if ($toLang === ($product['lang'] ?? '')) error('不能翻译为相同语言');
+
+    $groupId = (int)($product['translation_group_id'] ?? 0);
+    if ($groupId === 0) {
+        $groupId = (int)$product['id'];
+        productModel()->updateById((int)$product['id'], ['translation_group_id' => $groupId]);
+    }
+
+    $existing = productModel()->queryOne("SELECT id FROM " . productModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
+    if ($existing) success(['id' => (int)$existing['id'], 'redirect' => '/admin/product_edit.php?id=' . $existing['id']], '翻译已存在');
+
+    $translated = aiTranslateFields($product['title'], $product['summary'] ?? '', $toLang);
+
+    // 查找对应语言分类
+    $targetCatId = 0;
+    if ($product['category_id'] > 0) {
+        $srcCat = db()->fetchOne("SELECT * FROM " . DB_PREFIX . "product_categories WHERE id = ?", [$product['category_id']]);
+        if ($srcCat) {
+            $catGroupId = (int)($srcCat['translation_group_id'] ?: $srcCat['id']);
+            $targetCat = db()->fetchOne("SELECT id FROM " . DB_PREFIX . "product_categories WHERE translation_group_id = ? AND lang = ?", [$catGroupId, $toLang]);
+            if ($targetCat) $targetCatId = (int)$targetCat['id'];
+        }
+    }
+
+    $newData = $product;
+    unset($newData['id']);
+    $newData['title'] = $translated['title'];
+    $newData['summary'] = $translated['summary'];
+    $newData['lang'] = $toLang;
+    $newData['translation_group_id'] = $groupId;
+    $newData['category_id'] = $targetCatId;
+    $newData['slug'] = '';
+    $newData['status'] = 0;
+    $newData['views'] = 0;
+    $newData['created_at'] = time();
+    $newData['updated_at'] = time();
+    $newData['admin_id'] = $_SESSION['admin_id'];
+    $newId = productModel()->create($newData);
+    adminLog('product', 'translate', "翻译产品 #{$product['id']} → {$toLang} #{$newId}");
+    success(['id' => $newId, 'redirect' => '/admin/product_edit.php?id=' . $newId]);
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
@@ -44,9 +91,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'is_recommend' => postInt('is_recommend'),
         'is_hot' => postInt('is_hot'),
         'is_new' => postInt('is_new'),
+        'sort_order' => postInt('sort_order'),
         'status' => postInt('status', 1),
         'updated_at' => time(),
     ];
+
+    if (isMultiLangEnabled('products')) {
+        $data['lang'] = post('lang', config('site_lang', 'zh-CN'));
+    }
 
     if (empty($data['title'])) {
         error('请输入产品名称');
@@ -60,15 +112,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'products', $id);
 
-    if ($id > 0) {
+    // 过滤器：允许插件在入库前修改数据
+    $data = apply_filters('before_save_product', $data, $id);
+
+    $isUpdate = $id > 0;
+    if ($isUpdate) {
         productModel()->updateById($id, $data);
         adminLog('product', 'update', "更新产品ID: $id");
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
-        $id = productModel()->create($data);
+        $id = (int)productModel()->create($data);
         adminLog('product', 'create', "创建产品ID: $id");
     }
+
+    // 保存扩展字段
+    if (!empty($_POST['ext_fields']) && is_array($_POST['ext_fields'])) {
+        metaModel()->setBatch('product', (int)$id, $_POST['ext_fields']);
+    }
+
+    do_action('after_save_product', (int)$id, $data, $isUpdate);
 
     success(['id' => $id]);
 }
@@ -91,10 +154,15 @@ $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php
+$langSwitcher = ['table' => 'products', 'model' => productModel(), 'item' => $product, 'edit_url' => '/admin/product_edit.php'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
+?>
+
 <form id="editForm" class="space-y-6">
-    <div class="flex gap-6">
+    <div class="flex flex-col lg:flex-row gap-6">
         <!-- 主内容区 -->
-        <div class="flex-1 space-y-6">
+        <div class="flex-1 min-w-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
                     <div>
@@ -130,16 +198,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">规格参数</label>
-                        <textarea name="specs" rows="4" class="w-full border rounded px-4 py-2"
-                                  placeholder="每行一个参数，格式：参数名:参数值"><?php echo e($product['specs'] ?? ''); ?></textarea>
+                        <label class="block text-gray-700 mb-1"><?php echo __('admin_product_specs') ?: '规格参数'; ?></label>
+                        <input type="hidden" name="specs" id="specsInput" value="<?php echo e($product['specs'] ?? '{}'); ?>">
+                        <div id="specsList" class="space-y-2 mb-3"></div>
+                        <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec') ?: '添加参数'; ?></button>
                     </div>
+                </div>
+            </div>
+
+            <!-- 图片画廊（多图，lightbox 前端展示） -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-gray-800 mb-2">图片画廊</h3>
+                <p class="text-xs text-gray-500 mb-3">除封面外的附加展示图，前台详情页会以画廊（lightbox）形式呈现。鼠标悬停可排序/删除。</p>
+                <input type="hidden" name="images" id="imagesInput" value="<?php echo e($product['images'] ?? ''); ?>">
+                <div id="galleryPreview" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-3"></div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="uploadGalleryImage()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        上传图片（可多选）
+                    </button>
+                    <button type="button" onclick="pickGalleryFromMedia()"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        媒体库
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- 侧边栏 -->
-        <div class="w-80 space-y-6">
+        <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4">发布设置</h3>
                 <div class="space-y-4">
@@ -186,12 +275,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                class="w-full border rounded px-4 py-2" placeholder="如：iot-gateway，留空自动生成">
                     </div>
 
+                    <?php if (isMultiLangEnabled('products')): ?>
+                    <div>
+                        <label class="block text-gray-700 mb-1">语言</label>
+                        <select name="lang" class="w-full border rounded px-4 py-2">
+                            <?php $currentLang = $product['lang'] ?? config('site_lang', 'zh-CN'); ?>
+                            <?php foreach (availableLanguages() as $lk => $lv): ?>
+                            <option value="<?php echo e($lk); ?>" <?php echo $currentLang === $lk ? 'selected' : ''; ?>><?php echo e($lv); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
+
                     <div>
                         <label class="block text-gray-700 mb-1">发布状态</label>
                         <select name="status" class="w-full border rounded px-4 py-2">
                             <option value="1" <?php echo ($product['status'] ?? 1) == 1 ? 'selected' : ''; ?>>上架</option>
                             <option value="0" <?php echo ($product['status'] ?? 1) == 0 ? 'selected' : ''; ?>>下架</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-1">排序</label>
+                        <input type="number" name="sort_order" value="<?php echo (int)($product['sort_order'] ?? 0); ?>" class="w-full border rounded px-4 py-2">
+                        <p class="text-xs text-gray-400 mt-1">数字越小越靠前，默认 0</p>
                     </div>
 
                     <div class="flex flex-wrap gap-4">
@@ -261,13 +368,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-gray-700 mb-1">产品图集</label>
-                        <textarea name="images" rows="3" class="w-full border rounded px-4 py-2"
-                                  placeholder="多张图片URL，每行一个"><?php echo e($product['images'] ?? ''); ?></textarea>
-                        <button type="button" onclick="uploadGallery()"
-                                class="mt-2 text-sm text-primary hover:underline"><?php echo __('admin_upload_image'); ?></button>
-                    </div>
                 </div>
             </div>
 
@@ -313,18 +413,44 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
-                </button>
-                <a href="/admin/product.php" class="flex-1 text-center border py-2 rounded hover:bg-gray-100 transition inline-flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    返回
-                </a>
-            </div>
         </div>
     </div>
+
+    <!-- 底部 sticky 操作栏 -->
+    <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
+        <div class="flex gap-3 justify-end items-center">
+            <span class="text-xs text-gray-400 mr-auto hidden sm:inline">请确认后保存</span>
+            <a href="/admin/product.php" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                返回
+            </a>
+            <button type="submit" class="px-8 py-2 bg-primary hover:bg-secondary text-white rounded transition inline-flex items-center gap-1 text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                保存
+            </button>
+            <?php if ($product && isMultiLangEnabled('products')): ?>
+            <div class="relative" x-data="{ open: false }">
+                <button type="button" @click="open = !open" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition inline-flex items-center gap-1 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                    翻译为…
+                </button>
+                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-1 bg-white rounded shadow-lg border py-1 min-w-[120px] z-50">
+                    <?php foreach (availableLanguages() as $lk => $lv):
+                        if ($lk === ($product['lang'] ?? config('site_lang', 'zh-CN'))) continue;
+                    ?>
+                    <a href="javascript:void(0)" onclick="translateTo('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><?php echo e($lv); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php
+        $extFieldOwnerType = 'product';
+        $extFieldOwnerId = (int)$id;
+        require __DIR__ . '/includes/extfield_render.php';
+    ?>
 </form>
 
 <input type="file" id="coverFileInput" class="hidden" accept="image/*">
@@ -375,37 +501,190 @@ function pickCoverFromMedia() {
     });
 }
 
-function uploadGallery() {
-    document.getElementById('galleryFileInput').click();
+// === 多图画廊管理（网格预览 + JSON 存储） ===
+// 兼容读取：JSON 数组 / 换行分隔 / 历史的 || 分隔
+function parseGalleryInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return [];
+    try {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr.filter(Boolean);
+    } catch(e) {}
+    if (raw.indexOf('||') !== -1) return raw.split('||').filter(Boolean);
+    return raw.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+}
+var galleryImages = parseGalleryInput(document.getElementById('imagesInput').value);
+
+function syncGallery() {
+    // 统一存 JSON 数组
+    document.getElementById('imagesInput').value = JSON.stringify(galleryImages);
+    renderGallery();
 }
 
-document.getElementById('galleryFileInput').addEventListener('change', async function() {
-    if (!this.files.length) return;
-
-    const imagesField = document.querySelector('textarea[name="images"]');
-    let urls = imagesField.value.trim() ? imagesField.value.trim().split('\n') : [];
-
-    for (const file of this.files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', 'images');
-
-        try {
-            const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
-            const data = await safeJson(response);
-
-            if (data.code === 0) {
-                urls.push(data.data.url);
-            }
-        } catch (err) {
-            console.error('Upload failed:', err);
-        }
+function renderGallery() {
+    var box = document.getElementById('galleryPreview');
+    if (!box) return;
+    if (galleryImages.length === 0) {
+        box.innerHTML = '<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded">暂无图片，点击下方按钮添加</div>';
+        return;
     }
+    box.innerHTML = galleryImages.map(function(url, i) {
+        var safe = url.replace(/"/g, '&quot;');
+        return '<div class="relative group aspect-square bg-gray-100 rounded overflow-hidden" draggable="true" data-index="' + i + '">' +
+               '  <img src="' + safe + '" class="w-full h-full object-cover pointer-events-none">' +
+               '  <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">' +
+               (i > 0 ? '    <button type="button" onclick="galleryMove(' + i + ',-1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="左移">←</button>' : '') +
+               (i < galleryImages.length - 1 ? '    <button type="button" onclick="galleryMove(' + i + ',1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="右移">→</button>' : '') +
+               '    <button type="button" onclick="removeGalleryImage(' + i + ')" class="text-white bg-red-500 hover:bg-red-600 rounded w-7 h-7 text-sm" title="删除">×</button>' +
+               '  </div>' +
+               '  <div class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded pointer-events-none">' + (i + 1) + '</div>' +
+               '</div>';
+    }).join('');
+    // 拖拽排序
+    box.querySelectorAll('[draggable="true"]').forEach(function(el) {
+        el.addEventListener('dragstart', function(e) { e.dataTransfer.setData('text/plain', el.dataset.index); el.style.opacity='0.4'; });
+        el.addEventListener('dragend', function() { el.style.opacity='1'; });
+        el.addEventListener('dragover', function(e) { e.preventDefault(); el.style.outline='2px solid #3b82f6'; });
+        el.addEventListener('dragleave', function() { el.style.outline=''; });
+        el.addEventListener('drop', function(e) {
+            e.preventDefault(); el.style.outline='';
+            var from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+            var to = parseInt(el.dataset.index, 10);
+            if (!isNaN(from) && !isNaN(to) && from !== to) {
+                var item = galleryImages.splice(from, 1)[0];
+                galleryImages.splice(to, 0, item);
+                syncGallery();
+            }
+        });
+    });
+}
 
-    imagesField.value = urls.join('\n');
-    showMessage('图片上传完成');
-    this.value = '';
-});
+function addGalleryImage(url) {
+    if (!url) return;
+    galleryImages.push(url);
+    syncGallery();
+}
+
+function removeGalleryImage(i) {
+    galleryImages.splice(i, 1);
+    syncGallery();
+}
+
+function galleryMove(i, dir) {
+    var j = i + dir;
+    if (j < 0 || j >= galleryImages.length) return;
+    var tmp = galleryImages[i];
+    galleryImages[i] = galleryImages[j];
+    galleryImages[j] = tmp;
+    syncGallery();
+}
+
+function uploadGalleryImage() {
+    var input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+    input.onchange = async function() {
+        for (var f of this.files) {
+            var formData = new FormData();
+            formData.append('file', f);
+            formData.append('type', 'images');
+            try {
+                var response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+                var data = await safeJson(response);
+                if (data.code === 0) addGalleryImage(data.data.url);
+                else showMessage(data.msg, 'error');
+            } catch (err) { showMessage('<?php echo __('admin_upload_failed') ?: '上传失败'; ?>', 'error'); }
+        }
+    };
+    input.click();
+}
+
+function pickGalleryFromMedia() {
+    openMediaPicker(function(url) { addGalleryImage(url); });
+}
+
+// 首次渲染前把历史 || 格式的输入值规整成 JSON（防止保存时还是旧格式）
+syncGallery();
+
+// === 规格参数管理 ===
+var specsData = {};
+try { specsData = JSON.parse(document.getElementById('specsInput').value || '{}'); } catch(e) { specsData = {}; }
+
+// 规格键名标签映射
+var specLabels = {
+    'material': '<?php echo __("spec_material") ?: "素材分类"; ?>',
+    'material_label': '<?php echo __("spec_material_label") ?: "素材名称"; ?>',
+    'scene': '<?php echo __("spec_scene") ?: "使用场景"; ?>',
+    'size': '<?php echo __("spec_size") ?: "サイズ"; ?>',
+    'method': '<?php echo __("spec_method") ?: "工法"; ?>',
+    'finish': '<?php echo __("spec_finish") ?: "仕上げ"; ?>',
+    'mount': '<?php echo __("spec_mount") ?: "取付方法"; ?>',
+    'use': '<?php echo __("spec_use") ?: "用途"; ?>',
+    'corner': '<?php echo __("spec_corner") ?: "角丸"; ?>',
+};
+
+function renderSpecs() {
+    var list = document.getElementById('specsList');
+    list.innerHTML = '';
+    var keys = Object.keys(specsData);
+    if (keys.length === 0) {
+        list.innerHTML = '<div class="text-sm text-gray-400 py-2"><?php echo __("admin_no_specs") ?: "暂无参数"; ?></div>';
+    }
+    keys.forEach(function(key) {
+        var div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        var label = specLabels[key] || key;
+        div.innerHTML = '<input type="text" value="' + escapeAttr(key) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="键" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
+            '<span class="text-gray-300">:</span>' +
+            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="值" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
+            '<span class="text-xs text-gray-400 w-16 truncate" title="' + escapeAttr(label) + '">' + escapeAttr(label) + '</span>' +
+            '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold">&times;</button>';
+        list.appendChild(div);
+    });
+}
+
+function syncSpecs() {
+    document.getElementById('specsInput').value = JSON.stringify(specsData);
+    renderSpecs();
+}
+
+function addSpecRow() {
+    var key = prompt('<?php echo __("admin_spec_key_prompt") ?: "参数名（英文键名，如 size、method）"; ?>');
+    if (!key) return;
+    key = key.trim();
+    if (specsData.hasOwnProperty(key)) { alert('<?php echo __("admin_spec_exists") ?: "该参数已存在"; ?>'); return; }
+    specsData[key] = '';
+    syncSpecs();
+    // 聚焦到新行的值输入框
+    var inputs = document.querySelectorAll('.spec-val');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function updateSpecKey(el) {
+    var oldKey = el.dataset.old;
+    var newKey = el.value.trim();
+    if (!newKey || newKey === oldKey) return;
+    if (specsData.hasOwnProperty(newKey)) { alert('<?php echo __("admin_spec_exists") ?: "该参数已存在"; ?>'); el.value = oldKey; return; }
+    specsData[newKey] = specsData[oldKey];
+    delete specsData[oldKey];
+    syncSpecs();
+}
+
+function updateSpecVal(el) {
+    var key = el.dataset.key;
+    specsData[key] = el.value;
+    document.getElementById('specsInput').value = JSON.stringify(specsData);
+}
+
+function removeSpec(key) {
+    delete specsData[key];
+    syncSpecs();
+}
+
+function escapeAttr(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;');
+}
+
+renderSpecs();
 </script>
 
 <!-- 标签逻辑 -->
@@ -544,23 +823,44 @@ document.getElementById('galleryFileInput').addEventListener('change', async fun
         });
     });
 })();
+
+async function translateTo(lang) {
+    if (!confirm('Copy and create ' + lang + ' version?')) return;
+    var formData = new FormData();
+    formData.append('action', 'translate');
+    formData.append('target_lang', lang);
+    try {
+        var response = await fetch('', { method: 'POST', body: formData });
+        var data = await safeJson(response);
+        if (data.code === 0 && data.data.redirect) {
+            showMessage('OK');
+            setTimeout(function(){ location.href = data.data.redirect; }, 800);
+        } else {
+            showMessage(data.msg || 'Error', 'error');
+        }
+    } catch (e) {
+        showMessage('Error', 'error');
+    }
+}
 </script>
 
 <?php
 $productContent = json_encode($product['content'] ?? '', JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 $extraJs = '<script>
-var editor = initWangEditor("#toolbar-container", "#editor-container", {
-    placeholder: "请输入产品详情...",
-    html: ' . $productContent . ',
-    uploadUrl: "/admin/upload.php",
-    onChange: function(editor) {
-        document.getElementById("contentInput").value = editor.getHtml();
-    }
-});
+try {
+    var editor = initWangEditor("#toolbar-container", "#editor-container", {
+        placeholder: "请输入产品详情...",
+        html: ' . $productContent . ',
+        uploadUrl: "/admin/upload.php",
+        onChange: function(editor) {
+            document.getElementById("contentInput").value = editor.getHtml();
+        }
+    });
+} catch(e) { console.warn("Editor init error:", e); }
 
 document.getElementById("editForm").addEventListener("submit", async function(e) {
     e.preventDefault();
-    document.getElementById("contentInput").value = editor.getHtml();
+    try { document.getElementById("contentInput").value = editor.getHtml(); } catch(ex) {}
 
     const formData = new FormData(this);
     const response = await fetch("", { method: "POST", body: formData });

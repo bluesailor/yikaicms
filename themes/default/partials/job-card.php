@@ -21,7 +21,7 @@
                 <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded"><?php echo e($item['experience']); ?></span>
                 <?php endif; ?>
                 <?php if ($item['headcount']): ?>
-                <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">招<?php echo e($item['headcount']); ?></span>
+                <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded"><?php echo __('job_hire_prefix'); ?><?php echo e($item['headcount']); ?></span>
                 <?php endif; ?>
             </div>
             <div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
@@ -33,7 +33,7 @@
                     <?php echo e($item['location']); ?>
                 </span>
                 <?php endif; ?>
-                <span><?php echo friendlyTime((int)$item['publish_time']); ?></span>
+                <span><?php echo friendlyTime((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span>
             </div>
         </div>
         <?php if ($item['salary']): ?>

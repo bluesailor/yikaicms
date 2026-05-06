@@ -101,7 +101,11 @@ $data = [
     'created_at'    => time(),
 ];
 
-formModel()->create($data);
+$data = apply_filters('before_save_form', $data);
+$formId = (int)formModel()->create($data);
+
+// 动作：表单提交后（邮件通知、CRM 同步等）
+do_action('form_submitted', $formId, $data);
 
 // 邮件通知
 require_once __DIR__ . '/includes/mail_notify.php';

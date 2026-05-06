@@ -28,6 +28,10 @@ class DownloadModel extends Model
             $params[] = $kw;
             $params[] = $kw;
         }
+        if (!empty($filters['lang'])) {
+            $where[] = 'd.lang = ?';
+            $params[] = $filters['lang'];
+        }
 
         $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 

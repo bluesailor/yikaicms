@@ -34,6 +34,21 @@ if (($page['slug'] ?? '') === 'contact') {
     exit;
 }
 
+if (($page['slug'] ?? '') === 'history') {
+    header('Location: /admin/timeline.php');
+    exit;
+}
+
+// 有子栏目的父页面跳转到第一个子页面
+$children = channelModel()->getByParent($id, true);
+if (!empty($children)) {
+    $firstChild = $children[0];
+    if ($firstChild['type'] === 'page') {
+        header('Location: /admin/page_edit_advance.php?id=' . $firstChild['id']);
+        exit;
+    }
+}
+
 // 从 contents 表获取内容
 $contentRecord = contentModel()->queryOne(
     'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
@@ -54,6 +69,54 @@ if ($contentRecord) {
 $autoConvert = false;
 if ($contentType === 'html' && $htmlContent && !$blocksData) {
     $autoConvert = true;
+}
+
+// 翻译创建
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
+    $srcId = postInt('src_id');
+    $toLang = post('to_lang');
+    $src = channelModel()->find($srcId);
+    if (!$src || $src['type'] !== 'page') error('源页面不存在');
+
+    $groupId = (int)($src['translation_group_id'] ?: $srcId);
+    if (!$src['translation_group_id']) {
+        channelModel()->updateById($srcId, ['translation_group_id' => $srcId]);
+    }
+    $existing = channelModel()->queryOne("SELECT id FROM " . channelModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
+    if ($existing) success(['id' => (int)$existing['id']], '翻译已存在');
+
+    $translated = aiTranslateFields($src['name'], $src['description'] ?? '', $toLang);
+    $slug = $src['slug'] ? $toLang . '-' . $src['slug'] : '';
+    if ($slug) {
+        $slugExists = channelModel()->queryOne("SELECT id FROM " . channelModel()->tableName() . " WHERE slug = ?", [$slug]);
+        if ($slugExists) {
+            channelModel()->updateById((int)$slugExists['id'], ['name' => $translated['title'], 'lang' => $toLang, 'translation_group_id' => $groupId, 'updated_at' => time()]);
+            success(['id' => (int)$slugExists['id']], '翻译已更新');
+        }
+    }
+    $newId = channelModel()->create([
+        'parent_id' => findTranslatedChannelId((int)$src['parent_id'], $toLang) ?: (int)$src['parent_id'],
+        'name' => $translated['title'],
+        'slug' => $slug,
+        'type' => 'page',
+        'lang' => $toLang,
+        'translation_group_id' => $groupId,
+        'description' => $translated['summary'],
+        'content' => $src['content'],
+        'image' => $src['image'] ?? '',
+        'icon' => $src['icon'] ?? '',
+        'seo_title' => '',
+        'seo_keywords' => '',
+        'seo_description' => '',
+        'is_nav' => (int)($src['is_nav'] ?? 1),
+        'is_home' => (int)($src['is_home'] ?? 0),
+        'status' => (int)($src['status'] ?? 1),
+        'sort_order' => (int)($src['sort_order'] ?? 0),
+        'created_at' => time(),
+        'updated_at' => time(),
+    ]);
+    adminLog('page', 'translate', "翻译单页 #{$srcId} → {$toLang} #{$newId}");
+    success(['id' => $newId], '翻译完成');
 }
 
 // 处理保存
@@ -107,12 +170,17 @@ $currentMenu = 'page';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php
+$langSwitcher = ['table' => 'channels', 'model' => channelModel(), 'item' => $page, 'edit_url' => '/admin/page_edit_advance.php'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
+?>
+
 <div class="mb-6 flex items-center justify-between">
     <a href="/admin/page.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         返回单页列表
     </a>
-    <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+    <a href="/admin/page_edit.php?id=<?php echo $id; ?>&amp;mode=simple" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
         切换到富文本编辑器
     </a>

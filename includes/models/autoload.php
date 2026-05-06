@@ -121,3 +121,11 @@ function pluginModel(): PluginModel {
 function memberModel(): MemberModel {
     static $i; return $i ??= new MemberModel();
 }
+
+function metaModel(): MetaModel {
+    static $i; return $i ??= new MetaModel();
+}
+
+function extFieldModel(): ExtFieldModel {
+    static $i; return $i ??= new ExtFieldModel();
+}

@@ -40,8 +40,19 @@ function sendTemplateMail(string $to, string $tplPrefix, array $vars): bool
     $subject = renderMailTemplate($subjectTpl, $vars);
     $body    = renderMailTemplate($bodyTpl, $vars);
 
+    // 过滤器：允许插件修改邮件内容/收件人
+    $mail = apply_filters('mail_notify', [
+        'to'      => $to,
+        'subject' => $subject,
+        'body'    => $body,
+        'tpl'     => $tplPrefix,
+        'vars'    => $vars,
+    ]);
+
+    if (empty($mail) || empty($mail['to'])) return false;
+
     try {
-        $result = sendMail($to, $subject, $body);
+        $result = sendMail($mail['to'], $mail['subject'], $mail['body']);
         return $result === true;
     } catch (\Throwable $e) {
         return false;

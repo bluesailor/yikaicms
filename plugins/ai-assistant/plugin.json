@@ -1,8 +1,0 @@
-{
-    "name": "AI 助手",
-    "version": "1.0.0",
-    "description": "接入 OpenAI / Claude / DeepSeek / 通义千问 / 智谱AI，支持文章一键生成、改写润色、SEO 优化等功能。",
-    "author": "Yikai CMS",
-    "requires_php": "8.0",
-    "requires_cms": "1.4.0"
-}

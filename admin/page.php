@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $slug = resolveSlug('', $name, 'channels', 0);
         $parentId = postInt('parent_id');
-        $id = channelModel()->create([
+        $newData = [
             'parent_id' => $parentId,
             'name' => $name,
             'slug' => $slug,
@@ -36,7 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'sort_order' => 0,
             'created_at' => time(),
             'updated_at' => time(),
-        ]);
+        ];
+        if (isMultiLangEnabled('channels')) {
+            $newData['lang'] = post('lang', config('site_lang', 'zh-CN'));
+        }
+        $id = channelModel()->create($newData);
         adminLog('page', 'create', '创建单页：' . $name);
         success(['id' => $id]);
     }
@@ -75,12 +79,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// 多语言
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('channels');
+$pageLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$pageLang])) $pageLang = $defaultLang;
+
 // 获取所有单页类型的栏目
+$langWhere = $hasMultiLang ? ' AND c.lang = ?' : '';
+$langParams = $hasMultiLang ? ['page', $pageLang] : ['page'];
 $pages = channelModel()->query(
     'SELECT c.*, p.name as parent_name FROM ' . channelModel()->tableName() . ' c
      LEFT JOIN ' . channelModel()->tableName() . ' p ON c.parent_id = p.id
-     WHERE c.type = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
-    ['page']
+     WHERE c.type = ?' . $langWhere . ' ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
+    $langParams
 );
 
 // 获取页脚导航URL列表
@@ -97,6 +110,21 @@ $currentMenu = 'page';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll):
+        $lCnt = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "channels WHERE type = 'page' AND lang = ?", [$lc]);
+    ?>
+    <a href="?lang=<?php echo e($lc); ?>"
+       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $pageLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+        <?php echo e($ll); ?>
+        <span class="ml-1 opacity-70">(<?php echo $lCnt; ?>)</span>
+    </a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <div class="mb-6 flex items-center justify-between">
     <p class="text-gray-500">管理公司简介、企业文化等独立页面内容。单页内容直接存储在栏目中。</p>
@@ -259,6 +287,7 @@ async function createPage() {
     formData.append('action', 'create');
     formData.append('name', name);
     formData.append('parent_id', document.getElementById('createParent').value);
+    formData.append('lang', '<?php echo e($pageLang); ?>');
     var response = await fetch('', { method: 'POST', body: formData });
     var data = await safeJson(response);
     if (data.code === 0) {

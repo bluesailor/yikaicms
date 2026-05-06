@@ -24,19 +24,19 @@ class ContentModel extends Model
 
         $where[] = 'c.status = 1';
 
+        if (isMultiLangEnabled('contents') && empty($filters['_skip_lang'])) {
+            $where[] = 'c.lang = ?';
+            $params[] = $filters['lang'] ?? siteLang();
+        }
+
         if (!empty($filters['type'])) {
             $where[] = 'c.type = ?';
             $params[] = $filters['type'];
         }
         if (!empty($filters['keyword'])) {
-            if (!db()->isSqlite()) {
-                $where[] = 'MATCH(c.title, c.summary) AGAINST(? IN BOOLEAN MODE)';
-                $params[] = '+' . str_replace(' ', ' +', trim($filters['keyword']));
-            } else {
-                $where[] = '(c.title LIKE ? OR c.summary LIKE ?)';
-                $params[] = '%' . $filters['keyword'] . '%';
-                $params[] = '%' . $filters['keyword'] . '%';
-            }
+            $where[] = '(c.title LIKE ? OR c.summary LIKE ?)';
+            $params[] = '%' . $filters['keyword'] . '%';
+            $params[] = '%' . $filters['keyword'] . '%';
         }
         if (!empty($filters['is_recommend'])) {
             $where[] = 'c.is_recommend = 1';
@@ -48,12 +48,13 @@ class ContentModel extends Model
             $where[] = 'c.is_top = 1';
         }
 
+        $orderBy = $this->getEffectiveOrder();
         $whereSQL = implode(' AND ', $where);
         $sql = "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
                 FROM {$this->tableName()} c
                 LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
                 WHERE {$whereSQL}
-                ORDER BY {$this->defaultOrder}
+                ORDER BY {$orderBy}
                 LIMIT ? OFFSET ?";
 
         $params[] = $limit;
@@ -79,19 +80,19 @@ class ContentModel extends Model
 
         $where[] = 'status = 1';
 
+        if (isMultiLangEnabled('contents') && empty($filters['_skip_lang'])) {
+            $where[] = 'lang = ?';
+            $params[] = $filters['lang'] ?? siteLang();
+        }
+
         if (!empty($filters['type'])) {
             $where[] = 'type = ?';
             $params[] = $filters['type'];
         }
         if (!empty($filters['keyword'])) {
-            if (!db()->isSqlite()) {
-                $where[] = 'MATCH(title, summary) AGAINST(? IN BOOLEAN MODE)';
-                $params[] = '+' . str_replace(' ', ' +', trim($filters['keyword']));
-            } else {
-                $where[] = '(title LIKE ? OR summary LIKE ?)';
-                $params[] = '%' . $filters['keyword'] . '%';
-                $params[] = '%' . $filters['keyword'] . '%';
-            }
+            $where[] = '(title LIKE ? OR summary LIKE ?)';
+            $params[] = '%' . $filters['keyword'] . '%';
+            $params[] = '%' . $filters['keyword'] . '%';
         }
 
         $whereSQL = implode(' AND ', $where);
@@ -177,7 +178,7 @@ class ContentModel extends Model
     public function getRelated(int $channelId, int $excludeId, int $limit = 4): array
     {
         return db()->fetchAll(
-            "SELECT c.id, c.title, c.cover, c.slug, ch.slug as channel_slug, ch.type as channel_type
+            "SELECT c.id, c.title, c.cover, c.slug, c.created_at, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
              WHERE c.channel_id = ? AND c.status = 1 AND c.id != ? ORDER BY " . (db()->isSqlite() ? 'RANDOM()' : 'RAND()') . " LIMIT ?",
@@ -210,5 +211,27 @@ class ContentModel extends Model
     public function incrementDownloads(int $id): int
     {
         return $this->increment($id, 'download_count');
+    }
+
+    /**
+     * 获取含 sort_order 的排序（兼容未升级的数据库）
+     */
+    public function getEffectiveOrder(): string
+    {
+        static $hasSortOrder = null;
+        if ($hasSortOrder === null) {
+            try {
+                $hasSortOrder = (bool)db()->fetchOne(
+                    db()->isSqlite()
+                        ? "SELECT 1 FROM pragma_table_info('" . $this->tableName() . "') WHERE name='sort_order'"
+                        : "SHOW COLUMNS FROM `{$this->tableName()}` LIKE 'sort_order'"
+                );
+            } catch (\Throwable $e) {
+                $hasSortOrder = false;
+            }
+        }
+        return $hasSortOrder
+            ? 'sort_order DESC, ' . $this->defaultOrder
+            : $this->defaultOrder;
     }
 }

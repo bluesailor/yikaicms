@@ -53,7 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b ORDER BY b.sort_order ASC, b.id ASC");
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('brands');
+$filterLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
+
+if ($hasMultiLang) {
+    $brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b WHERE b.lang = ? ORDER BY b.sort_order ASC, b.id ASC", [$filterLang]);
+} else {
+    $brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b ORDER BY b.sort_order ASC, b.id ASC");
+}
 $editBrand = null;
 $editId = getInt('edit');
 if ($editId > 0) {
@@ -64,6 +74,15 @@ $pageTitle = '品牌管理';
 $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">

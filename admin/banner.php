@@ -41,6 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('banner', 'update', "更新轮播图ID: $id");
         } else {
             $data['created_at'] = time();
+            if (isMultiLangEnabled('banners')) {
+                $data['lang'] = post('lang', config('site_lang', 'zh-CN'));
+            }
             $id = bannerModel()->create($data);
             adminLog('banner', 'create', "创建轮播图ID: $id");
         }
@@ -144,6 +147,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'copy_lang') {
+        $fromLang = post('from_lang', '');
+        $toLang = post('to_lang', '');
+        $allLangs = availableLanguages();
+        if (!isset($allLangs[$fromLang]) || !isset($allLangs[$toLang]) || $fromLang === $toLang) {
+            error('语言参数无效');
+        }
+        $existing = (int)db()->fetchColumn(
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "banners WHERE lang = ?", [$toLang]
+        );
+        if ($existing > 0) {
+            error($allLangs[$toLang] . ' 已有 ' . $existing . ' 条轮播图，请先删除后再复制');
+        }
+        $srcBanners = db()->fetchAll(
+            "SELECT * FROM " . DB_PREFIX . "banners WHERE lang = ? ORDER BY sort_order ASC, id DESC", [$fromLang]
+        );
+        if (empty($srcBanners)) {
+            error($allLangs[$fromLang] . ' 没有轮播图可复制');
+        }
+        $copied = 0;
+        foreach ($srcBanners as $b) {
+            unset($b['id']);
+            $b['lang'] = $toLang;
+            $b['created_at'] = time();
+            db()->insert('banners', $b);
+            $copied++;
+        }
+        adminLog('banner', 'copy_lang', "复制轮播图 {$fromLang} → {$toLang}: {$copied} 条");
+        success([], "已复制 {$copied} 条轮播图到 {$allLangs[$toLang]}");
+    }
+
     if ($action === 'group_toggle') {
         $id = postInt('id');
         $newStatus = bannerGroupModel()->toggle($id, 'status');
@@ -171,6 +205,13 @@ if (empty($positions)) {
     $positions = ['home' => '首页', 'about' => '关于我们', 'product' => '产品中心', 'case' => '案例展示'];
 }
 
+// 多语言
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('banners');
+$bannerLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$bannerLang])) $bannerLang = $defaultLang;
+
 // 轮播图列表数据（list Tab 用）
 $position = get('position', '');
 $page = max(1, getInt('page', 1));
@@ -179,6 +220,9 @@ $perPage = 20;
 $conditions = [];
 if ($position) {
     $conditions['position'] = $position;
+}
+if ($hasMultiLang) {
+    $conditions['lang'] = $bannerLang;
 }
 
 $result = bannerModel()->paginate($page, $perPage, $conditions, 'sort_order ASC, id DESC');
@@ -209,6 +253,57 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php if ($tab === 'list'): ?>
 <!-- ========== 轮播图列表 ========== -->
+
+<?php if ($hasMultiLang && count($allLangs) > 1):
+    $langCounts = [];
+    foreach ($allLangs as $lc => $ll) {
+        $langCounts[$lc] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "banners WHERE lang = ?", [$lc]);
+    }
+    $currentLangCount = $langCounts[$bannerLang] ?? 0;
+    // 找出有轮播图的语言（可作为复制源）
+    $copyFromLangs = array_filter($langCounts, fn($c) => $c > 0);
+?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>"
+       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $bannerLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+        <?php echo e($ll); ?>
+        <span class="ml-1 opacity-70">(<?php echo $langCounts[$lc]; ?>)</span>
+    </a>
+    <?php endforeach; ?>
+    <?php if ($currentLangCount === 0 && !empty($copyFromLangs)): ?>
+    <span class="text-gray-300 mx-1">|</span>
+    <span class="text-sm text-gray-500">从</span>
+    <?php foreach ($copyFromLangs as $fl => $fc):
+        if ($fl === $bannerLang) continue;
+    ?>
+    <button onclick="copyLang('<?php echo e($fl); ?>', '<?php echo e($bannerLang); ?>', '<?php echo e($allLangs[$fl]); ?>')"
+            class="px-3 py-1 rounded text-xs border border-amber-300 text-amber-600 hover:bg-amber-50 transition">
+        复制 <?php echo e($allLangs[$fl]); ?> (<?php echo $fc; ?>条)
+    </button>
+    <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+<script>
+async function copyLang(from, to, fromName) {
+    if (!confirm('将 ' + fromName + ' 的轮播图复制到当前语言？图片保留，标题可稍后编辑。')) return;
+    var fd = new FormData();
+    fd.append('action', 'copy_lang');
+    fd.append('from_lang', from);
+    fd.append('to_lang', to);
+    fd.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo csrfToken(); ?>');
+    var resp = await fetch(location.pathname, { method: 'POST', body: fd });
+    var data = await safeJson(resp);
+    if (data.code === 0) {
+        showMessage(data.msg || '复制成功');
+        setTimeout(function() { location.reload(); }, 600);
+    } else {
+        showMessage(data.msg || '复制失败', 'error');
+    }
+}
+</script>
+<?php endif; ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -317,6 +412,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form id="editForm" class="p-6 space-y-4">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="editId" value="0">
+            <?php if ($hasMultiLang): ?>
+            <input type="hidden" name="lang" id="editLang" value="<?php echo e($bannerLang); ?>">
+            <?php endif; ?>
 
             <div>
                 <label class="block text-gray-700 mb-1">标题</label>
@@ -671,9 +769,9 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openGroupModal(<?php echo json_encode($g, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
-                                class="text-primary hover:underline text-sm mr-2">编辑</button>
+                                class="text-gray-400 hover:text-primary" title="编辑"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
                         <button onclick="deleteGroup(<?php echo $g['id']; ?>)"
-                                class="text-red-600 hover:underline text-sm">删除</button>
+                                class="text-gray-400 hover:text-red-500 ml-2" title="删除"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>

@@ -19,6 +19,9 @@ requirePermission('content');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settingModel()->set('product_layout', post('product_layout', 'sidebar'));
     settingModel()->set('show_price', post('show_price', '0'));
+    $sortOptions = $_POST['sort_options'] ?? [];
+    if (empty($sortOptions)) $sortOptions = ['default'];
+    settingModel()->set('product_sort_options', json_encode(array_values($sortOptions)));
     adminLog('setting', 'update', '更新产品设置');
     success();
 }
@@ -105,6 +108,35 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            <?php echo config('show_price', '0') === '1' ? 'checked' : ''; ?>>
                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
+            </div>
+
+            <hr>
+
+            <!-- 前台排序选项 -->
+            <div>
+                <label class="font-medium text-gray-800">前台排序选项</label>
+                <p class="text-sm text-gray-500 mt-1 mb-3">勾选前台产品列表页可用的排序方式</p>
+                <?php
+                $enabledSorts = json_decode(config('product_sort_options', '["default","newest","views"]'), true) ?: ['default'];
+                $allSorts = [
+                    'default'    => '默认排序',
+                    'newest'     => '最新发布',
+                    'updated'    => '最近更新',
+                    'views'      => '浏览量',
+                    'price_asc'  => '价格从低到高',
+                    'price_desc' => '价格从高到低',
+                ];
+                ?>
+                <div class="space-y-2">
+                    <?php foreach ($allSorts as $sk => $sl): ?>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="sort_options[]" value="<?php echo $sk; ?>"
+                               <?php echo in_array($sk, $enabledSorts) ? 'checked' : ''; ?>
+                               class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary">
+                        <span class="text-sm text-gray-700"><?php echo $sl; ?></span>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
             <hr>

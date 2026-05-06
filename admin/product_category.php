@@ -110,8 +110,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取分类树
-$categories = productCategoryModel()->getFlatOptions();
+// 多语言
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('product_categories');
+$filterLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
+
+// 获取分类树（按语言过滤）
+if ($hasMultiLang) {
+    $categories = [];
+    $items = db()->fetchAll("SELECT * FROM " . DB_PREFIX . "product_categories WHERE lang = ? ORDER BY parent_id, sort_order, id", [$filterLang]);
+    foreach ($items as $item) {
+        $item['_level'] = $item['parent_id'] > 0 ? 1 : 0;
+        $item['_prefix'] = str_repeat('　', $item['_level']);
+        $categories[] = $item;
+    }
+} else {
+    $categories = productCategoryModel()->getFlatOptions();
+}
 
 // 获取每个分类的产品数量
 $productCounts = [];
@@ -127,6 +144,15 @@ $currentMenu = 'product_category';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">

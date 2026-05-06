@@ -48,7 +48,7 @@ if ($slug) {
 
 if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
-    exit('页面不存在');
+    exit(__('error_page_not_found'));
 }
 
 // 如果不是单页类型且不是相册类型，直接加载列表页（避免重定向循环）

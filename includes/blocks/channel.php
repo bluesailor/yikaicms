@@ -117,7 +117,7 @@ $contents = $hChannel['contents'];
                 <?php endif; ?>
                 <div class="p-4">
                     <div class="text-xs text-gray-400 mb-2">
-                        <?php echo e($itemCatName); ?> · <?php echo friendlyTime((int)$item['publish_time']); ?>
+                        <?php echo e($itemCatName); ?> · <?php echo friendlyTime((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?>
                     </div>
                     <h3 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">
                         <?php echo e($item['title']); ?>

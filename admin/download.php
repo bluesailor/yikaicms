@@ -72,6 +72,12 @@ $categories = downloadCategoryModel()->getActive();
 
 // 查询参数
 $categoryId = getInt('category_id');
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('downloads');
+$filterLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
+
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
@@ -79,6 +85,7 @@ $perPage = 20;
 
 $offset = ($page - 1) * $perPage;
 $filters = array_filter(['status' => $status, 'keyword' => $keyword], fn($v) => $v !== '');
+if ($hasMultiLang) $filters['lang'] = $filterLang;
 $result = downloadModel()->getList($categoryId, $filters, $perPage, $offset);
 $total = $result['total'];
 $items = $result['items'];
@@ -88,6 +95,15 @@ $currentMenu = 'download';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">

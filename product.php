@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(600);
+
 $productId = getInt('id');
 $slug = get('slug');
 
@@ -23,7 +25,7 @@ if ($slug) {
 
 if (!$product) {
     header('HTTP/1.1 404 Not Found');
-    exit('产品不存在');
+    exit(__('error_product_not_found'));
 }
 
 // 增加浏览量
@@ -129,7 +131,7 @@ require_once theme_path('layouts/header.php');
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
         <div class="flex items-center gap-2 text-sm text-gray-600">
-            <a href="/" class="hover:text-primary">首页</a>
+            <a href="/" class="hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
             <span>/</span>
             <?php if ($productChannel): ?>
             <a href="<?php echo channelUrl($productChannel); ?>" class="hover:text-primary">
@@ -157,17 +159,30 @@ require_once theme_path('layouts/header.php');
                 <!-- 左侧图片 -->
                 <div class="lg:w-1/2 p-6">
                     <?php if (!empty($productImages)): ?>
-                    <!-- 主图 -->
-                    <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4">
+                    <!-- 主图（点击打开 lightbox） -->
+                    <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4 relative group cursor-zoom-in"
+                         onclick="openLightbox(0)">
                         <img loading="lazy" src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
-                             id="mainImage" class="w-full h-full object-contain">
+                             id="mainImage" class="w-full h-full object-contain transition-transform group-hover:scale-105">
+                        <!-- 放大镜图标 -->
+                        <div class="absolute top-3 right-3 bg-black/50 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6m0 0v6m0-6L14 10M9 21H3m0 0v-6m0 6l7-7"/>
+                            </svg>
+                        </div>
+                        <?php if (count($productImages) > 1): ?>
+                        <div class="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                            1 / <?php echo count($productImages); ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <!-- 缩略图 -->
                     <?php if (count($productImages) > 1): ?>
                     <div class="flex gap-2 overflow-x-auto">
                         <?php foreach ($productImages as $i => $img): ?>
-                        <button onclick="changeImage('<?php echo e($img); ?>')"
-                                class="flex-shrink-0 w-20 h-20 border-2 rounded overflow-hidden hover:border-primary transition <?php echo $i === 0 ? 'border-primary' : 'border-gray-200'; ?>">
+                        <button type="button" onclick="changeImage(<?php echo $i; ?>)"
+                                data-idx="<?php echo $i; ?>"
+                                class="thumb-btn flex-shrink-0 w-20 h-20 border-2 rounded overflow-hidden hover:border-primary transition <?php echo $i === 0 ? 'border-primary' : 'border-gray-200'; ?>">
                             <img loading="lazy" src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
                         </button>
                         <?php endforeach; ?>
@@ -175,7 +190,7 @@ require_once theme_path('layouts/header.php');
                     <?php endif; ?>
                     <?php else: ?>
                     <div class="aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                        暂无图片
+                        <?php echo __('no_image'); ?>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -372,7 +387,7 @@ require_once theme_path('layouts/header.php');
                              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         <?php else: ?>
                         <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                            暂无图片
+                            <?php echo __('no_image'); ?>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -392,12 +407,69 @@ require_once theme_path('layouts/header.php');
     </div>
 </section>
 
+<?php if (!empty($productImages)): ?>
+<!-- Lightbox 画廊 -->
+<div id="product-lightbox" class="hidden fixed inset-0 z-[9999] bg-black/90 items-center justify-center" onclick="if(event.target === this) closeLightbox()">
+    <!-- 关闭 -->
+    <button type="button" onclick="closeLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="关闭">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+    <!-- 计数 -->
+    <div id="lightbox-counter" class="absolute top-5 left-5 text-white/80 text-sm font-medium">1 / <?php echo count($productImages); ?></div>
+
+    <?php if (count($productImages) > 1): ?>
+    <!-- 上一张 -->
+    <button type="button" onclick="lightboxPrev()" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3" aria-label="上一张">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+    </button>
+    <!-- 下一张 -->
+    <button type="button" onclick="lightboxNext()" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3" aria-label="下一张">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </button>
+    <?php endif; ?>
+
+    <!-- 主图 -->
+    <img id="lightbox-img" src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
+         class="max-w-[90vw] max-h-[80vh] object-contain select-none">
+
+    <?php if (count($productImages) > 1): ?>
+    <!-- 底部缩略图 -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto px-4 pb-1">
+        <?php foreach ($productImages as $i => $img): ?>
+        <button type="button" onclick="event.stopPropagation(); currentImageIdx=<?php echo $i; ?>; renderLightbox(); changeImage(<?php echo $i; ?>);"
+                class="lb-thumb flex-shrink-0 w-16 h-16 rounded overflow-hidden transition <?php echo $i === 0 ? 'ring-2 ring-white' : 'opacity-50'; ?>">
+            <img src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
+        </button>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <script>
-function changeImage(src) {
-    document.getElementById('mainImage').src = src;
-    document.querySelectorAll('.flex.gap-2 button').forEach(function(btn) {
-        var img = btn.querySelector('img');
-        if (img && img.src === src) {
+// 产品图片数组
+var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES); ?>;
+var currentImageIdx = 0;
+
+function changeImage(idx) {
+    // 兼容旧签名（字符串 src）
+    if (typeof idx === 'string') {
+        idx = productImages.indexOf(idx);
+        if (idx < 0) return;
+    }
+    if (idx < 0 || idx >= productImages.length) return;
+    currentImageIdx = idx;
+    var main = document.getElementById('mainImage');
+    if (main) main.src = productImages[idx];
+    document.querySelectorAll('.thumb-btn').forEach(function(btn) {
+        var i = parseInt(btn.dataset.idx, 10);
+        if (i === idx) {
             btn.classList.remove('border-gray-200');
             btn.classList.add('border-primary');
         } else {
@@ -405,7 +477,70 @@ function changeImage(src) {
             btn.classList.add('border-gray-200');
         }
     });
+    // 同步主图右下角的"1 / N"
+    var counter = document.querySelector('#mainImage').parentElement.querySelector('.absolute.bottom-3');
+    if (counter) counter.textContent = (idx + 1) + ' / ' + productImages.length;
 }
+
+// ============ Lightbox 画廊 ============
+function openLightbox(idx) {
+    if (!productImages.length) return;
+    currentImageIdx = idx || 0;
+    var lb = document.getElementById('product-lightbox');
+    if (!lb) return;
+    lb.classList.remove('hidden');
+    lb.classList.add('flex');
+    renderLightbox();
+    document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+    var lb = document.getElementById('product-lightbox');
+    if (!lb) return;
+    lb.classList.add('hidden');
+    lb.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+function lightboxPrev() {
+    currentImageIdx = (currentImageIdx - 1 + productImages.length) % productImages.length;
+    renderLightbox();
+    changeImage(currentImageIdx);
+}
+function lightboxNext() {
+    currentImageIdx = (currentImageIdx + 1) % productImages.length;
+    renderLightbox();
+    changeImage(currentImageIdx);
+}
+function renderLightbox() {
+    var img = document.getElementById('lightbox-img');
+    var cnt = document.getElementById('lightbox-counter');
+    if (img) img.src = productImages[currentImageIdx];
+    if (cnt) cnt.textContent = (currentImageIdx + 1) + ' / ' + productImages.length;
+    // 底部缩略图高亮
+    document.querySelectorAll('.lb-thumb').forEach(function(t, i) {
+        t.classList.toggle('ring-2', i === currentImageIdx);
+        t.classList.toggle('ring-white', i === currentImageIdx);
+        t.classList.toggle('opacity-50', i !== currentImageIdx);
+    });
+}
+// 键盘操作
+document.addEventListener('keydown', function(e) {
+    var lb = document.getElementById('product-lightbox');
+    if (!lb || lb.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft') lightboxPrev();
+    else if (e.key === 'ArrowRight') lightboxNext();
+});
+// 触摸滑动
+(function() {
+    var lb = document.getElementById('product-lightbox');
+    if (!lb) return;
+    var sx = 0;
+    lb.addEventListener('touchstart', function(e) { sx = e.touches[0].clientX; }, { passive: true });
+    lb.addEventListener('touchend', function(e) {
+        var dx = e.changedTouches[0].clientX - sx;
+        if (Math.abs(dx) > 40) dx > 0 ? lightboxPrev() : lightboxNext();
+    });
+})();
 
 // Tab 切换
 document.querySelectorAll('.product-tab').forEach(function(tab) {
@@ -460,3 +595,4 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
 </script>
 
 <?php require_once theme_path('layouts/footer.php'); ?>
+<?php HtmlCache::end(); ?>

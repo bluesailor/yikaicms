@@ -41,7 +41,7 @@ define('DB_PREFIX', 'yikai_');
 // ============================================================
 // 系统版本
 // ============================================================
-define('CMS_VERSION', '1.4.0');
+define('CMS_VERSION', '1.4.2');
 
 // ============================================================
 // 站点配置
@@ -72,9 +72,9 @@ define('UPLOAD_FILE_TYPES', ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
 // 安全配置
 // ============================================================
 define('ADMIN_LOGIN_PATH', '/admin/login.php');
-define('SESSION_NAME', 'IKAICMS_SESSION');
+define('SESSION_NAME', 'IK_{{SESSION_ID}}');
 define('CSRF_TOKEN_NAME', '_token');
-define('ENCRYPT_KEY', 'CHANGE_ME_TO_RANDOM_STRING');  // API Key 加密密钥
+define('ENCRYPT_KEY', '{{ENCRYPT_KEY}}');
 
 // ============================================================
 // 时区

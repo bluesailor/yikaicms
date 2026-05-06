@@ -19,7 +19,14 @@ class ProductCategoryModel extends Model
      */
     public function getTree(int $parentId = 0): array
     {
-        $items = $this->where(['parent_id' => $parentId, 'status' => 1]);
+        $sql = "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1";
+        $params = [$parentId];
+        if (isMultiLangEnabled('product_categories')) {
+            $sql .= " AND lang = ?";
+            $params[] = siteLang();
+        }
+        $sql .= " ORDER BY {$this->defaultOrder}";
+        $items = db()->fetchAll($sql, $params);
         foreach ($items as &$item) {
             $item['children'] = $this->getTree((int) $item['id']);
         }
@@ -65,9 +72,14 @@ class ProductCategoryModel extends Model
      */
     public function getTopLevel(int $limit = 6): array
     {
-        return db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} WHERE parent_id = 0 AND status = 1 ORDER BY {$this->defaultOrder} LIMIT ?",
-            [$limit]
-        );
+        $sql = "SELECT * FROM {$this->tableName()} WHERE parent_id = 0 AND status = 1";
+        $params = [];
+        if (isMultiLangEnabled('product_categories')) {
+            $sql .= " AND lang = ?";
+            $params[] = siteLang();
+        }
+        $sql .= " ORDER BY {$this->defaultOrder} LIMIT ?";
+        $params[] = $limit;
+        return db()->fetchAll($sql, $params);
     }
 }

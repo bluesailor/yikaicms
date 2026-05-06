@@ -22,6 +22,12 @@ if (!$id) {
     exit;
 }
 
+// 默认使用排版编辑器；显式 ?mode=simple 才进入富文本模式
+if (get('mode') !== 'simple') {
+    header('Location: /admin/page_edit_advance.php?id=' . $id);
+    exit;
+}
+
 // 获取页面数据
 $page = channelModel()->findWhere(['id' => $id, 'type' => 'page']);
 
@@ -30,9 +36,33 @@ if (!$page) {
     exit;
 }
 
-// 联系我们栏目跳转到联系设置页
+// 翻译创建（与 page_edit_advance.php 共用逻辑）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
+    $srcId = postInt('src_id');
+    $toLang = post('to_lang');
+    $src = channelModel()->find($srcId);
+    if (!$src || $src['type'] !== 'page') error('源页面不存在');
+    $groupId = (int)($src['translation_group_id'] ?: $srcId);
+    if (!$src['translation_group_id']) channelModel()->updateById($srcId, ['translation_group_id' => $srcId]);
+    $existing = channelModel()->queryOne("SELECT id FROM " . channelModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
+    if ($existing) success(['id' => (int)$existing['id']], '翻译已存在');
+    $translated = aiTranslateFields($src['name'], $src['description'] ?? '', $toLang);
+    $slug = $src['slug'] ? $toLang . '-' . $src['slug'] : '';
+    if ($slug) {
+        $slugExists = channelModel()->queryOne("SELECT id FROM " . channelModel()->tableName() . " WHERE slug = ?", [$slug]);
+        if ($slugExists) { channelModel()->updateById((int)$slugExists['id'], ['name' => $translated['title'], 'lang' => $toLang, 'translation_group_id' => $groupId, 'updated_at' => time()]); success(['id' => (int)$slugExists['id']], '翻译已更新'); }
+    }
+    $newId = channelModel()->create(['parent_id' => findTranslatedChannelId((int)$src['parent_id'], $toLang) ?: (int)$src['parent_id'], 'name' => $translated['title'], 'slug' => $slug, 'type' => 'page', 'lang' => $toLang, 'translation_group_id' => $groupId, 'description' => $translated['summary'], 'content' => $src['content'], 'image' => $src['image'] ?? '', 'is_nav' => (int)($src['is_nav'] ?? 1), 'status' => (int)($src['status'] ?? 1), 'sort_order' => (int)($src['sort_order'] ?? 0), 'created_at' => time(), 'updated_at' => time()]);
+    success(['id' => $newId], '翻译完成');
+}
+
+// 特殊页面跳转
 if (($page['slug'] ?? '') === 'contact') {
     header('Location: /admin/setting_contact.php');
+    exit;
+}
+if (($page['slug'] ?? '') === 'history') {
+    header('Location: /admin/timeline.php');
     exit;
 }
 
@@ -109,7 +139,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = '编辑单页 - ' . $page['name'];
 $currentMenu = 'page';
 
+// 兄弟页面导航：所有 type=page 的栏目，按 parent_id 分组（两级）
+$allPages = channelModel()->query(
+    'SELECT id, parent_id, name, slug FROM ' . channelModel()->tableName() . ' WHERE type = ? ORDER BY parent_id ASC, sort_order ASC, id ASC',
+    ['page']
+);
+$pageTree = [];
+foreach ($allPages as $p) {
+    if ((int)$p['parent_id'] === 0) {
+        $pageTree[(int)$p['id']] = $p + ['children' => []];
+    }
+}
+foreach ($allPages as $p) {
+    $pid = (int)$p['parent_id'];
+    if ($pid > 0 && isset($pageTree[$pid])) {
+        $pageTree[$pid]['children'][] = $p;
+    }
+}
+
 require_once ROOT_PATH . '/admin/includes/header.php';
+?>
+
+<?php
+$langSwitcher = ['table' => 'channels', 'model' => channelModel(), 'item' => $page, 'edit_url' => '/admin/page_edit.php'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
 ?>
 
 <div class="mb-6 flex items-center justify-between">
@@ -147,7 +200,42 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 <?php endif; ?>
 
-<form id="editForm" class="space-y-6">
+<div class="flex flex-col lg:flex-row gap-6">
+    <!-- 左侧兄弟页面导航 -->
+    <aside class="w-full lg:w-56 flex-shrink-0">
+        <div class="bg-white rounded-lg shadow sticky top-20">
+            <div class="px-4 py-3 border-b">
+                <h3 class="font-bold text-gray-800 text-sm">所有单页</h3>
+            </div>
+            <nav class="p-2 max-h-[calc(100vh-10rem)] overflow-y-auto">
+                <?php foreach ($pageTree as $top):
+                    $isActive = (int)$top['id'] === $id;
+                ?>
+                <a href="/admin/page_edit.php?id=<?php echo (int)$top['id']; ?>"
+                   class="block px-3 py-2 rounded text-sm truncate <?php echo $isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100'; ?>"
+                   title="<?php echo e($top['name']); ?>">
+                    <?php echo e($top['name']); ?>
+                </a>
+                <?php if (!empty($top['children'])): ?>
+                <div class="ml-3 border-l border-gray-200 pl-2 mb-1">
+                    <?php foreach ($top['children'] as $child):
+                        $isChildActive = (int)$child['id'] === $id;
+                    ?>
+                    <a href="/admin/page_edit.php?id=<?php echo (int)$child['id']; ?>"
+                       class="block px-3 py-1.5 rounded text-xs truncate <?php echo $isChildActive ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-500 hover:bg-gray-100'; ?>"
+                       title="<?php echo e($child['name']); ?>">
+                        <?php echo e($child['name']); ?>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                <?php endforeach; ?>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- 右侧编辑表单 -->
+    <form id="editForm" class="flex-1 min-w-0 space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800">基本信息</h2>
@@ -203,10 +291,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">SEO设置</h2>
-        </div>
+    <details class="bg-white rounded-lg shadow group">
+        <summary class="px-6 py-4 border-b cursor-pointer flex items-center justify-between list-none">
+            <h2 class="font-bold text-gray-800">SEO 设置</h2>
+            <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
         <div class="p-6 space-y-4">
             <div>
                 <label class="block text-sm text-gray-700 mb-1">SEO标题</label>
@@ -223,7 +312,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <textarea name="seo_description" rows="2" class="w-full border rounded px-4 py-2"><?php echo e($page['seo_description']); ?></textarea>
             </div>
         </div>
-    </div>
+    </details>
 
     <div class="bg-white rounded-lg shadow p-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
@@ -231,7 +320,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             保存
         </button>
     </div>
-</form>
+    </form>
+</div>
 
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
 

@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(300);
+
 $channelId = getInt('id');
 $slug = get('slug');
 
@@ -24,7 +26,7 @@ if ($slug) {
 
 if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
-    exit('栏目不存在');
+    exit(__('error_channel_not_found'));
 }
 
 // 如果是单页类型，直接加载单页（避免重定向循环）
@@ -86,6 +88,17 @@ if ($isProductType) {
             $productCategoryId = (int)$productCategory['id'];
         }
     }
+
+    // 前台排序
+    $currentSort = get('sort', config('product_default_sort', 'default'));
+    if (!isset(ProductModel::SORT_MAP[$currentSort])) {
+        $currentSort = 'default';
+    }
+    $whereConditions['sort'] = $currentSort;
+
+    // 可用排序选项（后台配置）
+    $sortOptionsJson = config('product_sort_options', '["default","newest","views"]');
+    $enabledSorts = json_decode($sortOptionsJson, true) ?: ['default', 'newest', 'views'];
 
     // 获取产品列表
     $total = getProductsCount($productCategoryId, $whereConditions);
@@ -164,7 +177,11 @@ if ($showSidebar || $showProductTopNav) {
 
         // 递归获取产品分类树
         function buildProductCategoryTree(int $parentId, int $currentId): array {
-            $categories = productCategoryModel()->where(['parent_id' => $parentId, 'status' => 1]);
+            $conditions = ['parent_id' => $parentId, 'status' => 1];
+            if (isMultiLangEnabled('product_categories')) {
+                $conditions['lang'] = siteLang();
+            }
+            $categories = productCategoryModel()->where($conditions);
             $tree = [];
             foreach ($categories as $cat) {
                 $cat['children'] = buildProductCategoryTree((int)$cat['id'], $currentId);
@@ -301,7 +318,7 @@ $horizRootChannel = $channel;
             <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                           placeholder="搜索产品..."
+                           placeholder="<?php echo __('list_search_product'); ?>"
                            class="w-48 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                     <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,7 +327,7 @@ $horizRootChannel = $channel;
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="清除搜索">
+                <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -321,8 +338,8 @@ $horizRootChannel = $channel;
         <!-- 分类筛选 -->
         <div class="border rounded-lg text-sm">
             <div class="px-4 py-2 bg-gray-50 border-b flex items-center gap-2">
-                <span class="text-gray-600 font-medium">产品分类:</span>
-                <a href="<?php echo channelUrl($rootChannel); ?>" class="<?php echo $productCategoryId === 0 && $keyword === '' ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>">全部产品</a>
+                <span class="text-gray-600 font-medium"><?php echo __('list_product_category'); ?>:</span>
+                <a href="<?php echo channelUrl($rootChannel); ?>" class="<?php echo $productCategoryId === 0 && $keyword === '' ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>"><?php echo __('list_all_products'); ?></a>
             </div>
             <div class="divide-y">
             <?php foreach ($topCategories as $tc):
@@ -370,7 +387,7 @@ $horizRootChannel = $channel;
             <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                           placeholder="搜索..."
+                           placeholder="<?php echo __('search_placeholder'); ?>"
                            class="w-48 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                     <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,7 +396,7 @@ $horizRootChannel = $channel;
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="清除搜索">
+                <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -389,7 +406,7 @@ $horizRootChannel = $channel;
         </div>
         <?php if ($keyword !== ''): ?>
         <div class="pb-3 text-sm text-gray-500">
-            搜索 "<span class="text-primary"><?php echo e($keyword); ?></span>" 共 <span class="text-primary font-medium"><?php echo $total; ?></span> 条结果
+            <?php echo __('search_total', ['count' => '<span class="text-primary font-medium">' . $total . '</span>']); ?> — "<span class="text-primary"><?php echo e($keyword); ?></span>"
         </div>
         <?php endif; ?>
     </div>
@@ -400,6 +417,28 @@ $horizRootChannel = $channel;
 <section class="py-12">
     <div class="container mx-auto px-4">
         <?php if ($showProductTopNav): ?>
+        <!-- 产品排序栏 -->
+        <?php if ($isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
+        <div class="flex items-center gap-2 mb-6 text-sm">
+            <span class="text-gray-500 mr-1"><?php echo __('list_sort'); ?>：</span>
+            <?php foreach ($enabledSorts as $sortKey):
+                if (!isset(ProductModel::SORT_LABELS[$sortKey])) continue;
+                $isActive = ($sortKey === $currentSort);
+                $sortUrl = strtok($_SERVER['REQUEST_URI'], '?');
+                $sortParams = $_GET;
+                $sortParams['sort'] = $sortKey;
+                unset($sortParams['page']);
+                $sortUrl .= '?' . http_build_query($sortParams);
+            ?>
+            <a href="<?php echo e($sortUrl); ?>"
+               class="px-3 py-1.5 rounded-full border transition <?php echo $isActive ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+                <?php echo __(ProductModel::SORT_LABELS[$sortKey]); ?>
+            </a>
+            <?php endforeach; ?>
+            <span class="ml-auto text-gray-400"><?php echo __('list_total'); ?> <?php echo $total; ?> <?php echo __('list_items'); ?></span>
+        </div>
+        <?php endif; ?>
+
         <!-- 产品顶栏模式：全宽4列网格 -->
         <?php if (!empty($contents)): ?>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -416,16 +455,19 @@ $horizRootChannel = $channel;
         <!-- 分页 -->
         <?php
         $totalPages = (int)ceil($total / $perPage);
-        $pageUrl = function(int $p) use ($channel, $keyword, $productCategory): string {
+        $pageUrl = function(int $p) use ($channel, $keyword, $productCategory, $currentSort): string {
+            $extraParams = '';
+            if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
+            if (isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
+            $queryStr = $extraParams !== '' ? '?' . ltrim($extraParams, '&') : '';
+
             if ($productCategory) {
                 $catSlug = $productCategory['slug'] ?? '';
-                $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
-                return $p === 1 ? '/product/' . $catSlug . '.html' . $keywordParam : '/product/' . $catSlug . '/page/' . $p . '.html' . $keywordParam;
+                return ($p === 1 ? '/product/' . $catSlug . '.html' : '/product/' . $catSlug . '/page/' . $p . '.html') . $queryStr;
             }
             $slug = $channel['slug'] ?? '';
-            $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
             $url = $p === 1 ? ($slug ? "/{$slug}.html" : "/list/{$channel['id']}.html") : ($slug ? "/{$slug}/page/{$p}.html" : "/list/{$channel['id']}/page/{$p}.html");
-            return $url . $keywordParam;
+            return $url . $queryStr;
         };
         require theme_path('partials/pagination.php');
         ?>
@@ -565,13 +607,31 @@ $horizRootChannel = $channel;
             <!-- 右侧产品列表 -->
             <div class="flex-1 min-w-0">
                 <!-- 列表头部 -->
-                <div class="flex items-center justify-between mb-6">
-                    <div class="text-gray-600">
+                <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+                    <div class="text-gray-600 text-sm">
                         <?php if ($keyword !== ''): ?>
                         <?php echo __('search_result'); ?> "<span class="text-primary font-medium"><?php echo e($keyword); ?></span>"
                         <?php endif; ?>
                         <?php echo __('list_total'); ?> <span class="text-primary font-medium"><?php echo $total; ?></span> <?php echo __('list_items'); ?>
                     </div>
+                    <?php if ($isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
+                    <div class="flex items-center gap-1.5 text-sm">
+                        <?php foreach ($enabledSorts as $sortKey):
+                            if (!isset(ProductModel::SORT_LABELS[$sortKey])) continue;
+                            $isActive = ($sortKey === $currentSort);
+                            $sortUrl = strtok($_SERVER['REQUEST_URI'], '?');
+                            $sortParams = $_GET;
+                            $sortParams['sort'] = $sortKey;
+                            unset($sortParams['page']);
+                            $sortUrl .= '?' . http_build_query($sortParams);
+                        ?>
+                        <a href="<?php echo e($sortUrl); ?>"
+                           class="px-3 py-1 rounded-full border transition <?php echo $isActive ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+                            <?php echo __(ProductModel::SORT_LABELS[$sortKey]); ?>
+                        </a>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <?php if (!empty($contents)): ?>
@@ -589,24 +649,28 @@ $horizRootChannel = $channel;
                 <!-- 分页 -->
                 <?php
                 $totalPages = (int)ceil($total / $perPage);
-                $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory): string {
+                $currentSort = $currentSort ?? 'default';
+                $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort): string {
+                    $extraParams = '';
+                    if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
+                    if ($isProductType && isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
+                    $queryStr = $extraParams !== '' ? '?' . ltrim($extraParams, '&') : '';
+
                     if ($isProductType && $productCategory) {
                         $catSlug = $productCategory['slug'] ?? '';
-                        $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
                         if ($p === 1) {
-                            return '/product/' . $catSlug . '.html' . $keywordParam;
+                            return '/product/' . $catSlug . '.html' . $queryStr;
                         } else {
-                            return '/product/' . $catSlug . '/page/' . $p . '.html' . $keywordParam;
+                            return '/product/' . $catSlug . '/page/' . $p . '.html' . $queryStr;
                         }
                     }
                     $slug = $channel['slug'] ?? '';
-                    $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
                     if ($p === 1) {
                         $url = $slug ? "/{$slug}.html" : "/list/{$channel['id']}.html";
                     } else {
                         $url = $slug ? "/{$slug}/page/{$p}.html" : "/list/{$channel['id']}/page/{$p}.html";
                     }
-                    return $url . $keywordParam;
+                    return $url . $queryStr;
                 };
                 require theme_path('partials/pagination.php');
                 ?>
@@ -649,7 +713,7 @@ $horizRootChannel = $channel;
                             </button>
                         </div>
                         <?php if ($keyword !== ''): ?>
-                        <a href="<?php echo channelUrl($channel); ?><?php echo $dlCatId > 0 ? '?cat=' . $dlCatId : ''; ?>" class="text-gray-400 hover:text-red-500" title="清除搜索">
+                        <a href="<?php echo channelUrl($channel); ?><?php echo $dlCatId > 0 ? '?cat=' . $dlCatId : ''; ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -659,7 +723,7 @@ $horizRootChannel = $channel;
                 </div>
                 <?php if ($keyword !== ''): ?>
                 <div class="mb-4 text-sm text-gray-500">
-                    搜索 "<span class="text-primary"><?php echo e($keyword); ?></span>" 共 <span class="text-primary font-medium"><?php echo $total; ?></span> 条结果
+                    <?php echo __('search_total', ['count' => '<span class="text-primary font-medium">' . $total . '</span>']); ?> — "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 </div>
                 <?php endif; ?>
                 <?php if (!empty($downloads)): ?>
@@ -829,3 +893,4 @@ document.querySelectorAll('.category-toggle').forEach(function(btn) {
 <?php endif; ?>
 
 <?php require_once theme_path('layouts/footer.php'); ?>
+<?php HtmlCache::end(); ?>

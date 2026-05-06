@@ -46,8 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 获取所有标签按组分类
-$allTags = db()->fetchAll("SELECT t.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "product_tag_map WHERE tag_id = t.id) as product_count FROM " . DB_PREFIX . "product_tags t ORDER BY t.group_name, t.sort_order, t.id");
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('product_tags');
+$filterLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
+
+if ($hasMultiLang) {
+    $allTags = db()->fetchAll("SELECT t.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "product_tag_map WHERE tag_id = t.id) as product_count FROM " . DB_PREFIX . "product_tags t WHERE t.lang = ? ORDER BY t.group_name, t.sort_order, t.id", [$filterLang]);
+} else {
+    $allTags = db()->fetchAll("SELECT t.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "product_tag_map WHERE tag_id = t.id) as product_count FROM " . DB_PREFIX . "product_tags t ORDER BY t.group_name, t.sort_order, t.id");
+}
 
 $groups = [];
 foreach ($allTags as $tag) {
@@ -66,6 +75,15 @@ $pageTitle = '标签管理';
 $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">

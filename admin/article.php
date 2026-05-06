@@ -16,7 +16,14 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('content');
 
-// 获取 news 栏目及其子栏目 ID
+// 多语言
+$defaultLang = config('site_lang', 'zh-CN');
+$multiLangEnabled = isMultiLangEnabled('contents');
+$allLangs = availableLanguages();
+$otherLangs = $allLangs;
+unset($otherLangs[$defaultLang]);
+
+// 获取 news 栏目及其子栏目 ID（默认语言）
 $newsChannel = getChannelBySlug('news');
 $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
 $newsChildIds = $newsChannelId > 0 ? channelModel()->getChildIds($newsChannelId) : [];
@@ -79,6 +86,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success(['is_recommend' => $newValue]);
     }
 
+    if ($action === 'quick_translate') {
+        $srcId = postInt('src_id');
+        $toLang = post('to_lang');
+        $src = contentModel()->find($srcId);
+        if (!$src) error('源内容不存在');
+        $groupId = (int)($src['translation_group_id'] ?: $srcId);
+        if (!$src['translation_group_id']) contentModel()->updateById($srcId, ['translation_group_id' => $srcId]);
+        $existing = contentModel()->queryOne("SELECT id FROM " . contentModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
+        if ($existing) success(['id' => (int)$existing['id']], '翻译已存在');
+
+        $translated = aiTranslateFields($src['title'], $src['summary'] ?? '', $toLang);
+        $newId = contentModel()->create([
+            'channel_id' => findTranslatedChannelId((int)$src['channel_id'], $toLang),
+            'type' => $src['type'], 'title' => $translated['title'], 'summary' => $translated['summary'],
+            'content' => $src['content'], 'cover' => $src['cover'] ?? '', 'author' => $src['author'] ?? '',
+            'source' => $src['source'] ?? '', 'tags' => $src['tags'] ?? '',
+            'is_top' => 0, 'is_recommend' => (int)($src['is_recommend'] ?? 0),
+            'status' => 0, 'lang' => $toLang, 'translation_group_id' => $groupId,
+            'publish_time' => time(), 'created_at' => time(), 'updated_at' => time(),
+            'admin_id' => $_SESSION['admin_id'] ?? 0,
+        ]);
+        $langName = availableLanguages()[$toLang] ?? $toLang;
+        adminLog('article', 'translate', "翻译文章 #{$srcId} → {$toLang} #{$newId}");
+        success(['id' => $newId], "已创建{$langName}版本（草稿）");
+    }
+
     exit;
 }
 
@@ -100,6 +133,12 @@ $offset = ($page - 1) * $perPage;
 // 构建查询条件
 $where = [];
 $params = [];
+
+// 多语言：只显示默认语言
+if ($multiLangEnabled) {
+    $where[] = 'a.lang = ?';
+    $params[] = $defaultLang;
+}
 
 // 限制只查询 news 栏目下的内容
 if ($channelId > 0) {
@@ -135,6 +174,26 @@ $articles = db()->fetchAll(
      {$whereSQL} ORDER BY a.is_top DESC, a.id DESC LIMIT ? OFFSET ?",
     array_merge($params, [$perPage, $offset])
 );
+
+// 翻译状态
+$translationStatus = [];
+if ($multiLangEnabled && !empty($otherLangs) && !empty($articles)) {
+    $groupIds = [];
+    foreach ($articles as $a) {
+        $gid = (int)($a['translation_group_id'] ?: $a['id']);
+        $groupIds[$gid] = true;
+    }
+    if (!empty($groupIds)) {
+        $gidList = implode(',', array_keys($groupIds));
+        $transRows = db()->fetchAll(
+            "SELECT id, lang, translation_group_id FROM " . DB_PREFIX . "contents WHERE translation_group_id IN ({$gidList}) AND lang != ?",
+            [$defaultLang]
+        );
+        foreach ($transRows as $tr) {
+            $translationStatus[(int)$tr['translation_group_id']][$tr['lang']] = (int)$tr['id'];
+        }
+    }
+}
 
 $pageTitle = '文章管理';
 $currentMenu = 'article';
@@ -197,6 +256,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3">置顶</th>
                     <th class="px-4 py-3">推荐</th>
                     <th class="px-4 py-3">浏览</th>
+                    <?php if ($multiLangEnabled && !empty($otherLangs)): ?>
+                    <th class="px-4 py-3">翻译</th>
+                    <?php endif; ?>
                     <th class="px-4 py-3">时间</th>
                     <th class="px-4 py-3 w-32">操作</th>
                 </tr>
@@ -239,6 +301,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </button>
                     </td>
                     <td class="px-4 py-3 text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
+                    <?php if ($multiLangEnabled && !empty($otherLangs)):
+                        $gid = (int)($item['translation_group_id'] ?: $item['id']);
+                    ?>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <?php foreach ($otherLangs as $olc => $oll):
+                                $hasT = isset($translationStatus[$gid][$olc]);
+                                $tId = $translationStatus[$gid][$olc] ?? 0;
+                                $label = strtoupper(explode('-', $olc)[0]);
+                            ?>
+                            <?php if ($hasT): ?>
+                            <a href="/admin/article_edit.php?id=<?php echo $tId; ?>" title="<?php echo e($oll); ?> ✓" class="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-600 hover:bg-green-200"><?php echo $label; ?></a>
+                            <?php else: ?>
+                            <button type="button" onclick="quickTranslate(<?php echo $item['id']; ?>,'<?php echo e($olc); ?>',this)" title="<?php echo e($oll); ?>" class="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 cursor-pointer"><?php echo $label; ?></button>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </td>
+                    <?php endif; ?>
                     <td class="px-4 py-3 text-gray-400 text-xs"><?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?></td>
                     <td class="px-4 py-3">
                         <div class="flex gap-3 items-center">
@@ -323,6 +404,21 @@ async function batchAction(action) {
     if (!confirm('确定' + (labels[action] || '操作') + '选中的 ' + ids.length + ' 篇文章？')) return;
     const data = await postAction(action, { ids });
     if (data.code === 0) { showMessage('操作成功'); setTimeout(() => location.reload(), 1000); }
+}
+
+async function quickTranslate(srcId, toLang, btn) {
+    var langNames = <?php echo json_encode($allLangs, JSON_UNESCAPED_UNICODE); ?>;
+    if (!confirm('AI 翻译到 ' + (langNames[toLang]||toLang) + '？')) return;
+    btn.disabled = true; btn.textContent = '...';
+    btn.className = 'px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-600 animate-pulse';
+    var fd = new FormData();
+    fd.append('action', 'quick_translate'); fd.append('src_id', srcId); fd.append('to_lang', toLang);
+    try {
+        var resp = await fetch('', { method: 'POST', body: fd });
+        var data = await safeJson(resp);
+        if (data.code === 0) { btn.className = 'px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-600'; btn.textContent = '✓'; showMessage(data.msg); setTimeout(()=>location.reload(), 1000); }
+        else { btn.disabled = false; btn.className = 'px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-500'; showMessage(data.msg||'失败','error'); }
+    } catch(e) { btn.disabled = false; btn.className = 'px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-400'; showMessage('请求失败','error'); }
 }
 </script>
 

@@ -26,6 +26,28 @@ if ($isEdit && !$download) {
     exit;
 }
 
+// 翻译创建
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
+    $srcId = postInt('src_id');
+    $toLang = post('to_lang');
+    $src = downloadModel()->find($srcId);
+    if (!$src) error('源内容不存在');
+
+    $translated = aiTranslateFields($src['title'], $src['description'] ?? '', $toLang);
+    $newData = $src;
+    unset($newData['id']);
+    $newData['title'] = $translated['title'];
+    $newData['description'] = $translated['summary'];
+    $newData['lang'] = $toLang;
+    $newData['status'] = 0;
+    $newData['download_count'] = 0;
+    $newData['created_at'] = time();
+    $newData['updated_at'] = time();
+    $newId = downloadModel()->create($newData);
+    adminLog('download', 'translate', "翻译下载 #{$srcId} → {$toLang} #{$newId}");
+    success(['id' => $newId], '翻译完成');
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
@@ -76,6 +98,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         返回下载列表
     </a>
 </div>
+
+<?php
+$langSwitcher = ['table' => 'downloads', 'model' => downloadModel(), 'item' => $download, 'edit_url' => '/admin/download_edit.php'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
+?>
 
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

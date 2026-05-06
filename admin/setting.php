@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settingModel()->saveBatch($settings);
 
     adminLog('setting', 'update', '更新站点设置');
+    do_action('setting_saved', $settings);
     success();
 }
 
@@ -63,7 +64,48 @@ $groupMap = [
 ];
 $group = $groupMap[$tab] ?? 'basic';
 
+// 多语言：页脚和首页设置支持按语言配置
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('channels');
+$settingLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$settingLang])) $settingLang = $defaultLang;
+$langSuffix = ($hasMultiLang && $settingLang !== $defaultLang) ? '_' . $settingLang : '';
+
 $items = settingModel()->getByGroup($group);
+// 过滤掉管理菜单、AI设置、以及其他语言的翻译记录
+$otherLangSuffixes = [];
+foreach ($allLangs as $lc => $ll) {
+    if ($lc !== $settingLang) $otherLangSuffixes[] = '_' . $lc;
+}
+$items = array_filter($items, function($item) use ($otherLangSuffixes) {
+    if (str_starts_with($item['key'], 'admin_menu_') || str_starts_with($item['key'], 'ai_') || $item['key'] === 'current_theme') return false;
+    foreach ($otherLangSuffixes as $suf) {
+        if (str_ends_with($item['key'], $suf)) return false;
+    }
+    return true;
+});
+
+// 非默认语言时，替换可翻译字段的值为对应语言版本
+$translatableKeys = [
+    // basic
+    'site_name', 'site_description', 'site_keywords', 'seo_title',
+    // header
+    'nav_home_text', 'topbar_left',
+    // footer
+    'footer_columns', 'footer_nav', 'home_links_title',
+];
+if ($langSuffix) {
+    foreach ($items as &$_item) {
+        if (in_array($_item['key'], $translatableKeys)) {
+            $_item['_original_key'] = $_item['key'];
+            $_item['key'] = $_item['key'] . $langSuffix;
+            $_item['value'] = config($_item['key'], '');
+        }
+    }
+    unset($_item);
+}
+
 $groupDefaults = getDefaults($group);
 
 $pageTitle = '站点设置';
@@ -81,6 +123,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">代码注入</a>
     </div>
 </div>
+
+<?php if ($hasMultiLang && count($allLangs) > 1 && $tab !== 'code'): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言版本：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?tab=<?php echo e($tab); ?>&lang=<?php echo e($lc); ?>"
+       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $settingLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+        <?php echo e($ll); ?>
+        <?php echo $lc === $defaultLang ? '<span class="ml-1 opacity-70">(默认)</span>' : ''; ?>
+    </a>
+    <?php endforeach; ?>
+    <?php if ($settingLang !== $defaultLang): ?>
+    <span class="text-xs text-amber-500 ml-2">编辑 <?php echo e($allLangs[$settingLang] ?? $settingLang); ?> 版本，留空则使用默认语言内容</span>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">

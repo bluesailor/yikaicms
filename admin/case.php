@@ -47,11 +47,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'quick_translate') {
+        $srcId = postInt('src_id');
+        $toLang = post('to_lang');
+        $src = contentModel()->find($srcId);
+        if (!$src) error('源内容不存在');
+
+        $groupId = (int)($src['translation_group_id'] ?: $srcId);
+        if (!$src['translation_group_id']) {
+            contentModel()->updateById($srcId, ['translation_group_id' => $srcId]);
+        }
+
+        // 检查是否已有翻译
+        $existing = contentModel()->queryOne(
+            "SELECT id FROM " . contentModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?",
+            [$groupId, $toLang]
+        );
+        if ($existing) {
+            success(['id' => (int)$existing['id'], 'exists' => true], '翻译已存在');
+        }
+
+        // AI 翻译标题和摘要
+        $langName = availableLanguages()[$toLang] ?? $toLang;
+        $title = $src['title'];
+        $summary = $src['summary'] ?? '';
+
+        require_once ROOT_PATH . '/includes/AiService.php';
+        $encryptedKey = config('ai_api_key', '');
+        $aiKey = $encryptedKey ? AiService::decryptKey($encryptedKey) : '';
+
+        $translatedTitle = dictTranslateTo($title, $toLang) ?: $title;
+        $translatedSummary = $summary;
+
+        if ($aiKey) {
+            $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
+            $prompt = "Translate the following to {$langName}. Return JSON: {\"title\":\"...\",\"summary\":\"...\"}. No explanation.\n\nTitle: {$title}\nSummary: {$summary}";
+            $result = $ai->chat($prompt, 'You are a professional translator. Return only valid JSON.', 0.3);
+            if ($result['success']) {
+                $json = json_decode(preg_replace('/^```json\s*|```\s*$/m', '', trim($result['content'] ?? '')), true);
+                if ($json) {
+                    $translatedTitle = $json['title'] ?? $translatedTitle;
+                    $translatedSummary = $json['summary'] ?? $translatedSummary;
+                }
+            }
+        }
+
+        // 查找对应语言的栏目
+        $targetChannelId = 0;
+        if ($src['channel_id'] > 0) {
+            $srcChannel = channelModel()->find((int)$src['channel_id']);
+            if ($srcChannel) {
+                $chGroupId = (int)($srcChannel['translation_group_id'] ?: $srcChannel['id']);
+                $targetChannel = channelModel()->queryOne(
+                    "SELECT id FROM " . channelModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?",
+                    [$chGroupId, $toLang]
+                );
+                if ($targetChannel) $targetChannelId = (int)$targetChannel['id'];
+            }
+        }
+
+        $newId = contentModel()->create([
+            'channel_id' => $targetChannelId,
+            'type' => $src['type'],
+            'title' => $translatedTitle,
+            'summary' => $translatedSummary,
+            'content' => $src['content'],
+            'cover' => $src['cover'] ?? '',
+            'attachment' => $src['attachment'] ?? '',
+            'views' => 0,
+            'is_top' => 0,
+            'is_recommend' => (int)($src['is_recommend'] ?? 0),
+            'is_hot' => (int)($src['is_hot'] ?? 0),
+            'sort_order' => (int)($src['sort_order'] ?? 0),
+            'status' => 0,
+            'lang' => $toLang,
+            'translation_group_id' => $groupId,
+            'publish_time' => time(),
+            'created_at' => time(),
+            'updated_at' => time(),
+            'admin_id' => $_SESSION['admin_id'] ?? 0,
+        ]);
+
+        adminLog('case', 'translate', "AI翻译案例 #{$srcId} → {$toLang} #{$newId}");
+        success(['id' => $newId], "翻译完成，已创建{$langName}版本（草稿状态）");
+    }
+
     exit;
 }
 
+// 多语言
+$defaultLang = config('site_lang', 'zh-CN');
+$multiLangEnabled = isMultiLangEnabled('contents');
+$filterLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($multiLangEnabled && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
+
 // 获取案例类型的栏目
-$channels = channelModel()->where(['type' => 'case', 'status' => 1], 'sort_order ASC');
+$chConditions = ['type' => 'case', 'status' => 1];
+if ($multiLangEnabled) $chConditions['lang'] = $filterLang;
+$channels = channelModel()->where($chConditions, 'sort_order ASC');
 
 // 查询参数
 $channelId = getInt('channel_id');
@@ -63,6 +157,11 @@ $perPage = 20;
 // 构建查询
 $where = ['c.type = ?'];
 $params = [$contentType];
+
+if ($multiLangEnabled) {
+    $where[] = 'c.lang = ?';
+    $params[] = $filterLang;
+}
 
 if ($channelId > 0) {
     $where[] = 'c.channel_id = ?';
@@ -98,16 +197,48 @@ $items = contentModel()->query(
     $params
 );
 
+// 翻译状态：收集当前列表项的 translation_group_id，查找各语言翻译是否存在
+$otherLangs = $allLangs;
+unset($otherLangs[$filterLang]);
+$translationStatus = []; // [group_id => [lang => item_id]]
+if ($multiLangEnabled && !empty($otherLangs) && !empty($items)) {
+    $groupIds = [];
+    foreach ($items as $it) {
+        $gid = (int)($it['translation_group_id'] ?: $it['id']);
+        $groupIds[$gid] = true;
+    }
+    if (!empty($groupIds)) {
+        $gidList = implode(',', array_keys($groupIds));
+        $transRows = contentModel()->query(
+            "SELECT id, lang, translation_group_id FROM " . contentModel()->tableName() . " WHERE translation_group_id IN ({$gidList}) AND lang != ?",
+            [$filterLang]
+        );
+        foreach ($transRows as $tr) {
+            $translationStatus[(int)$tr['translation_group_id']][$tr['lang']] = (int)$tr['id'];
+        }
+    }
+}
+
 $pageTitle = '案例管理';
 $currentMenu = 'case';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php if ($multiLangEnabled && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
+            <?php if ($multiLangEnabled): ?><input type="hidden" name="lang" value="<?php echo e($filterLang); ?>"><?php endif; ?>
             <select name="channel_id" class="border rounded px-3 py-2">
                 <option value="">全部栏目</option>
                 <?php foreach ($channels as $ch): ?>
@@ -132,10 +263,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </button>
         </form>
 
-        <a href="/admin/content_edit.php?type=case" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            添加案例
-        </a>
+        <div class="flex gap-2">
+            <a href="/admin/channel.php?type=case" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded inline-flex items-center gap-1" title="管理案例分类栏目">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                管理栏目
+            </a>
+            <a href="/admin/content_edit.php?type=case" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                添加案例
+            </a>
+        </div>
     </div>
 </div>
 
@@ -152,6 +289,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">浏览</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">推荐</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
+                        <?php if ($multiLangEnabled && !empty($otherLangs)): ?>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <?php endif; ?>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">发布时间</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
                     </tr>
@@ -186,6 +326,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php echo $item['status'] ? '已发布' : '草稿'; ?>
                             </button>
                         </td>
+                        <?php if ($multiLangEnabled && !empty($otherLangs)):
+                            $gid = (int)($item['translation_group_id'] ?: $item['id']);
+                        ?>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <?php foreach ($otherLangs as $olc => $oll):
+                                    $hasTranslation = isset($translationStatus[$gid][$olc]);
+                                    $transId = $translationStatus[$gid][$olc] ?? 0;
+                                    $label = strtoupper(explode('-', $olc)[0]);
+                                ?>
+                                <?php if ($hasTranslation): ?>
+                                <a href="/admin/content_edit.php?id=<?php echo $transId; ?>" title="<?php echo e($oll); ?> - 已翻译，点击编辑"
+                                   class="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-600 hover:bg-green-200"><?php echo $label; ?></a>
+                                <?php else: ?>
+                                <button type="button" onclick="quickTranslate(<?php echo $item['id']; ?>, '<?php echo e($olc); ?>', this)" title="<?php echo e($oll); ?> - 点击AI翻译"
+                                        class="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 cursor-pointer"><?php echo $label; ?></button>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </td>
+                        <?php endif; ?>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
                             <?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?>
                         </td>
@@ -196,7 +357,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($items)): ?>
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>
+                    <tr><td colspan="<?php echo ($multiLangEnabled && !empty($otherLangs)) ? 9 : 8; ?>" class="px-4 py-8 text-center text-gray-500">暂无数据</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -268,6 +429,38 @@ async function batchDelete() {
     if (data.code === 0) {
         showMessage('删除成功');
         setTimeout(() => location.reload(), 1000);
+    }
+}
+async function quickTranslate(srcId, toLang, btn) {
+    var langNames = <?php echo json_encode($allLangs, JSON_UNESCAPED_UNICODE); ?>;
+    var langName = langNames[toLang] || toLang;
+    if (!confirm('AI 翻译此案例到 ' + langName + '？\n翻译后将创建草稿，可在编辑页调整。')) return;
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    btn.className = 'px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-600 animate-pulse';
+
+    var fd = new FormData();
+    fd.append('action', 'quick_translate');
+    fd.append('src_id', srcId);
+    fd.append('to_lang', toLang);
+    try {
+        var resp = await fetch('', { method: 'POST', body: fd });
+        var data = await safeJson(resp);
+        if (data.code === 0) {
+            btn.className = 'px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-600';
+            btn.textContent = btn.textContent.replace('...', '✓');
+            showMessage(data.msg || '翻译完成');
+            setTimeout(function() { location.reload(); }, 1000);
+        } else {
+            btn.disabled = false;
+            btn.className = 'px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-500';
+            showMessage(data.msg || '翻译失败', 'error');
+        }
+    } catch(e) {
+        btn.disabled = false;
+        btn.className = 'px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-400';
+        showMessage('请求失败', 'error');
     }
 }
 </script>

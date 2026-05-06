@@ -26,7 +26,7 @@
             <span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded">HOT</span>
             <?php endif; ?>
             <?php if (!empty($item['is_recommend'])): ?>
-            <span class="bg-primary text-white text-xs px-2 py-0.5 rounded">推荐</span>
+            <span class="bg-primary text-white text-xs px-2 py-0.5 rounded"><?php echo __('article_recommend'); ?></span>
             <?php endif; ?>
         </div>
         <?php endif; ?>

@@ -70,8 +70,8 @@ if ($tab === 'info') {
         }
     }
 
-    $diskFree = @disk_free_space(ROOT_PATH);
-    $diskTotal = @disk_total_space(ROOT_PATH);
+    $diskFree = function_exists('disk_free_space') ? @disk_free_space(ROOT_PATH) : false;
+    $diskTotal = function_exists('disk_total_space') ? @disk_total_space(ROOT_PATH) : false;
 
     if (!function_exists('dirSize')) {
         function dirSize(string $dir): int {
@@ -86,7 +86,7 @@ if ($tab === 'info') {
     }
 
     if (!function_exists('formatBytes')) {
-        function formatBytes(int|float $bytes): string {
+        function formatBytes($bytes): string {
             if ($bytes <= 0) return '0 B';
             $units = ['B', 'KB', 'MB', 'GB', 'TB'];
             $i = floor(log($bytes, 1024));

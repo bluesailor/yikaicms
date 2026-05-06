@@ -29,9 +29,31 @@ require_once ROOT_PATH . '/includes/models/autoload.php';
 // 初始化语言
 initLang();
 
+// 前台语言检测
+if (!defined('SITE_LANG')) {
+    $defaultSiteLang = (string)config('site_lang', 'zh-CN');
+    $detected = $defaultSiteLang;
+
+    // 仅在开启语言切换器时才检测 URL/cookie 中的语言
+    if ((string)config('show_lang_switcher', '0') === '1') {
+        $supported = ['zh-CN', 'ja', 'en'];
+        if (!empty($_GET['_lang']) && in_array($_GET['_lang'], $supported, true)) {
+            $detected = $_GET['_lang'];
+        } elseif (!empty($_COOKIE['site_lang']) && in_array($_COOKIE['site_lang'], $supported, true)) {
+            $detected = $_COOKIE['site_lang'];
+        }
+    }
+
+    define('SITE_LANG', $detected);
+}
+
 // 加载前台会员认证
 require_once ROOT_PATH . '/includes/member_auth.php';
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+require_once ROOT_PATH . '/includes/HtmlCache.php';
 require_once ROOT_PATH . '/includes/plugin.php';
+
+// 前台启动完成，供插件挂载初始化逻辑
+do_action('init');

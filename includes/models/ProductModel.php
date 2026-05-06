@@ -14,6 +14,11 @@ class ProductModel extends Model
         $where = ['p.status = 1'];
         $params = [];
 
+        if (isMultiLangEnabled('products') && empty($filters['_skip_lang'])) {
+            $where[] = 'p.lang = ?';
+            $params[] = $filters['lang'] ?? siteLang();
+        }
+
         if ($categoryId > 0) {
             $includeChildren = $filters['include_children'] ?? true;
             $catIds = $includeChildren ? productCategoryModel()->getChildIds($categoryId) : [$categoryId];
@@ -42,12 +47,13 @@ class ProductModel extends Model
             $where[] = 'p.is_top = 1';
         }
 
+        $orderBy = $this->resolveSortOrder($filters['sort'] ?? '');
         $whereSQL = implode(' AND ', $where);
         $sql = "SELECT p.*, pc.name as category_name, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
              WHERE {$whereSQL}
-             ORDER BY {$this->defaultOrder}";
+             ORDER BY {$orderBy}";
         if ($limit > 0) {
             $sql .= " LIMIT ? OFFSET ?";
             $params[] = $limit;
@@ -63,6 +69,11 @@ class ProductModel extends Model
     {
         $where = ['status = 1'];
         $params = [];
+
+        if (isMultiLangEnabled('products') && empty($filters['_skip_lang'])) {
+            $where[] = 'lang = ?';
+            $params[] = $filters['lang'] ?? siteLang();
+        }
 
         if ($categoryId > 0) {
             $includeChildren = $filters['include_children'] ?? true;
@@ -94,6 +105,11 @@ class ProductModel extends Model
     {
         $where = [];
         $params = [];
+
+        if (isMultiLangEnabled('products') && !empty($filters['lang'])) {
+            $where[] = 'p.lang = ?';
+            $params[] = $filters['lang'];
+        }
 
         if (!empty($filters['category_id'])) {
             $where[] = 'p.category_id = ?';
@@ -244,5 +260,28 @@ class ProductModel extends Model
         }
 
         return array_values($tagMap);
+    }
+
+    public const SORT_MAP = [
+        'default'    => 'p.is_top DESC, p.sort_order ASC, p.id DESC',
+        'newest'     => 'p.created_at DESC, p.id DESC',
+        'updated'    => 'p.updated_at DESC, p.id DESC',
+        'views'      => 'p.views DESC, p.id DESC',
+        'price_asc'  => 'p.price ASC, p.id DESC',
+        'price_desc' => 'p.price DESC, p.id DESC',
+    ];
+
+    public const SORT_LABELS = [
+        'default'    => 'sort_default',
+        'newest'     => 'sort_newest',
+        'updated'    => 'sort_updated',
+        'views'      => 'sort_views',
+        'price_asc'  => 'sort_price_asc',
+        'price_desc' => 'sort_price_desc',
+    ];
+
+    public function resolveSortOrder(string $sort): string
+    {
+        return self::SORT_MAP[$sort] ?? $this->defaultOrder;
     }
 }

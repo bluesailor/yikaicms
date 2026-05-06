@@ -208,29 +208,11 @@ $upgrades = [
     ],
 
     [
-        'id'    => '20260329_language_settings',
-        'title' => '多语言支持',
-        'desc'  => '新增前台语言和后台语言设置项，支持中文和日本語切换。',
-        'check' => function () {
-            return (int)db()->fetchColumn(
-                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'site_lang'"
-            ) > 0;
-        },
-        'sqls' => [
-            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
-                ('basic', 'site_lang', 'zh-CN', 'select', '前台语言', '前台页面显示语言', '{\"zh-CN\":\"中文\",\"ja\":\"日本語\"}', 13),
-                ('basic', 'admin_lang', 'zh-CN', 'select', '后台语言', '管理后台显示语言', '{\"zh-CN\":\"中文\",\"ja\":\"日本語\"}', 14)",
-        ],
-    ],
-
-    [
         'id'    => '20260329_translate_settings',
         'title' => '翻译API配置',
         'desc'  => '新增翻译API设置项（DeepL/Google Translate），支持语言包自动翻译。',
         'check' => function () {
-            return (int)db()->fetchColumn(
-                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'translate_api'"
-            ) > 0;
+            return true; // 已移除，始终跳过
         },
         'sqls' => [
             "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
@@ -417,6 +399,208 @@ $upgrades = [
                 KEY `idx_provider` (`provider`),
                 KEY `idx_created` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI调用日志'",
+        ],
+    ],
+
+    [
+        'id'    => '20260415_metas_table',
+        'title' => '通用元数据键值表',
+        'desc'  => '新增 yikai_metas 表，为内容/产品/栏目等任意资源挂载键值对元数据，供扩展字段、SEO 扩展等功能使用。',
+        'check' => function () {
+            return db()->tableExists('metas');
+        },
+        'sqls' => [
+            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "metas` (
+                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `owner_type` varchar(30) NOT NULL COMMENT '归属类型',
+                `owner_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+                `meta_key` varchar(100) NOT NULL,
+                `meta_value` longtext,
+                `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+                `updated_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uk_owner_key` (`owner_type`, `owner_id`, `meta_key`),
+                KEY `idx_owner` (`owner_type`, `owner_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通用元数据键值表'",
+        ],
+    ],
+
+    [
+        'id'    => '20260415_extfields_table',
+        'title' => '扩展字段定义表',
+        'desc'  => '新增 yikai_extfields 表，按 owner_type 定义扩展字段（文本/图片/下拉等），字段值存入 yikai_metas。',
+        'check' => function () {
+            return db()->tableExists('extfields');
+        },
+        'sqls' => [
+            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "extfields` (
+                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `owner_type` varchar(30) NOT NULL,
+                `field_key` varchar(64) NOT NULL,
+                `field_name` varchar(100) NOT NULL,
+                `field_type` varchar(20) NOT NULL DEFAULT 'text',
+                `options` text,
+                `placeholder` varchar(255) NOT NULL DEFAULT '',
+                `help_text` varchar(255) NOT NULL DEFAULT '',
+                `is_required` tinyint(1) NOT NULL DEFAULT 0,
+                `sort_order` int(11) NOT NULL DEFAULT 0,
+                `status` tinyint(1) NOT NULL DEFAULT 1,
+                `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uk_owner_key` (`owner_type`, `field_key`),
+                KEY `idx_owner` (`owner_type`, `status`, `sort_order`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='扩展字段定义表'",
+        ],
+    ],
+
+    [
+        'id'    => '20260415_multilang_columns',
+        'title' => '多语言字段：lang + translation_group_id',
+        'desc'  => '为 contents / products / channels 三张表追加 lang 与 translation_group_id 字段，已有数据的 lang 设为当前站点语言。',
+        'check' => function () {
+            return _columnExists('contents', 'lang')
+                && _columnExists('products', 'lang')
+                && _columnExists('channels', 'lang');
+        },
+        'sqls' => [],
+        'php' => function () {
+            $prefix = DB_PREFIX;
+            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
+
+            $tables = ['contents', 'products', 'channels'];
+            foreach ($tables as $t) {
+                $tbl = $prefix . $t;
+                if (db()->isSqlite()) {
+                    db()->execute("ALTER TABLE {$tbl} ADD COLUMN lang TEXT NOT NULL DEFAULT '{$siteLang}'");
+                    db()->execute("ALTER TABLE {$tbl} ADD COLUMN translation_group_id INTEGER NOT NULL DEFAULT 0");
+                } else {
+                    db()->execute("ALTER TABLE `{$tbl}` ADD COLUMN `lang` varchar(5) NOT NULL DEFAULT '{$siteLang}' AFTER `id`");
+                    db()->execute("ALTER TABLE `{$tbl}` ADD COLUMN `translation_group_id` int(11) UNSIGNED NOT NULL DEFAULT 0 AFTER `lang`");
+                    db()->execute("ALTER TABLE `{$tbl}` ADD KEY `idx_lang` (`lang`)");
+                    if ($t !== 'channels') {
+                        db()->execute("ALTER TABLE `{$tbl}` ADD KEY `idx_lang_status` (`lang`, `status`)");
+                        db()->execute("ALTER TABLE `{$tbl}` ADD KEY `idx_trans_group` (`translation_group_id`)");
+                    }
+                }
+            }
+            return "多语言字段已添加，已有数据 lang 设为 {$siteLang}";
+        },
+    ],
+
+    [
+        'id'    => '20260416_fix_multilang_default',
+        'title' => '修复多语言默认值',
+        'desc'  => '将已有数据中 lang=ja 的记录更新为当前站点语言（修复早期升级的默认值问题）。',
+        'check' => function () {
+            $siteLang = (string)(db()->fetchColumn("SELECT value FROM " . DB_PREFIX . "settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
+            if ($siteLang === 'ja') return true;
+            $count = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "channels WHERE lang = 'ja'");
+            return $count === 0;
+        },
+        'sqls' => [],
+        'php' => function () {
+            $prefix = DB_PREFIX;
+            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
+            if ($siteLang === 'ja') return '站点语言为 ja，无需修复';
+            $updated = 0;
+            foreach (['contents', 'products', 'channels'] as $t) {
+                $updated += db()->execute("UPDATE {$prefix}{$t} SET lang = ? WHERE lang = 'ja'", [$siteLang]);
+            }
+            return "已将 {$updated} 条记录的 lang 从 ja 更新为 {$siteLang}";
+        },
+    ],
+
+    [
+        'id'    => '20260418_product_cat_lang',
+        'title' => '产品分类多语言支持',
+        'desc'  => '为 product_categories 表添加 lang、translation_group_id 字段。',
+        'check' => function () {
+            if (db()->isSqlite()) {
+                return (bool)db()->fetchOne("SELECT 1 FROM pragma_table_info('" . DB_PREFIX . "product_categories') WHERE name='lang'");
+            }
+            return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "product_categories` LIKE 'lang'"));
+        },
+        'run' => function () {
+            $prefix = DB_PREFIX;
+            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
+            if (db()->isSqlite()) {
+                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN lang TEXT NOT NULL DEFAULT '{$siteLang}'");
+                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN translation_group_id INTEGER NOT NULL DEFAULT 0");
+            } else {
+                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN lang VARCHAR(10) NOT NULL DEFAULT '{$siteLang}' AFTER slug");
+                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN translation_group_id INT(11) UNSIGNED NOT NULL DEFAULT 0 AFTER lang");
+                db()->execute("ALTER TABLE {$prefix}product_categories ADD INDEX idx_pc_lang (lang)");
+            }
+            db()->execute("UPDATE {$prefix}product_categories SET translation_group_id = id WHERE translation_group_id = 0");
+            return '已添加 lang、translation_group_id 字段';
+        },
+    ],
+
+    [
+        'id'    => '20260418_banner_lang',
+        'title' => '轮播图多语言支持',
+        'desc'  => '为 banners 表添加 lang 字段，支持不同语言显示不同轮播图。',
+        'check' => function () {
+            if (db()->isSqlite()) {
+                return (bool)db()->fetchOne("SELECT 1 FROM pragma_table_info('" . DB_PREFIX . "banners') WHERE name='lang'");
+            }
+            return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "banners` LIKE 'lang'"));
+        },
+        'run' => function () {
+            $prefix = DB_PREFIX;
+            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
+            if (db()->isSqlite()) {
+                db()->execute("ALTER TABLE {$prefix}banners ADD COLUMN lang TEXT NOT NULL DEFAULT '{$siteLang}'");
+            } else {
+                db()->execute("ALTER TABLE {$prefix}banners ADD COLUMN lang VARCHAR(10) NOT NULL DEFAULT '{$siteLang}' AFTER position");
+                db()->execute("ALTER TABLE {$prefix}banners ADD INDEX idx_lang (lang)");
+            }
+            return '已添加 lang 字段';
+        },
+    ],
+
+    [
+        'id'    => '20260415_html_cache_setting',
+        'title' => 'HTML 页面缓存开关',
+        'desc'  => '新增 html_cache_enabled / html_cache_ttl 设置项，启用前台列表/详情页路径级 HTML 缓存。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'html_cache_enabled'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
+                ('system', 'html_cache_enabled', '0', 'select', '启用 HTML 缓存', '前台列表/详情页路径级 HTML 缓存', '{\"0\":\"关闭\",\"1\":\"开启\"}', 10),
+                ('system', 'html_cache_ttl', '300', 'number', 'HTML 缓存 TTL', '缓存有效期（秒）', NULL, 11)",
+        ],
+    ],
+
+    [
+        'id'    => '20260416_contents_sort_order',
+        'title' => '内容表新增排序字段',
+        'desc'  => 'yikai_contents 追加 sort_order 数字排序字段（默认 0），所有内容类型（案例/文章/FAQ/招聘/下载）共享。',
+        'check' => function () {
+            return _columnExists('contents', 'sort_order');
+        },
+        'sqls' => [
+            "ALTER TABLE `" . DB_PREFIX . "contents` ADD COLUMN `sort_order` int(11) NOT NULL DEFAULT 0 COMMENT '排序权重' AFTER `status`",
+            "ALTER TABLE `" . DB_PREFIX . "contents` ADD KEY `idx_sort` (`sort_order`)",
+        ],
+    ],
+
+    [
+        'id'    => '20260416_product_sort_options',
+        'title' => '产品排序选项配置',
+        'desc'  => '新增前台产品列表排序选项和默认排序设置。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'product_sort_options'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
+                ('basic', 'product_default_sort', 'default', 'select', '产品默认排序', '前台产品列表的默认排序方式', '{\"default\":\"默认排序\",\"newest\":\"最新发布\",\"updated\":\"最近更新\",\"views\":\"浏览量\",\"price_asc\":\"价格从低到高\",\"price_desc\":\"价格从高到低\"}', 15),
+                ('basic', 'product_sort_options', '[\"default\",\"newest\",\"views\"]', 'text', '可用排序选项', '前台显示的排序选项（JSON数组），可选：default/newest/updated/views/price_asc/price_desc', NULL, 16)",
         ],
     ],
 

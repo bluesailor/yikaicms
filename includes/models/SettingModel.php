@@ -37,7 +37,7 @@ class SettingModel extends Model
     /**
      * 设置单个值（存在则更新，不存在则插入）
      */
-    public function set(string $key, string $value): int
+    public function set(string $key, string $value, string $group = 'basic'): int
     {
         $this->cache = null; // 清除缓存
         $existing = db()->fetchOne(
@@ -50,7 +50,7 @@ class SettingModel extends Model
                 [$value, $key]
             );
         }
-        $this->create(['key' => $key, 'value' => $value, 'group' => 'basic', 'name' => $key, 'tip' => '']);
+        $this->create(['key' => $key, 'value' => $value, 'group' => $group, 'name' => $key, 'tip' => '']);
         return 1;
     }
 

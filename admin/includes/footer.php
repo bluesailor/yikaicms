@@ -2,7 +2,12 @@
 
             <!-- 底部 -->
             <footer class="p-6 text-center text-gray-500 text-sm">
-                &copy; <?php echo date('Y'); ?> Yikai CMS
+                <?php $adminCopyright = config('admin_copyright', ''); ?>
+                <?php if ($adminCopyright): ?>
+                    <?php echo e($adminCopyright); ?>
+                <?php else: ?>
+                    &copy; <?php echo date('Y'); ?> <?php echo e(config('admin_title', 'Yikai CMS')); ?>
+                <?php endif; ?>
             </footer>
         </div>
     </div>
@@ -350,6 +355,18 @@
         include __DIR__ . '/ai_panel_js.php';
     }
     ?>
+    <script>
+function switchAdminLang() {
+    var current = document.documentElement.lang || 'zh-CN';
+    var next = current === 'ja' ? 'zh-CN' : 'ja';
+    var fd = new FormData();
+    fd.append('settings[admin_lang]', next);
+    fetch('/admin/setting.php', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { if (d.code === 0) location.reload(); else showMessage(d.msg || 'Error', 'error'); })
+        .catch(function() { showMessage('Error', 'error'); });
+}
+</script>
     <?php do_action('ik_admin_footer_scripts'); ?>
 </body>
 </html>

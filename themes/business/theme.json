@@ -1,0 +1,11 @@
+{
+    "name": "Business",
+    "description": "深色商务风模板，适合建筑、工程、制造业等企业网站",
+    "version": "1.0.0",
+    "author": "Yikai CMS",
+    "screenshot": "screenshot.png",
+    "colors": {
+        "primary": "#3B6CF5",
+        "secondary": "#2554d4"
+    }
+}
