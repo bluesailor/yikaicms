@@ -26,6 +26,47 @@ if ($id > 0) {
     }
 }
 
+// 处理翻译创建
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
+    $srcId = postInt('src_id');
+    $toLang = post('to_lang');
+    $src = contentModel()->find($srcId);
+    if (!$src) error('源内容不存在');
+
+    $groupId = (int)($src['translation_group_id'] ?: $srcId);
+    if (!$src['translation_group_id']) {
+        contentModel()->updateById($srcId, ['translation_group_id' => $srcId]);
+    }
+    $existing = contentModel()->queryOne("SELECT id FROM " . contentModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
+    if ($existing) success(['id' => (int)$existing['id']], '翻译已存在');
+
+    $translated = aiTranslateFields($src['title'], $src['summary'] ?? '', $toLang);
+    $newId = contentModel()->create([
+        'channel_id' => findTranslatedChannelId((int)$src['channel_id'], $toLang),
+        'type' => $src['type'],
+        'title' => $translated['title'],
+        'summary' => $translated['summary'],
+        'content' => $src['content'],
+        'cover' => $src['cover'] ?? '',
+        'author' => $src['author'] ?? '',
+        'source' => $src['source'] ?? '',
+        'tags' => $src['tags'] ?? '',
+        'is_top' => 0,
+        'is_recommend' => (int)($src['is_recommend'] ?? 0),
+        'is_hot' => (int)($src['is_hot'] ?? 0),
+        'sort_order' => (int)($src['sort_order'] ?? 0),
+        'status' => 0,
+        'lang' => $toLang,
+        'translation_group_id' => $groupId,
+        'publish_time' => time(),
+        'created_at' => time(),
+        'updated_at' => time(),
+        'admin_id' => $_SESSION['admin_id'] ?? 0,
+    ]);
+    adminLog('article', 'translate', "翻译文章 #{$srcId} → {$toLang} #{$newId}");
+    success(['id' => $newId], '翻译完成');
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
@@ -88,10 +129,15 @@ $currentMenu = 'article';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php
+$langSwitcher = ['table' => 'contents', 'model' => contentModel(), 'item' => $article, 'edit_url' => '/admin/article_edit.php', 'type' => 'article'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
+?>
+
 <form id="editForm" class="space-y-6">
-    <div class="flex gap-6">
+    <div class="flex flex-col lg:flex-row gap-6">
         <!-- 主内容区 -->
-        <div class="flex-1 space-y-6">
+        <div class="flex-1 min-w-0 space-y-6">
             <?php include __DIR__ . '/includes/ai_panel.php'; ?>
 
             <div class="bg-white rounded-lg shadow p-6">
@@ -128,7 +174,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
 
         <!-- 侧边栏 -->
-        <div class="w-80 space-y-6">
+        <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4">发布设置</h3>
                 <div class="space-y-4">
@@ -251,16 +297,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
-                </button>
-                <a href="/admin/article.php" class="flex-1 text-center border py-2 rounded hover:bg-gray-100 transition inline-flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    返回
-                </a>
-            </div>
+        </div>
+    </div>
+
+    <!-- 底部 sticky 操作栏 -->
+    <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
+        <div class="flex gap-3 justify-end items-center">
+            <span class="text-xs text-gray-400 mr-auto hidden sm:inline">请确认后保存</span>
+            <a href="/admin/article.php" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                返回
+            </a>
+            <button type="submit" class="px-8 py-2 bg-primary hover:bg-secondary text-white rounded transition inline-flex items-center gap-1 text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                保存
+            </button>
         </div>
     </div>
 </form>

@@ -75,7 +75,7 @@ $contents = db()->fetchAll(
 foreach ($contents as $content) {
     $url = [
         'loc'        => $siteUrl . contentUrl($content),
-        'lastmod'    => date('Y-m-d', (int)($content['updated_at'] ?: $content['publish_time'])),
+        'lastmod'    => date('Y-m-d', (int)($content['updated_at'] ?: (($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0)))),
         'changefreq' => 'monthly',
         'priority'   => '0.6',
     ];
@@ -108,6 +108,9 @@ foreach ($products as $product) {
     }
     $urls[] = $url;
 }
+
+// 过滤器：允许插件增删 sitemap URL
+$urls = apply_filters('sitemap_urls', $urls);
 
 // 生成 XML
 $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";

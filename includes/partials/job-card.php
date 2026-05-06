@@ -33,7 +33,7 @@
                     <?php echo e($item['location']); ?>
                 </span>
                 <?php endif; ?>
-                <span><?php echo friendlyTime((int)$item['publish_time']); ?></span>
+                <span><?php echo friendlyTime((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span>
             </div>
         </div>
         <?php if ($item['salary']): ?>

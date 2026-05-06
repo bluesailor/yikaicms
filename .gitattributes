@@ -5,3 +5,4 @@
 /build.sh        export-ignore
 /README.md       export-ignore
 /docs/           export-ignore
+/admin/bigdump-2.29/ export-ignore

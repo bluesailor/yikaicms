@@ -87,6 +87,14 @@ return [
     'goto_admin' => '进入后台',
     'goto_home' => '访问首页',
     'security_tip' => '安全提示：请删除 install 目录',
+    'rewrite_title' => 'URL 伪静态配置',
+    'rewrite_desc' => '启用友好URL（如 /company.html）需要配置Web服务器的伪静态规则',
+    'rewrite_apache_ok' => '无需配置',
+    'rewrite_apache_desc' => '已内置 .htaccess 文件。确保 Apache 启用了 mod_rewrite 模块即可自动生效。',
+    'rewrite_apache_check' => '请确认 Apache 的 httpd.conf 中已设置 AllowOverride All。',
+    'rewrite_nginx_manual' => '需要手动配置',
+    'rewrite_nginx_desc' => '请将以下规则添加到站点的 Nginx 配置文件（server 块内）。',
+    'rewrite_nginx_reload' => '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。',
 
     // 错误
     'error_already_installed' => '系统已安装，如需重新安装请删除 config/installed.lock 文件',

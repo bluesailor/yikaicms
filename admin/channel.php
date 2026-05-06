@@ -85,6 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('channel', 'update', '更新栏目：' . $data['name']);
         } else {
             $data['created_at'] = time();
+            if (isMultiLangEnabled('channels')) {
+                $data['lang'] = post('lang', config('site_lang', 'zh-CN'));
+            }
             $id = channelModel()->create($data);
             adminLog('channel', 'create', '创建栏目：' . $data['name']);
         }
@@ -213,15 +216,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// 多语言：只显示当前选中语言的栏目
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('channels');
+$channelLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$channelLang])) {
+    $channelLang = $defaultLang;
+}
+$filterLang = $hasMultiLang ? $channelLang : null;
+
 // 获取栏目列表（平铺，用于下拉选项）
-$channels = channelModel()->getFlatList();
+$channels = channelModel()->getFlatList(0, 0, $filterLang);
 
 // 后台用：不过滤 status，所有栏目都显示
-$channelTree = channelModel()->getTreeAll();
+$channelTree = channelModel()->getTreeAll(0, $filterLang);
 
 // 获取产品分类（用于产品类型栏目显示）
+$pcLangWhere = isMultiLangEnabled('product_categories') ? ' AND lang = ?' : '';
+$pcLangParams = isMultiLangEnabled('product_categories') ? [$channelLang] : [];
 $productCats = db()->fetchAll(
-    'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE parent_id = 0 ORDER BY sort_order ASC, id ASC'
+    'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE parent_id = 0' . $pcLangWhere . ' ORDER BY sort_order ASC, id ASC',
+    $pcLangParams
 );
 // 按产品栏目ID索引（找出所有 type=product 的顶级栏目）
 $productChannelIds = [];
@@ -285,6 +301,24 @@ $currentMenu = 'channel';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll):
+        $langCount = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "channels WHERE lang = ? AND parent_id = 0", [$lc]);
+    ?>
+    <a href="?lang=<?php echo e($lc); ?>&tab=<?php echo e($activeTab); ?>"
+       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $channelLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+        <?php echo e($ll); ?>
+        <span class="ml-1 opacity-70">(<?php echo $langCount; ?>)</span>
+    </a>
+    <?php endforeach; ?>
+    <?php if ($channelLang !== $defaultLang): ?>
+    <span class="text-xs text-amber-500 ml-2">翻译栏目请在 <a href="/admin/setting_channel_translate.php?lang=<?php echo e($channelLang); ?>" class="text-primary hover:underline">栏目翻译</a> 管理</span>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- 栏目列表 -->
@@ -352,6 +386,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php else: ?>
                                 <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                 <?php endif; ?>
+                                <?php elseif (($ch['type'] ?? '') === 'album' && !empty($ch['album_id'])): ?>
+                                <a href="/admin/album_photos.php?id=<?php echo $ch['album_id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                 <?php endif; ?>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
@@ -382,6 +418,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <?php else: ?>
                                         <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                         <?php endif; ?>
+                                        <?php elseif (($child['type'] ?? '') === 'album' && !empty($child['album_id'])): ?>
+                                        <a href="/admin/album_photos.php?id=<?php echo $child['album_id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                         <?php endif; ?>
                                         <?php if (empty($child['is_system'])): ?>
                                         <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
@@ -473,6 +511,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php else: ?>
                                 <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                 <?php endif; ?>
+                                <?php elseif (($ch['type'] ?? '') === 'album' && !empty($ch['album_id'])): ?>
+                                <a href="/admin/album_photos.php?id=<?php echo $ch['album_id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                 <?php endif; ?>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
@@ -526,6 +566,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php else: ?>
                                 <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                 <?php endif; ?>
+                                <?php elseif (($ch['type'] ?? '') === 'album' && !empty($ch['album_id'])): ?>
+                                <a href="/admin/album_photos.php?id=<?php echo $ch['album_id']; ?>" class="text-gray-500 hover:text-primary text-sm">编辑内容</a>
                                 <?php endif; ?>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"

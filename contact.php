@@ -86,7 +86,7 @@ require theme_path('partials/page-hero.php');
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- 留言表单 -->
             <div class="bg-white rounded-lg shadow p-6 md:p-8">
-                <?php $formTitle = config('contact_form_title') ?: __('contact_form_title'); ?>
+                <?php $formTitle = configLang('contact_form_title', 'contact_form_title'); ?>
                 <h2 class="text-xl font-bold text-dark mb-2"><?php echo e($formTitle); ?></h2>
                 <?php if ($formDesc = config('contact_form_desc')): ?>
                 <p class="text-gray-500 text-sm mb-6"><?php echo e($formDesc); ?></p>
@@ -103,9 +103,9 @@ require theme_path('partials/page-hero.php');
                 <img loading="lazy" src="<?php echo e($mapImage); ?>" alt="地图" class="w-full h-full object-cover">
                 <?php elseif ($qrcode = config('contact_qrcode')): ?>
                 <div class="h-full flex flex-col items-center justify-center p-8">
-                    <h3 class="text-xl font-bold text-dark mb-6">扫码联系我们</h3>
-                    <img loading="lazy" src="<?php echo e($qrcode); ?>" alt="二维码" class="w-48 h-48">
-                    <p class="text-gray-500 mt-4">微信扫一扫</p>
+                    <h3 class="text-xl font-bold text-dark mb-6"><?php echo __('contact_qr_title'); ?></h3>
+                    <img loading="lazy" src="<?php echo e($qrcode); ?>" alt="QR Code" class="w-48 h-48">
+                    <p class="text-gray-500 mt-4"><?php echo __('contact_wechat_scan'); ?></p>
                 </div>
                 <?php else: ?>
                 <div class="h-full flex items-center justify-center bg-gray-100 min-h-[400px]">

@@ -196,7 +196,7 @@ function getChannelUrl(array $channel): string {
                 <nav class="hidden md:flex items-center gap-8">
                     <?php if (config('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="text-sm tracking-wide transition <?php echo isset($isHomePage) && $isHomePage ? 'text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-900'; ?>">
-                        <?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?>
+                        <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
                     <?php endif; ?>
                     <?php foreach ($navChannels as $navItem): ?>
@@ -236,7 +236,7 @@ function getChannelUrl(array $channel): string {
         <nav id="mobileMenu" class="md:hidden hidden border-t border-gray-100 bg-white">
             <div class="container mx-auto px-6 py-6 space-y-4">
                 <?php if (config('nav_home_show', '1') !== '0'): ?>
-                <a href="/" class="block text-sm tracking-wide text-gray-600 hover:text-gray-900"><?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?></a>
+                <a href="/" class="block text-sm tracking-wide text-gray-600 hover:text-gray-900"><?php echo e(configLang('nav_home_text', 'nav_home')); ?></a>
                 <?php endif; ?>
                 <?php foreach ($navChannels as $navItem): ?>
                 <a href="<?php echo getChannelUrl($navItem); ?>"

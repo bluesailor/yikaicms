@@ -21,7 +21,7 @@ $job = jobModel()->find($id);
 
 if (!$job || (int)$job['status'] !== 1) {
     header('HTTP/1.1 404 Not Found');
-    exit('职位不存在');
+    exit(__('error_job_not_found'));
 }
 
 // 更新浏览量
@@ -92,42 +92,42 @@ require_once theme_path('layouts/header.php');
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <?php if ($job['salary']): ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">薪资待遇</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('job_salary'); ?></div>
                             <div class="text-primary font-bold"><?php echo e($job['salary']); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['location']): ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">工作地点</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('job_location'); ?></div>
                             <div class="font-medium"><?php echo e($job['location']); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['job_type']): ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">工作性质</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('job_type'); ?></div>
                             <div class="font-medium"><?php echo e($job['job_type']); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['headcount']): ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">招聘人数</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('job_headcount'); ?></div>
                             <div class="font-medium"><?php echo e($job['headcount']); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['education']): ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">学历要求</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('job_education'); ?></div>
                             <div class="font-medium"><?php echo e($job['education']); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['experience']): ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">经验要求</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('job_experience'); ?></div>
                             <div class="font-medium"><?php echo e($job['experience']); ?></div>
                         </div>
                         <?php endif; ?>
                         <div>
-                            <div class="text-xs text-gray-500 mb-1">发布时间</div>
+                            <div class="text-xs text-gray-500 mb-1"><?php echo __('detail_publish_time'); ?></div>
                             <div class="font-medium"><?php echo date('Y-m-d', (int)$job['publish_time']); ?></div>
                         </div>
                     </div>
@@ -136,7 +136,7 @@ require_once theme_path('layouts/header.php');
                 <!-- 任职要求 -->
                 <?php if ($job['requirements']): ?>
                 <div class="p-6 md:p-8 border-b">
-                    <h2 class="text-lg font-bold text-dark mb-4">任职要求</h2>
+                    <h2 class="text-lg font-bold text-dark mb-4"><?php echo __('job_requirement'); ?></h2>
                     <div class="prose max-w-none text-gray-700 whitespace-pre-line"><?php echo e($job['requirements']); ?></div>
                 </div>
                 <?php endif; ?>
@@ -155,7 +155,7 @@ require_once theme_path('layouts/header.php');
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
-                        返回招聘列表
+                        <?php echo __('job_back_to_list'); ?>
                     </a>
                     <?php endif; ?>
                 </div>

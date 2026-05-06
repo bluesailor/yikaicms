@@ -18,19 +18,45 @@ class ChannelModel extends Model
     }
 
     /**
+     * 按 slug 查找（多语言感知：先找当前语言的翻译版本）
+     */
+    public function findBySlugLang(string $slug): ?array
+    {
+        $lang = siteLang();
+        $defaultLang = (string)config('site_lang', 'zh-CN');
+        if ($lang === $defaultLang || !isMultiLangEnabled('channels')) {
+            return $this->findBySlug($slug);
+        }
+        // 先找源栏目，再通过 translation_group_id 找目标语言版本
+        $src = db()->fetchOne("SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1", [$slug]);
+        if (!$src) return null;
+        $groupId = (int)($src['translation_group_id'] ?: $src['id']);
+        $translated = db()->fetchOne(
+            "SELECT * FROM {$this->tableName()} WHERE translation_group_id = ? AND lang = ? AND status = 1",
+            [$groupId, $lang]
+        );
+        return $translated ?: $src;
+    }
+
+    /**
      * 获取子栏目
      */
-    public function getByParent(int $parentId = 0, bool $activeOnly = true, bool $navOnly = false): array
+    public function getByParent(int $parentId = 0, bool $activeOnly = true, bool $navOnly = false, ?string $lang = null): array
     {
         $sql = "SELECT * FROM {$this->tableName()} WHERE parent_id = ?";
+        $params = [$parentId];
         if ($activeOnly) {
             $sql .= " AND status = 1";
         }
         if ($navOnly) {
             $sql .= " AND is_nav = 1";
         }
+        if ($lang !== null && isMultiLangEnabled('channels')) {
+            $sql .= " AND lang = ?";
+            $params[] = $lang;
+        }
         $sql .= " ORDER BY {$this->defaultOrder}";
-        return db()->fetchAll($sql, [$parentId]);
+        return db()->fetchAll($sql, $params);
     }
 
     /**
@@ -38,16 +64,28 @@ class ChannelModel extends Model
      */
     public function getNav(): array
     {
+        $langWhere = '';
+        $langParams = [];
+        if (isMultiLangEnabled('channels')) {
+            $langWhere = ' AND lang = ?';
+            $langParams[] = siteLang();
+        }
         $channels = db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} WHERE parent_id = 0 AND status = 1 AND is_nav = 1 ORDER BY {$this->defaultOrder}"
+            "SELECT * FROM {$this->tableName()} WHERE parent_id = 0 AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
+            $langParams
         );
 
         foreach ($channels as &$channel) {
             if ($channel['type'] === 'product') {
                 // 动态读取产品分类作为子菜单（仅 is_nav=1）
-                $cats = db()->fetchAll(
-                    'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE parent_id = 0 AND status = 1 AND is_nav = 1 ORDER BY sort_order ASC, id ASC'
-                );
+                $catSql = 'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE parent_id = 0 AND status = 1 AND is_nav = 1';
+                $catParams = [];
+                if (isMultiLangEnabled('product_categories')) {
+                    $catSql .= ' AND lang = ?';
+                    $catParams[] = siteLang();
+                }
+                $catSql .= ' ORDER BY sort_order ASC, id ASC';
+                $cats = db()->fetchAll($catSql, $catParams);
                 $channel['children'] = [];
                 foreach ($cats as $cat) {
                     $channel['children'][] = [
@@ -62,8 +100,8 @@ class ChannelModel extends Model
                 }
             } else {
                 $channel['children'] = db()->fetchAll(
-                    "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1 ORDER BY {$this->defaultOrder}",
-                    [(int) $channel['id']]
+                    "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
+                    array_merge([(int) $channel['id']], $langParams)
                 );
             }
         }
@@ -88,11 +126,11 @@ class ChannelModel extends Model
     /**
      * 递归获取栏目树（全部，后台用）
      */
-    public function getTreeAll(int $parentId = 0): array
+    public function getTreeAll(int $parentId = 0, ?string $lang = null): array
     {
-        $items = $this->getByParent($parentId, false);
+        $items = $this->getByParent($parentId, false, false, $lang);
         foreach ($items as &$item) {
-            $item['children'] = $this->getTreeAll((int) $item['id']);
+            $item['children'] = $this->getTreeAll((int) $item['id'], $lang);
         }
         unset($item);
         return $items;
@@ -101,15 +139,15 @@ class ChannelModel extends Model
     /**
      * 获取带缩进的平面列表（用于下拉选择）
      */
-    public function getFlatList(int $parentId = 0, int $level = 0): array
+    public function getFlatList(int $parentId = 0, int $level = 0, ?string $lang = null): array
     {
         $result = [];
-        $items = $this->getByParent($parentId, false);
+        $items = $this->getByParent($parentId, false, false, $lang);
         foreach ($items as $item) {
             $item['_level'] = $level;
             $item['_prefix'] = str_repeat('　', $level);
             $result[] = $item;
-            $children = $this->getFlatList((int) $item['id'], $level + 1);
+            $children = $this->getFlatList((int) $item['id'], $level + 1, $lang);
             $result = array_merge($result, $children);
         }
         return $result;
@@ -136,9 +174,14 @@ class ChannelModel extends Model
      */
     public function getHomeChannels(): array
     {
-        return db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} WHERE is_home = 1 AND parent_id = 0 AND status = 1 ORDER BY {$this->defaultOrder}"
-        );
+        $sql = "SELECT * FROM {$this->tableName()} WHERE is_home = 1 AND parent_id = 0 AND status = 1";
+        $params = [];
+        if (isMultiLangEnabled('channels')) {
+            $sql .= " AND lang = ?";
+            $params[] = siteLang();
+        }
+        $sql .= " ORDER BY {$this->defaultOrder}";
+        return db()->fetchAll($sql, $params);
     }
 
     /**

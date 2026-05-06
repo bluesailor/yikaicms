@@ -23,7 +23,7 @@ if ($slug) {
 
 if (!$article) {
     header('HTTP/1.1 404 Not Found');
-    exit('文章不存在');
+    exit(__('error_article_not_found'));
 }
 
 // 更新浏览量
@@ -59,8 +59,8 @@ $jsonLd = [
     '@type' => 'Article',
     'headline' => $article['title'],
     'description' => $pageDescription,
-    'datePublished' => date('c', (int)$article['publish_time']),
-    'dateModified' => date('c', (int)($article['updated_at'] ?: $article['publish_time'])),
+    'datePublished' => date('c', (int)(($article['publish_time'] ?? 0) ?: ($article['created_at'] ?? 0))),
+    'dateModified' => date('c', (int)($article['updated_at'] ?: (($article['publish_time'] ?? 0) ?: ($article['created_at'] ?? 0)))),
     'publisher' => [
         '@type' => 'Organization',
         'name' => config('site_name', 'Yikai CMS'),
@@ -118,7 +118,7 @@ require theme_path('partials/page-hero.php');
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
-                                <?php echo date('Y-m-d', (int)$article['publish_time']); ?>
+                                <?php echo date('Y-m-d', (int)(($article['publish_time'] ?? 0) ?: ($article['created_at'] ?? 0))); ?>
                             </span>
                             <span class="flex items-center gap-1">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +228,7 @@ require theme_path('partials/page-hero.php');
                                     <?php echo e($related['title']); ?>
                                 </h4>
                                 <p class="text-xs text-gray-400 mt-1">
-                                    <?php echo date('Y-m-d', (int)$related['publish_time']); ?>
+                                    <?php echo date('Y-m-d', (int)(($related['publish_time'] ?? 0) ?: ($related['created_at'] ?? 0))); ?>
                                 </p>
                             </div>
                         </a>

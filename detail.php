@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(600);
+
 $id = getInt('id');
 
 if (!$id) {
@@ -21,7 +23,7 @@ $content = contentModel()->getPublished($id);
 
 if (!$content) {
     header('HTTP/1.1 404 Not Found');
-    exit('内容不存在');
+    exit(__('error_content_not_found'));
 }
 
 // 更新浏览量
@@ -68,8 +70,8 @@ $jsonLd = [
     '@type' => 'Article',
     'headline' => $content['title'],
     'description' => $pageDescription,
-    'datePublished' => date('c', (int)$content['publish_time']),
-    'dateModified' => date('c', (int)($content['updated_at'] ?: $content['publish_time'])),
+    'datePublished' => date('c', (int)(($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0))),
+    'dateModified' => date('c', (int)($content['updated_at'] ?: (($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0)))),
 ];
 if (!empty($content['cover'])) {
     $jsonLd['image'] = $siteUrl . $content['cover'];
@@ -135,7 +137,7 @@ require_once theme_path('layouts/header.php');
                             <?php if ($content['source']): ?>
                             <span><?php echo __('detail_source'); ?>: <?php echo e($content['source']); ?></span>
                             <?php endif; ?>
-                            <span><?php echo __('detail_publish_time'); ?>: <?php echo date('Y-m-d H:i', (int)$content['publish_time']); ?></span>
+                            <span><?php echo __('detail_publish_time'); ?>: <?php echo date('Y-m-d H:i', (int)(($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0))); ?></span>
                             <span><?php echo __('detail_views'); ?>: <?php echo number_format((int)$content['views'] + 1); ?></span>
                         </div>
 
@@ -150,12 +152,47 @@ require_once theme_path('layouts/header.php');
                         <?php endif; ?>
                     </div>
 
-                    <?php if ($content['channel_type'] === 'case' && $content['cover']): ?>
-                    <!-- 案例封面图 -->
+                    <?php if ($content['channel_type'] === 'case'): ?>
+                    <!-- 案例信息卡片 -->
+                    <?php if ($content['client_name'] || $content['industry'] || $content['duration'] || $content['result_metric']): ?>
                     <div class="px-6 md:px-8 pt-6">
-                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
-                             class="w-full rounded-lg">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <?php if ($content['client_name']): ?>
+                                <div>
+                                    <div class="text-xs text-gray-500 mb-1"><?php echo __('case_client'); ?></div>
+                                    <div class="font-semibold text-dark"><?php echo e($content['client_name']); ?></div>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($content['industry']): ?>
+                                <div>
+                                    <div class="text-xs text-gray-500 mb-1"><?php echo __('case_industry'); ?></div>
+                                    <div class="font-semibold text-dark"><?php echo e($content['industry']); ?></div>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($content['duration']): ?>
+                                <div>
+                                    <div class="text-xs text-gray-500 mb-1"><?php echo __('case_duration'); ?></div>
+                                    <div class="font-semibold text-dark"><?php echo e($content['duration']); ?></div>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($content['result_metric']): ?>
+                                <div class="col-span-2 md:col-span-1">
+                                    <div class="text-xs text-gray-500 mb-1"><?php echo __('case_result'); ?></div>
+                                    <div class="font-semibold text-primary"><?php echo e($content['result_metric']); ?></div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
+                    <?php endif; ?>
+                    <?php if ($content['cover']): ?>
+                    <!-- 案例封面图 -->
+                    <div class="px-6 md:px-8 pt-6 cursor-zoom-in" onclick="openCaseLightbox(0)">
+                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                             class="w-full rounded-lg hover:opacity-95 transition">
+                    </div>
+                    <?php endif; ?>
                     <?php endif; ?>
 
                     <?php if ($content['channel_type'] === 'product'): ?>
@@ -215,24 +252,38 @@ require_once theme_path('layouts/header.php');
 
                     <!-- 正文内容 -->
                     <div class="p-6 md:p-8 prose prose-lg max-w-none">
-                        <?php echo parseShortcodes($content['content'] ?? ''); ?>
+                        <?php echo apply_filters('content_output', parseShortcodes($content['content'] ?? ''), $content); ?>
                     </div>
 
-                    <!-- 图片相册 -->
-                    <?php if ($content['images']): ?>
-                    <?php $images = json_decode($content['images'], true) ?: []; ?>
-                    <?php if (!empty($images)): ?>
+                    <!-- 图片画廊（lightbox）-->
+                    <?php
+                    $galleryImages = [];
+                    if (!empty($content['images'])) {
+                        $decoded = json_decode($content['images'], true);
+                        if (is_array($decoded)) {
+                            $galleryImages = array_values(array_filter($decoded));
+                        } else {
+                            $galleryImages = array_filter(array_map('trim', explode("\n", $content['images'])));
+                        }
+                    }
+                    // 案例：封面也作为画廊第一张；其他类型不动
+                    if ($content['channel_type'] === 'case' && !empty($content['cover']) && !in_array($content['cover'], $galleryImages, true)) {
+                        array_unshift($galleryImages, $content['cover']);
+                    }
+                    ?>
+                    <?php if (!empty($galleryImages)): ?>
                     <div class="p-6 md:p-8 border-t">
-                        <h3 class="font-bold text-lg mb-4">图片展示</h3>
+                        <h3 class="font-bold text-lg mb-4"><?php echo __('list_gallery'); ?></h3>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <?php foreach ($images as $image): ?>
-                            <a href="<?php echo e($image); ?>" target="_blank" class="block aspect-square rounded overflow-hidden">
-                                <img loading="lazy" src="<?php echo e($image); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
-                            </a>
+                            <?php foreach ($galleryImages as $idx => $image): ?>
+                            <button type="button" onclick="openCaseLightbox(<?php echo $idx; ?>)"
+                                    class="group block aspect-square rounded overflow-hidden relative cursor-zoom-in">
+                                <img loading="lazy" src="<?php echo e($image); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition"></div>
+                            </button>
                             <?php endforeach; ?>
                         </div>
                     </div>
-                    <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- 上下篇 -->
@@ -268,7 +319,7 @@ require_once theme_path('layouts/header.php');
                 <?php if (!empty($downloadSidebarCats)): ?>
                 <!-- 下载分类 -->
                 <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 py-3 border-b font-bold text-dark bg-primary text-white rounded-t-lg">下载分类</div>
+                    <div class="px-4 py-3 border-b font-bold text-dark bg-primary text-white rounded-t-lg"><?php echo __('list_download_category'); ?></div>
                     <div class="divide-y">
                         <?php foreach ($downloadSidebarCats as $cat): ?>
                         <a href="<?php echo channelUrl($cat); ?>"
@@ -328,4 +379,105 @@ require_once theme_path('layouts/header.php');
     </div>
 </section>
 
+<?php if (!empty($galleryImages)): ?>
+<!-- 案例/内容 Lightbox 画廊 -->
+<div id="case-lightbox" class="hidden fixed inset-0 z-[9999] bg-black/90 items-center justify-center" onclick="if(event.target === this) closeCaseLightbox()">
+    <button type="button" onclick="closeCaseLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="关闭">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+    <div id="case-lightbox-counter" class="absolute top-5 left-5 text-white/80 text-sm font-medium">1 / <?php echo count($galleryImages); ?></div>
+
+    <?php if (count($galleryImages) > 1): ?>
+    <button type="button" onclick="caseLightboxPrev()" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3" aria-label="上一张">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+    </button>
+    <button type="button" onclick="caseLightboxNext()" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3" aria-label="下一张">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </button>
+    <?php endif; ?>
+
+    <img id="case-lightbox-img" src="<?php echo e($galleryImages[0]); ?>" alt="<?php echo e($content['title']); ?>"
+         class="max-w-[90vw] max-h-[80vh] object-contain select-none">
+
+    <?php if (count($galleryImages) > 1): ?>
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto px-4 pb-1">
+        <?php foreach ($galleryImages as $i => $img): ?>
+        <button type="button" onclick="event.stopPropagation(); caseLightboxGoto(<?php echo $i; ?>);"
+                class="case-lb-thumb flex-shrink-0 w-16 h-16 rounded overflow-hidden transition <?php echo $i === 0 ? 'ring-2 ring-white' : 'opacity-50'; ?>">
+            <img src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
+        </button>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+
+<script>
+var caseGallery = <?php echo json_encode(array_values($galleryImages), JSON_UNESCAPED_SLASHES); ?>;
+var caseLbIdx = 0;
+
+function openCaseLightbox(idx) {
+    if (!caseGallery.length) return;
+    caseLbIdx = idx || 0;
+    var lb = document.getElementById('case-lightbox');
+    lb.classList.remove('hidden');
+    lb.classList.add('flex');
+    caseLightboxRender();
+    document.body.style.overflow = 'hidden';
+}
+function closeCaseLightbox() {
+    var lb = document.getElementById('case-lightbox');
+    lb.classList.add('hidden');
+    lb.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+function caseLightboxPrev() {
+    caseLbIdx = (caseLbIdx - 1 + caseGallery.length) % caseGallery.length;
+    caseLightboxRender();
+}
+function caseLightboxNext() {
+    caseLbIdx = (caseLbIdx + 1) % caseGallery.length;
+    caseLightboxRender();
+}
+function caseLightboxGoto(i) {
+    caseLbIdx = i;
+    caseLightboxRender();
+}
+function caseLightboxRender() {
+    var img = document.getElementById('case-lightbox-img');
+    var cnt = document.getElementById('case-lightbox-counter');
+    if (img) img.src = caseGallery[caseLbIdx];
+    if (cnt) cnt.textContent = (caseLbIdx + 1) + ' / ' + caseGallery.length;
+    document.querySelectorAll('.case-lb-thumb').forEach(function(t, i) {
+        t.classList.toggle('ring-2', i === caseLbIdx);
+        t.classList.toggle('ring-white', i === caseLbIdx);
+        t.classList.toggle('opacity-50', i !== caseLbIdx);
+    });
+}
+document.addEventListener('keydown', function(e) {
+    var lb = document.getElementById('case-lightbox');
+    if (!lb || lb.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeCaseLightbox();
+    else if (e.key === 'ArrowLeft') caseLightboxPrev();
+    else if (e.key === 'ArrowRight') caseLightboxNext();
+});
+(function() {
+    var lb = document.getElementById('case-lightbox');
+    if (!lb) return;
+    var sx = 0;
+    lb.addEventListener('touchstart', function(e) { sx = e.touches[0].clientX; }, { passive: true });
+    lb.addEventListener('touchend', function(e) {
+        var dx = e.changedTouches[0].clientX - sx;
+        if (Math.abs(dx) > 40) dx > 0 ? caseLightboxPrev() : caseLightboxNext();
+    });
+})();
+</script>
+<?php endif; ?>
+
 <?php require_once theme_path('layouts/footer.php'); ?>
+<?php HtmlCache::end(); ?>

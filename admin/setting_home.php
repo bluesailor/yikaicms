@@ -15,6 +15,20 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
+// 多语言
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('channels');
+$settingLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$settingLang])) $settingLang = $defaultLang;
+$langSuffix = ($hasMultiLang && $settingLang !== $defaultLang) ? '_' . $settingLang : '';
+$homeTranslatableKeys = ['home_about_content', 'home_testimonials',
+    'home_stat_1_text', 'home_stat_2_text', 'home_stat_3_text', 'home_stat_4_text',
+    'home_advantage_desc', 'home_adv_1_title', 'home_adv_1_desc', 'home_adv_2_title', 'home_adv_2_desc',
+    'home_adv_3_title', 'home_adv_3_desc', 'home_adv_4_title', 'home_adv_4_desc',
+    'home_cta_title', 'home_cta_desc', 'home_testimonials_title', 'home_testimonials_desc',
+    'home_links_title', 'home_about_tag_title', 'home_about_tag_desc'];
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings = $_POST['settings'] ?? [];
@@ -54,15 +68,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取全部 home 组设置
 $allSettings = settingModel()->getByGroup('home');
 
-// 构建 key => row 映射
+// 构建 key => row 映射，过滤掉其他语言的翻译记录
 $settingsMap = [];
+$otherLangSuffixes = [];
+foreach ($allLangs as $lc => $ll) {
+    if ($lc !== $settingLang) $otherLangSuffixes[] = '_' . $lc;
+}
 foreach ($allSettings as $item) {
-    $settingsMap[$item['key']] = $item;
+    $skip = false;
+    foreach ($otherLangSuffixes as $suf) {
+        if (str_ends_with($item['key'], $suf)) { $skip = true; break; }
+    }
+    if (!$skip) $settingsMap[$item['key']] = $item;
+}
+// 非默认语言时，替换可翻译字段为对应语言版本
+if ($langSuffix) {
+    foreach ($homeTranslatableKeys as $tk) {
+        $langKey = $tk . $langSuffix;
+        $langVal = config($langKey, '');
+        $settingsMap[$tk] = ['key' => $langKey, 'value' => $langVal, 'type' => $settingsMap[$tk]['type'] ?? 'text'];
+    }
 }
 
-// 获取首页展示的栏目（用于动态生成区块）
+// 获取首页展示的栏目（仅默认语言，区块配置以默认语言栏目ID为基准）
 $homeChannelRows = channelModel()->query(
-    "SELECT id, name FROM " . channelModel()->tableName() . " WHERE is_home = 1 AND parent_id = 0 AND status = 1 ORDER BY sort_order ASC"
+    "SELECT id, name FROM " . channelModel()->tableName() . " WHERE is_home = 1 AND parent_id = 0 AND status = 1 AND lang = ? ORDER BY sort_order ASC",
+    [$defaultLang]
 );
 
 // 区块配置
@@ -168,6 +199,22 @@ $currentMenu = 'setting_home';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言版本：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>"
+       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $settingLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
+        <?php echo e($ll); ?>
+        <?php echo $lc === $defaultLang ? '<span class="ml-1 opacity-70">(默认)</span>' : ''; ?>
+    </a>
+    <?php endforeach; ?>
+    <?php if ($settingLang !== $defaultLang): ?>
+    <span class="text-xs text-amber-500 ml-2">编辑 <?php echo e($allLangs[$settingLang]); ?> 版本的文案，留空则使用默认语言</span>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="mb-6">
     <p class="text-gray-500">拖拽调整版块顺序，开关控制显示/隐藏，展开编辑版块内容。</p>

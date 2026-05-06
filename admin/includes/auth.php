@@ -20,7 +20,11 @@ initLang();
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+require_once ROOT_PATH . '/includes/HtmlCache.php';
 require_once ROOT_PATH . '/includes/plugin.php';
+
+// 后台启动完成，供插件挂载后台初始化逻辑
+do_action('admin_init');
 
 /**
  * 检查登录状态
@@ -38,9 +42,13 @@ function checkLogin(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
 
-        // 演示模式：拦截所有写操作
+        // 演示模式：拦截写操作（升级除外）
         if (defined('DEMO_MODE') && DEMO_MODE) {
-            error('演示模式下不允许修改操作');
+            $demoAllowPages = ['upgrade.php'];
+            $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
+            if (!in_array($currentPage, $demoAllowPages)) {
+                error('演示模式下不允许修改操作');
+            }
         }
     }
 }

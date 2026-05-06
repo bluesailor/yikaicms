@@ -61,6 +61,17 @@ function loadActivePlugins(): void
     $loaded = true;
 
     $slugs = getActivePlugins();
+    // Pass 1: 加载 register.php（早期注册，先于 main.php）
+    foreach ($slugs as $slug) {
+        if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
+            continue;
+        }
+        $registerFile = ROOT_PATH . '/plugins/' . $slug . '/register.php';
+        if (file_exists($registerFile)) {
+            require_once $registerFile;
+        }
+    }
+    // Pass 2: 加载 main.php
     foreach ($slugs as $slug) {
         if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
             continue;

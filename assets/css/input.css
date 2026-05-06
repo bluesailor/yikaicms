@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@source "../../themes/**/*.php";
+@source "../../*.php";
+@source "../../includes/**/*.php";
+@source "../../admin/**/*.php";
+
+@theme {
+    --color-primary: #3B82F6;
+    --color-secondary: #1D4ED8;
+    --color-dark: #1f2937;
+    --color-sidebar: #1e293b;
+}
+
+/* Contact form utilities (force include) */
+@utility contact-focus {
+    &:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+}
+@utility contact-disabled {
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}

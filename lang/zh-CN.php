@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 中文语言包
+ * ikaiCMS - 中文语言包
  */
 
 return [
@@ -44,9 +44,27 @@ return [
 
     // 首页
     'home_about_title' => '关于',
+    'home_about_default' => '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。',
     'home_learn_more' => '了解更多',
     'home_view_all' => '查看全部',
     'home_our_advantage' => '我们的优势',
+    'home_advantage_desc' => '专业团队，优质服务，值得信赖',
+    'home_adv_1_title' => '品质保证',
+    'home_adv_1_desc' => '严格把控产品质量，确保每一件产品都符合标准',
+    'home_adv_2_title' => '技术领先',
+    'home_adv_2_desc' => '持续研发创新，保持技术的领先优势',
+    'home_adv_3_title' => '专业服务',
+    'home_adv_3_desc' => '专业团队7x24小时技术支持服务',
+    'home_adv_4_title' => '合作共赢',
+    'home_adv_4_desc' => '与客户建立长期合作关系，实现互利共赢',
+    'home_stat_1' => '年行业经验',
+    'home_stat_2' => '服务客户',
+    'home_stat_3' => '专业团队',
+    'home_stat_4' => '客户满意',
+    'home_cta_title' => '准备好开始合作了吗？',
+    'home_cta_desc' => '联系我们，获取专业的解决方案',
+    'home_testimonials_title' => '客户评价',
+    'home_testimonials_desc' => '听听合作伙伴怎么说',
     'home_hot' => '热门',
     'home_new' => '新品',
 
@@ -58,9 +76,32 @@ return [
     'list_case' => '案例',
     'list_prev_page' => '上一页',
     'list_next_page' => '下一页',
+    'list_sort' => '排序',
+    'list_product_category' => '产品分类',
+    'list_all_products' => '全部产品',
+    'list_search_product' => '搜索产品...',
+    'list_gallery' => '图片展示',
+    'list_download_category' => '下载分类',
+    'sort_default' => '默认排序',
+    'sort_newest' => '最新发布',
+    'sort_updated' => '最近更新',
+    'sort_views' => '浏览量',
+    'sort_price_asc' => '价格↑',
+    'sort_price_desc' => '价格↓',
     'search_placeholder' => '搜索...',
     'search_result' => '搜索',
     'search_clear' => '清除搜索',
+    'search_title' => '全站搜索',
+    'search_input_hint' => '输入关键词搜索...',
+    'search_empty_hint' => '请输入关键词开始搜索',
+    'search_no_result' => '未找到相关内容',
+    'search_try_other' => '请尝试其他关键词或切换搜索类型',
+    'search_total' => '共 :count 条结果',
+    'search_all' => '全部',
+    'search_article' => '文章',
+    'search_product' => '产品',
+    'search_case' => '案例',
+    'search_download' => '下载',
 
     // 新闻文章
     'news_title' => '新闻资讯',
@@ -89,12 +130,46 @@ return [
     'detail_call' => '电话联系',
     'detail_related_products' => '相关产品',
 
+    // 会员
+    'member_login' => '登录',
+    'member_register' => '注册',
+    'member_logout' => '退出',
+    'member_logout_full' => '退出登录',
+    'member_center' => '会员中心',
+    'member_login_full' => '会员登录',
+    'member_register_full' => '会员注册',
+    'menu_label' => '菜单',
+
+    // 错误页
+    'error_channel_not_found' => '栏目不存在',
+    'error_content_not_found' => '内容不存在',
+    'error_page_not_found' => '页面不存在',
+    'error_product_not_found' => '产品不存在',
+    'error_article_not_found' => '文章不存在',
+    'error_job_not_found' => '职位不存在',
+    'error_file_not_found' => '文件不存在',
+
+    // 案例详情
+    'case_client' => '客户',
+    'case_industry' => '行业',
+    'case_duration' => '周期',
+    'case_result' => '核心成果',
+
+    // 通用
+    'no_image' => '暂无图片',
+
     // 招聘
     'job_location' => '工作地点',
     'job_salary' => '薪资范围',
     'job_apply' => '立即申请',
     'job_responsibility' => '岗位职责',
     'job_requirement' => '任职要求',
+    'job_type' => '工作性质',
+    'job_headcount' => '招聘人数',
+    'job_education' => '学历要求',
+    'job_experience' => '经验要求',
+    'job_back_to_list' => '返回招聘列表',
+    'job_hire_prefix' => '招',
 
     // 下载
     'download_filename' => '文件名称',
@@ -119,13 +194,21 @@ return [
     'contact_form_submit' => '提交留言',
     'contact_form_success' => '提交成功，我们会尽快与您联系！',
     'contact_form_required' => '请填写必填项',
+    'contact_qr_title' => '扫码联系我们',
+    'contact_wechat_scan' => '微信扫一扫',
+
+    // 新闻
+    'news_search_placeholder' => '搜索文章...',
 
     // 页脚
     'footer_quick_links' => '快速链接',
     'footer_contact' => '联系我们',
     'footer_follow' => '关注我们',
     'footer_copyright' => '版权所有',
+    'footer_privacy' => '隐私政策',
+    'footer_terms' => '服务条款',
     'footer_icp' => 'ICP备案',
+    'footer_partners' => '合作伙伴',
 
     // 面包屑
     'breadcrumb_home' => '首页',
@@ -190,6 +273,24 @@ return [
     'admin_upload_file' => '上传文件',
     'admin_choose_file' => '选择文件',
     'admin_no_image' => '暂无图片',
+    'admin_product_gallery' => '图片画廊',
+    'admin_media_library' => '媒体库',
+    'admin_gallery_hint' => '拖拽可排序，点击 × 删除',
+    'admin_gallery_empty' => '暂无图片，请点击下方按钮添加',
+    'admin_product_specs' => '规格参数',
+    'admin_add_spec' => '添加参数',
+    'admin_no_specs' => '暂无参数',
+    'admin_spec_key_prompt' => '参数名（英文键名，如 size、method）',
+    'admin_spec_exists' => '该参数已存在',
+    'spec_material' => '素材分类',
+    'spec_material_label' => '素材名称',
+    'spec_scene' => '使用场景',
+    'spec_size' => '尺寸',
+    'spec_method' => '工法',
+    'spec_finish' => '仕上げ/涂装',
+    'spec_mount' => '安装方式',
+    'spec_use' => '用途',
+    'spec_corner' => '圆角',
 
     // 控制台
     'dashboard_welcome' => '欢迎回来',
@@ -217,4 +318,28 @@ return [
     'quality_service_desc' => '我们致力于为每一位客户提供专业、高效的解决方案',
     'about_us' => '关于我们',
     'about_us_desc' => '多年行业经验，值得您的信赖与选择',
+
+    // 后台菜单分组
+    'admin_group_content' => '内容管理',
+    'admin_group_product' => '商品与展示',
+    'admin_group_article' => '文章与资讯',
+    'admin_group_media' => '媒体与组件',
+    'admin_group_data' => '互动数据',
+    'admin_group_system' => '系统设置',
+
+    // 后台子菜单
+    'admin_setting_contact' => '联系设置',
+    'admin_setting_seo' => 'SEO 设置',
+    'admin_setting_ai' => 'AI 设置',
+    'admin_setting_security' => '安全设置',
+    'admin_translate' => '多语言翻译',
+    'admin_theme' => '主题管理',
+    'admin_plugin' => '插件管理',
+    'admin_upgrade' => '系统升级',
+    'admin_system_info' => '系统信息',
+    'admin_member' => '会员管理',
+
+    // 后台通用
+    'admin_backend' => '后台管理系统',
+    'admin_demo_mode' => '演示模式下不允许修改操作',
 ];

@@ -14,7 +14,15 @@ $contents = $hChannel['contents'];
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2">
-                <span class="text-primary"><?php echo e(mb_substr($hChannel['name'], 0, 2)); ?></span><?php echo e(mb_substr($hChannel['name'], 2)); ?>
+                <?php
+                $chName = $hChannel['name'];
+                if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $chName)) {
+                    echo '<span class="text-primary">' . e(mb_substr($chName, 0, 2)) . '</span>' . e(mb_substr($chName, 2));
+                } else {
+                    $words = explode(' ', $chName, 2);
+                    echo '<span class="text-primary">' . e($words[0]) . '</span>' . (isset($words[1]) ? ' ' . e($words[1]) : '');
+                }
+                ?>
             </h2>
             <span class="section-title-bar"></span>
             <?php if ($hChannel['description']): ?>
@@ -103,9 +111,10 @@ $contents = $hChannel['contents'];
         </div>
 
         <?php else: ?>
-        <!-- 文章/新闻：列表样式 -->
+        <!-- 文章/新闻：列表样式（只显示有封面图的） -->
+        <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <?php foreach ($contents as $item):
+            <?php foreach (array_slice($withCover, 0, 4) as $item):
                 $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
             ?>
@@ -117,7 +126,7 @@ $contents = $hChannel['contents'];
                 <?php endif; ?>
                 <div class="p-4">
                     <div class="text-xs text-gray-400 mb-2">
-                        <?php echo e($itemCatName); ?> · <?php echo friendlyTime((int)$item['publish_time']); ?>
+                        <?php echo e($itemCatName); ?> · <?php echo friendlyTime((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?>
                     </div>
                     <h3 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">
                         <?php echo e($item['title']); ?>

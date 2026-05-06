@@ -30,16 +30,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = postInt('id');
+        do_action('before_delete_content', $id);
         contentModel()->deleteById($id);
+        metaModel()->del('content', $id);
         adminLog('content', 'delete', '删除内容ID：' . $id);
+        do_action('after_delete_content', $id);
         success();
     }
 
     if ($action === 'batch_delete') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
+            foreach ($ids as $delId) {
+                $delId = (int)$delId;
+                do_action('before_delete_content', $delId);
+                metaModel()->del('content', $delId);
+            }
             contentModel()->deleteByIds($ids);
             adminLog('content', 'batch_delete', '批量删除：' . implode(',', $ids));
+            foreach ($ids as $delId) {
+                do_action('after_delete_content', (int)$delId);
+            }
         }
         success();
     }
@@ -57,6 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'save_sort') {
+        $id = postInt('id');
+        $sortOrder = postInt('sort_order');
+        contentModel()->updateById($id, ['sort_order' => $sortOrder]);
+        success(['sort_order' => $sortOrder]);
+    }
+
     exit;
 }
 
@@ -65,12 +83,23 @@ $channelId = getInt('channel_id');
 $type = get('type');
 $status = get('status', '');
 $keyword = get('keyword');
+$defaultLang = config('site_lang', 'zh-CN');
+$allLangs = availableLanguages();
+$filterLang = get('lang', $defaultLang);
+if (!isset($allLangs[$filterLang])) $filterLang = $defaultLang;
 $page = max(1, getInt('page', 1));
 $perPage = 20;
+
+$multiLangEnabled = isMultiLangEnabled('contents');
 
 // 构建查询
 $where = [];
 $params = [];
+
+if ($multiLangEnabled) {
+    $where[] = 'c.lang = ?';
+    $params[] = $filterLang;
+}
 
 if ($channelId > 0) {
     $where[] = 'c.channel_id = ?';
@@ -125,6 +154,15 @@ $currentMenu = 'content';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php if ($multiLangEnabled && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
@@ -152,6 +190,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>>已发布</option>
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>>草稿</option>
             </select>
+
+            <?php if ($multiLangEnabled): ?>
+            <input type="hidden" name="lang" value="<?php echo e($filterLang); ?>">
+            <?php endif; ?>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                    class="border rounded px-3 py-2" placeholder="搜索标题...">
@@ -183,6 +225,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">栏目</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">类型</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">浏览</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">置顶</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">时间</th>
@@ -227,6 +270,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
                             <?php echo number_format((int)$item['views']); ?>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <input type="number" value="<?php echo (int)($item['sort_order'] ?? 0); ?>"
+                                   onblur="saveSort(<?php echo $item['id']; ?>, this.value)"
+                                   class="w-16 border rounded px-2 py-1 text-center text-sm">
                         </td>
                         <td class="px-4 py-3 text-center">
                             <button onclick="toggleField(<?php echo $item['id']; ?>, 'is_top', <?php echo $item['is_top'] ? 0 : 1; ?>)"
@@ -307,6 +355,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 document.getElementById('checkAll').addEventListener('change', function() {
     document.querySelectorAll('input[name="ids[]"]').forEach(el => el.checked = this.checked);
 });
+
+// 保存排序
+async function saveSort(id, val) {
+    const formData = new FormData();
+    formData.append('action', 'save_sort');
+    formData.append('id', id);
+    formData.append('sort_order', val);
+    const response = await fetch('', { method: 'POST', body: formData });
+    const data = await safeJson(response);
+    if (data.code === 0) {
+        showMessage('排序已更新');
+    } else {
+        showMessage(data.msg || '保存失败', 'error');
+    }
+}
 
 // 切换字段
 async function toggleField(id, field, value) {

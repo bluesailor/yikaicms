@@ -292,7 +292,13 @@ function getLang(): string
 
     $isAdmin = str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/');
 
-    // 尝试从数据库读取
+    if (!$isAdmin && defined('SITE_LANG')) {
+        // Frontend: SITE_LANG is set by init.php based on user's language selection (URL/cookie)
+        $lang = SITE_LANG;
+        return $lang;
+    }
+
+    // Admin or pre-init: read from database
     try {
         $settings = new SettingModel();
         if ($isAdmin) {
@@ -305,7 +311,6 @@ function getLang(): string
         // 数据库未初始化时忽略
     }
 
-    // 兜底：config.php 常量
     if (empty($lang)) {
         if ($isAdmin && defined('ADMIN_LANG')) {
             $lang = ADMIN_LANG;
@@ -365,6 +370,80 @@ function __(string $key, array $params = []): string
     }
 
     return $text;
+}
+
+/**
+ * 多语言感知的配置读取：默认语言用 config，其他语言用语言包
+ */
+function configLang(string $configKey, string $langKey = ''): string
+{
+    if (!$langKey) $langKey = $configKey;
+    $lang = siteLang();
+    $defaultLang = (string)config('site_lang', 'zh-CN');
+    if ($lang !== $defaultLang) {
+        $langVal = config($configKey . '_' . $lang, '');
+        if ($langVal !== '') return $langVal;
+        return __($langKey);
+    }
+    return config($configKey, '') ?: __($langKey);
+}
+
+/**
+ * 多语言感知的 JSON 配置读取
+ * 非默认语言时优先读 {key}_{lang}，没有则回退默认
+ */
+function configJsonLang(string $configKey): string
+{
+    $lang = siteLang();
+    $defaultLang = (string)config('site_lang', 'zh-CN');
+    if ($lang !== $defaultLang) {
+        $langVal = config($configKey . '_' . $lang, '');
+        if ($langVal !== '') return $langVal;
+    }
+    return config($configKey, '') ?: '';
+}
+
+/**
+ * AI 翻译文本字段（标题+摘要）
+ */
+function aiTranslateFields(string $title, string $summary, string $toLang): array
+{
+    $langName = availableLanguages()[$toLang] ?? $toLang;
+    $translatedTitle = dictTranslateTo($title, $toLang) ?: $title;
+    $translatedSummary = $summary;
+
+    require_once ROOT_PATH . '/includes/AiService.php';
+    $encryptedKey = config('ai_api_key', '');
+    $aiKey = $encryptedKey ? AiService::decryptKey($encryptedKey) : '';
+    if ($aiKey && ($title || $summary)) {
+        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
+        $prompt = "Translate to {$langName}. Return JSON: {\"title\":\"...\",\"summary\":\"...\"}. No explanation.\n\nTitle: {$title}\nSummary: {$summary}";
+        $result = $ai->chat($prompt, 'Return only valid JSON.', 0.3);
+        if ($result['success']) {
+            $json = json_decode(preg_replace('/^```json\s*|```\s*$/m', '', trim($result['content'] ?? '')), true);
+            if ($json) {
+                $translatedTitle = $json['title'] ?? $translatedTitle;
+                $translatedSummary = $json['summary'] ?? $translatedSummary;
+            }
+        }
+    }
+    return ['title' => $translatedTitle, 'summary' => $translatedSummary];
+}
+
+/**
+ * 查找对应语言的栏目ID（通过 translation_group_id）
+ */
+function findTranslatedChannelId(int $srcChannelId, string $toLang): int
+{
+    if ($srcChannelId <= 0) return 0;
+    $srcChannel = channelModel()->find($srcChannelId);
+    if (!$srcChannel) return 0;
+    $chGroupId = (int)($srcChannel['translation_group_id'] ?: $srcChannel['id']);
+    $target = channelModel()->queryOne(
+        "SELECT id FROM " . channelModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?",
+        [$chGroupId, $toLang]
+    );
+    return $target ? (int)$target['id'] : 0;
 }
 
 /**
@@ -439,8 +518,11 @@ function getChannel(int $id): ?array
 /**
  * 通过slug获取栏目
  */
-function getChannelBySlug(string $slug): ?array
+function getChannelBySlug(string $slug, bool $langAware = false): ?array
 {
+    if ($langAware) {
+        return channelModel()->findBySlugLang($slug);
+    }
     return channelModel()->findBySlug($slug);
 }
 
@@ -894,9 +976,9 @@ function friendlyTime(int $time): string
 /**
  * 净化富文本HTML，移除危险标签和属性，保留安全的格式化标签
  */
-function sanitizeHtml(string $html): string
+function sanitizeHtml(?string $html): string
 {
-    if ($html === '') return '';
+    if ($html === null || $html === '') return '';
 
     // 允许的标签白名单
     $allowedTags = '<p><br><b><i><u><s><em><strong><small><sub><sup>'
@@ -2128,4 +2210,156 @@ function renderBlocksToHtml(string $blocksJson): string
     }
 
     return $html;
+}
+
+// ============================================================
+// 通用元数据辅助函数（基于 yikai_metas 表）
+// ============================================================
+
+/**
+ * 读取单个 meta；未找到返回 $default
+ */
+function getMeta(string $ownerType, int $ownerId, string $key, mixed $default = null): mixed
+{
+    try {
+        if (!db()->tableExists('metas')) return $default;
+        return metaModel()->get($ownerType, $ownerId, $key, $default);
+    } catch (\Throwable $e) {
+        return $default;
+    }
+}
+
+/**
+ * 写入/更新 meta
+ */
+function setMeta(string $ownerType, int $ownerId, string $key, mixed $value): bool
+{
+    try {
+        if (!db()->tableExists('metas')) return false;
+        return metaModel()->set($ownerType, $ownerId, $key, $value);
+    } catch (\Throwable $e) {
+        return false;
+    }
+}
+
+/**
+ * 删除 meta；$key 为空时删除该 owner 全部 meta
+ */
+function delMeta(string $ownerType, int $ownerId, string $key = ''): int
+{
+    try {
+        if (!db()->tableExists('metas')) return 0;
+        return metaModel()->del($ownerType, $ownerId, $key);
+    } catch (\Throwable $e) {
+        return 0;
+    }
+}
+
+/**
+ * 读取某 owner 的全部 meta，返回 [key => value]
+ */
+function getAllMeta(string $ownerType, int $ownerId): array
+{
+    try {
+        if (!db()->tableExists('metas')) return [];
+        return metaModel()->getAllByOwner($ownerType, $ownerId);
+    } catch (\Throwable $e) {
+        return [];
+    }
+}
+
+// ============================================================
+// 多语言辅助
+// ============================================================
+
+/**
+ * 检测某表是否已有 lang 列（升级后才有），结果缓存
+ */
+function isMultiLangEnabled(string $table = 'contents'): bool
+{
+    static $switcherOn = null;
+    if ($switcherOn === null) {
+        try {
+            $switcherOn = (string)config('show_lang_switcher', '0') === '1';
+        } catch (\Throwable $e) {
+            $switcherOn = false;
+        }
+    }
+    if (!$switcherOn) return false;
+
+    static $cache = [];
+    if (isset($cache[$table])) return $cache[$table];
+    try {
+        $tableName = DB_PREFIX . $table;
+        if (db()->isSqlite()) {
+            $cache[$table] = (bool)db()->fetchOne("SELECT 1 FROM pragma_table_info('{$tableName}') WHERE name='lang'");
+        } else {
+            $cache[$table] = !empty(db()->fetchAll("SHOW COLUMNS FROM `{$tableName}` LIKE 'lang'"));
+        }
+    } catch (\Throwable $e) {
+        $cache[$table] = false;
+    }
+    return $cache[$table];
+}
+
+/**
+ * 获取当前站点语言
+ */
+function siteLang(): string
+{
+    return defined('SITE_LANG') ? SITE_LANG : (string)config('site_lang', 'zh-CN');
+}
+
+/**
+ * 获取配置的可用语言列表
+ */
+function availableLanguages(): array
+{
+    static $langs = null;
+    if ($langs !== null) return $langs;
+    $labels = ['zh-CN' => '中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
+    $langs = [];
+    $files = glob(ROOT_PATH . '/lang/*.php') ?: [];
+    foreach ($files as $f) {
+        $code = basename($f, '.php');
+        if (strpos($code, 'dict-') === 0) continue;
+        $langs[$code] = $labels[$code] ?? $code;
+    }
+    return $langs;
+}
+
+/**
+ * 字典翻译（查词典，未命中返回 null）
+ * 支持 zh→en, zh→ja 等，自动加载对应词典文件
+ */
+function dictTranslate(string $text, string $from = 'zh', string $to = 'en'): ?string
+{
+    static $dicts = [];
+    $key = "{$from}-{$to}";
+    if (!isset($dicts[$key])) {
+        $file = ROOT_PATH . "/lang/dict-{$key}.php";
+        $dicts[$key] = file_exists($file) ? (require $file) : [];
+    }
+    return $dicts[$key][trim($text)] ?? null;
+}
+
+/**
+ * 根据目标语言代码查词典翻译
+ */
+function dictTranslateTo(string $text, string $targetLang): ?string
+{
+    $to = str_replace('zh-CN', '', $targetLang);
+    if (!$to) return $text;
+    return dictTranslate($text, 'zh', $to);
+}
+
+/**
+ * 生成带语言前缀的 URL
+ */
+function langUrl(string $url, string $lang = ''): string
+{
+    $lang = $lang ?: siteLang();
+    $defaultLang = (string)config('site_lang', 'zh-CN');
+    if ($lang === $defaultLang) return $url;
+    return '/' . $lang . ltrim($url, '/');
 }

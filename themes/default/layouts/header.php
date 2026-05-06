@@ -7,11 +7,11 @@
 
 declare(strict_types=1);
 
-// 获取站点配置
-$siteName = config('site_name', 'Yikai CMS');
+// 获取站点配置（多语言感知）
+$siteName = configJsonLang('site_name') ?: config('site_name', 'Yikai CMS');
 $siteLogo = config('site_logo', '');
-$siteKeywords = config('site_keywords', '');
-$siteDescription = config('site_description', '');
+$siteKeywords = configJsonLang('site_keywords') ?: config('site_keywords', '');
+$siteDescription = configJsonLang('site_description') ?: config('site_description', '');
 
 // 页头设置
 $headerNavLayout = config('header_nav_layout', 'right');
@@ -22,14 +22,14 @@ $headerTextColor = config('header_text_color', '#4b5563');
 // 顶部通栏设置
 $topbarEnabled = config('topbar_enabled', '0') === '1';
 $topbarBgColor = config('topbar_bg_color', '#f3f4f6');
-$topbarLeft = config('topbar_left', '');
+$topbarLeft = configJsonLang('topbar_left') ?: config('topbar_left', '');
 
 // 会员入口设置
 $showMemberEntry = config('show_member_entry', '0') === '1';
 
 // 页面标题
 // 首页支持独立 SEO 标题
-$seoTitle = config('seo_title', '');
+$seoTitle = configJsonLang('seo_title') ?: config('seo_title', '');
 if (empty($pageTitle) && !empty($seoTitle)) {
     $fullTitle = $seoTitle;
 } else {
@@ -174,6 +174,7 @@ function getChannelUrl(array $channel): string {
     <?php echo $extraCss; ?>
     <?php endif; ?>
     <?php do_action('ik_head'); ?>
+    <?php do_action('render_head'); ?>
     <?php echo config('custom_head_code', ''); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -190,12 +191,12 @@ function getChannelUrl(array $channel): string {
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     <?php echo e($memberInfo['nickname']); ?>
                 </a>
-                <a href="/member/logout.php" class="hover:text-primary transition opacity-70">退出</a>
+                <a href="/member/logout.php" class="hover:text-primary transition opacity-70"><?php echo __('member_logout'); ?></a>
                 <?php else: ?>
-                <a href="/member/login.php" class="hover:text-primary transition">登录</a>
+                <a href="/member/login.php" class="hover:text-primary transition"><?php echo __('member_login'); ?></a>
                 <?php if (config('allow_member_register') === '1'): ?>
                 <span class="text-gray-300">|</span>
-                <a href="/member/register.php" class="hover:text-primary transition">注册</a>
+                <a href="/member/register.php" class="hover:text-primary transition"><?php echo __('member_register'); ?></a>
                 <?php endif; ?>
                 <?php endif; ?>
                 <?php endif; ?>
@@ -223,16 +224,16 @@ function getChannelUrl(array $channel): string {
                     <?php if (isMemberLoggedIn()): ?>
                     <?php $memberInfo = getMemberInfo(); ?>
                     <a href="/member/profile.php" class="hover:text-primary transition"><?php echo e($memberInfo['nickname']); ?></a>
-                    <a href="/member/logout.php" class="hover:text-primary transition opacity-60">退出</a>
+                    <a href="/member/logout.php" class="hover:text-primary transition opacity-60"><?php echo __('member_logout'); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="hover:text-primary transition">登录</a>
+                    <a href="/member/login.php" class="hover:text-primary transition"><?php echo __('member_login'); ?></a>
                     <?php if (config('allow_member_register') === '1'): ?>
-                    <a href="/member/register.php" class="hover:text-primary transition">注册</a>
+                    <a href="/member/register.php" class="hover:text-primary transition"><?php echo __('member_register'); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
-                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="菜单">
+                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -246,7 +247,7 @@ function getChannelUrl(array $channel): string {
                 <div class="flex items-center gap-1">
                     <?php if (config('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="px-4 py-3 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
-                        <?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?>
+                        <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
                     <?php endif; ?>
                     <?php foreach ($navChannels as $navItem): ?>
@@ -298,7 +299,7 @@ function getChannelUrl(array $channel): string {
                 <nav class="hidden md:flex items-center gap-1">
                     <?php if (config('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="px-4 py-2 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
-                        <?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?>
+                        <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
                     <?php endif; ?>
                     <?php foreach ($navChannels as $navItem): ?>
@@ -339,16 +340,32 @@ function getChannelUrl(array $channel): string {
                     <?php if (isMemberLoggedIn()): ?>
                     <?php $memberInfo = $memberInfo ?? getMemberInfo(); ?>
                     <a href="/member/profile.php" class="px-3 py-2 hover:text-primary transition text-sm" style="color: <?php echo e($headerTextColor); ?>"><?php echo e($memberInfo['nickname']); ?></a>
-                    <a href="/member/logout.php" class="px-2 py-2 hover:text-primary transition text-sm opacity-60" style="color: <?php echo e($headerTextColor); ?>">退出</a>
+                    <a href="/member/logout.php" class="px-2 py-2 hover:text-primary transition text-sm opacity-60" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_logout'); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="px-3 py-2 hover:text-primary transition text-sm" style="color: <?php echo e($headerTextColor); ?>">登录</a>
+                    <a href="/member/login.php" class="px-3 py-2 hover:text-primary transition text-sm" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_login'); ?></a>
                     <?php if (config('allow_member_register') === '1'): ?>
-                    <a href="/member/register.php" class="px-2 py-2 hover:text-primary transition text-sm" style="color: <?php echo e($headerTextColor); ?>">注册</a>
+                    <a href="/member/register.php" class="px-2 py-2 hover:text-primary transition text-sm" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_register'); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if (config('show_lang_switcher', '0') === '1' && count(availableLanguages()) > 1): ?>
+                    <span class="w-px h-4 bg-gray-300 mx-1"></span>
+                    <div class="relative" id="langSwitcher">
+                        <button onclick="document.getElementById('langDropdown').classList.toggle('hidden')" class="px-2 py-2 hover:text-primary transition text-sm inline-flex items-center gap-1" style="color: <?php echo e($headerTextColor); ?>">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                            <?php echo availableLanguages()[siteLang()] ?? siteLang(); ?>
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div id="langDropdown" class="hidden absolute right-0 mt-1 bg-white rounded shadow-lg border py-1 min-w-[100px] z-50">
+                            <?php foreach (availableLanguages() as $lk => $lv): ?>
+                            <a href="javascript:switchLang('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm hover:bg-gray-100 <?php echo siteLang() === $lk ? 'text-primary font-medium' : 'text-gray-700'; ?>"><?php echo e($lv); ?></a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <script>document.addEventListener('click',function(e){if(!document.getElementById('langSwitcher').contains(e.target))document.getElementById('langDropdown').classList.add('hidden')});</script>
                     <?php endif; ?>
                 </nav>
-                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="菜单">
+                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -363,7 +380,7 @@ function getChannelUrl(array $channel): string {
         <nav id="mobileMenu" class="md:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
                 <?php if (config('nav_home_show', '1') !== '0'): ?>
-                <a href="/" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?></a>
+                <a href="/" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo e(configLang('nav_home_text', 'nav_home')); ?></a>
                 <?php endif; ?>
                 <?php foreach ($navChannels as $navItem): ?>
                 <?php $hasChildren = !empty($navItem['children']); ?>
@@ -391,12 +408,12 @@ function getChannelUrl(array $channel): string {
                 <div class="border-t border-gray-100 pt-2 mt-2">
                     <?php if (isMemberLoggedIn()): ?>
                     <?php $memberInfo = $memberInfo ?? getMemberInfo(); ?>
-                    <a href="/member/profile.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>">会员中心 (<?php echo e($memberInfo['nickname']); ?>)</a>
-                    <a href="/member/logout.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>; opacity: 0.7">退出登录</a>
+                    <a href="/member/profile.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_center'); ?> (<?php echo e($memberInfo['nickname']); ?>)</a>
+                    <a href="/member/logout.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>; opacity: 0.7"><?php echo __('member_logout_full'); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>">会员登录</a>
+                    <a href="/member/login.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_login_full'); ?></a>
                     <?php if (config('allow_member_register') === '1'): ?>
-                    <a href="/member/register.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>">会员注册</a>
+                    <a href="/member/register.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_register_full'); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
                 </div>
@@ -406,6 +423,21 @@ function getChannelUrl(array $channel): string {
     </header>
 
     <?php do_action('ik_header_after'); ?>
+
+    <!-- 语言切换器 JS -->
+    <?php if (config('show_lang_switcher', '0') === '1'): ?>
+    <script>
+    function switchLang(lang) {
+        var defaultLang = <?php echo json_encode((string)config('site_lang', 'zh-CN')); ?>;
+        document.cookie = 'site_lang=' + lang + ';path=/;max-age=' + (365*86400);
+        var path = location.pathname.replace(/^\/(ja|en|zh-CN)\//, '/');
+        if (lang !== defaultLang) {
+            path = '/' + lang + path;
+        }
+        location.href = path + location.search;
+    }
+    </script>
+    <?php endif; ?>
 
     <!-- 主内容 -->
     <main class="flex-1">

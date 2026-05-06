@@ -27,6 +27,40 @@ if ($content) {
     }
 }
 
+// 翻译创建
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(post('action'), ['translate', 'create_translation']) && $content && isMultiLangEnabled('contents')) {
+    $toLang = post('to_lang') ?: post('target_lang');
+    $allLangsCheck = availableLanguages();
+    if (!isset($allLangsCheck[$toLang])) error('非法语言');
+    if ($toLang === ($content['lang'] ?? '')) error('不能翻译为相同语言');
+
+    $groupId = (int)($content['translation_group_id'] ?? 0);
+    if ($groupId === 0) {
+        $groupId = (int)$content['id'];
+        contentModel()->updateById((int)$content['id'], ['translation_group_id' => $groupId]);
+    }
+
+    $existing = contentModel()->queryOne("SELECT id FROM " . contentModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?", [$groupId, $toLang]);
+    if ($existing) success(['id' => (int)$existing['id'], 'redirect' => '/admin/content_edit.php?id=' . $existing['id']], '翻译已存在');
+
+    $translated = aiTranslateFields($content['title'], $content['summary'] ?? '', $toLang);
+    $newData = $content;
+    unset($newData['id']);
+    $newData['title'] = $translated['title'];
+    $newData['summary'] = $translated['summary'];
+    $newData['lang'] = $toLang;
+    $newData['translation_group_id'] = $groupId;
+    $newData['channel_id'] = findTranslatedChannelId((int)$content['channel_id'], $toLang);
+    $newData['slug'] = '';
+    $newData['status'] = 0;
+    $newData['created_at'] = time();
+    $newData['updated_at'] = time();
+    $newData['admin_id'] = $_SESSION['admin_id'];
+    $newId = contentModel()->create($newData);
+    adminLog('content', 'translate', "翻译内容 #{$content['id']} → {$toLang} #{$newId}");
+    success(['id' => $newId, 'redirect' => '/admin/content_edit.php?id=' . $newId]);
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
@@ -45,9 +79,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'attachment' => post('attachment'),
         'price' => (float) post('price', '0'),
         'specs' => post('specs'),
+        // 案例专用字段
+        'client_name'   => post('client_name'),
+        'industry'      => post('industry'),
+        'duration'      => post('duration'),
+        'result_metric' => post('result_metric'),
         'is_top' => postInt('is_top'),
         'is_recommend' => postInt('is_recommend'),
         'is_hot' => postInt('is_hot'),
+        'sort_order' => postInt('sort_order'),
         'seo_title' => post('seo_title'),
         'seo_keywords' => post('seo_keywords'),
         'seo_description' => post('seo_description'),
@@ -56,19 +96,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
+    if (isMultiLangEnabled('contents')) {
+        $data['lang'] = post('lang', config('site_lang', 'zh-CN'));
+    }
+
     if (empty($data['title'])) {
         error('请输入标题');
     }
 
-    if ($id > 0) {
+    // 过滤器：允许插件在入库前修改数据
+    $data = apply_filters('before_save_content', $data, $id);
+
+    $isUpdate = $id > 0;
+    if ($isUpdate) {
         contentModel()->updateById($id, $data);
         adminLog('content', 'update', '更新内容：' . $data['title']);
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
-        $id = contentModel()->create($data);
+        $id = (int)contentModel()->create($data);
         adminLog('content', 'create', '创建内容：' . $data['title']);
     }
+
+    // 保存扩展字段 (ext_fields[key] => value)
+    if (!empty($_POST['ext_fields']) && is_array($_POST['ext_fields'])) {
+        metaModel()->setBatch('content', (int)$id, $_POST['ext_fields']);
+    }
+
+    // 动作：同步索引/通知/失效缓存
+    do_action('after_save_content', (int)$id, $data, $isUpdate);
 
     success(['id' => $id]);
 }
@@ -118,6 +174,11 @@ $pageTitle = $content ? '编辑内容' : ($urlType && isset($typeLabels[$urlType
 $currentMenu = 'content';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+?>
+
+<?php
+$langSwitcher = ['table' => 'contents', 'model' => contentModel(), 'item' => $content, 'edit_url' => '/admin/content_edit.php'];
+include __DIR__ . '/includes/lang_switcher_edit.php';
 ?>
 
 <form id="contentForm" class="space-y-6">
@@ -171,6 +232,53 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
+            <!-- 案例字段 -->
+            <div id="caseFields" class="bg-white rounded-lg shadow p-6 hidden">
+                <h3 class="font-bold text-gray-800 mb-4">案例信息</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 mb-1">客户名称</label>
+                        <input type="text" name="client_name" value="<?php echo e($content['client_name'] ?? ''); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="如：某大型制造企业">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">所属行业</label>
+                        <input type="text" name="industry" value="<?php echo e($content['industry'] ?? ''); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="如：智能制造">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">项目周期</label>
+                        <input type="text" name="duration" value="<?php echo e($content['duration'] ?? ''); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="如：2023-06 ~ 2024-02">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">核心成果</label>
+                        <input type="text" name="result_metric" value="<?php echo e($content['result_metric'] ?? ''); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="如：效率提升 30%">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 多图组（案例 / 产品通用） -->
+            <div id="galleryFields" class="bg-white rounded-lg shadow p-6 hidden">
+                <h3 class="font-bold text-gray-800 mb-4">图片组（画廊）</h3>
+                <p class="text-xs text-gray-500 mb-3">除封面外的附加展示图，前台详情页会以画廊（lightbox）形式呈现。</p>
+                <input type="hidden" name="images" id="imagesInput" value="<?php echo e($content['images'] ?? ''); ?>">
+                <div id="galleryPreview" class="grid grid-cols-3 md:grid-cols-4 gap-2 mb-3"></div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="addGalleryImage()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        上传图片
+                    </button>
+                    <button type="button" onclick="pickGalleryFromMedia()"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        媒体库
+                    </button>
+                </div>
+            </div>
+
             <!-- 下载字段 -->
             <div id="downloadFields" class="bg-white rounded-lg shadow p-6 hidden">
                 <h3 class="font-bold text-gray-800 mb-4">下载信息</h3>
@@ -187,10 +295,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- SEO 设置 -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">SEO设置</h3>
-                <div class="space-y-4">
+            <!-- SEO 设置（折叠） -->
+            <details class="bg-white rounded-lg shadow group">
+                <summary class="px-6 py-4 cursor-pointer flex items-center justify-between list-none">
+                    <h3 class="font-bold text-gray-800">SEO 设置</h3>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-6 pb-6 space-y-4 border-t pt-4">
                     <div>
                         <label class="block text-gray-700 mb-1">SEO标题</label>
                         <input type="text" name="seo_title" value="<?php echo e($content['seo_title'] ?? ''); ?>"
@@ -206,7 +317,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <textarea name="seo_description" rows="2" class="w-full border rounded px-4 py-2"><?php echo e($content['seo_description'] ?? ''); ?></textarea>
                     </div>
                 </div>
-            </div>
+            </details>
         </div>
 
         <!-- 侧边栏 -->
@@ -253,6 +364,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </select>
                     </div>
 
+                    <?php if (isMultiLangEnabled('contents')): ?>
+                    <div>
+                        <label class="block text-gray-700 mb-1">语言</label>
+                        <select name="lang" class="w-full border rounded px-4 py-2">
+                            <?php $currentLang = $content['lang'] ?? config('site_lang', 'zh-CN'); ?>
+                            <?php foreach (availableLanguages() as $lk => $lv): ?>
+                            <option value="<?php echo e($lk); ?>" <?php echo $currentLang === $lk ? 'selected' : ''; ?>><?php echo e($lv); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
+
                     <div>
                         <label class="block text-gray-700 mb-1">状态</label>
                         <select name="status" class="w-full border rounded px-4 py-2">
@@ -266,6 +389,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="datetime-local" name="publish_time"
                                value="<?php echo date('Y-m-d\TH:i', ($content['publish_time'] ?? 0) ?: time()); ?>"
                                class="w-full border rounded px-4 py-2">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 mb-1">排序</label>
+                        <input type="number" name="sort_order" value="<?php echo (int)($content['sort_order'] ?? 0); ?>" class="w-full border rounded px-4 py-2">
+                        <p class="text-xs text-gray-400 mt-1">数字越大越靠前，默认 0</p>
                     </div>
 
                     <div class="flex flex-wrap gap-4">
@@ -284,15 +413,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
 
-                <div class="mt-6 flex gap-2">
-                    <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        保存
-                    </button>
-                    <a href="/admin/content.php" class="px-4 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                        返回</a>
-                </div>
             </div>
 
             <!-- 封面图 -->
@@ -342,6 +462,51 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
     </div>
+
+    <!-- 底部 sticky 操作栏 -->
+    <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
+        <div class="flex gap-3 justify-end items-center">
+            <span class="text-xs text-gray-400 mr-auto hidden sm:inline">请确认后保存</span>
+            <?php
+            // 返回路径：按类型跳对应列表页
+            $backUrl = '/admin/content.php';
+            if (!empty($content['type']) || !empty($urlType)) {
+                $t = $content['type'] ?? $urlType;
+                $backMap = ['case' => '/admin/case.php', 'product' => '/admin/product.php', 'download' => '/admin/download.php'];
+                $backUrl = $backMap[$t] ?? '/admin/content.php';
+            }
+            ?>
+            <a href="<?php echo e($backUrl); ?>" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                返回
+            </a>
+            <button type="submit" class="px-8 py-2 bg-primary hover:bg-secondary text-white rounded transition inline-flex items-center gap-1 text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                保存
+            </button>
+            <?php if ($content && isMultiLangEnabled('contents')): ?>
+            <div class="relative" x-data="{ open: false }">
+                <button type="button" @click="open = !open" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition inline-flex items-center gap-1 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                    翻译为…
+                </button>
+                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-1 bg-white rounded shadow-lg border py-1 min-w-[120px] z-50">
+                    <?php foreach (availableLanguages() as $lk => $lv):
+                        if ($lk === ($content['lang'] ?? config('site_lang', 'zh-CN'))) continue;
+                    ?>
+                    <a href="javascript:void(0)" onclick="translateTo('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><?php echo e($lv); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php
+        $extFieldOwnerType = 'content';
+        $extFieldOwnerId = (int)$id;
+        require __DIR__ . '/includes/extfield_render.php';
+    ?>
 </form>
 
 <!-- 上传文件的隐藏表单 -->
@@ -356,6 +521,9 @@ function updateTypeFields() {
     const type = document.getElementById('typeSelect').value;
     document.getElementById('productFields').classList.toggle('hidden', type !== 'product');
     document.getElementById('downloadFields').classList.toggle('hidden', type !== 'download');
+    document.getElementById('caseFields').classList.toggle('hidden', type !== 'case');
+    // 画廊：案例 和 产品 都显示
+    document.getElementById('galleryFields').classList.toggle('hidden', !(type === 'case' || type === 'product'));
 }
 
 if (!isLocked) {
@@ -414,6 +582,85 @@ function pickCoverFromMedia() {
     });
 }
 
+// ============ 多图画廊 ============
+// images 字段兼容两种格式：JSON 数组 或 换行分隔字符串
+function galleryList() {
+    var raw = document.getElementById('imagesInput').value || '';
+    raw = raw.trim();
+    if (!raw) return [];
+    try {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr.filter(Boolean);
+    } catch(e) {}
+    return raw.split(/\r?\n/).map(function(s) { return s.trim(); }).filter(Boolean);
+}
+function galleryWrite(arr) {
+    document.getElementById('imagesInput').value = JSON.stringify(arr);
+    renderGallery();
+}
+function renderGallery() {
+    var list = galleryList();
+    var box = document.getElementById('galleryPreview');
+    if (!box) return;
+    if (!list.length) {
+        box.innerHTML = '<div class="col-span-full text-xs text-gray-400 py-4 text-center border-2 border-dashed rounded">暂无图片</div>';
+        return;
+    }
+    box.innerHTML = list.map(function(url, i) {
+        return '<div class="relative group aspect-square bg-gray-100 rounded overflow-hidden">' +
+               '  <img src="' + url.replace(/"/g, '&quot;') + '" class="w-full h-full object-cover">' +
+               '  <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">' +
+               (i > 0 ? '    <button type="button" onclick="galleryMove(' + i + ',-1)" class="text-white bg-gray-700 rounded w-7 h-7 text-sm" title="左移">←</button>' : '') +
+               (i < list.length - 1 ? '    <button type="button" onclick="galleryMove(' + i + ',1)" class="text-white bg-gray-700 rounded w-7 h-7 text-sm" title="右移">→</button>' : '') +
+               '    <button type="button" onclick="galleryRemove(' + i + ')" class="text-white bg-red-500 rounded w-7 h-7 text-sm" title="删除">×</button>' +
+               '  </div>' +
+               '</div>';
+    }).join('');
+}
+function galleryAdd(url) {
+    if (!url) return;
+    var list = galleryList();
+    list.push(url);
+    galleryWrite(list);
+}
+function galleryRemove(i) {
+    var list = galleryList();
+    list.splice(i, 1);
+    galleryWrite(list);
+}
+function galleryMove(i, dir) {
+    var list = galleryList();
+    var j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    var tmp = list[i];
+    list[i] = list[j];
+    list[j] = tmp;
+    galleryWrite(list);
+}
+function addGalleryImage() {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.addEventListener('change', async function() {
+        if (!this.files[0]) return;
+        var fd = new FormData();
+        fd.append('file', this.files[0]);
+        fd.append('type', 'images');
+        try {
+            var resp = await fetch('/admin/upload.php', { method: 'POST', body: fd });
+            var data = await safeJson(resp);
+            if (data.code === 0) galleryAdd(data.data.url);
+            else showMessage(data.msg, 'error');
+        } catch(e) { showMessage('上传失败', 'error'); }
+    });
+    inp.click();
+}
+function pickGalleryFromMedia() {
+    openMediaPicker(function(url) { galleryAdd(url); });
+}
+// 初次渲染
+renderGallery();
+
 // 上传附件
 function uploadAttachment() {
     document.getElementById('attachmentFileInput').click();
@@ -442,6 +689,25 @@ document.getElementById('attachmentFileInput').addEventListener('change', async 
 
     this.value = '';
 });
+
+async function translateTo(lang) {
+    if (!confirm('Copy and create ' + lang + ' version?')) return;
+    var formData = new FormData();
+    formData.append('action', 'translate');
+    formData.append('target_lang', lang);
+    try {
+        var response = await fetch('', { method: 'POST', body: formData });
+        var data = await safeJson(response);
+        if (data.code === 0 && data.data.redirect) {
+            showMessage('OK');
+            setTimeout(function(){ location.href = data.data.redirect; }, 800);
+        } else {
+            showMessage(data.msg || 'Error', 'error');
+        }
+    } catch (e) {
+        showMessage('Error', 'error');
+    }
+}
 </script>
 
 <?php

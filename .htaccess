@@ -19,6 +19,12 @@
     # Sitemap
     RewriteRule ^sitemap\.xml$ /sitemap.php [L]
 
+    # 搜索
+    RewriteRule ^search\.html$ /search.php [L,QSA]
+
+    # 多语言 URL 前缀：/ja/... /en/... /zh-CN/... → 剥离前缀，设 lang 参数
+    RewriteRule ^(ja|en|zh-CN)/(.*)$ /$2?_lang=$1 [QSA,L,DPI]
+
     # 伪静态规则
 
     # 新闻文章系统

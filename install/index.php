@@ -211,6 +211,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $siteName = $_POST['site_name'] ?? 'Yikai CMS';
             $siteUrl = $_POST['site_url'] ?? '';
 
+            $siteLang   = in_array($_POST['site_lang'] ?? '', ['zh-CN', 'ja', 'en'], true) ? $_POST['site_lang'] : 'zh-CN';
+            $adminLang  = in_array($_POST['admin_lang'] ?? '', ['zh-CN', 'ja', 'en'], true) ? $_POST['admin_lang'] : 'zh-CN';
+            $installDemo = !empty($_POST['install_demo']);
+
             // 验证表前缀（仅允许字母数字下划线）
             if (!preg_match('/^[a-zA-Z0-9_]*$/', $prefix)) {
                 throw new Exception('表前缀只允许字母、数字和下划线');
@@ -245,12 +249,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $sql = file_get_contents($sqlFile);
             $sql = str_replace('yikai_', $prefix, $sql);
 
-            // 分割并执行 SQL 语句
-            if ($driver === 'sqlite') {
-                $pdo->exec($sql);
-            } else {
-                $pdo->exec($sql);
+            // 根据演示数据选项剥离 @demo:start ~ @demo:end 区块
+            if (!$installDemo) {
+                $sql = preg_replace('/--\s*@demo:start.*?--\s*@demo:end/s', '', $sql);
             }
+
+            // 分割并执行 SQL 语句
+            $pdo->exec($sql);
 
             // 创建管理员
             $now = time();
@@ -266,15 +271,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([rtrim($siteUrl, '/')]);
             }
 
+            // 前台/后台语言
+            $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'site_lang'");
+            $stmt->execute([$siteLang]);
+            $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'admin_lang'");
+            $stmt->execute([$adminLang]);
+
             // 生成配置文件
             $configFile = ROOT_PATH . '/config/config.sample.php';
             if (!file_exists($configFile)) {
                 throw new Exception('配置模板文件不存在: config/config.sample.php');
             }
             $configTemplate = file_get_contents($configFile);
+            $sessionId = substr(md5(uniqid((string)mt_rand(), true)), 0, 8);
+            $encryptKey = 'ik_' . bin2hex(random_bytes(16));
             $configContent = str_replace(
-                ['{{DB_DRIVER}}', '{{DB_HOST}}', '{{DB_PORT}}', '{{DB_NAME}}', '{{DB_USER}}', '{{DB_PASS}}', '{{SITE_NAME}}', '{{SITE_URL}}', "define('DB_PREFIX', 'yikai_')"],
-                [$driver, $host, $port, $dbName, $user, $pass, $siteName, $siteUrl, "define('DB_PREFIX', '{$prefix}')"],
+                ['{{DB_DRIVER}}', '{{DB_HOST}}', '{{DB_PORT}}', '{{DB_NAME}}', '{{DB_USER}}', '{{DB_PASS}}', '{{SITE_NAME}}', '{{SITE_URL}}', '{{SESSION_ID}}', '{{ENCRYPT_KEY}}', "define('DB_PREFIX', 'yikai_')"],
+                [$driver, $host, $port, $dbName, $user, $pass, $siteName, $siteUrl, $sessionId, $encryptKey, "define('DB_PREFIX', '{$prefix}')"],
                 $configTemplate
             );
 
@@ -476,6 +489,25 @@ $envAllPass = checkAllPass($envChecks);
                         <input type="text" name="db_prefix" value="yikai_" class="w-full border rounded px-3 py-2">
                     </div>
 
+                    <!-- 警告 -->
+                    <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <p class="text-sm text-amber-700">安装时将删除数据库中同名的表并重新创建。如果数据库中已有数据，请先备份。</p>
+                    </div>
+
+                    <!-- 演示数据 -->
+                    <div class="mt-6 pt-6 border-t space-y-4">
+                        <input type="hidden" name="site_lang" value="zh-CN">
+                        <input type="hidden" name="admin_lang" value="zh-CN">
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="install_demo" value="1" checked class="mr-2">
+                                <span>安装官方演示数据</span>
+                            </label>
+                            <p class="text-xs text-gray-400 mt-1 ml-6">包含示例栏目、产品、文章、案例、下载、招聘、时间线等。生产部署建议关闭。</p>
+                        </div>
+                    </div>
+
                     <!-- 测试按钮 -->
                     <div class="mt-6">
                         <button type="button" id="testDbBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
@@ -616,7 +648,7 @@ $envAllPass = checkAllPass($envChecks);
                 }
 
                 // 恢复之前保存的数据库配置
-                const dbFields = ['db_driver', 'db_host', 'db_port', 'db_name', 'db_user', 'db_pass', 'db_prefix', 'db_create'];
+                const dbFields = ['db_driver', 'db_host', 'db_port', 'db_name', 'db_user', 'db_pass', 'db_prefix', 'db_create', 'install_demo', 'site_lang', 'admin_lang'];
 
                 // 安装
                 document.getElementById('installBtn').addEventListener('click', async function() {
@@ -693,6 +725,92 @@ $envAllPass = checkAllPass($envChecks);
 
                     <div class="bg-yellow-50 text-yellow-700 p-4 rounded mb-6">
                         <?php echo $L['security_tip']; ?>
+                    </div>
+
+                    <!-- Rewrite 配置ガイド -->
+                    <div class="bg-white border rounded-lg text-left mb-6">
+                        <div class="px-5 py-3 border-b bg-gray-50 rounded-t-lg">
+                            <h3 class="font-bold text-gray-800 text-sm"><?php echo $L['rewrite_title'] ?? 'URL 伪静态配置'; ?></h3>
+                            <p class="text-xs text-gray-500 mt-1"><?php echo $L['rewrite_desc'] ?? '启用友好URL（如 /company.html）需要配置Web服务器的伪静态规则'; ?></p>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex gap-2 mb-3">
+                                <button onclick="switchRewriteTab('apache')" id="tab-apache" style="background:#3B82F6;color:#fff" class="px-4 py-1.5 rounded text-sm font-medium">Apache</button>
+                                <button onclick="switchRewriteTab('nginx')" id="tab-nginx" style="background:#f3f4f6;color:#4b5563" class="px-4 py-1.5 rounded text-sm font-medium">Nginx</button>
+                            </div>
+                            <div id="panel-apache">
+                                <div style="background:#f0fdf4;color:#15803d;padding:12px;border-radius:6px;font-size:14px">
+                                    <strong>&#10003; <?php echo $L['rewrite_apache_ok'] ?? '无需配置'; ?></strong><br>
+                                    <?php echo $L['rewrite_apache_desc'] ?? '已内置 .htaccess 文件。确保 Apache 启用了 mod_rewrite 模块即可自动生效。'; ?>
+                                </div>
+                                <div style="margin-top:8px;font-size:12px;color:#6b7280">
+                                    <?php echo $L['rewrite_apache_check'] ?? '请确认 Apache 的 httpd.conf 中已设置 AllowOverride All。'; ?>
+                                </div>
+                            </div>
+                            <div id="panel-nginx" style="display:none">
+                                <div style="background:#fff7ed;color:#c2410c;padding:12px;border-radius:6px;font-size:14px;margin-bottom:8px">
+                                    <strong>&#9888; <?php echo $L['rewrite_nginx_manual'] ?? '需要手动配置'; ?></strong><br>
+                                    <?php echo $L['rewrite_nginx_desc'] ?? '请将以下规则添加到站点的 Nginx 配置文件（server 块内）。'; ?>
+                                </div>
+                                <div style="position:relative">
+                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;line-height:1.6"><code># ikaiCMS Rewrite Rules
+location ~ ^/list/(\d+)\.html$ { rewrite ^/list/(\d+)\.html$ /list.php?id=$1 last; }
+location ~ ^/list/(\d+)/page/(\d+)\.html$ { rewrite ^/list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 last; }
+location ~ ^/product/(\d+)\.html$ { rewrite ^/product/(\d+)\.html$ /product.php?id=$1 last; }
+location ~ ^/product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ { rewrite ^/product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /product.php?slug=$2 last; }
+location ~ ^/product/([a-z0-9_-]+)/page/(\d+)\.html$ { rewrite ^/product/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=product&cat=$1&page=$2 last; }
+location ~ ^/product/([a-z0-9_-]+)\.html$ { rewrite ^/product/([a-z0-9_-]+)\.html$ /list.php?slug=product&cat=$1 last; }
+location ~ ^/detail/(\d+)\.html$ { rewrite ^/detail/(\d+)\.html$ /detail.php?id=$1 last; }
+location ~ ^/job/(\d+)\.html$ { rewrite ^/job/(\d+)\.html$ /job_detail.php?id=$1 last; }
+location ~ ^/page/(\d+)\.html$ { rewrite ^/page/(\d+)\.html$ /page.php?id=$1 last; }
+location = /contact.html { rewrite ^ /contact.php last; }
+location = /sitemap.xml { rewrite ^ /sitemap.php last; }
+location ~ ^/([a-z0-9_-]+)/page/(\d+)\.html$ { rewrite ^/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=$1&page=$2 last; }
+location ~ ^/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ { rewrite ^/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /page.php?parent=$1&slug=$2 last; }
+location ~ ^/([a-z0-9_-]+)\.html$ { rewrite ^/([a-z0-9_-]+)\.html$ /page.php?slug=$1 last; }
+location / { try_files $uri $uri/ /index.php?$query_string; }</code></pre>
+                                    <button onclick="copyNginxCode(this)" style="position:absolute;top:8px;right:8px;background:#334155;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">复制</button>
+                                </div>
+                                <div style="margin-top:8px;font-size:12px;color:#6b7280">
+                                    <?php echo $L['rewrite_nginx_reload'] ?? '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。'; ?>
+                                </div>
+                            </div>
+                            <script>
+                            function switchRewriteTab(tab) {
+                                document.getElementById('panel-apache').style.display = tab === 'apache' ? '' : 'none';
+                                document.getElementById('panel-nginx').style.display = tab === 'nginx' ? '' : 'none';
+                                document.getElementById('tab-apache').style.background = tab === 'apache' ? '#3B82F6' : '#f3f4f6';
+                                document.getElementById('tab-apache').style.color = tab === 'apache' ? '#fff' : '#4b5563';
+                                document.getElementById('tab-nginx').style.background = tab === 'nginx' ? '#3B82F6' : '#f3f4f6';
+                                document.getElementById('tab-nginx').style.color = tab === 'nginx' ? '#fff' : '#4b5563';
+                            }
+                            function copyNginxCode(btn) {
+                                var text = document.getElementById('nginxCode').querySelector('code').textContent;
+                                // 在代码块下方显示一个 textarea，选中内容
+                                var existing = document.getElementById('copyTextarea');
+                                if (existing) { existing.parentNode.removeChild(existing); }
+                                var ta = document.createElement('textarea');
+                                ta.id = 'copyTextarea';
+                                ta.value = text;
+                                ta.style.cssText = 'width:100%;height:120px;margin-top:8px;padding:8px;font-size:12px;font-family:monospace;border:2px solid #3B82F6;border-radius:6px;background:#f8fafc;color:#1e293b';
+                                document.getElementById('nginxCode').parentNode.appendChild(ta);
+                                ta.focus();
+                                ta.select();
+                                ta.setSelectionRange(0, ta.value.length);
+                                var done = false;
+                                try { done = document.execCommand('copy'); } catch(e) {}
+                                if (done) {
+                                    btn.textContent = '✓ 已复制';
+                                    btn.style.background = '#16a34a';
+                                    setTimeout(function() { ta.parentNode.removeChild(ta); btn.textContent = '复制'; btn.style.background = '#334155'; }, 2000);
+                                } else {
+                                    btn.textContent = '请按 Ctrl+C';
+                                    btn.style.background = '#d97706';
+                                    setTimeout(function() { btn.textContent = '复制'; btn.style.background = '#334155'; }, 5000);
+                                }
+                            }
+                            </script>
+                        </div>
                     </div>
 
                     <div class="flex justify-center gap-4">

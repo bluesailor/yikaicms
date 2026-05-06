@@ -44,8 +44,23 @@ composer.phar
 .DS_Store
 Thumbs.db
 
+# BigDump (dev tool)
+admin/bigdump-2.29/
+
 # Dev files
 *.bak
 *.rar
 *.log
 docs/
+CLAUDE.md
+build.bat
+build.sh
+reset_test.sh
+psalm.xml
+nginx.conf
+package.json
+package-lock.json
+composer.phar
+composer.lock
+installed.lock
+2026-*.png

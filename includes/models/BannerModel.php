@@ -12,10 +12,15 @@ class BannerModel extends Model
     public function getByPosition(string $position, int $limit = 10): array
     {
         $now = time();
-        return db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} WHERE status = 1 AND position = ? AND (start_time = 0 OR start_time <= ?) AND (end_time = 0 OR end_time >= ?) ORDER BY sort_order ASC, id DESC LIMIT ?",
-            [$position, $now, $now, $limit]
-        );
+        $sql = "SELECT * FROM {$this->tableName()} WHERE status = 1 AND position = ? AND (start_time = 0 OR start_time <= ?) AND (end_time = 0 OR end_time >= ?)";
+        $params = [$position, $now, $now];
+        if (isMultiLangEnabled('banners')) {
+            $sql .= " AND lang = ?";
+            $params[] = siteLang();
+        }
+        $sql .= " ORDER BY sort_order ASC, id DESC LIMIT ?";
+        $params[] = $limit;
+        return db()->fetchAll($sql, $params);
     }
 
     /**

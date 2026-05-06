@@ -43,6 +43,14 @@ foreach ($timelines as $item) {
     $groupedTimelines[$year][] = $item;
 }
 
+// 按设置排序
+$timelineSort = config('timeline_sort', 'desc');
+if ($timelineSort === 'asc') {
+    ksort($groupedTimelines);
+} else {
+    krsort($groupedTimelines);
+}
+
 $pageTitle = __('nav_history');
 $pageDescription = config('site_name') . '的发展历程，记录我们成长的每一个重要时刻。';
 $isHistoryPage = true;

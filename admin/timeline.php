@@ -107,6 +107,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'batch_delete') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids)) {
+            foreach ($ids as $delId) {
+                timelineModel()->deleteById((int)$delId);
+            }
+            adminLog('timeline', 'batch_delete', '批量删除：' . implode(',', $ids));
+        }
+        success();
+    }
+
+    if ($action === 'save_sort_setting') {
+        settingModel()->set('timeline_sort', post('timeline_sort', 'desc'));
+        success();
+    }
+
     exit;
 }
 
@@ -119,11 +135,19 @@ $currentMenu = 'timeline';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php $timelineSort = config('timeline_sort', 'desc'); ?>
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
-    <div class="p-4 flex justify-between items-center">
-        <div class="text-gray-500 text-sm">
-            拖拽排序 · 共 <?php echo count($timelines); ?> 条记录
+    <div class="p-4 flex flex-wrap justify-between items-center gap-3">
+        <div class="flex items-center gap-4">
+            <span class="text-gray-500 text-sm">共 <?php echo count($timelines); ?> 条记录</span>
+            <div class="flex items-center gap-2 text-sm">
+                <span class="text-gray-500">前台排序：</span>
+                <select id="sortSetting" onchange="saveSortSetting(this.value)" class="border rounded px-2 py-1 text-sm">
+                    <option value="desc" <?php echo $timelineSort === 'desc' ? 'selected' : ''; ?>>最新在前</option>
+                    <option value="asc" <?php echo $timelineSort === 'asc' ? 'selected' : ''; ?>>最早在前</option>
+                </select>
+            </div>
         </div>
         <div class="flex gap-2">
             <a href="/history.php" target="_blank" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
@@ -144,6 +168,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
+                    <th class="px-4 py-3 w-8"><input type="checkbox" onclick="document.querySelectorAll('.tl-check').forEach(c=>c.checked=this.checked)"></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10">排序</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标题</th>
@@ -156,6 +181,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <tbody class="divide-y" id="sortableList">
                 <?php foreach ($timelines as $item): ?>
                 <tr class="hover:bg-gray-50" data-id="<?php echo $item['id']; ?>">
+                    <td class="px-4 py-3"><input type="checkbox" class="tl-check" value="<?php echo $item['id']; ?>"></td>
                     <td class="px-4 py-3">
                         <span class="cursor-move text-gray-400 hover:text-gray-600">&#9776;</span>
                     </td>
@@ -220,6 +246,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+    <div id="batchBar" class="px-4 py-3 border-t hidden">
+        <button type="button" onclick="batchDelete()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            批量删除 (<span id="batchCount">0</span>)
+        </button>
     </div>
 </div>
 
@@ -468,6 +500,37 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     }
     this.value = '';
 });
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('tl-check') || e.target.closest('th')) {
+        var cnt = document.querySelectorAll('.tl-check:checked').length;
+        document.getElementById('batchBar').classList.toggle('hidden', cnt === 0);
+        document.getElementById('batchCount').textContent = cnt;
+    }
+});
+
+async function batchDelete() {
+    var checked = document.querySelectorAll('.tl-check:checked');
+    if (checked.length === 0) { showMessage('请选择要删除的项', 'error'); return; }
+    if (!confirm('确定要删除选中的 ' + checked.length + ' 项吗？')) return;
+    var fd = new FormData();
+    fd.append('action', 'batch_delete');
+    checked.forEach(function(el) { fd.append('ids[]', el.value); });
+    var resp = await fetch('', { method: 'POST', body: fd });
+    var data = await safeJson(resp);
+    if (data.code === 0) { showMessage('删除成功'); setTimeout(function(){ location.reload(); }, 500); }
+    else showMessage(data.msg || '失败', 'error');
+}
+
+async function saveSortSetting(val) {
+    var fd = new FormData();
+    fd.append('action', 'save_sort_setting');
+    fd.append('timeline_sort', val);
+    var resp = await fetch('', { method: 'POST', body: fd });
+    var data = await safeJson(resp);
+    if (data.code === 0) showMessage('排序设置已保存');
+    else showMessage(data.msg || '失败', 'error');
+}
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

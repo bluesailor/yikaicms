@@ -111,7 +111,7 @@ unset($_heroChannelBackup);
             <form method="get" action="<?php echo $category ? '/news/' . e($category['slug']) . '.html' : '/news.html'; ?>" class="flex items-center gap-2">
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                           placeholder="搜索文章..."
+                           placeholder="<?php echo __('news_search_placeholder'); ?>"
                            class="w-48 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                     <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +120,7 @@ unset($_heroChannelBackup);
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo $category ? '/news/' . e($category['slug']) . '.html' : '/news.html'; ?>" class="text-gray-400 hover:text-red-500" title="清除搜索">
+                <a href="<?php echo $category ? '/news/' . e($category['slug']) . '.html' : '/news.html'; ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -130,7 +130,7 @@ unset($_heroChannelBackup);
         </div>
         <?php if ($keyword !== ''): ?>
         <div class="pb-3 text-sm text-gray-500">
-            搜索 "<span class="text-primary"><?php echo e($keyword); ?></span>" 共 <span class="text-primary font-medium"><?php echo $total; ?></span> 条结果
+            <?php echo __('search_total', ['count' => '<span class="text-primary font-medium">' . $total . '</span>']); ?> — "<span class="text-primary"><?php echo e($keyword); ?></span>"
         </div>
         <?php endif; ?>
     </div>
@@ -143,13 +143,17 @@ unset($_heroChannelBackup);
         <div class="space-y-6">
             <?php foreach ($articles as $item): ?>
             <a href="/news/article/<?php echo $item['id']; ?>.html" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
-                <?php if ($item['cover']): ?>
-                <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden">
+                <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden bg-gray-100">
+                    <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
                          class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    <?php else: ?>
+                    <div class="w-full h-full flex items-center justify-center text-gray-300 min-h-[120px]">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <?php endif; ?>
                 </div>
-                <?php endif; ?>
-                <div class="flex-1 py-4 pr-4 <?php echo $item['cover'] ? '' : 'pl-4'; ?>">
+                <div class="flex-1 py-4 pr-4">
                     <h3 class="text-lg font-bold text-dark group-hover:text-primary transition line-clamp-2">
                         <?php if ($item['is_top']): ?>
                         <span class="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_top'); ?></span>
@@ -169,7 +173,7 @@ unset($_heroChannelBackup);
                         <?php if ($item['author'] ?? ''): ?>
                         <span><?php echo e($item['author']); ?></span>
                         <?php endif; ?>
-                        <span><?php echo date('Y-m-d', (int)$item['publish_time']); ?></span>
+                        <span><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span>
                         <span><?php echo __('detail_views'); ?> <?php echo number_format((int)$item['views']); ?></span>
                     </div>
                 </div>

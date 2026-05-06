@@ -4,8 +4,8 @@
  * 变量：$testimonials
  */
 if (empty($testimonials)) return;
-$tmTitle = config('home_testimonials_title', '客户评价');
-$tmDesc = config('home_testimonials_desc', '听听合作伙伴怎么说');
+$tmTitle = configLang('home_testimonials_title', 'home_testimonials_title');
+$tmDesc = configLang('home_testimonials_desc', 'home_testimonials_desc');
 $bg = getBlockBg($block ?? [], 'bg-gray-50');
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
@@ -13,7 +13,14 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2">
-                <span class="text-primary"><?php echo e(mb_substr($tmTitle, 0, 2)); ?></span><?php echo e(mb_substr($tmTitle, 2)); ?>
+                <?php
+                if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $tmTitle)) {
+                    echo '<span class="text-primary">' . e(mb_substr($tmTitle, 0, 2)) . '</span>' . e(mb_substr($tmTitle, 2));
+                } else {
+                    $words = explode(' ', $tmTitle, 2);
+                    echo '<span class="text-primary">' . e($words[0]) . '</span>' . (isset($words[1]) ? ' ' . e($words[1]) : '');
+                }
+                ?>
             </h2>
             <span class="section-title-bar"></span>
             <p class="text-gray-500 mt-4"><?php echo e($tmDesc); ?></p>

@@ -21,16 +21,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = postInt('id');
+        do_action('before_delete_product', $id);
         productModel()->deleteById($id);
+        metaModel()->del('product', $id);
         adminLog('product', 'delete', "删除产品ID: $id");
+        do_action('after_delete_product', $id);
         success();
     }
 
     if ($action === 'batch_delete') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
+            foreach ($ids as $delId) {
+                $delId = (int)$delId;
+                do_action('before_delete_product', $delId);
+                metaModel()->del('product', $delId);
+            }
             productModel()->deleteByIds($ids);
             adminLog('product', 'batch_delete', '批量删除：' . implode(',', $ids));
+            foreach ($ids as $delId) {
+                do_action('after_delete_product', (int)$delId);
+            }
         }
         success();
     }
@@ -39,6 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         $newStatus = productModel()->toggle($id, 'status');
         success(['status' => $newStatus]);
+    }
+
+    if ($action === 'save_sort') {
+        $id = postInt('id');
+        $sortOrder = postInt('sort_order');
+        productModel()->updateById($id, ['sort_order' => $sortOrder]);
+        success(['sort_order' => $sortOrder]);
     }
 
     if ($action === 'toggle_top') {
@@ -53,6 +71,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success(['is_recommend' => $newValue]);
     }
 
+    if ($action === 'quick_translate') {
+        $srcId = postInt('src_id');
+        $toLang = post('to_lang');
+        $src = productModel()->find($srcId);
+        if (!$src) error('源产品不存在');
+
+        $groupId = (int)($src['translation_group_id'] ?: $srcId);
+        if (!$src['translation_group_id']) {
+            productModel()->updateById($srcId, ['translation_group_id' => $srcId]);
+        }
+
+        $existing = productModel()->queryOne(
+            "SELECT id FROM " . productModel()->tableName() . " WHERE translation_group_id = ? AND lang = ?",
+            [$groupId, $toLang]
+        );
+        if ($existing) {
+            success(['id' => (int)$existing['id'], 'exists' => true], '翻译已存在');
+        }
+
+        $langName = availableLanguages()[$toLang] ?? $toLang;
+        $title = $src['title'];
+        $summary = $src['summary'] ?? '';
+
+        $translatedTitle = dictTranslateTo($title, $toLang) ?: $title;
+        $translatedSummary = $summary;
+
+        require_once ROOT_PATH . '/includes/AiService.php';
+        $encryptedKey = config('ai_api_key', '');
+        $aiKey = $encryptedKey ? AiService::decryptKey($encryptedKey) : '';
+        if ($aiKey) {
+            $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
+            $prompt = "Translate to {$langName}. Return JSON: {\"title\":\"...\",\"summary\":\"...\"}. No explanation.\n\nTitle: {$title}\nSummary: {$summary}";
+            $result = $ai->chat($prompt, 'Return only valid JSON.', 0.3);
+            if ($result['success']) {
+                $json = json_decode(preg_replace('/^```json\s*|```\s*$/m', '', trim($result['content'] ?? '')), true);
+                if ($json) {
+                    $translatedTitle = $json['title'] ?? $translatedTitle;
+                    $translatedSummary = $json['summary'] ?? $translatedSummary;
+                }
+            }
+        }
+
+        // 查找对应语言的分类
+        $targetCatId = 0;
+        if ($src['category_id'] > 0) {
+            $srcCat = db()->fetchOne("SELECT * FROM " . DB_PREFIX . "product_categories WHERE id = ?", [$src['category_id']]);
+            if ($srcCat) {
+                $catGroupId = (int)($srcCat['translation_group_id'] ?: $srcCat['id']);
+                $targetCat = db()->fetchOne("SELECT id FROM " . DB_PREFIX . "product_categories WHERE translation_group_id = ? AND lang = ?", [$catGroupId, $toLang]);
+                if ($targetCat) $targetCatId = (int)$targetCat['id'];
+            }
+        }
+
+        $newData = [
+            'category_id' => $targetCatId,
+            'title' => $translatedTitle,
+            'summary' => $translatedSummary,
+            'content' => $src['content'],
+            'cover' => $src['cover'] ?? '',
+            'model' => $src['model'] ?? '',
+            'price' => $src['price'] ?? 0,
+            'views' => 0,
+            'is_top' => 0,
+            'is_recommend' => (int)($src['is_recommend'] ?? 0),
+            'is_new' => (int)($src['is_new'] ?? 0),
+            'is_hot' => (int)($src['is_hot'] ?? 0),
+            'sort_order' => (int)($src['sort_order'] ?? 0),
+            'status' => 0,
+            'lang' => $toLang,
+            'translation_group_id' => $groupId,
+            'created_at' => time(),
+            'updated_at' => time(),
+            'admin_id' => $_SESSION['admin_id'] ?? 0,
+        ];
+        $newId = productModel()->create($newData);
+
+        adminLog('product', 'translate', "AI翻译产品 #{$srcId} → {$toLang} #{$newId}");
+        success(['id' => $newId], "翻译完成，已创建{$langName}版本（草稿）");
+    }
+
     exit;
 }
 
@@ -63,18 +161,47 @@ $categories = productCategoryModel()->where(['status' => 1]);
 $categoryId = getInt('category_id');
 $status = get('status', '');
 $keyword = get('keyword');
+$defaultLang = config('site_lang', 'zh-CN');
+$allLangs = availableLanguages();
+$filterLang = get('lang', $defaultLang);
 $page = max(1, getInt('page', 1));
 $perPage = 20;
 
+$multiLangEnabled = isMultiLangEnabled('products');
+$otherLangs = $allLangs;
+unset($otherLangs[$defaultLang]);
+
+// 始终查默认语言的产品
 $offset = ($page - 1) * $perPage;
 $filters = array_filter([
     'category_id' => $categoryId,
     'status' => $status,
     'keyword' => $keyword,
+    'lang' => $defaultLang,
 ], fn($v) => $v !== '' && $v !== 0);
 $result = productModel()->getAdminList($filters, $perPage, $offset);
 $total = $result['total'];
 $products = $result['items'];
+
+// 翻译状态
+$translationStatus = [];
+if ($multiLangEnabled && !empty($otherLangs) && !empty($products)) {
+    $groupIds = [];
+    foreach ($products as $p) {
+        $gid = (int)($p['translation_group_id'] ?: $p['id']);
+        $groupIds[$gid] = true;
+    }
+    if (!empty($groupIds)) {
+        $gidList = implode(',', array_keys($groupIds));
+        $transRows = productModel()->query(
+            "SELECT id, lang, translation_group_id FROM " . productModel()->tableName() . " WHERE translation_group_id IN ({$gidList}) AND lang != ?",
+            [$defaultLang]
+        );
+        foreach ($transRows as $tr) {
+            $translationStatus[(int)$tr['translation_group_id']][$tr['lang']] = (int)$tr['id'];
+        }
+    }
+}
 
 $pageTitle = '产品管理';
 $currentMenu = 'product';
@@ -112,6 +239,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>>已下架</option>
             </select>
 
+
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                    class="border rounded px-3 py-2" placeholder="搜索名称/型号...">
 
@@ -147,7 +275,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">置顶</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">推荐</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">浏览</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
+                        <?php if ($multiLangEnabled && !empty($otherLangs)): ?>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <?php endif; ?>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
                     </tr>
                 </thead>
@@ -204,11 +336,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo number_format((int)$item['views']); ?>
                         </td>
                         <td class="px-4 py-3 text-center">
+                            <input type="number" value="<?php echo (int)($item['sort_order'] ?? 0); ?>"
+                                   onblur="saveSort(<?php echo $item['id']; ?>, this.value)"
+                                   class="w-16 border rounded px-2 py-1 text-center text-sm">
+                        </td>
+                        <td class="px-4 py-3 text-center">
                             <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                     class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
                                 <?php echo $item['status'] ? '上架' : '下架'; ?>
                             </button>
                         </td>
+                        <?php if ($multiLangEnabled && !empty($otherLangs)):
+                            $gid = (int)($item['translation_group_id'] ?: $item['id']);
+                        ?>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <?php foreach ($otherLangs as $olc => $oll):
+                                    $hasTranslation = isset($translationStatus[$gid][$olc]);
+                                    $transId = $translationStatus[$gid][$olc] ?? 0;
+                                    $label = strtoupper(explode('-', $olc)[0]);
+                                ?>
+                                <?php if ($hasTranslation): ?>
+                                <a href="/admin/product_edit.php?id=<?php echo $transId; ?>" title="<?php echo e($oll); ?> - 已翻译，点击编辑"
+                                   class="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-600 hover:bg-green-200"><?php echo $label; ?></a>
+                                <?php else: ?>
+                                <button type="button" onclick="quickTranslate(<?php echo $item['id']; ?>, '<?php echo e($olc); ?>', this)" title="<?php echo e($oll); ?> - 点击AI翻译"
+                                        class="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 cursor-pointer"><?php echo $label; ?></button>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </td>
+                        <?php endif; ?>
                         <td class="px-4 py-3 text-center">
                             <a href="/admin/product_edit.php?id=<?php echo $item['id']; ?>"
                                class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
@@ -268,6 +426,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 document.getElementById('checkAll').addEventListener('change', function() {
     document.querySelectorAll('input[name="ids[]"]').forEach(el => el.checked = this.checked);
 });
+
+async function saveSort(id, val) {
+    const formData = new FormData();
+    formData.append('action', 'save_sort');
+    formData.append('id', id);
+    formData.append('sort_order', val);
+    const response = await fetch('', { method: 'POST', body: formData });
+    const data = await safeJson(response);
+    if (data.code === 0) {
+        showMessage('排序已更新');
+    } else {
+        showMessage(data.msg || '保存失败', 'error');
+    }
+}
 
 async function toggleStatus(id, btn) {
     const formData = new FormData();
@@ -352,6 +524,36 @@ async function batchDelete() {
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
+    }
+}
+
+async function quickTranslate(srcId, toLang, btn) {
+    var langNames = <?php echo json_encode($allLangs, JSON_UNESCAPED_UNICODE); ?>;
+    if (!confirm('AI 翻译此产品到 ' + (langNames[toLang]||toLang) + '？\n将创建草稿，可在编辑页调整。')) return;
+    btn.disabled = true;
+    btn.textContent = '...';
+    btn.className = 'px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-600 animate-pulse';
+    var fd = new FormData();
+    fd.append('action', 'quick_translate');
+    fd.append('src_id', srcId);
+    fd.append('to_lang', toLang);
+    try {
+        var resp = await fetch('', { method: 'POST', body: fd });
+        var data = await safeJson(resp);
+        if (data.code === 0) {
+            btn.className = 'px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-600';
+            btn.textContent = '✓';
+            showMessage(data.msg || '翻译完成');
+            setTimeout(function(){ location.reload(); }, 1000);
+        } else {
+            btn.disabled = false;
+            btn.className = 'px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-500';
+            showMessage(data.msg || '翻译失败', 'error');
+        }
+    } catch(e) {
+        btn.disabled = false;
+        btn.className = 'px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-400';
+        showMessage('请求失败', 'error');
     }
 }
 </script>

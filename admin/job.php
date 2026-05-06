@@ -48,6 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+$defaultLang = config('site_lang', 'zh-CN');
+$hasMultiLang = isMultiLangEnabled('jobs');
+$filterLang = get('lang', $defaultLang);
+$allLangs = availableLanguages();
+if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
+
 // 查询参数
 $status = get('status', '');
 $keyword = get('keyword');
@@ -63,6 +69,9 @@ if ($status !== '') {
 if ($keyword) {
     $filters['keyword'] = $keyword;
 }
+if ($hasMultiLang) {
+    $filters['lang'] = $filterLang;
+}
 
 $result = jobModel()->getList($filters, $perPage, $offset);
 $items = $result['items'];
@@ -73,6 +82,15 @@ $currentMenu = 'job';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($hasMultiLang && count($allLangs) > 1): ?>
+<div class="mb-4 flex items-center gap-2 flex-wrap">
+    <span class="text-sm text-gray-500">语言：</span>
+    <?php foreach ($allLangs as $lc => $ll): ?>
+    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">

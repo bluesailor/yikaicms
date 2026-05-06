@@ -7,6 +7,9 @@
    ============================================================ */
 [x-cloak] { display: none !important; }
 
+/* Tailwind v4 默认边框颜色修复 */
+*, *::before, *::after { border-color: #e5e7eb; }
+
 /* Tailwind v4 Preflight 表单修复：恢复表单元素默认外观 */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="color"]),
 textarea,
@@ -25,12 +28,16 @@ input[type="radio"] {
 /* ============================================================
    侧边栏
    ============================================================ */
+.sidebar-link {
+    color: #d1d5db;
+}
 .sidebar-link.active {
     background-color: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
+    color: #60a5fa;
 }
 .sidebar-link:hover {
     background-color: rgba(255, 255, 255, 0.1);
+    color: #f3f4f6;
 }
 .sidebar-group {
     cursor: pointer;

@@ -20,19 +20,19 @@ if (!$bg['style'] && !$bg['overlay']) {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center" data-stagger>
             <div>
                 <div class="text-4xl font-bold text-white mb-2 stat-number" data-count="<?php echo e(config('home_stat_1_num', '10+')); ?>"><?php echo e(config('home_stat_1_num', '10+')); ?></div>
-                <div class="text-gray-300"><?php echo e(config('home_stat_1_text', '年行业经验')); ?></div>
+                <div class="text-gray-300"><?php echo e(configLang('home_stat_1_text', 'home_stat_1')); ?></div>
             </div>
             <div>
                 <div class="text-4xl font-bold text-white mb-2 stat-number" data-count="<?php echo e(config('home_stat_2_num', '1000+')); ?>"><?php echo e(config('home_stat_2_num', '1000+')); ?></div>
-                <div class="text-gray-300"><?php echo e(config('home_stat_2_text', '服务客户')); ?></div>
+                <div class="text-gray-300"><?php echo e(configLang('home_stat_2_text', 'home_stat_2')); ?></div>
             </div>
             <div>
                 <div class="text-4xl font-bold text-white mb-2 stat-number" data-count="<?php echo e(config('home_stat_3_num', '50+')); ?>"><?php echo e(config('home_stat_3_num', '50+')); ?></div>
-                <div class="text-gray-300"><?php echo e(config('home_stat_3_text', '专业团队')); ?></div>
+                <div class="text-gray-300"><?php echo e(configLang('home_stat_3_text', 'home_stat_3')); ?></div>
             </div>
             <div>
                 <div class="text-4xl font-bold text-white mb-2 stat-number" data-count="<?php echo e(config('home_stat_4_num', '100%')); ?>"><?php echo e(config('home_stat_4_num', '100%')); ?></div>
-                <div class="text-gray-300"><?php echo e(config('home_stat_4_text', '客户满意')); ?></div>
+                <div class="text-gray-300"><?php echo e(configLang('home_stat_4_text', 'home_stat_4')); ?></div>
             </div>
         </div>
     </div>
