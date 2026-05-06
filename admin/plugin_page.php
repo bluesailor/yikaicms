@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 插件管理页面路由
+ * ikaiCMS - 插件管理页面路由
  *
  * 加载插件的后台管理页面: /admin/plugin_page.php?plugin=slug
  * PHP 8.0+

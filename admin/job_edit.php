@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 招聘编辑
+ * ikaiCMS - 招聘编辑
  *
  * PHP 8.0+
  */
@@ -23,29 +23,6 @@ $job = $isEdit ? jobModel()->find($id) : null;
 if ($isEdit && !$job) {
     header('Location: /admin/job.php');
     exit;
-}
-
-// 翻译创建
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'create_translation') {
-    $srcId = postInt('src_id');
-    $toLang = post('to_lang');
-    $src = jobModel()->find($srcId);
-    if (!$src) error('源内容不存在');
-
-    $translated = aiTranslateFields($src['title'], $src['summary'] ?? '', $toLang);
-    $newData = $src;
-    unset($newData['id']);
-    $newData['title'] = $translated['title'];
-    $newData['summary'] = $translated['summary'];
-    $newData['lang'] = $toLang;
-    $newData['status'] = 0;
-    $newData['views'] = 0;
-    $newData['created_at'] = time();
-    $newData['updated_at'] = time();
-    $newData['admin_id'] = $_SESSION['admin_id'] ?? 0;
-    $newId = jobModel()->create($newData);
-    adminLog('job', 'translate', "翻译招聘 #{$srcId} → {$toLang} #{$newId}");
-    success(['id' => $newId], '翻译完成');
 }
 
 // 处理保存
@@ -86,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success(['id' => $id]);
 }
 
-$pageTitle = $isEdit ? '编辑职位' : '发布职位';
+$pageTitle = $isEdit ? __('admin_edit') : __('admin_add');
 $currentMenu = 'job';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -95,14 +72,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="mb-6">
     <a href="/admin/job.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        返回招聘列表
+        <?php echo __('admin_back'); ?>
     </a>
 </div>
-
-<?php
-$langSwitcher = ['table' => 'jobs', 'model' => jobModel(), 'item' => $job, 'edit_url' => '/admin/job_edit.php'];
-include __DIR__ . '/includes/lang_switcher_edit.php';
-?>
 
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -110,11 +82,11 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="font-bold text-gray-800">基本信息</h2>
+                    <h2 class="font-bold text-gray-800"><?php echo __('admin_basic_info'); ?></h2>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">职位名称 <span class="text-red-500">*</span></label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_title'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($job['title'] ?? ''); ?>" required
                                class="w-full border rounded px-4 py-2" placeholder="如：PHP高级开发工程师">
                     </div>
@@ -126,7 +98,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">职位详情</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_detail'); ?></label>
                         <input type="hidden" name="content" id="contentInput">
                         <div id="toolbar-container" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
                         <div id="editor-container" class="border rounded-b-lg" style="min-height: 300px;"></div>
@@ -142,33 +114,33 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                 <div class="p-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">工作地点</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_location'); ?></label>
                             <input type="text" name="location" value="<?php echo e($job['location'] ?? ''); ?>"
                                    class="w-full border rounded px-4 py-2" placeholder="如：上海、北京">
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">薪资范围</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_salary'); ?></label>
                             <input type="text" name="salary" value="<?php echo e($job['salary'] ?? ''); ?>"
                                    class="w-full border rounded px-4 py-2" placeholder="如：8k-15k">
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">招聘人数</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_headcount'); ?></label>
                             <input type="text" name="headcount" value="<?php echo e($job['headcount'] ?? ''); ?>"
                                    class="w-full border rounded px-4 py-2" placeholder="如：2人、若干">
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">工作性质</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_type'); ?></label>
                             <select name="job_type" class="w-full border rounded px-4 py-2">
-                                <option value="">请选择</option>
+                                <option value=""><?php echo __('please_select'); ?></option>
                                 <option value="全职" <?php echo ($job['job_type'] ?? '') === '全职' ? 'selected' : ''; ?>>全职</option>
                                 <option value="兼职" <?php echo ($job['job_type'] ?? '') === '兼职' ? 'selected' : ''; ?>>兼职</option>
                                 <option value="实习" <?php echo ($job['job_type'] ?? '') === '实习' ? 'selected' : ''; ?>>实习</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">学历要求</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_education'); ?></label>
                             <select name="education" class="w-full border rounded px-4 py-2">
-                                <option value="">请选择</option>
+                                <option value=""><?php echo __('please_select'); ?></option>
                                 <option value="不限" <?php echo ($job['education'] ?? '') === '不限' ? 'selected' : ''; ?>>不限</option>
                                 <option value="高中" <?php echo ($job['education'] ?? '') === '高中' ? 'selected' : ''; ?>>高中</option>
                                 <option value="大专" <?php echo ($job['education'] ?? '') === '大专' ? 'selected' : ''; ?>>大专</option>
@@ -178,9 +150,9 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">经验要求</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_experience'); ?></label>
                             <select name="experience" class="w-full border rounded px-4 py-2">
-                                <option value="">请选择</option>
+                                <option value=""><?php echo __('please_select'); ?></option>
                                 <option value="不限" <?php echo ($job['experience'] ?? '') === '不限' ? 'selected' : ''; ?>>不限</option>
                                 <option value="应届生" <?php echo ($job['experience'] ?? '') === '应届生' ? 'selected' : ''; ?>>应届生</option>
                                 <option value="1-3年" <?php echo ($job['experience'] ?? '') === '1-3年' ? 'selected' : ''; ?>>1-3年</option>
@@ -191,7 +163,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                         </div>
                     </div>
                     <div class="mt-4">
-                        <label class="block text-sm text-gray-700 mb-1">任职要求</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_requirement'); ?></label>
                         <textarea name="requirements" rows="5" class="w-full border rounded px-4 py-2"
                                   placeholder="请输入任职要求..."><?php echo e($job['requirements'] ?? ''); ?></textarea>
                     </div>
@@ -203,11 +175,11 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
         <div class="space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="font-bold text-gray-800">发布设置</h2>
+                    <h2 class="font-bold text-gray-800"><?php echo __('label_publish_settings'); ?></h2>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">状态</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                         <select name="status" class="w-full border rounded px-4 py-2">
                             <option value="1" <?php echo ($job['status'] ?? 1) == 1 ? 'selected' : ''; ?>>招聘中</option>
                             <option value="0" <?php echo ($job['status'] ?? 1) == 0 ? 'selected' : ''; ?>>已关闭</option>
@@ -215,14 +187,14 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">发布时间</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_publish_time'); ?></label>
                         <input type="datetime-local" name="publish_time"
                                value="<?php echo date('Y-m-d\TH:i', ($job['publish_time'] ?? 0) ?: time()); ?>"
                                class="w-full border rounded px-4 py-2">
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">排序</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                         <input type="number" name="sort_order" value="<?php echo $job['sort_order'] ?? 0; ?>"
                                class="w-full border rounded px-4 py-2" placeholder="数字越大越靠前">
                     </div>
@@ -230,7 +202,7 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="is_top" value="1" id="isTop"
                                <?php echo ($job['is_top'] ?? 0) ? 'checked' : ''; ?> class="text-primary">
-                        <label for="isTop" class="text-sm text-gray-700">置顶</label>
+                        <label for="isTop" class="text-sm text-gray-700"><?php echo __('status_top'); ?></label>
                     </div>
                 </div>
             </div>
@@ -250,14 +222,14 @@ include __DIR__ . '/includes/lang_switcher_edit.php';
                     <button type="button" onclick="pickCoverFromMedia()"
                             class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        媒体库</button>
+                        <?php echo __("admin_media_library"); ?></button>
                 </div>
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
                 <button type="submit" class="w-full bg-primary hover:bg-secondary text-white px-8 py-3 rounded transition inline-flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
+                    <?php echo __("btn_save"); ?>
                 </button>
             </div>
         </div>
@@ -288,7 +260,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
     this.value = '';
 });
@@ -325,7 +297,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
         const response = await fetch("", { method: "POST", body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage("保存成功");
+            showMessage("<?php echo __('msg_save_success'); ?>");
             ' . ($isEdit ? '' : 'setTimeout(function() { location.href = "/admin/job_edit.php?id=" + data.data.id; }, 1000);') . '
         } else {
             showMessage(data.msg, "error");

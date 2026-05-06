@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 产品分类管理
+ * ikaiCMS - 产品分类管理
  *
  * PHP 8.0+
  */
@@ -110,25 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 多语言
-$defaultLang = config('site_lang', 'zh-CN');
-$hasMultiLang = isMultiLangEnabled('product_categories');
-$filterLang = get('lang', $defaultLang);
-$allLangs = availableLanguages();
-if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
-
-// 获取分类树（按语言过滤）
-if ($hasMultiLang) {
-    $categories = [];
-    $items = db()->fetchAll("SELECT * FROM " . DB_PREFIX . "product_categories WHERE lang = ? ORDER BY parent_id, sort_order, id", [$filterLang]);
-    foreach ($items as $item) {
-        $item['_level'] = $item['parent_id'] > 0 ? 1 : 0;
-        $item['_prefix'] = str_repeat('　', $item['_level']);
-        $categories[] = $item;
-    }
-} else {
-    $categories = productCategoryModel()->getFlatOptions();
-}
+// 获取分类树
+$categories = productCategoryModel()->getFlatOptions();
 
 // 获取每个分类的产品数量
 $productCounts = [];
@@ -139,29 +122,20 @@ foreach ($countRows as $row) {
     $productCounts[(int)$row['category_id']] = (int)$row['cnt'];
 }
 
-$pageTitle = '产品分类';
+$pageTitle = __('product_tab_category');
 $currentMenu = 'product_category';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php if ($hasMultiLang && count($allLangs) > 1): ?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言：</span>
-    <?php foreach ($allLangs as $lc => $ll): ?>
-    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">产品列表</a>
-        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">分类管理</a>
-        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">品牌管理</a>
-        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">标签管理</a>
-        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">产品设置</a>
+        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_list'); ?></a>
+        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_category'); ?></a>
+        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_brand'); ?></a>
+        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
+        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_setting'); ?></a>
     </div>
 </div>
 
@@ -172,12 +146,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="text-sm text-gray-500">已选 <span id="selectedCount" class="font-medium text-gray-800">0</span> 项</span>
             <button onclick="batchDelete()" class="text-red-600 hover:text-red-800 text-sm inline-flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                批量删除</button>
+                批量<?php echo __('admin_delete'); ?></button>
         </div>
         <div id="batchPlaceholder"></div>
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            添加分类
+            <?php echo __('admin_category_add'); ?>
         </button>
     </div>
 </div>
@@ -189,11 +163,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="w-10 px-4 py-3"><input type="checkbox" id="checkAll" class="rounded" onchange="toggleAll(this)"></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">分类名称</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">产品数</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_name'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_count'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -220,24 +194,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $item['status'] ? '启用' : '禁用'; ?>
+                            <?php echo $item['status'] ? __('admin_enabled') : __('admin_disabled'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            编辑</button>
+                            <?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteCategory(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            删除</button>
+                            <?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($categories)): ?>
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无分类</td>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -260,7 +234,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div>
                 <label class="block text-gray-700 mb-1">上级分类</label>
                 <select name="parent_id" id="editParentId" class="w-full border rounded px-4 py-2">
-                    <option value="0">顶级分类</option>
+                    <option value="0"><?php echo __('admin_none'); ?></option>
                     <?php foreach ($categories as $cat): ?>
                     <option value="<?php echo $cat['id']; ?>"><?php echo $cat['_prefix'] . e($cat['name']); ?></option>
                     <?php endforeach; ?>
@@ -273,44 +247,44 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">URL别名 (Slug)</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                 <input type="text" name="slug" id="editSlug" class="w-full border rounded px-4 py-2" placeholder="如：smart-device，留空自动生成">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">排序</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" id="editSortOrder" value="0" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">状态</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                     <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
-                        <option value="1">启用</option>
-                        <option value="0">禁用</option>
+                        <option value="1"><?php echo __('admin_enabled'); ?></option>
+                        <option value="0"><?php echo __('admin_disabled'); ?></option>
                     </select>
                 </div>
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">分类图片</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('admin_image'); ?></label>
                 <div class="flex gap-2">
                     <input type="text" name="image" id="editImage" class="flex-1 border rounded px-4 py-2">
                     <button type="button" onclick="uploadImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"><?php echo __('admin_choose_file'); ?></button>
-                    <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">媒体库</button>
+                    <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <div id="imagePreview" class="mt-2"></div>
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">分类描述</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('admin_description'); ?></label>
                 <textarea name="description" id="editDescription" rows="2" class="w-full border rounded px-4 py-2"></textarea>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存</button>
+                    <?php echo __('admin_save'); ?></button>
             </div>
         </form>
     </div>
@@ -320,7 +294,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <script>
 function openEditModal(item = null) {
-    document.getElementById('modalTitle').textContent = item ? '编辑分类' : '添加分类';
+    document.getElementById('modalTitle').textContent = item ? '<?php echo __('admin_edit'); ?>' : '<?php echo __('admin_category_add'); ?>';
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editParentId').value = item?.parent_id || 0;
     document.getElementById('editName').value = item?.name || '';
@@ -342,7 +316,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('保存成功');
+        showMessage('<?php echo __('admin_saved'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -350,14 +324,14 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
 });
 
 async function deleteCategory(id) {
-    if (!confirm('确定要删除该分类吗？')) return;
+    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -420,10 +394,10 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-green-100 text-green-600';
-            btn.textContent = '启用';
+            btn.textContent = '<?php echo __('admin_enabled'); ?>';
         } else {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-500';
-            btn.textContent = '禁用';
+            btn.textContent = '<?php echo __('admin_disabled'); ?>';
         }
     }
 }
@@ -452,12 +426,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
         const data = await safeJson(response);
         if (data.code === 0) {
             document.getElementById('editImage').value = data.data.url;
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
     this.value = '';
 });

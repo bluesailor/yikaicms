@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 轮播图管理
+ * ikaiCMS - 轮播图管理
  *
  * PHP 8.0+
  */
@@ -41,9 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('banner', 'update', "更新轮播图ID: $id");
         } else {
             $data['created_at'] = time();
-            if (isMultiLangEnabled('banners')) {
-                $data['lang'] = post('lang', config('site_lang', 'zh-CN'));
-            }
             $id = bannerModel()->create($data);
             adminLog('banner', 'create', "创建轮播图ID: $id");
         }
@@ -147,37 +144,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
-    if ($action === 'copy_lang') {
-        $fromLang = post('from_lang', '');
-        $toLang = post('to_lang', '');
-        $allLangs = availableLanguages();
-        if (!isset($allLangs[$fromLang]) || !isset($allLangs[$toLang]) || $fromLang === $toLang) {
-            error('语言参数无效');
-        }
-        $existing = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "banners WHERE lang = ?", [$toLang]
-        );
-        if ($existing > 0) {
-            error($allLangs[$toLang] . ' 已有 ' . $existing . ' 条轮播图，请先删除后再复制');
-        }
-        $srcBanners = db()->fetchAll(
-            "SELECT * FROM " . DB_PREFIX . "banners WHERE lang = ? ORDER BY sort_order ASC, id DESC", [$fromLang]
-        );
-        if (empty($srcBanners)) {
-            error($allLangs[$fromLang] . ' 没有轮播图可复制');
-        }
-        $copied = 0;
-        foreach ($srcBanners as $b) {
-            unset($b['id']);
-            $b['lang'] = $toLang;
-            $b['created_at'] = time();
-            db()->insert('banners', $b);
-            $copied++;
-        }
-        adminLog('banner', 'copy_lang', "复制轮播图 {$fromLang} → {$toLang}: {$copied} 条");
-        success([], "已复制 {$copied} 条轮播图到 {$allLangs[$toLang]}");
-    }
-
     if ($action === 'group_toggle') {
         $id = postInt('id');
         $newStatus = bannerGroupModel()->toggle($id, 'status');
@@ -205,13 +171,6 @@ if (empty($positions)) {
     $positions = ['home' => '首页', 'about' => '关于我们', 'product' => '产品中心', 'case' => '案例展示'];
 }
 
-// 多语言
-$defaultLang = config('site_lang', 'zh-CN');
-$hasMultiLang = isMultiLangEnabled('banners');
-$bannerLang = get('lang', $defaultLang);
-$allLangs = availableLanguages();
-if ($hasMultiLang && !isset($allLangs[$bannerLang])) $bannerLang = $defaultLang;
-
 // 轮播图列表数据（list Tab 用）
 $position = get('position', '');
 $page = max(1, getInt('page', 1));
@@ -220,9 +179,6 @@ $perPage = 20;
 $conditions = [];
 if ($position) {
     $conditions['position'] = $position;
-}
-if ($hasMultiLang) {
-    $conditions['lang'] = $bannerLang;
 }
 
 $result = bannerModel()->paginate($page, $perPage, $conditions, 'sort_order ASC, id DESC');
@@ -233,7 +189,7 @@ $banners = $result['items'];
 $bannerHeightPc = (int)config('banner_height_pc', 650);
 $bannerHeightMobile = (int)config('banner_height_mobile', 300);
 
-$pageTitle = '轮播图管理';
+$pageTitle = __('admin_banner');
 $currentMenu = 'banner';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -254,63 +210,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php if ($tab === 'list'): ?>
 <!-- ========== 轮播图列表 ========== -->
 
-<?php if ($hasMultiLang && count($allLangs) > 1):
-    $langCounts = [];
-    foreach ($allLangs as $lc => $ll) {
-        $langCounts[$lc] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "banners WHERE lang = ?", [$lc]);
-    }
-    $currentLangCount = $langCounts[$bannerLang] ?? 0;
-    // 找出有轮播图的语言（可作为复制源）
-    $copyFromLangs = array_filter($langCounts, fn($c) => $c > 0);
-?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言：</span>
-    <?php foreach ($allLangs as $lc => $ll): ?>
-    <a href="?lang=<?php echo e($lc); ?>"
-       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $bannerLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
-        <?php echo e($ll); ?>
-        <span class="ml-1 opacity-70">(<?php echo $langCounts[$lc]; ?>)</span>
-    </a>
-    <?php endforeach; ?>
-    <?php if ($currentLangCount === 0 && !empty($copyFromLangs)): ?>
-    <span class="text-gray-300 mx-1">|</span>
-    <span class="text-sm text-gray-500">从</span>
-    <?php foreach ($copyFromLangs as $fl => $fc):
-        if ($fl === $bannerLang) continue;
-    ?>
-    <button onclick="copyLang('<?php echo e($fl); ?>', '<?php echo e($bannerLang); ?>', '<?php echo e($allLangs[$fl]); ?>')"
-            class="px-3 py-1 rounded text-xs border border-amber-300 text-amber-600 hover:bg-amber-50 transition">
-        复制 <?php echo e($allLangs[$fl]); ?> (<?php echo $fc; ?>条)
-    </button>
-    <?php endforeach; ?>
-    <?php endif; ?>
-</div>
-<script>
-async function copyLang(from, to, fromName) {
-    if (!confirm('将 ' + fromName + ' 的轮播图复制到当前语言？图片保留，标题可稍后编辑。')) return;
-    var fd = new FormData();
-    fd.append('action', 'copy_lang');
-    fd.append('from_lang', from);
-    fd.append('to_lang', to);
-    fd.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo csrfToken(); ?>');
-    var resp = await fetch(location.pathname, { method: 'POST', body: fd });
-    var data = await safeJson(resp);
-    if (data.code === 0) {
-        showMessage(data.msg || '复制成功');
-        setTimeout(function() { location.reload(); }, 600);
-    } else {
-        showMessage(data.msg || '复制失败', 'error');
-    }
-}
-</script>
-<?php endif; ?>
-
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
             <select name="position" class="border rounded px-3 py-2">
-                <option value="">全部分组</option>
+                <option value=""><?php echo __('filter_all_groups'); ?></option>
                 <?php foreach ($positions as $k => $v): ?>
                 <option value="<?php echo $k; ?>" <?php echo $position === $k ? 'selected' : ''; ?>><?php echo $v; ?></option>
                 <?php endforeach; ?>
@@ -318,7 +223,7 @@ async function copyLang(from, to, fromName) {
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                筛选
+                <?php echo __('admin_filter'); ?>
             </button>
         </form>
 
@@ -329,7 +234,7 @@ async function copyLang(from, to, fromName) {
             </button>
             <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                添加轮播图
+                <?php echo __('admin_add'); ?>
             </button>
         </div>
     </div>
@@ -341,12 +246,12 @@ async function copyLang(from, to, fromName) {
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">排序</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">图片</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标题</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">分组</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_image'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_group'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y" id="sortableList">
@@ -376,24 +281,24 @@ async function copyLang(from, to, fromName) {
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $item['status'] ? '显示' : '隐藏'; ?>
+                            <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            编辑</button>
+                            <?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteBanner(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            删除</button>
+                            <?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($banners)): ?>
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无数据</td>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -406,54 +311,51 @@ async function copyLang(from, to, fromName) {
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800" id="modalTitle">添加轮播图</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo __('banner_add'); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="editId" value="0">
-            <?php if ($hasMultiLang): ?>
-            <input type="hidden" name="lang" id="editLang" value="<?php echo e($bannerLang); ?>">
-            <?php endif; ?>
 
             <div>
-                <label class="block text-gray-700 mb-1">标题</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('label_title'); ?></label>
                 <input type="text" name="title" id="editTitle" class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">副标题</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('label_subtitle'); ?></label>
                 <input type="text" name="subtitle" id="editSubtitle" class="w-full border rounded px-4 py-2">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">按钮1文字</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_btn1_text'); ?></label>
                     <input type="text" name="btn1_text" id="editBtn1Text" class="w-full border rounded px-4 py-2" placeholder="如：了解更多">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">按钮1链接</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_btn1_url'); ?></label>
                     <input type="text" name="btn1_url" id="editBtn1Url" class="w-full border rounded px-4 py-2" placeholder="/about.html">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">按钮2文字</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_btn2_text'); ?></label>
                     <input type="text" name="btn2_text" id="editBtn2Text" class="w-full border rounded px-4 py-2" placeholder="如：联系我们">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">按钮2链接</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_btn2_url'); ?></label>
                     <input type="text" name="btn2_url" id="editBtn2Url" class="w-full border rounded px-4 py-2" placeholder="/contact.html">
                 </div>
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">图片</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('label_image'); ?></label>
                 <div class="flex gap-2">
                     <input type="text" name="image" id="editImage" class="flex-1 border rounded px-4 py-2">
                     <button type="button" onclick="uploadImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"><?php echo __('admin_choose_file'); ?></button>
-                    <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">媒体库</button>
+                    <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <div id="imagePreview" class="mt-2"></div>
                 <p class="text-xs text-gray-400 mt-1">建议尺寸：1920 x <?php echo $bannerHeightPc; ?>px</p>
@@ -461,21 +363,21 @@ async function copyLang(from, to, fromName) {
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">链接地址</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_link_url'); ?></label>
                     <input type="text" name="link_url" id="editLinkUrl" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">打开方式</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_link_target'); ?></label>
                     <select name="link_target" id="editLinkTarget" class="w-full border rounded px-4 py-2">
-                        <option value="_self">当前窗口</option>
-                        <option value="_blank">新窗口</option>
+                        <option value="_self"><?php echo __('label_target_self'); ?></option>
+                        <option value="_blank"><?php echo __('label_target_blank'); ?></option>
                     </select>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">分组</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_group'); ?></label>
                     <select name="position" id="editPosition" class="w-full border rounded px-4 py-2">
                         <?php foreach ($positions as $k => $v): ?>
                         <option value="<?php echo $k; ?>"><?php echo $v; ?></option>
@@ -483,23 +385,23 @@ async function copyLang(from, to, fromName) {
                     </select>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">排序</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" id="editSortOrder" value="0" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">状态</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                     <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
-                        <option value="1">显示</option>
-                        <option value="0">隐藏</option>
+                        <option value="1"><?php echo __('admin_show'); ?></option>
+                        <option value="0"><?php echo __('admin_hide'); ?></option>
                     </select>
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存</button>
+                    <?php echo __('admin_save'); ?></button>
             </div>
         </form>
     </div>
@@ -510,7 +412,7 @@ async function copyLang(from, to, fromName) {
     <div class="absolute inset-0 bg-black/50" onclick="closeSettingsModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800">轮播图设置</h3>
+            <h3 class="font-bold text-gray-800"><?php echo __('banner_settings'); ?></h3>
             <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <form id="settingsForm" class="p-6 space-y-4">
@@ -533,10 +435,10 @@ async function copyLang(from, to, fromName) {
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeSettingsModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeSettingsModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存设置
+                    <?php echo __('admin_save'); ?>
                 </button>
             </div>
         </form>
@@ -561,7 +463,7 @@ new Sortable(document.getElementById('sortableList'), {
 });
 
 function openEditModal(item = null) {
-    document.getElementById('modalTitle').textContent = item ? '编辑轮播图' : '添加轮播图';
+    document.getElementById('modalTitle').textContent = item ? '<?php echo __("banner_edit"); ?>' : '<?php echo __("banner_add"); ?>';
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editTitle').value = item?.title || '';
     document.getElementById('editSubtitle').value = item?.subtitle || '';
@@ -599,7 +501,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg || '保存失败', 'error');
@@ -627,14 +529,14 @@ async function toggleStatus(id, btn) {
 }
 
 async function deleteBanner(id) {
-    if (!confirm('确定要删除吗？')) return;
+    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -694,12 +596,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             uploadedImg.src = data.data.url;
             uploadedImg.className = 'h-20 rounded';
             document.getElementById('imagePreview').appendChild(uploadedImg);
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -725,14 +627,14 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_name'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标识</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">短码</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('label_shortcode'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">尺寸 (PC/移动)</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">自动播放</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">轮播图</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -769,15 +671,15 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openGroupModal(<?php echo json_encode($g, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
-                                class="text-gray-400 hover:text-primary" title="编辑"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                                class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteGroup(<?php echo $g['id']; ?>)"
-                                class="text-gray-400 hover:text-red-500 ml-2" title="删除"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($groups)): ?>
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无分组</td>
+                    <td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo __('empty_no_groups'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -790,7 +692,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     <div class="absolute inset-0 bg-black/50" onclick="closeGroupModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800" id="groupModalTitle">添加分组</h3>
+            <h3 class="font-bold text-gray-800" id="groupModalTitle"><?php echo __('banner_add_group'); ?></h3>
             <button onclick="closeGroupModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <form id="groupForm" class="p-6 space-y-4">
@@ -826,10 +728,10 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeGroupModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeGroupModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
+                    <?php echo __("btn_save"); ?>
                 </button>
             </div>
         </form>
@@ -838,7 +740,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 
 <script>
 function openGroupModal(item = null) {
-    document.getElementById('groupModalTitle').textContent = item ? '编辑分组' : '添加分组';
+    document.getElementById('groupModalTitle').textContent = item ? '<?php echo __("banner_edit_group"); ?>' : '<?php echo __("banner_add_group"); ?>';
     document.getElementById('groupId').value = item?.id || 0;
     document.getElementById('groupName').value = item?.name || '';
     document.getElementById('groupSlug').value = item?.slug || '';
@@ -859,7 +761,7 @@ document.getElementById('groupForm').addEventListener('submit', async function(e
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg || '保存失败', 'error');
@@ -878,10 +780,10 @@ async function toggleGroupStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '启用';
+            btn.textContent = '<?php echo __('admin_enabled'); ?>';
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '禁用';
+            btn.textContent = '<?php echo __('admin_disabled'); ?>';
         }
     }
 }
@@ -894,7 +796,7 @@ async function deleteGroup(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg || '删除失败', 'error');

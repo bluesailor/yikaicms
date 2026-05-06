@@ -53,17 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$defaultLang = config('site_lang', 'zh-CN');
-$hasMultiLang = isMultiLangEnabled('brands');
-$filterLang = get('lang', $defaultLang);
-$allLangs = availableLanguages();
-if ($hasMultiLang && !isset($allLangs[$filterLang])) $filterLang = $defaultLang;
-
-if ($hasMultiLang) {
-    $brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b WHERE b.lang = ? ORDER BY b.sort_order ASC, b.id ASC", [$filterLang]);
-} else {
-    $brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b ORDER BY b.sort_order ASC, b.id ASC");
-}
+$brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b ORDER BY b.sort_order ASC, b.id ASC");
 $editBrand = null;
 $editId = getInt('edit');
 if ($editId > 0) {
@@ -75,22 +65,13 @@ $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php if ($hasMultiLang && count($allLangs) > 1): ?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言：</span>
-    <?php foreach ($allLangs as $lc => $ll): ?>
-    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">产品列表</a>
-        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">分类管理</a>
-        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">品牌管理</a>
-        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">标签管理</a>
-        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">产品设置</a>
+        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_list'); ?></a>
+        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_category'); ?></a>
+        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_brand'); ?></a>
+        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
+        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_setting'); ?></a>
     </div>
 </div>
 
@@ -107,9 +88,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left"><input type="checkbox" id="checkAll"></th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">品牌</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">产地</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">产品数</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">排序</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">操作</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_count'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_sort_order'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -128,7 +109,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-3 text-center"><span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded"><?php echo $b['product_count']; ?></span></td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500"><?php echo $b['sort_order']; ?></td>
                         <td class="px-4 py-3 text-center">
-                            <a href="?edit=<?php echo $b['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm mr-2"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> 编辑</a>
+                            <a href="?edit=<?php echo $b['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm mr-2"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> <?php echo __('admin_edit'); ?></a>
                             <button onclick="deleteBrand(<?php echo $b['id']; ?>)" class="text-red-500 hover:text-red-700"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </td>
                     </tr>
@@ -138,7 +119,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="px-4 py-3 border-t">
                 <button type="button" onclick="batchDeleteBrands()" class="border px-3 py-1 rounded text-sm hover:bg-red-50 text-red-600 inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    批量删除
+                    <?php echo __('admin_batch_delete'); ?>
                 </button>
             </div>
         </div>
@@ -182,14 +163,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                         <input type="number" name="sort_order" value="<?php echo $editBrand['sort_order'] ?? 0; ?>" class="w-full border rounded px-3 py-2 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                         <select name="status" class="w-full border rounded px-3 py-2 text-sm">
-                            <option value="1" <?php echo ($editBrand['status'] ?? 1) == 1 ? 'selected' : ''; ?>>启用</option>
-                            <option value="0" <?php echo ($editBrand['status'] ?? 1) == 0 ? 'selected' : ''; ?>>禁用</option>
+                            <option value="1" <?php echo ($editBrand['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_enabled'); ?></option>
+                            <option value="0" <?php echo ($editBrand['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_disabled'); ?></option>
                         </select>
                     </div>
                 </div>
@@ -197,7 +178,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 mb-1">品牌介绍</label>
                     <textarea name="description" rows="3" class="w-full border rounded px-3 py-2 text-sm"><?php echo e($editBrand['description'] ?? ''); ?></textarea>
                 </div>
-                <button type="button" onclick="saveBrand()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded text-sm">保存</button>
+                <button type="button" onclick="saveBrand()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded text-sm"><?php echo __('btn_save'); ?></button>
                 <?php if ($editBrand): ?>
                 <a href="/admin/product_brand.php" class="block text-center text-gray-500 text-sm hover:text-gray-700">取消编辑</a>
                 <?php endif; ?>
@@ -211,7 +192,7 @@ async function saveBrand() {
     const fd = new FormData(document.getElementById('brandForm'));
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('保存成功'); setTimeout(() => location.href = '/admin/product_brand.php', 1000); }
+    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = '/admin/product_brand.php', 1000); }
     else showMessage(d.msg, 'error');
 }
 document.getElementById('checkAll').addEventListener('change', function() {
@@ -226,7 +207,7 @@ async function batchDeleteBrands() {
     checked.forEach(el => fd.append('ids[]', el.value));
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('删除成功'); setTimeout(() => location.reload(), 1000); }
+    if (d.code === 0) { showMessage('<?php echo __('admin_deleted'); ?>'); setTimeout(() => location.reload(), 1000); }
 }
 async function uploadLogo(input) {
     if (!input.files[0]) return;
@@ -237,7 +218,7 @@ async function uploadLogo(input) {
     const d = await safeJson(r);
     if (d.code === 0) {
         document.getElementById('brandLogo').value = d.data.url;
-        showMessage('上传成功');
+        showMessage('<?php echo __('admin_success'); ?>');
     } else showMessage(d.msg, 'error');
     input.value = '';
 }

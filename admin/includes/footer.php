@@ -356,11 +356,9 @@
     }
     ?>
     <script>
-function switchAdminLang() {
-    var current = document.documentElement.lang || 'zh-CN';
-    var next = current === 'ja' ? 'zh-CN' : 'ja';
+function switchAdminLang(lang) {
     var fd = new FormData();
-    fd.append('settings[admin_lang]', next);
+    fd.append('settings[admin_lang]', lang);
     fetch('/admin/setting.php', { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(d) { if (d.code === 0) location.reload(); else showMessage(d.msg || 'Error', 'error'); })

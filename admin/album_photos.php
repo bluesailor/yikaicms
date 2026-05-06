@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 相册图片管理
+ * ikaiCMS - 相册图片管理
  *
  * PHP 8.0+
  */
@@ -249,10 +249,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <button onclick="setCover(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="设为封面">
                     <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </button>
-                <button onclick="editPhoto(<?php echo $photo['id']; ?>, '<?php echo e(addslashes($photo['title'])); ?>', '<?php echo e(addslashes($photo['description'] ?? '')); ?>')" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="编辑">
+                <button onclick="editPhoto(<?php echo $photo['id']; ?>, '<?php echo e(addslashes($photo['title'])); ?>', '<?php echo e(addslashes($photo['description'] ?? '')); ?>')" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo __('admin_edit'); ?>">
                     <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 </button>
-                <button onclick="deletePhoto(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white" title="删除">
+                <button onclick="deletePhoto(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white" title="<?php echo __('admin_delete'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
             </div>
@@ -297,7 +297,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 rounded-b-lg">
-                <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-secondary">保存</button>
             </div>
         </form>
@@ -401,7 +401,7 @@ async function uploadFiles(files) {
         xhr.send(formData);
     } catch (e) {
         progress.classList.add('hidden');
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     fileInput.value = '';
@@ -458,7 +458,7 @@ async function savePhoto(e) {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage('保存成功');
+        showMessage('<?php echo __('admin_saved'); ?>');
         closeEditModal();
     }
 }
@@ -474,7 +474,7 @@ async function deletePhoto(photoId) {
     if (result.code === 0) {
         document.querySelector(`.photo-item[data-id="${photoId}"]`).remove();
         document.getElementById('photoCount').textContent = document.querySelectorAll('.photo-item').length;
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
     }
 }
 
@@ -491,7 +491,7 @@ async function batchDelete() {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 个人设置
+ * ikaiCMS - 个人设置
  *
  * PHP 8.0+
  */
@@ -75,7 +75,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 基本信息 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">基本信息</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('admin_basic_info'); ?></h2>
         </div>
         <form method="post" class="p-6 space-y-4">
             <?php echo csrfField(); ?>
@@ -101,7 +101,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                保存
+                <?php echo __("btn_save"); ?>
             </button>
         </form>
     </div>
@@ -109,14 +109,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 修改密码 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">修改密码</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('profile_change_pwd'); ?></h2>
         </div>
         <form method="post" class="p-6 space-y-4">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="change_password">
 
             <div>
-                <label class="block text-gray-700 mb-1">当前密码</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('profile_current_pwd'); ?></label>
                 <div class="relative pwd-toggle">
                     <input type="password" name="old_password" required
                            class="w-full border rounded px-4 py-2 pr-10">
@@ -128,7 +128,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">新密码</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('profile_new_pwd'); ?></label>
                 <div class="relative pwd-toggle">
                     <input type="password" name="new_password" required minlength="6"
                            class="w-full border rounded px-4 py-2 pr-10">
@@ -140,7 +140,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">确认密码</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('profile_confirm_pwd'); ?></label>
                 <div class="relative pwd-toggle">
                     <input type="password" name="confirm_password" required
                            class="w-full border rounded px-4 py-2 pr-10">

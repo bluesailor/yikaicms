@@ -7,5 +7,7 @@
     "colors": {
         "primary": "#3B6CF5",
         "secondary": "#2554d4"
-    }
+    },
+    "name_en": "Business",
+    "description_en": "Dark business theme, ideal for construction, engineering and manufacturing websites"
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 联系设置
+ * ikaiCMS - 联系设置
  *
  * PHP 8.0+
  */
@@ -61,8 +61,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/setting_contact.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">联系信息</a>
-        <a href="/admin/setting_contact.php?tab=form" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">表单设置</a>
+        <a href="/admin/setting_contact.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_info_title'); ?></a>
+        <a href="/admin/setting_contact.php?tab=form" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_form_config'); ?></a>
     </div>
 </div>
 
@@ -71,7 +71,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 联系信息 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">联系信息</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('contact_info_title'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <?php foreach ($infoSettings as $item): ?>
@@ -94,10 +94,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="flex gap-3 items-start">
                             <span class="text-gray-300 text-sm pt-2 w-5 flex-shrink-0"><?php echo $ci + 1; ?></span>
                             <div class="flex-shrink-0">
-                                <label class="text-xs text-gray-400 block mb-1">图标</label>
+                                <label class="text-xs text-gray-400 block mb-1"><?php echo __('contact_icon'); ?></label>
                                 <div class="flex items-center gap-2">
                                     <select class="card-icon border rounded px-2 py-1.5 text-sm w-24" onchange="updateIconPreview(this)">
-                                        <option value="">无</option>
+                                        <option value=""><?php echo __('none'); ?></option>
                                         <option value="phone" <?php echo ($card['icon'] ?? '') === 'phone' ? 'selected' : ''; ?>>电话</option>
                                         <option value="email" <?php echo ($card['icon'] ?? '') === 'email' ? 'selected' : ''; ?>>邮箱</option>
                                         <option value="location" <?php echo ($card['icon'] ?? '') === 'location' ? 'selected' : ''; ?>>地址</option>
@@ -119,10 +119,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <input type="text" class="card-label w-full border rounded px-3 py-1.5 text-sm" placeholder="如：联系电话" value="<?php echo e($card['label'] ?? ''); ?>">
                             </div>
                             <div class="flex-1">
-                                <label class="text-xs text-gray-400 block mb-1">内容</label>
+                                <label class="text-xs text-gray-400 block mb-1"><?php echo __('contact_value'); ?></label>
                                 <div class="flex gap-1">
                                     <textarea class="card-value w-full border rounded px-3 py-1.5 text-sm" rows="2" placeholder="文字或图片地址"><?php echo e($card['value'] ?? ''); ?></textarea>
-                                    <button type="button" class="card-upload text-gray-400 hover:text-primary flex-shrink-0 pt-1" title="上传图片">
+                                    <button type="button" class="card-upload text-gray-400 hover:text-primary flex-shrink-0 pt-1" title="<?php echo __('btn_upload_image'); ?>">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                     </button>
                                 </div>
@@ -174,7 +174,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            媒体库
+                            <?php echo __("admin_media_library"); ?>
                         </button>
                     </div>
                     <?php if ($item['value']): ?>
@@ -210,7 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 表单设置 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">表单设置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('contact_form_config'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <?php foreach ($formSettings as $item): ?>
@@ -253,8 +253,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="col-span-2">字段</div>
                         <div class="col-span-4">标签文字</div>
                         <div class="col-span-2">类型</div>
-                        <div class="col-span-2 text-center">必填</div>
-                        <div class="col-span-2 text-center">启用</div>
+                        <div class="col-span-2 text-center"><?php echo __('required'); ?></div>
+                        <div class="col-span-2 text-center"><?php echo __('status_enabled'); ?></div>
                     </div>
                     <?php foreach ($fieldRows as $fr): ?>
                     <div class="field-row grid grid-cols-12 gap-2 items-center p-3 border rounded-lg mb-2" data-key="<?php echo $fr['key']; ?>" data-type="<?php echo $fr['type']; ?>">
@@ -312,7 +312,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow p-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            保存设置
+            <?php echo __('btn_save_settings'); ?>
         </button>
     </div>
 </form>
@@ -348,12 +348,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('input_' + currentImageKey).parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
 
     this.value = '';
@@ -414,12 +414,12 @@ cardUploadInput.addEventListener('change', async function() {
             var textarea = cardUploadTarget.querySelector('.card-value');
             textarea.value = data.data.url;
             updateCardImgPreview(cardUploadTarget, data.data.url);
-            showMessage('上传成功');
+            showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败', 'error');
+        showMessage('<?php echo __('admin_fail'); ?>', 'error');
     }
     this.value = '';
 });
@@ -501,7 +501,7 @@ document.getElementById('settingForm').addEventListener('submit', async function
         const data = await safeJson(response);
 
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }

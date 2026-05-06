@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 后台会员管理
+ * ikaiCMS - 后台会员管理
  *
  * PHP 8.0+
  */
@@ -108,8 +108,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/member.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">会员列表</a>
-        <a href="/admin/setting_member.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">会员设置</a>
+        <a href="/admin/member.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('member_list'); ?></a>
+        <a href="/admin/setting_member.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('member_settings'); ?></a>
     </div>
 </div>
 
@@ -118,7 +118,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <form method="get" class="p-4 flex gap-4 items-center">
         <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                class="border rounded px-4 py-2 w-64" placeholder="搜索用户名 / 邮箱 / 昵称">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded">搜索</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded"><?php echo __('btn_search'); ?></button>
         <?php if ($keyword): ?>
         <a href="/admin/member.php" class="text-gray-500 hover:text-gray-700 text-sm">清除</a>
         <?php endif; ?>
@@ -136,10 +136,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">注册时间</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('member_reg_time'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">最后登录</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -159,9 +159,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
-                                class="text-primary hover:underline text-sm mr-2">编辑</button>
+                                class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteMember(<?php echo $item['id']; ?>)"
-                                class="text-red-600 hover:underline text-sm">删除</button>
+                                class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -225,16 +225,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">状态</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                 <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
                     <option value="1">正常</option>
-                    <option value="0">禁用</option>
+                    <option value="0"><?php echo __('admin_disabled'); ?></option>
                 </select>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
-                <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded">保存</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
+                <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded"><?php echo __('btn_save'); ?></button>
             </div>
         </form>
     </div>
@@ -261,7 +261,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('保存成功');
+        showMessage('<?php echo __('admin_saved'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -280,7 +280,7 @@ async function toggleStatus(id, btn) {
             btn.textContent = '正常';
         } else {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-red-100 text-red-600';
-            btn.textContent = '禁用';
+            btn.textContent = '<?php echo __('admin_disabled'); ?>';
         }
     }
 }
@@ -293,7 +293,7 @@ async function deleteMember(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

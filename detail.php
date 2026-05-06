@@ -382,7 +382,7 @@ require_once theme_path('layouts/header.php');
 <?php if (!empty($galleryImages)): ?>
 <!-- 案例/内容 Lightbox 画廊 -->
 <div id="case-lightbox" class="hidden fixed inset-0 z-[9999] bg-black/90 items-center justify-center" onclick="if(event.target === this) closeCaseLightbox()">
-    <button type="button" onclick="closeCaseLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="关闭">
+    <button type="button" onclick="closeCaseLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="<?php echo __('lightbox_close'); ?>">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>

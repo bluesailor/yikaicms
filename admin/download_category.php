@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 下载分类管理
+ * ikaiCMS - 下载分类管理
  *
  * PHP 8.0+
  */
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取所有分类
 $categories = downloadCategoryModel()->getAllWithCount();
 
-$pageTitle = '下载分类管理';
+$pageTitle = __('admin_category');
 $currentMenu = 'download';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -96,7 +96,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex gap-2">
             <a href="/admin/download.php" class="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                返回下载列表
+                <?php echo __('admin_back'); ?>
             </a>
             <button onclick="openModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -113,12 +113,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">分类名称</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_name'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">文件数</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -144,17 +144,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, <?php echo $item['status'] ? 0 : 1; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $item['status'] ? '显示' : '隐藏'; ?>
+                            <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <button onclick="editItem(<?php echo $item['id']; ?>)" class="text-primary hover:underline text-sm mr-2">编辑</button>
-                        <button onclick="deleteItem(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')" class="text-red-600 hover:underline text-sm">删除</button>
+                        <button onclick="editItem(<?php echo $item['id']; ?>)" class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
+                        <button onclick="deleteItem(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')" class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($categories)): ?>
-                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无分类数据</td></tr>
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -179,7 +179,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">分类描述</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo __('admin_description'); ?></label>
                     <input type="text" name="description" id="formDescription"
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
@@ -194,14 +194,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
                         <select name="status" id="formStatus"
                                 class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                            <option value="1">显示</option>
-                            <option value="0">隐藏</option>
+                            <option value="1"><?php echo __('admin_show'); ?></option>
+                            <option value="0"><?php echo __('admin_hide'); ?></option>
                         </select>
                     </div>
                 </div>
             </div>
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 rounded-b-lg">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-secondary">保存</button>
             </div>
         </form>
@@ -260,7 +260,7 @@ async function saveItem(e) {
     const result = await safeJson(response);
 
     if (result.code === 0) {
-        showMessage('保存成功');
+        showMessage('<?php echo __('admin_saved'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(result.msg || '保存失败', 'error');
@@ -292,7 +292,7 @@ async function deleteItem(id, name) {
     const result = await safeJson(response);
 
     if (result.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(result.msg || '删除失败', 'error');

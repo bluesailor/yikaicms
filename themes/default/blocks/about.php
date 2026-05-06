@@ -14,7 +14,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <?php if ($aboutLayout === 'image_left'): ?>
-            <!-- 左图右文 -->
+            <!-- Left image, right text. -->
             <div class="relative" data-animate="fade-right">
                 <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
@@ -43,7 +43,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <?php endif; ?>
             </div>
             <?php else: ?>
-            <!-- 左文右图（默认） -->
+            <!-- Text on the left, image on the right (default) -->
             <div data-animate="fade-right">
                 <h2 class="text-3xl font-bold text-dark mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(config('site_name', '')); ?>

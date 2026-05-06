@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 用户管理
+ * ikaiCMS - 用户管理
  *
  * PHP 8.0+
  */
@@ -116,8 +116,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/user.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">管理员列表</a>
-        <a href="/admin/role.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">角色管理</a>
+        <a href="/admin/user.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('user_list'); ?></a>
+        <a href="/admin/role.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('user_roles'); ?></a>
     </div>
 </div>
 
@@ -138,13 +138,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">角色</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">最后登录</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('user_username'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('user_nickname'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('user_email'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('user_role'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('user_last_login'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -173,12 +173,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            编辑</button>
+                            <?php echo __('admin_edit'); ?></button>
                         <?php if ($item['id'] !== (int)$_SESSION['admin_id']): ?>
                         <button onclick="deleteUser(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            删除</button>
+                            <?php echo __('admin_delete'); ?></button>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -193,7 +193,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800" id="modalTitle">添加管理员</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo __('user_add'); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
@@ -218,18 +218,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">昵称</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('user_nickname'); ?></label>
                 <input type="text" name="nickname" id="editNickname" class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">邮箱</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('user_email'); ?></label>
                 <input type="email" name="email" id="editEmail" class="w-full border rounded px-4 py-2">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">角色</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('user_role'); ?></label>
                     <select name="role_id" id="editRoleId" class="w-full border rounded px-4 py-2">
                         <?php foreach ($roles as $role): ?>
                         <option value="<?php echo $role['id']; ?>"><?php echo e($role['name']); ?></option>
@@ -237,19 +237,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </select>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">状态</label>
+                    <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                     <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
-                        <option value="1">正常</option>
-                        <option value="0">禁用</option>
+                        <option value="1"><?php echo __('user_status_normal'); ?></option>
+                        <option value="0"><?php echo __('admin_disabled'); ?></option>
                     </select>
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存</button>
+                    <?php echo __('admin_save'); ?></button>
             </div>
         </form>
     </div>
@@ -285,7 +285,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('保存成功');
+        showMessage('<?php echo __('admin_saved'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -304,7 +304,7 @@ async function toggleStatus(id, btn) {
             btn.textContent = '正常';
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '禁用';
+            btn.textContent = '<?php echo __('admin_disabled'); ?>';
         }
     } else {
         showMessage(data.msg, 'error');
@@ -319,7 +319,7 @@ async function deleteUser(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

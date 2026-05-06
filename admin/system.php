@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 系统信息 & 操作日志
+ * ikaiCMS - 系统信息 & 操作日志
  *
  * PHP 8.0+
  */
@@ -120,8 +120,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/system.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">系统信息</a>
-        <a href="/admin/system.php?tab=log" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'log' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">操作日志</a>
+        <a href="/admin/system.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_info'); ?></a>
+        <a href="/admin/system.php?tab=log" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'log' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_stat_log'); ?></a>
     </div>
 </div>
 
@@ -130,26 +130,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- CMS 信息 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">CMS 信息</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sys_cms_info'); ?></h2>
         </div>
         <div class="p-6">
             <table class="w-full text-sm">
                 <tbody class="divide-y">
                     <tr>
-                        <td class="py-3 text-gray-500 w-48">系统名称</td>
-                        <td class="py-3 text-gray-800">Yikai CMS</td>
+                        <td class="py-3 text-gray-500 w-48"><?php echo __('sys_name'); ?></td>
+                        <td class="py-3 text-gray-800">ikaiCMS</td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">系统版本</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_version'); ?></td>
                         <td class="py-3 text-gray-800">
                             <span class="inline-flex items-center gap-2">
                                 v<?php echo defined('CMS_VERSION') ? CMS_VERSION : '1.0.0'; ?>
-                                <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">正式版</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700"><?php echo __('sys_stable'); ?></span>
                             </span>
                         </td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">站点域名</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_domain'); ?></td>
                         <td class="py-3 text-gray-800">
                             <?php if ($siteUrl): ?>
                             <a href="<?php echo e($siteUrl); ?>" target="_blank" class="text-primary hover:underline"><?php echo e($siteDomain); ?></a>
@@ -160,11 +160,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">站点URL</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_site_url'); ?></td>
                         <td class="py-3 text-gray-800 font-mono text-xs"><?php echo e($siteUrl ?: '未设置'); ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">当前访问</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_current_url'); ?></td>
                         <td class="py-3 text-gray-800 font-mono text-xs"><?php echo e(($_SERVER['REQUEST_SCHEME'] ?? 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '')); ?></td>
                     </tr>
                 </tbody>
@@ -175,35 +175,35 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 服务器环境 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">服务器环境</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sys_server_env'); ?></h2>
         </div>
         <div class="p-6">
             <table class="w-full text-sm">
                 <tbody class="divide-y">
                     <tr>
-                        <td class="py-3 text-gray-500 w-48">操作系统</td>
+                        <td class="py-3 text-gray-500 w-48"><?php echo __('sys_os'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo php_uname('s') . ' ' . php_uname('r'); ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">Web 服务器</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_web_server'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo $_SERVER['SERVER_SOFTWARE'] ?? '-'; ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">PHP 版本</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_php_version'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo PHP_VERSION; ?> (<?php echo PHP_SAPI; ?>)</td>
                     </tr>
                     <?php if ($mysqlVersion): ?>
                     <tr>
-                        <td class="py-3 text-gray-500">MySQL 版本</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_mysql_version'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo e($mysqlVersion); ?></td>
                     </tr>
                     <?php endif; ?>
                     <tr>
-                        <td class="py-3 text-gray-500">数据库类型</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_db_type'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo DB_DRIVER === 'mysql' ? 'MySQL' : 'SQLite'; ?> (<?php echo DB_NAME; ?>)</td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">服务器时间</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_server_time'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo date('Y-m-d H:i:s'); ?> (<?php echo date_default_timezone_get(); ?>)</td>
                     </tr>
                 </tbody>
@@ -214,34 +214,34 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- PHP 配置 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">PHP 配置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sys_php_config'); ?></h2>
         </div>
         <div class="p-6">
             <table class="w-full text-sm">
                 <tbody class="divide-y">
                     <tr>
-                        <td class="py-3 text-gray-500 w-48">上传限制</td>
+                        <td class="py-3 text-gray-500 w-48"><?php echo __('sys_upload_limit'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo ini_get('upload_max_filesize'); ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">POST 限制</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_post_limit'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo ini_get('post_max_size'); ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">内存限制</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_memory_limit'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo ini_get('memory_limit'); ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">最大执行时间</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_max_exec'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo ini_get('max_execution_time'); ?> 秒</td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">GD 库</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_gd'); ?></td>
                         <td class="py-3 text-gray-800">
                             <?php if (extension_loaded('gd')): ?>
-                            <span class="text-green-600">已安装</span>
+                            <span class="text-green-600"><?php echo __('sys_installed'); ?></span>
                             <?php else: ?>
-                            <span class="text-red-600">未安装</span>
+                            <span class="text-red-600"><?php echo __('sys_not_installed'); ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -249,9 +249,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="py-3 text-gray-500">cURL</td>
                         <td class="py-3 text-gray-800">
                             <?php if (extension_loaded('curl')): ?>
-                            <span class="text-green-600">已安装</span>
+                            <span class="text-green-600"><?php echo __('sys_installed'); ?></span>
                             <?php else: ?>
-                            <span class="text-red-600">未安装</span>
+                            <span class="text-red-600"><?php echo __('sys_not_installed'); ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -259,9 +259,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="py-3 text-gray-500">mbstring</td>
                         <td class="py-3 text-gray-800">
                             <?php if (extension_loaded('mbstring')): ?>
-                            <span class="text-green-600">已安装</span>
+                            <span class="text-green-600"><?php echo __('sys_installed'); ?></span>
                             <?php else: ?>
-                            <span class="text-red-600">未安装</span>
+                            <span class="text-red-600"><?php echo __('sys_not_installed'); ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -269,9 +269,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="py-3 text-gray-500">PDO</td>
                         <td class="py-3 text-gray-800">
                             <?php if (extension_loaded('pdo')): ?>
-                            <span class="text-green-600">已安装</span> (<?php echo implode(', ', PDO::getAvailableDrivers()); ?>)
+                            <span class="text-green-600"><?php echo __('sys_installed'); ?></span> (<?php echo implode(', ', PDO::getAvailableDrivers()); ?>)
                             <?php else: ?>
-                            <span class="text-red-600">未安装</span>
+                            <span class="text-red-600"><?php echo __('sys_not_installed'); ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -283,23 +283,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 存储信息 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">存储信息</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sys_storage'); ?></h2>
         </div>
         <div class="p-6">
             <table class="w-full text-sm">
                 <tbody class="divide-y">
                     <?php if ($diskTotal): ?>
                     <tr>
-                        <td class="py-3 text-gray-500 w-48">磁盘空间</td>
+                        <td class="py-3 text-gray-500 w-48"><?php echo __('sys_disk_space'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo formatBytes($diskFree); ?> 可用 / <?php echo formatBytes($diskTotal); ?> 总计</td>
                     </tr>
                     <?php endif; ?>
                     <tr>
-                        <td class="py-3 text-gray-500">上传目录</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_upload_dir'); ?></td>
                         <td class="py-3 text-gray-800"><?php echo formatBytes($uploadsSize); ?></td>
                     </tr>
                     <tr>
-                        <td class="py-3 text-gray-500">站点根目录</td>
+                        <td class="py-3 text-gray-500"><?php echo __('sys_root_dir'); ?></td>
                         <td class="py-3 text-gray-800 font-mono text-xs"><?php echo ROOT_PATH; ?></td>
                     </tr>
                 </tbody>
@@ -310,7 +310,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 数据统计 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">数据统计</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('sys_data_stats'); ?></h2>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
@@ -360,7 +360,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                筛选
+                <?php echo __('admin_filter'); ?>
             </button>
 
             <button type="button" onclick="clearOldLogs()" class="border px-4 py-2 rounded hover:bg-gray-100 ml-auto inline-flex items-center gap-1">
@@ -379,11 +379,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作人</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">模块</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">动作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('sys_module'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('sys_action_type'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">时间</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -434,12 +434,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php if ($logPage > 1): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $logPage - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                上一页</a>
+                <?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
             <span class="text-sm">第 <?php echo $logPage; ?>/<?php echo $totalPages; ?> 页</span>
             <?php if ($logPage < $totalPages): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $logPage + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                下一页
+                <?php echo __('list_next_page'); ?>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </a>
             <?php endif; ?>

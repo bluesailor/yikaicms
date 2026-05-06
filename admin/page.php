@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 单页管理
+ * ikaiCMS - 单页管理
  *
  * PHP 8.0+
  */
@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $slug = resolveSlug('', $name, 'channels', 0);
         $parentId = postInt('parent_id');
-        $newData = [
+        $id = channelModel()->create([
             'parent_id' => $parentId,
             'name' => $name,
             'slug' => $slug,
@@ -36,11 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'sort_order' => 0,
             'created_at' => time(),
             'updated_at' => time(),
-        ];
-        if (isMultiLangEnabled('channels')) {
-            $newData['lang'] = post('lang', config('site_lang', 'zh-CN'));
-        }
-        $id = channelModel()->create($newData);
+        ]);
         adminLog('page', 'create', '创建单页：' . $name);
         success(['id' => $id]);
     }
@@ -79,21 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 多语言
-$defaultLang = config('site_lang', 'zh-CN');
-$hasMultiLang = isMultiLangEnabled('channels');
-$pageLang = get('lang', $defaultLang);
-$allLangs = availableLanguages();
-if ($hasMultiLang && !isset($allLangs[$pageLang])) $pageLang = $defaultLang;
-
 // 获取所有单页类型的栏目
-$langWhere = $hasMultiLang ? ' AND c.lang = ?' : '';
-$langParams = $hasMultiLang ? ['page', $pageLang] : ['page'];
 $pages = channelModel()->query(
     'SELECT c.*, p.name as parent_name FROM ' . channelModel()->tableName() . ' c
      LEFT JOIN ' . channelModel()->tableName() . ' p ON c.parent_id = p.id
-     WHERE c.type = ?' . $langWhere . ' ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
-    $langParams
+     WHERE c.type = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
+    ['page']
 );
 
 // 获取页脚导航URL列表
@@ -105,32 +92,17 @@ foreach ($footerNavData as $group) {
     }
 }
 
-$pageTitle = '单页管理';
+$pageTitle = __('admin_page_static');
 $currentMenu = 'page';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php if ($hasMultiLang && count($allLangs) > 1): ?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言：</span>
-    <?php foreach ($allLangs as $lc => $ll):
-        $lCnt = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "channels WHERE type = 'page' AND lang = ?", [$lc]);
-    ?>
-    <a href="?lang=<?php echo e($lc); ?>"
-       class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $pageLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
-        <?php echo e($ll); ?>
-        <span class="ml-1 opacity-70">(<?php echo $lCnt; ?>)</span>
-    </a>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
 <div class="mb-6 flex items-center justify-between">
-    <p class="text-gray-500">管理公司简介、企业文化等独立页面内容。单页内容直接存储在栏目中。</p>
+    <p class="text-gray-500"><?php echo __('page_desc'); ?></p>
     <button onclick="showCreateModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        添加单页
+        <?php echo __('admin_add'); ?>
     </button>
 </div>
 
@@ -141,13 +113,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">页面名称</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">所属栏目</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">URL</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">菜单位置</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('page_name'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('page_parent'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('page_url'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('page_menu_position'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -173,7 +145,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo e($item['parent_name']); ?>
                         </span>
                         <?php else: ?>
-                        <span class="text-xs text-gray-400">顶级</span>
+                        <span class="text-xs text-gray-400"><?php echo __('admin_none'); ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -186,13 +158,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         $inFooter = in_array($itemUrl, $footerNavUrls);
                         ?>
                         <?php if ($inMain): ?>
-                        <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600">主导航</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600"><?php echo __('page_main_nav'); ?></span>
                         <?php endif; ?>
                         <?php if ($inFooter): ?>
-                        <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600">页脚</span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600"><?php echo __('page_footer_nav'); ?></span>
                         <?php endif; ?>
                         <?php if (!$inMain && !$inFooter): ?>
-                        <span class="text-xs text-gray-400">无</span>
+                        <span class="text-xs text-gray-400"><?php echo __('page_none'); ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-center text-sm text-gray-500">
@@ -201,25 +173,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $item['status'] ? '显示' : '隐藏'; ?>
+                            <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <a href="/admin/page_edit.php?id=<?php echo $item['id']; ?>"
                            class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            编辑内容
+                            <?php echo __('admin_content_edit'); ?>
                         </a>
                         <a href="/<?php echo e($item['slug']); ?>.html" target="_blank"
                            class="text-gray-500 hover:underline text-sm inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            预览
+                            <?php echo __('admin_preview'); ?>
                         </a>
                         <?php if (empty($item['is_system'])): ?>
                         <button onclick="deletePage(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')"
                                 class="text-red-500 hover:underline text-sm inline-flex items-center gap-1 ml-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            删除
+                            <?php echo __('admin_delete'); ?>
                         </button>
                         <?php endif; ?>
                     </td>
@@ -227,7 +199,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($pages)): ?>
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无单页数据</td>
+                    <td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -239,20 +211,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">添加单页</h3>
+            <h3 class="font-bold text-gray-800"><?php echo __('admin_add'); ?></h3>
             <button type="button" onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
         <div class="p-6 space-y-4">
             <div>
-                <label class="block text-sm text-gray-700 mb-1">页面名称 <span class="text-red-500">*</span></label>
-                <input type="text" id="createName" class="w-full border rounded px-4 py-2" placeholder="如：公司简介">
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_name'); ?> <span class="text-red-500">*</span></label>
+                <input type="text" id="createName" class="w-full border rounded px-4 py-2">
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">所属栏目</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_parent'); ?></label>
                 <select id="createParent" class="w-full border rounded px-4 py-2">
-                    <option value="0">顶级（无上级）</option>
+                    <option value="0"><?php echo __('admin_none'); ?></option>
                     <?php foreach ($pages as $p): ?>
                     <?php if (!$p['parent_id']): ?>
                     <option value="<?php echo $p['id']; ?>"><?php echo e($p['name']); ?></option>
@@ -261,7 +233,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </select>
             </div>
             <button type="button" onclick="createPage()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded transition">
-                创建并编辑内容
+                <?php echo __('page_create_edit'); ?>
             </button>
         </div>
     </div>
@@ -282,12 +254,11 @@ function closeCreateModal() {
 
 async function createPage() {
     var name = document.getElementById('createName').value.trim();
-    if (!name) { showMessage('请输入页面名称', 'error'); return; }
+    if (!name) { showMessage('<?php echo __('page_name_required'); ?>', 'error'); return; }
     var formData = new FormData();
     formData.append('action', 'create');
     formData.append('name', name);
     formData.append('parent_id', document.getElementById('createParent').value);
-    formData.append('lang', '<?php echo e($pageLang); ?>');
     var response = await fetch('', { method: 'POST', body: formData });
     var data = await safeJson(response);
     if (data.code === 0) {
@@ -306,7 +277,7 @@ async function deletePage(id, name) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(function() { location.reload(); }, 800);
     } else {
         showMessage(data.msg, 'error');
@@ -322,10 +293,10 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '显示';
+            btn.textContent = '<?php echo __('admin_show'); ?>';
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '隐藏';
+            btn.textContent = '<?php echo __('admin_hide'); ?>';
         }
         showMessage('状态已更新');
     }

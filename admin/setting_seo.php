@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - SEO 设置
+ * ikaiCMS - SEO 设置
  *
  * PHP 8.0+
  */
@@ -75,9 +75,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b overflow-x-auto">
-        <a href="/admin/setting_seo.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">基础设置</a>
-        <a href="/admin/setting_seo.php?tab=social" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'social' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">社交分享</a>
-        <a href="/admin/setting_seo.php?tab=verify" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'verify' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">站长验证</a>
+        <a href="/admin/setting_seo.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_basic'); ?></a>
+        <a href="/admin/setting_seo.php?tab=social" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'social' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_social'); ?></a>
+        <a href="/admin/setting_seo.php?tab=verify" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'verify' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_verify'); ?></a>
         <a href="/admin/setting_seo.php?tab=sitemap" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'sitemap' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Sitemap</a>
         <a href="/admin/setting_seo.php?tab=robots" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'robots' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Robots.txt</a>
     </div>
@@ -88,13 +88,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">全站 SEO 基础</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('seo_basic_title'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     首页 SEO 标题
-                    <span class="text-gray-400 text-sm block">独立于站点名称，留空则使用站点名称</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('seo_home_title_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[seo_title]"
@@ -108,7 +108,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     全站关键词
-                    <span class="text-gray-400 text-sm block">多个关键词用英文逗号分隔</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('seo_keywords_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[site_keywords]"
@@ -122,7 +122,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     全站描述
-                    <span class="text-gray-400 text-sm block">搜索结果中显示的摘要文字</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('seo_description_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <textarea name="settings[site_description]" rows="3"
@@ -137,7 +137,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">保存设置</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
@@ -146,13 +146,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">社交分享设置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('seo_social_title'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     默认分享图片
-                    <span class="text-gray-400 text-sm block">分享到社交媒体时的默认封面图</span>
+                    <span class="text-gray-400 text-sm block"><?php echo __('seo_og_image_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <div class="flex items-center gap-4">
@@ -185,7 +185,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">保存设置</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
@@ -194,7 +194,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">搜索引擎站长验证</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('seo_verify_title'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
@@ -248,7 +248,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">保存设置</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
@@ -267,8 +267,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[seo_sitemap_enabled]" class="w-full border rounded px-4 py-2">
-                        <option value="1" <?php echo $seoConfig['seo_sitemap_enabled'] === '1' ? 'selected' : ''; ?>>启用</option>
-                        <option value="0" <?php echo $seoConfig['seo_sitemap_enabled'] === '0' ? 'selected' : ''; ?>>禁用</option>
+                        <option value="1" <?php echo $seoConfig['seo_sitemap_enabled'] === '1' ? 'selected' : ''; ?>><?php echo __('admin_enabled'); ?></option>
+                        <option value="0" <?php echo $seoConfig['seo_sitemap_enabled'] === '0' ? 'selected' : ''; ?>><?php echo __('admin_disabled'); ?></option>
                     </select>
                 </div>
             </div>
@@ -311,7 +311,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">保存设置</button>
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
@@ -354,7 +354,7 @@ document.getElementById('settingForm')?.addEventListener('submit', async functio
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }

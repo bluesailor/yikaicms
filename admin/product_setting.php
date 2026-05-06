@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 产品设置
+ * ikaiCMS - 产品设置
  *
  * PHP 8.0+
  */
@@ -19,9 +19,6 @@ requirePermission('content');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settingModel()->set('product_layout', post('product_layout', 'sidebar'));
     settingModel()->set('show_price', post('show_price', '0'));
-    $sortOptions = $_POST['sort_options'] ?? [];
-    if (empty($sortOptions)) $sortOptions = ['default'];
-    settingModel()->set('product_sort_options', json_encode(array_values($sortOptions)));
     adminLog('setting', 'update', '更新产品设置');
     success();
 }
@@ -35,11 +32,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">产品列表</a>
-        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">分类管理</a>
-        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">品牌管理</a>
-        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">标签管理</a>
-        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">产品设置</a>
+        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_list'); ?></a>
+        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_category'); ?></a>
+        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_brand'); ?></a>
+        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
+        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_setting'); ?></a>
     </div>
 </div>
 
@@ -112,35 +109,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <hr>
 
-            <!-- 前台排序选项 -->
-            <div>
-                <label class="font-medium text-gray-800">前台排序选项</label>
-                <p class="text-sm text-gray-500 mt-1 mb-3">勾选前台产品列表页可用的排序方式</p>
-                <?php
-                $enabledSorts = json_decode(config('product_sort_options', '["default","newest","views"]'), true) ?: ['default'];
-                $allSorts = [
-                    'default'    => '默认排序',
-                    'newest'     => '最新发布',
-                    'updated'    => '最近更新',
-                    'views'      => '浏览量',
-                    'price_asc'  => '价格从低到高',
-                    'price_desc' => '价格从高到低',
-                ];
-                ?>
-                <div class="space-y-2">
-                    <?php foreach ($allSorts as $sk => $sl): ?>
-                    <label class="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" name="sort_options[]" value="<?php echo $sk; ?>"
-                               <?php echo in_array($sk, $enabledSorts) ? 'checked' : ''; ?>
-                               class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary">
-                        <span class="text-sm text-gray-700"><?php echo $sl; ?></span>
-                    </label>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
-            <hr>
-
             <div class="flex justify-end">
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -179,7 +147,7 @@ document.getElementById('settingForm').addEventListener('submit', async function
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
         } else {
             showMessage(data.msg, 'error');
         }

@@ -313,11 +313,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="?tab=backup" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'backup' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">备份</a>
-        <a href="?tab=export" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'export' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">按表导出</a>
-        <a href="?tab=import" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'import' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">导入恢复</a>
-        <a href="?tab=logs" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">日志清理</a>
-        <a href="?tab=tables" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'tables' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>">数据表</a>
+        <a href="?tab=backup" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'backup' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_backup'); ?></a>
+        <a href="?tab=export" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'export' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_export_tables'); ?></a>
+        <a href="?tab=import" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'import' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_import'); ?></a>
+        <a href="?tab=logs" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_log_cleanup'); ?></a>
+        <a href="?tab=tables" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'tables' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_tables'); ?></a>
     </div>
 </div>
 
@@ -358,7 +358,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="download">
         <input type="hidden" name="file" value="<?php echo e($savedFile); ?>">
-        <button type="submit" class="text-sm text-primary hover:underline">立即下载</button>
+        <button type="submit" class="text-sm text-primary hover:underline"><?php echo __('db_download_now'); ?></button>
     </form>
 </div>
 <?php endif; ?>
@@ -368,7 +368,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 备份记录 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
-        <h2 class="font-bold text-gray-800">备份记录</h2>
+        <h2 class="font-bold text-gray-800"><?php echo __('db_backup_history'); ?></h2>
     </div>
 <?php if (!empty($backupFiles)): ?>
     <div class="divide-y">
@@ -434,11 +434,11 @@ async function deleteBackup(file) {
     <input type="hidden" name="action" value="export">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800">自定义导出</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('db_custom_export'); ?></h2>
             <div class="flex items-center gap-4">
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="structure" value="1" checked> 表结构</label>
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="data" value="1" checked> 表数据</label>
-                <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=true)" class="text-xs text-primary hover:underline cursor-pointer">全选</button>
+                <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=true)" class="text-xs text-primary hover:underline cursor-pointer"><?php echo __('btn_select_all'); ?></button>
                 <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=false)" class="text-xs text-gray-500 hover:underline cursor-pointer">全不选</button>
             </div>
         </div>

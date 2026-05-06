@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - AI 设置
+ * ikaiCMS - AI 设置
  */
 
 declare(strict_types=1);
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $testKey = AiService::decryptKey(config('ai_api_key', ''));
         }
         $testAi = new AiService($_POST['ai_provider'] ?? 'openai', $testKey, $_POST['ai_model'] ?? '');
-        $result = $testAi->chat('请回复"连接成功"四个字。', '你是一个测试助手，只需回复用户要求的内容。', 0.1);
+        $result = $testAi->chat('Reply "OK".', 'You are a test assistant. Just reply with what the user asks.', 0.1);
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -64,17 +64,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b flex items-center justify-between">
                 <div>
-                    <h2 class="font-bold text-gray-800">AI 服务配置</h2>
-                    <p class="text-sm text-gray-500 mt-1">配置 AI 供应商，用于文章生成、SEO 优化等。</p>
+                    <h2 class="font-bold text-gray-800"><?php echo __('ai_config_title'); ?></h2>
+                    <p class="text-sm text-gray-500 mt-1"><?php echo __('ai_config_desc'); ?></p>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" id="testBtn" onclick="testAiConn()" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded transition text-sm cursor-pointer">测试连接</button>
-                    <button type="button" onclick="saveAiSettings()" class="bg-primary hover:bg-secondary text-white px-5 py-2 rounded transition text-sm cursor-pointer">保存设置</button>
+                    <button type="button" id="testBtn" onclick="testAiConn()" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded transition text-sm cursor-pointer"><?php echo __('ai_test_connection'); ?></button>
+                    <button type="button" onclick="saveAiSettings()" class="bg-primary hover:bg-secondary text-white px-5 py-2 rounded transition text-sm cursor-pointer"><?php echo __('btn_save_settings'); ?></button>
                 </div>
             </div>
             <div class="p-6 space-y-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">AI 供应商</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_provider_label'); ?></label>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <?php foreach ($providers as $key => $p): ?>
                         <label class="relative cursor-pointer">
@@ -88,14 +88,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_api_key'); ?></label>
                     <input type="text" name="ai_api_key" id="aiApiKey" value="<?php echo e($maskedApiKey); ?>"
                            class="w-full border rounded-lg px-4 py-2.5 text-sm font-mono tracking-wide" placeholder="sk-..."
                            onfocus="if(this.value.indexOf('***')!==-1){this.value='';this.style.color=''}">
-                    <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? '已保存，输入新 Key 后保存即替换' : '请填写 API Key'; ?></p>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">模型</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_model_label'); ?></label>
                     <input type="hidden" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>">
                     <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
                 </div>
@@ -122,24 +122,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     ?>
     <div class="mt-6 bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800">用量统计</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('ai_usage_stats'); ?></h2>
             <a href="/admin/ai_usage.php" class="text-sm text-primary hover:underline">用量详情 &raquo;</a>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-3 gap-4">
                 <div class="bg-blue-50 rounded-lg p-4 text-center">
                     <p class="text-2xl font-bold text-blue-600"><?php echo number_format((int)($todayStats['calls'] ?? 0)); ?></p>
-                    <p class="text-xs text-gray-500 mt-1">今日调用</p>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo __('ai_today_calls'); ?></p>
                     <p class="text-xs text-blue-400"><?php echo number_format((int)($todayStats['tokens'] ?? 0)); ?> tokens</p>
                 </div>
                 <div class="bg-green-50 rounded-lg p-4 text-center">
                     <p class="text-2xl font-bold text-green-600"><?php echo number_format((int)($monthStats['calls'] ?? 0)); ?></p>
-                    <p class="text-xs text-gray-500 mt-1">本月调用</p>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo __('ai_month_calls'); ?></p>
                     <p class="text-xs text-green-400"><?php echo number_format((int)($monthStats['tokens'] ?? 0)); ?> tokens</p>
                 </div>
                 <div class="bg-purple-50 rounded-lg p-4 text-center">
                     <p class="text-2xl font-bold text-purple-600"><?php echo number_format((int)($totalStats['calls'] ?? 0)); ?></p>
-                    <p class="text-xs text-gray-500 mt-1">累计调用</p>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo __('ai_total_calls'); ?></p>
                     <p class="text-xs text-purple-400"><?php echo number_format((int)($totalStats['tokens'] ?? 0)); ?> tokens</p>
                 </div>
             </div>
@@ -148,7 +148,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 
     <div class="mt-6 bg-gray-50 rounded-lg p-6 text-sm text-gray-500">
-        <h3 class="font-medium text-gray-700 mb-3">API Key 获取方式</h3>
+        <h3 class="font-medium text-gray-700 mb-3"><?php echo __('ai_get_key'); ?></h3>
         <div class="space-y-2">
             <p><strong>OpenAI：</strong><a href="https://platform.openai.com/api-keys" target="_blank" class="text-primary hover:underline">platform.openai.com</a></p>
             <p><strong>Claude：</strong><a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-primary hover:underline">console.anthropic.com</a></p>
@@ -211,7 +211,7 @@ function testAiConn() {
     fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){
         result.className = 'mt-4 px-4 py-3 rounded-lg text-sm ' + (d.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200');
         result.textContent = d.success ? '连接成功！回复：' + d.content : '失败：' + d.error;
-    }).catch(function(){ result.textContent = '请求失败'; }).finally(function(){ btn.disabled = false; btn.textContent = '测试连接'; });
+    }).catch(function(){ result.textContent = '请求失败'; }).finally(function(){ btn.disabled = false; btn.textContent = '<?php echo __('ai_test_connection'); ?>'; });
 }
 </script>
 

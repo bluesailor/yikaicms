@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 插件管理
+ * ikaiCMS - 插件管理
  *
  * PHP 8.0+
  */
@@ -214,27 +214,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <!-- 插件信息 -->
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-3 mb-1">
-                        <h3 class="font-semibold text-gray-800"><?php echo e($p['name'] ?? $slug); ?></h3>
+                        <?php
+                        $langSuffix = getLang() !== 'zh-CN' ? '_' . getLang() : '';
+                        $pName = ($langSuffix && !empty($p['name' . $langSuffix])) ? $p['name' . $langSuffix] : ($p['name'] ?? $slug);
+                        ?>
+                        <h3 class="font-semibold text-gray-800"><?php echo e($pName); ?></h3>
                         <?php if (!empty($p['version'])): ?>
                         <span class="text-xs text-gray-400">v<?php echo e($p['version']); ?></span>
                         <?php endif; ?>
                         <?php if ($p['status']): ?>
-                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">已启用</span>
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('status_enabled'); ?></span>
                         <?php else: ?>
-                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">未启用</span>
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500"><?php echo __('status_disabled'); ?></span>
                         <?php endif; ?>
                     </div>
                     <?php if (!empty($p['description'])): ?>
-                    <p class="text-sm text-gray-500 mb-2"><?php echo e($p['description']); ?></p>
+                    <?php $pDesc = ($langSuffix && !empty($p['description' . $langSuffix])) ? $p['description' . $langSuffix] : $p['description']; ?>
+                    <p class="text-sm text-gray-500 mb-2"><?php echo e($pDesc); ?></p>
                     <?php endif; ?>
                     <div class="text-xs text-gray-400 flex flex-wrap gap-4">
                         <?php if (!empty($p['author'])): ?>
-                        <span>作者: <?php echo e($p['author']); ?></span>
+                        <span><?php echo __('label_author'); ?>: <?php echo e($p['author']); ?></span>
                         <?php endif; ?>
                         <?php if (!empty($p['requires_php'])): ?>
                         <span>PHP: &ge; <?php echo e($p['requires_php']); ?></span>
                         <?php endif; ?>
-                        <span>标识: <?php echo e($slug); ?></span>
+                        <span>ID: <?php echo e($slug); ?></span>
                     </div>
                 </div>
                 <!-- 操作按钮 -->
@@ -258,7 +263,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </button>
                     <button onclick="pluginAction('delete', '<?php echo e($slug); ?>')"
                             class="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 transition">
-                        删除
+                        <?php echo __('admin_delete'); ?>
                     </button>
                     <?php endif; ?>
                 </div>
@@ -295,7 +300,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <div class="mt-4 flex justify-end gap-3">
                 <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')"
-                        class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded transition">取消</button>
+                        class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded transition"><?php echo __('admin_cancel'); ?></button>
                 <button type="button" id="btnUpload" onclick="uploadPlugin()"
                         class="px-4 py-2 text-sm bg-primary hover:bg-secondary text-white rounded transition">安装</button>
             </div>

@@ -178,7 +178,7 @@ function getChannelUrl(array $channel): string {
     <?php echo config('custom_head_code', ''); ?>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
-    <!-- 顶部通栏 -->
+    <!-- top banner -->
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>">
         <div class="container mx-auto px-4 flex items-center justify-between h-8 text-gray-600">
@@ -205,10 +205,10 @@ function getChannelUrl(array $channel): string {
     </div>
     <?php endif; ?>
 
-    <!-- 顶部导航 -->
+    <!-- Top navigation -->
     <header class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
         <?php if ($headerNavLayout === 'below'): ?>
-        <!-- 布局：Logo上 + 导航下方通栏 -->
+        <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center gap-2">
@@ -218,7 +218,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <!-- 会员入口（导航栏模式） -->
+                <!-- Member Access (Navigation Bar Mode) -->
                 <?php if ($showMemberEntry && !$topbarEnabled): ?>
                 <div class="hidden md:flex items-center gap-3 text-sm" style="color: <?php echo e($headerTextColor); ?>">
                     <?php if (isMemberLoggedIn()): ?>
@@ -286,7 +286,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
         <?php else: ?>
-        <!-- 布局：Logo左 + 导航右（默认） -->
+        <!-- Layout: Logo left + Navigation right (default) -->
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center gap-2">
@@ -334,7 +334,7 @@ function getChannelUrl(array $channel): string {
                     </a>
                     <?php endif; ?>
                     <?php endforeach; ?>
-                    <!-- 会员入口（导航栏模式） -->
+                    <!-- Member Access (Navigation Bar Mode) -->
                     <?php if ($showMemberEntry && !$topbarEnabled): ?>
                     <span class="w-px h-4 bg-gray-300 mx-1"></span>
                     <?php if (isMemberLoggedIn()): ?>
@@ -376,7 +376,7 @@ function getChannelUrl(array $channel): string {
         </div>
         <?php endif; ?>
 
-        <!-- 移动端菜单 -->
+        <!-- Mobile menu -->
         <nav id="mobileMenu" class="md:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
                 <?php if (config('nav_home_show', '1') !== '0'): ?>
@@ -403,7 +403,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
-                <!-- 移动端会员入口 -->
+                <!-- Mobile Member Portal -->
                 <?php if ($showMemberEntry): ?>
                 <div class="border-t border-gray-100 pt-2 mt-2">
                     <?php if (isMemberLoggedIn()): ?>
@@ -424,7 +424,7 @@ function getChannelUrl(array $channel): string {
 
     <?php do_action('ik_header_after'); ?>
 
-    <!-- 语言切换器 JS -->
+    <!-- Language Switcher JS -->
     <?php if (config('show_lang_switcher', '0') === '1'): ?>
     <script>
     function switchLang(lang) {
@@ -439,5 +439,5 @@ function getChannelUrl(array $channel): string {
     </script>
     <?php endif; ?>
 
-    <!-- 主内容 -->
+    <!-- Main content -->
     <main class="flex-1">

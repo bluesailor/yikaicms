@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 内容管理
+ * ikaiCMS - 内容管理
  *
  * PHP 8.0+
  */
@@ -30,27 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = postInt('id');
-        do_action('before_delete_content', $id);
         contentModel()->deleteById($id);
-        metaModel()->del('content', $id);
         adminLog('content', 'delete', '删除内容ID：' . $id);
-        do_action('after_delete_content', $id);
         success();
     }
 
     if ($action === 'batch_delete') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
-            foreach ($ids as $delId) {
-                $delId = (int)$delId;
-                do_action('before_delete_content', $delId);
-                metaModel()->del('content', $delId);
-            }
             contentModel()->deleteByIds($ids);
             adminLog('content', 'batch_delete', '批量删除：' . implode(',', $ids));
-            foreach ($ids as $delId) {
-                do_action('after_delete_content', (int)$delId);
-            }
         }
         success();
     }
@@ -68,13 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
-    if ($action === 'save_sort') {
-        $id = postInt('id');
-        $sortOrder = postInt('sort_order');
-        contentModel()->updateById($id, ['sort_order' => $sortOrder]);
-        success(['sort_order' => $sortOrder]);
-    }
-
     exit;
 }
 
@@ -83,23 +65,12 @@ $channelId = getInt('channel_id');
 $type = get('type');
 $status = get('status', '');
 $keyword = get('keyword');
-$defaultLang = config('site_lang', 'zh-CN');
-$allLangs = availableLanguages();
-$filterLang = get('lang', $defaultLang);
-if (!isset($allLangs[$filterLang])) $filterLang = $defaultLang;
 $page = max(1, getInt('page', 1));
 $perPage = 20;
-
-$multiLangEnabled = isMultiLangEnabled('contents');
 
 // 构建查询
 $where = [];
 $params = [];
-
-if ($multiLangEnabled) {
-    $where[] = 'c.lang = ?';
-    $params[] = $filterLang;
-}
 
 if ($channelId > 0) {
     $where[] = 'c.channel_id = ?';
@@ -148,27 +119,18 @@ $contents = contentModel()->query(
 // 获取栏目列表
 $channels = channelModel()->all('sort_order DESC');
 
-$pageTitle = '内容管理';
+$pageTitle = __('admin_group_content');
 $currentMenu = 'content';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
-
-<?php if ($multiLangEnabled && count($allLangs) > 1): ?>
-<div class="mb-4 flex items-center gap-2 flex-wrap">
-    <span class="text-sm text-gray-500">语言：</span>
-    <?php foreach ($allLangs as $lc => $ll): ?>
-    <a href="?lang=<?php echo e($lc); ?>" class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $filterLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>"><?php echo e($ll); ?></a>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
             <select name="channel_id" class="border rounded px-3 py-2">
-                <option value="">全部栏目</option>
+                <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_channel'); ?></option>
                 <?php foreach ($channels as $ch): ?>
                 <option value="<?php echo $ch['id']; ?>" <?php echo $channelId == $ch['id'] ? 'selected' : ''; ?>>
                     <?php echo e($ch['name']); ?>
@@ -177,7 +139,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </select>
 
             <select name="type" class="border rounded px-3 py-2">
-                <option value="">全部类型</option>
+                <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_type'); ?></option>
                 <?php foreach ($contentTypes as $key => $label): ?>
                 <option value="<?php echo $key; ?>" <?php echo $type === $key ? 'selected' : ''; ?>>
                     <?php echo $label; ?>
@@ -186,27 +148,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </select>
 
             <select name="status" class="border rounded px-3 py-2">
-                <option value="">全部状态</option>
-                <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>>已发布</option>
-                <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>>草稿</option>
+                <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_status'); ?></option>
+                <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
+                <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
             </select>
 
-            <?php if ($multiLangEnabled): ?>
-            <input type="hidden" name="lang" value="<?php echo e($filterLang); ?>">
-            <?php endif; ?>
-
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                   class="border rounded px-3 py-2" placeholder="搜索标题...">
+                   class="border rounded px-3 py-2" placeholder="<?php echo __('admin_search'); ?>...">
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                筛选
+                <?php echo __('admin_filter'); ?>
             </button>
         </form>
 
         <a href="/admin/content_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            添加内容
+            <?php echo __('admin_add'); ?>
         </a>
     </div>
 </div>
@@ -221,15 +179,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left">
                             <input type="checkbox" id="checkAll">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标题</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">栏目</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">类型</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">浏览</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">排序</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">置顶</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">时间</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_channel'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_type'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -272,11 +229,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo number_format((int)$item['views']); ?>
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <input type="number" value="<?php echo (int)($item['sort_order'] ?? 0); ?>"
-                                   onblur="saveSort(<?php echo $item['id']; ?>, this.value)"
-                                   class="w-16 border rounded px-2 py-1 text-center text-sm">
-                        </td>
-                        <td class="px-4 py-3 text-center">
                             <button onclick="toggleField(<?php echo $item['id']; ?>, 'is_top', <?php echo $item['is_top'] ? 0 : 1; ?>)"
                                     class="<?php echo $item['is_top'] ? 'text-primary' : 'text-gray-400'; ?>">
                                 <?php echo $item['is_top'] ? '★' : '☆'; ?>
@@ -285,7 +237,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-3 text-center">
                             <button onclick="toggleField(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>)"
                                     class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                                <?php echo $item['status'] ? '已发布' : '草稿'; ?>
+                                <?php echo $item['status'] ? __('admin_published') : __('admin_draft'); ?>
                             </button>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
@@ -294,16 +246,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-3 text-center">
                             <a href="/admin/content_edit.php?id=<?php echo $item['id']; ?>" class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                编辑</a>
+                                <?php echo __('admin_edit'); ?></a>
                             <button onclick="deleteContent(<?php echo $item['id']; ?>)" class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                删除</button>
+                                <?php echo __('admin_delete'); ?></button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($contents)): ?>
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无内容</td>
+                        <td colspan="9" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                     </tr>
                     <?php endif; ?>
                 </tbody>
@@ -315,7 +267,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex gap-2">
                 <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100 inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    批量删除
+                    <?php echo __('admin_batch_delete'); ?>
                 </button>
             </div>
 
@@ -335,12 +287,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if ($page > 1): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    上一页</a>
+                    <?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
                 <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                    下一页
+                    <?php echo __('list_next_page'); ?>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </a>
                 <?php endif; ?>
@@ -355,21 +307,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 document.getElementById('checkAll').addEventListener('change', function() {
     document.querySelectorAll('input[name="ids[]"]').forEach(el => el.checked = this.checked);
 });
-
-// 保存排序
-async function saveSort(id, val) {
-    const formData = new FormData();
-    formData.append('action', 'save_sort');
-    formData.append('id', id);
-    formData.append('sort_order', val);
-    const response = await fetch('', { method: 'POST', body: formData });
-    const data = await safeJson(response);
-    if (data.code === 0) {
-        showMessage('排序已更新');
-    } else {
-        showMessage(data.msg || '保存失败', 'error');
-    }
-}
 
 // 切换字段
 async function toggleField(id, field, value) {
@@ -391,7 +328,7 @@ async function toggleField(id, field, value) {
 
 // 删除内容
 async function deleteContent(id) {
-    if (!confirm('确定要删除吗？')) return;
+    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
 
     const formData = new FormData();
     formData.append('action', 'delete');
@@ -401,7 +338,7 @@ async function deleteContent(id) {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -412,11 +349,11 @@ async function deleteContent(id) {
 async function batchDelete() {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) {
-        showMessage('请选择要删除的项', 'error');
+        showMessage('<?php echo __('admin_please_select'); ?>', 'error');
         return;
     }
 
-    if (!confirm(`确定要删除选中的 ${checked.length} 项吗？`)) return;
+    if (!confirm('<?php echo __('admin_confirm_batch_delete'); ?>')) return;
 
     const formData = new FormData();
     formData.append('action', 'batch_delete');
@@ -426,7 +363,7 @@ async function batchDelete() {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

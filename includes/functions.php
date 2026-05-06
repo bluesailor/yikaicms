@@ -1872,7 +1872,7 @@ function jsonFieldsToTemplate(array $fields): string
 
     $lines[] = '';
     $lines[] = '<div class="mt-4">';
-    $lines[] = '    [submit "提交"]';
+    $lines[] = '    [submit "' . __('form_submit') . '"]';
     $lines[] = '</div>';
 
     return implode("\n", $lines);
@@ -1972,7 +1972,7 @@ function renderFormTagHtml(array $tag): string
             return $html;
 
         case 'submit':
-            $text = e($tag['text'] ?? '提交');
+            $text = e($tag['text'] ?? __('form_submit'));
             return '<button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition">' . $text . '</button>';
 
         default:
@@ -2032,7 +2032,7 @@ function renderFormTemplate(string $slug): string
     $renderedBody = preg_replace_callback(
         '/\[submit(?:\s+"([^"]*)")?\]/',
         function ($m) {
-            $text = $m[1] ?? '提交';
+            $text = $m[1] ?? __('form_submit');
             return renderFormTagHtml(['type' => 'submit', 'text' => $text]);
         },
         $renderedBody
@@ -2052,15 +2052,15 @@ function renderFormTemplate(string $slug): string
     $html .= 'if(!window._shortcodeFormInit){window._shortcodeFormInit=true;';
     $html .= 'window.submitShortcodeForm=function(e,slug){';
     $html .= 'e.preventDefault();var form=e.target;var btn=form.querySelector("button[type=submit]");';
-    $html .= 'btn.disabled=true;btn.textContent="提交中...";';
+    $html .= 'btn.disabled=true;btn.textContent=' . json_encode(__('form_submitting')) . ';';
     $html .= 'var fd=new FormData(form);';
     $html .= 'fetch("/form_submit.php",{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
     $html .= 'var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");';
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
     $html .= 'else{msgEl.className+=" bg-red-50 text-red-600";msgEl.textContent=data.msg;}';
-    $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent="提交";';
-    $html .= '}).catch(function(){btn.disabled=false;btn.textContent="提交";});return false;};';
+    $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';';
+    $html .= '}).catch(function(){btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';
     $html .= '}</script>';
 
     return $html;

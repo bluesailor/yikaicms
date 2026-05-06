@@ -37,8 +37,8 @@ class AiService
         'deepseek' => [
             'name'     => 'DeepSeek',
             'base_url' => 'https://api.deepseek.com/v1',
-            'models'   => ['deepseek-chat', 'deepseek-reasoner'],
-            'default'  => 'deepseek-chat',
+            'models'   => ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+            'default'  => 'deepseek-v4-flash',
             'format'   => 'openai',
         ],
         'qwen' => [

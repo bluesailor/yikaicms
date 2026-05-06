@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 表单设计（CF7 风格模板编辑器）
+ * ikaiCMS - 表单设计（CF7 风格模板编辑器）
  *
  * PHP 8.0+
  */
@@ -26,20 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $successMessage = trim(post('success_message'));
         $templateText = post('template_text');
 
-        if (empty($name)) error('请输入表单名称');
-        if (empty($slug)) error('请输入短码标识');
-        if (!preg_match('/^[a-z0-9_-]+$/', $slug)) error('短码只能包含小写字母、数字、下划线和横线');
-        if (!formTemplateModel()->isSlugUnique($slug, $id)) error('短码已被使用');
+        if (empty($name)) error(__('fd_err_name_required'));
+        if (empty($slug)) error(__('fd_err_slug_required'));
+        if (!preg_match('/^[a-z0-9_-]+$/', $slug)) error(__('fd_err_slug_pattern'));
+        if (!formTemplateModel()->isSlugUnique($slug, $id)) error(__('fd_err_slug_taken'));
 
         // 验证模板中至少包含一个字段标签
         $tags = parseFormTags($templateText);
-        if (empty($tags)) error('模板中至少需要一个字段标签（如 [text* name "姓名"]）');
+        if (empty($tags)) error(__('fd_err_template_empty'));
 
         $data = [
             'name'            => $name,
             'slug'            => $slug,
             'fields'          => $templateText,
-            'success_message' => $successMessage ?: '提交成功，感谢您的反馈！',
+            'success_message' => $successMessage ?: __('fd_default_success_msg'),
         ];
 
         if ($id > 0) {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         $tpl = formTemplateModel()->findById($id);
         if ($tpl && $tpl['slug'] === 'contact') {
-            error('默认联系表单不可删除');
+            error(__('fd_err_default_undelete'));
         }
         formTemplateModel()->deleteById($id);
         adminLog('form_template', 'delete', "删除表单模板ID: $id");
@@ -93,33 +93,33 @@ unset($tpl);
 
 $defaultTemplate = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
-    <label>姓名 <span class="text-red-500">*</span></label>
-    [text* name "请输入您的姓名"]
+    <label>' . __('fd_field_name') . ' <span class="text-red-500">*</span></label>
+    [text* name "' . __('fd_ph_name') . '"]
 </div>
 <div>
-    <label>电话</label>
-    [tel phone "请输入您的电话"]
+    <label>' . __('fd_field_phone') . '</label>
+    [tel phone "' . __('fd_ph_phone') . '"]
 </div>
 <div>
-    <label>邮箱 <span class="text-red-500">*</span></label>
-    [email* email "请输入您的邮箱"]
+    <label>' . __('fd_field_email') . ' <span class="text-red-500">*</span></label>
+    [email* email "' . __('fd_ph_email') . '"]
 </div>
 <div>
-    <label>公司</label>
-    [text company "请输入您的公司名称"]
+    <label>' . __('fd_field_company') . '</label>
+    [text company "' . __('fd_ph_company') . '"]
 </div>
 </div>
 
 <div class="mt-4">
-    <label>留言内容 <span class="text-red-500">*</span></label>
-    [textarea* content "请输入留言内容"]
+    <label>' . __('fd_field_message') . ' <span class="text-red-500">*</span></label>
+    [textarea* content "' . __('fd_ph_message') . '"]
 </div>
 
 <div class="mt-4">
-    [submit "提交"]
+    [submit "' . __('form_submit') . '"]
 </div>';
 
-$pageTitle = '表单设计';
+$pageTitle = __('fd_page_title');
 $currentMenu = 'form';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -128,18 +128,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">表单数据</a>
-        <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">表单设计</a>
+        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('fd_tab_data'); ?></a>
+        <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('fd_tab_design'); ?></a>
     </div>
 </div>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex items-center justify-between">
-        <p class="text-sm text-gray-500">使用类似 Contact Form 7 的标签语法设计表单，在页面内容中插入 <code class="bg-gray-100 px-1.5 py-0.5 rounded text-primary">[form-slug]</code> 即可嵌入</p>
+        <p class="text-sm text-gray-500"><?php echo __('fd_intro'); ?></p>
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            添加表单
+            <?php echo __('fd_btn_add'); ?>
         </button>
     </div>
 </div>
@@ -151,12 +151,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">表单名称</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">短码</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">字段数</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">提交数</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('fd_th_name'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('fd_th_slug'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('fd_th_field_count'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('fd_th_submit_count'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
                     <td class="px-4 py-3 font-medium"><?php echo e($item['name']); ?></td>
                     <td class="px-4 py-3">
-                        <code class="bg-gray-100 text-primary px-2 py-0.5 rounded text-sm cursor-pointer" onclick="copyShortcode(this)" title="点击复制">[form-<?php echo e($item['slug']); ?>]</code>
+                        <code class="bg-gray-100 text-primary px-2 py-0.5 rounded text-sm cursor-pointer" onclick="copyShortcode(this)" title="<?php echo __('fd_copy_hint'); ?>">[form-<?php echo e($item['slug']); ?>]</code>
                     </td>
                     <td class="px-4 py-3 text-center text-gray-600"><?php echo $item['_tag_count']; ?></td>
                     <td class="px-4 py-3 text-center">
@@ -176,7 +176,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'; ?>">
-                            <?php echo $item['status'] ? '启用' : '禁用'; ?>
+                            <?php echo $item['status'] ? __('admin_enabled') : __('admin_disabled'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -187,17 +187,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             'success_message' => $item['success_message'] ?? '',
                             'template_text'   => $item['_template_text'],
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
-                                class="text-primary hover:underline text-sm mr-2">编辑</button>
+                                class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
                         <?php if ($item['slug'] !== 'contact'): ?>
                         <button onclick="deleteTemplate(<?php echo $item['id']; ?>)"
-                                class="text-red-600 hover:underline text-sm">删除</button>
+                                class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
                         <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <?php if (empty($templates)): ?>
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无表单模板</td>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo __('fd_empty'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -210,7 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="relative max-w-4xl mx-auto my-10 bg-white rounded-lg shadow-xl">
         <div class="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-lg z-10">
-            <h3 class="font-bold text-gray-800" id="modalTitle">添加表单</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo __('fd_modal_add'); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-5">
@@ -220,11 +220,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 基本信息 -->
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1 text-sm">表单名称 <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" id="editName" required class="w-full border rounded px-3 py-2 text-sm" placeholder="如：联系表单">
+                    <label class="block text-gray-700 mb-1 text-sm"><?php echo __('fd_label_name'); ?> <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" id="editName" required class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo __('fd_ph_form_name'); ?>">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1 text-sm">短码标识 <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 mb-1 text-sm"><?php echo __('fd_label_slug'); ?> <span class="text-red-500">*</span></label>
                     <div class="flex">
                         <span class="inline-flex items-center px-2 bg-gray-100 border border-r-0 rounded-l text-gray-500 text-xs">[form-</span>
                         <input type="text" name="slug" id="editSlug" required class="flex-1 border px-2 py-2 text-sm min-w-0" placeholder="contact" pattern="[a-z0-9_-]+">
@@ -232,39 +232,39 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1 text-sm">成功提示</label>
-                    <input type="text" name="success_message" id="editSuccessMsg" class="w-full border rounded px-3 py-2 text-sm" placeholder="提交成功，感谢您的反馈！">
+                    <label class="block text-gray-700 mb-1 text-sm"><?php echo __('fd_label_success_msg'); ?></label>
+                    <input type="text" name="success_message" id="editSuccessMsg" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo __('fd_default_success_msg'); ?>">
                 </div>
             </div>
 
             <!-- 标签生成器工具栏 -->
             <div>
-                <label class="block text-gray-700 mb-2 text-sm font-medium">表单模板</label>
+                <label class="block text-gray-700 mb-2 text-sm font-medium"><?php echo __('fd_label_template'); ?></label>
                 <div class="flex flex-wrap gap-1 mb-2 p-2 bg-gray-50 rounded-t border border-b-0">
-                    <span class="text-xs text-gray-500 leading-7 mr-1">插入标签：</span>
-                    <button type="button" onclick="openTagGen('text')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition">文本</button>
-                    <button type="button" onclick="openTagGen('email')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition">邮箱</button>
-                    <button type="button" onclick="openTagGen('tel')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition">电话</button>
-                    <button type="button" onclick="openTagGen('textarea')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition">多行文本</button>
-                    <button type="button" onclick="openTagGen('number')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition">数字</button>
-                    <button type="button" onclick="openTagGen('date')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition">日期</button>
-                    <button type="button" onclick="openTagGen('select')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition">下拉选择</button>
-                    <button type="button" onclick="openTagGen('radio')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition">单选</button>
-                    <button type="button" onclick="openTagGen('checkbox')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition">复选</button>
-                    <button type="button" onclick="insertSubmit()" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-orange-50 hover:border-orange-300 transition">提交按钮</button>
+                    <span class="text-xs text-gray-500 leading-7 mr-1"><?php echo __('fd_insert_tag'); ?></span>
+                    <button type="button" onclick="openTagGen('text')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_text'); ?></button>
+                    <button type="button" onclick="openTagGen('email')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_email'); ?></button>
+                    <button type="button" onclick="openTagGen('tel')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_tel'); ?></button>
+                    <button type="button" onclick="openTagGen('textarea')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_textarea'); ?></button>
+                    <button type="button" onclick="openTagGen('number')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_number'); ?></button>
+                    <button type="button" onclick="openTagGen('date')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_date'); ?></button>
+                    <button type="button" onclick="openTagGen('select')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_select'); ?></button>
+                    <button type="button" onclick="openTagGen('radio')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_radio'); ?></button>
+                    <button type="button" onclick="openTagGen('checkbox')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_checkbox'); ?></button>
+                    <button type="button" onclick="insertSubmit()" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-orange-50 hover:border-orange-300 transition"><?php echo __('fd_tag_submit'); ?></button>
                 </div>
                 <!-- 模板编辑区 -->
                 <textarea name="template_text" id="templateEditor"
                     class="w-full border rounded-b px-4 py-3 font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                    rows="18" placeholder="在此输入表单模板，使用标签定义字段..."></textarea>
-                <p class="text-xs text-gray-400 mt-1">标签语法：<code>[类型* 字段名 "占位文字"]</code> — 类型后加 <code>*</code> 表示必填。支持 HTML 标签控制布局。</p>
+                    rows="18" placeholder="<?php echo __('fd_editor_placeholder'); ?>"></textarea>
+                <p class="text-xs text-gray-400 mt-1"><?php echo __('fd_syntax_hint'); ?></p>
             </div>
 
             <div class="flex justify-end gap-2 pt-4 border-t">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100 text-sm">取消</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100 text-sm"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1 text-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    保存
+                    <?php echo __("btn_save"); ?>
                 </button>
             </div>
         </form>
@@ -276,35 +276,35 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0" onclick="closeTagGen()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl border w-96">
         <div class="px-4 py-3 border-b flex justify-between items-center">
-            <h4 class="font-medium text-gray-800 text-sm" id="tagGenTitle">生成标签</h4>
+            <h4 class="font-medium text-gray-800 text-sm" id="tagGenTitle"><?php echo __('fd_taggen_title'); ?></h4>
             <button onclick="closeTagGen()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div class="p-4 space-y-3">
             <div>
-                <label class="block text-gray-600 mb-1 text-xs">字段名（英文）<span class="text-red-500">*</span></label>
-                <input type="text" id="tagName" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="如：your-name" pattern="[a-zA-Z0-9_-]+">
+                <label class="block text-gray-600 mb-1 text-xs"><?php echo __('fd_taggen_field_name'); ?> <span class="text-red-500">*</span></label>
+                <input type="text" id="tagName" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="your-name" pattern="[a-zA-Z0-9_-]+">
             </div>
             <div>
                 <label class="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" id="tagRequired"> 必填字段
+                    <input type="checkbox" id="tagRequired"> <?php echo __('fd_taggen_required'); ?>
                 </label>
             </div>
             <div id="tagPhRow">
-                <label class="block text-gray-600 mb-1 text-xs">占位文字</label>
-                <input type="text" id="tagPlaceholder" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="如：请输入您的姓名">
+                <label class="block text-gray-600 mb-1 text-xs"><?php echo __('fd_taggen_placeholder'); ?></label>
+                <input type="text" id="tagPlaceholder" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __('fd_ph_name'); ?>">
             </div>
             <div id="tagOptionsRow" class="hidden">
-                <label class="block text-gray-600 mb-1 text-xs" id="tagOptionsLabel">选项（每行一个，第一行为空白提示）</label>
-                <textarea id="tagOptions" class="w-full border rounded px-3 py-1.5 text-sm" rows="4" placeholder="请选择&#10;选项1&#10;选项2&#10;选项3"></textarea>
+                <label class="block text-gray-600 mb-1 text-xs" id="tagOptionsLabel"><?php echo __('fd_taggen_options'); ?></label>
+                <textarea id="tagOptions" class="w-full border rounded px-3 py-1.5 text-sm" rows="4" placeholder="<?php echo str_replace('\n', '&#10;', __('fd_taggen_options_ph_select')); ?>"></textarea>
             </div>
             <!-- 预览 -->
             <div class="bg-gray-50 rounded p-2">
-                <label class="block text-gray-500 mb-1 text-xs">预览</label>
+                <label class="block text-gray-500 mb-1 text-xs"><?php echo __('btn_preview'); ?></label>
                 <code class="text-sm text-primary break-all" id="tagPreview"></code>
             </div>
             <div class="flex justify-end gap-2">
-                <button type="button" onclick="closeTagGen()" class="border px-3 py-1.5 rounded text-sm hover:bg-gray-100">取消</button>
-                <button type="button" onclick="insertTag()" class="bg-primary text-white px-4 py-1.5 rounded text-sm hover:bg-secondary">插入标签</button>
+                <button type="button" onclick="closeTagGen()" class="border px-3 py-1.5 rounded text-sm hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
+                <button type="button" onclick="insertTag()" class="bg-primary text-white px-4 py-1.5 rounded text-sm hover:bg-secondary"><?php echo __('fd_taggen_btn_insert'); ?></button>
             </div>
         </div>
     </div>
@@ -315,14 +315,14 @@ var currentTagType = 'text';
 var defaultTemplate = <?php echo json_encode($defaultTemplate, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
 
 var tagTypeNames = {
-    'text': '文本', 'email': '邮箱', 'tel': '电话',
-    'textarea': '多行文本', 'number': '数字', 'date': '日期',
-    'select': '下拉选择', 'radio': '单选', 'checkbox': '复选'
+    'text': '<?php echo __("fd_tag_text"); ?>', 'email': '<?php echo __("fd_tag_email"); ?>', 'tel': '<?php echo __("fd_tag_tel"); ?>',
+    'textarea': '<?php echo __("fd_tag_textarea"); ?>', 'number': '<?php echo __("fd_tag_number"); ?>', 'date': '<?php echo __("fd_tag_date"); ?>',
+    'select': '<?php echo __("fd_tag_select"); ?>', 'radio': '<?php echo __("fd_tag_radio"); ?>', 'checkbox': '<?php echo __("fd_tag_checkbox"); ?>'
 };
 
 function openEditModal(item) {
     var isEdit = !!item;
-    document.getElementById('modalTitle').textContent = isEdit ? '编辑表单' : '添加表单';
+    document.getElementById('modalTitle').textContent = isEdit ? '<?php echo __("fd_modal_edit"); ?>' : '<?php echo __("fd_modal_add"); ?>';
     document.getElementById('editId').value = item ? item.id : 0;
     document.getElementById('editName').value = item ? item.name : '';
     document.getElementById('editSlug').value = item ? item.slug : '';
@@ -338,7 +338,7 @@ function closeModal() {
 // 标签生成器
 function openTagGen(type) {
     currentTagType = type;
-    document.getElementById('tagGenTitle').textContent = '生成' + (tagTypeNames[type] || type) + '标签';
+    document.getElementById('tagGenTitle').textContent = '<?php echo __("fd_taggen_title"); ?>: ' + (tagTypeNames[type] || type);
     document.getElementById('tagName').value = '';
     document.getElementById('tagRequired').checked = false;
     document.getElementById('tagPlaceholder').value = '';
@@ -351,11 +351,11 @@ function openTagGen(type) {
         var optLabel = document.getElementById('tagOptionsLabel');
         var optArea = document.getElementById('tagOptions');
         if (type === 'select') {
-            optLabel.textContent = '选项（每行一个，第一行为空白提示）';
-            optArea.placeholder = '请选择\n选项1\n选项2\n选项3';
+            optLabel.textContent = '<?php echo __("fd_taggen_options"); ?>';
+            optArea.placeholder = '<?php echo str_replace("\n", "\\n", __("fd_taggen_options_ph_select")); ?>';
         } else {
-            optLabel.textContent = '选项（每行一个）';
-            optArea.placeholder = '选项1\n选项2\n选项3';
+            optLabel.textContent = '<?php echo __("fd_taggen_options_simple"); ?>';
+            optArea.placeholder = '<?php echo str_replace("\n", "\\n", __("fd_taggen_options_ph_simple")); ?>';
         }
     }
 
@@ -392,7 +392,7 @@ function buildTagString() {
 }
 
 function updateTagPreview() {
-    document.getElementById('tagPreview').textContent = buildTagString() || '[类型 字段名 ...]';
+    document.getElementById('tagPreview').textContent = buildTagString() || '<?php echo __("fd_taggen_preview_empty"); ?>';
 }
 
 // 监听输入更新预览
@@ -404,7 +404,7 @@ document.getElementById('tagOptions').addEventListener('input', updateTagPreview
 function insertTag() {
     var tagStr = buildTagString();
     if (!tagStr) {
-        showMessage('请输入字段名', 'error');
+        showMessage('<?php echo __("fd_taggen_err_name"); ?>', 'error');
         return;
     }
     insertAtCursor(tagStr);
@@ -412,7 +412,7 @@ function insertTag() {
 }
 
 function insertSubmit() {
-    insertAtCursor('[submit "提交"]');
+    insertAtCursor('[submit "' . __('form_submit') . '"]');
 }
 
 function insertAtCursor(text) {
@@ -434,13 +434,13 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         var response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('保存成功');
+            showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(function() { location.reload(); }, 1000);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('请求失败', 'error');
+        showMessage('<?php echo __("fd_request_failed"); ?>', 'error');
     }
 });
 
@@ -453,16 +453,16 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-green-100 text-green-600';
-            btn.textContent = '启用';
+            btn.textContent = '<?php echo __('admin_enabled'); ?>';
         } else {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-red-100 text-red-600';
-            btn.textContent = '禁用';
+            btn.textContent = '<?php echo __('admin_disabled'); ?>';
         }
     }
 }
 
 async function deleteTemplate(id) {
-    if (!confirm('确定要删除该表单模板吗？')) return;
+    if (!confirm('<?php echo __("fd_confirm_delete"); ?>')) return;
     var formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
@@ -470,18 +470,18 @@ async function deleteTemplate(id) {
         var response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('删除成功');
+            showMessage('<?php echo __('admin_deleted'); ?>');
             setTimeout(function() { location.reload(); }, 1000);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('请求失败', 'error');
+        showMessage('<?php echo __("fd_request_failed"); ?>', 'error');
     }
 }
 
 function copyShortcode(el) {
-    navigator.clipboard.writeText(el.textContent).then(function() { showMessage('已复制短码'); });
+    navigator.clipboard.writeText(el.textContent).then(function() { showMessage('<?php echo __("fd_copied"); ?>'); });
 }
 </script>
 

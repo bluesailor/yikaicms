@@ -1,6 +1,6 @@
 <?php
 /**
- * Yikai CMS - 升级检测（后台页面）
+ * ikaiCMS - 升级检测（后台页面）
  *
  * PHP 8.0+
  */
@@ -208,11 +208,29 @@ $upgrades = [
     ],
 
     [
+        'id'    => '20260329_language_settings',
+        'title' => '多语言支持',
+        'desc'  => '新增前台语言和后台语言设置项，支持中文和日本語切换。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'site_lang'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
+                ('basic', 'site_lang', 'zh-CN', 'select', '前台语言', '前台页面显示语言', '{\"zh-CN\":\"中文\",\"ja\":\"日本語\"}', 13),
+                ('basic', 'admin_lang', 'zh-CN', 'select', '后台语言', '管理后台显示语言', '{\"zh-CN\":\"中文\",\"ja\":\"日本語\"}', 14)",
+        ],
+    ],
+
+    [
         'id'    => '20260329_translate_settings',
         'title' => '翻译API配置',
         'desc'  => '新增翻译API设置项（DeepL/Google Translate），支持语言包自动翻译。',
         'check' => function () {
-            return true; // 已移除，始终跳过
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'translate_api'"
+            ) > 0;
         },
         'sqls' => [
             "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
@@ -234,6 +252,29 @@ $upgrades = [
             "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
                 ('system', 'cms_version', '" . (defined('CMS_VERSION') ? CMS_VERSION : '1.3.0') . "', 'text', 'CMS版本号', '系统自动维护，请勿手动修改', NULL, 0)",
         ],
+    ],
+
+    [
+        'id'    => '20260507_deepseek_v4_models',
+        'title' => 'DeepSeek API v4 模型升级',
+        'desc'  => 'DeepSeek 新版 v4 模型 (deepseek-v4-flash / deepseek-v4-pro) 替代旧的 deepseek-chat / deepseek-reasoner。升级后默认使用 v4-flash (1元/M tokens 输入,2元/M tokens 输出)。',
+        'check' => function () {
+            // 已升级标志: ai_model 不等于旧 deepseek-chat / deepseek-reasoner (或者非 deepseek 用户视为已升级)
+            $provider = (string)db()->fetchColumn("SELECT value FROM " . DB_PREFIX . "settings WHERE `key`='ai_provider'");
+            if ($provider !== 'deepseek') return true;
+            $model = (string)db()->fetchColumn("SELECT value FROM " . DB_PREFIX . "settings WHERE `key`='ai_model'");
+            return !in_array($model, ['deepseek-chat', 'deepseek-reasoner', ''], true);
+        },
+        'php' => function () {
+            $provider = (string)db()->fetchColumn("SELECT value FROM " . DB_PREFIX . "settings WHERE `key`='ai_provider'");
+            if ($provider !== 'deepseek') {
+                return 'DeepSeek 未启用,跳过模型升级';
+            }
+            $model = (string)db()->fetchColumn("SELECT value FROM " . DB_PREFIX . "settings WHERE `key`='ai_model'");
+            $newModel = ($model === 'deepseek-reasoner') ? 'deepseek-v4-pro' : 'deepseek-v4-flash';
+            db()->execute("UPDATE " . DB_PREFIX . "settings SET value=? WHERE `key`='ai_model'", [$newModel]);
+            return "DeepSeek 模型已升级: $model → $newModel";
+        },
     ],
 
     [
@@ -403,204 +444,30 @@ $upgrades = [
     ],
 
     [
-        'id'    => '20260415_metas_table',
-        'title' => '通用元数据键值表',
-        'desc'  => '新增 yikai_metas 表，为内容/产品/栏目等任意资源挂载键值对元数据，供扩展字段、SEO 扩展等功能使用。',
+        'id'    => '20260415_product_type',
+        'title' => '产品表增加商品类型字段',
+        'desc'  => '产品表新增 product_type 字段，区分「標準製品（既製品）」和「オーダー製作（定制品）」。默认所有现有产品为 custom（定制品）。',
         'check' => function () {
-            return db()->tableExists('metas');
+            return _columnExists('products', 'product_type');
         },
         'sqls' => [
-            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "metas` (
-                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-                `owner_type` varchar(30) NOT NULL COMMENT '归属类型',
-                `owner_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
-                `meta_key` varchar(100) NOT NULL,
-                `meta_value` longtext,
-                `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
-                `updated_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
-                PRIMARY KEY (`id`),
-                UNIQUE KEY `uk_owner_key` (`owner_type`, `owner_id`, `meta_key`),
-                KEY `idx_owner` (`owner_type`, `owner_id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通用元数据键值表'",
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `product_type` varchar(20) NOT NULL DEFAULT 'custom' COMMENT '商品类型：standard标准制品 custom定制品' AFTER `tags`",
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD KEY `idx_product_type` (`product_type`)",
         ],
     ],
 
     [
-        'id'    => '20260415_extfields_table',
-        'title' => '扩展字段定义表',
-        'desc'  => '新增 yikai_extfields 表，按 owner_type 定义扩展字段（文本/图片/下拉等），字段值存入 yikai_metas。',
+        'id'    => '20260415_product_material_scene',
+        'title' => '产品表增加素材/使用场景字段',
+        'desc'  => '产品表新增 material（素材）和 scene（使用场景）字段，用于前台按素材（木材/アクリル/アルミ複合板/ステンレス 等）和场景（オフィス/店舗/レストラン 等）筛选。',
         'check' => function () {
-            return db()->tableExists('extfields');
+            return _columnExists('products', 'material') && _columnExists('products', 'scene');
         },
         'sqls' => [
-            "CREATE TABLE IF NOT EXISTS `" . DB_PREFIX . "extfields` (
-                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-                `owner_type` varchar(30) NOT NULL,
-                `field_key` varchar(64) NOT NULL,
-                `field_name` varchar(100) NOT NULL,
-                `field_type` varchar(20) NOT NULL DEFAULT 'text',
-                `options` text,
-                `placeholder` varchar(255) NOT NULL DEFAULT '',
-                `help_text` varchar(255) NOT NULL DEFAULT '',
-                `is_required` tinyint(1) NOT NULL DEFAULT 0,
-                `sort_order` int(11) NOT NULL DEFAULT 0,
-                `status` tinyint(1) NOT NULL DEFAULT 1,
-                `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
-                PRIMARY KEY (`id`),
-                UNIQUE KEY `uk_owner_key` (`owner_type`, `field_key`),
-                KEY `idx_owner` (`owner_type`, `status`, `sort_order`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='扩展字段定义表'",
-        ],
-    ],
-
-    [
-        'id'    => '20260415_multilang_columns',
-        'title' => '多语言字段：lang + translation_group_id',
-        'desc'  => '为 contents / products / channels 三张表追加 lang 与 translation_group_id 字段，已有数据的 lang 设为当前站点语言。',
-        'check' => function () {
-            return _columnExists('contents', 'lang')
-                && _columnExists('products', 'lang')
-                && _columnExists('channels', 'lang');
-        },
-        'sqls' => [],
-        'php' => function () {
-            $prefix = DB_PREFIX;
-            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
-
-            $tables = ['contents', 'products', 'channels'];
-            foreach ($tables as $t) {
-                $tbl = $prefix . $t;
-                if (db()->isSqlite()) {
-                    db()->execute("ALTER TABLE {$tbl} ADD COLUMN lang TEXT NOT NULL DEFAULT '{$siteLang}'");
-                    db()->execute("ALTER TABLE {$tbl} ADD COLUMN translation_group_id INTEGER NOT NULL DEFAULT 0");
-                } else {
-                    db()->execute("ALTER TABLE `{$tbl}` ADD COLUMN `lang` varchar(5) NOT NULL DEFAULT '{$siteLang}' AFTER `id`");
-                    db()->execute("ALTER TABLE `{$tbl}` ADD COLUMN `translation_group_id` int(11) UNSIGNED NOT NULL DEFAULT 0 AFTER `lang`");
-                    db()->execute("ALTER TABLE `{$tbl}` ADD KEY `idx_lang` (`lang`)");
-                    if ($t !== 'channels') {
-                        db()->execute("ALTER TABLE `{$tbl}` ADD KEY `idx_lang_status` (`lang`, `status`)");
-                        db()->execute("ALTER TABLE `{$tbl}` ADD KEY `idx_trans_group` (`translation_group_id`)");
-                    }
-                }
-            }
-            return "多语言字段已添加，已有数据 lang 设为 {$siteLang}";
-        },
-    ],
-
-    [
-        'id'    => '20260416_fix_multilang_default',
-        'title' => '修复多语言默认值',
-        'desc'  => '将已有数据中 lang=ja 的记录更新为当前站点语言（修复早期升级的默认值问题）。',
-        'check' => function () {
-            $siteLang = (string)(db()->fetchColumn("SELECT value FROM " . DB_PREFIX . "settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
-            if ($siteLang === 'ja') return true;
-            $count = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "channels WHERE lang = 'ja'");
-            return $count === 0;
-        },
-        'sqls' => [],
-        'php' => function () {
-            $prefix = DB_PREFIX;
-            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
-            if ($siteLang === 'ja') return '站点语言为 ja，无需修复';
-            $updated = 0;
-            foreach (['contents', 'products', 'channels'] as $t) {
-                $updated += db()->execute("UPDATE {$prefix}{$t} SET lang = ? WHERE lang = 'ja'", [$siteLang]);
-            }
-            return "已将 {$updated} 条记录的 lang 从 ja 更新为 {$siteLang}";
-        },
-    ],
-
-    [
-        'id'    => '20260418_product_cat_lang',
-        'title' => '产品分类多语言支持',
-        'desc'  => '为 product_categories 表添加 lang、translation_group_id 字段。',
-        'check' => function () {
-            if (db()->isSqlite()) {
-                return (bool)db()->fetchOne("SELECT 1 FROM pragma_table_info('" . DB_PREFIX . "product_categories') WHERE name='lang'");
-            }
-            return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "product_categories` LIKE 'lang'"));
-        },
-        'run' => function () {
-            $prefix = DB_PREFIX;
-            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
-            if (db()->isSqlite()) {
-                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN lang TEXT NOT NULL DEFAULT '{$siteLang}'");
-                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN translation_group_id INTEGER NOT NULL DEFAULT 0");
-            } else {
-                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN lang VARCHAR(10) NOT NULL DEFAULT '{$siteLang}' AFTER slug");
-                db()->execute("ALTER TABLE {$prefix}product_categories ADD COLUMN translation_group_id INT(11) UNSIGNED NOT NULL DEFAULT 0 AFTER lang");
-                db()->execute("ALTER TABLE {$prefix}product_categories ADD INDEX idx_pc_lang (lang)");
-            }
-            db()->execute("UPDATE {$prefix}product_categories SET translation_group_id = id WHERE translation_group_id = 0");
-            return '已添加 lang、translation_group_id 字段';
-        },
-    ],
-
-    [
-        'id'    => '20260418_banner_lang',
-        'title' => '轮播图多语言支持',
-        'desc'  => '为 banners 表添加 lang 字段，支持不同语言显示不同轮播图。',
-        'check' => function () {
-            if (db()->isSqlite()) {
-                return (bool)db()->fetchOne("SELECT 1 FROM pragma_table_info('" . DB_PREFIX . "banners') WHERE name='lang'");
-            }
-            return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "banners` LIKE 'lang'"));
-        },
-        'run' => function () {
-            $prefix = DB_PREFIX;
-            $siteLang = (string)(db()->fetchColumn("SELECT value FROM {$prefix}settings WHERE `key` = 'site_lang'") ?: 'zh-CN');
-            if (db()->isSqlite()) {
-                db()->execute("ALTER TABLE {$prefix}banners ADD COLUMN lang TEXT NOT NULL DEFAULT '{$siteLang}'");
-            } else {
-                db()->execute("ALTER TABLE {$prefix}banners ADD COLUMN lang VARCHAR(10) NOT NULL DEFAULT '{$siteLang}' AFTER position");
-                db()->execute("ALTER TABLE {$prefix}banners ADD INDEX idx_lang (lang)");
-            }
-            return '已添加 lang 字段';
-        },
-    ],
-
-    [
-        'id'    => '20260415_html_cache_setting',
-        'title' => 'HTML 页面缓存开关',
-        'desc'  => '新增 html_cache_enabled / html_cache_ttl 设置项，启用前台列表/详情页路径级 HTML 缓存。',
-        'check' => function () {
-            return (int)db()->fetchColumn(
-                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'html_cache_enabled'"
-            ) > 0;
-        },
-        'sqls' => [
-            "INSERT INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
-                ('system', 'html_cache_enabled', '0', 'select', '启用 HTML 缓存', '前台列表/详情页路径级 HTML 缓存', '{\"0\":\"关闭\",\"1\":\"开启\"}', 10),
-                ('system', 'html_cache_ttl', '300', 'number', 'HTML 缓存 TTL', '缓存有效期（秒）', NULL, 11)",
-        ],
-    ],
-
-    [
-        'id'    => '20260416_contents_sort_order',
-        'title' => '内容表新增排序字段',
-        'desc'  => 'yikai_contents 追加 sort_order 数字排序字段（默认 0），所有内容类型（案例/文章/FAQ/招聘/下载）共享。',
-        'check' => function () {
-            return _columnExists('contents', 'sort_order');
-        },
-        'sqls' => [
-            "ALTER TABLE `" . DB_PREFIX . "contents` ADD COLUMN `sort_order` int(11) NOT NULL DEFAULT 0 COMMENT '排序权重' AFTER `status`",
-            "ALTER TABLE `" . DB_PREFIX . "contents` ADD KEY `idx_sort` (`sort_order`)",
-        ],
-    ],
-
-    [
-        'id'    => '20260416_product_sort_options',
-        'title' => '产品排序选项配置',
-        'desc'  => '新增前台产品列表排序选项和默认排序设置。',
-        'check' => function () {
-            return (int)db()->fetchColumn(
-                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'product_sort_options'"
-            ) > 0;
-        },
-        'sqls' => [
-            "INSERT INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES
-                ('basic', 'product_default_sort', 'default', 'select', '产品默认排序', '前台产品列表的默认排序方式', '{\"default\":\"默认排序\",\"newest\":\"最新发布\",\"updated\":\"最近更新\",\"views\":\"浏览量\",\"price_asc\":\"价格从低到高\",\"price_desc\":\"价格从高到低\"}', 15),
-                ('basic', 'product_sort_options', '[\"default\",\"newest\",\"views\"]', 'text', '可用排序选项', '前台显示的排序选项（JSON数组），可选：default/newest/updated/views/price_asc/price_desc', NULL, 16)",
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `material` varchar(50) NOT NULL DEFAULT '' COMMENT '素材：木材/アクリル/アルミ複合板/ステンレス 等' AFTER `product_type`",
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `scene` varchar(50) NOT NULL DEFAULT '' COMMENT '使用场景：オフィス/店舗/レストラン/カフェ/美容院/クリニック/住宅 等' AFTER `material`",
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD KEY `idx_material` (`material`)",
+            "ALTER TABLE `" . DB_PREFIX . "products` ADD KEY `idx_scene` (`scene`)",
         ],
     ],
 
@@ -612,7 +479,7 @@ $upgrades = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_update') {
     header('Content-Type: application/json; charset=utf-8');
     $currentVersion = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
-    $updateServerUrl = 'https://update.yikaicms.com';
+    $updateServerUrl = 'https://update.ikaicms.com';
     $apiUrl = $updateServerUrl . '/api/update/check.php?version=' . urlencode($currentVersion);
 
     $context = stream_context_create([
@@ -667,11 +534,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 
 // AJAX 执行升级
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
+    // 抑制响应被任何 warning/notice 污染 (会破坏 JSON 解析)
+    ob_start();
+
     $runIds = (array)$_POST['run'];
     $results = [];
     foreach ($upgrades as $up) {
         if (!in_array($up['id'], $runIds)) continue;
-        if ($up['check']()) {
+        try {
+            // check() 也可能抛错(连不上 DB / 表不存在 / 权限等),包进 try/catch
+            $alreadyDone = (bool)$up['check']();
+        } catch (\Throwable $e) {
+            $results[$up['id']] = ['status' => 'error', 'message' => 'check failed: ' . $e->getMessage()];
+            continue;
+        }
+        if ($alreadyDone) {
             $results[$up['id']] = ['status' => 'skipped', 'message' => '已是最新，无需升级'];
             continue;
         }
@@ -679,7 +556,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             // 支持 PHP 回调迁移
             if (!empty($up['php']) && is_callable($up['php'])) {
                 $msg = ($up['php'])();
-                $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: '升级成功'];
+                $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: __('upgrade_success')];
             } else {
                 foreach ($up['sqls'] as $sql) {
                     if (db()->isSqlite()) {
@@ -688,9 +565,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
                     }
                     db()->execute($sql);
                 }
-                $results[$up['id']] = ['status' => 'success', 'message' => '升级成功'];
+                $results[$up['id']] = ['status' => 'success', 'message' => __('upgrade_success')];
             }
-            adminLog('upgrade', 'execute', '执行升级: ' . $up['title']);
+            // adminLog 失败不影响升级响应
+            try { adminLog('upgrade', 'execute', '执行升级: ' . $up['title']); } catch (\Throwable $e) {}
         } catch (\Throwable $e) {
             $results[$up['id']] = ['status' => 'error', 'message' => $e->getMessage()];
         }
@@ -704,8 +582,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
         }
     } catch (\Throwable $e) {}
 
-    header('Content-Type: application/json');
-    echo json_encode(['code' => 0, 'data' => $results]);
+    // 丢弃任何意外输出 (warnings/notices/BOM/echo 等)
+    ob_end_clean();
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['code' => 0, 'data' => $results], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -742,8 +623,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="ml-1.5 inline-block w-5 h-5 leading-5 text-center rounded-full bg-red-500 text-white text-xs"><?php echo count($pendingUpgrades); ?></span>
             <?php endif; ?>
         </a>
-        <a href="/admin/upgrade.php?tab=history" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">升级历史</a>
-        <a href="/admin/upgrade.php?tab=online" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'online' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">在线升级</a>
+        <a href="/admin/upgrade.php?tab=history" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('upgrade_history'); ?></a>
+        <a href="/admin/upgrade.php?tab=online" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'online' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('upgrade_online'); ?></a>
     </div>
 </div>
 
@@ -754,8 +635,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <svg class="w-16 h-16 mx-auto text-green-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <p class="text-green-600 font-medium text-lg mb-2">数据库已是最新版本</p>
-        <p class="text-gray-400 text-sm">所有升级项均已完成，无需操作。</p>
+        <p class="text-green-600 font-medium text-lg mb-2"><?php echo __('upgrade_up_to_date'); ?></p>
+        <p class="text-gray-400 text-sm"><?php echo __('upgrade_all_done'); ?></p>
     </div>
     <?php else: ?>
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mb-6">
@@ -798,7 +679,7 @@ async function runUpgrade() {
 
     var btn = document.getElementById('btnUpgrade');
     btn.disabled = true;
-    btn.textContent = '升级中...';
+    btn.textContent = '<?php echo __('upgrade_running'); ?>';
 
     var formData = new FormData();
     ids.forEach(function(id) { formData.append('run[]', id); });
@@ -823,14 +704,14 @@ async function runUpgrade() {
                 if (badge) {
                     if (item.status === 'success') {
                         badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700';
-                        badge.textContent = '升级成功';
+                        badge.textContent = __('upgrade_success');
                     } else if (item.status === 'error') {
                         badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700';
-                        badge.textContent = '升级失败';
+                        badge.textContent = '<?php echo __('upgrade_failed'); ?>';
                         allSuccess = false;
                     } else {
                         badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500';
-                        badge.textContent = '已跳过';
+                        badge.textContent = '<?php echo __('upgrade_skipped'); ?>';
                     }
                 }
 
@@ -847,14 +728,14 @@ async function runUpgrade() {
                 setTimeout(function() { location.reload(); }, 1500);
             }
         } else {
-            showMessage(data.msg || '升级失败', 'error');
+            showMessage(data.msg || '<?php echo __('upgrade_failed'); ?>', 'error');
         }
     } catch (err) {
         showMessage('请求失败', 'error');
     }
 
     btn.disabled = false;
-    btn.textContent = '执行升级';
+    btn.textContent = '<?php echo __('upgrade_execute'); ?>';
 }
 </script>
 <?php endif; ?>
@@ -863,7 +744,7 @@ async function runUpgrade() {
 <div class="max-w-3xl">
     <?php if (empty($doneUpgrades)): ?>
     <div class="bg-white rounded-lg shadow p-12 text-center">
-        <p class="text-gray-400">暂无升级历史记录。</p>
+        <p class="text-gray-400"><?php echo __('upgrade_no_history'); ?></p>
     </div>
     <?php else: ?>
     <div class="space-y-4">
@@ -873,7 +754,7 @@ async function runUpgrade() {
             <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="font-semibold flex-1"><?php echo htmlspecialchars($up['title']); ?></span>
             <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">已完成</span>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('upgrade_completed'); ?></span>
         </div>
         <div class="px-5 py-3 text-sm text-gray-500">
             <?php echo htmlspecialchars($up['desc']); ?>
@@ -888,7 +769,7 @@ async function runUpgrade() {
 <?php if ($tab === 'online'): ?>
 <?php
 // 在线升级配置
-$updateServerUrl = 'https://update.yikaicms.com';
+$updateServerUrl = 'https://update.ikaicms.com';
 $updateCheckApi  = $updateServerUrl . '/api/update/check';
 $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 ?>
@@ -896,7 +777,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
     <!-- 当前版本信息 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800">在线升级</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('upgrade_online'); ?></h2>
             <span class="text-sm text-gray-400">更新服务器：<?php echo e($updateServerUrl); ?></span>
         </div>
         <div class="px-6 py-5">
@@ -907,7 +788,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
                     </svg>
                 </div>
                 <div>
-                    <p class="text-gray-800 font-medium">Yikai CMS</p>
+                    <p class="text-gray-800 font-medium">ikaiCMS</p>
                     <p class="text-sm text-gray-500">当前版本：<span class="font-mono font-medium text-primary">v<?php echo e($currentVersion); ?></span></p>
                 </div>
             </div>
@@ -930,7 +811,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
             <p>1. 升级前请务必<strong class="text-gray-700">备份数据库和网站文件</strong>。</p>
             <p>2. 系统会自动从 <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs"><?php echo e($updateServerUrl); ?></code> 检测是否有新版本。</p>
             <p>3. 检测到新版本后，请按照提示下载更新包并按步骤完成升级。</p>
-            <p>4. 升级完成后，建议访问 <a href="/admin/upgrade.php" class="text-primary hover:underline">升级检测</a> 页面执行数据库升级。</p>
+            <p>4. 升级完成后，建议访问 <a href="/admin/upgrade.php" class="text-primary hover:underline"><?php echo __('upgrade_check'); ?></a> 页面执行数据库升级。</p>
         </div>
     </div>
 </div>

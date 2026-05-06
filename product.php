@@ -205,7 +205,7 @@ require_once theme_path('layouts/header.php');
 
                     <?php if ($product['model']): ?>
                     <p class="text-sm text-gray-500 mb-4">
-                        型号: <span class="text-dark"><?php echo e($product['model']); ?></span>
+                        <?php echo __('product_model'); ?>: <span class="text-dark"><?php echo e($product['model']); ?></span>
                     </p>
                     <?php endif; ?>
 
@@ -240,18 +240,18 @@ require_once theme_path('layouts/header.php');
                         <?php if (config('contact_phone')): ?>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
                             <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                            <span>咨询热线：<a href="tel:<?php echo e(config('contact_phone')); ?>" class="text-dark font-medium hover:text-primary"><?php echo e(config('contact_phone')); ?></a></span>
+                            <span><?php echo __('product_hotline'); ?>：<a href="tel:<?php echo e(config('contact_phone')); ?>" class="text-dark font-medium hover:text-primary"><?php echo e(config('contact_phone')); ?></a></span>
                         </div>
                         <?php endif; ?>
                         <?php if (config('contact_email')): ?>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
                             <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                            <span>邮箱：<a href="mailto:<?php echo e(config('contact_email')); ?>" class="text-dark hover:text-primary"><?php echo e(config('contact_email')); ?></a></span>
+                            <span><?php echo __('product_email'); ?>：<a href="mailto:<?php echo e(config('contact_email')); ?>" class="text-dark hover:text-primary"><?php echo e(config('contact_email')); ?></a></span>
                         </div>
                         <?php endif; ?>
                         <a href="/contact.php" class="inline-flex items-center gap-2 text-sm text-primary hover:text-secondary font-medium mt-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                            在线咨询
+                            <?php echo __('product_online_inquiry'); ?>
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </a>
                     </div>
@@ -260,29 +260,29 @@ require_once theme_path('layouts/header.php');
                     <div class="border-t pt-5 mt-4">
                         <h3 class="text-sm font-bold text-dark mb-3 flex items-center gap-2">
                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                            产品询盘
+                            <?php echo __('product_inquiry'); ?>
                         </h3>
                         <form id="inquiryForm" class="space-y-3">
                             <input type="hidden" name="form_slug" value="product-inquiry">
                             <input type="hidden" name="product_id" value="<?php echo (int)$product['id']; ?>">
                             <input type="hidden" name="product_title" value="<?php echo e($product['title']); ?>">
                             <div class="grid grid-cols-2 gap-3">
-                                <input type="text" name="name" required placeholder="您的姓名 *"
+                                <input type="text" name="name" required placeholder="<?php echo __('product_field_name_ph'); ?>"
                                        class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
-                                <input type="tel" name="phone" required placeholder="联系电话 *"
+                                <input type="tel" name="phone" required placeholder="<?php echo __('product_field_phone_ph'); ?>"
                                        class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
                             </div>
                             <div class="grid grid-cols-2 gap-3">
-                                <input type="email" name="email" placeholder="邮箱地址"
+                                <input type="email" name="email" placeholder="<?php echo __('product_field_email_ph'); ?>"
                                        class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
-                                <input type="text" name="company" placeholder="公司名称"
+                                <input type="text" name="company" placeholder="<?php echo __('product_field_company_ph'); ?>"
                                        class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
                             </div>
-                            <textarea name="content" required rows="3" placeholder="请描述您的需求 *"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none resize-y"><?php echo e('我对产品【' . $product['title'] . '】感兴趣，请联系我。'); ?></textarea>
+                            <textarea name="content" required rows="3" placeholder="<?php echo __('product_field_msg_ph'); ?>"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none resize-y"><?php echo e(sprintf(__('product_default_inq_msg'), $product['title'])); ?></textarea>
                             <button type="submit" id="inquiryBtn"
                                     class="w-full bg-primary hover:bg-secondary text-white py-2.5 rounded text-sm font-medium transition">
-                                提交询盘
+                                <?php echo __('product_btn_submit_inq'); ?>
                             </button>
                             <p id="inquiryMsg" class="text-sm text-center hidden"></p>
                         </form>
@@ -302,7 +302,7 @@ require_once theme_path('layouts/header.php');
                 <div class="flex border-b bg-gray-50" id="productTabs">
                     <?php if ($hasContent): ?>
                     <button type="button" class="product-tab px-6 py-4 font-bold text-primary border-b-2 border-primary" data-tab="detail">
-                        产品详情
+                        <?php echo __('product_tab_detail'); ?>
                     </button>
                     <?php endif; ?>
                     <?php if ($hasSpecs): ?>
@@ -411,7 +411,7 @@ require_once theme_path('layouts/header.php');
 <!-- Lightbox 画廊 -->
 <div id="product-lightbox" class="hidden fixed inset-0 z-[9999] bg-black/90 items-center justify-center" onclick="if(event.target === this) closeLightbox()">
     <!-- 关闭 -->
-    <button type="button" onclick="closeLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="关闭">
+    <button type="button" onclick="closeLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="<?php echo __('lightbox_close'); ?>">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -565,7 +565,7 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
     var btn = document.getElementById('inquiryBtn');
     var msg = document.getElementById('inquiryMsg');
     btn.disabled = true;
-    btn.textContent = '提交中...';
+    btn.textContent = '<?php echo __("product_submitting"); ?>';
     msg.classList.add('hidden');
 
     var formData = new FormData(this);
@@ -582,14 +582,14 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
                 msg.textContent = data.msg;
             }
             btn.disabled = false;
-            btn.textContent = '提交询盘';
+            btn.textContent = '<?php echo __("product_btn_submit_inq"); ?>';
         })
         .catch(function(err) {
             msg.classList.remove('hidden');
             msg.className = 'text-sm text-center text-red-600';
-            msg.textContent = '网络错误，请重试';
+            msg.textContent = '<?php echo __("product_network_error"); ?>';
             btn.disabled = false;
-            btn.textContent = '提交询盘';
+            btn.textContent = '<?php echo __("product_btn_submit_inq"); ?>';
         });
 });
 </script>
