@@ -414,6 +414,55 @@ foreach ($sidebarGroups as $group => $_menuItems) {
 
                 <!-- 右侧工具栏 -->
                 <div class="flex items-center gap-4">
+                    <!-- 后台命令面板搜索 -->
+                    <div class="relative" x-data="adminSearch()" @keydown.window.prevent.ctrl.k="focus()" @keydown.window.prevent.meta.k="focus()">
+                        <div class="relative">
+                            <input x-ref="input" type="text" x-model="query" @input.debounce.150ms="search()" @focus="open = true" @keydown.escape="close()" @keydown.arrow-down.prevent="moveSel(1)" @keydown.arrow-up.prevent="moveSel(-1)" @keydown.enter.prevent="goSelected()"
+                                   placeholder="找页面（Ctrl/⌘+K）"
+                                   class="w-44 lg:w-56 pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-full focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </div>
+                        <div x-show="open && results.length" x-cloak @click.away="close()"
+                             class="absolute right-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
+                            <template x-for="(r, i) in results" :key="r.url">
+                                <a :href="r.url" :class="i === selected ? 'bg-blue-50' : 'hover:bg-gray-50'"
+                                   class="block px-3 py-2 text-sm">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-medium text-gray-800" x-text="r.title"></span>
+                                        <span class="text-[10px] text-gray-400 ml-2" x-text="r.group"></span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-400 mt-0.5" x-text="r.url"></div>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                    <script>
+                    function adminSearch() {
+                        return {
+                            open: false, query: '', results: [], selected: 0,
+                            focus() { this.$refs.input.focus(); this.$refs.input.select(); this.open = true; },
+                            close() { this.open = false; },
+                            moveSel(d) {
+                                if (!this.results.length) return;
+                                this.selected = (this.selected + d + this.results.length) % this.results.length;
+                            },
+                            goSelected() {
+                                if (this.results[this.selected]) location.href = this.results[this.selected].url;
+                            },
+                            async search() {
+                                const q = this.query.trim();
+                                if (!q) { this.results = []; this.selected = 0; return; }
+                                try {
+                                    const r = await fetch('/admin/api_search.php?q=' + encodeURIComponent(q));
+                                    const d = await r.json();
+                                    this.results = d.code === 0 ? (d.data || []) : [];
+                                    this.selected = 0;
+                                } catch (e) { this.results = []; }
+                            },
+                        };
+                    }
+                    </script>
+
                     <!-- 语言切换 (中 / 英) -->
                     <?php $currentAdminLang = config('admin_lang', 'zh-CN'); ?>
                     <div class="flex items-center gap-1 text-sm">
@@ -490,8 +539,8 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                                         </template>
                                         <template x-if="m.role !== 'tool'">
                                             <div :class="m.role === 'user' ? 'bg-primary text-white' : (m.role === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white border border-gray-200 text-gray-800')"
-                                                 class="rounded-2xl px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap break-words">
-                                                <span x-text="m.text"></span>
+                                                 class="rounded-2xl px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap break-words"
+                                                 x-html="m.role === 'user' ? escape(m.text) : linkify(m.text)">
                                             </div>
                                         </template>
                                     </div>
@@ -526,6 +575,13 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                             scrollBottom() { const el = this.$refs.msgArea; if (el) el.scrollTop = el.scrollHeight; },
                             clearChat() { this.messages = []; try { sessionStorage.removeItem(KEY); } catch (e) {} },
                             quickPrompt(t) { this.prompt = t; this.send(); },
+                            escape(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
+                            linkify(s) {
+                                const esc = this.escape(s);
+                                // 自动识别 /admin/xxx.php 路径
+                                return esc.replace(/(\/admin\/[a-z_]+\.php(?:\?[^\s<]*)?)/gi,
+                                    '<a href="$1" class="text-primary underline">$1</a>');
+                            },
                             async send() {
                                 const text = this.prompt.trim();
                                 if (!text || this.busy) return;
