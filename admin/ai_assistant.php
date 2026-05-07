@@ -115,6 +115,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
+    function linkifyAdmin(s) {
+        return escapeHtml(s).replace(/(\/admin\/[a-z_]+\.php(?:\?[^\s<]*)?)/gi,
+            '<a href="$1" class="text-primary underline">$1</a>');
+    }
+
     function addMsg(role, text) {
         // 第一条消息时清掉 placeholder
         if (chatArea.querySelector('.text-gray-400')) chatArea.innerHTML = '';
@@ -123,7 +128,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         const label = role === 'user' ? '你' : (role === 'error' ? '错误' : 'AI');
         const wrap = document.createElement('div');
         wrap.className = `border rounded-lg px-3 py-2 ${cls}`;
-        wrap.innerHTML = `<div class="text-[11px] uppercase tracking-wide text-gray-500 mb-1">${label}</div><div class="whitespace-pre-wrap text-sm text-gray-800">${escapeHtml(text)}</div>`;
+        const bodyHtml = role === 'ai' ? linkifyAdmin(text) : escapeHtml(text);
+        wrap.innerHTML = `<div class="text-[11px] uppercase tracking-wide text-gray-500 mb-1">${label}</div><div class="whitespace-pre-wrap text-sm text-gray-800">${bodyHtml}</div>`;
         chatArea.appendChild(wrap);
         chatArea.scrollTop = chatArea.scrollHeight;
         return wrap;
