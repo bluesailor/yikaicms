@@ -315,7 +315,7 @@ require_once theme_path('layouts/header.php');
                 <!-- Tab 内容 -->
                 <?php if ($hasContent): ?>
                 <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail">
-                    <?php echo sanitizeHtml($product['content']); ?>
+                    <?php echo renderContent($product['content']); ?>
                 </div>
                 <?php endif; ?>
 

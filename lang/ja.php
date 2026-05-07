@@ -1097,5 +1097,11 @@ return [
     "job_hire_prefix" => "募集 ",
     "lightbox_close" => "閉じる",
     "admin_label_fixed" => "固定",
+    "admin_home_label" => "ホーム",
+    "product_type_all" => "すべての種類",
+    "product_type_standard" => "標準製品",
+    "product_type_custom" => "オーダー製作",
+    "product_badge_standard" => "標準",
+    "product_badge_custom" => "オーダー",
     "editor_placeholder" => "コンテンツを入力...",
 ];

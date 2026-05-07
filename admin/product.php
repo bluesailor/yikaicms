@@ -114,11 +114,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('status_off_shelf'); ?></option>
             </select>
 
+            <?php if (getLang() === 'ja'): ?>
             <select name="product_type" class="border rounded px-3 py-2">
-                <option value="">全部类型</option>
-                <option value="standard" <?php echo $productType === 'standard' ? 'selected' : ''; ?>>標準製品</option>
-                <option value="custom" <?php echo $productType === 'custom' ? 'selected' : ''; ?>>オーダー製作</option>
+                <option value=""><?php echo __('product_type_all'); ?></option>
+                <option value="standard" <?php echo $productType === 'standard' ? 'selected' : ''; ?>><?php echo __('product_type_standard'); ?></option>
+                <option value="custom" <?php echo $productType === 'custom' ? 'selected' : ''; ?>><?php echo __('product_type_custom'); ?></option>
             </select>
+            <?php endif; ?>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                    class="border rounded px-3 py-2" placeholder="<?php echo __('admin_search'); ?>...">
@@ -174,11 +176,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <div>
                                     <div class="font-medium flex items-center gap-2">
                                         <?php echo e(cutStr($item['title'], 30)); ?>
+                                        <?php if (getLang() === 'ja'): ?>
                                         <?php $pt = $item['product_type'] ?? 'custom'; ?>
                                         <?php if ($pt === 'standard'): ?>
-                                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">標準</span>
+                                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full"><?php echo __('product_badge_standard'); ?></span>
                                         <?php else: ?>
-                                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">オーダー</span>
+                                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"><?php echo __('product_badge_custom'); ?></span>
+                                        <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                     <div class="text-xs text-gray-400">

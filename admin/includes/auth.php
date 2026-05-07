@@ -20,6 +20,11 @@ initLang();
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+require_once ROOT_PATH . '/includes/Compatibility.php';
+Compatibility::bootstrap();
+require_once ROOT_PATH . '/includes/AiService.php';
+require_once ROOT_PATH . '/includes/Abilities.php';
+require_once ROOT_PATH . '/includes/abilities/cms_basics.php';
 require_once ROOT_PATH . '/includes/plugin.php';
 
 /**
@@ -193,7 +198,7 @@ function clearLoginFailure(): void
  */
 function _loginThrottleFile(): string
 {
-    $ip = preg_replace('/[^a-zA-Z0-9._\-]/', '_', $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    $ip = preg_replace('/[^a-zA-Z0-9._\-]/', '_', getClientIp());
     return ROOT_PATH . '/storage/login_throttle/' . $ip . '.json';
 }
 

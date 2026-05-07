@@ -144,7 +144,7 @@ require_once theme_path('layouts/header.php');
                 <!-- 职位详情 -->
                 <?php if ($job['content']): ?>
                 <div class="p-6 md:p-8 prose prose-lg max-w-none">
-                    <?php echo sanitizeHtml($job['content']); ?>
+                    <?php echo renderContent($job['content']); ?>
                 </div>
                 <?php endif; ?>
 
