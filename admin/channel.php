@@ -319,7 +319,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-blue-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                         </span>
-                        <span class="font-medium text-gray-800 flex-1">Home</span>
+                        <span class="font-medium text-gray-800 flex-1"><?php echo __('admin_home_label'); ?></span>
                         <span class="text-xs text-gray-400"><?php echo __('admin_label_fixed'); ?></span>
                         <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                     </div>

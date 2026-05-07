@@ -52,7 +52,13 @@ require_once ROOT_PATH . '/includes/member_auth.php';
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+require_once ROOT_PATH . '/includes/Compatibility.php';
+Compatibility::bootstrap();
 require_once ROOT_PATH . '/includes/HtmlCache.php';
+require_once ROOT_PATH . '/includes/HtmlPipeline.php';
+HtmlPipeline::bootstrap();
+require_once ROOT_PATH . '/includes/Abilities.php';
+require_once ROOT_PATH . '/includes/abilities/cms_basics.php';
 require_once ROOT_PATH . '/includes/plugin.php';
 
 // 前台启动完成，供插件挂载初始化逻辑

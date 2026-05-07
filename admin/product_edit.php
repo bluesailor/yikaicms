@@ -212,8 +212,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                class="w-full border rounded px-4 py-2" placeholder="如：iot-gateway，留空自动生成">
                     </div>
 
+                    <?php if (getLang() === 'ja'): /* 日语版专用：商品类型 / 素材 / 使用场景 */ ?>
                     <div>
-                        <label class="block text-gray-700 mb-2">商品类型</label>
+                        <label class="block text-gray-700 mb-2">商品類型</label>
                         <?php $ptype = $product['product_type'] ?? 'custom'; ?>
                         <div class="grid grid-cols-2 gap-2">
                             <label class="flex items-start gap-2 border rounded-lg p-3 cursor-pointer hover:bg-gray-50 <?php echo $ptype === 'standard' ? 'border-primary bg-blue-50' : 'border-gray-200'; ?>">
@@ -264,8 +265,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <option value="<?php echo e($opt); ?>">
                             <?php endforeach; ?>
                         </datalist>
-                        <p class="text-xs text-gray-400 mt-1">用于前台"使用シーンで絞り込み"筛选</p>
+                        <p class="text-xs text-gray-400 mt-1">前台「使用シーンで絞り込み」フィルタ用</p>
                     </div>
+                    <?php endif; /* lang === ja */ ?>
 
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_publish_status'); ?></label>
@@ -800,7 +802,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage("<?php echo __('msg_save_success'); ?>");
+        showMessage("' . addslashes(__('msg_save_success')) . '");
         setTimeout(function() { location.href = "/admin/product.php"; }, 1000);
     } else {
         showMessage(data.msg, "error");

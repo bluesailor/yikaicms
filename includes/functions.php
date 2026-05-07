@@ -974,6 +974,16 @@ function friendlyTime(int $time): string
 // ============================================================
 
 /**
+ * 渲染富文本内容：先 sanitize，再过 content_render filter（自动 lazy-load 图片、外链 rel=noopener、heading id 等）。
+ * 模板里展示用户富文本时应优先用此函数。
+ */
+function renderContent(?string $html): string
+{
+    $sanitized = sanitizeHtml($html);
+    return (string) apply_filters('content_render', $sanitized);
+}
+
+/**
  * 净化富文本HTML，移除危险标签和属性，保留安全的格式化标签
  */
 function sanitizeHtml(?string $html): string
@@ -1154,15 +1164,17 @@ function cacheClear(): void
 
 /**
  * 获取客户端IP
+ *
+ * 兼容 Cloudflare / nginx 反代：从 CF-Connecting-IP / X-Real-IP / X-Forwarded-For 中
+ * 取首个公网 IP；无可信 header 时回退 REMOTE_ADDR。详见 Compatibility::clientIp()。
  */
 function getClientIp(): string
 {
-    $ip = match (true) {
-        !empty($_SERVER['HTTP_X_FORWARDED_FOR']) => explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0],
-        !empty($_SERVER['HTTP_CLIENT_IP']) => $_SERVER['HTTP_CLIENT_IP'],
-        default => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'
-    };
-    return trim($ip);
+    if (class_exists('Compatibility')) {
+        return Compatibility::clientIp();
+    }
+    // Compatibility 未加载时的安全回退（仅启动早期可能命中）
+    return (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
 }
 
 /**
