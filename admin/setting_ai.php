@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$currentProvider = config('ai_provider', 'openai');
+$currentProvider = config('ai_provider', 'deepseek');
 $rawApiKey = AiService::decryptKey(config('ai_api_key', ''));
 $maskedApiKey = $rawApiKey ? (substr($rawApiKey, 0, 4) . str_repeat('*', max(0, strlen($rawApiKey) - 8)) . substr($rawApiKey, -4)) : '';
 $currentModel = config('ai_model', '');

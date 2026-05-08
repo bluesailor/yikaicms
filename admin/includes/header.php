@@ -415,15 +415,25 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                 <!-- 右侧工具栏 -->
                 <div class="flex items-center gap-4">
                     <!-- 后台命令面板搜索 -->
-                    <div class="relative" x-data="adminSearch()" @keydown.window.prevent.ctrl.k="focus()" @keydown.window.prevent.meta.k="focus()">
-                        <div class="relative">
-                            <input x-ref="input" type="text" x-model="query" @input.debounce.150ms="search()" @focus="open = true" @keydown.escape="close()" @keydown.arrow-down.prevent="moveSel(1)" @keydown.arrow-up.prevent="moveSel(-1)" @keydown.enter.prevent="goSelected()"
-                                   placeholder="找页面（Ctrl/⌘+K）"
-                                   class="w-44 lg:w-56 pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-full focus:border-primary focus:ring-1 focus:ring-primary outline-none">
-                            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <div class="relative" x-data="adminSearch()" x-init="init()" @click.away="open = false">
+                        <div class="relative" style="display:inline-block;">
+                            <input x-ref="input" type="text" x-model="query"
+                                   @input="search()" @focus="open = true"
+                                   @keydown.escape="open = false"
+                                   @keydown.down.prevent="moveSel(1)"
+                                   @keydown.up.prevent="moveSel(-1)"
+                                   @keydown.enter.prevent="goSelected()"
+                                   placeholder="找页面"
+                                   style="padding-left:36px; padding-right:42px; width:220px; height:34px; box-sizing:border-box;"
+                                   class="text-sm border border-gray-200 rounded-full focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                            <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:14px; height:14px; pointer-events:none;" class="text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <kbd style="position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:10px; padding:2px 4px; line-height:1;" class="font-mono text-gray-400 border border-gray-200 rounded bg-gray-50 hidden lg:inline-block" title="Ctrl/⌘+K">⌘K</kbd>
                         </div>
-                        <div x-show="open && results.length" x-cloak @click.away="close()"
-                             class="absolute right-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
+                        <div x-show="open && query.trim()" x-cloak
+                             class="absolute right-0 mt-1 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
+                            <template x-if="results.length === 0">
+                                <div class="px-3 py-4 text-center text-xs text-gray-400">没有匹配「<span x-text="query"></span>」的页面<br>试试：logo / 联系 / 邮件 / 主题 / 升级</div>
+                            </template>
                             <template x-for="(r, i) in results" :key="r.url">
                                 <a :href="r.url" :class="i === selected ? 'bg-blue-50' : 'hover:bg-gray-50'"
                                    class="block px-3 py-2 text-sm">
@@ -439,9 +449,17 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                     <script>
                     function adminSearch() {
                         return {
-                            open: false, query: '', results: [], selected: 0,
-                            focus() { this.$refs.input.focus(); this.$refs.input.select(); this.open = true; },
-                            close() { this.open = false; },
+                            open: false, query: '', results: [], selected: 0, _t: null,
+                            init() {
+                                window.addEventListener('keydown', (e) => {
+                                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                                        e.preventDefault();
+                                        this.$refs.input.focus();
+                                        this.$refs.input.select();
+                                        this.open = true;
+                                    }
+                                });
+                            },
                             moveSel(d) {
                                 if (!this.results.length) return;
                                 this.selected = (this.selected + d + this.results.length) % this.results.length;
@@ -449,7 +467,11 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                             goSelected() {
                                 if (this.results[this.selected]) location.href = this.results[this.selected].url;
                             },
-                            async search() {
+                            search() {
+                                clearTimeout(this._t);
+                                this._t = setTimeout(() => this._doSearch(), 150);
+                            },
+                            async _doSearch() {
                                 const q = this.query.trim();
                                 if (!q) { this.results = []; this.selected = 0; return; }
                                 try {
@@ -457,24 +479,51 @@ foreach ($sidebarGroups as $group => $_menuItems) {
                                     const d = await r.json();
                                     this.results = d.code === 0 ? (d.data || []) : [];
                                     this.selected = 0;
-                                } catch (e) { this.results = []; }
+                                } catch (e) {
+                                    this.results = [];
+                                }
                             },
                         };
                     }
                     </script>
 
-                    <!-- 语言切换 (中 / 英) -->
-                    <?php $currentAdminLang = config('admin_lang', 'zh-CN'); ?>
+                    <!-- 语言切换：动态基于 admin_languages 设置；为空时按 lang/*.php 文件自动检测 -->
+                    <?php
+                    $currentAdminLang = config('admin_lang', 'zh-CN');
+                    $langLabels = ['zh-CN' => '中文', 'en' => 'EN', 'ja' => '日本語'];
+                    $configured = trim((string)config('admin_languages', ''));
+                    if ($configured !== '') {
+                        $availableLangs = array_values(array_filter(array_map('trim', explode(',', $configured)),
+                            fn($k) => isset($langLabels[$k])));
+                    } else {
+                        // 默认：按 lang/*.php 文件存在性推断
+                        $availableLangs = [];
+                        foreach (array_keys($langLabels) as $code) {
+                            if (file_exists(ROOT_PATH . '/lang/' . $code . '.php')) $availableLangs[] = $code;
+                        }
+                    }
+                    ?>
+                    <?php if (count($availableLangs) >= 2): ?>
                     <div class="flex items-center gap-1 text-sm">
-                        <button onclick="switchAdminLang('zh-CN')" class="px-2 py-1 rounded transition <?php echo $currentAdminLang === 'zh-CN' ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'; ?>">中文</button>
-                        <span class="text-gray-300">|</span>
-                        <button onclick="switchAdminLang('en')" class="px-2 py-1 rounded transition <?php echo $currentAdminLang === 'en' ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'; ?>">EN</button>
+                        <?php foreach ($availableLangs as $idx => $code): ?>
+                            <?php if ($idx > 0): ?><span class="text-gray-300">|</span><?php endif; ?>
+                            <button onclick="switchAdminLang('<?php echo $code; ?>')" class="px-2 py-1 rounded transition <?php echo $currentAdminLang === $code ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'; ?>"><?php echo $langLabels[$code]; ?></button>
+                        <?php endforeach; ?>
                     </div>
+                    <?php endif; ?>
 
                     <a href="/" target="_blank" class="text-gray-500 hover:text-primary" title="<?php echo __('admin_visit_frontend'); ?>">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                         </svg>
+                    </a>
+
+                    <!-- HTML 缓存设置 -->
+                    <a href="/admin/setting_cache.php" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="HTML 缓存">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                        </svg>
+                        <span class="hidden sm:inline">缓存</span>
                     </a>
 
                     <!-- AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） -->

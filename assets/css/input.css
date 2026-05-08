@@ -26,3 +26,9 @@
         cursor: not-allowed;
     }
 }
+
+@layer base {
+    *, ::before, ::after, ::backdrop {
+        border-color: var(--color-gray-200, #e5e7eb);
+    }
+}

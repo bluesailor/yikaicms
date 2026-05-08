@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(86400);
+
 // 检查是否启用
 if (config('seo_sitemap_enabled', '1') !== '1') {
     header('HTTP/1.1 404 Not Found');

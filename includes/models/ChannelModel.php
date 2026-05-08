@@ -77,27 +77,38 @@ class ChannelModel extends Model
 
         foreach ($channels as &$channel) {
             if ($channel['type'] === 'product') {
-                // 动态读取产品分类作为子菜单（仅 is_nav=1）
-                $catSql = 'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE parent_id = 0 AND status = 1 AND is_nav = 1';
+                // 动态读取产品分类作为子菜单（多层树形，仅 is_nav=1）
+                $catSql = 'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE status = 1 AND is_nav = 1';
                 $catParams = [];
                 if (isMultiLangEnabled('product_categories')) {
                     $catSql .= ' AND lang = ?';
                     $catParams[] = siteLang();
                 }
                 $catSql .= ' ORDER BY sort_order ASC, id ASC';
-                $cats = db()->fetchAll($catSql, $catParams);
-                $channel['children'] = [];
-                foreach ($cats as $cat) {
-                    $channel['children'][] = [
-                        'id' => 0,
-                        'name' => $cat['name'],
-                        'slug' => $cat['slug'],
-                        'type' => 'product',
-                        'link_url' => '',
-                        'link_target' => '_self',
-                        '_url' => productCategoryUrl($cat),
-                    ];
+                $allCats = db()->fetchAll($catSql, $catParams);
+
+                // 按 parent_id 分组，递归构建嵌套 children 树
+                $byParent = [];
+                foreach ($allCats as $c) {
+                    $byParent[(int)$c['parent_id']][] = $c;
                 }
+                $build = function (int $pid) use (&$build, $byParent): array {
+                    $out = [];
+                    foreach ($byParent[$pid] ?? [] as $cat) {
+                        $out[] = [
+                            'id' => 0,
+                            'name' => $cat['name'],
+                            'slug' => $cat['slug'],
+                            'type' => 'product',
+                            'link_url' => '',
+                            'link_target' => '_self',
+                            '_url' => productCategoryUrl($cat),
+                            'children' => $build((int)$cat['id']),
+                        ];
+                    }
+                    return $out;
+                };
+                $channel['children'] = $build(0);
             } else {
                 $channel['children'] = db()->fetchAll(
                     "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",

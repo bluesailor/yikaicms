@@ -121,9 +121,7 @@ $isTransparentHeader = !empty($isHomePage);
                             <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </a>
                         <div class="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border py-2 min-w-[160px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                            <?php foreach ($navItem['children'] as $child): ?>
-                            <a href="<?php echo getChannelUrl($child); ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"><?php echo e($child['name']); ?></a>
-                            <?php endforeach; ?>
+                            <?php echo renderNavDropdownItems($navItem['children'], 'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition'); ?>
                         </div>
                     </div>
                     <?php else: ?>
@@ -156,9 +154,7 @@ $isTransparentHeader = !empty($isHomePage);
                 <a href="<?php echo getChannelUrl($navItem); ?>" class="block py-2 text-gray-300 hover:text-white"><?php echo e($navItem['name']); ?></a>
                 <?php if (!empty($navItem['children'])): ?>
                 <div class="pl-4">
-                    <?php foreach ($navItem['children'] as $child): ?>
-                    <a href="<?php echo getChannelUrl($child); ?>" class="block py-1.5 text-gray-400 hover:text-white text-sm"><?php echo e($child['name']); ?></a>
-                    <?php endforeach; ?>
+                    <?php echo renderNavMobileItems($navItem['children'], 0, '', 'block py-1.5 text-gray-400 hover:text-white text-sm'); ?>
                 </div>
                 <?php endif; ?>
                 <?php endforeach; ?>

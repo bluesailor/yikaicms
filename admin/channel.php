@@ -219,10 +219,23 @@ $channels = channelModel()->getFlatList();
 // 后台用：不过滤 status，所有栏目都显示
 $channelTree = channelModel()->getTreeAll();
 
-// 获取产品分类（用于产品类型栏目显示）
-$productCats = db()->fetchAll(
-    'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE parent_id = 0 ORDER BY sort_order ASC, id ASC'
+// 获取产品分类（多层树形结构，用于产品类型栏目显示）
+$_allProductCats = db()->fetchAll(
+    'SELECT * FROM ' . DB_PREFIX . 'product_categories ORDER BY sort_order ASC, id ASC'
 );
+// 递归扁平化：父在前、子紧跟、附 _level 缩进信息
+$_buildProductCatTree = function (array $rows, int $parentId, int $level) use (&$_buildProductCatTree): array {
+    $out = [];
+    foreach ($rows as $r) {
+        if ((int)$r['parent_id'] === $parentId) {
+            $r['_level'] = $level;
+            $out[] = $r;
+            $out = array_merge($out, $_buildProductCatTree($rows, (int)$r['id'], $level + 1));
+        }
+    }
+    return $out;
+};
+$productCats = $_buildProductCatTree($_allProductCats, 0, 0);
 // 按产品栏目ID索引（找出所有 type=product 的顶级栏目）
 $productChannelIds = [];
 foreach ($channelTree as $ch) {
@@ -399,19 +412,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <span class="text-xs text-gray-400"><?= __('admin_product_category_auto') ?></span>
                                     <a href="/admin/product_category.php" class="text-xs text-primary hover:underline"><?= __('admin_category_manage') ?></a>
                                 </div>
-                                <?php foreach ($productCats as $cat): ?>
-                                <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm">
+                                <?php foreach ($productCats as $cat):
+                                    $level = (int)($cat['_level'] ?? 0);
+                                ?>
+                                <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm"
+                                     style="margin-left: <?php echo $level * 24; ?>px;">
                                     <span class="text-amber-300 text-xs">
+                                        <?php if ($level === 0): ?>
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path></svg>
+                                        <?php else: ?>
+                                        <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path></svg>
+                                        <?php endif; ?>
                                     </span>
                                     <span class="text-gray-300 text-xs">└</span>
                                     <span class="text-gray-700 flex-1"><?php echo e($cat['name']); ?></span>
+                                    <?php if ($level === 0): ?>
                                     <span class="text-xs text-amber-500"><?= __('admin_product_category') ?></span>
+                                    <?php else: ?>
+                                    <span class="text-xs text-gray-400">L<?php echo $level + 1; ?></span>
+                                    <?php endif; ?>
                                     <button onclick="toggleCatNav(<?php echo $cat['id']; ?>, <?php echo !empty($cat['is_nav']) ? 0 : 1; ?>)"
                                             class="text-xs px-2 py-0.5 rounded <?php echo !empty($cat['is_nav']) ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'; ?>">
                                         <?= __('admin_nav_on') ?> <?php echo !empty($cat['is_nav']) ? 'ON' : 'OFF'; ?>
                                     </button>
-                                    <a href="/admin/product_category.php" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                    <a href="/admin/product_category.php?edit=<?php echo $cat['id']; ?>" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
@@ -653,15 +677,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                 <div id="albumFields" class="hidden">
                     <label class="block text-gray-700 text-sm mb-1"><?php echo __('admin_related_album'); ?></label>
-                    <select name="album_id" class="w-full border rounded px-3 py-2">
-                        <option value="0"><?php echo __('admin_select_album'); ?></option>
-                        <?php foreach ($albums as $alb): ?>
-                        <option value="<?php echo $alb['id']; ?>" <?php echo ($editChannel['album_id'] ?? 0) == $alb['id'] ? 'selected' : ''; ?>>
-                            <?php echo e($alb['name']); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="text-xs text-gray-400 mt-1"><?= __('admin_album') ?></p>
+                    <div class="flex gap-2">
+                        <select name="album_id" id="albumSelect" class="flex-1 border rounded px-3 py-2">
+                            <option value="0"><?php echo __('admin_select_album'); ?></option>
+                            <?php foreach ($albums as $alb): ?>
+                            <option value="<?php echo $alb['id']; ?>" <?php echo ($editChannel['album_id'] ?? 0) == $alb['id'] ? 'selected' : ''; ?>>
+                                <?php echo e($alb['name']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <a id="albumPhotosLink"
+                           href="/admin/album_photos.php?id=<?php echo (int)($editChannel['album_id'] ?? 0); ?>"
+                           target="_blank"
+                           class="inline-flex items-center gap-1 px-3 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded text-sm whitespace-nowrap transition <?php echo ((int)($editChannel['album_id'] ?? 0)) > 0 ? '' : 'hidden'; ?>"
+                           title="管理该相册的图片">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            管理图片
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1"><?= __('admin_album') ?>。选好相册后点右侧「管理图片」可直接进入相片管理页（新窗口打开）。</p>
                 </div>
 
                 <div>
@@ -757,6 +791,22 @@ document.getElementById('channelType').addEventListener('change', function() {
     document.getElementById('albumFields').classList.toggle('hidden', this.value !== 'album');
 });
 document.getElementById('channelType').dispatchEvent(new Event('change'));
+
+// 相册选择变化时同步「管理图片」链接的目标 + 显隐
+(function () {
+    const sel  = document.getElementById('albumSelect');
+    const link = document.getElementById('albumPhotosLink');
+    if (!sel || !link) return;
+    sel.addEventListener('change', function () {
+        const id = parseInt(this.value || '0', 10);
+        if (id > 0) {
+            link.href = '/admin/album_photos.php?id=' + id;
+            link.classList.remove('hidden');
+        } else {
+            link.classList.add('hidden');
+        }
+    });
+})();
 
 // 跳转类型联动
 document.getElementById('redirectType').addEventListener('change', function() {

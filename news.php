@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(600);
+
 // 获取分类参数
 $categorySlug = get('cat', '');
 $categoryId = getInt('cat_id', 0);
