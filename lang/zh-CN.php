@@ -1215,4 +1215,14 @@ return [
     "member_register"          => "注册",
     "member_register_full"     => "会员注册",
     "menu_label"               => "菜单",
+
+    // v1.7.1: history.php / timeline-vertical.php 硬编码中文 i18n 化（8 个 key）
+    "history_page_description" => "%s的发展历程，记录我们成长的每一个重要时刻。",
+    "history_hero_desc"        => "记录我们成长的每一个重要时刻，见证从创立到辉煌的蜕变历程",
+    "history_empty"            => "暂无发展历程内容",
+    "history_stats_years"      => "发展年份",
+    "history_stats_milestones" => "里程碑事件",
+    "history_stats_founded"    => "创立年份",
+    "history_stats_experience" => "年经验积累",
+    "timeline_outro"           => "未来可期，我们继续前行...",
 ];

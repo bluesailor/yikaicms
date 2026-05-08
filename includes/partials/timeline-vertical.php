@@ -139,5 +139,5 @@ if (empty($groupedTimelines)) return;
         <div class="flex-1 h-px bg-gradient-to-l from-transparent to-gray-300"></div>
     </div>
 
-    <p class="text-center text-gray-500 mt-6">未来可期，我们继续前行...</p>
+    <p class="text-center text-gray-500 mt-6"><?php echo __('timeline_outro'); ?></p>
 </div>
