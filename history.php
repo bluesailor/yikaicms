@@ -22,7 +22,7 @@ foreach ($timelines as $it) $timelineYears[(int)$it['year']] = true;
 ksort($timelineYears);
 
 $pageTitle = __('nav_history');
-$pageDescription = config('site_name') . '的发展历程，记录我们成长的每一个重要时刻。';
+$pageDescription = sprintf(__('history_page_description'), config('site_name'));
 $isHistoryPage = true;
 
 // 获取"关于我们"父栏目及子栏目（用于侧边栏）
@@ -42,7 +42,7 @@ if ($aboutChannel) {
     $breadcrumbItems[] = ['name' => $aboutChannel['name'], 'url' => channelUrl($aboutChannel)];
 }
 $breadcrumbItems[] = ['name' => __('nav_history'), 'url' => ''];
-$channel = ['name' => __('nav_history'), 'description' => '记录我们成长的每一个重要时刻，见证从创立到辉煌的蜕变历程', 'image' => ''];
+$channel = ['name' => __('nav_history'), 'description' => __('history_hero_desc'), 'image' => ''];
 require theme_path('partials/page-hero.php');
 ?>
 
@@ -57,7 +57,7 @@ require theme_path('partials/page-hero.php');
             <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <p>暂无发展历程内容</p>
+            <p><?php echo __('history_empty'); ?></p>
         </div>
         <?php else: ?>
 
@@ -135,25 +135,25 @@ require theme_path('partials/page-hero.php');
                 <div class="text-4xl md:text-5xl font-bold text-primary mb-2">
                     <?php echo count($timelineYears); ?>+
                 </div>
-                <div class="text-gray-400">发展年份</div>
+                <div class="text-gray-400"><?php echo __('history_stats_years'); ?></div>
             </div>
             <div data-aos="fade-up" data-aos-delay="100">
                 <div class="text-4xl md:text-5xl font-bold text-primary mb-2">
                     <?php echo count($timelines); ?>+
                 </div>
-                <div class="text-gray-400">里程碑事件</div>
+                <div class="text-gray-400"><?php echo __('history_stats_milestones'); ?></div>
             </div>
             <div data-aos="fade-up" data-aos-delay="200">
                 <div class="text-4xl md:text-5xl font-bold text-primary mb-2">
                     <?php echo (int)array_key_first($timelineYears); ?>
                 </div>
-                <div class="text-gray-400">创立年份</div>
+                <div class="text-gray-400"><?php echo __('history_stats_founded'); ?></div>
             </div>
             <div data-aos="fade-up" data-aos-delay="300">
                 <div class="text-4xl md:text-5xl font-bold text-primary mb-2">
                     <?php echo date('Y') - (int)array_key_first($timelineYears); ?>+
                 </div>
-                <div class="text-gray-400">年经验积累</div>
+                <div class="text-gray-400"><?php echo __('history_stats_experience'); ?></div>
             </div>
         </div>
     </div>

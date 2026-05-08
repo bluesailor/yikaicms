@@ -1129,4 +1129,14 @@ return [
     "member_register"          => "Register",
     "member_register_full"     => "Member Register",
     "menu_label"               => "Menu",
+
+    // v1.7.1: history.php / timeline-vertical.php hardcoded Chinese i18n (8 keys)
+    "history_page_description" => "%s's history — every important moment of our growth.",
+    "history_hero_desc"        => "Recording every important moment of our growth, witnessing the transformation from inception to glory.",
+    "history_empty"            => "No history records yet",
+    "history_stats_years"      => "Years",
+    "history_stats_milestones" => "Milestones",
+    "history_stats_founded"    => "Founded",
+    "history_stats_experience" => "Years of Experience",
+    "timeline_outro"           => "The future awaits — we move forward...",
 ];
