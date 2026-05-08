@@ -443,33 +443,6 @@ $upgrades = [
         ],
     ],
 
-    [
-        'id'    => '20260415_product_type',
-        'title' => '产品表增加商品类型字段',
-        'desc'  => '产品表新增 product_type 字段，区分「標準製品（既製品）」和「オーダー製作（定制品）」。默认所有现有产品为 custom（定制品）。',
-        'check' => function () {
-            return _columnExists('products', 'product_type');
-        },
-        'sqls' => [
-            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `product_type` varchar(20) NOT NULL DEFAULT 'custom' COMMENT '商品类型：standard标准制品 custom定制品' AFTER `tags`",
-            "ALTER TABLE `" . DB_PREFIX . "products` ADD KEY `idx_product_type` (`product_type`)",
-        ],
-    ],
-
-    [
-        'id'    => '20260415_product_material_scene',
-        'title' => '产品表增加素材/使用场景字段',
-        'desc'  => '产品表新增 material（素材）和 scene（使用场景）字段，用于前台按素材（木材/アクリル/アルミ複合板/ステンレス 等）和场景（オフィス/店舗/レストラン 等）筛选。',
-        'check' => function () {
-            return _columnExists('products', 'material') && _columnExists('products', 'scene');
-        },
-        'sqls' => [
-            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `material` varchar(50) NOT NULL DEFAULT '' COMMENT '素材：木材/アクリル/アルミ複合板/ステンレス 等' AFTER `product_type`",
-            "ALTER TABLE `" . DB_PREFIX . "products` ADD COLUMN `scene` varchar(50) NOT NULL DEFAULT '' COMMENT '使用场景：オフィス/店舗/レストラン/カフェ/美容院/クリニック/住宅 等' AFTER `material`",
-            "ALTER TABLE `" . DB_PREFIX . "products` ADD KEY `idx_material` (`material`)",
-            "ALTER TABLE `" . DB_PREFIX . "products` ADD KEY `idx_scene` (`scene`)",
-        ],
-    ],
 
     // --- 未来升级项追加到这里 ---
 
@@ -479,7 +452,7 @@ $upgrades = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_update') {
     header('Content-Type: application/json; charset=utf-8');
     $currentVersion = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
-    $updateServerUrl = 'https://update.ikaicms.com';
+    $updateServerUrl = 'https://update.yikaicms.com';
     $apiUrl = $updateServerUrl . '/api/update/check.php?version=' . urlencode($currentVersion);
 
     $context = stream_context_create([
@@ -769,7 +742,7 @@ async function runUpgrade() {
 <?php if ($tab === 'online'): ?>
 <?php
 // 在线升级配置
-$updateServerUrl = 'https://update.ikaicms.com';
+$updateServerUrl = 'https://update.yikaicms.com';
 $updateCheckApi  = $updateServerUrl . '/api/update/check';
 $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 ?>

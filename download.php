@@ -10,6 +10,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(600);
+
 $fid = getInt('fid');
 $id = getInt('id');
 

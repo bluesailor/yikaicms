@@ -20,6 +20,13 @@ class AiService
 
     // 供应商配置表
     private const PROVIDERS = [
+        'deepseek' => [
+            'name'     => 'DeepSeek',
+            'base_url' => 'https://api.deepseek.com/v1',
+            'models'   => ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
+            'default'  => 'deepseek-v4-flash',
+            'format'   => 'openai',
+        ],
         'openai' => [
             'name'     => 'OpenAI',
             'base_url' => 'https://api.openai.com/v1',
@@ -33,13 +40,6 @@ class AiService
             'models'   => ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-3-5-sonnet-20241022'],
             'default'  => 'claude-sonnet-4-20250514',
             'format'   => 'anthropic',
-        ],
-        'deepseek' => [
-            'name'     => 'DeepSeek',
-            'base_url' => 'https://api.deepseek.com/v1',
-            'models'   => ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
-            'default'  => 'deepseek-v4-flash',
-            'format'   => 'openai',
         ],
         'qwen' => [
             'name'     => '通义千问 (Qwen)',
@@ -59,7 +59,7 @@ class AiService
 
     public function __construct(?string $provider = null, ?string $apiKey = null, ?string $model = null)
     {
-        $this->provider = $provider ?: config('ai_provider', 'openai');
+        $this->provider = $provider ?: config('ai_provider', 'deepseek');
         $this->apiKey   = $apiKey ?: self::decryptKey(config('ai_api_key', ''));
         $this->model    = $model ?: config('ai_model', '');
         $this->baseUrl  = config('ai_base_url', '');

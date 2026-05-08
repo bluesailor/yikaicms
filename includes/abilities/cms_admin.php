@@ -113,7 +113,7 @@ register_ability('cms_update_setting', [
             throw new \RuntimeException("Setting key '{$key}' is restricted");
         }
         // 白名单前缀（防止意外改到不该改的）
-        $allowedPrefixes = ['site_', 'admin_', 'contact_', 'social_', 'footer_', 'mail_', 'banner_', 'primary_', 'secondary_', 'show_', 'product_', 'download_', 'allow_'];
+        $allowedPrefixes = ['site_', 'admin_', 'contact_', 'social_', 'footer_', 'mail_', 'banner_', 'primary_', 'secondary_', 'show_', 'product_', 'download_', 'allow_', 'html_cache_', 'cache_'];
         $prefixOk = false;
         foreach ($allowedPrefixes as $p) {
             if (str_starts_with($key, $p)) { $prefixOk = true; break; }

@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'seo_description' => post('seo_description'),
             'sort_order' => postInt('sort_order'),
             'status' => postInt('status', 1),
+            'is_nav' => !empty($_POST['is_nav']) ? 1 : 0,
         ];
 
         if (empty($data['name'])) {
@@ -75,6 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newStatus = productCategoryModel()->toggle($id, 'status');
         adminLog('product_category', 'update', "切换产品分类状态ID: $id");
         success(['status' => $newStatus]);
+    }
+
+    if ($action === 'toggle_nav') {
+        $id = postInt('id');
+        $newVal = productCategoryModel()->toggle($id, 'is_nav');
+        adminLog('product_category', 'update', "切换产品分类导航ID: $id is_nav=$newVal");
+        success(['is_nav' => $newVal]);
     }
 
     if ($action === 'batch_delete') {
@@ -167,6 +175,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_count'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">导航</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -198,6 +207,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
+                        <button onclick="toggleNav(<?php echo $item['id']; ?>, this)"
+                                class="text-xs px-2 py-1 rounded cursor-pointer <?php echo !empty($item['is_nav']) ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>"
+                                title="切换是否在前台导航/分类菜单中显示">
+                            <?php echo !empty($item['is_nav']) ? '显示' : '隐藏'; ?>
+                        </button>
+                    </td>
+                    <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -211,7 +227,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($categories)): ?>
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -251,7 +267,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <input type="text" name="slug" id="editSlug" class="w-full border rounded px-4 py-2" placeholder="如：smart-device，留空自动生成">
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" id="editSortOrder" value="0" class="w-full border rounded px-4 py-2">
@@ -261,6 +277,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
                         <option value="1"><?php echo __('admin_enabled'); ?></option>
                         <option value="0"><?php echo __('admin_disabled'); ?></option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1">导航显示</label>
+                    <select name="is_nav" id="editIsNav" class="w-full border rounded px-4 py-2">
+                        <option value="1">显示</option>
+                        <option value="0">隐藏</option>
                     </select>
                 </div>
             </div>
@@ -301,6 +324,7 @@ function openEditModal(item = null) {
     document.getElementById('editSlug').value = item?.slug || '';
     document.getElementById('editSortOrder').value = item?.sort_order || 0;
     document.getElementById('editStatus').value = item?.status ?? 1;
+    document.getElementById('editIsNav').value = (item && (item.is_nav === 0 || item.is_nav === '0')) ? 0 : 1;
     document.getElementById('editImage').value = item?.image || '';
     document.getElementById('editDescription').value = item?.description || '';
     document.getElementById('editModal').classList.remove('hidden');
@@ -398,6 +422,23 @@ async function toggleStatus(id, btn) {
         } else {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-500';
             btn.textContent = '<?php echo __('admin_disabled'); ?>';
+        }
+    }
+}
+
+async function toggleNav(id, btn) {
+    const formData = new FormData();
+    formData.append('action', 'toggle_nav');
+    formData.append('id', id);
+    const response = await fetch('', { method: 'POST', body: formData });
+    const data = await safeJson(response);
+    if (data.code === 0) {
+        if (data.data.is_nav) {
+            btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-blue-100 text-blue-600';
+            btn.textContent = '显示';
+        } else {
+            btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-400';
+            btn.textContent = '隐藏';
         }
     }
 }

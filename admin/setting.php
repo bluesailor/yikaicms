@@ -47,6 +47,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error('参数错误');
     }
 
+    if ($action === 'save_admin_languages') {
+        verifyCsrf();
+        $val = trim((string)($_POST['admin_languages'] ?? ''));
+        // 校验：只允许 zh-CN/en/ja，去重，按固定顺序
+        $allowed = ['zh-CN', 'en', 'ja'];
+        $list = array_values(array_intersect($allowed, array_filter(array_map('trim', explode(',', $val)))));
+        if ($list === []) error('至少保留一种语言');
+        settingModel()->set('admin_languages', implode(',', $list));
+        adminLog('setting', 'admin_languages', '更新后台语言: ' . implode(',', $list));
+        success(['admin_languages' => implode(',', $list)]);
+    }
+
     $settings = $_POST['settings'] ?? [];
     settingModel()->saveBatch($settings);
 
@@ -82,6 +94,48 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
     </div>
 </div>
+
+<?php if ($tab === 'basic'): ?>
+<!-- 后台语言配置（独立卡片）-->
+<?php
+$adminLangsRaw = trim((string)config('admin_languages', ''));
+$adminLangsCurrent = $adminLangsRaw !== ''
+    ? array_filter(array_map('trim', explode(',', $adminLangsRaw)))
+    : array_values(array_filter(['zh-CN', 'en', 'ja'], fn($c) => file_exists(ROOT_PATH . '/lang/' . $c . '.php')));
+?>
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b">
+        <h2 class="font-bold text-gray-800">后台语言</h2>
+        <p class="text-xs text-gray-500 mt-1">勾选后台顶栏语言切换器要显示的语言。少于 2 种时不显示切换器。</p>
+    </div>
+    <div class="p-6 flex items-center gap-6">
+        <?php foreach (['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'] as $code => $label): ?>
+            <?php $exists = file_exists(ROOT_PATH . '/lang/' . $code . '.php'); ?>
+            <label class="flex items-center gap-2 <?php echo $exists ? 'cursor-pointer' : 'opacity-40'; ?>">
+                <input type="checkbox" name="admin_langs[]" value="<?php echo $code; ?>"
+                       <?php echo in_array($code, $adminLangsCurrent, true) ? 'checked' : ''; ?>
+                       <?php echo $exists ? '' : 'disabled'; ?>>
+                <span class="text-sm"><?php echo $label; ?> <span class="text-gray-400">(<?php echo $code; ?>)</span></span>
+                <?php if (!$exists): ?><span class="text-[10px] text-red-400">lang 文件缺失</span><?php endif; ?>
+            </label>
+        <?php endforeach; ?>
+        <button type="button" onclick="saveAdminLanguages()" class="ml-auto bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm">保存语言列表</button>
+    </div>
+</div>
+<script>
+async function saveAdminLanguages() {
+    const checked = Array.from(document.querySelectorAll('input[name="admin_langs[]"]:checked')).map(el => el.value);
+    if (checked.length === 0) { showMessage('至少要保留一种语言', 'error'); return; }
+    const fd = new FormData();
+    fd.append('action', 'save_admin_languages');
+    fd.append('admin_languages', checked.join(','));
+    const r = await fetch('', { method: 'POST', body: fd });
+    const d = await r.json();
+    showMessage(d.msg || '已保存', d.code === 0 ? 'success' : 'error');
+    if (d.code === 0) setTimeout(() => location.reload(), 600);
+}
+</script>
+<?php endif; ?>
 
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">

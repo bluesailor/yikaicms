@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+HtmlCache::start(600);
+
 $channelId = getInt('id');
 $slug = get('slug');
 $parentSlug = get('parent');

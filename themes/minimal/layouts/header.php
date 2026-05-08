@@ -245,13 +245,7 @@ function getChannelUrl(array $channel): string {
                     <?php echo e($navItem['name']); ?>
                 </a>
                 <?php if (!empty($navItem['children'])): ?>
-                <?php foreach ($navItem['children'] as $child): ?>
-                <a href="<?php echo getChannelUrl($child); ?>"
-                   <?php echo $child['type'] === 'link' ? 'target="' . e($child['link_target'] ?: '_self') . '"' : ''; ?>
-                   class="block text-sm tracking-wide text-gray-400 hover:text-gray-900 pl-4">
-                    <?php echo e($child['name']); ?>
-                </a>
-                <?php endforeach; ?>
+                <?php echo renderNavMobileItems($navItem['children'], 0, '', 'block text-sm tracking-wide text-gray-400 hover:text-gray-900'); ?>
                 <?php endif; ?>
                 <?php endforeach; ?>
                 <?php if ($showMemberEntry): ?>

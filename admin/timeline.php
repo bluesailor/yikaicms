@@ -107,8 +107,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'save_sort_direction') {
+        $val = post('timeline_sort') === 'asc' ? 'asc' : 'desc';
+        settingModel()->set('timeline_sort', $val);
+        adminLog('timeline', 'config', "设置时间线排序方向: $val");
+        success(['timeline_sort' => $val]);
+    }
+
+    if ($action === 'save_layout') {
+        $raw = (string)post('timeline_layout');
+        $val = in_array($raw, ['vertical', 'horizontal', 'compact'], true) ? $raw : 'vertical';
+        settingModel()->set('timeline_layout', $val);
+        adminLog('timeline', 'config', "设置时间线布局: $val");
+        success(['timeline_layout' => $val]);
+    }
+
+    if ($action === 'render_preview') {
+        $opts = [];
+        $rawLayout = (string)post('layout');
+        if (in_array($rawLayout, ['vertical', 'horizontal', 'compact'], true)) {
+            $opts['layout'] = $rawLayout;
+        }
+        $rawSort = (string)post('sort');
+        if (in_array($rawSort, ['asc', 'desc'], true)) {
+            $opts['sort'] = $rawSort;
+        }
+        // 预览限制 6 条，避免后台拉太多影响首屏
+        $opts['limit'] = 6;
+        $html = function_exists('timelineBlock') ? timelineBlock($opts) : '';
+        success(['html' => $html]);
+    }
+
     exit;
 }
+
+// 当前显示设置
+$timelineSort   = config('timeline_sort', 'desc');
+$timelineLayoutRaw = (string)config('timeline_layout', 'vertical');
+$timelineLayout    = in_array($timelineLayoutRaw, ['vertical', 'horizontal', 'compact'], true) ? $timelineLayoutRaw : 'vertical';
 
 // 获取列表
 $timelines = timelineModel()->all();
@@ -119,6 +155,30 @@ $currentMenu = 'timeline';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<!-- Swiper 全局预加载（横向布局预览需要，初始即可用） -->
+<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
+<script src="/assets/swiper/swiper-bundle.min.js"></script>
+
+<div x-data="{ tab: 'events' }">
+
+<!-- TAB 导航 -->
+<div class="bg-white rounded-lg shadow mb-4">
+    <div class="flex border-b">
+        <button type="button" @click="tab='events'" :class="tab==='events' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="px-6 py-3 border-b-2 font-medium text-sm transition inline-flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+            事件管理
+        </button>
+        <button type="button" @click="tab='settings'" :class="tab==='settings' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="px-6 py-3 border-b-2 font-medium text-sm transition inline-flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            显示设置
+        </button>
+    </div>
+</div>
+
+<!-- TAB: 事件管理 -->
+<div x-show="tab === 'events'">
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
@@ -222,6 +282,127 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </table>
     </div>
 </div>
+</div><!-- /TAB: events -->
+
+<!-- TAB: 显示设置 -->
+<div x-show="tab === 'settings'" x-cloak>
+    <div class="bg-white rounded-lg shadow p-6 mb-4">
+        <h3 class="font-bold text-gray-800 mb-1">前台布局</h3>
+        <p class="text-sm text-gray-500 mb-4">选择时间线在 <code>/about/history.html</code> 的展示形态。修改后立即生效，无需清缓存（下次访问页面即重新生成）。</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- 竖向双边卡 -->
+            <label class="block cursor-pointer group">
+                <input type="radio" name="timeline_layout" value="vertical" <?php echo $timelineLayout === 'vertical' ? 'checked' : ''; ?> onchange="saveTimelineLayout('vertical')" class="peer sr-only">
+                <div class="border-2 border-gray-200 rounded-lg p-4 transition peer-checked:border-primary peer-checked:bg-blue-50/40 hover:border-gray-300 h-full">
+                    <!-- mini 预览 -->
+                    <div class="w-full h-20 bg-gray-50 rounded border flex items-center justify-center relative mb-3">
+                        <div class="absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-0.5 bg-gray-300"></div>
+                        <div class="absolute left-3 top-3 w-12 h-3 bg-primary rounded"></div>
+                        <div class="absolute right-3 top-9 w-12 h-3 bg-primary rounded"></div>
+                        <div class="absolute left-3 top-14 w-12 h-3 bg-primary rounded"></div>
+                        <div class="absolute left-1/2 -translate-x-1/2 top-3 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        <div class="absolute left-1/2 -translate-x-1/2 top-9 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        <div class="absolute left-1/2 -translate-x-1/2 top-14 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                    </div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-semibold text-gray-800">竖向双边</span>
+                        <span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">默认</span>
+                    </div>
+                    <p class="text-xs text-gray-500 leading-relaxed">中间主线 + 左右交替卡片，PC 双边 / 移动单边。适合企业大事记。</p>
+                </div>
+            </label>
+
+            <!-- 横向滑块卡 -->
+            <label class="block cursor-pointer group">
+                <input type="radio" name="timeline_layout" value="horizontal" <?php echo $timelineLayout === 'horizontal' ? 'checked' : ''; ?> onchange="saveTimelineLayout('horizontal')" class="peer sr-only">
+                <div class="border-2 border-gray-200 rounded-lg p-4 transition peer-checked:border-primary peer-checked:bg-blue-50/40 hover:border-gray-300 h-full">
+                    <!-- mini 预览 -->
+                    <div class="w-full h-20 bg-gray-50 rounded border flex items-center justify-center relative mb-3">
+                        <div class="absolute left-2 right-2 top-5 h-0.5 bg-gray-300"></div>
+                        <div class="absolute left-3 top-5 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        <div class="absolute left-1/3 top-5 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        <div class="absolute left-2/3 top-5 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        <div class="absolute right-3 top-5 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full"></div>
+                        <div class="absolute left-2 bottom-2 w-12 h-8 bg-primary/40 rounded-sm"></div>
+                        <div class="absolute left-1/3 -translate-x-1/4 bottom-2 w-12 h-8 bg-primary/40 rounded-sm"></div>
+                        <div class="absolute right-2 bottom-2 w-12 h-8 bg-primary/40 rounded-sm"></div>
+                    </div>
+                    <div class="font-semibold text-gray-800 mb-1">横向滑块</div>
+                    <p class="text-xs text-gray-500 leading-relaxed">Swiper 卡片轮播，顶部主线 + 横向排列，响应式 1-4 列，移动端友好。</p>
+                </div>
+            </label>
+
+            <!-- 紧凑列表卡 -->
+            <label class="block cursor-pointer group">
+                <input type="radio" name="timeline_layout" value="compact" <?php echo $timelineLayout === 'compact' ? 'checked' : ''; ?> onchange="saveTimelineLayout('compact')" class="peer sr-only">
+                <div class="border-2 border-gray-200 rounded-lg p-4 transition peer-checked:border-primary peer-checked:bg-blue-50/40 hover:border-gray-300 h-full">
+                    <!-- mini 预览 -->
+                    <div class="w-full h-20 bg-gray-50 rounded border flex items-center relative mb-3 px-3">
+                        <div class="absolute left-7 top-3 bottom-3 w-0.5 bg-gray-300"></div>
+                        <div class="space-y-1.5 w-full">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-1.5 bg-primary/60 rounded"></div>
+                                <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                                <div class="w-12 h-1.5 bg-gray-400 rounded"></div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-1.5 bg-primary/60 rounded"></div>
+                                <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                                <div class="w-16 h-1.5 bg-gray-400 rounded"></div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-1.5 bg-primary/60 rounded"></div>
+                                <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                                <div class="w-10 h-1.5 bg-gray-400 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-semibold text-gray-800">紧凑列表</span>
+                        <span class="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">新</span>
+                    </div>
+                    <p class="text-xs text-gray-500 leading-relaxed">左侧窄列日期 + 主线圆点 + 右侧标题/正文。信息密度高，适合版本日志、新闻速递。</p>
+                </div>
+            </label>
+        </div>
+
+        <!-- 实时预览（只渲染时间线区块，不含页面其它部分） -->
+        <div class="mt-6 border-t pt-5">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <span class="font-medium text-gray-800">实时预览</span>
+                    <span class="text-xs text-gray-500 ml-2">仅显示时间线区块（最多 6 条），切换布局自动刷新</span>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="refreshTimelinePreview()" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.65-4.94M20 15a9 9 0 01-14.65 4.94"/></svg>
+                        刷新
+                    </button>
+                    <a href="/history.php" target="_blank" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        前台完整页
+                    </a>
+                </div>
+            </div>
+            <div id="timelinePreviewBox" class="border rounded-lg p-4 bg-gradient-to-b from-gray-50 to-white max-h-[420px] overflow-auto">
+                <?php echo timelineBlock(['limit' => 6]); ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="font-bold text-gray-800 mb-1">前台显示顺序</h3>
+        <p class="text-sm text-gray-500 mb-4">控制事件在前台的排列方向（仅竖向布局严格按此分组；横向滑块按相同方向排序）。</p>
+
+        <select onchange="saveTimelineSort(this.value)" class="border rounded px-3 py-2 text-sm w-full md:w-auto">
+            <option value="desc" <?php echo $timelineSort === 'desc' ? 'selected' : ''; ?>>最新在上（年份降序）</option>
+            <option value="asc"  <?php echo $timelineSort === 'asc'  ? 'selected' : ''; ?>>最早在上（年份升序）</option>
+        </select>
+    </div>
+</div><!-- /TAB: settings -->
+
+</div><!-- /x-data root -->
 
 <!-- 编辑弹窗 -->
 <div id="editModal" class="fixed inset-0 z-50 hidden">
@@ -468,6 +649,63 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     }
     this.value = '';
 });
+
+async function saveTimelineSort(value) {
+    const r = await fetchApi('', { action: 'save_sort_direction', timeline_sort: value });
+    if (r.code === 0) {
+        showMessage('已更新前台显示顺序');
+        refreshTimelinePreview();
+    } else {
+        showMessage(r.msg || '保存失败', 'error');
+    }
+}
+
+async function saveTimelineLayout(value) {
+    const r = await fetchApi('', { action: 'save_layout', timeline_layout: value });
+    if (r.code === 0) {
+        const labels = { vertical: '竖向双边', horizontal: '横向滑块', compact: '紧凑列表' };
+        showMessage('已切换为' + (labels[value] || value));
+        refreshTimelinePreview(value);
+    } else {
+        showMessage(r.msg || '保存失败', 'error');
+    }
+}
+
+// 实时预览：AJAX 拉新 HTML 替换 #timelinePreviewBox 内容
+async function refreshTimelinePreview(layout) {
+    const box = document.getElementById('timelinePreviewBox');
+    if (!box) return;
+
+    // 销毁旧 Swiper 实例（避免内存泄漏与样式冲突）
+    const oldSwiperEl = box.querySelector('.swiper');
+    if (oldSwiperEl && oldSwiperEl.swiper) {
+        try { oldSwiperEl.swiper.destroy(true, true); } catch (e) {}
+    }
+
+    const fd = new FormData();
+    fd.append('action', 'render_preview');
+    if (layout) fd.append('layout', layout);
+    try {
+        const r = await fetch('', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.code !== 0) return;
+        box.innerHTML = d.data.html;
+
+        // 后台预览不需要滚入动画 → 立即可见
+        box.querySelectorAll('[data-aos]').forEach(el => el.classList.add('aos-animate'));
+
+        // 重新执行内嵌 inline <script>（Swiper 库已在 admin 头部预加载，可直接调用）
+        box.querySelectorAll('script').forEach(old => {
+            if (old.src) return;
+            try { (new Function(old.textContent))(); } catch (e) { console.warn('preview script error', e); }
+        });
+    } catch (e) {
+        showMessage('预览刷新失败', 'error');
+    }
+}
+
+// 首屏：将服务端预渲染的 [data-aos] 立即显示（避免预览框初始空白）
+document.querySelectorAll('#timelinePreviewBox [data-aos]').forEach(el => el.classList.add('aos-animate'));
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

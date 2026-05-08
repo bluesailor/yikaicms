@@ -1703,6 +1703,63 @@ function webpUrl(?string $url): string
 /**
  * 解析内容中的短码 [form-slug] [banner-slug]
  */
+/**
+ * 递归渲染导航下拉菜单条目（桌面端，flyout 子菜单）
+ * 每项若有 children，自身被包成 .nav-sub-item，含右指 ›，hover 弹出右侧 .nav-submenu
+ */
+function renderNavDropdownItems(array $items, string $linkClass = ''): string
+{
+    if (empty($items)) return '';
+    $clsAttr = $linkClass !== '' ? ' class="' . htmlspecialchars($linkClass, ENT_QUOTES) . '"' : '';
+    $html = '';
+    foreach ($items as $it) {
+        $hasSub = !empty($it['children']);
+        $url    = function_exists('getChannelUrl') ? getChannelUrl($it) : (string)($it['_url'] ?? '#');
+        $target = ($it['type'] ?? '') === 'link' ? ' target="' . e($it['link_target'] ?: '_self') . '"' : '';
+        $name   = e($it['name']);
+        if ($hasSub) {
+            $html .= '<div class="nav-sub-item">';
+            $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . $clsAttr . '>'
+                  . $name . '<span class="nav-sub-arrow">›</span></a>';
+            $html .= '<div class="nav-submenu">' . renderNavDropdownItems($it['children'], $linkClass) . '</div>';
+            $html .= '</div>';
+        } else {
+            $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . $clsAttr . '>' . $name . '</a>';
+        }
+    }
+    return $html;
+}
+
+/**
+ * 递归渲染导航条目（移动端，缩进展开）
+ *
+ * @param string $textColor 内联颜色（空字符串则不输出 color）
+ * @param string $linkClass 额外的 a 标签 class（默认 default 主题样式）
+ */
+function renderNavMobileItems(array $items, int $level, string $textColor, string $linkClass = 'block py-2 hover:text-primary text-sm'): string
+{
+    if (empty($items)) return '';
+    $html = '';
+    foreach ($items as $it) {
+        $url    = function_exists('getChannelUrl') ? getChannelUrl($it) : (string)($it['_url'] ?? '#');
+        $target = ($it['type'] ?? '') === 'link' ? ' target="' . e($it['link_target'] ?: '_self') . '"' : '';
+        $padLeft = $level * 12;
+        $opacity = max(0.6, 1.0 - $level * 0.1);
+        $styleParts = [];
+        if ($textColor !== '') $styleParts[] = 'color:' . e($textColor);
+        $styleParts[] = 'opacity:' . number_format($opacity, 2);
+        $styleParts[] = 'padding-left:' . $padLeft . 'px';
+        $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target
+              . ' class="' . htmlspecialchars($linkClass, ENT_QUOTES) . '"'
+              . ' style="' . implode('; ', $styleParts) . ';">'
+              . e($it['name']) . '</a>';
+        if (!empty($it['children'])) {
+            $html .= renderNavMobileItems($it['children'], $level + 1, $textColor, $linkClass);
+        }
+    }
+    return $html;
+}
+
 function parseShortcodes(string $content): string
 {
     // 表单短码
@@ -1713,6 +1770,19 @@ function parseShortcodes(string $content): string
     // 轮播图短码
     $content = preg_replace_callback('/\[banner-([a-zA-Z0-9_-]+)\]/', function ($matches) {
         return renderBannerShortcode($matches[1]);
+    }, $content);
+
+    // 时间线短码：[timeline]   /   [timeline layout="horizontal"]   /   [timeline layout="compact" limit="5"]
+    $content = preg_replace_callback('/\[timeline(\s+[^\]]*)?\]/', function ($matches) {
+        $opts = [];
+        if (!empty($matches[1])) {
+            if (preg_match_all('/(\w+)\s*=\s*"([^"]*)"/', $matches[1], $mm)) {
+                foreach ($mm[1] as $i => $k) {
+                    $opts[$k] = $mm[2][$i];
+                }
+            }
+        }
+        return function_exists('timelineBlock') ? timelineBlock($opts) : '';
     }, $content);
 
     return $content;

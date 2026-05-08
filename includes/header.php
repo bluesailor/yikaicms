@@ -266,12 +266,7 @@ function getChannelUrl(array $channel): string {
                             </svg>
                         </a>
                         <div class="nav-dropdown-menu">
-                            <?php foreach ($navItem['children'] as $child): ?>
-                            <a href="<?php echo getChannelUrl($child); ?>"
-                               <?php echo $child['type'] === 'link' ? 'target="' . e($child['link_target'] ?: '_self') . '"' : ''; ?>>
-                                <?php echo e($child['name']); ?>
-                            </a>
-                            <?php endforeach; ?>
+                            <?php echo renderNavDropdownItems($navItem['children']); ?>
                         </div>
                     </div>
                     <?php else: ?>
@@ -318,12 +313,7 @@ function getChannelUrl(array $channel): string {
                             </svg>
                         </a>
                         <div class="nav-dropdown-menu">
-                            <?php foreach ($navItem['children'] as $child): ?>
-                            <a href="<?php echo getChannelUrl($child); ?>"
-                               <?php echo $child['type'] === 'link' ? 'target="' . e($child['link_target'] ?: '_self') . '"' : ''; ?>>
-                                <?php echo e($child['name']); ?>
-                            </a>
-                            <?php endforeach; ?>
+                            <?php echo renderNavDropdownItems($navItem['children']); ?>
                         </div>
                     </div>
                     <?php else: ?>
@@ -375,13 +365,7 @@ function getChannelUrl(array $channel): string {
                     </a>
                     <?php if ($hasChildren): ?>
                     <div class="pl-4">
-                        <?php foreach ($navItem['children'] as $child): ?>
-                        <a href="<?php echo getChannelUrl($child); ?>"
-                           <?php echo $child['type'] === 'link' ? 'target="' . e($child['link_target'] ?: '_self') . '"' : ''; ?>
-                           class="block py-2 hover:text-primary text-sm" style="color: <?php echo e($headerTextColor); ?>; opacity: 0.8">
-                            <?php echo e($child['name']); ?>
-                        </a>
-                        <?php endforeach; ?>
+                        <?php echo renderNavMobileItems($navItem['children'], 0, $headerTextColor); ?>
                     </div>
                     <?php endif; ?>
                 </div>

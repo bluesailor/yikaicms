@@ -61,6 +61,11 @@ final class HtmlCache
         header('X-Cache: MISS');
         self::$buffering = true;
         ob_start();
+
+        // 自动 end()：脚本结束时把 OB 内容写入缓存
+        register_shutdown_function(function () {
+            if (self::$buffering) self::end();
+        });
     }
 
     /**
@@ -142,7 +147,16 @@ function htmlCacheStart(int $ttl = 300): void { HtmlCache::start($ttl); }
 function htmlCacheEnd(): void { HtmlCache::end(); }
 function htmlCacheInvalidate(?string $prefix = null): int { return HtmlCache::invalidate($prefix); }
 
-// 挂载失效钩子：保存内容/产品/设置后清缓存
+// 失效钩子
+// 1) Model 基类的 create/update/delete 都会触发通用 data_changed
+add_action('data_changed', function (string $table = '', $id = null): void {
+    // 黑名单：这些表写入不影响前台缓存，避免无谓清理
+    static $skipTables = ['admin_logs', 'ai_logs', 'login_throttle', 'form_throttle'];
+    if (in_array($table, $skipTables, true)) return;
+    HtmlCache::invalidate();
+});
+
+// 2) 兼容老钩子（如果有插件还在用）
 add_action('after_save_content', function (): void { HtmlCache::invalidate(); });
 add_action('after_save_product', function (): void { HtmlCache::invalidate(); });
 add_action('after_delete_content', function (): void { HtmlCache::invalidate(); });

@@ -50,7 +50,13 @@ class SettingModel extends Model
                 [$value, $key]
             );
         }
-        $this->create(['key' => $key, 'value' => $value, 'group' => $group, 'name' => $key, 'tip' => '']);
+        // INSERT 路径：手写 SQL 给 `key` / `group` 加反引号（MySQL 保留字，
+        // 走 Model::create→db()->insert 通用路径会因列名不带反引号而报 1064 语法错误）
+        db()->execute(
+            "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`) VALUES (?, ?, ?, ?, ?)",
+            [$key, $value, $group, $key, '']
+        );
+        if (function_exists('do_action')) do_action('data_changed', $this->table);
         return 1;
     }
 

@@ -157,7 +157,9 @@ class Model
      */
     public function create(array $data): int|string
     {
-        return db()->insert($this->table, $data);
+        $id = db()->insert($this->table, $data);
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return $id;
     }
 
     /**
@@ -165,7 +167,9 @@ class Model
      */
     public function updateById(int $id, array $data): int
     {
-        return db()->update($this->table, $data, "{$this->primaryKey} = ?", [$id]);
+        $r = db()->update($this->table, $data, "{$this->primaryKey} = ?", [$id]);
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return $r;
     }
 
     /**
@@ -173,7 +177,9 @@ class Model
      */
     public function updateWhere(array $data, string $where, array $params = []): int
     {
-        return db()->update($this->table, $data, $where, $params);
+        $r = db()->update($this->table, $data, $where, $params);
+        if (function_exists('do_action')) do_action('data_changed', $this->table);
+        return $r;
     }
 
     /**
@@ -181,7 +187,9 @@ class Model
      */
     public function deleteById(int $id): int
     {
-        return db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
+        $r = db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return $r;
     }
 
     /**
@@ -193,10 +201,12 @@ class Model
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        return db()->execute(
+        $r = db()->execute(
             "DELETE FROM {$this->tableName()} WHERE {$this->primaryKey} IN ({$placeholders})",
             array_values($ids)
         );
+        if (function_exists('do_action')) do_action('data_changed', $this->table);
+        return $r;
     }
 
     /**

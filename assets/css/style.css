@@ -249,3 +249,28 @@ select {
 .banner-swiper:hover .swiper-button-next { opacity: 1; }
 .banner-swiper .swiper-pagination-bullet { background: #fff; opacity: 0.5; width: 12px; height: 12px; }
 .product-item { transition: opacity 0.3s ease; }
+
+/* ============================================================
+   多级导航子菜单（flyout，hover 右侧弹出）
+   ============================================================ */
+.nav-dropdown-menu .nav-sub-item { position: relative; }
+.nav-dropdown-menu .nav-sub-item > a { display: block; padding: 0.5rem 1.25rem; color: #4b5563; white-space: nowrap; transition: all 0.2s; }
+.nav-dropdown-menu .nav-sub-item > a:hover { background: #f3f4f6; color: var(--color-primary, #3B82F6); }
+.nav-sub-arrow { float: right; margin-left: 12px; color: #9ca3af; font-weight: bold; }
+.nav-submenu {
+    position: absolute;
+    top: -0.5rem;
+    left: 100%;
+    min-width: 160px;
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+    padding: 0.5rem 0;
+    margin-left: 0.5rem;
+}
+.nav-submenu a { display: block; padding: 0.5rem 1.25rem; color: #4b5563; white-space: nowrap; transition: all 0.2s; }
+.nav-submenu a:hover { background: #f3f4f6; color: var(--color-primary, #3B82F6); }
+.nav-sub-item:hover > .nav-submenu { opacity: 1; visibility: visible; margin-left: 0; }
