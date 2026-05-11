@@ -16,11 +16,10 @@ checkLogin();
 requirePermission('*');
 
 // ============== 多语言视图（settings 表无 lang 列，per-lang 用 <key>_<lang> 后缀约定） ==============
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 
 // 哪些 key 走 per-lang（文案 + 客户评价 JSON）；剩下（区块顺序/开关/样式/图片/数字/图标/颜色）全局共享
 $LANG_KEYS = [
@@ -831,26 +830,11 @@ function pickFromMedia(key) {
 }
 
 // 表单提交
-document.getElementById('settingForm').addEventListener('submit', async function(e) {
+document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
-
     collectBlocksConfig();
     collectTestimonials();
-
-    var formData = new FormData(this);
-
-    try {
-        var response = await fetch('', { method: 'POST', body: formData });
-        var data = await safeJson(response);
-
-        if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
 });
 </script>
 

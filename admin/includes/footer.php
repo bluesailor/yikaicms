@@ -90,6 +90,123 @@
         return safeJson(response);
     }
 
+    /**
+     * 后台统一保存 helper：消除每个页面的 fetch/safeJson/showMessage/try-catch 样板。
+     *
+     *   adminSave(input, opts)
+     *     input: HTMLFormElement | FormData | object（普通对象会被序列化成 FormData）
+     *     opts: {
+     *       url:        请求地址（默认 ''，即当前页 location）
+     *       successMsg: 成功 toast 文案（默认读 admin_saved；传 false 则不弹）
+     *       errorMsg:   网络异常 toast 文案（默认 "请求失败"）
+     *       onSuccess:  function(data) 服务端 code===0 时调用
+     *       onError:    function(data|err) 失败时调用（覆盖默认 toast）
+     *       reload:     boolean | number  true=保存后立即 reload；数值=延时(ms) 后 reload
+     *       button:     可选 <button> 元素；保存期间会被 disabled 防重复点击
+     *     }
+     *   返回：Promise<{code, msg, data}>
+     *
+     * CSRF token 由本文件上面的 window.fetch 拦截器自动注入，无需调用方关心。
+     */
+    async function adminSave(input, opts) {
+        opts = opts || {};
+        const url = opts.url || '';
+        let body;
+        if (input instanceof HTMLFormElement) {
+            body = new FormData(input);
+        } else if (input instanceof FormData) {
+            body = input;
+        } else if (input && typeof input === 'object') {
+            body = new FormData();
+            for (const k in input) {
+                if (Object.prototype.hasOwnProperty.call(input, k)) body.append(k, input[k]);
+            }
+        } else {
+            body = new FormData();
+        }
+
+        const btn = opts.button;
+        let oldText = null;
+        if (btn && !btn.disabled) {
+            btn.disabled = true;
+            oldText = btn.textContent;
+            btn.dataset._adminSaveLock = '1';
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await safeJson(response);
+            if (data && data.code === 0) {
+                if (opts.successMsg !== false) {
+                    showMessage(opts.successMsg || (window._ADMIN_SAVED_MSG || '已保存'));
+                }
+                if (typeof opts.onSuccess === 'function') opts.onSuccess(data);
+                if (opts.reload) {
+                    const delay = typeof opts.reload === 'number' ? opts.reload : 600;
+                    setTimeout(() => location.reload(), delay);
+                }
+            } else {
+                if (typeof opts.onError === 'function') {
+                    opts.onError(data);
+                } else {
+                    showMessage((data && data.msg) || '保存失败', 'error');
+                }
+            }
+            return data;
+        } catch (err) {
+            console.error('adminSave error:', err);
+            if (typeof opts.onError === 'function') {
+                opts.onError(err);
+            } else {
+                showMessage((opts.errorMsg || '请求失败') + (err && err.message ? ': ' + err.message : ''), 'error');
+            }
+            return { code: -1, msg: err && err.message };
+        } finally {
+            if (btn && btn.dataset._adminSaveLock === '1') {
+                btn.disabled = false;
+                if (oldText !== null) btn.textContent = oldText;
+                delete btn.dataset._adminSaveLock;
+            }
+        }
+    }
+
+    /**
+     * 后台状态切换 helper：toggle 行状态（show/hide、enable/disable 等）的样板代码。
+     *
+     *   adminToggle(action, id, btn, opts)
+     *     action: POST 的 action 字段值（例如 "toggle_status"）
+     *     id:     行 id
+     *     btn:    被点击的 <button>，用于更新 className/text
+     *     opts: {
+     *       url:    请求地址（默认 ''）
+     *       extra:  附加 POST 字段对象
+     *       onOk:   function(data, btn) 服务端 code===0 时调用，自定义按钮样式更新
+     *     }
+     */
+    async function adminToggle(action, id, btn, opts) {
+        opts = opts || {};
+        const fd = new FormData();
+        fd.append('action', action);
+        fd.append('id', String(id));
+        if (opts.extra) {
+            for (const k in opts.extra) fd.append(k, opts.extra[k]);
+        }
+        return adminSave(fd, {
+            url: opts.url,
+            successMsg: opts.successMsg,
+            button: btn,
+            onSuccess: (data) => { if (typeof opts.onOk === 'function') opts.onOk(data, btn); },
+        });
+    }
+
+    // 暴露到 window，供 inline onclick 调用
+    window.adminSave   = adminSave;
+    window.adminToggle = adminToggle;
+
     // 提示消息
     function showMessage(message, type = 'success') {
         const div = document.createElement('div');

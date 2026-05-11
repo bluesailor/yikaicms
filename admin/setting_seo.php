@@ -16,11 +16,10 @@ checkLogin();
 requirePermission('*');
 
 // 视图语言（settings 表无 lang 列，per-lang 用 <key>_<lang> 后缀约定）
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 
 // 哪些 key 走 per-lang（文案）；剩下的（验证码、sitemap 开关）全局共享
 $LANG_KEYS = ['seo_title', 'site_keywords', 'site_description', 'seo_og_image'];
@@ -374,56 +373,28 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
 
 <script>
 // 保存 SEO 设置
-document.getElementById('settingForm')?.addEventListener('submit', async function(e) {
+document.getElementById('settingForm')?.addEventListener('submit', function (e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    try {
-        const response = await fetch('', { method: 'POST', body: formData });
-        const data = await safeJson(response);
-        if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
 });
 
 // 保存 robots.txt
 async function saveRobots() {
-    const formData = new FormData();
-    formData.append('action', 'save_robots');
-    formData.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo csrfToken(); ?>');
-    formData.append('robots_content', document.getElementById('robotsContent').value);
-    try {
-        const response = await fetch('', { method: 'POST', body: formData });
-        const data = await safeJson(response);
-        if (data.code === 0) {
-            showMessage(data.msg);
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+    return adminSave({
+        action: 'save_robots',
+        robots_content: document.getElementById('robotsContent').value,
+    }, {
+        successMsg: false,  // 用服务端返回的 msg
+        onSuccess: (d) => showMessage(d.msg || '已保存'),
+    });
 }
 
 // 清除 Sitemap 缓存
 async function clearSitemapCache() {
-    const formData = new FormData();
-    formData.append('action', 'clear_sitemap_cache');
-    try {
-        const response = await fetch('', { method: 'POST', body: formData });
-        const data = await safeJson(response);
-        if (data.code === 0) {
-            showMessage(data.msg);
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+    return adminSave({ action: 'clear_sitemap_cache' }, {
+        successMsg: false,
+        onSuccess: (d) => showMessage(d.msg || '缓存已清除'),
+    });
 }
 
 // 描述字数统计

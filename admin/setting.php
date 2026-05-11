@@ -16,11 +16,10 @@ checkLogin();
 requirePermission('*');
 
 // ============== 多语言视图（仅 footer tab 启用；per-lang 用 <key>_<lang> 后缀约定） ==============
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 $_tabForLang  = (string) ($_GET['tab'] ?? $_POST['tab_hint'] ?? 'basic');
 $_langAware   = ($_tabForLang === 'footer');  // 当前仅 footer 走 per-lang
 // footer tab 上算 lang-able 的 key
@@ -743,25 +742,15 @@ async function restoreAllDefaults() {
     }
 }
 
-document.getElementById('settingForm')?.addEventListener('submit', async function(e) {
+document.getElementById('settingForm')?.addEventListener('submit', function (e) {
     e.preventDefault();
     collectFooterColumns();
     collectFooterNav();
-
-    const formData = new FormData(this);
-
-    try {
-        const response = await fetch(location.href, { method: 'POST', body: formData });
-        const data = await safeJson(response);
-
-        if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('<?php echo __('admin_request_failed'); ?>', 'error');
-    }
+    adminSave(this, {
+        url: location.href,
+        successMsg: '<?php echo __('admin_saved'); ?>',
+        errorMsg:   '<?php echo __('admin_request_failed'); ?>',
+    });
 });
 
 // ========== 页脚导航编辑器 ==========

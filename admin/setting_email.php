@@ -51,11 +51,10 @@ $activeTab = get('tab', 'smtp');
 if (!isset($tabs[$activeTab])) $activeTab = 'smtp';
 
 // ============== 多语言视图（仅模板 tab 启用） ==============
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 // smtp tab 不分语言；其余模板 tab 全部 lang-aware
 $_emailLangAware = ($activeTab !== 'smtp');
 $EMAIL_LANG_KEYS = [
@@ -299,15 +298,9 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
 </div>
 
 <script>
-document.getElementById('settingForm').addEventListener('submit', async function(e) {
+document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    try {
-        const response = await fetch('', { method: 'POST', body: formData });
-        const data = await safeJson(response);
-        if (data.code === 0) showMessage('<?php echo __('admin_saved'); ?>');
-        else showMessage(data.msg, 'error');
-    } catch (err) { showMessage('请求失败', 'error'); }
+    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
 });
 
 function testEmail() {
@@ -389,15 +382,9 @@ async function sendTestEmail() {
 </form>
 
 <script>
-document.getElementById('tplForm').addEventListener('submit', async function(e) {
+document.getElementById('tplForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    try {
-        const response = await fetch('', { method: 'POST', body: formData });
-        const data = await safeJson(response);
-        if (data.code === 0) showMessage('<?php echo __('admin_saved'); ?>');
-        else showMessage(data.msg, 'error');
-    } catch (err) { showMessage('请求失败', 'error'); }
+    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
 });
 
 function insertVar(varName) {

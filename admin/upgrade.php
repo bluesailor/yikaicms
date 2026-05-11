@@ -45,6 +45,15 @@ function _sqlToSqlite(string $sql): ?string
     $sql = preg_replace('/\bINTEGER\s+NOT\s+NULL\s+AUTOINCREMENT/i', 'INTEGER PRIMARY KEY AUTOINCREMENT', $sql);
     $sql = preg_replace('/\s+AFTER\s+`[^`]+`/i', '', $sql);
     $sql = preg_replace('/\bINSERT\s+IGNORE\b/i', 'INSERT OR IGNORE', $sql);
+
+    // MySQL `INSERT ... ON DUPLICATE KEY UPDATE col=VALUES(col)` 不被 SQLite 识别。
+    // 转成 `INSERT OR REPLACE INTO ...`（语义近似：若 UNIQUE 冲突则替换整行）。
+    // 注：INSERT OR REPLACE 会删旧行再插新行，可能跳号自增 id —— settings/seed 场景无影响。
+    if (stripos($sql, 'ON DUPLICATE KEY UPDATE') !== false) {
+        $sql = preg_replace('/\s+ON\s+DUPLICATE\s+KEY\s+UPDATE\s+.*$/is', '', $sql);
+        $sql = preg_replace('/^\s*INSERT\s+INTO\s+/i', 'INSERT OR REPLACE INTO ', $sql, 1);
+    }
+
     if (stripos($sql, 'AUTOINCREMENT') !== false) {
         $sql = preg_replace('/,\s*PRIMARY\s+KEY\s*\(`id`\)/i', '', $sql);
     }
@@ -52,7 +61,34 @@ function _sqlToSqlite(string $sql): ?string
     return $sql;
 }
 
+/**
+ * 加载 migrations/ 目录下的所有迁移文件。
+ *
+ * 每个文件 return 一个 ['id','title','desc','check','sqls'(,'php')] 数组
+ * （参考 migrations/README.md）。按文件名排序加载，跳过 README.md。
+ *
+ * 文件级迁移与下方 inline $upgrades 数组合并；同 id 时文件版覆盖 inline 版。
+ */
+function _loadFileMigrations(): array
+{
+    $dir = ROOT_PATH . '/migrations';
+    if (!is_dir($dir)) return [];
+    $files = glob($dir . '/*.php') ?: [];
+    sort($files);  // 按文件名（含日期前缀）排序
+    $list = [];
+    foreach ($files as $f) {
+        $m = require $f;
+        if (!is_array($m) || empty($m['id']) || empty($m['check'])) {
+            error_log("[upgrade] migration file missing required keys: $f");
+            continue;
+        }
+        $list[] = $m;
+    }
+    return $list;
+}
+
 // 升级项定义：每项包含 id、描述、检测方法、执行SQL
+// 新增迁移建议放到 migrations/YYYYMMDD_<id>.php，下方 inline 数组逐步迁出
 $upgrades = [
 
     [
@@ -851,9 +887,19 @@ $upgrades = [
         ],
     ],
 
-    // --- 未来升级项追加到这里 ---
+    // --- 未来升级项追加到这里（建议直接放到 migrations/ 目录） ---
 
 ];
+
+// 合并 migrations/ 目录下的文件化迁移；同 id 时文件版覆盖 inline 版
+$_fileMigrations = _loadFileMigrations();
+if ($_fileMigrations) {
+    $byId = [];
+    foreach ($upgrades as $u) $byId[$u['id']] = $u;
+    foreach ($_fileMigrations as $u) $byId[$u['id']] = $u;  // 文件覆盖 inline
+    $upgrades = array_values($byId);
+    unset($byId);
+}
 
 // AJAX: 在线升级检测（服务端代理，避免 CORS）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_update') {
@@ -970,9 +1016,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
     exit;
 }
 
-// 检测各项状态
+// 检测各项状态（check() 抛错时按 pending 处理，避免单条迁移让整页 500）
 foreach ($upgrades as &$up) {
-    $up['status'] = $up['check']() ? 'done' : 'pending';
+    try {
+        $up['status'] = $up['check']() ? 'done' : 'pending';
+    } catch (\Throwable $e) {
+        // 常见原因：迁移 A 依赖迁移 B 已加的列，check 中直接 SELECT 那列；A 先 check 时列不存在
+        $up['status'] = 'pending';
+        $up['_check_error'] = $e->getMessage();
+    }
 }
 unset($up);
 

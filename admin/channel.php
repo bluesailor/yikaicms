@@ -236,11 +236,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 视图语言：URL 参数 ?lang= 决定列哪个语言的频道
 // 默认列源语言（site_lang）；切换到 en/ja 时显示对应语言的镜像行
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 $_adminLang   = $_viewLang;
 // 标签来自 availableLanguages()（扫 lang/*.php），新增语言只要丢文件即自动可用
 $_langLabels  = availableLanguages();

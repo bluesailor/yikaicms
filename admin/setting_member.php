@@ -129,16 +129,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </form>
 
 <script>
-document.getElementById('settingForm').addEventListener('submit', async function(e) {
+document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    const response = await fetch('', { method: 'POST', body: formData });
-    const data = await safeJson(response);
-    if (data.code === 0) {
-        showMessage('<?php echo __('admin_saved'); ?>');
-    } else {
-        showMessage(data.msg, 'error');
-    }
+    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
 });
 
 function copyToClipboard(elId, btn) {

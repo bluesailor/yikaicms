@@ -15,12 +15,12 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
-// ============== 多语言视图（settings 表无 lang 列，per-lang 用 <key>_<lang> 后缀约定） ==============
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+// ============== 多语言视图 ==============
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$_lang = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 
 // 哪些 key 走 per-lang：电话/邮箱/地址、卡片 JSON、表单标题/描述/成功提示/字段标签
 $LANG_KEYS = [
@@ -32,43 +32,20 @@ $LANG_KEYS = [
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $settings = $_POST['settings'] ?? [];
-
-    // 按视图 lang 把 lang-able key 重定向到 <key>_<lang>
-    $remapped = [];
-    foreach ($settings as $k => $v) {
-        $isLangAble = in_array($k, $LANG_KEYS, true);
-        $targetKey = ($isLangAble && $_viewLang !== $_defaultLang) ? ($k . '_' . $_viewLang) : (string) $k;
-        $remapped[$targetKey] = $v;
-    }
-    settingModel()->saveBatch($remapped);
-
+    $settings = adminRemapLangKeys($_POST['settings'] ?? [], $LANG_KEYS);
+    settingModel()->saveBatch($settings);
     adminLog('setting', 'update', '更新联系设置 (' . $_viewLang . ')');
     success();
 }
 
-// 获取 contact 分组设置
-$allSettings = settingModel()->getByGroup('contact');
-
-// 过滤掉 lang-后缀的种子行（contact_phone_en / contact_phone_ja / contact_address_en …）
-// 这些是 per-lang 存储位，不是独立设置项；它们的值通过 lang 切换器显示在 base 行里。
-$_langSuffixes = [];
-foreach ($_enabledList as $_lc) {
-    if ($_lc !== $_defaultLang) $_langSuffixes[] = '_' . $_lc;
-}
-$allSettings = array_values(array_filter($allSettings, function (array $row) use ($_langSuffixes): bool {
-    foreach ($_langSuffixes as $suf) {
-        if (str_ends_with($row['key'], $suf)) return false;
-    }
-    return true;
-}));
+// 获取 contact 分组设置，过滤掉 per-lang 种子行（contact_phone_en 等）
+$allSettings = adminFilterLangSuffixes(settingModel()->getByGroup('contact'));
 
 // 把 lang-able key 的 value 替换成视图 lang 对应的存储值
-if ($_viewLang !== $_defaultLang) {
+if (!$_lang['isSource']) {
     foreach ($allSettings as &$row) {
         if (!in_array($row['key'], $LANG_KEYS, true)) continue;
-        $langVal = (string) config($row['key'] . '_' . $_viewLang, '');
-        $row['value'] = $langVal;  // 没翻译就显示空，让用户填写
+        $row['value'] = (string) config($row['key'] . '_' . $_viewLang, '');
     }
     unset($row);
 }
@@ -101,22 +78,16 @@ $tab = $_GET['tab'] ?? 'info';
 $pageTitle = '联系设置';
 $currentMenu = 'setting_contact';
 
-require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
 echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/表单文案 按语言独立保存（key_' . $_viewLang . '）；二维码、地图、表单字段类型/必填/启用 全局共享');
 ?>
 
 <!-- Tab 导航 -->
-<?php
-// 切换 tab 时保留 ?lang= 视图参数
-$_langQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
-$_langQSOnly = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) : '';
-?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/setting_contact.php<?php echo $_langQSOnly; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_info_title'); ?></a>
-        <a href="/admin/setting_contact.php?tab=form<?php echo $_langQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_form_config'); ?></a>
+        <a href="/admin/setting_contact.php<?php echo $_lang['qs']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_info_title'); ?></a>
+        <a href="/admin/setting_contact.php?tab=form<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_form_config'); ?></a>
     </div>
 </div>
 
@@ -543,25 +514,11 @@ function collectFormFields() {
     document.getElementById('contactFormFieldsJson').value = JSON.stringify(fields);
 }
 
-document.getElementById('settingForm').addEventListener('submit', async function(e) {
+document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
     collectContactCards();
     collectFormFields();
-
-    const formData = new FormData(this);
-
-    try {
-        const response = await fetch(location.href, { method: 'POST', body: formData });
-        const data = await safeJson(response);
-
-        if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
-        } else {
-            showMessage(data.msg, 'error');
-        }
-    } catch (err) {
-        showMessage('请求失败', 'error');
-    }
+    adminSave(this, { url: location.href, successMsg: '<?php echo __('admin_saved'); ?>' });
 });
 </script>
 

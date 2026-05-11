@@ -20,7 +20,11 @@ final class JobController extends ListController
         $offset    = ($page - 1) * $perPage;
         $keyword   = (string) $request['keyword'];
 
-        $filters = ['status' => '1'];
+        // 按当前前台语言过滤，避免前台招聘列表把 zh/en/ja 全部列出来
+        $filters = [
+            'status' => '1',
+            'lang'   => function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN'),
+        ];
         if ($keyword !== '') {
             $filters['keyword'] = $keyword;
         }
