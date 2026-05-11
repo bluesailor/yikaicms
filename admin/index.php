@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 后台控制台
+ * YikaiCMS - 后台控制台
  *
  * PHP 8.0+
  */
@@ -22,9 +22,13 @@ $stats = [
     'media' => mediaModel()->count(),
 ];
 
-// 最新内容（关联栏目类型）
+// 最新内容（关联栏目类型）—— 只显示源语言行，避免 EN/JA 翻译版本污染列表
+$_dashDefaultLang = (string) config('site_lang', 'zh-CN');
 $latestContents = contentModel()->query(
-    'SELECT c.*, ch.type AS channel_type FROM ' . contentModel()->tableName() . ' c LEFT JOIN ' . channelModel()->tableName() . ' ch ON c.channel_id = ch.id ORDER BY c.id DESC LIMIT 10'
+    'SELECT c.*, ch.type AS channel_type FROM ' . contentModel()->tableName() . ' c '
+    . 'LEFT JOIN ' . channelModel()->tableName() . ' ch ON c.channel_id = ch.id '
+    . 'WHERE c.lang = ? ORDER BY c.id DESC LIMIT 10',
+    [$_dashDefaultLang]
 );
 
 // 最新表单

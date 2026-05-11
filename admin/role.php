@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 角色管理
+ * YikaiCMS - 角色管理
  *
  * PHP 8.0+
  */

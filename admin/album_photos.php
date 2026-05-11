@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 相册图片管理
+ * YikaiCMS - 相册图片管理
  *
  * PHP 8.0+
  */

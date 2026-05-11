@@ -10,11 +10,21 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('content');
 
+// ============== 多语言视图 ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'save') {
         $id = postInt('id');
+        $postLang = (string) (post('lang') ?: $_viewLang);
+        if (!in_array($postLang, $_enabledList, true)) $postLang = $_defaultLang;
+
         $data = [
             'name' => post('name'),
             'slug' => post('slug') ?: 'brand-' . time(),
@@ -28,9 +38,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($data['name'])) error('请输入品牌名称');
 
         if ($id > 0) {
+            // 编辑：保留原 lang 与 translation_group_id（不在表单里改）
             db()->update('brands', $data, 'id = ?', [$id]);
         } else {
-            db()->insert('brands', $data);
+            // 新建：写入 lang；源语言下 translation_group_id 后续插完用自身 id 回填
+            $data['lang'] = $postLang;
+            $data['translation_group_id'] = 0;
+            $newId = (int) db()->insert('brands', $data);
+            if ($postLang === $_defaultLang) {
+                // 源记录：translation_group_id = 自己的 id（与 channels/products 保持一致）
+                db()->execute("UPDATE " . DB_PREFIX . "brands SET translation_group_id = ? WHERE id = ?", [$newId, $newId]);
+            }
         }
         success();
     }
@@ -53,16 +71,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$brands = db()->fetchAll("SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count FROM " . DB_PREFIX . "brands b ORDER BY b.sort_order ASC, b.id ASC");
+$brands = db()->fetchAll(
+    "SELECT b.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE brand_id = b.id) as product_count
+     FROM " . DB_PREFIX . "brands b
+     WHERE b.lang = ?
+     ORDER BY b.sort_order ASC, b.id ASC",
+    [$_viewLang]
+);
 $editBrand = null;
 $editId = getInt('edit');
 if ($editId > 0) {
     $editBrand = db()->fetchOne("SELECT * FROM " . DB_PREFIX . "brands WHERE id = ?", [$editId]);
+    // 安全：如果 ?edit= 指向的行不属于当前视图 lang，自动切换视图，避免在错语言下编辑造成困惑
+    if ($editBrand && $editBrand['lang'] !== $_viewLang && in_array($editBrand['lang'], $_enabledList, true)) {
+        $_viewLang = (string) $editBrand['lang'];
+    }
 }
 
 $pageTitle = '品牌管理';
 $currentMenu = 'product';
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('brands');
 require_once ROOT_PATH . '/admin/includes/header.php';
+echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_viewLang . ' 语种品牌；翻译徽标列点击进入翻译版本');
 ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
@@ -82,6 +113,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="px-6 py-4 border-b flex justify-between items-center">
                 <h3 class="font-bold">品牌列表 <span class="text-gray-400 font-normal">(<?php echo count($brands); ?>)</span></h3>
             </div>
+            <?php $_brandLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : ''; ?>
             <table class="w-full">
                 <thead class="bg-gray-50">
                     <tr>
@@ -89,6 +121,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">品牌</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">产地</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_count'); ?></th>
+                        <?php if ($_viewLang === $_defaultLang): ?>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">翻译</th>
+                        <?php endif; ?>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_sort_order'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
                     </tr>
@@ -107,10 +142,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500"><?php echo e($b['country'] ?: '-'); ?></td>
                         <td class="px-4 py-3 text-center"><span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded"><?php echo $b['product_count']; ?></span></td>
+                        <?php if ($_viewLang === $_defaultLang): ?>
+                        <td class="px-4 py-3 text-center">
+                            <?php echo renderTransPills((int)$b['id'], $transStatus, '/admin/product_brand.php', 'edit'); ?>
+                        </td>
+                        <?php endif; ?>
                         <td class="px-4 py-3 text-center text-sm text-gray-500"><?php echo $b['sort_order']; ?></td>
                         <td class="px-4 py-3 text-center">
-                            <a href="?edit=<?php echo $b['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm mr-2"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> <?php echo __('admin_edit'); ?></a>
+                            <a href="?edit=<?php echo $b['id']; ?><?php echo $_brandLangQS; ?>" class="text-blue-500 hover:text-blue-700 text-sm mr-2"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> <?php echo __('admin_edit'); ?></a>
+                            <?php if ($_viewLang === $_defaultLang): ?>
                             <button onclick="deleteBrand(<?php echo $b['id']; ?>)" class="text-red-500 hover:text-red-700"><svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -132,6 +174,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <form id="brandForm" class="space-y-4">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" value="<?php echo $editBrand['id'] ?? 0; ?>">
+                <input type="hidden" name="lang" value="<?php echo e($editBrand['lang'] ?? $_viewLang); ?>">
+                <?php if (!$editBrand && $_viewLang !== $_defaultLang): ?>
+                <div class="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-2 py-1.5">
+                    在 <?php echo e($_viewLang); ?> 视图下新建会创建独立的翻译行。建议先在 zh-CN 创建源记录，再切到 EN/JA 录翻译。
+                </div>
+                <?php endif; ?>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称 *</label>
                     <input type="text" name="name" value="<?php echo e($editBrand['name'] ?? ''); ?>" required class="w-full border rounded px-3 py-2 text-sm">

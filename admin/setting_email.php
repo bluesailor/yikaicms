@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 邮件配置
+ * YikaiCMS - 邮件配置
  *
  * SMTP 配置 + 邮件模板管理 + 测试发送
  */
@@ -50,6 +50,21 @@ $tabs = [
 $activeTab = get('tab', 'smtp');
 if (!isset($tabs[$activeTab])) $activeTab = 'smtp';
 
+// ============== 多语言视图（仅模板 tab 启用） ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+// smtp tab 不分语言；其余模板 tab 全部 lang-aware
+$_emailLangAware = ($activeTab !== 'smtp');
+$EMAIL_LANG_KEYS = [
+    'mail_tpl_register_subject', 'mail_tpl_register_body',
+    'mail_tpl_forgot_subject',   'mail_tpl_forgot_body',
+    'mail_tpl_reset_subject',    'mail_tpl_reset_body',
+    'mail_tpl_inquiry_subject',  'mail_tpl_inquiry_body',
+];
+
 // ============================================================
 // AJAX: 测试发送
 // ============================================================
@@ -77,19 +92,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'test') {
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') {
     $settings = $_POST['settings'] ?? [];
+    $saveTab  = post('_save_tab', 'smtp');
+    $isLangTab = ($saveTab !== 'smtp');
+
     foreach ($settings as $key => $value) {
-        settingModel()->set($key, $value);
+        // 模板 tab + 非默认语言：写入 <key>_<lang>
+        if ($isLangTab && $_viewLang !== $_defaultLang && in_array($key, $EMAIL_LANG_KEYS, true)) {
+            settingModel()->set($key . '_' . $_viewLang, (string) $value);
+        } else {
+            settingModel()->set($key, (string) $value);
+        }
     }
 
-    $tab = post('_save_tab', 'smtp');
-    adminLog('setting', 'update', '更新邮件设置: ' . ($tabs[$tab]['title'] ?? 'SMTP'));
+    adminLog('setting', 'update', '更新邮件设置: ' . ($tabs[$saveTab]['title'] ?? 'SMTP') . ' (' . ($isLangTab ? $_viewLang : 'global') . ')');
     success();
 }
+
+// lang-aware 读取：模板 tab + 非默认语言时优先 <key>_<lang>，空则回退到 base
+$readEmailLang = function (string $base) use ($EMAIL_LANG_KEYS, $_emailLangAware, $_viewLang, $_defaultLang): string {
+    if ($_emailLangAware && in_array($base, $EMAIL_LANG_KEYS, true) && $_viewLang !== $_defaultLang) {
+        $v = (string) config($base . '_' . $_viewLang, '');
+        if ($v !== '') return $v;
+    }
+    return (string) config($base, '');
+};
 
 $pageTitle = '邮件配置';
 $currentMenu = 'setting_email';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+if ($_emailLangAware) {
+    echo renderAdminLangSwitcher($_viewLang, '提示：邮件模板的"标题/正文"按语言独立保存（key_' . $_viewLang . '）；SMTP/发件人/收件人 全局共享');
+}
 ?>
 
 <div class="mb-6">
@@ -97,10 +133,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <!-- Tab 导航 -->
+<?php
+// 模板 tab 链接保留 ?lang= 视图；smtp tab 链接不带 lang（SMTP 不分语言）
+$_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
+?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b overflow-x-auto">
         <?php foreach ($tabs as $tabId => $tab): ?>
-        <a href="?tab=<?php echo e($tabId); ?>"
+        <?php $_tabHref = ($tabId === 'smtp') ? '?tab=smtp' : ('?tab=' . urlencode($tabId) . $_emailLangQS); ?>
+        <a href="<?php echo e($_tabHref); ?>"
            class="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition <?php echo $activeTab === $tabId ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
             <i class="fa-solid <?php echo e($tab['icon']); ?> mr-1.5"></i><?php echo e($tab['title']); ?>
         </a>
@@ -321,7 +362,7 @@ async function sendTestEmail() {
                 <label class="text-gray-700 pt-2"><?php echo __('email_subject'); ?></label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[<?php echo e($subjectKey); ?>]"
-                           value="<?php echo e(config($subjectKey)); ?>"
+                           value="<?php echo e($readEmailLang($subjectKey)); ?>"
                            class="w-full border rounded px-4 py-2"
                            placeholder="请输入邮件标题...">
                 </div>
@@ -331,7 +372,7 @@ async function sendTestEmail() {
                 <div class="md:col-span-3">
                     <textarea name="settings[<?php echo e($bodyKey); ?>]" rows="14" id="tplBody"
                               class="w-full border rounded px-4 py-2 font-mono text-sm leading-relaxed"
-                              placeholder="请输入邮件正文..."><?php echo e(config($bodyKey)); ?></textarea>
+                              placeholder="请输入邮件正文..."><?php echo e($readEmailLang($bodyKey)); ?></textarea>
                 </div>
             </div>
         </div>

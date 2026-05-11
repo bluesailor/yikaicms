@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 插件管理
+ * YikaiCMS - 插件管理
  *
  * PHP 8.0+
  */

@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 下载分类管理
+ * YikaiCMS - 下载分类管理
  *
  * PHP 8.0+
  */

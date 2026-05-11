@@ -106,7 +106,9 @@ class ProductModel extends Model
         $where = [];
         $params = [];
 
-        if (isMultiLangEnabled('products') && !empty($filters['lang'])) {
+        // admin 上下文：filters['lang'] 显式传入时无条件按 lang 过滤
+        //（不依赖 isMultiLangEnabled / show_lang_switcher 这种前台开关）
+        if (!empty($filters['lang'])) {
             $where[] = 'p.lang = ?';
             $params[] = $filters['lang'];
         }
@@ -186,6 +188,34 @@ class ProductModel extends Model
     }
 
     /**
+     * 按 slug 查找 + 多语言感知
+     * URL 上是源 slug；当 siteLang != default 时按 translation_group_id 跳到翻译行
+     */
+    public function findBySlugLang(string $slug): ?array
+    {
+        $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+        $defaultLang = (string) config('site_lang', 'zh-CN');
+        if ($lang === $defaultLang) return $this->findBySlug($slug);
+
+        $src = db()->fetchOne(
+            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1",
+            [$slug]
+        );
+        if (!$src) return null;
+        $groupId = (int) ($src['translation_group_id'] ?: $src['id']);
+
+        $translated = db()->fetchOne(
+            "SELECT p.*, pc.name as category_name, pc.slug as category_slug
+             FROM {$this->tableName()} p
+             LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
+             WHERE p.translation_group_id = ? AND p.lang = ? AND p.status = 1
+             LIMIT 1",
+            [$groupId, $lang]
+        );
+        return $translated ?: $this->findBySlug($slug);
+    }
+
+    /**
      * 上一个产品
      */
     public function getPrev(int $categoryId, int $currentId): ?array
@@ -218,13 +248,15 @@ class ProductModel extends Model
      */
     public function getRelated(int $categoryId, int $excludeId, int $limit = 4): array
     {
+        // 按当前 siteLang 过滤，避免详情页底部"相关产品"串语言
+        $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
         return db()->fetchAll(
             "SELECT p.*, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.category_id = ? AND p.status = 1 AND p.id != ?
+             WHERE p.category_id = ? AND p.status = 1 AND p.id != ? AND p.lang = ?
              ORDER BY p.is_recommend DESC, p.sort_order ASC, p.id DESC LIMIT ?",
-            [$categoryId, $excludeId, $limit]
+            [$categoryId, $excludeId, $lang, $limit]
         );
     }
 

@@ -36,16 +36,22 @@ class ProductCategoryModel extends Model
 
     /**
      * 获取带缩进的平面选项
+     *
+     * @param int    $parentId 父分类 id，递归时使用
+     * @param int    $level    当前层级（缩进用）
+     * @param string $lang     仅返回该语言的分类；传 '' 则不过滤 lang
      */
-    public function getFlatOptions(int $parentId = 0, int $level = 0): array
+    public function getFlatOptions(int $parentId = 0, int $level = 0, string $lang = ''): array
     {
         $result = [];
-        $items = $this->where(['parent_id' => $parentId]);
+        $cond = ['parent_id' => $parentId];
+        if ($lang !== '') $cond['lang'] = $lang;
+        $items = $this->where($cond);
         foreach ($items as $item) {
             $item['_level'] = $level;
             $item['_prefix'] = str_repeat('　', $level);
             $result[] = $item;
-            $children = $this->getFlatOptions((int) $item['id'], $level + 1);
+            $children = $this->getFlatOptions((int) $item['id'], $level + 1, $lang);
             $result = array_merge($result, $children);
         }
         return $result;

@@ -1,0 +1,116 @@
+<?php
+/**
+ * Yikai CMS Installer — English language pack
+ */
+
+return [
+    // Common
+    'lang_name' => 'English',
+    'title' => 'Yikai CMS Installer',
+    'prev' => 'Back',
+    'next' => 'Next',
+    'finish' => 'Install',
+    'retry' => 'Retry',
+
+    // Steps
+    'step1' => 'Environment',
+    'step2' => 'Database',
+    'step3' => 'Admin Setup',
+    'step4' => 'Done',
+
+    // Environment check
+    'env_check' => 'Environment Check',
+    'env_php_version' => 'PHP Version',
+    'env_required' => 'Required',
+    'env_current' => 'Current',
+    'env_status' => 'Status',
+    'env_pass' => 'OK',
+    'env_fail' => 'Fail',
+    'env_pdo' => 'PDO Extension',
+    'env_pdo_mysql' => 'PDO MySQL Extension',
+    'env_pdo_sqlite' => 'PDO SQLite Extension',
+    'env_json' => 'JSON Extension',
+    'env_mbstring' => 'Mbstring Extension',
+    'env_openssl' => 'OpenSSL Extension',
+    'env_fileinfo' => 'Fileinfo Extension',
+    'env_gd' => 'GD Extension',
+    'env_dir_writable' => 'Directory Writable',
+    'env_required_ext' => 'Required',
+    'env_optional_ext' => 'Optional',
+    'env_writable' => 'Writable',
+    'env_not_writable' => 'Not writable',
+    'env_not_found' => 'Directory not found',
+    'env_check_fail' => 'Environment check failed. Please resolve the issues above before continuing.',
+
+    // Database config
+    'db_config' => 'Database Configuration',
+    'db_type' => 'Database Type',
+    'db_mysql' => 'MySQL',
+    'db_sqlite' => 'SQLite',
+    'db_mysql_desc' => 'Recommended for production. Requires MySQL 5.7+.',
+    'db_sqlite_desc' => 'Lightweight deployment, no extra DB server required.',
+    'db_host' => 'Host',
+    'db_port' => 'Port',
+    'db_name' => 'Database Name',
+    'db_user' => 'Username',
+    'db_pass' => 'Password',
+    'db_prefix' => 'Table Prefix',
+    'db_test' => 'Test Connection',
+    'db_test_success' => 'Connection successful',
+    'db_test_fail' => 'Connection failed',
+    'db_create_new' => 'Create database if it does not exist',
+
+    // Admin setup
+    'admin_config' => 'Administrator',
+    'admin_user' => 'Admin Username',
+    'admin_pass' => 'Admin Password',
+    'admin_pass_confirm' => 'Confirm Password',
+    'admin_email' => 'Admin Email',
+    'site_name' => 'Site Name',
+    'site_url' => 'Site URL',
+    'site_lang_label' => 'Frontend Language',
+    'site_lang_tip' => 'Language displayed to public visitors',
+    'admin_lang_label' => 'Admin Panel Language',
+    'admin_lang_tip' => 'Language for the logged-in administration UI',
+    'install_demo_label' => 'Install demo data',
+    'install_demo_tip' => 'Includes sample articles, products and pages (removable later)',
+    'admin_user_tip' => '4–20 alphanumeric characters',
+    'admin_pass_tip' => 'At least 6 characters',
+    'password_mismatch' => 'Passwords do not match',
+
+    // Installing
+    'installing' => 'Installing...',
+    'install_create_db' => 'Creating database schema',
+    'install_init_data' => 'Seeding initial data',
+    'install_create_admin' => 'Creating administrator account',
+    'install_write_config' => 'Writing configuration file',
+    'install_success' => 'Installation successful',
+    'install_fail' => 'Installation failed',
+
+    // Complete
+    'install_complete' => 'Installation Complete',
+    'install_complete_desc' => 'Yikai CMS has been installed successfully. Please keep your administrator credentials safe.',
+    'goto_admin' => 'Go to admin panel',
+    'goto_home' => 'Go to homepage',
+    'security_tip' => 'Security: please remove the install/ directory.',
+
+    // Rewrite guide
+    'rewrite_title' => 'URL Rewrite Configuration',
+    'rewrite_desc' => 'Clean URLs (e.g. /company.html) require web-server rewrite rules.',
+    'rewrite_apache_ok' => 'No configuration needed',
+    'rewrite_apache_desc' => 'A .htaccess file is included. As long as Apache mod_rewrite is enabled, it works automatically.',
+    'rewrite_apache_check' => 'Make sure AllowOverride All is set in your Apache httpd.conf.',
+    'rewrite_nginx_manual' => 'Manual configuration required',
+    'rewrite_nginx_desc' => 'Add the following block to your Nginx site config (inside the server block).',
+    'rewrite_nginx_reload' => 'After saving, run nginx -t to verify syntax, then nginx -s reload to apply.',
+
+    // Errors
+    'error_already_installed' => 'Already installed. To reinstall, delete the installed.lock file first.',
+    'error_php_version' => 'PHP version is too low. PHP 8.0 or newer is required.',
+    'error_dir_not_writable' => 'Directory is not writable: ',
+    'error_db_connect' => 'Database connection failed: ',
+    'error_db_create' => 'Failed to create database: ',
+    'error_sql_execute' => 'Failed to execute SQL: ',
+    'error_admin_create' => 'Failed to create administrator: ',
+    'error_config_write' => 'Failed to write configuration file',
+];

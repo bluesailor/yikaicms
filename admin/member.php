@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 后台会员管理
+ * YikaiCMS - 后台会员管理
  *
  * PHP 8.0+
  */

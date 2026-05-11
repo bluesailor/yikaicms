@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 媒体库管理
+ * YikaiCMS - 媒体库管理
  *
  * PHP 8.0+
  */

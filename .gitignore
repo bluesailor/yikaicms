@@ -64,3 +64,9 @@ composer.phar
 composer.lock
 installed.lock
 2026-*.png
+
+# DB backup dumps (large; should not be tracked)
+storage/backups/
+
+# PHPUnit cache
+.phpunit.cache/

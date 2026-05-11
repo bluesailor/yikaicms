@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 文件上传
+ * YikaiCMS - 文件上传
  *
  * PHP 8.0+
  */

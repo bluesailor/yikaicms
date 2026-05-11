@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 产品编辑
+ * YikaiCMS - 产品编辑
  *
  * PHP 8.0+
  */
@@ -14,6 +14,15 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('content');
+
+// 多语言翻译创建器：拦截 action=create_translation 的 POST
+$langSwitcher = [
+    'table' => 'products',
+    'model' => productModel(),
+    'title_field'   => 'title',
+    'summary_field' => 'summary',
+];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 $id = getInt('id');
 $product = null;
@@ -78,8 +87,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success(['id' => $id]);
 }
 
-// 获取分类树
-$categories = productCategoryModel()->getFlatOptions();
+// 编辑视图的语言：编辑现有 → 用该产品的 lang；新建 → 用 ?lang= 参数，没传则用源语言
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+if ($product && !empty($product['lang'])) {
+    $_editLang = (string) $product['lang'];
+} else {
+    $_editLang = (string) get('lang', $_defaultLang);
+}
+
+// 获取分类树（按当前编辑语言过滤，避免新建中文产品时下拉看见 EN/JA 分类）
+$categories = productCategoryModel()->getFlatOptions(0, 0, $_editLang);
 
 // 获取标签数据
 $allTags = productModel()->getAllTags();
@@ -93,8 +110,13 @@ $recentTags = array_slice($recentTags, 0, 10);
 $pageTitle = $product ? '编辑产品' : '添加产品';
 $currentMenu = 'product';
 
+$langSwitcher['item']     = $product;
+$langSwitcher['edit_url'] = '/admin/product_edit.php';
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <form id="editForm" class="space-y-6">
     <div class="flex flex-col lg:flex-row gap-6">

@@ -16,8 +16,8 @@
     <style>button, a[href], [onclick] { cursor: pointer; }</style>
 
     <!-- 通用脚本 -->
-    <script src="/assets/swiper/swiper-bundle.min.js"></script>
-    <script src="/assets/tinymce/tinymce.min.js"></script>
+    <!-- 外部 swiper / tinymce 包大，移到下面；先把全局 helper（showMessage/safeJson/CSRF）
+         注入到 window，避免用户在 tinymce 还没下载完就点按钮触发 "showMessage is not defined". -->
     <script>
     // CSRF Token 自动注入
     (function() {
@@ -167,6 +167,10 @@
         }
     }
     </script>
+
+    <!-- 体积大的外部库放在 helper 后，让 showMessage 等先就绪可被任何按钮调用 -->
+    <script src="/assets/swiper/swiper-bundle.min.js"></script>
+    <script src="/assets/tinymce/tinymce.min.js"></script>
 
     <!-- 媒体库选择弹窗 -->
     <div id="mediaPickerModal" class="fixed inset-0 hidden" style="z-index:9999">

@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 产品管理
+ * YikaiCMS - 产品管理
  *
  * PHP 8.0+
  */
@@ -68,7 +68,16 @@ $page = max(1, getInt('page', 1));
 $perPage = 20;
 
 $offset = ($page - 1) * $perPage;
+// 视图语言（?lang=en/ja 切换）
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
 $filters = array_filter([
+    'lang' => $_viewLang,
     'category_id' => $categoryId,
     'status' => $status,
     'product_type' => $productType,
@@ -81,8 +90,13 @@ $products = $result['items'];
 $pageTitle = __('admin_product');
 $currentMenu = 'product';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('products');
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -158,6 +172,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_recommend'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
@@ -228,6 +243,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
                                 <?php echo $item['status'] ? __('admin_published') : __('admin_unpublished'); ?>
                             </button>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/product_edit.php'); ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <a href="/admin/product_edit.php?id=<?php echo $item['id']; ?>"

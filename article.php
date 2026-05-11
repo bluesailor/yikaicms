@@ -14,9 +14,9 @@ HtmlCache::start(600);
 $id = getInt('id');
 $slug = get('slug');
 
-// 获取文章（从统一内容表）
+// 获取文章（从统一内容表，lang-aware：自动跳到当前 siteLang 翻译行）
 if ($slug) {
-    $article = contentModel()->findBySlug($slug);
+    $article = contentModel()->findBySlugLang($slug);
 } elseif ($id > 0) {
     $article = contentModel()->getPublished($id);
 } else {
@@ -52,7 +52,7 @@ $navChannels = getNavChannels();
 // SEO: OpenGraph & JSON-LD
 $ogType = 'article';
 $siteUrl = rtrim(config('site_url', SITE_URL), '/');
-$canonicalUrl = $siteUrl . '/news/article/' . ($article['slug'] ?: $article['id']) . '.html';
+$canonicalUrl = $siteUrl . langPrefix() . '/news/article/' . ($article['slug'] ?: $article['id']) . '.html';
 if (!empty($article['cover'])) {
     $ogImage = $article['cover'];
 }

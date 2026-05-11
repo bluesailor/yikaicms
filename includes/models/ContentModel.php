@@ -145,6 +145,41 @@ class ContentModel extends Model
     }
 
     /**
+     * 按 slug 查找 + 多语言感知。
+     *
+     * URL `/ja/case/<src_slug>.html` 进来时 slug 是源 slug（不带 -ja 后缀），
+     * 通过 translation_group_id 跳转到当前 siteLang 对应翻译行；找不到回退源。
+     */
+    public function findBySlugLang(string $slug): ?array
+    {
+        $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+        $defaultLang = (string) config('site_lang', 'zh-CN');
+        if ($lang === $defaultLang) return $this->findBySlug($slug);
+
+        // 先找源行
+        $src = db()->fetchOne(
+            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1",
+            [$slug]
+        );
+        if (!$src) return null;
+        $groupId = (int) ($src['translation_group_id'] ?: $src['id']);
+
+        // 再按 group + 当前 lang 找翻译行（带 channel join 拼前台需要的字段）
+        $translated = db()->fetchOne(
+            "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
+             FROM {$this->tableName()} c
+             LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
+             WHERE c.translation_group_id = ? AND c.lang = ? AND c.status = 1
+             LIMIT 1",
+            [$groupId, $lang]
+        );
+        if ($translated) return $translated;
+
+        // 翻译缺失：回退到源行（前台显示源语言版本，不至于 404）
+        return $this->findBySlug($slug);
+    }
+
+    /**
      * 上一篇
      */
     public function getPrev(int $channelId, int $currentId): ?array
@@ -191,9 +226,12 @@ class ContentModel extends Model
      */
     public function getFirstByChannel(int $channelId): ?array
     {
+        // 加 lang 过滤防御：同一 channel_id 上若有多语言行（迁移/种子残留），
+        // 用 siteLang() 锁定，不串语言。
+        $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
         return db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE channel_id = ? AND status = 1 ORDER BY {$this->defaultOrder} LIMIT 1",
-            [$channelId]
+            "SELECT * FROM {$this->tableName()} WHERE channel_id = ? AND status = 1 AND lang = ? ORDER BY {$this->defaultOrder} LIMIT 1",
+            [$channelId, $lang]
         );
     }
 

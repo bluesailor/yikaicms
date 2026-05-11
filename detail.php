@@ -11,49 +11,40 @@ require_once __DIR__ . '/includes/init.php';
 
 HtmlCache::start(600);
 
-$id = getInt('id');
+// 支持 ?id= 或 ?slug=（.htaccess 把 /case/<slug>.html 改写成 detail.php?slug=...，
+// 早先这里只读 id，导致带 slug 的链接全被重定向到首页）。
+$id   = getInt('id');
+$slug = trim((string) get('slug', ''));
 
-if (!$id) {
-    header('Location: /');
-    exit;
+if ($id <= 0 && $slug !== '') {
+    // lang-aware：非默认语言时按 translation_group_id 跳到当前 siteLang 行
+    $row = contentModel()->findBySlugLang($slug);
+    if ($row) {
+        $id = (int) $row['id'];
+    }
 }
 
-// 获取内容
-$content = contentModel()->getPublished($id);
-
-if (!$content) {
+if (!$id) {
     header('HTTP/1.1 404 Not Found');
     exit(__('error_content_not_found'));
 }
 
-// 更新浏览量
-contentModel()->incrementViews($id);
-
-// 获取栏目
-$channel = getChannel((int)$content['channel_id']);
+// 数据装配交给 ContentDetailController：404 判断、浏览量自增、栏目、
+// 上一篇 / 下一篇 / 相关、下载类型侧栏。详见 docs/refactor-list-detail-plan.md。
+require_once __DIR__ . '/controllers/detail/ContentDetailController.php';
+$_vars = (new ContentDetailController())->prepare($id);
+if ($_vars === null) {
+    header('HTTP/1.1 404 Not Found');
+    exit(__('error_content_not_found'));
+}
+extract($_vars, EXTR_OVERWRITE);
+unset($_vars);
 
 // 页面信息
 $pageTitle = $content['title'];
 $pageKeywords = $content['tags'] ?: ($channel['seo_keywords'] ?? '');
 $pageDescription = $content['summary'] ?: cutStr(strip_tags($content['content'] ?? ''), 150);
-$currentChannelId = (int)$content['channel_id'];
-
-// 获取上一篇/下一篇
-$prevContent = contentModel()->getPrev((int)$content['channel_id'], $id);
-$nextContent = contentModel()->getNext((int)$content['channel_id'], $id);
-
-// 获取相关内容
-$relatedContents = contentModel()->getRelated((int)$content['channel_id'], $id);
-
-// 下载类型：获取下载分类用于侧边栏
-$downloadSidebarCats = [];
-if ($channel && $channel['type'] === 'download') {
-    // 当前栏目的兄弟分类（同一父级下的子栏目）
-    $parentId = (int)$channel['parent_id'];
-    if ($parentId > 0) {
-        $downloadSidebarCats = getChannels($parentId, false);
-    }
-}
+$currentChannelId = $channelId;
 
 // 获取导航
 $navChannels = getNavChannels();

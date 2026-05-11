@@ -2,7 +2,11 @@
 
 <?php
 $siteName = config('site_name', 'Yikai CMS');
-$footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+// lang-aware：根据当前 siteLang 自动读 footer_nav_en / footer_nav_ja
+$footerNavRaw = function_exists('configJsonLang')
+    ? configJsonLang('footer_nav')
+    : (config('footer_nav') ?: '');
+$footerNav = $footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : [];
 ?>
 
     <!-- CTA Contact Area -->
@@ -45,7 +49,16 @@ $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
 
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-wrap items-center justify-between gap-4 text-sm">
-                <div>&copy; <?php echo date('Y'); ?> <?php echo e($siteName); ?> <?php echo __('footer_copyright'); ?>.</div>
+                <div>
+                    <?php
+                    $copyrightTpl = function_exists('configRawLang') ? configRawLang('footer_copyright_text', '') : config('footer_copyright_text', '');
+                    if ($copyrightTpl) {
+                        echo e(str_replace(['{year}', '{site_name}'], [date('Y'), $siteName], $copyrightTpl));
+                    } else {
+                        echo '&copy; ' . date('Y') . ' ' . e($siteName) . ' ' . __('footer_copyright') . '.';
+                    }
+                    ?>
+                </div>
                 <div class="flex flex-wrap gap-4">
                     <?php if ($icp = config('site_icp')): ?>
                     <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition"><?php echo e($icp); ?></a>

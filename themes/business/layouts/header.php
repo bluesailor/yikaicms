@@ -39,16 +39,7 @@ function isChannelActive(array $channel, int $currentId, string $currentSlug = '
 
 function getChannelUrl(array $channel): string {
     if (!empty($channel['_url'])) return $channel['_url'];
-    if ($channel['type'] === 'link') return e($channel['link_url']);
-    $slug = $channel['slug'] ?? '';
-    if (empty($slug)) {
-        return $channel['type'] === 'page' ? '/page/' . $channel['id'] . '.html' : '/list/' . $channel['id'] . '.html';
-    }
-    if ($channel['type'] === 'page' && !empty($channel['parent_id'])) {
-        $parent = getChannel((int)$channel['parent_id']);
-        if ($parent && !empty($parent['slug'])) return '/' . $parent['slug'] . '/' . $slug . '.html';
-    }
-    return '/' . $slug . '.html';
+    return channelUrl($channel);
 }
 
 $isTransparentHeader = !empty($isHomePage);
@@ -62,6 +53,7 @@ $isTransparentHeader = !empty($isHomePage);
     <meta name="description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
     <title><?php echo e($fullTitle); ?></title>
     <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
+    <?php echo renderHreflangs(); ?>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
     <meta property="og:description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
@@ -73,11 +65,22 @@ $isTransparentHeader = !empty($isHomePage);
     .nav-transparent { background: transparent; position: absolute; top: 0; left: 0; right: 0; z-index: 50; }
     .nav-transparent a, .nav-transparent button { color: #fff; }
     .nav-transparent .nav-link:hover { color: rgba(255,255,255,0.7); }
+    /* 下拉菜单始终白底 → 文字必须深色（否则白底白字看不见）；
+       两条规则更具体（多一个层级）所以会覆盖上一行的 #fff */
+    .nav-transparent .nav-dropdown-menu a,
+    .nav-transparent .nav-submenu a { color: #4b5563; }
+    .nav-transparent .nav-dropdown-menu a:hover,
+    .nav-transparent .nav-submenu a:hover { color: var(--color-primary, #3B6CF5); }
     .nav-solid { background: #1e293b; position: sticky; top: 0; z-index: 50; }
     .nav-solid > div > div > nav > a,
     .nav-solid > div > div > nav > div > a { color: #d1d5db; }
     .nav-solid > div > div > nav > a:hover,
     .nav-solid > div > div > nav > div > a:hover { color: #fff; }
+    /* 同理：solid 状态下也确保下拉菜单文字深色 */
+    .nav-solid .nav-dropdown-menu a,
+    .nav-solid .nav-submenu a { color: #4b5563; }
+    .nav-solid .nav-dropdown-menu a:hover,
+    .nav-solid .nav-submenu a:hover { color: var(--color-primary, #3B6CF5); }
     .hero-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.7)); }
     .section-dark { background: #1e293b; color: #e2e8f0; }
     .cta-gradient { background: linear-gradient(135deg, #3B6CF5, #2554d4); }
@@ -104,9 +107,9 @@ $isTransparentHeader = !empty($isHomePage);
 
                 <!-- Desktop navigation -->
                 <nav class="hidden md:flex items-center gap-1">
-                    <?php if (config('nav_home_show', '1') !== '0'): ?>
+                    <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="nav-link px-4 py-2 text-sm font-medium transition <?php echo isset($isHomePage) && $isHomePage ? 'text-white font-bold' : ''; ?>">
-                        <?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?>
+                        <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
                     <?php endif; ?>
                     <?php foreach ($navChannels as $navItem):
@@ -115,13 +118,17 @@ $isTransparentHeader = !empty($isHomePage);
                         $navUrl = getChannelUrl($navItem);
                     ?>
                     <?php if ($hasChildren): ?>
-                    <div class="relative group">
+                    <!-- 改用 default 主题同款的 .nav-dropdown / .nav-dropdown-menu 钩子，
+                         走 assets/css/style.css 里现成的纯 CSS hover 规则；
+                         之前的 Tailwind `group-hover:opacity-100/visible` 没被编译进
+                         tailwind.css，导致下拉永远 opacity-0 / invisible 的空白 bug。 -->
+                    <div class="nav-dropdown">
                         <a href="<?php echo $navUrl; ?>" class="nav-link px-4 py-2 text-sm font-medium transition inline-flex items-center gap-1 <?php echo $isActive ? 'font-bold' : ''; ?>">
                             <?php echo e($navItem['name']); ?>
                             <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </a>
-                        <div class="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border py-2 min-w-[160px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                            <?php echo renderNavDropdownItems($navItem['children'], 'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition'); ?>
+                        <div class="nav-dropdown-menu">
+                            <?php echo renderNavDropdownItems($navItem['children']); ?>
                         </div>
                     </div>
                     <?php else: ?>
@@ -147,8 +154,8 @@ $isTransparentHeader = !empty($isHomePage);
         <!-- Mobile menu -->
         <nav id="mobileMenu" class="md:hidden hidden bg-slate-800 border-t border-slate-700">
             <div class="container mx-auto px-4 py-4">
-                <?php if (config('nav_home_show', '1') !== '0'): ?>
-                <a href="/" class="block py-2 text-gray-300 hover:text-white"><?php echo e(config('nav_home_text', '') ?: __('nav_home')); ?></a>
+                <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
+                <a href="/" class="block py-2 text-gray-300 hover:text-white"><?php echo e(configLang('nav_home_text', 'nav_home')); ?></a>
                 <?php endif; ?>
                 <?php foreach ($navChannels as $navItem): ?>
                 <a href="<?php echo getChannelUrl($navItem); ?>" class="block py-2 text-gray-300 hover:text-white"><?php echo e($navItem['name']); ?></a>

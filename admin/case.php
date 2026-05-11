@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 案例管理
+ * YikaiCMS - 案例管理
  *
  * PHP 8.0+
  */
@@ -60,9 +60,17 @@ $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
 $perPage = 20;
 
+// 视图语言（?lang=en/ja 切换）
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
 // 构建查询
-$where = ['c.type = ?'];
-$params = [$contentType];
+$where = ['c.type = ?', 'c.lang = ?'];
+$params = [$contentType, $_viewLang];
 
 if ($channelId > 0) {
     $where[] = 'c.channel_id = ?';
@@ -101,8 +109,13 @@ $items = contentModel()->query(
 $pageTitle = '案例管理';
 $currentMenu = 'case';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('contents');
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -153,6 +166,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_recommend'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_publish_time'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
@@ -188,6 +202,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
                             <?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <?php
+                            $_pillSrcId = (int) ($item['translation_group_id'] ?: $item['id']);
+                            echo renderTransPills($_pillSrcId, $transStatus, '/admin/content_edit.php');
+                            ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <a href="/admin/content_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1 mr-2" title="<?php echo __('admin_edit'); ?>"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> <?php echo __('admin_edit'); ?></a>

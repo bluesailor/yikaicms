@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 下载管理
+ * YikaiCMS - 下载管理
  *
  * PHP 8.0+
  */
@@ -77,8 +77,16 @@ $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
 $perPage = 20;
 
+// 视图语言
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
 $offset = ($page - 1) * $perPage;
-$filters = array_filter(['status' => $status, 'keyword' => $keyword], fn($v) => $v !== '');
+$filters = array_filter(['status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang], fn($v) => $v !== '');
 $result = downloadModel()->getList($categoryId, $filters, $perPage, $offset);
 $total = $result['total'];
 $items = $result['items'];
@@ -86,8 +94,13 @@ $items = $result['items'];
 $pageTitle = __('admin_download');
 $currentMenu = 'download';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('downloads');
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -145,6 +158,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">下载</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
@@ -204,6 +218,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
                                 <?php echo $item['status'] ? __('admin_published') : __('admin_hide'); ?>
                             </button>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <?php
+                            $_pillSrcId = (int) ($item['translation_group_id'] ?? $item['id']);
+                            echo renderTransPills($_pillSrcId, $transStatus, '/admin/download_edit.php');
+                            ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php if ($item['file_url']): ?>

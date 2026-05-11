@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 首页设置（区块拖拽排序）
+ * YikaiCMS - 首页设置（区块拖拽排序）
  *
  * PHP 8.0+
  */
@@ -15,15 +15,46 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
+// ============== 多语言视图（settings 表无 lang 列，per-lang 用 <key>_<lang> 后缀约定） ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+
+// 哪些 key 走 per-lang（文案 + 客户评价 JSON）；剩下（区块顺序/开关/样式/图片/数字/图标/颜色）全局共享
+$LANG_KEYS = [
+    'nav_home_text',
+    'home_about_content', 'home_about_tag_title', 'home_about_tag_desc',
+    'home_stat_1_text', 'home_stat_2_text', 'home_stat_3_text', 'home_stat_4_text',
+    'home_testimonials_title', 'home_testimonials_desc', 'home_testimonials',
+    'home_advantage_desc',
+    'home_adv_1_title', 'home_adv_1_desc',
+    'home_adv_2_title', 'home_adv_2_desc',
+    'home_adv_3_title', 'home_adv_3_desc',
+    'home_adv_4_title', 'home_adv_4_desc',
+    'home_cta_title', 'home_cta_desc',
+    'home_links_title',
+];
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings = $_POST['settings'] ?? [];
-    settingModel()->saveBatch($settings);
 
-    // 更新页脚导航中的"首页"链接
+    // 按视图 lang 把 lang-able key 重定向到 <key>_<lang>
+    $remapped = [];
+    foreach ($settings as $k => $v) {
+        $isLangAble = in_array($k, $LANG_KEYS, true);
+        $targetKey = ($isLangAble && $_viewLang !== $_defaultLang) ? ($k . '_' . $_viewLang) : (string) $k;
+        $remapped[$targetKey] = $v;
+    }
+    settingModel()->saveBatch($remapped);
+
+    // 更新页脚导航中的"首页"链接（按当前 lang 写入对应 footer_nav[_<lang>]）
     $homeInFooterNav = (int)($_POST['home_footer_nav'] ?? 0);
     $homeUrl = '/';
-    $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+    $footerNavKey = ($_viewLang !== $_defaultLang) ? ('footer_nav_' . $_viewLang) : 'footer_nav';
+    $footerNav = json_decode(config($footerNavKey) ?: '[]', true) ?: [];
 
     // 移除已有的"首页"链接
     foreach ($footerNav as &$group) {
@@ -34,7 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     unset($group);
 
     if ($homeInFooterNav) {
-        $homeText = trim($settings['nav_home_text'] ?? '') ?: config('nav_home_text', '') ?: '首页';
+        // 取当前 lang 下的 nav_home_text，没有则回退到默认 lang 的 nav_home_text
+        $submittedHomeText = trim($settings['nav_home_text'] ?? '');
+        $fallbackHomeText  = (string) config('nav_home_text', '');
+        $homeText = $submittedHomeText ?: ($fallbackHomeText ?: '首页');
         if (empty($footerNav)) {
             $footerNav[] = ['title' => '', 'links' => []];
         }
@@ -45,11 +79,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $footerNav = array_values(array_filter($footerNav, function($g) {
         return !empty($g['links']);
     }));
-    settingModel()->set('footer_nav', json_encode($footerNav, JSON_UNESCAPED_UNICODE));
+    settingModel()->set($footerNavKey, json_encode($footerNav, JSON_UNESCAPED_UNICODE));
 
-    adminLog('setting', 'update', '更新首页设置');
+    adminLog('setting', 'update', '更新首页设置 (' . $_viewLang . ')');
     success();
 }
+
+// lang-aware 读取：非默认语言时优先 <key>_<lang>，空则回退到 base
+$readLang = function (string $base, string $default = '') use ($LANG_KEYS, $_viewLang, $_defaultLang): string {
+    if (in_array($base, $LANG_KEYS, true) && $_viewLang !== $_defaultLang) {
+        $v = (string) config($base . '_' . $_viewLang, '');
+        if ($v !== '') return $v;
+    }
+    return (string) config($base, $default);
+};
 
 // 获取全部 home 组设置
 $allSettings = settingModel()->getByGroup('home');
@@ -60,13 +103,37 @@ foreach ($allSettings as $item) {
     $settingsMap[$item['key']] = $item;
 }
 
-// 获取首页展示的栏目（用于动态生成区块）
-$homeChannelRows = channelModel()->query(
-    "SELECT id, name FROM " . channelModel()->tableName() . " WHERE is_home = 1 AND parent_id = 0 AND status = 1 ORDER BY sort_order ASC"
-);
+// 把 lang-able key 的 value 替换成视图 lang 对应的存储值（没有则保持原 zh-CN base）
+if ($_viewLang !== $_defaultLang) {
+    foreach ($LANG_KEYS as $lk) {
+        if (!isset($settingsMap[$lk])) continue;
+        $langVal = (string) config($lk . '_' . $_viewLang, '');
+        if ($langVal !== '') {
+            $settingsMap[$lk]['value'] = $langVal;
+        } else {
+            // 非默认语言下：该 key 没有翻译值时显示空，让用户填写新翻译
+            $settingsMap[$lk]['value'] = '';
+        }
+    }
+}
 
-// 区块配置
-$blocksConfig = json_decode($settingsMap['home_blocks_config']['value'] ?? '', true);
+// 获取首页展示的栏目（用于动态生成区块）—— 按视图语言过滤
+$homeChannelRows = channelModel()->query(
+    "SELECT id, name, translation_group_id FROM " . channelModel()->tableName() . "
+     WHERE is_home = 1 AND parent_id = 0 AND status = 1 AND lang = ?
+     ORDER BY sort_order ASC",
+    [$_viewLang]
+);
+// blocks_config 全局只有一份，统一用 translation_group_id 作为区块 key，
+// 这样 zh/en/ja 视图的渲染都能对齐到同一个区块定义。源记录的 group_id == 自身 id，
+// 故 zh-CN 现有数据兼容；en/ja 视图自动拿到对应翻译行的 name 显示。
+foreach ($homeChannelRows as &$_hcRow) {
+    $_hcRow['_key_id'] = (int) ($_hcRow['translation_group_id'] ?: $_hcRow['id']);
+}
+unset($_hcRow);
+
+// 区块配置（home_blocks_config 是全局共享：区块顺序/开关/样式三种语言共用，不分语言）
+$blocksConfig = json_decode((string) config('home_blocks_config', ''), true);
 if (!$blocksConfig) {
     $blocksConfig = [
         ['type' => 'banner', 'enabled' => true],
@@ -79,14 +146,14 @@ if (!$blocksConfig) {
     ];
 }
 
-// 迁移旧的 channels 整块为独立的 channel:{id} 区块
+// 迁移旧的 channels 整块为独立的 channel:{group_id} 区块
 $channelIdsInConfig = [];
 $migratedConfig = [];
 foreach ($blocksConfig as $b) {
     if ($b['type'] === 'channels') {
         foreach ($homeChannelRows as $hcRow) {
-            $migratedConfig[] = ['type' => 'channel:' . $hcRow['id'], 'enabled' => $b['enabled'] ?? true];
-            $channelIdsInConfig[] = (int)$hcRow['id'];
+            $migratedConfig[] = ['type' => 'channel:' . $hcRow['_key_id'], 'enabled' => $b['enabled'] ?? true];
+            $channelIdsInConfig[] = (int)$hcRow['_key_id'];
         }
     } else {
         $migratedConfig[] = $b;
@@ -97,14 +164,21 @@ foreach ($blocksConfig as $b) {
 }
 // 新增的首页栏目自动追加
 foreach ($homeChannelRows as $hcRow) {
-    if (!in_array((int)$hcRow['id'], $channelIdsInConfig)) {
-        $migratedConfig[] = ['type' => 'channel:' . $hcRow['id'], 'enabled' => true];
+    if (!in_array((int)$hcRow['_key_id'], $channelIdsInConfig)) {
+        $migratedConfig[] = ['type' => 'channel:' . $hcRow['_key_id'], 'enabled' => true];
     }
 }
 $blocksConfig = $migratedConfig;
 
-// 客户评价数据
-$testimonialsData = json_decode($settingsMap['home_testimonials']['value'] ?? '[]', true) ?: [];
+// 客户评价数据（lang-able JSON：home_testimonials_<lang> 优先）
+$testimonialsRaw = '';
+if ($_viewLang !== $_defaultLang) {
+    $testimonialsRaw = (string) config('home_testimonials_' . $_viewLang, '');
+}
+if ($testimonialsRaw === '') {
+    $testimonialsRaw = (string) ($settingsMap['home_testimonials']['value'] ?? '[]');
+}
+$testimonialsData = json_decode($testimonialsRaw ?: '[]', true) ?: [];
 
 // 栏目图标 SVG path
 $channelIconPath = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>';
@@ -152,9 +226,9 @@ $blockMeta = [
     ],
 ];
 
-// 动态添加各栏目区块的元数据
+// 动态添加各栏目区块的元数据（key 用 translation_group_id，跨语言对齐）
 foreach ($homeChannelRows as $hcRow) {
-    $blockMeta['channel:' . $hcRow['id']] = [
+    $blockMeta['channel:' . $hcRow['_key_id']] = [
         'title' => $hcRow['name'],
         'icon'  => $channelIconPath,
         'bg_default' => '#f9fafb',
@@ -166,7 +240,10 @@ foreach ($homeChannelRows as $hcRow) {
 $pageTitle = '首页设置';
 $currentMenu = 'setting_home';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言独立保存（key_' . $_viewLang . '）；区块顺序、图片、图标、数字、颜色全局共享');
 ?>
 
 <div class="mb-6">
@@ -184,8 +261,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[nav_home_text]"
-                           value="<?php echo e(config('nav_home_text', '')); ?>"
-                           class="w-full border rounded px-3 py-2 text-sm" placeholder="首页">
+                           value="<?php echo e($readLang('nav_home_text')); ?>"
+                           class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo $_viewLang === 'zh-CN' ? '首页' : ($_viewLang === 'en' ? 'Home' : 'ホーム'); ?>">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
@@ -199,7 +276,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="flex items-center">
                         <?php
                         $homeInFooter = false;
-                        $footerNavCheck = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+                        $footerNavCheckKey = ($_viewLang !== $_defaultLang) ? ('footer_nav_' . $_viewLang) : 'footer_nav';
+                        $footerNavCheck = json_decode(config($footerNavCheckKey) ?: '[]', true) ?: [];
                         foreach ($footerNavCheck as $fGroup) {
                             foreach (($fGroup['links'] ?? []) as $fLink) {
                                 if (($fLink['url'] ?? '') === '/') { $homeInFooter = true; break 2; }

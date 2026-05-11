@@ -24,9 +24,77 @@ if (file_exists(ROOT_PATH . '/installed.lock') && $step !== 4) {
     exit;
 }
 
-// 加载中文语言包
-$lang = 'zh';
-$L = require INSTALL_PATH . "/lang/zh.php";
+// ─── 安装向导界面语言（zh / ja / en） ───────────────────────────
+// 优先级: ?install_lang=  > cookie  > Accept-Language 自动嗅探  > zh
+$supportedLangs = ['zh' => '简体中文', 'ja' => '日本語', 'en' => 'English'];
+
+function detectInstallLang(array $supported): string
+{
+    if (!empty($_GET['install_lang']) && isset($supported[$_GET['install_lang']])) {
+        $lang = (string) $_GET['install_lang'];
+        // 持久化 30 天，避免每点一步都要带参数
+        setcookie('install_lang', $lang, time() + 86400 * 30, '/');
+        return $lang;
+    }
+    if (!empty($_COOKIE['install_lang']) && isset($supported[$_COOKIE['install_lang']])) {
+        return (string) $_COOKIE['install_lang'];
+    }
+    // 浏览器 Accept-Language 嗅探（按 q 值排序后逐项匹配，
+    // 避免裸 str_contains 把"zh-CN,en;q=0.8"误判成 en）
+    $picked = pickAcceptLanguage(
+        $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
+        array_keys($supported)
+    );
+    return $picked ?? 'zh';
+}
+
+/**
+ * 解析 Accept-Language 头，按 q 值降序找第一个能映射到 supported 的语言。
+ * 子标签前缀匹配：ja-JP → ja，zh-CN / zh-Hans → zh。
+ *
+ * @param string   $header
+ * @param string[] $supported  e.g. ['zh','ja','en']
+ */
+function pickAcceptLanguage(string $header, array $supported): ?string
+{
+    if ($header === '') return null;
+
+    $entries = [];
+    foreach (explode(',', $header) as $part) {
+        $part = trim($part);
+        if ($part === '') continue;
+        $bits = explode(';', $part);
+        $tag  = strtolower(trim($bits[0]));
+        $q    = 1.0;
+        foreach (array_slice($bits, 1) as $attr) {
+            if (preg_match('/q\s*=\s*([\d.]+)/i', $attr, $m)) {
+                $q = (float) $m[1];
+            }
+        }
+        $entries[] = ['tag' => $tag, 'q' => $q];
+    }
+    // 稳定排序：保留出现顺序作 tie-breaker
+    usort($entries, fn($a, $b) => $b['q'] <=> $a['q']);
+
+    foreach ($entries as $e) {
+        foreach ($supported as $code) {
+            $low = strtolower($code);
+            if ($e['tag'] === $low || str_starts_with($e['tag'], $low . '-')) {
+                return $code;
+            }
+        }
+    }
+    return null;
+}
+
+$lang = detectInstallLang($supportedLangs);
+$L = require INSTALL_PATH . "/lang/{$lang}.php";
+
+// 把简短的安装向导语言映射到 CMS 内部的标签（zh→zh-CN，其它原样）
+function installerLangToSiteLang(string $l): string
+{
+    return $l === 'zh' ? 'zh-CN' : $l;
+}
 
 // 限制步骤范围
 $step = max(1, min(4, $step));
@@ -211,8 +279,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $siteName = $_POST['site_name'] ?? 'Yikai CMS';
             $siteUrl = $_POST['site_url'] ?? '';
 
-            $siteLang   = in_array($_POST['site_lang'] ?? '', ['zh-CN', 'ja', 'en'], true) ? $_POST['site_lang'] : 'zh-CN';
-            $adminLang  = in_array($_POST['admin_lang'] ?? '', ['zh-CN', 'ja', 'en'], true) ? $_POST['admin_lang'] : 'zh-CN';
+            // 校验范围：lang/*.php 实际存在的 code（扫文件，扩展时无需改代码）
+            $_installerSupported = [];
+            foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $_f) {
+                $_c = basename($_f, '.php');
+                if (strpos($_c, 'dict-') !== 0) $_installerSupported[] = $_c;
+            }
+            if (empty($_installerSupported)) $_installerSupported = ['zh-CN', 'ja', 'en'];
+            $siteLang  = in_array($_POST['site_lang'] ?? '', $_installerSupported, true) ? $_POST['site_lang'] : 'zh-CN';
+            $adminLang = in_array($_POST['admin_lang'] ?? '', $_installerSupported, true) ? $_POST['admin_lang'] : 'zh-CN';
             $installDemo = !empty($_POST['install_demo']);
 
             // 验证表前缀（仅允许字母数字下划线）
@@ -257,6 +332,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // 分割并执行 SQL 语句
             $pdo->exec($sql);
 
+            // 镜像默认频道到 en / ja —— 让多语言菜单装完即用
+            require_once INSTALL_PATH . '/seed_channel_translations.php';
+            seedChannelTranslations($pdo, $prefix);
+
             // 创建管理员
             $now = time();
             $hashedPass = password_hash($adminPass, PASSWORD_BCRYPT);
@@ -276,6 +355,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$siteLang]);
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'admin_lang'");
             $stmt->execute([$adminLang]);
+
+            // 启用三语（菜单已镜像到 en/ja，hreflang 需要 enabled_languages ≥ 2）
+            $enabledJson = json_encode(['zh-CN', 'en', 'ja']);
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('site', 'enabled_languages', ?, '', '', 0)");
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('site', 'enabled_languages', ?, '', '', 0) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+            }
+            $stmt->execute([$enabledJson]);
 
             // 生成配置文件
             $configFile = ROOT_PATH . '/config/config.sample.php';
@@ -330,6 +418,24 @@ $envAllPass = checkAllPass($envChecks);
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <!-- 安装向导界面语言切换器（仅影响向导本身的提示文本，
+             与 step 3 选择的"前台语言/后台语言"无关） -->
+        <div class="flex justify-end mb-4 text-sm">
+            <div class="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full px-1 py-1">
+                <?php foreach ($supportedLangs as $code => $name):
+                    $active = $code === $lang;
+                    $url = '?step=' . $step . '&install_lang=' . $code;
+                ?>
+                <a href="<?php echo $url; ?>"
+                   class="px-3 py-1 rounded-full transition <?php echo $active
+                       ? 'bg-gray-900 text-white'
+                       : 'text-gray-500 hover:text-gray-900'; ?>">
+                    <?php echo $name; ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <!-- 头部 -->
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800 mb-2"><?php echo $L['title']; ?></h1>
@@ -417,11 +523,11 @@ $envAllPass = checkAllPass($envChecks);
 
                 <div class="flex justify-end">
                     <?php if ($envAllPass): ?>
-                        <a href="?step=2&lang=<?php echo $lang; ?>" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                        <a href="?step=2&install_lang=<?php echo $lang; ?>" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
                             <?php echo $L['next']; ?>
                         </a>
                     <?php else: ?>
-                        <a href="?step=1&lang=<?php echo $lang; ?>" class="bg-gray-400 text-white px-6 py-2 rounded">
+                        <a href="?step=1&install_lang=<?php echo $lang; ?>" class="bg-gray-400 text-white px-6 py-2 rounded">
                             <?php echo $L['retry']; ?>
                         </a>
                     <?php endif; ?>
@@ -495,18 +601,7 @@ $envAllPass = checkAllPass($envChecks);
                         <p class="text-sm text-amber-700">安装时将删除数据库中同名的表并重新创建。如果数据库中已有数据，请先备份。</p>
                     </div>
 
-                    <!-- 演示数据 -->
-                    <div class="mt-6 pt-6 border-t space-y-4">
-                        <input type="hidden" name="site_lang" value="zh-CN">
-                        <input type="hidden" name="admin_lang" value="zh-CN">
-                        <div>
-                            <label class="flex items-center">
-                                <input type="checkbox" name="install_demo" value="1" checked class="mr-2">
-                                <span>安装官方演示数据</span>
-                            </label>
-                            <p class="text-xs text-gray-400 mt-1 ml-6">包含示例栏目、产品、文章、案例、下载、招聘、时间线等。生产部署建议关闭。</p>
-                        </div>
-                    </div>
+                    <!-- 演示数据与语言选择已搬到 step 3，避免在两个表单里重复维护 -->
 
                     <!-- 测试按钮 -->
                     <div class="mt-6">
@@ -518,10 +613,10 @@ $envAllPass = checkAllPass($envChecks);
                 </form>
 
                 <div class="flex justify-between mt-8">
-                    <a href="?step=1&lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
+                    <a href="?step=1&install_lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
                         <?php echo $L['prev']; ?>
                     </a>
-                    <a href="?step=3&lang=<?php echo $lang; ?>" id="nextStep2" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                    <a href="?step=3&install_lang=<?php echo $lang; ?>" id="nextStep2" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
                         <?php echo $L['next']; ?>
                     </a>
                 </div>
@@ -603,6 +698,55 @@ $envAllPass = checkAllPass($envChecks);
                         <label class="block text-gray-700 mb-1"><?php echo $L['admin_email']; ?></label>
                         <input type="email" name="admin_email" class="w-full border rounded px-3 py-2">
                     </div>
+
+                    <hr class="my-6">
+
+                    <!-- 前台/后台语言选择（默认跟随当前安装向导语言；扫 lang/*.php 自动发现可选项） -->
+                    <?php
+                    $defaultSite = installerLangToSiteLang($lang);
+                    $_installerLangLabels = ['zh-CN' => '简体中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
+                    $siteLangOptions = [];
+                    foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $_f) {
+                        $_code = basename($_f, '.php');
+                        if (strpos($_code, 'dict-') === 0) continue;
+                        $siteLangOptions[$_code] = $_installerLangLabels[$_code] ?? $_code;
+                    }
+                    if (empty($siteLangOptions)) {
+                        $siteLangOptions = ['zh-CN' => '简体中文', 'ja' => '日本語', 'en' => 'English'];
+                    }
+                    ?>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-1"><?php echo $L['site_lang_label']; ?></label>
+                            <select name="site_lang" class="w-full border rounded px-3 py-2 bg-white">
+                                <?php foreach ($siteLangOptions as $code => $name): ?>
+                                <option value="<?php echo $code; ?>" <?php echo $code === $defaultSite ? 'selected' : ''; ?>>
+                                    <?php echo $name; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="text-sm text-gray-500 mt-1"><?php echo $L['site_lang_tip']; ?></p>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1"><?php echo $L['admin_lang_label']; ?></label>
+                            <select name="admin_lang" class="w-full border rounded px-3 py-2 bg-white">
+                                <?php foreach ($siteLangOptions as $code => $name): ?>
+                                <option value="<?php echo $code; ?>" <?php echo $code === $defaultSite ? 'selected' : ''; ?>>
+                                    <?php echo $name; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="text-sm text-gray-500 mt-1"><?php echo $L['admin_lang_tip']; ?></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="install_demo" value="1" class="rounded">
+                            <span class="text-gray-700"><?php echo $L['install_demo_label']; ?></span>
+                        </label>
+                        <p class="text-sm text-gray-500 mt-1 ml-6"><?php echo $L['install_demo_tip']; ?></p>
+                    </div>
                 </form>
 
                 <div id="installProgress" class="hidden mt-6">
@@ -617,7 +761,7 @@ $envAllPass = checkAllPass($envChecks);
                 <div id="installResult" class="hidden mt-6"></div>
 
                 <div class="flex justify-between mt-8" id="stepButtons">
-                    <a href="?step=2&lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
+                    <a href="?step=2&install_lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
                         <?php echo $L['prev']; ?>
                     </a>
                     <button type="button" id="installBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition cursor-pointer">
@@ -647,8 +791,10 @@ $envAllPass = checkAllPass($envChecks);
                     btn.querySelector('.eye-closed').classList.add('hidden');
                 }
 
-                // 恢复之前保存的数据库配置
-                const dbFields = ['db_driver', 'db_host', 'db_port', 'db_name', 'db_user', 'db_pass', 'db_prefix', 'db_create', 'install_demo', 'site_lang', 'admin_lang'];
+                // 从 sessionStorage 恢复 step 2 (数据库) 字段；
+                // site_lang / admin_lang / install_demo 现在是 step 3 表单字段，
+                // 不再走 sessionStorage 通道，否则会覆盖用户在 step 3 的选择。
+                const dbFields = ['db_driver', 'db_host', 'db_port', 'db_name', 'db_user', 'db_pass', 'db_prefix', 'db_create'];
 
                 // 安装
                 document.getElementById('installBtn').addEventListener('click', async function() {
@@ -695,7 +841,7 @@ $envAllPass = checkAllPass($envChecks);
                         if (data.success) {
                             result.innerHTML = '<div class="bg-green-50 text-green-700 p-4 rounded"></div>';
                             result.querySelector('div').textContent = data.message;
-                            setTimeout(() => { window.location.href = '?step=4&lang=<?php echo $lang; ?>'; }, 1500);
+                            setTimeout(() => { window.location.href = '?step=4&install_lang=<?php echo $lang; ?>'; }, 1500);
                         } else {
                             result.innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded"></div>';
                             result.querySelector('div').textContent = data.message;
@@ -753,7 +899,7 @@ $envAllPass = checkAllPass($envChecks);
                                     <?php echo $L['rewrite_nginx_desc'] ?? '请将以下规则添加到站点的 Nginx 配置文件（server 块内）。'; ?>
                                 </div>
                                 <div style="position:relative">
-                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;line-height:1.6"><code># ikaiCMS Rewrite Rules
+                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;line-height:1.6"><code># YikaiCMS Rewrite Rules
 location ~ ^/list/(\d+)\.html$ { rewrite ^/list/(\d+)\.html$ /list.php?id=$1 last; }
 location ~ ^/list/(\d+)/page/(\d+)\.html$ { rewrite ^/list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 last; }
 location ~ ^/product/(\d+)\.html$ { rewrite ^/product/(\d+)\.html$ /product.php?id=$1 last; }

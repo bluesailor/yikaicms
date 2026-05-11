@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 轮播图管理
+ * YikaiCMS - 轮播图管理
  *
  * PHP 8.0+
  */
@@ -181,6 +181,15 @@ if ($position) {
     $conditions['position'] = $position;
 }
 
+// 视图语言（?lang=en/ja 切换：banners 表有 lang 列）
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+$conditions['lang'] = $_viewLang;
+
 $result = bannerModel()->paginate($page, $perPage, $conditions, 'sort_order ASC, id DESC');
 $total = $result['total'];
 $banners = $result['items'];
@@ -192,7 +201,11 @@ $bannerHeightMobile = (int)config('banner_height_mobile', 300);
 $pageTitle = __('admin_banner');
 $currentMenu = 'banner';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('banners');
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang 字段；切换语言显示该语言下的轮播图');
 ?>
 
 <!-- Tab 导航 -->
@@ -251,6 +264,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_group'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -283,6 +297,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
                             <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <?php
+                        $_pillSrcId = (int) ($item['translation_group_id'] ?? $item['id']);
+                        echo renderTransPills($_pillSrcId, $transStatus, '/admin/banner.php');
+                        ?>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'

@@ -7,6 +7,24 @@
    ============================================================ */
 [x-cloak] { display: none !important; }
 
+/* Tailwind v4 Preflight 取消了 <button> 的 cursor:pointer，统一加回来 */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+summary,
+label[for],
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="file"]:not(:disabled)::file-selector-button {
+    cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
 /* Tailwind v4 默认边框颜色修复 */
 *, *::before, *::after { border-color: #e5e7eb; }
 

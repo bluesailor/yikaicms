@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 主题管理
+ * YikaiCMS - 主题管理
  */
 
 declare(strict_types=1);

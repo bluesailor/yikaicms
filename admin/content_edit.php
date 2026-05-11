@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 内容编辑
+ * YikaiCMS - 内容编辑
  *
  * PHP 8.0+
  */
@@ -14,6 +14,13 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('content');
+
+// 多语言翻译创建器：处理 action=create_translation 的 POST（必须在主 POST 处理前 require）
+$langSwitcher = [
+    'table' => 'contents',
+    'model' => contentModel(),
+];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 $id = getInt('id');
 $content = $id > 0 ? contentModel()->find($id) : null;
@@ -117,8 +124,14 @@ $typeLabels = ['article' => '文章', 'product' => '产品', 'case' => '案例',
 $pageTitle = $content ? __('admin_content_edit') : ($urlType && isset($typeLabels[$urlType]) ? '发布' . $typeLabels[$urlType] : __('admin_add'));
 $currentMenu = 'content';
 
+// widget 用：把当前编辑行 + URL 信息塞进早先设的 $langSwitcher
+$langSwitcher['item']     = $content;
+$langSwitcher['edit_url'] = '/admin/content_edit.php';
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <form id="contentForm" class="space-y-6">
     <input type="hidden" name="id" value="<?php echo $id; ?>">

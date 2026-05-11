@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 站点设置
+ * YikaiCMS - 站点设置
  *
  * PHP 8.0+
  */
@@ -14,6 +14,17 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
+
+// ============== 多语言视图（仅 footer tab 启用；per-lang 用 <key>_<lang> 后缀约定） ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_tabForLang  = (string) ($_GET['tab'] ?? $_POST['tab_hint'] ?? 'basic');
+$_langAware   = ($_tabForLang === 'footer');  // 当前仅 footer 走 per-lang
+// footer tab 上算 lang-able 的 key
+$FOOTER_LANG_KEYS = ['footer_columns', 'footer_nav', 'footer_copyright_text'];
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_admin_languages') {
         verifyCsrf();
         $val = trim((string)($_POST['admin_languages'] ?? ''));
-        // 校验：只允许 zh-CN/en/ja，去重，按固定顺序
-        $allowed = ['zh-CN', 'en', 'ja'];
+        // 仅允许 lang/*.php 实际存在的语言，去重，按 availableLanguages() 顺序
+        $allowed = array_keys(availableLanguages());
         $list = array_values(array_intersect($allowed, array_filter(array_map('trim', explode(',', $val)))));
         if ($list === []) error('至少保留一种语言');
         settingModel()->set('admin_languages', implode(',', $list));
@@ -59,10 +70,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success(['admin_languages' => implode(',', $list)]);
     }
 
+    if ($action === 'save_site_languages') {
+        verifyCsrf();
+        $allowed = array_keys(availableLanguages());
+        $enabled = array_values(array_intersect($allowed, (array)($_POST['enabled'] ?? [])));
+        $default = (string)($_POST['site_lang'] ?? 'zh-CN');
+        if (!in_array($default, $allowed, true)) $default = 'zh-CN';
+        if ($enabled === []) error('至少保留一种前台语言');
+        // 默认语言必须在启用列表中
+        if (!in_array($default, $enabled, true)) $enabled[] = $default;
+        // 重新按 allowed 顺序排序
+        $enabled = array_values(array_intersect($allowed, $enabled));
+        settingModel()->set('enabled_languages', json_encode($enabled));
+        settingModel()->set('site_lang', $default);
+        settingModel()->set('show_lang_switcher', !empty($_POST['show_switcher']) ? '1' : '0');
+
+        // per-lang "首页" 菜单显示开关
+        // 表单字段：nav_home_show_zh-CN / nav_home_show_en / nav_home_show_ja
+        // 存储约定：默认语言用 nav_home_show（不带后缀）；其他语言用 nav_home_show_{lang}
+        $homeShowMap = (array) ($_POST['nav_home_show'] ?? []);
+        foreach ($allowed as $lc) {
+            $val = !empty($homeShowMap[$lc]) ? '1' : '0';
+            $settingKey = $lc === $default ? 'nav_home_show' : 'nav_home_show_' . $lc;
+            settingModel()->set($settingKey, $val);
+        }
+
+        adminLog('setting', 'site_languages', '更新前台语言: ' . implode(',', $enabled) . ' / default=' . $default);
+        success();
+    }
+
     $settings = $_POST['settings'] ?? [];
+
+    // footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
+    if ($_langAware && $_viewLang !== $_defaultLang) {
+        $remapped = [];
+        foreach ($settings as $k => $v) {
+            $isLangAble = in_array($k, $FOOTER_LANG_KEYS, true);
+            $targetKey = $isLangAble ? ($k . '_' . $_viewLang) : (string) $k;
+            $remapped[$targetKey] = $v;
+        }
+        $settings = $remapped;
+    }
     settingModel()->saveBatch($settings);
 
-    adminLog('setting', 'update', '更新站点设置');
+    adminLog('setting', 'update', '更新站点设置 (' . ($_langAware ? $_viewLang : 'global') . ')');
     success();
 }
 
@@ -72,36 +123,205 @@ $groupMap = [
     'header' => 'header',
     'footer' => 'footer',
     'code'   => 'code',
+    // 'lang' tab 不对应任何 settings 组——靠两个独立卡片渲染
 ];
 $group = $groupMap[$tab] ?? 'basic';
 
-$items = settingModel()->getByGroup($group);
-$items = array_filter($items, fn($item) => !str_starts_with($item['key'], 'admin_menu_') && !str_starts_with($item['key'], 'ai_') && $item['key'] !== 'current_theme');
+// lang tab 不读 settings 行
+$items = $tab === 'lang' ? [] : settingModel()->getByGroup($group);
+
+// 过滤掉不应在主设置页渲染的条目：
+// 1) admin_menu_* / ai_* / current_theme — 由专门页面管理
+// 2) 在专门子页面管理的语言相关 key（多语言设置页）
+// 3) 系统自动写入的"无元数据"行（SettingModel::set() 直接 INSERT，
+//    没有填 name/type，否则会以裸 key=value 形式漏出，如 timeline_layout）
+$hiddenKeys = [
+    'current_theme',
+    'site_lang', 'admin_lang', 'admin_languages',
+    'enabled_languages', 'show_lang_switcher',
+    'translate_api', 'translate_api_key',
+    'sidebar_state',
+    'timeline_layout',
+    'admin_menu_order',
+];
+// 收集启用的非默认语言后缀 (_en / _ja / ...)，过滤 per-lang 种子行
+$_langSuffixesForFilter = [];
+foreach ($_enabledList as $_lc) {
+    if ($_lc !== $_defaultLang) $_langSuffixesForFilter[] = '_' . $_lc;
+}
+
+$items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuffixesForFilter): bool {
+    if (str_starts_with($item['key'], 'admin_menu_')) return false;
+    if (str_starts_with($item['key'], 'ai_'))         return false;
+    if (in_array($item['key'], $hiddenKeys, true))    return false;
+    // 过滤 per-lang 后缀（footer_columns_en / footer_nav_ja 这种"per-lang 存储位"，
+    // 不是独立设置项；它们的值通过 lang 切换器显示在 base 行里）
+    foreach ($_langSuffixesForFilter as $suf) {
+        if (str_ends_with($item['key'], $suf)) return false;
+    }
+    // SettingModel::set() 写入时没有 name/type，这些 row 本意是系统内部状态，
+    // 不该在主设置页以表单字段呈现。
+    if (trim((string)($item['name'] ?? '')) === '')   return false;
+    return true;
+});
+
+// footer tab + 非默认语言：把 lang-able key 的 value 替换成 _<lang> 值
+if ($_langAware && $_viewLang !== $_defaultLang) {
+    foreach ($items as &$it) {
+        if (!in_array($it['key'], $FOOTER_LANG_KEYS, true)) continue;
+        $it['value'] = (string) config($it['key'] . '_' . $_viewLang, '');
+    }
+    unset($it);
+}
+
 $groupDefaults = getDefaults($group);
 
 $pageTitle = __('setting_page_title');
 $currentMenu = 'setting';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+if ($_langAware) {
+    echo renderAdminLangSwitcher($_viewLang, '提示：页脚栏目/导航/版权 按语言独立保存（key_' . $_viewLang . '）；背景色/图片等其余设置全局共享');
+}
 ?>
 
 <!-- Tab 导航 -->
+<?php
+// 进入/切换 footer tab 时保留 ?lang=；其它 tab 不带 lang 参数（非翻译）
+$_footerLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
+?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/setting.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
         <a href="/admin/setting.php?tab=header" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
-        <a href="/admin/setting.php?tab=footer" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
+        <a href="/admin/setting.php?tab=footer<?php echo $_footerLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
         <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
+        <a href="/admin/setting.php?tab=lang" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'lang' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_lang'); ?></a>
     </div>
 </div>
 
-<?php if ($tab === 'basic'): ?>
+<?php if ($tab === 'lang'): ?>
+<!-- 前台语言配置（独立卡片）-->
+<?php
+$siteDefault = config('site_lang', 'zh-CN');
+$siteEnabledRaw = trim((string)config('enabled_languages', ''));
+$siteEnabled = $siteEnabledRaw !== '' ? json_decode($siteEnabledRaw, true) : null;
+if (!is_array($siteEnabled) || $siteEnabled === []) {
+    $siteEnabled = array_keys(availableLanguages());
+}
+$showSwitcher = config('show_lang_switcher', '0');
+
+// 所有 lang/*.php 实际存在的语言（code => label）
+$_allLangsForUI = availableLanguages();
+
+// per-lang "首页" 菜单显示开关：默认语言用 nav_home_show，其他语言用 nav_home_show_{lang}
+$navHomeShowMap = [];
+foreach (array_keys($_allLangsForUI) as $_lc) {
+    $_key = $_lc === $siteDefault ? 'nav_home_show' : 'nav_home_show_' . $_lc;
+    $_val = config($_key, null);
+    // null（从未设置过）默认按显示处理
+    $navHomeShowMap[$_lc] = $_val === null ? '1' : (string) $_val;
+}
+?>
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b flex items-start justify-between">
+        <div>
+            <h2 class="font-bold text-gray-800">前台语言</h2>
+            <p class="text-xs text-gray-500 mt-1">勾选要启用的前台语言，并选定一个为默认。访问者首次访问时使用默认语言。</p>
+        </div>
+        <a href="/admin/setting_lang.php" class="text-xs text-primary hover:underline whitespace-nowrap mt-1">高级设置 →</a>
+    </div>
+    <div class="p-6 space-y-4">
+        <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <?php foreach ($_allLangsForUI as $code => $label): ?>
+                <div class="flex items-center gap-2">
+                    <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" name="site_langs[]" value="<?php echo e($code); ?>"
+                               <?php echo in_array($code, $siteEnabled, true) ? 'checked' : ''; ?>>
+                        <span class="text-sm"><?php echo e($label); ?> <span class="text-gray-400">(<?php echo e($code); ?>)</span></span>
+                    </label>
+                    <label class="flex items-center gap-1 ml-1 cursor-pointer" title="设为默认">
+                        <input type="radio" name="site_default" value="<?php echo e($code); ?>"
+                               <?php echo $code === $siteDefault ? 'checked' : ''; ?>>
+                        <span class="text-[11px] text-gray-500">默认</span>
+                    </label>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- per-language 首页菜单显示开关 -->
+        <div class="border-t pt-3">
+            <p class="text-xs text-gray-500 mb-2">每种语言独立控制是否在导航栏显示「首页」菜单：</p>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <?php foreach ($_allLangsForUI as $code => $label): ?>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" name="nav_home_show[<?php echo e($code); ?>]" value="1"
+                           <?php echo ($navHomeShowMap[$code] ?? '1') === '1' ? 'checked' : ''; ?>>
+                    <span class="text-sm text-gray-700"><?php echo e($label); ?> 显示「首页」</span>
+                </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between border-t pt-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="siteShowSwitcher" <?php echo $showSwitcher === '1' ? 'checked' : ''; ?>>
+                <span class="text-sm text-gray-700">显示前台语言切换器</span>
+                <span class="text-xs text-gray-400">（启用 2 种以上语言时生效）</span>
+            </label>
+            <button type="button" onclick="saveSiteLanguages()" class="cursor-pointer bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm">保存设置</button>
+        </div>
+    </div>
+</div>
+<script>
+// 自给自足的 toast + json 解析 + 显式 CSRF，避免依赖 footer.php 的全局 helper
+// （footer.php 的 fetch 拦截器在大型外部脚本加载期间可能还没接管 window.fetch）。
+const _LANG_CSRF = <?php echo json_encode(csrfToken()); ?>;
+function _langToast(msg, type) {
+    var div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;padding:.75rem 1.5rem;border-radius:.5rem;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);font-size:.875rem';
+    div.style.background = (type === 'error') ? '#ef4444' : '#10b981';
+    div.textContent = msg;
+    document.body.appendChild(div);
+    setTimeout(function() { div.remove(); }, 3000);
+}
+async function _langSafeJson(r) {
+    var t = await r.text();
+    try { return JSON.parse(t); } catch (e) { return { code: -1, msg: '服务器返回异常: ' + t.slice(0, 200) }; }
+}
+async function saveSiteLanguages() {
+    const enabled = Array.from(document.querySelectorAll('input[name="site_langs[]"]:checked')).map(el => el.value);
+    if (enabled.length === 0) { _langToast('至少保留一种前台语言', 'error'); return; }
+    const def = document.querySelector('input[name="site_default"]:checked')?.value || 'zh-CN';
+    const fd = new FormData();
+    fd.append('_token', _LANG_CSRF);
+    fd.append('action', 'save_site_languages');
+    enabled.forEach(c => fd.append('enabled[]', c));
+    fd.append('site_lang', def);
+    if (document.getElementById('siteShowSwitcher').checked) fd.append('show_switcher', '1');
+    // 收集 per-lang nav_home_show 勾选状态（未勾的也要送，不然后端无法区分"未勾"和"未发送"）
+    document.querySelectorAll('input[name^="nav_home_show["]').forEach(cb => {
+        if (cb.checked) fd.append(cb.name, '1');
+    });
+    try {
+        const r = await fetch(location.href, { method: 'POST', body: fd });
+        const d = await _langSafeJson(r);
+        _langToast(d.msg || '已保存', d.code === 0 ? 'success' : 'error');
+        if (d.code === 0) setTimeout(() => location.reload(), 600);
+    } catch (e) {
+        _langToast('请求失败: ' + e.message, 'error');
+    }
+}
+</script>
+
 <!-- 后台语言配置（独立卡片）-->
 <?php
 $adminLangsRaw = trim((string)config('admin_languages', ''));
 $adminLangsCurrent = $adminLangsRaw !== ''
     ? array_filter(array_map('trim', explode(',', $adminLangsRaw)))
-    : array_values(array_filter(['zh-CN', 'en', 'ja'], fn($c) => file_exists(ROOT_PATH . '/lang/' . $c . '.php')));
+    : array_keys(availableLanguages());
 ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
@@ -109,35 +329,39 @@ $adminLangsCurrent = $adminLangsRaw !== ''
         <p class="text-xs text-gray-500 mt-1">勾选后台顶栏语言切换器要显示的语言。少于 2 种时不显示切换器。</p>
     </div>
     <div class="p-6 flex items-center gap-6">
-        <?php foreach (['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'] as $code => $label): ?>
-            <?php $exists = file_exists(ROOT_PATH . '/lang/' . $code . '.php'); ?>
-            <label class="flex items-center gap-2 <?php echo $exists ? 'cursor-pointer' : 'opacity-40'; ?>">
-                <input type="checkbox" name="admin_langs[]" value="<?php echo $code; ?>"
-                       <?php echo in_array($code, $adminLangsCurrent, true) ? 'checked' : ''; ?>
-                       <?php echo $exists ? '' : 'disabled'; ?>>
-                <span class="text-sm"><?php echo $label; ?> <span class="text-gray-400">(<?php echo $code; ?>)</span></span>
-                <?php if (!$exists): ?><span class="text-[10px] text-red-400">lang 文件缺失</span><?php endif; ?>
+        <?php foreach ($_allLangsForUI as $code => $label): ?>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="admin_langs[]" value="<?php echo e($code); ?>"
+                       <?php echo in_array($code, $adminLangsCurrent, true) ? 'checked' : ''; ?>>
+                <span class="text-sm"><?php echo e($label); ?> <span class="text-gray-400">(<?php echo e($code); ?>)</span></span>
             </label>
         <?php endforeach; ?>
-        <button type="button" onclick="saveAdminLanguages()" class="ml-auto bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm">保存语言列表</button>
+        <button type="button" onclick="saveAdminLanguages()" class="ml-auto cursor-pointer bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm">保存设置</button>
     </div>
 </div>
 <script>
 async function saveAdminLanguages() {
     const checked = Array.from(document.querySelectorAll('input[name="admin_langs[]"]:checked')).map(el => el.value);
-    if (checked.length === 0) { showMessage('至少要保留一种语言', 'error'); return; }
+    if (checked.length === 0) { _langToast('至少要保留一种语言', 'error'); return; }
     const fd = new FormData();
+    fd.append('_token', _LANG_CSRF);
     fd.append('action', 'save_admin_languages');
     fd.append('admin_languages', checked.join(','));
-    const r = await fetch('', { method: 'POST', body: fd });
-    const d = await r.json();
-    showMessage(d.msg || '已保存', d.code === 0 ? 'success' : 'error');
-    if (d.code === 0) setTimeout(() => location.reload(), 600);
+    try {
+        const r = await fetch(location.href, { method: 'POST', body: fd });
+        const d = await _langSafeJson(r);
+        _langToast(d.msg || '已保存', d.code === 0 ? 'success' : 'error');
+        if (d.code === 0) setTimeout(() => location.reload(), 600);
+    } catch (e) {
+        _langToast('请求失败: ' + e.message, 'error');
+    }
 }
 </script>
 <?php endif; ?>
 
+<?php if ($tab !== 'lang'): ?>
 <form id="settingForm" class="space-y-6">
+    <input type="hidden" name="tab_hint" value="<?php echo e($tab); ?>">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo ['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab] ?? __('setting_tab_basic'); ?></h2>
@@ -363,6 +587,7 @@ async function saveAdminLanguages() {
         </button>
     </div>
 </form>
+<?php endif; ?>
 
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
 
@@ -518,7 +743,7 @@ async function restoreAllDefaults() {
     }
 }
 
-document.getElementById('settingForm').addEventListener('submit', async function(e) {
+document.getElementById('settingForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     collectFooterColumns();
     collectFooterNav();

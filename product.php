@@ -14,9 +14,9 @@ HtmlCache::start(600);
 $productId = getInt('id');
 $slug = get('slug');
 
-// 通过ID或slug获取产品
+// 通过ID或slug获取产品（lang-aware：URL 用源 slug 也能跳到当前语言行）
 if ($slug) {
-    $product = productModel()->findBySlug($slug);
+    $product = productModel()->findBySlugLang($slug);
 } elseif ($productId > 0) {
     $product = productModel()->getPublished($productId);
 } else {
@@ -91,8 +91,8 @@ if ($product['specs']) {
 // 获取导航
 $navChannels = getNavChannels();
 
-// 获取产品中心栏目（用于面包屑）
-$productChannel = getChannelBySlug('product');
+// 获取产品中心栏目（lang-aware）
+$productChannel = getChannelBySlug('product', true);
 
 // 当前菜单高亮
 $currentSlug = 'product';

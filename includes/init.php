@@ -30,18 +30,29 @@ require_once ROOT_PATH . '/includes/models/autoload.php';
 initLang();
 
 // 前台语言检测
+//   优先级：URL 前缀（_lang，由 .htaccess 从 /en/.. /ja/.. 剥离传入）
+//          > cookie（用户上次明确切换的语言，仅在切换器开启时生效）
+//          > 站点默认（site_lang）
+//
+// URL 前缀总是被认；这是显式信号，且 SEO 必须保证 /en/foo 始终展示英文。
+// cookie 仅在 show_lang_switcher='1' 时生效（避免悄悄改变默认语言行为）。
 if (!defined('SITE_LANG')) {
     $defaultSiteLang = (string)config('site_lang', 'zh-CN');
     $detected = $defaultSiteLang;
 
-    // 仅在开启语言切换器时才检测 URL/cookie 中的语言
-    if ((string)config('show_lang_switcher', '0') === '1') {
-        $supported = ['zh-CN', 'ja', 'en'];
-        if (!empty($_GET['_lang']) && in_array($_GET['_lang'], $supported, true)) {
-            $detected = $_GET['_lang'];
-        } elseif (!empty($_COOKIE['site_lang']) && in_array($_COOKIE['site_lang'], $supported, true)) {
-            $detected = $_COOKIE['site_lang'];
-        }
+    $enabledRaw = trim((string)config('enabled_languages', ''));
+    $supported = $enabledRaw !== '' ? json_decode($enabledRaw, true) : null;
+    if (!is_array($supported) || $supported === []) {
+        // 启用列表未配置：fallback 到 lang/ 目录里实际存在的语言（扫文件，不写死）
+        $supported = array_keys(availableLanguages());
+    }
+
+    if (!empty($_GET['_lang']) && in_array($_GET['_lang'], $supported, true)) {
+        $detected = (string)$_GET['_lang'];
+    } elseif ((string)config('show_lang_switcher', '0') === '1'
+              && !empty($_COOKIE['site_lang'])
+              && in_array($_COOKIE['site_lang'], $supported, true)) {
+        $detected = (string)$_COOKIE['site_lang'];
     }
 
     define('SITE_LANG', $detected);

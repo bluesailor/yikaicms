@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 产品分类管理
+ * YikaiCMS - 产品分类管理
  *
  * PHP 8.0+
  */
@@ -14,6 +14,15 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('content');
+
+// 多语言翻译创建器：拦截 action=create_translation 的 POST
+$langSwitcher = [
+    'table'         => 'product_categories',
+    'model'         => productCategoryModel(),
+    'title_field'   => 'name',
+    'summary_field' => 'description',
+];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -118,8 +127,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取分类树
-$categories = productCategoryModel()->getFlatOptions();
+// 视图语言：URL 参数 ?lang= 决定列哪个语言的分类
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
+// 列当前 view-lang 的行（直接走 lang 过滤分支）
+$categories = productCategoryModel()->getFlatOptions(0, 0, $_viewLang);
+
+// 加载翻译状态徽标索引
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('product_categories');
 
 // 获取每个分类的产品数量
 $productCounts = [];
@@ -146,6 +167,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_setting'); ?></a>
     </div>
 </div>
+
+<?php if (count($_enabledList) > 1): ?>
+<!-- 语言切换器 -->
+<div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
+    <span class="text-gray-500">查看语言：</span>
+    <?php foreach ($_enabledList as $_lc):
+        if (!isset($_langLabels[$_lc])) continue;
+        $_isCurrent = ($_lc === $_viewLang);
+        $_isDefault = ($_lc === $_defaultLang);
+    ?>
+    <a href="?lang=<?php echo e($_lc); ?>"
+       class="px-3 py-1 rounded-full transition <?php echo $_isCurrent ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
+        <?php echo e($_langLabels[$_lc]); ?>
+        <?php if ($_isDefault): ?><span class="ml-1 text-[10px] opacity-70">(源)</span><?php endif; ?>
+    </a>
+    <?php endforeach; ?>
+    <?php if ($_viewLang !== $_defaultLang): ?>
+    <span class="ml-auto text-xs text-amber-600">提示：源语言（<?php echo e($_langLabels[$_defaultLang] ?? $_defaultLang); ?>）才能新增/删除分类；当前是翻译版本，编辑用于本地化文字</span>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -176,6 +218,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">导航</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -214,6 +257,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
+                        <?php
+                        // 当前若是翻译行，徽标索引按源 id（translation_group_id）查
+                        $_pillSrcId = (int) ($item['translation_group_id'] ?: $item['id']);
+                        echo renderTransPills($_pillSrcId, $transStatus, '/admin/product_category.php', 'edit');
+                        ?>
+                    </td>
+                    <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -227,7 +277,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($categories)): ?>
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
+                    <td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>

@@ -292,6 +292,13 @@ function getLang(): string
 
     $isAdmin = str_contains($_SERVER['REQUEST_URI'] ?? '', '/admin/');
 
+    // 登录页临时语言：用户在 /admin/login.php 点击切换器后存在 SESSION 里，
+    // 没登录时也要生效（否则切换器没意义）。优先级最高，仅当 admin_lang/site_lang 都没设置时也兜底用它。
+    if ($isAdmin && !empty($_SESSION['login_lang'])) {
+        $lang = (string) $_SESSION['login_lang'];
+        return $lang;
+    }
+
     if (!$isAdmin && defined('SITE_LANG')) {
         // Frontend: SITE_LANG is set by init.php based on user's language selection (URL/cookie)
         $lang = SITE_LANG;
@@ -389,6 +396,28 @@ function configLang(string $configKey, string $langKey = ''): string
 }
 
 /**
+ * 多语言感知的 raw 配置读取（用于布尔/状态值，跟 configLang() 文本翻译不同）。
+ *
+ * 优先级：非默认语言时读 {key}_{lang}，没有该 setting → 回退到全局 {key}。
+ * 适用：nav_home_show / nav_home_show_en / nav_home_show_ja 这种"每语言独立开关"。
+ *
+ *   configRawLang('nav_home_show', '1')
+ *      en 访客 → 优先 'nav_home_show_en'，没设 → 'nav_home_show'，再没 → '1'
+ *      zh 访客 → 直接 'nav_home_show'，没设 → '1'
+ */
+function configRawLang(string $configKey, string $default = ''): string
+{
+    $lang = siteLang();
+    $defaultLang = (string)config('site_lang', 'zh-CN');
+    if ($lang !== $defaultLang) {
+        $langKey = $configKey . '_' . $lang;
+        $langVal = config($langKey, null);
+        if ($langVal !== null && $langVal !== '') return (string) $langVal;
+    }
+    return (string) config($configKey, $default);
+}
+
+/**
  * 多语言感知的 JSON 配置读取
  * 非默认语言时优先读 {key}_{lang}，没有则回退默认
  */
@@ -401,6 +430,50 @@ function configJsonLang(string $configKey): string
         if ($langVal !== '') return $langVal;
     }
     return config($configKey, '') ?: '';
+}
+
+/**
+ * 渲染 <link rel="alternate" hreflang> 标签 + x-default。
+ *
+ * 给搜索引擎告知本页存在哪些语言版本。逻辑是 URL 级（不查内容翻译表）：
+ *   - 当前路径剥掉已有的 /en /ja 前缀，得到"裸路径"
+ *   - 对每个启用语言生成对应的绝对 URL
+ *   - x-default 指向默认语言版本
+ *
+ * 此版本不感知具体内容是否有该语言翻译；如果某栏目仅有中文，搜索引擎
+ * 可能爬到 404。代价低、收益大；后续可升级为内容翻译感知（按
+ * translation_group_id 查实际可用语言）。
+ */
+function renderHreflangs(): string
+{
+    $enabledRaw = trim((string) config('enabled_languages', ''));
+    $enabled = $enabledRaw !== '' ? json_decode($enabledRaw, true) : null;
+    if (!is_array($enabled) || count($enabled) < 2) return '';
+
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    $base = rtrim((string) config('site_url', ''), '/');
+    if ($base === '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $base = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    }
+
+    // 当前请求 path（剥掉已有的 lang 前缀）
+    $path = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    if (($q = strpos($path, '?')) !== false) $path = substr($path, 0, $q);
+    $path = preg_replace('#^/(zh-CN|en|ja)(?=/|$)#', '', $path) ?? $path;
+    if ($path === '') $path = '/';
+
+    $hreflangMap = ['zh-CN' => 'zh-CN', 'en' => 'en', 'ja' => 'ja'];
+    $out = '';
+    foreach ($enabled as $code) {
+        if (!isset($hreflangMap[$code])) continue;
+        $prefix = $code === $defaultLang ? '' : '/' . $code;
+        $href = $base . $prefix . $path;
+        $out .= '<link rel="alternate" hreflang="' . htmlspecialchars($hreflangMap[$code], ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
+    }
+    // x-default
+    $out .= '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($base . $path, ENT_QUOTES) . '">' . "\n";
+    return $out;
 }
 
 /**
@@ -535,6 +608,20 @@ function getChildChannelIds(int $channelId): array
 }
 
 /**
+ * 获取当前语言对应的 URL 前缀。
+ *
+ * 默认语言（site_lang）返回空串；其它语言返回 "/en"、"/ja" 等。
+ * .htaccess 已经把 /en/foo → /foo?_lang=en 在入站侧剥离；
+ * 这里负责出站侧把前缀加回去，让站内链接保持当前语言上下文。
+ */
+function langPrefix(?string $lang = null): string
+{
+    $lang ??= siteLang();
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    return $lang === $defaultLang ? '' : '/' . $lang;
+}
+
+/**
  * 获取栏目URL（SEO友好）
  */
 function channelUrl(array $channel): string
@@ -543,12 +630,13 @@ function channelUrl(array $channel): string
         return e($channel['link_url']);
     }
 
+    $prefix = langPrefix();
     $slug = $channel['slug'] ?? '';
     if (empty($slug)) {
         if ($channel['type'] === 'page') {
-            return '/page/' . $channel['id'] . '.html';
+            return $prefix . '/page/' . $channel['id'] . '.html';
         } else {
-            return '/list/' . $channel['id'] . '.html';
+            return $prefix . '/list/' . $channel['id'] . '.html';
         }
     }
 
@@ -556,12 +644,12 @@ function channelUrl(array $channel): string
         if (!empty($channel['parent_id'])) {
             $parent = getChannel((int)$channel['parent_id']);
             if ($parent && !empty($parent['slug'])) {
-                return '/' . $parent['slug'] . '/' . $slug . '.html';
+                return $prefix . '/' . $parent['slug'] . '/' . $slug . '.html';
             }
         }
-        return '/' . $slug . '.html';
+        return $prefix . '/' . $slug . '.html';
     } else {
-        return '/' . $slug . '.html';
+        return $prefix . '/' . $slug . '.html';
     }
 }
 
@@ -614,30 +702,31 @@ function addDownloadCount(int $id): int
  */
 function contentUrl(array $content): string
 {
+    $prefix = langPrefix();
     $slug = $content['slug'] ?? '';
     $channelSlug = $content['channel_slug'] ?? '';
     $channelType = $content['channel_type'] ?? '';
 
     // 下载类型使用 /download/detail/{id}.html
     if ($channelType === 'download') {
-        return '/download/detail/' . $content['id'] . '.html';
+        return $prefix . '/download/detail/' . $content['id'] . '.html';
     }
 
     // 案例类型使用 /case/{slug}.html 或 /case/{id}.html
     if ($channelType === 'case') {
         if (!empty($slug)) {
-            return '/case/' . $slug . '.html';
+            return $prefix . '/case/' . $slug . '.html';
         }
-        return '/case/' . $content['id'] . '.html';
+        return $prefix . '/case/' . $content['id'] . '.html';
     }
 
     // 如果内容和栏目都有slug，使用友好URL
     if (!empty($slug) && !empty($channelSlug)) {
-        return '/' . $channelSlug . '/' . $slug . '.html';
+        return $prefix . '/' . $channelSlug . '/' . $slug . '.html';
     }
 
     // 否则使用ID格式
-    return '/detail/' . $content['id'] . '.html';
+    return $prefix . '/detail/' . $content['id'] . '.html';
 }
 
 /**
@@ -645,7 +734,7 @@ function contentUrl(array $content): string
  */
 function jobUrl(array $job): string
 {
-    return '/job/' . $job['id'] . '.html';
+    return langPrefix() . '/job/' . $job['id'] . '.html';
 }
 
 // ============================================================
@@ -697,16 +786,17 @@ function addProductViews(int $id): int
  */
 function productUrl(array $product): string
 {
+    $prefix = langPrefix();
     $slug = $product['slug'] ?? '';
     $categorySlug = $product['category_slug'] ?? '';
 
     // 如果产品和分类都有slug，使用友好URL
     if (!empty($slug) && !empty($categorySlug)) {
-        return '/product/' . $categorySlug . '/' . $slug . '.html';
+        return $prefix . '/product/' . $categorySlug . '/' . $slug . '.html';
     }
 
     // 否则使用ID格式
-    return '/product/' . $product['id'] . '.html';
+    return $prefix . '/product/' . $product['id'] . '.html';
 }
 
 /**
@@ -738,11 +828,12 @@ function getProductCategoryBySlug(string $slug): ?array
  */
 function productCategoryUrl(array $category): string
 {
+    $prefix = langPrefix();
     $slug = $category['slug'] ?? '';
     if (!empty($slug)) {
-        return '/product/' . $slug . '.html';
+        return $prefix . '/product/' . $slug . '.html';
     }
-    return '/product.html?cat=' . $category['id'];
+    return $prefix . '/product.html?cat=' . $category['id'];
 }
 
 // ============================================================
@@ -2073,7 +2164,16 @@ function renderFormTemplate(string $slug): string
         return '<!-- 表单不存在: ' . e($slug) . ' -->';
     }
 
-    $fieldsRaw = $template['fields'] ?? '';
+    // lang-aware：当前是 EN/JA 且 fields_<lang> 有值则用翻译版字段模板，否则回退到 zh-CN
+    $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    $fieldsRaw = (string) ($template['fields'] ?? '');
+    if ($lang !== $defaultLang) {
+        $langFields = (string) ($template['fields_' . $lang] ?? '');
+        if (trim($langFields) !== '') {
+            $fieldsRaw = $langFields;
+        }
+    }
     if (empty(trim($fieldsRaw))) {
         return '';
     }
@@ -2393,7 +2493,13 @@ function siteLang(): string
 }
 
 /**
- * 获取配置的可用语言列表
+ * 物理存在的语言包列表（扫描 lang/*.php 文件系统）。
+ *
+ * 返回所有 lang/{code}.php 实际能加载的代码，不考虑用户启用与否。
+ * 给翻译管理 / 后台编辑这种"我有什么语言可写"的场景用。
+ *
+ * 前台切换器、hreflang 等访客可见的地方应该用 enabledLanguages()，
+ * 那个会按 enabled_languages 设置过滤。
  */
 function availableLanguages(): array
 {
@@ -2408,6 +2514,28 @@ function availableLanguages(): array
         $langs[$code] = $labels[$code] ?? $code;
     }
     return $langs;
+}
+
+/**
+ * 用户在后台勾选启用的前台语言列表（available × enabled_languages 设置）。
+ *
+ * 设置为空时退化到全部 available（首装/老站兼容）。
+ * 切换器、hreflang、URL 路由这些访客可见的循环都该用这个。
+ */
+function enabledLanguages(): array
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $all = availableLanguages();
+    $raw = trim((string) config('enabled_languages', ''));
+    $list = $raw !== '' ? json_decode($raw, true) : null;
+    if (!is_array($list) || $list === []) return $cache = $all;
+    $cache = [];
+    foreach ($list as $code) {
+        if (isset($all[$code])) $cache[$code] = $all[$code];
+    }
+    if ($cache === []) $cache = $all;  // 配置无效时也别返回空
+    return $cache;
 }
 
 /**

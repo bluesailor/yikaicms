@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 合作伙伴管理
+ * YikaiCMS - 合作伙伴管理
  *
  * PHP 8.0+
  */
@@ -77,14 +77,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取列表
-$links = linkModel()->all('sort_order ASC, id DESC');
+// 视图语言
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
+// 获取列表（按 view-lang 过滤）
+$links = array_values(array_filter(
+    linkModel()->all('sort_order ASC, id DESC'),
+    fn($l) => ($l['lang'] ?? $_defaultLang) === $_viewLang
+));
 
 $pageTitle = __('admin_link');
 $currentMenu = 'link';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('links');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang, '提示：每个合作伙伴独立 lang 字段；切换语言后看到的是该语言下的记录'); ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">

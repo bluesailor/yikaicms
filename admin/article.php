@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 文章管理
+ * YikaiCMS - 文章管理
  *
  * 合并后使用 ContentModel + ChannelModel
  * PHP 8.0+
@@ -97,9 +97,16 @@ $perPage = 20;
 
 $offset = ($page - 1) * $perPage;
 
-// 构建查询条件
-$where = [];
-$params = [];
+// 视图语言（?lang=en/ja 切换列哪个语言；默认为 site_lang）
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
+$where = ['a.lang = ?'];
+$params = [$_viewLang];
 
 // 限制只查询 news 栏目下的内容
 if ($channelId > 0) {
@@ -139,8 +146,13 @@ $articles = db()->fetchAll(
 $pageTitle = __('admin_article');
 $currentMenu = 'article';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('contents');
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -198,6 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3"><?php echo __('admin_recommend'); ?></th>
                     <th class="px-4 py-3"><?php echo __('detail_views'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_created_at'); ?></th>
+                    <th class="px-4 py-3">翻译</th>
                     <th class="px-4 py-3 w-32"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -240,6 +253,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </td>
                     <td class="px-4 py-3 text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
                     <td class="px-4 py-3 text-gray-400 text-xs"><?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?></td>
+                    <td class="px-4 py-3"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/article_edit.php'); ?></td>
                     <td class="px-4 py-3">
                         <div class="flex gap-3 items-center">
                             <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_edit'); ?>">
