@@ -3,6 +3,27 @@
  */
 
 /* ============================================================
+   交互元素鼠标样式
+   ============================================================ */
+/* Tailwind v4 Preflight 取消了 <button> 的 cursor:pointer，统一加回来 */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+summary,
+label[for],
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="button"]:not(:disabled),
+input[type="reset"]:not(:disabled),
+input[type="file"]:not(:disabled)::file-selector-button {
+    cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
+/* ============================================================
    Tailwind v4 Preflight 表单修复
    ============================================================ */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="color"]),
@@ -254,12 +275,24 @@ select {
    多级导航子菜单（flyout，hover 右侧弹出）
    ============================================================ */
 .nav-dropdown-menu .nav-sub-item { position: relative; }
-.nav-dropdown-menu .nav-sub-item > a { display: block; padding: 0.5rem 1.25rem; color: #4b5563; white-space: nowrap; transition: all 0.2s; }
+/* flex 布局保证子菜单文本和右侧箭头始终同一行；EN/JA 文字较长时不再被挤换行 */
+.nav-dropdown-menu .nav-sub-item > a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0.5rem 1.25rem;
+    color: #4b5563;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
 .nav-dropdown-menu .nav-sub-item > a:hover { background: #f3f4f6; color: var(--color-primary, #3B82F6); }
-.nav-sub-arrow { float: right; margin-left: 12px; color: #9ca3af; font-weight: bold; }
+.nav-sub-arrow { color: #9ca3af; font-weight: bold; flex-shrink: 0; }
 .nav-submenu {
     position: absolute;
-    top: -0.5rem;
+    /* 二级菜单顶部对齐父项目顶部，不上移 —— 之前 top:-0.5rem 会把
+       submenu 顶到一级下拉之上，视觉上很怪 */
+    top: 0;
     left: 100%;
     min-width: 160px;
     background: #fff;

@@ -73,15 +73,30 @@ class SettingModel extends Model
 
     /**
      * 批量保存 [key => value, ...]
+     *
+     * UPSERT 语义：行不存在时插入（这点对多语言 per-lang 翻译键
+     * 如 home_about_content_en 至关重要——首次保存才能落地）。
      */
     public function saveBatch(array $settings): void
     {
         $this->cache = null;
         foreach ($settings as $key => $value) {
-            db()->execute(
-                "UPDATE {$this->tableName()} SET `value` = ? WHERE `key` = ?",
-                [$value, $key]
+            $row = db()->fetchOne(
+                "SELECT id FROM {$this->tableName()} WHERE `key` = ?",
+                [(string) $key]
             );
+            if ($row) {
+                db()->execute(
+                    "UPDATE {$this->tableName()} SET `value` = ? WHERE `key` = ?",
+                    [(string) $value, (string) $key]
+                );
+            } else {
+                // 新键：基础列填上默认值（group 用 basic，name 复用 key 占位）
+                db()->execute(
+                    "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`) VALUES (?, ?, ?, ?, ?)",
+                    [(string) $key, (string) $value, 'basic', (string) $key, '']
+                );
+            }
         }
     }
 }

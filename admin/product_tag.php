@@ -10,11 +10,21 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('content');
 
+// ============== 多语言视图 ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'save') {
         $id = postInt('id');
+        $postLang = (string) (post('lang') ?: $_viewLang);
+        if (!in_array($postLang, $_enabledList, true)) $postLang = $_defaultLang;
+
         $data = [
             'group_name' => post('group_name'),
             'name' => post('name'),
@@ -27,7 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id > 0) {
             db()->update('product_tags', $data, 'id = ?', [$id]);
         } else {
-            db()->insert('product_tags', $data);
+            $data['lang'] = $postLang;
+            $data['translation_group_id'] = 0;
+            $newId = (int) db()->insert('product_tags', $data);
+            if ($postLang === $_defaultLang) {
+                db()->execute("UPDATE " . DB_PREFIX . "product_tags SET translation_group_id = ? WHERE id = ?", [$newId, $newId]);
+            }
         }
         success();
     }
@@ -46,8 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 获取所有标签按组分类
-$allTags = db()->fetchAll("SELECT t.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "product_tag_map WHERE tag_id = t.id) as product_count FROM " . DB_PREFIX . "product_tags t ORDER BY t.group_name, t.sort_order, t.id");
+// 获取所有标签按组分类 —— 按视图语言过滤
+$allTags = db()->fetchAll(
+    "SELECT t.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "product_tag_map WHERE tag_id = t.id) as product_count
+     FROM " . DB_PREFIX . "product_tags t
+     WHERE t.lang = ?
+     ORDER BY t.group_name, t.sort_order, t.id",
+    [$_viewLang]
+);
 
 $groups = [];
 foreach ($allTags as $tag) {
@@ -60,11 +81,16 @@ $editTag = null;
 $editId = getInt('edit');
 if ($editId > 0) {
     $editTag = db()->fetchOne("SELECT * FROM " . DB_PREFIX . "product_tags WHERE id = ?", [$editId]);
+    if ($editTag && $editTag['lang'] !== $_viewLang && in_array($editTag['lang'], $_enabledList, true)) {
+        $_viewLang = (string) $editTag['lang'];
+    }
 }
 
 $pageTitle = '标签管理';
 $currentMenu = 'product';
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_viewLang . ' 语种标签');
 ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
@@ -112,6 +138,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <form id="tagForm" class="space-y-4">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" value="<?php echo $editTag['id'] ?? 0; ?>">
+                <input type="hidden" name="lang" value="<?php echo e($editTag['lang'] ?? $_viewLang); ?>">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">标签组 *</label>
                     <div class="flex gap-2">

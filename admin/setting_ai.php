@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - AI 设置
+ * YikaiCMS - AI 设置
  */
 
 declare(strict_types=1);

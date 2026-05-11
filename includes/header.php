@@ -79,40 +79,10 @@ function isChannelActive(array $channel, int $currentId, string $currentSlug = '
     return false;
 }
 
-// 获取栏目链接（SEO友好URL）
+// 获取栏目链接（SEO友好URL）—— 委托给通用 channelUrl()，保留动态注入分支
 function getChannelUrl(array $channel): string {
-    // 动态注入的URL（如产品分类）
-    if (!empty($channel['_url'])) {
-        return $channel['_url'];
-    }
-    if ($channel['type'] === 'link') {
-        return e($channel['link_url']);
-    }
-
-    $slug = $channel['slug'] ?? '';
-    if (empty($slug)) {
-        // 没有slug时使用id
-        if ($channel['type'] === 'page') {
-            return '/page/' . $channel['id'] . '.html';
-        } else {
-            return '/list/' . $channel['id'] . '.html';
-        }
-    }
-
-    // 使用slug生成友好URL
-    if ($channel['type'] === 'page') {
-        // 单页：检查是否有父级
-        if (!empty($channel['parent_id'])) {
-            $parent = getChannel((int)$channel['parent_id']);
-            if ($parent && !empty($parent['slug'])) {
-                return '/' . $parent['slug'] . '/' . $slug . '.html';
-            }
-        }
-        return '/' . $slug . '.html';
-    } else {
-        // 列表页
-        return '/' . $slug . '.html';
-    }
+    if (!empty($channel['_url'])) return $channel['_url'];
+    return channelUrl($channel);
 }
 
 

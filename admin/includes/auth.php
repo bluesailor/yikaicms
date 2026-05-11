@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 后台认证模块
+ * YikaiCMS - 后台认证模块
  *
  * PHP 8.0+
  */

@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 文章编辑
+ * YikaiCMS - 文章编辑
  *
  * PHP 8.0+
  */
@@ -14,6 +14,13 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('content');
+
+// 多语言翻译创建器：拦截 action=create_translation 的 POST
+$langSwitcher = [
+    'table' => 'contents',
+    'model' => contentModel(),
+];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 $id = getInt('id');
 $article = null;
@@ -85,8 +92,13 @@ $categories = $newsChannelId > 0 ? channelModel()->getFlatList($newsChannelId) :
 $pageTitle = $article ? __('admin_edit') : __('admin_add');
 $currentMenu = 'article';
 
+$langSwitcher['item']     = $article;
+$langSwitcher['edit_url'] = '/admin/article_edit.php';
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <form id="editForm" class="space-y-6">
     <div class="flex gap-6">

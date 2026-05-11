@@ -1,37 +1,57 @@
 <?php
 /**
- * ikaiCMS - 日本語言語パック
+ * YikaiCMS - 日本語言語パック
  */
 
 return [
-    // 通用
+
     'home' => 'ホーム',
+
     'back' => '戻る',
+
     'submit' => '送信',
+
     'save' => '保存',
+
     'cancel' => 'キャンセル',
+
     'delete' => '削除',
+
     'edit' => '編集',
+
     'add' => '追加',
+
     'search' => '検索',
+
     'reset' => 'リセット',
+
     'close' => '閉じる',
+
     'confirm' => '確認',
+
     'yes' => 'はい',
+
     'no' => 'いいえ',
+
     'all' => 'すべて',
+
     'more' => 'もっと見る',
+
     'loading' => '読み込み中...',
+
     'no_data' => 'データがありません',
     'no_content' => 'コンテンツがありません',
+
     'operation_success' => '操作が完了しました',
     'operation_failed' => '操作に失敗しました',
+
     'save_success' => '保存しました',
+
     'delete_success' => '削除しました',
+
     'please_select' => '選択してください',
     'please_input' => '入力してください',
 
-    // 導航
     'nav_home' => 'ホーム',
     'nav_about' => '会社概要',
     'nav_product' => '製品情報',
@@ -42,15 +62,18 @@ return [
     'nav_contact' => 'お問い合わせ',
     'nav_history' => '沿革',
 
-    // 首页
     'home_about_title' => '会社',
     'home_learn_more' => '詳しく見る',
     'home_view_all' => 'すべて見る',
+    'home_cta_title' => 'ご相談はお気軽に',
+    'home_cta_desc' => 'お客様に最適なソリューションをご提案いたします',
+
+    'list_gallery' => 'ギャラリー',
+
     'home_our_advantage' => '私たちの強み',
     'home_hot' => '人気',
     'home_new' => '新着',
 
-    // 列表页
     'list_total' => '全',
     'list_items' => '件',
     'list_product' => '製品',
@@ -58,22 +81,25 @@ return [
     'list_case' => '事例',
     'list_prev_page' => '前のページ',
     'list_next_page' => '次のページ',
+
     'search_placeholder' => '検索...',
     'search_result' => '検索結果',
     'search_clear' => '検索をクリア',
 
-    // 新闻文章
     'news_title' => 'お知らせ',
+
     'article_top' => '注目',
     'article_recommend' => 'おすすめ',
     'article_tags' => 'タグ',
     'article_source' => '出典',
+
     'related_articles' => '関連記事',
+
     'back_to_list' => '一覧に戻る',
+
     'no_prev_article' => '前の記事はありません',
     'no_next_article' => '次の記事はありません',
 
-    // 详情页
     'detail_publish_time' => '掲載日',
     'detail_author' => '著者',
     'detail_source' => '出典',
@@ -89,21 +115,22 @@ return [
     'detail_call' => '電話で問い合わせ',
     'detail_related_products' => '関連製品',
 
-    // 招聘
     'job_location' => '勤務地',
     'job_salary' => '給与',
+    'job_type' => '雇用形態',
+    'job_headcount' => '募集人数',
+    'job_education' => '学歴',
+    'job_experience' => '経験',
     'job_apply' => '応募する',
     'job_responsibility' => '業務内容',
     'job_requirement' => '応募条件',
 
-    // 下载
     'download_filename' => 'ファイル名',
     'download_date' => '掲載日',
     'download_count' => 'ダウンロード数',
     'download_action' => '操作',
     'download_btn' => 'ダウンロード',
 
-    // 联系我们
     'contact_title' => 'お問い合わせ',
     'contact_subtitle' => 'ご質問やご相談がございましたら、お気軽にお問い合わせください',
     'contact_info' => '連絡先情報',
@@ -120,19 +147,14 @@ return [
     'contact_form_success' => '送信が完了しました。担当者よりご連絡いたします。',
     'contact_form_required' => '必須項目を入力してください',
 
-    // 页脚
     'footer_quick_links' => 'クイックリンク',
     'footer_contact' => 'お問い合わせ',
     'footer_follow' => 'フォロー',
     'footer_copyright' => 'All Rights Reserved',
     'footer_icp' => '届出番号',
 
-    // 面包屑
     'breadcrumb_home' => 'ホーム',
 
-    // ============ 管理画面 ============
-
-    // 登录
     'admin_login_title' => '管理画面ログイン',
     'admin_login_username' => 'ユーザー名',
     'admin_login_password' => 'パスワード',
@@ -140,8 +162,6 @@ return [
     'admin_login_remember' => 'ログイン状態を保持',
     'admin_login_submit' => 'ログイン',
     'admin_login_error' => 'ユーザー名またはパスワードが正しくありません',
-
-    // 后台导航
     'admin_dashboard' => 'ダッシュボード',
     'admin_channel' => 'カテゴリ管理',
     'admin_page' => 'ページ管理',
@@ -156,17 +176,15 @@ return [
     'admin_timeline' => '沿革管理',
     'admin_form' => 'フォームデータ',
     'admin_link' => 'パートナー',
-    'admin_system' => 'システム設定',
+    'admin_system' => 'システム管理',
     'admin_setting' => '基本設定',
     'admin_setting_home' => 'トップページ設定',
     'admin_setting_email' => 'メール設定',
-    'admin_user' => 'ユーザー管理',
+    'admin_user' => '管理者',
     'admin_log' => '操作ログ',
     'admin_profile' => 'プロフィール',
     'admin_logout' => 'ログアウト',
     'admin_visit_frontend' => 'サイトを表示',
-
-    // 后台通用
     'admin_add' => '追加',
     'admin_edit' => '編集',
     'admin_delete' => '削除',
@@ -199,6 +217,7 @@ return [
     'admin_no_specs' => '項目がありません',
     'admin_spec_key_prompt' => '項目名（英字キー名、例：size、method）',
     'admin_spec_exists' => 'この項目は既に存在します',
+
     'spec_material' => '素材分類',
     'spec_material_label' => '素材名',
     'spec_scene' => '使用シーン',
@@ -209,7 +228,6 @@ return [
     'spec_use' => '用途',
     'spec_corner' => '角丸',
 
-    // 控制台
     'dashboard_welcome' => 'おかえりなさい',
     'dashboard_today_views' => '今日のアクセス',
     'dashboard_total_content' => 'コンテンツ総数',
@@ -219,7 +237,6 @@ return [
     'dashboard_recent_form' => '最近のフォーム',
     'dashboard_system_info' => 'システム情報',
 
-    // 设置
     'setting_site_name' => 'サイト名',
     'setting_site_logo' => 'サイトロゴ',
     'setting_site_keywords' => 'SEOキーワード',
@@ -230,58 +247,46 @@ return [
     'setting_icp' => '届出番号',
     'setting_show_price' => '製品価格を表示',
 
-    // Banner デフォルトテキスト
     'quality_service' => '高品質サービス',
     'quality_service_desc' => 'お客様一人ひとりに専門的で効率的なソリューションを提供します',
+
     'about_us' => '私たちについて',
     'about_us_desc' => '長年の業界経験で、信頼できるパートナーです',
 
-    // 管理画面メニューグループ
     'admin_group_content' => 'コンテンツ管理',
     'admin_group_product' => '製品・事例',
     'admin_group_article' => '記事・お知らせ',
     'admin_group_media' => 'メディア・パーツ',
     'admin_group_data' => 'お問い合わせ',
     'admin_group_system' => 'システム設定',
-
-    // 管理画面サブメニュー
-    'admin_setting_contact' => '連絡先設定',
+    'admin_setting_contact' => '連絡先',
     'admin_setting_seo' => 'SEO 設定',
+    'admin_setting_lang' => '多言語設定',
     'admin_setting_ai' => 'AI 設定',
     'admin_setting_security' => 'セキュリティ',
     'admin_translate' => '多言語翻訳',
-    'admin_theme' => 'テーマ管理',
+    'admin_theme' => 'テーマ',
     'admin_plugin' => 'プラグイン',
-    'admin_upgrade' => 'アップグレード',
+    'admin_upgrade' => 'システムアップグレード',
     'admin_system_info' => 'システム情報',
     'admin_member' => '会員管理',
-    'admin_setting_social' => 'SNS 設定',
-    'admin_user' => '管理者',
-    'admin_system' => 'システム管理',
-    'admin_database' => 'データベース管理',
-    'admin_extfield' => '拡張フィールド',
+    'admin_setting_social' => 'ソーシャル',
+    'admin_database' => 'データベース',
+    'admin_extfield' => 'カスタムフィールド',
     'admin_safe_logout' => 'ログアウト',
 
-    // 製品タブ
     'product_tab_list' => '製品一覧',
     'product_tab_category' => 'カテゴリ管理',
     'product_tab_brand' => 'ブランド管理',
     'product_tab_tag' => 'タグ管理',
     'product_tab_setting' => '製品設定',
 
-    // 設定項目ラベル
     'setting_site_url' => 'サイトURL',
-    'setting_site_name' => 'サイト名',
-    'setting_site_keywords' => 'SEOキーワード',
-    'setting_site_description' => 'SEO説明文',
-    'setting_site_logo' => 'サイトロゴ',
     'setting_site_favicon' => 'サイトアイコン',
     'setting_primary_color' => 'メインカラー',
     'setting_secondary_color' => 'サブカラー',
     'setting_admin_title' => '管理画面名称',
     'setting_admin_copyright' => '管理画面著作権',
-
-    // トップページ設定ラベル
     'setting_home_about_content' => '会社概要テキスト',
     'setting_home_about_image' => '会社概要画像',
     'setting_home_about_tag_title' => 'タグタイトル',
@@ -318,7 +323,6 @@ return [
     'setting_home_testimonials_desc' => 'レビュー説明',
     'setting_nav_home_text' => 'ナビ「ホーム」テキスト',
 
-    // 固定ページ管理
     'page_desc' => '会社概要、企業文化などの固定ページを管理します。',
     'page_name' => 'ページ名',
     'page_parent' => '所属カテゴリ',
@@ -341,7 +345,6 @@ return [
     'page_switch_advance' => 'レイアウトエディタに切替',
     'page_switch_simple' => 'リッチテキストエディタに切替',
 
-    // 管理画面共通フィルター
     'admin_all_channels' => 'すべてのカテゴリ',
     'admin_all_status' => 'すべてのステータス',
     'admin_search_title' => 'タイトル検索...',
@@ -350,9 +353,8 @@ return [
     'admin_add_case' => '事例追加',
     'admin_manage_channel' => 'カテゴリ管理',
     'admin_add_article' => '記事追加',
-    'admin_no_data' => 'データなし',
+    'admin_no_data' => 'データがありません',
 
-    // テーマ管理
     'theme_current' => '現在のテーマ',
     'theme_switched' => 'テーマを切り替えました',
     'theme_not_found' => 'テーマが見つかりません',
@@ -368,11 +370,8 @@ return [
     'theme_install_step3' => 'このページを更新すると新しいテーマが表示されます',
     'theme_install_step4' => '「テーマを有効化」をクリックして切り替え',
 
-    // 管理画面共通テキスト
     'admin_backend' => '管理画面',
     'admin_demo_mode' => 'デモモードでは変更操作はできません',
-
-    // 管理画面UIラベル（追加）
     'admin_actions' => '操作',
     'admin_confirm' => '確認',
     'admin_title_label' => 'タイトル',
@@ -390,8 +389,6 @@ return [
     'admin_deleted' => '削除しました',
     'admin_required' => '必須',
     'admin_please_select' => '選択してください',
-
-    // 管理画面ページラベル（Batch 2）
     'admin_content_edit' => 'コンテンツ編集',
     'admin_category_add' => 'カテゴリ追加',
     'admin_category' => 'カテゴリ',
@@ -424,7 +421,6 @@ return [
     'admin_seo_description' => 'SEO説明文',
     'admin_name' => '名前',
     'admin_confirm_batch_delete' => '選択した項目を一括削除しますか？',
-    'admin_no_data' => 'データがありません',
     'admin_loading' => '読み込み中',
     'admin_success' => '操作が完了しました',
     'admin_fail' => '操作に失敗しました',
@@ -443,8 +439,6 @@ return [
     'admin_redirect_auto' => '自動リダイレクト',
     'admin_redirect_none' => 'リダイレクトなし',
     'admin_redirect_url' => '指定URL',
-
-    // チャンネル管理 補足
     'admin_product_category' => '製品カテゴリ',
     'admin_product_category_auto' => '以下は製品カテゴリ（自動同期）',
     'admin_article_list' => '記事一覧',
@@ -467,13 +461,11 @@ return [
     'admin_main_nav_empty' => 'メインナビのカテゴリはありません',
     'admin_nav_sort_tip' => 'ドラッグ&ドロップでナビゲーションの表示順を調整',
     'admin_all_placed' => 'すべてのカテゴリは配置済みです',
-
-    // 通用
     'admin_open' => '開く',
     'admin_home' => 'ホーム',
     'admin_channel_unassigned' => '未割当',
     'admin_invalid_operation' => '不正な操作です',
-    'admin_request_failed' => 'リクエスト失敗',
+    'admin_request_failed' => 'リクエストに失敗しました',
     'admin_sort_saved' => '並び順を保存しました',
     'admin_footer_nav_badge' => 'フッター',
     'admin_external_link' => '外部リンク',
@@ -492,7 +484,6 @@ return [
     'admin_select_album' => '-- アルバムを選択 --',
     'admin_system_setting_footer' => 'システム設定 > フッター',
 
-    // ダッシュボード
     'dashboard_total_contents' => 'コンテンツ総数',
     'dashboard_category_count' => 'カテゴリ数',
     'dashboard_pending_forms' => '未処理フォーム',
@@ -503,7 +494,6 @@ return [
     'dashboard_no_contents' => 'コンテンツがありません',
     'dashboard_no_forms' => 'フォームがありません',
 
-    // ログイン
     'login_page_title' => 'ログイン',
     'login_subtitle' => '管理画面',
     'login_username' => 'ユーザー名',
@@ -513,7 +503,6 @@ return [
     'login_button' => 'ログイン',
     'login_empty_fields' => 'ユーザー名とパスワードを入力してください',
 
-    // SNS 設定
     'social_page_title' => 'SNS設定',
     'social_heading' => 'SNSリンク設定',
     'social_description' => 'URLを入力したSNSのアイコンがフッターに表示されます。空欄のものは非表示になります。',
@@ -523,7 +512,6 @@ return [
     'social_saved' => '保存しました',
     'social_request_failed' => 'リクエストに失敗しました',
 
-    // 管理画面UIラベル（一括生成）
     'btn_add' => '追加',
     'btn_back' => '戻る',
     'btn_batch_delete' => '一括削除',
@@ -543,15 +531,19 @@ return [
     'btn_upload' => 'アップロード',
     'btn_upload_file' => 'ファイルアップロード',
     'btn_upload_image' => 'アップロード',
+
     'confirm_delete' => '削除しますか？',
+
     'empty_no_data' => 'データなし',
     'empty_no_image' => '画像なし',
+
     'filter_all_categories' => 'すべてのカテゴリ',
     'filter_all_channels' => 'すべてのカテゴリ',
     'filter_all_groups' => 'すべてのグループ',
     'filter_all_status' => 'すべてのステータス',
     'filter_search_product' => '製品名/型番検索...',
     'filter_search_title' => 'タイトル検索...',
+
     'label_action' => '操作',
     'label_article_category' => '記事カテゴリ',
     'label_article_content' => '記事内容',
@@ -603,7 +595,6 @@ return [
     'label_seo_keywords' => 'SEOキーワード',
     'label_seo_title' => 'SEOタイトル',
     'label_slug' => 'URLスラッグ',
-    'label_slug' => 'URLスラッグ',
     'label_sort_order' => '並び順',
     'label_source' => '出典',
     'label_specs' => '仕様・スペック',
@@ -611,15 +602,20 @@ return [
     'label_subtitle' => 'サブタイトル',
     'label_summary' => '要約',
     'label_tags' => 'タグ',
+
     'msg_delete_success' => '削除しました',
     'msg_operation_success' => '操作完了',
     'msg_save_success' => '保存しました',
-    'no' => 'いいえ',
+
     'none' => 'なし',
+
     'optional' => '任意',
+
     'page_next' => '次のページ',
     'page_prev' => '前のページ',
+
     'required' => '必須',
+
     'status_disabled' => '無効',
     'status_draft' => '下書き',
     'status_enabled' => '有効',
@@ -634,49 +630,63 @@ return [
     'status_recommend' => 'おすすめ',
     'status_show' => '表示',
     'status_top' => 'ピン留め',
+
     'title_add_article' => '記事追加',
     'title_add_content' => 'コンテンツ追加',
     'title_add_product' => '製品追加',
     'title_edit_article' => '記事編集',
     'title_edit_content' => 'コンテンツ編集',
     'title_edit_product' => '製品編集',
-    'yes' => 'はい',
+
     'label_tags_hint' => 'カンマ区切りで複数入力',
     'label_slug_hint' => '空欄で自動生成',
     'label_image_url' => '画像URL',
     'label_page_desc' => 'ページ説明',
+
     'empty_no_category' => 'カテゴリがありません。先にカテゴリ管理で作成してください',
+
     'label_layout_content' => 'レイアウトコンテンツ',
-    'label_content' => '本文',
     'label_file_upload' => 'ファイルアップロード',
     'label_external_link' => '外部リンク',
     'label_download_condition' => 'ダウンロード条件',
     'label_guest' => 'ゲスト',
     'label_member_only' => '会員のみ',
+
     'empty_no_media' => 'メディアファイルなし',
+
     'hint_drag_sort' => 'ドラッグで並べ替え',
+
     'empty_no_tags' => 'タグなし',
+
     'btn_back_list' => '一覧に戻る',
+
     'msg_create_success' => '作成しました',
+
     'banner_manage_groups_desc' => 'バナーグループを管理します。',
     'banner_tab_list' => 'バナー一覧',
     'banner_settings' => 'バナー設定',
     'banner_add' => 'バナー追加',
     'banner_edit' => 'バナー編集',
+
     'label_btn1_text' => 'ボタン1テキスト',
     'label_btn1_url' => 'ボタン1リンク',
     'label_btn2_text' => 'ボタン2テキスト',
     'label_btn2_url' => 'ボタン2リンク',
     'label_banner_height' => 'バナー高さ',
+
     'banner_tab_groups' => 'グループ管理',
     'banner_all_groups' => 'すべてのグループ',
+
     'label_link_url' => 'リンクURL',
     'label_link_target' => '開き方',
     'label_target_self' => '現在のウィンドウ',
     'label_recommended_size' => '推奨サイズ',
+
     'banner_add_group' => 'グループ追加',
     'banner_edit_group' => 'グループ編集',
+
     'empty_no_groups' => 'グループなし',
+
     'label_target_blank' => '新しいウィンドウ',
     'label_title' => 'タイトル',
     'label_image' => '画像',
@@ -684,8 +694,11 @@ return [
     'label_homepage' => 'トップページ',
     'label_name' => '名称',
     'label_shortcode' => 'ショートコード',
+
     'btn_request_failed' => 'リクエスト失敗',
+
     'setting_footer_copyright_text' => '著作権テキスト',
+
     'db_backing_up' => 'バックアップ中...',
     'db_no_backups' => 'バックアップ履歴なし',
     'db_custom_export' => 'カスタムエクスポート',
@@ -700,13 +713,18 @@ return [
     'db_tables' => 'テーブル一覧',
     'db_table_structure' => 'テーブル構造',
     'db_table_data' => 'テーブルデータ',
+
     'msg_deleted' => '削除しました',
+
     'db_backup' => 'バックアップ',
     'db_import_btn' => 'インポート',
+
     'btn_download' => 'ダウンロード',
+
     'db_restore' => '復元',
     'db_logs' => 'ログ',
     'db_cleanup' => 'クリーンアップ',
+
     'extfield_confirm_delete' => 'このフィールドを削除しますか',
     'extfield_empty' => '拡張フィールドなし',
     'extfield_add' => 'フィールド追加',
@@ -716,26 +734,32 @@ return [
     'extfield_type' => 'フィールドタイプ',
     'extfield_scope' => '適用範囲',
     'extfield_hint' => 'ヒント',
+
     'type_text' => 'テキスト',
     'type_textarea' => 'テキストエリア',
     'type_select' => 'セレクト',
+
     'extfield_options' => '選択肢',
     'extfield_default' => 'デフォルト値',
+
     'scope_article' => '記事',
     'scope_product' => '製品',
     'scope_case' => '事例',
+
     'type_number' => '数値',
     'type_radio' => 'ラジオ',
     'type_checkbox' => 'チェックボックス',
     'type_date' => '日付',
     'type_color' => 'カラー',
     'type_switch' => 'スイッチ',
+
     'extfield_content' => 'コンテンツ拡張フィールド',
     'extfield_product' => '製品拡張フィールド',
     'extfield_placeholder' => 'プレースホルダー',
     'extfield_help' => 'ヘルプテキスト',
     'extfield_required' => '必須',
     'extfield_save' => 'フィールド保存',
+
     'upgrade_all_done' => 'すべてのアップグレードが完了しています。操作は不要です。',
     'upgrade_up_to_date' => 'データベースは最新です',
     'upgrade_no_history' => 'アップグレード履歴はありません。',
@@ -748,6 +772,7 @@ return [
     'upgrade_failed' => 'アップグレード失敗',
     'upgrade_skipped' => 'スキップ',
     'upgrade_completed' => '完了',
+
     'sys_confirm_clear_log' => 'すべての操作ログをクリアしますか',
     'sys_mysql_version' => 'MySQLバージョン',
     'sys_web_server' => 'Webサーバー',
@@ -766,6 +791,7 @@ return [
     'sys_ip' => 'IPアドレス',
     'sys_info' => 'システム情報',
     'sys_stat_log' => '操作ログ',
+    'sys_brand_name' => 'ikaiCMS',
     'sys_name' => 'システム名',
     'sys_version' => 'バージョン',
     'sys_domain' => 'サイトドメイン',
@@ -798,6 +824,7 @@ return [
     'sys_action_type' => 'アクション',
     'sys_detail' => '詳細',
     'sys_seconds' => '秒',
+
     'user_cant_delete_self' => '自分を削除できません',
     'user_list' => '管理者一覧',
     'user_add' => '管理者追加',
@@ -815,6 +842,7 @@ return [
     'user_status_normal' => '正常',
     'user_status_disabled' => '無効',
     'user_password' => 'パスワード',
+
     'sec_max_submissions_tip' => '同一IPの時間ウィンドウ内の送信上限',
     'sec_ip_per_line' => '1行に1つのIPアドレス、空欄で制限なし',
     'sec_ip_whitelist_tip' => '指定IPのみ管理画面にアクセス可能',
@@ -844,6 +872,7 @@ return [
     'sec_default' => 'デフォルト',
     'sec_times' => '回',
     'sec_chars' => '文字',
+
     'ai_config_desc' => 'AIプロバイダーを設定し、記事生成やSEO最適化に活用。',
     'ai_custom_url' => 'カスタムAPIアドレス（任意）',
     'ai_get_key' => 'APIキー取得方法',
@@ -865,6 +894,7 @@ return [
     'ai_connection_fail' => '接続失敗',
     'ai_testing' => 'テスト中',
     'ai_model_label' => 'モデル',
+
     'seo_home_title_tip' => 'サイト名とは別に設定。空欄の場合サイト名を使用',
     'seo_og_image_tip' => 'SNSシェア時のデフォルトカバー画像',
     'seo_keywords_tip' => '複数のキーワードはカンマ区切り',
@@ -887,6 +917,7 @@ return [
     'seo_suggest' => '推奨',
     'seo_current' => '現在',
     'seo_chars' => '文字',
+
     'email_empty_smtp_user' => '空欄の場合SMTPユーザー名を使用',
     'email_smtp_host' => 'SMTPサーバー',
     'email_smtp_user' => 'SMTPユーザー名',
@@ -920,6 +951,7 @@ return [
     'email_sending' => '送信中',
     'email_on' => '有効',
     'email_off' => '無効',
+
     'contact_save' => '連絡先設定を保存',
     'contact_info_title' => '連絡先情報',
     'contact_cards_title' => '連絡先カード',
@@ -944,6 +976,7 @@ return [
     'contact_max' => '最大',
     'contact_required' => '必須',
     'contact_enabled' => '有効',
+
     'home_editor_hint' => 'ブロックの順序をドラッグで調整、スイッチで表示/非表示、展開して編集。',
     'home_nav_text' => 'ナビ「ホーム」テキスト',
     'home_empty_default' => '空欄の場合デフォルト値を使用',
@@ -967,6 +1000,7 @@ return [
     'home_collapse' => '閉じる',
     'home_testimonial_name' => '氏名',
     'home_testimonial_company' => '会社名',
+
     'setting_custom_text' => 'カスタムテキストも入力可能',
     'setting_placeholder_hint' => '内容にはプレースホルダーを使用可能',
     'setting_footer_nav' => 'フッターナビリンク',
@@ -975,22 +1009,40 @@ return [
     'setting_tab_header' => 'ヘッダー設定',
     'setting_tab_footer' => 'フッター設定',
     'setting_tab_code' => 'コード挿入',
+    'setting_tab_lang' => '言語',
     'setting_clear_row' => 'この行をクリア',
-    'setting_col_title' => 'カラムタイトル',
+    'setting_col_title' => 'タイトル',
     'setting_site_desc' => 'サイト説明',
     'setting_contact_info' => '連絡先情報',
     'setting_add_link' => 'リンク追加',
-    'setting_link_name' => 'リンク名',
+    'setting_link_name' => '名前',
     'setting_link_url' => 'リンクURL',
     'setting_link_target' => '開き方',
     'setting_col_span' => '列幅',
     'setting_col_content' => '内容',
     'setting_col_unit' => '列',
+
     'member_list' => '会員一覧',
     'member_settings' => '会員設定',
     'member_reg_time' => '登録日時',
     'member_allow_register' => '会員登録を許可',
     'member_require_login' => 'ダウンロードにログイン必須',
+    'admin_quick_search'    => 'ページをすばやく検索',
+    'admin_quick_search_ph' => 'ページを検索',
+    'admin_ai_prompt_label' => 'AI アシスタントに質問',
+    'admin_ai_prompt_ph'    => '何でも聞いてください…',
+    'member_register_section' => '会員登録',
+    'member_allow_register_tip' => 'オフにすると、フロントエンドから新規会員登録ができなくなります',
+    'member_download_section' => 'ダウンロード権限',
+    'member_download_require_login' => 'ダウンロード時にログインを必須',
+    'member_download_require_login_tip' => 'オンにすると、ファイルのダウンロード時に会員ログインが必要になります',
+    'member_frontend_urls' => '会員フロントエンドURL',
+    'member_frontend_urls_tip' => '以下のURLをコピーして会員と共有したり、ナビゲーション/フッターのリンクとして設定できます。',
+    'member_register_url' => '会員登録URL',
+    'member_login_url' => '会員ログインURL',
+    'admin_copied' => 'クリップボードにコピーしました',
+    'admin_copy_failed' => 'コピーに失敗しました。手動でコピーしてください',
+
     'profile_title' => '個人設定',
     'profile_basic' => '基本情報',
     'profile_change_pwd' => 'パスワード変更',
@@ -998,6 +1050,7 @@ return [
     'profile_new_pwd' => '新しいパスワード',
     'profile_confirm_pwd' => 'パスワード確認',
     'profile_save' => '個人情報を保存',
+
     'dashboard_welcome_back' => 'お帰りなさい',
     'dashboard_quick_actions' => 'クイックアクション',
     'dashboard_quick_setting' => '基本設定',
@@ -1006,8 +1059,8 @@ return [
     'dashboard_quick_theme' => 'テンプレート選択',
     'dashboard_quick_banner' => 'スライドショー',
     'dashboard_quick_channel' => 'カテゴリ管理',
+
     'setting_page_title' => 'サイト設定',
-    // header settings
     'setting_topbar_enabled' => 'トップバー表示',
     'setting_topbar_enabled_tip' => 'ロゴ上部の通知バーエリア',
     'setting_topbar_bg_color' => 'トップバー背景色',
@@ -1024,7 +1077,6 @@ return [
     'setting_header_bg_color_tip' => '16進数カラーコード',
     'setting_header_text_color' => '文字色',
     'setting_header_text_color_tip' => '16進数カラーコード',
-    // footer settings
     'setting_footer_columns' => 'フッターカラム',
     'setting_footer_columns_tip' => 'フッターの各列コンテンツ（最大4列）',
     'setting_footer_bg_color' => '背景色',
@@ -1034,7 +1086,6 @@ return [
     'setting_footer_text_color' => '文字色',
     'setting_footer_text_color_tip' => '16進数カラーコード',
     'setting_footer_copyright_text_tip' => '{year}=年、{site_name}=サイト名に自動置換',
-    // code settings
     'setting_custom_head_code' => 'Headコード',
     'setting_custom_head_code_tip' => '&lt;/head&gt;直前に挿入（サイト認証、SEOメタタグなど）',
     'setting_custom_body_code' => 'Bodyコード',
@@ -1043,21 +1094,15 @@ return [
     'setting_restore_all_tip' => '現在のグループをすべて初期値に戻す',
     'setting_restore_all_confirm' => '現在のグループの全設定を初期値に戻しますか？この操作は取り消せません。',
     'setting_restore_to_default' => 'デフォルトに戻す',
-    'setting_restore_default' => 'デフォルトに戻す',
     'setting_restored' => 'デフォルトに戻しました',
     'setting_restored_save' => 'デフォルトに戻しました。保存してください',
     'setting_restore_failed' => '復元に失敗しました',
     'setting_default' => 'デフォルト',
     'setting_footer_placeholder_hint' => 'プレースホルダー対応：<code class="bg-gray-100 px-1 rounded">{{site_description}}</code> サイト概要、<code class="bg-gray-100 px-1 rounded">{{contact_info}}</code> 連絡先、<code class="bg-gray-100 px-1 rounded">{{qrcode}}</code> QRコード',
     'setting_footer_content_placeholder' => 'テキストまたはプレースホルダー（例：{{contact_info}}）',
-    'setting_col_title' => 'タイトル',
-    'setting_col_unit' => '列',
-    'setting_clear_row' => 'この行をクリア',
     'setting_add_group' => 'グループ追加',
-    'setting_add_link' => 'リンク追加',
     'setting_delete_group' => 'グループ削除',
     'setting_nav_group_placeholder' => 'グループタイトル（空欄の場合は非表示）',
-    'setting_link_name' => '名前',
     'setting_link_url_placeholder' => 'URL 例: /privacy.html',
     'setting_target_self' => '同じウィンドウ',
     'setting_target_blank' => '新しいウィンドウ',
@@ -1068,13 +1113,13 @@ return [
     'setting_no' => 'いいえ',
     'setting_upload_error' => 'アップロードエラー：サーバーの応答が異常です',
     'setting_upload_failed' => 'アップロード失敗',
-    'btn_upload' => 'アップロード',
-    'admin_request_failed' => 'リクエストに失敗しました',
+
     'link_title' => 'パートナーリンク',
     'link_add' => 'リンク追加',
     'link_name' => 'リンク名',
     'link_url' => 'リンクURL',
     'link_logo' => 'ロゴ',
+
     'timeline_title' => '沿革',
     'timeline_add' => '記録追加',
     'timeline_year' => '年',
@@ -1083,163 +1128,243 @@ return [
     'timeline_event_content' => 'イベント内容',
     'timeline_icon' => 'アイコン',
     'timeline_color' => 'カラー',
+
     'admin_group_site' => 'サイト設定',
     'admin_group_appearance' => '外観と拡張',
-    "contact_map_placeholder" => "管理画面で地図画像を設定",
-    "form_submit" => "送信",
-    "form_submitting" => "送信中...",
-    "sort_default" => "デフォルト",
-    "sort_newest" => "新着順",
-    "sort_updated" => "更新順",
-    "sort_views" => "人気順",
-    "sort_price_asc" => "価格 低い順",
-    "sort_price_desc" => "価格 高い順",
-    "job_hire_prefix" => "募集 ",
-    "lightbox_close" => "閉じる",
-    "admin_label_fixed" => "固定",
-    "admin_home_label" => "ホーム",
-    "admin_member" => "会員管理",
-    "admin_setting_contact" => "連絡先",
-    "admin_setting_social" => "ソーシャル",
-    "admin_setting_seo" => "SEO 設定",
-    "admin_theme" => "テーマ",
-    "admin_plugin" => "プラグイン",
-    "admin_extfield" => "カスタムフィールド",
-    "admin_setting_ai" => "AI 設定",
-    "admin_setting_security" => "セキュリティ",
-    "admin_system_info" => "システム情報",
-    "admin_database" => "データベース",
-    "admin_upgrade" => "システムアップグレード",
-    "product_type_all" => "すべての種類",
-    "product_type_standard" => "標準製品",
-    "product_type_custom" => "オーダー製作",
-    "product_badge_standard" => "標準",
-    "product_badge_custom" => "オーダー",
-    "editor_placeholder" => "コンテンツを入力...",
 
-    // v1.7.0 補完：コード参照済みで未定義だった 16 件
-    "admin_upload_failed"      => "アップロードに失敗しました",
-    "ai_key_saved"             => "AI キーが保存されました",
-    "home_about_default"       => "私たちは高品質な製品・サービスをお客様にお届けすることに注力し、業界をリードするソリューションプロバイダーを目指しています。",
-    "home_advantage_desc"      => "私たちのコアアドバンテージ",
-    "home_cta_title"           => "ご相談はお気軽に",
-    "home_cta_desc"            => "お客様に最適なソリューションをご提案いたします",
-    "home_testimonials_title"  => "お客様の声",
-    "home_testimonials_desc"   => "お客様からの評価",
-    "member_center"            => "会員センター",
-    "member_login"             => "ログイン",
-    "member_login_full"        => "会員ログイン",
-    "member_logout"            => "ログアウト",
-    "member_logout_full"       => "ログアウト",
-    "member_register"          => "登録",
-    "member_register_full"     => "新規会員登録",
-    "menu_label"               => "メニュー",
+    'contact_map_placeholder' => '管理画面で地図画像を設定',
 
-    // ========== v1.7.1 ja 補完：fd_*（54 件） / inq_*（25 件） / pe_*（11 件） ==========
+    'form_submit' => '送信',
+    'form_submitting' => '送信中...',
 
-    // フォーム設計 (form designer)
-    "fd_btn_add"               => "フォーム追加",
-    "fd_copy_hint"             => "クリックでコピー",
-    "fd_default_success_msg"   => "送信が完了しました。ありがとうございます！",
-    "fd_editor_placeholder"    => "ここにフォームテンプレートを入力し、タグで項目を定義してください...",
-    "fd_empty"                 => "フォームテンプレートはまだありません",
-    "fd_err_default_undelete"  => "既定のお問い合わせフォームは削除できません",
-    "fd_err_name_required"     => "フォーム名を入力してください",
-    "fd_err_slug_pattern"      => "スラッグは小文字英数字・アンダースコア・ハイフンのみ使用可能",
-    "fd_err_slug_required"     => "スラッグを入力してください",
-    "fd_err_slug_taken"        => "このスラッグは既に使用されています",
-    "fd_err_template_empty"    => "テンプレートに少なくとも 1 つのフィールドタグが必要です（例：[text* name \"お名前\"]）",
-    "fd_field_company"         => "会社名",
-    "fd_field_email"           => "メールアドレス",
-    "fd_field_message"         => "お問い合わせ内容",
-    "fd_field_name"            => "お名前",
-    "fd_field_phone"           => "電話番号",
-    "fd_insert_tag"            => "タグを挿入：",
-    "fd_intro"                 => "Contact Form 7 風のタグ構文でフォームを設計し、ページ内に <code class=\"bg-gray-100 px-1.5 py-0.5 rounded text-primary\">[form-slug]</code> を挿入することで埋め込めます",
-    "fd_label_name"            => "フォーム名",
-    "fd_label_slug"            => "スラッグ（短码）",
-    "fd_label_success_msg"     => "送信完了メッセージ",
-    "fd_label_template"        => "フォームテンプレート",
-    "fd_modal_add"             => "フォーム追加",
-    "fd_page_title"            => "フォーム管理",
-    "fd_ph_company"            => "株式会社○○",
-    "fd_ph_email"              => "name@example.com",
-    "fd_ph_form_name"          => "例：お問い合わせフォーム",
-    "fd_ph_message"            => "お問い合わせ内容をご記入ください",
-    "fd_ph_name"               => "山田 太郎",
-    "fd_ph_phone"              => "03-0000-0000",
-    "fd_syntax_hint"           => "タグ構文：<code>[型* フィールド名 \"プレースホルダー\"]</code> — 型の後ろに <code>*</code> を付けると必須項目。HTML タグでレイアウト調整も可能。",
-    "fd_tab_data"              => "送信データ",
-    "fd_tab_design"            => "フォーム設計",
-    "fd_tag_checkbox"          => "チェックボックス",
-    "fd_tag_date"              => "日付",
-    "fd_tag_email"             => "メール",
-    "fd_tag_number"            => "数値",
-    "fd_tag_radio"             => "ラジオ",
-    "fd_tag_select"            => "セレクト",
-    "fd_tag_submit"            => "送信",
-    "fd_tag_tel"               => "電話番号",
-    "fd_tag_text"              => "テキスト",
-    "fd_tag_textarea"          => "テキストエリア",
-    "fd_taggen_btn_insert"     => "挿入",
-    "fd_taggen_field_name"     => "フィールド名",
-    "fd_taggen_options"        => "選択肢（1 行 1 項目）",
-    "fd_taggen_options_ph_select" => "選択してください\n選択肢1\n選択肢2\n選択肢3",
-    "fd_taggen_placeholder"    => "プレースホルダー",
-    "fd_taggen_required"       => "必須項目",
-    "fd_taggen_title"          => "タグ生成",
-    "fd_th_field_count"        => "フィールド数",
-    "fd_th_name"               => "フォーム名",
-    "fd_th_slug"               => "スラッグ",
-    "fd_th_submit_count"       => "送信件数",
+    'sort_default' => 'デフォルト',
+    'sort_newest' => '新着順',
+    'sort_updated' => '更新順',
+    'sort_views' => '人気順',
+    'sort_price_asc' => '価格 低い順',
+    'sort_price_desc' => '価格 高い順',
 
-    // 問い合わせ管理 (inquiry)
-    "inq_btn_update"           => "更新",
-    "inq_btn_view"             => "詳細",
-    "inq_confirm_batch_del"    => "選択した %d 件を削除しますか？",
-    "inq_detail_title"         => "問い合わせ詳細",
-    "inq_field_ip"             => "IP",
-    "inq_field_note"           => "備考",
-    "inq_field_product"        => "関連商品",
-    "inq_filter_all_src"       => "すべての出所",
-    "inq_note_placeholder"     => "備考",
-    "inq_page_x_of_y"          => "%s / %s ページ",
-    "inq_source_contact"       => "お問い合わせフォーム",
-    "inq_source_product"       => "商品ページ",
-    "inq_status_contacted"     => "連絡済",
-    "inq_status_following"     => "対応中",
-    "inq_status_lost"          => "失注",
-    "inq_status_new"           => "新規",
-    "inq_status_won"           => "受注",
-    "inq_tab_data"             => "問い合わせ一覧",
-    "inq_tab_design"           => "フォーム設計",
-    "inq_th_company"           => "会社名",
-    "inq_th_content"           => "内容",
-    "inq_th_email"             => "メール",
-    "inq_th_name"              => "氏名",
-    "inq_th_phone"             => "電話番号",
-    "inq_update_success"       => "更新しました",
+    'job_hire_prefix' => '募集 ',
 
-    // ページ編集器 (page editor)
-    "pe_advance_warning"       => "このページは現在<strong>ブロック編集モード</strong>で管理されています。ここで保存するとリッチテキストモードに切り替わり、ブロックレイアウト情報が失われます。",
-    "pe_channel_management"    => "カラム管理",
-    "pe_edit_page_title"       => "ページ編集 - %s",
-    "pe_go_advance"            => "ブロック編集モードへ",
-    "pe_log_edit"              => "ページ編集：%s",
-    "pe_redirect_change_hint"  => "リダイレクト動作を変更するには、%s で「リダイレクト方式」設定を調整してください。",
-    "pe_redirect_child_intro"  => "「%s」へのアクセス時、子カラム「%s」へ自動リダイレクトされ、本ページの内容は表示されません。",
-    "pe_redirect_to"           => "本ページへのアクセス時、以下に自動リダイレクトされます：",
-    "pe_seo_keywords_ph"       => "複数のキーワードはカンマで区切ってください",
-    "pe_seo_title_ph"          => "空欄の場合はページ名を使用",
-    "pe_slug_ph"               => "例：about-us、空欄で自動生成",
+    'lightbox_close' => '閉じる',
 
-    // v1.7.1: history.php / timeline-vertical.php ハードコード中国語の i18n 化（8 件）
-    "history_page_description" => "%s の沿革 — 私たちの成長の重要な瞬間を記録します。",
-    "history_hero_desc"        => "創立から発展まで、私たちの成長の重要な瞬間を記録します。",
-    "history_empty"            => "沿革情報はまだ登録されていません",
-    "history_stats_years"      => "発展年数",
-    "history_stats_milestones" => "マイルストーン",
-    "history_stats_founded"    => "創業年",
-    "history_stats_experience" => "経験年数",
-    "timeline_outro"           => "未来へ ― 私たちは前進し続けます...",
+    'admin_label_fixed' => '固定',
+    'admin_home_label' => 'ホーム',
+
+    'product_type_all' => 'すべての種類',
+    'product_type_standard' => '標準製品',
+    'product_type_custom' => 'オーダー製作',
+    'product_badge_standard' => '標準',
+    'product_badge_custom' => 'オーダー',
+
+    'editor_placeholder' => 'コンテンツを入力...',
+
+    'admin_upload_failed' => 'アップロードに失敗しました',
+
+    'ai_key_saved' => 'AI キーが保存されました',
+
+    'home_about_default' => '私たちは高品質な製品・サービスをお客様にお届けすることに注力し、業界をリードするソリューションプロバイダーを目指しています。',
+    'home_advantage_desc' => '私たちのコアアドバンテージ',
+    'home_testimonials_title' => 'お客様の声',
+    'home_testimonials_desc' => 'お客様からの評価',
+
+    'member_center' => '会員センター',
+    'member_login' => 'ログイン',
+    'member_login_full' => '会員ログイン',
+    'member_logout' => 'ログアウト',
+    'member_logout_full' => 'ログアウト',
+    'member_register' => '登録',
+    'member_register_full' => '新規会員登録',
+
+    'menu_label' => 'メニュー',
+
+    'fd_btn_add' => 'フォーム追加',
+    'fd_copy_hint' => 'クリックでコピー',
+    'fd_default_success_msg' => '送信が完了しました。ありがとうございます！',
+    'fd_editor_placeholder' => 'ここにフォームテンプレートを入力し、タグで項目を定義してください...',
+    'fd_empty' => 'フォームテンプレートはまだありません',
+    'fd_err_default_undelete' => '既定のお問い合わせフォームは削除できません',
+    'fd_err_name_required' => 'フォーム名を入力してください',
+    'fd_err_slug_pattern' => 'スラッグは小文字英数字・アンダースコア・ハイフンのみ使用可能',
+    'fd_err_slug_required' => 'スラッグを入力してください',
+    'fd_err_slug_taken' => 'このスラッグは既に使用されています',
+    'fd_err_template_empty' => 'テンプレートに少なくとも 1 つのフィールドタグが必要です（例：[text* name "お名前"]）',
+    'fd_field_company' => '会社名',
+    'fd_field_email' => 'メールアドレス',
+    'fd_field_message' => 'お問い合わせ内容',
+    'fd_field_name' => 'お名前',
+    'fd_field_phone' => '電話番号',
+    'fd_insert_tag' => 'タグを挿入：',
+    'fd_intro' => 'Contact Form 7 風のタグ構文でフォームを設計し、ページ内に <code class="bg-gray-100 px-1.5 py-0.5 rounded text-primary">[form-slug]</code> を挿入することで埋め込めます',
+    'fd_label_name' => 'フォーム名',
+    'fd_label_slug' => 'スラッグ（短码）',
+    'fd_label_success_msg' => '送信完了メッセージ',
+    'fd_label_template' => 'フォームテンプレート',
+    'fd_modal_add' => 'フォーム追加',
+    'fd_page_title' => 'フォーム管理',
+    'fd_ph_company' => '株式会社○○',
+    'fd_ph_email' => 'name@example.com',
+    'fd_ph_form_name' => '例：お問い合わせフォーム',
+    'fd_ph_message' => 'お問い合わせ内容をご記入ください',
+    'fd_ph_name' => '山田 太郎',
+    'fd_ph_phone' => '03-0000-0000',
+    'fd_syntax_hint' => 'タグ構文：<code>[型* フィールド名 "プレースホルダー"]</code> — 型の後ろに <code>*</code> を付けると必須項目。HTML タグでレイアウト調整も可能。',
+    'fd_tab_data' => '送信データ',
+    'fd_tab_design' => 'フォーム設計',
+    'fd_tag_checkbox' => 'チェックボックス',
+    'fd_tag_date' => '日付',
+    'fd_tag_email' => 'メール',
+    'fd_tag_number' => '数値',
+    'fd_tag_radio' => 'ラジオ',
+    'fd_tag_select' => 'セレクト',
+    'fd_tag_submit' => '送信',
+    'fd_tag_tel' => '電話番号',
+    'fd_tag_text' => 'テキスト',
+    'fd_tag_textarea' => 'テキストエリア',
+    'fd_taggen_btn_insert' => '挿入',
+    'fd_taggen_field_name' => 'フィールド名',
+    'fd_taggen_options' => '選択肢（1 行 1 項目）',
+    'fd_taggen_options_ph_select' => '選択してください
+選択肢1
+選択肢2
+選択肢3',
+    'fd_taggen_placeholder' => 'プレースホルダー',
+    'fd_taggen_required' => '必須項目',
+    'fd_taggen_title' => 'タグ生成',
+    'fd_th_field_count' => 'フィールド数',
+    'fd_th_name' => 'フォーム名',
+    'fd_th_slug' => 'スラッグ',
+    'fd_th_submit_count' => '送信件数',
+
+    'inq_btn_update' => '更新',
+    'inq_btn_view' => '詳細',
+    'inq_confirm_batch_del' => '選択した %d 件を削除しますか？',
+    'inq_detail_title' => '問い合わせ詳細',
+    'inq_field_ip' => 'IP',
+    'inq_field_note' => '備考',
+    'inq_field_product' => '関連商品',
+    'inq_filter_all_src' => 'すべての出所',
+    'inq_note_placeholder' => '備考',
+    'inq_page_x_of_y' => '%s / %s ページ',
+    'inq_source_contact' => 'お問い合わせフォーム',
+    'inq_source_product' => '商品ページ',
+    'inq_status_contacted' => '連絡済',
+    'inq_status_following' => '対応中',
+    'inq_status_lost' => '失注',
+    'inq_status_new' => '新規',
+    'inq_status_won' => '受注',
+    'inq_tab_data' => '問い合わせ一覧',
+    'inq_tab_design' => 'フォーム設計',
+    'inq_th_company' => '会社名',
+    'inq_th_content' => '内容',
+    'inq_th_email' => 'メール',
+    'inq_th_name' => '氏名',
+    'inq_th_phone' => '電話番号',
+    'inq_update_success' => '更新しました',
+
+    'pe_advance_warning' => 'このページは現在<strong>ブロック編集モード</strong>で管理されています。ここで保存するとリッチテキストモードに切り替わり、ブロックレイアウト情報が失われます。',
+    'pe_channel_management' => 'カラム管理',
+    'pe_edit_page_title' => 'ページ編集 - %s',
+    'pe_go_advance' => 'ブロック編集モードへ',
+    'pe_log_edit' => 'ページ編集：%s',
+    'pe_redirect_change_hint' => 'リダイレクト動作を変更するには、%s で「リダイレクト方式」設定を調整してください。',
+    'pe_redirect_child_intro' => '「%s」へのアクセス時、子カラム「%s」へ自動リダイレクトされ、本ページの内容は表示されません。',
+    'pe_redirect_to' => '本ページへのアクセス時、以下に自動リダイレクトされます：',
+    'pe_seo_keywords_ph' => '複数のキーワードはカンマで区切ってください',
+    'pe_seo_title_ph' => '空欄の場合はページ名を使用',
+    'pe_slug_ph' => '例：about-us、空欄で自動生成',
+
+    'history_page_description' => '%s の沿革 — 私たちの成長の重要な瞬間を記録します。',
+    'history_hero_desc' => '創立から発展まで、私たちの成長の重要な瞬間を記録します。',
+    'history_empty' => '沿革情報はまだ登録されていません',
+    'history_stats_years' => '発展年数',
+    'history_stats_milestones' => 'マイルストーン',
+    'history_stats_founded' => '創業年',
+    'history_stats_experience' => '経験年数',
+
+    'timeline_outro' => '未来へ ― 私たちは前進し続けます...',
+
+    'case_client' => 'クライアント',
+    'case_industry' => '業界',
+    'case_duration' => 'プロジェクト期間',
+    'case_result' => '成果',
+
+    'error_article_not_found' => '記事が見つかりません',
+    'error_channel_not_found' => 'カテゴリーが見つかりません',
+    'error_content_not_found' => 'コンテンツが見つかりません',
+    'error_job_not_found' => '求人が見つかりません',
+    'error_product_not_found' => '商品が見つかりません',
+
+    'home_adv_1_title' => '専門チーム',
+    'home_adv_1_desc' => '業界経験豊富な専門家によるチーム',
+    'home_adv_2_title' => '高品質サービス',
+    'home_adv_2_desc' => '24時間365日のテクニカルサポート',
+    'home_adv_3_title' => '革新技術',
+    'home_adv_3_desc' => '継続的な研究開発で業界をリード',
+    'home_adv_4_title' => 'グローバル視野',
+    'home_adv_4_desc' => '世界中のお客様にサービスを提供',
+    'home_stat_1' => 'お客様',
+    'home_stat_2' => '成功事例',
+    'home_stat_3' => '業界経験',
+    'home_stat_4' => '専門家',
+
+    'job_back_to_list' => '求人一覧へ戻る',
+    'job_hire_count' => ':count 名募集',
+
+    'learn_more' => '詳しく見る',
+
+    'list_all_products' => '全商品',
+    'list_download_category' => 'ダウンロード分類',
+    'list_product_category' => '商品カテゴリー',
+    'list_search_product' => '商品を検索...',
+    'list_sort' => '並び順',
+
+    'news_search_placeholder' => 'ニュースを検索...',
+
+    'no_image' => '画像なし',
+
+    'search_total' => ':count 件見つかりました',
+
+    'product_model' => '型番',
+    'product_hotline' => 'お問合せ電話',
+    'product_email' => 'メール',
+    'product_online_inquiry' => 'オンライン問合せ',
+    'product_inquiry' => '商品お問合せ',
+    'product_field_name_ph' => 'お名前 *',
+    'product_field_phone_ph' => '電話番号 *',
+    'product_field_email_ph' => 'メールアドレス',
+    'product_field_company_ph' => '会社名',
+    'product_field_msg_ph' => 'ご要望をご記入ください *',
+    'product_btn_submit_inq' => '送信',
+    'product_submitting' => '送信中...',
+    'product_network_error' => 'ネットワークエラー、再試行してください',
+    'product_tab_detail' => '商品詳細',
+    'product_default_inq_msg' => '商品【%s】に興味があります。ご連絡ください。',
+
+    'error_page_not_found' => 'ページが見つかりません',
+
+    'footer_partners' => 'パートナー',
+
+    'search_all' => 'すべて',
+    'search_article' => '記事',
+    'search_case' => '事例',
+    'search_download' => 'ダウンロード',
+    'search_product' => '商品',
+    'search_title' => '検索',
+    'search_input_hint' => 'キーワードを入力してください...',
+    'search_empty_hint' => 'キーワードを入力すると検索が始まります',
+    'search_no_result' => '該当する内容が見つかりません',
+    'search_try_other' => '別のキーワードでお試しください',
+
+    'fd_confirm_delete' => 'このフォームテンプレートを削除しますか？',
+    'fd_copied' => 'ショートコードをコピーしました',
+    'fd_modal_edit' => 'フォームを編集',
+    'fd_request_failed' => 'リクエストに失敗しました',
+    'fd_taggen_err_name' => 'フィールド名を入力してください',
+    'fd_taggen_options_simple' => '選択肢（1 行に 1 つ）',
+    'fd_taggen_options_ph_simple' => '選択肢1
+選択肢2
+選択肢3',
+    'fd_taggen_preview_empty' => '[タイプ フィールド名 ...]',
+    'fd_taggen_title_pattern' => '%sタグを生成',
 ];

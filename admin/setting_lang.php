@@ -119,11 +119,13 @@ $currentMenu = 'setting_lang';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-3xl">
+<div class="max-w-full">
     <form id="langForm" class="space-y-6">
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="save_lang">
 
+        <!-- 上排：启用的语言 / 语言配置（桌面下并排，移动下堆叠） -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- 启用的语言 -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
@@ -198,8 +200,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
         </div>
+        </div><!-- /上排 grid -->
 
-        <!-- 翻译工具 -->
+        <!-- 翻译工具（全宽） -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
                 <h2 class="font-bold text-gray-800">翻译工具</h2>
@@ -220,25 +223,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 // 自动扫描所有词典文件
                 $dictFiles = glob(ROOT_PATH . '/lang/dict-*.php') ?: [];
                 $dictLabels = ['zh-en' => '中英词典', 'zh-ja' => '中日词典', 'zh-ko' => '中韩词典', 'zh-fr' => '中法词典', 'zh-de' => '中德词典', 'zh-es' => '中西词典'];
-                foreach ($dictFiles as $df):
-                    $dictCode = str_replace(['dict-', '.php'], '', basename($df));
-                    $dictLabel = $dictLabels[$dictCode] ?? $dictCode . ' 词典';
-                    $dictData = require $df;
-                    $dictCount = count($dictData);
                 ?>
-                <div class="flex items-center justify-between p-3 rounded-lg border bg-gray-50">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                        <div>
-                            <span class="font-medium text-gray-700"><?php echo e($dictLabel); ?></span>
-                            <p class="text-xs text-gray-400"><?php echo $dictCount; ?> 个词条，「翻译为...」按钮优先查词典</p>
+                <?php if (!empty($dictFiles)): ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <?php foreach ($dictFiles as $df):
+                        $dictCode = str_replace(['dict-', '.php'], '', basename($df));
+                        $dictLabel = $dictLabels[$dictCode] ?? $dictCode . ' 词典';
+                        $dictData = require $df;
+                        $dictCount = count($dictData);
+                    ?>
+                    <div class="flex items-center justify-between p-3 rounded-lg border bg-gray-50 min-w-0">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            <div class="min-w-0">
+                                <span class="font-medium text-gray-700"><?php echo e($dictLabel); ?></span>
+                                <p class="text-xs text-gray-400 truncate"><?php echo $dictCount; ?> 个词条 · lang/dict-<?php echo e($dictCode); ?>.php</p>
+                            </div>
                         </div>
                     </div>
-                    <span class="text-xs text-gray-400 font-mono">lang/dict-<?php echo e($dictCode); ?>.php</span>
+                    <?php endforeach; ?>
                 </div>
-                <?php endforeach; ?>
-
-                <?php if (empty($dictFiles)): ?>
+                <?php else: ?>
                 <div class="p-3 text-sm text-gray-400 text-center">暂无词典文件</div>
                 <?php endif; ?>
 

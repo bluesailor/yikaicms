@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 表单设计（CF7 风格模板编辑器）
+ * YikaiCMS - 表单设计（CF7 风格模板编辑器）
  *
  * PHP 8.0+
  */
@@ -15,17 +15,64 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('form');
 
+// ============== 多语言视图（per-lang 用 name_<lang> / fields_<lang> / success_message_<lang> 列） ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+
+// 检测 i18n 迁移是否已应用（columns 在 /admin/upgrade.php "表单模板：加 EN/JA 列" 升级后才有）
+$_i18nReady = (function (): bool {
+    if (db()->isSqlite()) {
+        foreach (db()->fetchAll("PRAGMA table_info('" . DB_PREFIX . "form_templates')") as $c) {
+            if ($c['name'] === 'fields_en') return true;
+        }
+        return false;
+    }
+    return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "form_templates` LIKE 'fields_en'"));
+})();
+if (!$_i18nReady) $_viewLang = $_defaultLang;  // 没升级前禁用切换
+
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'save') {
         $id = postInt('id');
+        $postLang = (string) (post('lang') ?: $_viewLang);
+        if (!in_array($postLang, $_enabledList, true)) $postLang = $_defaultLang;
+        $isLangEdit = ($postLang !== $_defaultLang) && $_i18nReady;
+
         $name = trim(post('name'));
         $slug = trim(post('slug'));
         $successMessage = trim(post('success_message'));
         $templateText = post('template_text');
 
+        // slug 始终基于源记录验证（非默认语言下 slug 不可改，且新建必须先建源行）
+        if ($isLangEdit) {
+            if ($id <= 0) error('请先在 zh-CN 视图新增表单，然后切到 EN/JA 翻译');
+            $src = formTemplateModel()->findById($id);
+            if (!$src) error('源记录不存在');
+            $slug = (string) $src['slug'];  // 强制保留源 slug
+            // 翻译版只校验 name 与 fields；slug 用源行保留
+            if (empty($name)) error(__('fd_err_name_required'));
+            $tags = parseFormTags($templateText);
+            if (empty($tags)) error(__('fd_err_template_empty'));
+
+            $langCol = function (string $base) use ($postLang): string {
+                return $base . '_' . $postLang;
+            };
+            formTemplateModel()->updateById($id, [
+                $langCol('name')            => $name,
+                $langCol('fields')          => $templateText,
+                $langCol('success_message') => $successMessage,
+            ]);
+            adminLog('form_template', 'update', "更新表单模板 ID: $id ($postLang)");
+            success(['id' => $id]);
+        }
+
+        // 默认语言（zh-CN）：原逻辑
         if (empty($name)) error(__('fd_err_name_required'));
         if (empty($slug)) error(__('fd_err_slug_required'));
         if (!preg_match('/^[a-z0-9_-]+$/', $slug)) error(__('fd_err_slug_pattern'));
@@ -77,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $templates = formTemplateModel()->all('id ASC');
 
-// 为编辑时准备模板数据（旧JSON自动转换）
+// 为编辑时准备模板数据（旧JSON自动转换 + per-lang 视图值）
 foreach ($templates as &$tpl) {
     $fieldsRaw = $tpl['fields'] ?? '';
     if (isJsonFields($fieldsRaw)) {
@@ -87,6 +134,30 @@ foreach ($templates as &$tpl) {
     } else {
         $tpl['_template_text'] = $fieldsRaw;
         $tpl['_tag_count'] = count(parseFormTags($fieldsRaw));
+    }
+
+    // 视图语言下的"name / template_text / success_message"
+    // 默认语言：base 列；非默认语言：lang 后缀列，空则回退 base（让用户看着 zh 文案翻译）
+    if ($_viewLang !== $_defaultLang && $_i18nReady) {
+        $nameCol = 'name_' . $_viewLang;
+        $fieldsCol = 'fields_' . $_viewLang;
+        $msgCol = 'success_message_' . $_viewLang;
+        $tpl['_view_name'] = !empty($tpl[$nameCol]) ? (string) $tpl[$nameCol] : (string) $tpl['name'];
+        $tpl['_view_msg']  = !empty($tpl[$msgCol])  ? (string) $tpl[$msgCol]  : (string) $tpl['success_message'];
+        $langFields = (string) ($tpl[$fieldsCol] ?? '');
+        if ($langFields !== '') {
+            $tpl['_view_template_text'] = isJsonFields($langFields)
+                ? jsonFieldsToTemplate(json_decode($langFields, true) ?: [])
+                : $langFields;
+        } else {
+            $tpl['_view_template_text'] = $tpl['_template_text'];  // 回退到 zh 模板
+        }
+        $tpl['_translated'] = !empty($tpl[$nameCol]) || !empty($tpl[$fieldsCol]);
+    } else {
+        $tpl['_view_name']          = (string) $tpl['name'];
+        $tpl['_view_msg']           = (string) $tpl['success_message'];
+        $tpl['_view_template_text'] = $tpl['_template_text'];
+        $tpl['_translated']         = true;  // 源语言自身视为已翻译
     }
 }
 unset($tpl);
@@ -122,14 +193,26 @@ $defaultTemplate = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 $pageTitle = __('fd_page_title');
 $currentMenu = 'form';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+if ($_i18nReady) {
+    echo renderAdminLangSwitcher($_viewLang, '提示：表单名称、字段模板、成功提示 按语言独立保存；slug/状态 全局共享。新建表单只能在 zh-CN，再切到 EN/JA 录翻译');
+} else {
+    echo '<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg px-4 py-3 mb-4 text-sm">'
+       . '<strong>多语言未启用：</strong>表单模板的 EN/JA 列尚未添加。请到 <a href="/admin/upgrade.php" class="underline">系统升级</a> 应用 "表单模板：加 EN/JA 列" 升级项。'
+       . '</div>';
+}
 ?>
 
 <!-- Tab 导航 -->
+<?php
+$_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) : '';
+?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('fd_tab_data'); ?></a>
-        <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('fd_tab_design'); ?></a>
+        <a href="/admin/form_design.php<?php echo $_langQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('fd_tab_design'); ?></a>
     </div>
 </div>
 
@@ -137,10 +220,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex items-center justify-between">
         <p class="text-sm text-gray-500"><?php echo __('fd_intro'); ?></p>
+        <?php if ($_viewLang === $_defaultLang): ?>
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             <?php echo __('fd_btn_add'); ?>
         </button>
+        <?php else: ?>
+        <span class="text-xs text-gray-400">仅源语言（zh-CN）可新增；当前为翻译视图</span>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -165,7 +252,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
-                    <td class="px-4 py-3 font-medium"><?php echo e($item['name']); ?></td>
+                    <td class="px-4 py-3 font-medium">
+                        <?php echo e($item['_view_name']); ?>
+                        <?php if ($_viewLang !== $_defaultLang && !$item['_translated']): ?>
+                        <span class="ml-2 inline-block bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded">未翻译</span>
+                        <?php elseif ($_viewLang !== $_defaultLang): ?>
+                        <span class="ml-2 inline-block bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded">已翻译</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="px-4 py-3">
                         <code class="bg-gray-100 text-primary px-2 py-0.5 rounded text-sm cursor-pointer" onclick="copyShortcode(this)" title="<?php echo __('fd_copy_hint'); ?>">[form-<?php echo e($item['slug']); ?>]</code>
                     </td>
@@ -182,13 +276,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode([
                             'id'              => $item['id'],
-                            'name'            => $item['name'],
+                            'name'            => $item['_view_name'],
                             'slug'            => $item['slug'],
-                            'success_message' => $item['success_message'] ?? '',
-                            'template_text'   => $item['_template_text'],
+                            'success_message' => $item['_view_msg'],
+                            'template_text'   => $item['_view_template_text'],
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
-                        <?php if ($item['slug'] !== 'contact'): ?>
+                        <?php if ($_viewLang === $_defaultLang && $item['slug'] !== 'contact'): ?>
                         <button onclick="deleteTemplate(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
                         <?php endif; ?>
@@ -216,6 +310,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form id="editForm" class="p-6 space-y-5">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="editId" value="0">
+            <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
+
+            <?php if ($_viewLang !== $_defaultLang): ?>
+            <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded px-3 py-2 text-xs">
+                当前编辑 <strong><?php echo e($_viewLang); ?></strong> 翻译；只允许修改名称、字段模板、成功提示。slug 由源记录决定，不可修改。
+            </div>
+            <?php endif; ?>
 
             <!-- 基本信息 -->
             <div class="grid grid-cols-3 gap-4">
@@ -227,7 +328,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block text-gray-700 mb-1 text-sm"><?php echo __('fd_label_slug'); ?> <span class="text-red-500">*</span></label>
                     <div class="flex">
                         <span class="inline-flex items-center px-2 bg-gray-100 border border-r-0 rounded-l text-gray-500 text-xs">[form-</span>
-                        <input type="text" name="slug" id="editSlug" required class="flex-1 border px-2 py-2 text-sm min-w-0" placeholder="contact" pattern="[a-z0-9_-]+">
+                        <input type="text" name="slug" id="editSlug" required class="flex-1 border px-2 py-2 text-sm min-w-0" placeholder="contact" pattern="[a-z0-9_-]+" <?php echo $_viewLang !== $_defaultLang ? 'readonly' : ''; ?>>
                         <span class="inline-flex items-center px-2 bg-gray-100 border border-l-0 rounded-r text-gray-500 text-xs">]</span>
                     </div>
                 </div>
@@ -412,7 +513,7 @@ function insertTag() {
 }
 
 function insertSubmit() {
-    insertAtCursor('[submit "' . __('form_submit') . '"]');
+    insertAtCursor('[submit "<?php echo addslashes(__('form_submit')); ?>"]');
 }
 
 function insertAtCursor(text) {

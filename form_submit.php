@@ -114,5 +114,13 @@ notifyNewInquiry($data);
 // 记录提交频率
 recordFormSubmit($clientIp);
 
-$msg = $template['success_message'] ?: '提交成功，感谢您的反馈！';
+// lang-aware：EN/JA 时优先用 success_message_<lang>，回退到默认
+$_smLang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+$_smDefault = (string) config('site_lang', 'zh-CN');
+$msg = $template['success_message'] ?? '';
+if ($_smLang !== $_smDefault) {
+    $langMsg = (string) ($template['success_message_' . $_smLang] ?? '');
+    if ($langMsg !== '') $msg = $langMsg;
+}
+if (!$msg) $msg = '提交成功，感谢您的反馈！';
 echo json_encode(['code' => 0, 'msg' => $msg]);

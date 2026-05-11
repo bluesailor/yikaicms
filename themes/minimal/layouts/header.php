@@ -79,40 +79,10 @@ function isChannelActive(array $channel, int $currentId, string $currentSlug = '
     return false;
 }
 
-// 获取栏目链接（SEO友好URL）
+// 获取栏目链接（SEO友好URL）—— 委托给通用 channelUrl()，保留动态注入分支
 function getChannelUrl(array $channel): string {
-    // 动态注入的URL（如产品分类）
-    if (!empty($channel['_url'])) {
-        return $channel['_url'];
-    }
-    if ($channel['type'] === 'link') {
-        return e($channel['link_url']);
-    }
-
-    $slug = $channel['slug'] ?? '';
-    if (empty($slug)) {
-        // 没有slug时使用id
-        if ($channel['type'] === 'page') {
-            return '/page/' . $channel['id'] . '.html';
-        } else {
-            return '/list/' . $channel['id'] . '.html';
-        }
-    }
-
-    // 使用slug生成友好URL
-    if ($channel['type'] === 'page') {
-        // 单页：检查是否有父级
-        if (!empty($channel['parent_id'])) {
-            $parent = getChannel((int)$channel['parent_id']);
-            if ($parent && !empty($parent['slug'])) {
-                return '/' . $parent['slug'] . '/' . $slug . '.html';
-            }
-        }
-        return '/' . $slug . '.html';
-    } else {
-        // 列表页
-        return '/' . $slug . '.html';
-    }
+    if (!empty($channel['_url'])) return $channel['_url'];
+    return channelUrl($channel);
 }
 
 
@@ -135,6 +105,7 @@ function getChannelUrl(array $channel): string {
     <?php endif; ?>
     <title><?php echo e($fullTitle); ?></title>
     <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
+    <?php echo renderHreflangs(); ?>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <!-- OpenGraph -->
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
@@ -194,7 +165,7 @@ function getChannelUrl(array $channel): string {
 
                 <!-- Desktop Navigation -->
                 <nav class="hidden md:flex items-center gap-8">
-                    <?php if (config('nav_home_show', '1') !== '0'): ?>
+                    <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="text-sm tracking-wide transition <?php echo isset($isHomePage) && $isHomePage ? 'text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-900'; ?>">
                         <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
@@ -235,7 +206,7 @@ function getChannelUrl(array $channel): string {
         <!-- Mobile Menu -->
         <nav id="mobileMenu" class="md:hidden hidden border-t border-gray-100 bg-white">
             <div class="container mx-auto px-6 py-6 space-y-4">
-                <?php if (config('nav_home_show', '1') !== '0'): ?>
+                <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                 <a href="/" class="block text-sm tracking-wide text-gray-600 hover:text-gray-900"><?php echo e(configLang('nav_home_text', 'nav_home')); ?></a>
                 <?php endif; ?>
                 <?php foreach ($navChannels as $navItem): ?>

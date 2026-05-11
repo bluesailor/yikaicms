@@ -176,6 +176,7 @@ CREATE TABLE `yikai_banners` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `position` varchar(50) NOT NULL DEFAULT 'home' COMMENT '位置',
   `lang` varchar(10) NOT NULL DEFAULT 'zh-CN',
+  `translation_group_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '翻译组ID',
   `title` varchar(100) NOT NULL DEFAULT '' COMMENT '标题',
   `subtitle` varchar(255) NOT NULL DEFAULT '' COMMENT '副标题',
   `btn1_text` varchar(50) NOT NULL DEFAULT '' COMMENT '按钮1文字',
@@ -195,7 +196,8 @@ CREATE TABLE `yikai_banners` (
   KEY `idx_position` (`position`),
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order`),
-  KEY `idx_banner_lang` (`lang`)
+  KEY `idx_banner_lang` (`lang`),
+  KEY `idx_bn_trans` (`translation_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='轮播图';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `yikai_brands`;
@@ -465,6 +467,7 @@ DROP TABLE IF EXISTS `yikai_links`;
 CREATE TABLE `yikai_links` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `lang` varchar(10) NOT NULL DEFAULT 'zh-CN',
+  `translation_group_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '翻译组ID',
   `name` varchar(100) NOT NULL COMMENT '名称',
   `url` varchar(255) NOT NULL COMMENT '链接',
   `logo` varchar(255) NOT NULL DEFAULT '' COMMENT 'Logo',
@@ -475,7 +478,8 @@ CREATE TABLE `yikai_links` (
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order`),
-  KEY `idx_lk_lang` (`lang`)
+  KEY `idx_lk_lang` (`lang`),
+  KEY `idx_lk_trans` (`translation_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='友情链接';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `yikai_media`;
@@ -680,6 +684,7 @@ DROP TABLE IF EXISTS `yikai_timelines`;
 CREATE TABLE `yikai_timelines` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `lang` varchar(10) NOT NULL DEFAULT 'zh-CN',
+  `translation_group_id` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '翻译组ID',
   `year` smallint(5) unsigned NOT NULL COMMENT '年份',
   `month` tinyint(3) unsigned DEFAULT '0' COMMENT '月份(0表示仅显示年)',
   `day` tinyint(3) unsigned DEFAULT '0' COMMENT '日期(0表示不显示)',
@@ -696,7 +701,8 @@ CREATE TABLE `yikai_timelines` (
   KEY `idx_year` (`year`),
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order` DESC,`year` DESC,`month` DESC),
-  KEY `idx_tl_lang` (`lang`)
+  KEY `idx_tl_lang` (`lang`),
+  KEY `idx_tl_trans` (`translation_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发展历程时间线';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `yikai_users`;

@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 后台登录
+ * YikaiCMS - 后台登录
  *
  * PHP 8.0+
  */
@@ -18,9 +18,20 @@ if (!empty($_SESSION['admin_id'])) {
 }
 
 // ============================================================
-// 语言切换 / 浏览器检测
+// 语言切换：以后台「admin_languages」设置为准，可在 /admin/setting.php?tab=lang 配置
 // ============================================================
-$supportedLangs = ['zh-CN' => '中文', 'en' => 'English'];
+$_allLangs = availableLanguages();  // ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', ...]
+$_adminLangsRaw = trim((string) config('admin_languages', ''));
+if ($_adminLangsRaw !== '') {
+    $_adminAllowed = array_values(array_filter(array_map('trim', explode(',', $_adminLangsRaw))));
+} else {
+    $_adminAllowed = array_keys($_allLangs);
+}
+$supportedLangs = [];
+foreach ($_adminAllowed as $_lc) {
+    if (isset($_allLangs[$_lc])) $supportedLangs[$_lc] = $_allLangs[$_lc];
+}
+if (empty($supportedLangs)) $supportedLangs = $_allLangs;
 
 // 1. URL ?lang=xxx 切换 (重定向去掉参数,避免后续刷新冲突)
 if (isset($_GET['lang']) && isset($supportedLangs[$_GET['lang']])) {
@@ -32,9 +43,11 @@ if (isset($_GET['lang']) && isset($supportedLangs[$_GET['lang']])) {
 if (empty($_SESSION['login_lang'])) {
     $accept = strtolower(trim((string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')));
     $first = trim(explode(';', explode(',', $accept)[0] ?? '')[0]);
-    if (str_starts_with($first, 'zh')) {
+    if (str_starts_with($first, 'zh') && isset($supportedLangs['zh-CN'])) {
         $_SESSION['login_lang'] = 'zh-CN';
-    } elseif (str_starts_with($first, 'en')) {
+    } elseif (str_starts_with($first, 'ja') && isset($supportedLangs['ja'])) {
+        $_SESSION['login_lang'] = 'ja';
+    } elseif (str_starts_with($first, 'en') && isset($supportedLangs['en'])) {
         $_SESSION['login_lang'] = 'en';
     }
     // 不匹配则不设, getLang() 走原有 admin_lang / 默认逻辑
@@ -68,15 +81,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo __('login_page_title'); ?> - <?php echo e(config('site_name', 'ikaiCMS')); ?></title>
+    <title><?php echo __('login_page_title'); ?> - <?php echo e(config('site_name', 'YikaiCMS')); ?></title>
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center relative">
+
+    <!-- 语言切换（右上角；以后台 admin_languages 设置为准） -->
+    <?php
+    $flagFile = ['zh-CN' => 'cn', 'en' => 'us', 'ja' => 'jp'];
+    if (count($supportedLangs) >= 2):
+    ?>
+    <div class="absolute top-4 right-4 flex items-center gap-1.5 z-10">
+        <?php foreach ($supportedLangs as $code => $label):
+            $active = $currentLang === $code;
+            $flag = $flagFile[$code] ?? '';
+        ?>
+            <a href="?lang=<?php echo e($code); ?>"
+               hreflang="<?php echo e($code); ?>"
+               title="<?php echo e($label); ?>"
+               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs transition <?php echo $active
+                   ? 'border-primary text-primary bg-blue-50 font-medium'
+                   : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300 hover:bg-gray-50'; ?>">
+                <?php if ($flag): ?>
+                <img src="/assets/icons/flags/<?php echo e($flag); ?>.svg"
+                     alt="" aria-hidden="true"
+                     class="w-4 h-3 rounded-sm shrink-0 ring-1 ring-gray-200">
+                <?php endif; ?>
+                <span><?php echo e($label); ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="w-full max-w-md">
         <div class="bg-white rounded-lg shadow-lg p-8">
             <div class="text-center mb-8">
-                <h1 class="text-2xl font-bold text-gray-800"><?php echo e(config('site_name', 'ikaiCMS')); ?></h1>
+                <h1 class="text-2xl font-bold text-gray-800"><?php echo e(config('site_name', 'YikaiCMS')); ?></h1>
                 <p class="text-gray-500 mt-2"><?php echo __('login_subtitle'); ?></p>
             </div>
 
@@ -116,27 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="text-center mt-6 text-gray-500 text-sm">
-            &copy; <?php echo date('Y'); ?> <?php echo e(config('site_name', 'ikaiCMS')); ?>
-        </div>
-
-        <!-- 语言切换 -->
-        <div class="flex items-center justify-center gap-2 mt-4">
-            <?php
-            $flagFile = ['zh-CN' => 'cn', 'en' => 'us'];
-            foreach ($supportedLangs as $code => $label):
-                $active = $currentLang === $code;
-            ?>
-                <a href="?lang=<?php echo e($code); ?>"
-                   hreflang="<?php echo e($code); ?>"
-                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition <?php echo $active
-                       ? 'border-primary text-primary bg-blue-50 font-medium'
-                       : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'; ?>">
-                    <img src="/assets/icons/flags/<?php echo $flagFile[$code]; ?>.svg"
-                         alt="" aria-hidden="true"
-                         class="w-5 h-3.5 rounded-sm shrink-0 ring-1 ring-gray-200">
-                    <span><?php echo $label; ?></span>
-                </a>
-            <?php endforeach; ?>
+            &copy; <?php echo date('Y'); ?> <?php echo e(config('site_name', 'YikaiCMS')); ?>
         </div>
     </div>
 <script>

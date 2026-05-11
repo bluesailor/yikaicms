@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 单页管理
+ * YikaiCMS - 单页管理
  *
  * PHP 8.0+
  */
@@ -75,12 +75,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取所有单页类型的栏目
+// ============== 多语言视图 ==============
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+
+// 获取当前视图语言下的所有单页类型的栏目
 $pages = channelModel()->query(
     'SELECT c.*, p.name as parent_name FROM ' . channelModel()->tableName() . ' c
      LEFT JOIN ' . channelModel()->tableName() . ' p ON c.parent_id = p.id
-     WHERE c.type = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
-    ['page']
+     WHERE c.type = ? AND c.lang = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
+    ['page', $_viewLang]
 );
 
 // 获取页脚导航URL列表
@@ -95,15 +102,24 @@ foreach ($footerNavData as $group) {
 $pageTitle = __('admin_page_static');
 $currentMenu = 'page';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('channels');
+
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过翻译徽标列编辑；新建/删除只能在源语言（' . $_defaultLang . '）进行');
 ?>
 
 <div class="mb-6 flex items-center justify-between">
     <p class="text-gray-500"><?php echo __('page_desc'); ?></p>
+    <?php if ($_viewLang === $_defaultLang): ?>
     <button onclick="showCreateModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
         <?php echo __('admin_add'); ?>
     </button>
+    <?php else: ?>
+    <span class="text-xs text-gray-400">仅源语言可新增；点击下方"翻译"列徽标编辑翻译版本</span>
+    <?php endif; ?>
 </div>
 
 <!-- 列表 -->
@@ -119,6 +135,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('page_menu_position'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -175,6 +192,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
                             <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/page_edit.php'); ?>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <a href="/admin/page_edit.php?id=<?php echo $item['id']; ?>"

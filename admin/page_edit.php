@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 单页编辑（富文本模式）
+ * YikaiCMS - 单页编辑（富文本模式）
  *
  * PHP 8.0+
  */
@@ -14,6 +14,15 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('content');
+
+// 多语言翻译创建器：拦截 action=create_translation 的 POST
+$langSwitcher = [
+    'table'         => 'channels',
+    'model'         => channelModel(),
+    'title_field'   => 'name',
+    'summary_field' => 'description',
+];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 $id = getInt('id');
 
@@ -48,7 +57,10 @@ $redirectTarget = null;
 if ($redirectType === 'auto') {
     $children = channelModel()->getByParent($id, true);
     if (!empty($children)) {
-        $redirectTarget = $children[0];
+        // 父页有子级 → 直接跳到第一个子页（父页没有自己的 content，编辑无意义）。
+        // 想改父页的 name/slug/SEO 元数据请到 /admin/channel.php?edit=<id>。
+        header('Location: /admin/page_edit.php?id=' . (int) $children[0]['id']);
+        exit;
     }
 } elseif ($redirectType === 'url' && !empty($page['redirect_url'])) {
     $redirectTarget = ['name' => $page['redirect_url'], '_is_url' => true];
@@ -114,8 +126,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = sprintf(__('pe_edit_page_title'), $page['name']);
 $currentMenu = 'page';
 
+// widget 用：当前编辑行 + URL 信息
+$langSwitcher['item']     = $page;
+$langSwitcher['edit_url'] = '/admin/page_edit.php';
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <div class="mb-6 flex items-center justify-between">
     <a href="/admin/page.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">

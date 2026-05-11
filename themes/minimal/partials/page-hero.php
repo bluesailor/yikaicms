@@ -7,10 +7,10 @@
  * @var array $breadcrumbItems - Breadcrumb items array
  */
 ?>
-<section class="bg-white py-16 md:py-24">
+<section class="bg-white pt-6 md:pt-8 pb-12 md:pb-16">
     <div class="container mx-auto px-6 lg:px-8">
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-xs text-gray-300 mb-8">
+        <div class="flex items-center gap-2 text-xs text-gray-400 mb-8">
             <a href="/" class="hover:text-gray-600 transition"><?php echo __('breadcrumb_home'); ?></a>
             <?php foreach ($breadcrumbItems as $i => $item): ?>
             <span>/</span>

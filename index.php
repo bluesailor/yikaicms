@@ -23,7 +23,7 @@ $navChannels = getNavChannels();
 
 // SEO: canonical
 $siteUrl = rtrim(config('site_url', SITE_URL), '/');
-$canonicalUrl = $siteUrl . '/';
+$canonicalUrl = $siteUrl . (langPrefix() ?: '') . '/';
 
 // 获取首页展示的栏目（is_home=1）
 $homeChannels = channelModel()->getHomeChannels();

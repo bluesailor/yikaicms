@@ -17,8 +17,8 @@ $categorySlug = get('cat', '');
 $categoryId = getInt('cat_id', 0);
 $category = null;
 
-// 获取 news 顶级栏目
-$newsChannel = getChannelBySlug('news');
+// 获取 news 顶级栏目（lang-aware）
+$newsChannel = getChannelBySlug('news', true);
 $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
 
 // 通过 slug 获取子栏目

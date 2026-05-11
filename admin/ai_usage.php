@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - AI 用量详情
+ * YikaiCMS - AI 用量详情
  */
 
 declare(strict_types=1);

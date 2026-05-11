@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 系统信息 & 操作日志
+ * YikaiCMS - 系统信息 & 操作日志
  *
  * PHP 8.0+
  */
@@ -137,7 +137,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <tbody class="divide-y">
                     <tr>
                         <td class="py-3 text-gray-500 w-48"><?php echo __('sys_name'); ?></td>
-                        <td class="py-3 text-gray-800">ikaiCMS</td>
+                        <td class="py-3 text-gray-800"><?php echo __('sys_brand_name'); ?></td>
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_version'); ?></td>

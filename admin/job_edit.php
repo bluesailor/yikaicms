@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 招聘编辑
+ * YikaiCMS - 招聘编辑
  *
  * PHP 8.0+
  */

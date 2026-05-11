@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - SNS設定
+ * YikaiCMS - SNS設定
  */
 
 declare(strict_types=1);

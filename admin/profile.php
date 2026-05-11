@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 个人设置
+ * YikaiCMS - 个人设置
  *
  * PHP 8.0+
  */

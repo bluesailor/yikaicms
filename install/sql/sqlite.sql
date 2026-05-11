@@ -139,6 +139,7 @@ CREATE TABLE yikai_banners (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     position TEXT NOT NULL DEFAULT 'home',
     lang TEXT NOT NULL DEFAULT 'zh-CN',
+    translation_group_id INTEGER NOT NULL DEFAULT '0',
     title TEXT NOT NULL DEFAULT '',
     subtitle TEXT NOT NULL DEFAULT '',
     btn1_text TEXT NOT NULL DEFAULT '',
@@ -159,6 +160,7 @@ CREATE INDEX idx_position_banners ON yikai_banners(position);
 CREATE INDEX idx_status_banners ON yikai_banners(status);
 CREATE INDEX idx_sort_banners ON yikai_banners(sort_order);
 CREATE INDEX idx_banner_lang_banners ON yikai_banners(lang);
+CREATE INDEX idx_bn_trans_banners ON yikai_banners(translation_group_id);
 
 DROP TABLE IF EXISTS yikai_brands;
 CREATE TABLE yikai_brands (
@@ -397,6 +399,7 @@ DROP TABLE IF EXISTS yikai_links;
 CREATE TABLE yikai_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lang TEXT NOT NULL DEFAULT 'zh-CN',
+    translation_group_id INTEGER NOT NULL DEFAULT '0',
     name TEXT NOT NULL,
     url TEXT NOT NULL,
     logo TEXT NOT NULL DEFAULT '',
@@ -408,6 +411,7 @@ CREATE TABLE yikai_links (
 CREATE INDEX idx_status_links ON yikai_links(status);
 CREATE INDEX idx_sort_links ON yikai_links(sort_order);
 CREATE INDEX idx_lk_lang_links ON yikai_links(lang);
+CREATE INDEX idx_lk_trans_links ON yikai_links(translation_group_id);
 
 DROP TABLE IF EXISTS yikai_media;
 CREATE TABLE yikai_media (
@@ -579,6 +583,7 @@ DROP TABLE IF EXISTS yikai_timelines;
 CREATE TABLE yikai_timelines (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lang TEXT NOT NULL DEFAULT 'zh-CN',
+    translation_group_id INTEGER NOT NULL DEFAULT '0',
     year INTEGER NOT NULL,
     month INTEGER DEFAULT '0',
     day INTEGER DEFAULT '0',
@@ -596,6 +601,7 @@ CREATE INDEX idx_year_timelines ON yikai_timelines(year);
 CREATE INDEX idx_status_timelines ON yikai_timelines(status);
 CREATE INDEX idx_sort_timelines ON yikai_timelines(sort_order DESC,year DESC,month DESC);
 CREATE INDEX idx_tl_lang_timelines ON yikai_timelines(lang);
+CREATE INDEX idx_tl_trans_timelines ON yikai_timelines(translation_group_id);
 
 DROP TABLE IF EXISTS yikai_users;
 CREATE TABLE yikai_users (

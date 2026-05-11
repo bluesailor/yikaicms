@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 栏目管理
+ * YikaiCMS - 栏目管理
  *
  * PHP 8.0+
  */
@@ -14,6 +14,15 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
+
+// 多语言翻译创建器：拦截 action=create_translation 的 POST，插入目标语言镜像行
+$langSwitcher = [
+    'table'         => 'channels',
+    'model'         => channelModel(),
+    'title_field'   => 'name',
+    'summary_field' => 'description',
+];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 // 栏目类型
 $channelTypes = [
@@ -147,6 +156,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'toggle_home_show') {
+        // 切换"首页"菜单 per-lang 显示开关
+        // 源语言用 nav_home_show，其它语言用 nav_home_show_{lang}
+        $tLang = post('lang');
+        $value = post('value') === '1' ? '1' : '0';
+        $defaultLang = (string) config('site_lang', 'zh-CN');
+        $key = $tLang === $defaultLang ? 'nav_home_show' : 'nav_home_show_' . $tLang;
+        settingModel()->set($key, $value);
+        adminLog('setting', 'nav_home_show', "切换 {$key} = {$value}");
+        success([], $value === '1' ? '已显示「首页」' : '已隐藏「首页」');
+    }
+
     if ($action === 'delete') {
         $id = postInt('id');
         $channel = channelModel()->find($id);
@@ -213,16 +234,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取栏目列表（平铺，用于下拉选项）
-$channels = channelModel()->getFlatList();
+// 视图语言：URL 参数 ?lang= 决定列哪个语言的频道
+// 默认列源语言（site_lang）；切换到 en/ja 时显示对应语言的镜像行
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_adminLang   = $_viewLang;
+// 标签来自 availableLanguages()（扫 lang/*.php），新增语言只要丢文件即自动可用
+$_langLabels  = availableLanguages();
 
-// 后台用：不过滤 status，所有栏目都显示
-$channelTree = channelModel()->getTreeAll();
+/**
+ * 渲染"显示/隐藏"切换按钮（睁眼/闭眼图标）。
+ *
+ *   $onclickJs: 完整 onclick 表达式（如 "toggleField(123, 'status', 0)"）
+ *   $isShown:   当前是否显示状态
+ *   $viewLabel: 用于 tooltip 中的"语言"上下文（可空）
+ */
+function renderEyeToggle(string $onclickJs, bool $isShown, string $viewLabel = ''): string
+{
+    $cls = $isShown ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100';
+    $title = $isShown
+        ? '当前显示' . ($viewLabel ? '（' . $viewLabel . '）' : '') . '，点击隐藏'
+        : '当前隐藏' . ($viewLabel ? '（' . $viewLabel . '）' : '') . '，点击显示';
+    $eyeOpen  = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
+    $eyeClose = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88"/></svg>';
+    return '<button onclick="' . htmlspecialchars($onclickJs, ENT_QUOTES) . '" '
+        . 'class="cursor-pointer p-1 rounded transition ' . $cls . '" '
+        . 'title="' . htmlspecialchars($title, ENT_QUOTES) . '">'
+        . ($isShown ? $eyeOpen : $eyeClose)
+        . '</button>';
+}
 
-// 获取产品分类（多层树形结构，用于产品类型栏目显示）
+// view-lang 视角的"首页"文本（per-lang 覆盖优先；否则回退到 lang/{lang}.php 的 nav_home）
+$_viewHomeText = '首页';
+$_viewHomeShow = '1';
+$_viewHomeKey = $_viewLang === $_defaultLang ? 'nav_home_text' : 'nav_home_text_' . $_viewLang;
+$_viewHomeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
+$_custom = (string) config($_viewHomeKey, '');
+if ($_custom !== '') {
+    $_viewHomeText = $_custom;
+} elseif (is_file(ROOT_PATH . '/lang/' . $_viewLang . '.php')) {
+    $_data = require ROOT_PATH . '/lang/' . $_viewLang . '.php';
+    if (is_array($_data) && !empty($_data['nav_home'])) $_viewHomeText = (string) $_data['nav_home'];
+}
+$_v = config($_viewHomeShowKey, null);
+$_viewHomeShow = $_v === null ? '1' : (string) $_v;
+
+// 递归过滤函数：只保留 lang === default 的节点，并对 children 递归
+$_filterByLang = function (array $nodes) use (&$_filterByLang, $_adminLang): array {
+    $out = [];
+    foreach ($nodes as $n) {
+        if (($n['lang'] ?? $_adminLang) !== $_adminLang) continue;
+        if (!empty($n['children']) && is_array($n['children'])) {
+            $n['children'] = $_filterByLang($n['children']);
+        }
+        $out[] = $n;
+    }
+    return $out;
+};
+
+// 获取栏目列表（平铺，用于下拉选项；过滤掉非默认语言）
+$channels = array_values(array_filter(
+    channelModel()->getFlatList(),
+    fn($c) => ($c['lang'] ?? $_adminLang) === $_adminLang
+));
+
+// 后台用：不过滤 status，所有栏目都显示；只保留默认语言的源行
+$channelTree = $_filterByLang(channelModel()->getTreeAll());
+
+// 产品分类：始终用源语言（zh-CN）的树结构作为主干（id / parent_id 都从源行取），
+// view-lang 不是源时，再把 name 用对应翻译行覆盖（没翻译则保留源 name + 徽标提示缺译）。
+// 这样切到 en/ja 不会因为没有翻译就把整个分类树清空。
 $_allProductCats = db()->fetchAll(
-    'SELECT * FROM ' . DB_PREFIX . 'product_categories ORDER BY sort_order ASC, id ASC'
+    'SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE lang = ? ORDER BY sort_order ASC, id ASC',
+    [$_defaultLang]
 );
+
+// view-lang 不是源时：按 translation_group_id 索引该 lang 的翻译行，覆盖 name
+if ($_viewLang !== $_defaultLang) {
+    $_viewCatRows = db()->fetchAll(
+        'SELECT translation_group_id, name FROM ' . DB_PREFIX . 'product_categories WHERE lang = ?',
+        [$_viewLang]
+    );
+    $_viewCatByGid = [];
+    foreach ($_viewCatRows as $_r) {
+        $_viewCatByGid[(int) $_r['translation_group_id']] = $_r['name'];
+    }
+    foreach ($_allProductCats as &$_c) {
+        $_gid = (int) ($_c['translation_group_id'] ?: $_c['id']);
+        if (isset($_viewCatByGid[$_gid])) {
+            $_c['name'] = $_viewCatByGid[$_gid];
+        }
+    }
+    unset($_c);
+}
+
+// 产品分类翻译状态徽标索引（en/ja 等）—— 用 trans_pills 的 loader
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatusCats = loadTransStatus('product_categories');
 // 递归扁平化：父在前、子紧跟、附 _level 缩进信息
 $_buildProductCatTree = function (array $rows, int $parentId, int $level) use (&$_buildProductCatTree): array {
     $out = [];
@@ -253,6 +364,21 @@ foreach ($footerNavData as $group) {
 }
 $homeInFooterNav = in_array('/', $footerNavUrls);
 
+// 当前是非默认语言视图时，把当前行的 slug 映射回**源行 slug**——这样 footer_nav
+// 里存的源 URL (/privacy.html) 能跟翻译行 (privacy-ja) 对得上。
+// 否则切到 ja/en 视图，"底部导航"分类全部错乱（footer_nav 用源 slug 写入）。
+$_srcSlugOf = function (array $ch) use ($_viewLang, $_defaultLang): string {
+    if ($_viewLang === $_defaultLang) return (string) ($ch['slug'] ?? '');
+    $groupId = (int) ($ch['translation_group_id'] ?: $ch['id']);
+    static $cache = [];
+    if (isset($cache[$groupId])) return $cache[$groupId];
+    $src = db()->fetchOne(
+        "SELECT slug FROM " . DB_PREFIX . "channels WHERE id = ? AND lang = ?",
+        [$groupId, $_defaultLang]
+    );
+    return $cache[$groupId] = (string) ($src['slug'] ?? $ch['slug'] ?? '');
+};
+
 // 按 footer_nav JSON 顺序构建页脚栏目列表
 $footerNavItems = [];
 foreach ($footerNavData as $group) {
@@ -263,7 +389,7 @@ foreach ($footerNavData as $group) {
         } else {
             $matched = false;
             foreach ($channelTree as $ch) {
-                if ('/' . $ch['slug'] . '.html' === $url) {
+                if ('/' . $_srcSlugOf($ch) . '.html' === $url) {
                     $footerNavItems[] = ['type' => 'channel', 'channel' => $ch, 'link' => $link];
                     $matched = true;
                     break;
@@ -280,7 +406,7 @@ foreach ($footerNavData as $group) {
 $mainNavChannels = [];
 $undefinedChannels = [];
 foreach ($channelTree as $ch) {
-    $chUrl = '/' . $ch['slug'] . '.html';
+    $chUrl = '/' . $_srcSlugOf($ch) . '.html';
     if (!empty($ch['is_nav'])) {
         $mainNavChannels[] = $ch;
     } elseif (!in_array($chUrl, $footerNavUrls)) {
@@ -293,11 +419,42 @@ $activeTab = $_GET['tab'] ?? 'main';
 $editId = getInt('edit');
 $editChannel = $editId > 0 ? channelModel()->find($editId) : null;
 
+// 多语言：把当前编辑行 + URL 信息塞进早先设的 $langSwitcher，给 widget 用
+$langSwitcher['item']       = $editChannel;
+$langSwitcher['edit_url']   = '/admin/channel.php';
+$langSwitcher['edit_param'] = 'edit';
+
+// 列表页：每行翻译状态徽标
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('channels');
+
 $pageTitle = __('admin_channel');
 $currentMenu = 'channel';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if (count($_enabledList) > 1): ?>
+<div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
+    <span class="text-gray-500">查看语言：</span>
+    <?php
+    $_langLabels = ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'];
+    foreach ($_enabledList as $_lc):
+        $_label = $_langLabels[$_lc] ?? $_lc;
+        $_isCurrent = ($_lc === $_viewLang);
+        $_isDefault = ($_lc === $_defaultLang);
+    ?>
+    <a href="?lang=<?php echo e($_lc); ?>&tab=<?php echo e($activeTab); ?>"
+       class="px-3 py-1 rounded-full transition <?php echo $_isCurrent ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
+        <?php echo e($_label); ?>
+        <?php if ($_isDefault): ?><span class="ml-1 text-[10px] opacity-70">(源)</span><?php endif; ?>
+    </a>
+    <?php endforeach; ?>
+    <?php if ($_viewLang !== $_defaultLang): ?>
+    <span class="ml-auto text-xs text-amber-600">提示：源语言（<?php echo e($_langLabels[$_defaultLang] ?? $_defaultLang); ?>）才能新增/删除栏目；当前是翻译版本，编辑用于本地化文字</span>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- 栏目列表 -->
@@ -332,8 +489,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-blue-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                         </span>
-                        <span class="font-medium text-gray-800 flex-1"><?php echo __('admin_home_label'); ?></span>
+                        <span class="font-medium text-gray-800 flex-1"><?php echo e($_viewHomeText); ?></span>
                         <span class="text-xs text-gray-400"><?php echo __('admin_label_fixed'); ?></span>
+                        <?php echo renderEyeToggle("toggleHomeShow('{$_viewLang}', " . ($_viewHomeShow === '1' ? 0 : 1) . ")", $_viewHomeShow === '1', ($_langLabels[$_viewLang] ?? $_viewLang) . '「首页」'); ?>
                         <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                     </div>
                 </div>
@@ -350,14 +508,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="font-medium text-gray-800 flex-1">
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
+                                <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                 <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
-                                <?php if (in_array('/' . $ch['slug'] . '.html', $footerNavUrls)): ?>
+                                <?php if (in_array('/' . $_srcSlugOf($ch) . '.html', $footerNavUrls)): ?>
                                 <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600"><?php echo __('admin_footer_nav_badge'); ?></span>
                                 <?php endif; ?>
-                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
-                                        class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                    <?php echo $ch['status'] ? __('admin_show') : __('admin_hide'); ?>
-                                </button>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
@@ -383,11 +539,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <span class="text-gray-700 flex-1">
                                             <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($child['name']); ?></a>
                                         </span>
+                                        <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                         <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
-                                        <button onclick="toggleField(<?php echo $child['id']; ?>, 'status', <?php echo $child['status'] ? 0 : 1; ?>)"
-                                                class="text-xs px-2 py-0.5 rounded <?php echo $child['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                            <?php echo $child['status'] ? __('admin_show') : __('admin_hide'); ?>
-                                        </button>
+                                        <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                         <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                                         <?php if (($child['type'] ?? '') === 'page'): ?>
                                         <?php if (($child['slug'] ?? '') === 'contact'): ?>
@@ -426,6 +580,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     </span>
                                     <span class="text-gray-300 text-xs">└</span>
                                     <span class="text-gray-700 flex-1"><?php echo e($cat['name']); ?></span>
+                                    <?php echo renderTransPills((int)$cat['id'], $transStatusCats, '/admin/product_category.php', 'edit'); ?>
                                     <?php if ($level === 0): ?>
                                     <span class="text-xs text-amber-500"><?= __('admin_product_category') ?></span>
                                     <?php else: ?>
@@ -482,14 +637,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="font-medium text-gray-800 flex-1">
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
+                                <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                 <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
                                 <?php if (!empty($ch['is_nav'])): ?>
                                 <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600"><?= __('admin_main_nav') ?></span>
                                 <?php endif; ?>
-                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
-                                        class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                    <?php echo $ch['status'] ? __('admin_show') : __('admin_hide'); ?>
-                                </button>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
@@ -538,11 +691,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="font-medium text-gray-800 flex-1">
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
+                                <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                 <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
-                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', <?php echo $ch['status'] ? 0 : 1; ?>)"
-                                        class="text-xs px-2 py-0.5 rounded <?php echo $ch['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                    <?php echo $ch['status'] ? __('admin_show') : __('admin_hide'); ?>
-                                </button>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
@@ -564,11 +715,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <span class="text-gray-700 flex-1">
                                         <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="hover:text-primary"><?php echo e($child['name']); ?></a>
                                     </span>
+                                    <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                     <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
-                                    <button onclick="toggleField(<?php echo $child['id']; ?>, 'status', <?php echo $child['status'] ? 0 : 1; ?>)"
-                                            class="text-xs px-2 py-0.5 rounded <?php echo $child['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                                        <?php echo $child['status'] ? __('admin_show') : __('admin_hide'); ?>
-                                    </button>
+                                    <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                     <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
                                     <?php if (($child['type'] ?? '') === 'page'): ?>
                                     <?php if (($child['slug'] ?? '') === 'contact'): ?>
@@ -598,6 +747,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <!-- 编辑表单 -->
     <div class="lg:col-span-1">
+        <?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
         <div class="bg-white rounded-lg shadow sticky top-20">
             <div class="px-6 py-4 border-b">
                 <h2 class="font-bold text-gray-800"><?php echo $editChannel ? __('admin_channel_edit') : __('admin_channel_add'); ?></h2>
@@ -885,6 +1035,21 @@ async function toggleField(id, field, value) {
         location.reload();
     } else {
         showMessage(data.msg, 'error');
+    }
+}
+
+// 切换当前 view-lang 下"首页"菜单的显示/隐藏（per-lang nav_home_show）
+async function toggleHomeShow(lang, value) {
+    const formData = new FormData();
+    formData.append('action', 'toggle_home_show');
+    formData.append('lang', lang);
+    formData.append('value', String(value));
+    const response = await fetch('', { method: 'POST', body: formData });
+    const data = await safeJson(response);
+    if (data.code === 0) {
+        location.reload();
+    } else {
+        showMessage(data.msg || '操作失败', 'error');
     }
 }
 

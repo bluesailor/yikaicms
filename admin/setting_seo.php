@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - SEO 设置
+ * YikaiCMS - SEO 设置
  *
  * PHP 8.0+
  */
@@ -14,6 +14,16 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
+
+// 视图语言（settings 表无 lang 列，per-lang 用 <key>_<lang> 后缀约定）
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+
+// 哪些 key 走 per-lang（文案）；剩下的（验证码、sitemap 开关）全局共享
+$LANG_KEYS = ['seo_title', 'site_keywords', 'site_description', 'seo_og_image'];
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,25 +43,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success([], 'Sitemap 缓存已清除');
     }
 
-    // 保存 SEO 设置
+    // 保存 SEO 设置：lang-able 字段按当前视图 lang 写到 <key>_<lang>
     $settings = $_POST['settings'] ?? [];
-    settingModel()->saveBatch($settings);
+    $remapped = [];
+    foreach ($settings as $k => $v) {
+        $isLangAble = in_array($k, $LANG_KEYS, true);
+        $targetKey = ($isLangAble && $_viewLang !== $_defaultLang) ? ($k . '_' . $_viewLang) : (string) $k;
+        $remapped[$targetKey] = $v;
+    }
+    settingModel()->saveBatch($remapped);
 
     // 清除 sitemap 缓存使配置生效
     cacheDelete('sitemap_xml');
 
-    adminLog('setting', 'update', '更新 SEO 设置');
+    adminLog('setting', 'update', '更新 SEO 设置 (' . $_viewLang . ')');
     success();
 }
 
 $tab = $_GET['tab'] ?? 'basic';
 
-// 获取当前设置
+// 读取 lang-able 字段：非默认语言时读 <key>_<lang>，空则回退到 base
+$readLang = function (string $base) use ($LANG_KEYS, $_viewLang, $_defaultLang): string {
+    if (in_array($base, $LANG_KEYS, true) && $_viewLang !== $_defaultLang) {
+        $v = (string) config($base . '_' . $_viewLang, '');
+        if ($v !== '') return $v;
+    }
+    return (string) config($base, '');
+};
+
 $seoConfig = [
-    'seo_title'           => config('seo_title', ''),
-    'site_keywords'       => config('site_keywords', ''),
-    'site_description'    => config('site_description', ''),
-    'seo_og_image'        => config('seo_og_image', ''),
+    'seo_title'           => $readLang('seo_title'),
+    'site_keywords'       => $readLang('site_keywords'),
+    'site_description'    => $readLang('site_description'),
+    'seo_og_image'        => $readLang('seo_og_image'),
     'seo_baidu_verify'    => config('seo_baidu_verify', ''),
     'seo_google_verify'   => config('seo_google_verify', ''),
     'seo_bing_verify'     => config('seo_bing_verify', ''),
@@ -69,7 +93,10 @@ if (file_exists($robotsPath)) {
 $pageTitle = 'SEO 设置';
 $currentMenu = 'setting_seo';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG 图按语言独立保存（key_' . $_viewLang . '）；验证码/Sitemap 等全局共享');
 ?>
 
 <!-- Tab 导航 -->

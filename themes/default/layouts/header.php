@@ -79,40 +79,10 @@ function isChannelActive(array $channel, int $currentId, string $currentSlug = '
     return false;
 }
 
-// 获取栏目链接（SEO友好URL）
+// 获取栏目链接（SEO友好URL）—— 委托给通用 channelUrl()，保留动态注入分支
 function getChannelUrl(array $channel): string {
-    // 动态注入的URL（如产品分类）
-    if (!empty($channel['_url'])) {
-        return $channel['_url'];
-    }
-    if ($channel['type'] === 'link') {
-        return e($channel['link_url']);
-    }
-
-    $slug = $channel['slug'] ?? '';
-    if (empty($slug)) {
-        // 没有slug时使用id
-        if ($channel['type'] === 'page') {
-            return '/page/' . $channel['id'] . '.html';
-        } else {
-            return '/list/' . $channel['id'] . '.html';
-        }
-    }
-
-    // 使用slug生成友好URL
-    if ($channel['type'] === 'page') {
-        // 单页：检查是否有父级
-        if (!empty($channel['parent_id'])) {
-            $parent = getChannel((int)$channel['parent_id']);
-            if ($parent && !empty($parent['slug'])) {
-                return '/' . $parent['slug'] . '/' . $slug . '.html';
-            }
-        }
-        return '/' . $slug . '.html';
-    } else {
-        // 列表页
-        return '/' . $slug . '.html';
-    }
+    if (!empty($channel['_url'])) return $channel['_url'];
+    return channelUrl($channel);
 }
 
 
@@ -135,6 +105,7 @@ function getChannelUrl(array $channel): string {
     <?php endif; ?>
     <title><?php echo e($fullTitle); ?></title>
     <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
+    <?php echo renderHreflangs(); ?>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <!-- OpenGraph -->
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
@@ -245,7 +216,7 @@ function getChannelUrl(array $channel): string {
         <nav class="hidden md:block border-t" style="border-color: rgba(0,0,0,0.06)">
             <div class="container mx-auto px-4">
                 <div class="flex items-center gap-1">
-                    <?php if (config('nav_home_show', '1') !== '0'): ?>
+                    <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="px-4 py-3 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
                         <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
@@ -292,7 +263,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </a>
                 <nav class="hidden md:flex items-center gap-1">
-                    <?php if (config('nav_home_show', '1') !== '0'): ?>
+                    <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="px-4 py-2 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
                         <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
                     </a>
@@ -338,16 +309,16 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                     <?php endif; ?>
                     <?php endif; ?>
-                    <?php if (config('show_lang_switcher', '0') === '1' && count(availableLanguages()) > 1): ?>
+                    <?php if (config('show_lang_switcher', '0') === '1' && count(enabledLanguages()) > 1): ?>
                     <span class="w-px h-4 bg-gray-300 mx-1"></span>
                     <div class="relative" id="langSwitcher">
                         <button onclick="document.getElementById('langDropdown').classList.toggle('hidden')" class="px-2 py-2 hover:text-primary transition text-sm inline-flex items-center gap-1" style="color: <?php echo e($headerTextColor); ?>">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                            <?php echo availableLanguages()[siteLang()] ?? siteLang(); ?>
+                            <?php echo enabledLanguages()[siteLang()] ?? siteLang(); ?>
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div id="langDropdown" class="hidden absolute right-0 mt-1 bg-white rounded shadow-lg border py-1 min-w-[100px] z-50">
-                            <?php foreach (availableLanguages() as $lk => $lv): ?>
+                            <?php foreach (enabledLanguages() as $lk => $lv): ?>
                             <a href="javascript:switchLang('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm hover:bg-gray-100 <?php echo siteLang() === $lk ? 'text-primary font-medium' : 'text-gray-700'; ?>"><?php echo e($lv); ?></a>
                             <?php endforeach; ?>
                         </div>
@@ -369,7 +340,7 @@ function getChannelUrl(array $channel): string {
         <!-- Mobile menu -->
         <nav id="mobileMenu" class="md:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
-                <?php if (config('nav_home_show', '1') !== '0'): ?>
+                <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                 <a href="/" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo e(configLang('nav_home_text', 'nav_home')); ?></a>
                 <?php endif; ?>
                 <?php foreach ($navChannels as $navItem): ?>

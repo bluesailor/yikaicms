@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 发展历程管理
+ * YikaiCMS - 发展历程管理
  *
  * PHP 8.0+
  */
@@ -11,6 +11,8 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/includes/HtmlCache.php';
+require_once ROOT_PATH . '/includes/blocks/timeline.php';
 
 checkLogin();
 requirePermission('content');
@@ -110,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_sort_direction') {
         $val = post('timeline_sort') === 'asc' ? 'asc' : 'desc';
         settingModel()->set('timeline_sort', $val);
+        HtmlCache::invalidate();
         adminLog('timeline', 'config', "设置时间线排序方向: $val");
         success(['timeline_sort' => $val]);
     }
@@ -118,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $raw = (string)post('timeline_layout');
         $val = in_array($raw, ['vertical', 'horizontal', 'compact'], true) ? $raw : 'vertical';
         settingModel()->set('timeline_layout', $val);
+        HtmlCache::invalidate();
         adminLog('timeline', 'config', "设置时间线布局: $val");
         success(['timeline_layout' => $val]);
     }
@@ -146,14 +150,29 @@ $timelineSort   = config('timeline_sort', 'desc');
 $timelineLayoutRaw = (string)config('timeline_layout', 'vertical');
 $timelineLayout    = in_array($timelineLayoutRaw, ['vertical', 'horizontal', 'compact'], true) ? $timelineLayoutRaw : 'vertical';
 
-// 获取列表
-$timelines = timelineModel()->all();
+// 视图语言
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
+// 获取列表（按 view-lang 过滤）
+$timelines = array_values(array_filter(
+    timelineModel()->all(),
+    fn($t) => ($t['lang'] ?? $_defaultLang) === $_viewLang
+));
 
 $pageTitle = __('admin_timeline');
 $currentMenu = 'timeline';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('timelines');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang, '提示：每条里程碑独立 lang 字段；切换语言后看到的是该语言下的记录'); ?>
 
 <!-- Swiper 全局预加载（横向布局预览需要，初始即可用） -->
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
@@ -286,15 +305,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <!-- TAB: 显示设置 -->
 <div x-show="tab === 'settings'" x-cloak>
+    <!--
+        本地化样式：编译版 tailwind.css 没把 `peer-checked:` 那批变体打进来，
+        所以选中卡片不会高亮。这里改用 [data-active] 属性 + 独立 CSS 钩子，
+        不依赖 Tailwind 是否编译过该变体。
+    -->
+    <style>
+        .layout-card { border: 2px solid #e5e7eb; transition: border-color .15s, background .15s, box-shadow .15s; }
+        .layout-card[data-active="1"] {
+            border-color: var(--color-primary, #3B6CF5);
+            background: #eff6ff;
+            box-shadow: 0 0 0 1px var(--color-primary, #3B6CF5) inset;
+        }
+        .layout-card:not([data-active="1"]):hover { border-color: #9ca3af; }
+    </style>
     <div class="bg-white rounded-lg shadow p-6 mb-4">
-        <h3 class="font-bold text-gray-800 mb-1">前台布局</h3>
-        <p class="text-sm text-gray-500 mb-4">选择时间线在 <code>/about/history.html</code> 的展示形态。修改后立即生效，无需清缓存（下次访问页面即重新生成）。</p>
+        <div class="flex items-start justify-between mb-1 gap-3">
+            <div>
+                <h3 class="font-bold text-gray-800 mb-1">前台布局</h3>
+                <p class="text-sm text-gray-500 mb-4">选择时间线在 <code>/about/history.html</code> 的展示形态。<span class="text-green-600">点击卡片即自动保存</span>，无需点保存按钮。</p>
+            </div>
+            <button type="button" onclick="saveTimelineLayout(document.querySelector('input[name=&quot;timeline_layout&quot;]:checked')?.value || 'vertical')" class="cursor-pointer text-sm border px-3 py-1.5 rounded hover:bg-gray-50 inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4a1 1 0 00-1 1v14a1 1 0 001 1h14a1 1 0 001-1V8.414a1 1 0 00-.293-.707L16.293 4.293A1 1 0 0015.586 4H5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 4v5h7V4M8 13h8v7H8z"/></svg>
+                重新保存
+            </button>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- 竖向双边卡 -->
-            <label class="block cursor-pointer group">
-                <input type="radio" name="timeline_layout" value="vertical" <?php echo $timelineLayout === 'vertical' ? 'checked' : ''; ?> onchange="saveTimelineLayout('vertical')" class="peer sr-only">
-                <div class="border-2 border-gray-200 rounded-lg p-4 transition peer-checked:border-primary peer-checked:bg-blue-50/40 hover:border-gray-300 h-full">
+            <label class="block cursor-pointer group layout-pick" data-layout="vertical">
+                <input type="radio" name="timeline_layout" value="vertical" <?php echo $timelineLayout === 'vertical' ? 'checked' : ''; ?> class="peer sr-only" tabindex="-1">
+                <div class="layout-card rounded-lg p-4 h-full" data-active="<?php echo $timelineLayout === 'vertical' ? '1' : '0'; ?>">
                     <!-- mini 预览 -->
                     <div class="w-full h-20 bg-gray-50 rounded border flex items-center justify-center relative mb-3">
                         <div class="absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-0.5 bg-gray-300"></div>
@@ -314,9 +355,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </label>
 
             <!-- 横向滑块卡 -->
-            <label class="block cursor-pointer group">
-                <input type="radio" name="timeline_layout" value="horizontal" <?php echo $timelineLayout === 'horizontal' ? 'checked' : ''; ?> onchange="saveTimelineLayout('horizontal')" class="peer sr-only">
-                <div class="border-2 border-gray-200 rounded-lg p-4 transition peer-checked:border-primary peer-checked:bg-blue-50/40 hover:border-gray-300 h-full">
+            <label class="block cursor-pointer group layout-pick" data-layout="horizontal">
+                <input type="radio" name="timeline_layout" value="horizontal" <?php echo $timelineLayout === 'horizontal' ? 'checked' : ''; ?> class="peer sr-only" tabindex="-1">
+                <div class="layout-card rounded-lg p-4 h-full" data-active="<?php echo $timelineLayout === 'horizontal' ? '1' : '0'; ?>">
                     <!-- mini 预览 -->
                     <div class="w-full h-20 bg-gray-50 rounded border flex items-center justify-center relative mb-3">
                         <div class="absolute left-2 right-2 top-5 h-0.5 bg-gray-300"></div>
@@ -334,9 +375,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </label>
 
             <!-- 紧凑列表卡 -->
-            <label class="block cursor-pointer group">
-                <input type="radio" name="timeline_layout" value="compact" <?php echo $timelineLayout === 'compact' ? 'checked' : ''; ?> onchange="saveTimelineLayout('compact')" class="peer sr-only">
-                <div class="border-2 border-gray-200 rounded-lg p-4 transition peer-checked:border-primary peer-checked:bg-blue-50/40 hover:border-gray-300 h-full">
+            <label class="block cursor-pointer group layout-pick" data-layout="compact">
+                <input type="radio" name="timeline_layout" value="compact" <?php echo $timelineLayout === 'compact' ? 'checked' : ''; ?> class="peer sr-only" tabindex="-1">
+                <div class="layout-card rounded-lg p-4 h-full" data-active="<?php echo $timelineLayout === 'compact' ? '1' : '0'; ?>">
                     <!-- mini 预览 -->
                     <div class="w-full h-20 bg-gray-50 rounded border flex items-center relative mb-3 px-3">
                         <div class="absolute left-7 top-3 bottom-3 w-0.5 bg-gray-300"></div>
@@ -522,19 +563,43 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <script src="/assets/sortable/Sortable.min.js"></script>
 <script>
-// 拖拽排序
-new Sortable(document.getElementById('sortableList'), {
-    animation: 150,
-    handle: '.cursor-move',
-    onEnd: async function() {
-        const ids = [...document.querySelectorAll('#sortableList tr[data-id]')].map(el => el.dataset.id);
-        const formData = new FormData();
-        formData.append('action', 'sort');
-        ids.forEach(id => formData.append('ids[]', id));
-        await fetch('', { method: 'POST', body: formData });
-        showMessage('排序已保存');
+// === 最优先：布局卡片点击保存 ===
+// 用 document 级事件委托，确保即使后面任何代码抛错也已经接管点击。
+// 同样保证函数在 .layout-pick 元素被点之前 100% 可达（hoisted）。
+document.addEventListener('click', function (e) {
+    var lbl = e.target.closest('.layout-pick');
+    if (!lbl) return;
+    var val = lbl.dataset.layout;
+    if (!val) return;
+    e.preventDefault();
+    if (typeof saveTimelineLayout === 'function') {
+        saveTimelineLayout(val);
+    } else {
+        console.error('saveTimelineLayout is not defined; layout=' + val);
+        if (typeof showMessage === 'function') {
+            showMessage('保存函数未加载，请刷新页面后重试', 'error');
+        }
     }
 });
+
+// 拖拽排序（用 try 包起来，避免 Sortable 库未加载或目标元素缺失时把整个脚本 break 掉）
+try {
+    var _sortableTarget = document.getElementById('sortableList');
+    if (typeof Sortable !== 'undefined' && _sortableTarget) {
+        new Sortable(_sortableTarget, {
+            animation: 150,
+            handle: '.cursor-move',
+            onEnd: async function() {
+                const ids = [...document.querySelectorAll('#sortableList tr[data-id]')].map(el => el.dataset.id);
+                const formData = new FormData();
+                formData.append('action', 'sort');
+                ids.forEach(id => formData.append('ids[]', id));
+                await fetch('', { method: 'POST', body: formData });
+                showMessage('排序已保存');
+            }
+        });
+    }
+} catch (e) { console.warn('Sortable init failed:', e); }
 
 function openEditModal(item = null) {
     document.getElementById('modalTitle').textContent = item ? '编辑事件' : '添加事件';
@@ -566,7 +631,7 @@ function closeModal() {
     document.getElementById('editModal').classList.add('hidden');
 }
 
-document.getElementById('editForm').addEventListener('submit', async function(e) {
+document.getElementById('editForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const formData = new FormData(this);
     const response = await fetch('', { method: 'POST', body: formData });
@@ -625,7 +690,7 @@ function pickImageFromMedia() {
     });
 }
 
-document.getElementById('imageFileInput').addEventListener('change', async function() {
+document.getElementById('imageFileInput')?.addEventListener('change', async function() {
     if (!this.files[0]) return;
     const formData = new FormData();
     formData.append('file', this.files[0]);
@@ -661,13 +726,28 @@ async function saveTimelineSort(value) {
 }
 
 async function saveTimelineLayout(value) {
-    const r = await fetchApi('', { action: 'save_layout', timeline_layout: value });
-    if (r.code === 0) {
-        const labels = { vertical: '竖向双边', horizontal: '横向滑块', compact: '紧凑列表' };
-        showMessage('已切换为' + (labels[value] || value));
-        refreshTimelinePreview(value);
-    } else {
-        showMessage(r.msg || '保存失败', 'error');
+    // 立即同步选中卡片的高亮（不等服务端，UI 反应更快）
+    document.querySelectorAll('.layout-card').forEach(el => {
+        const radio = el.parentElement.querySelector('input[name="timeline_layout"]');
+        el.dataset.active = (radio && radio.value === value) ? '1' : '0';
+    });
+    // 同步原生 checked 状态（用户点的可能是 card 区域，确保 radio 也勾选）
+    const targetRadio = document.querySelector('input[name="timeline_layout"][value="' + value + '"]');
+    if (targetRadio) targetRadio.checked = true;
+
+    try {
+        const r = await fetchApi('', { action: 'save_layout', timeline_layout: value });
+        if (r && r.code === 0) {
+            const labels = { vertical: '竖向双边', horizontal: '横向滑块', compact: '紧凑列表' };
+            showMessage('已保存为' + (labels[value] || value));
+            refreshTimelinePreview(value);
+        } else {
+            showMessage((r && r.msg) || '保存失败：服务端未返回成功状态', 'error');
+            console.error('saveTimelineLayout response:', r);
+        }
+    } catch (err) {
+        console.error('saveTimelineLayout error:', err);
+        showMessage('保存失败：' + (err.message || '网络错误'), 'error');
     }
 }
 
@@ -687,7 +767,7 @@ async function refreshTimelinePreview(layout) {
     if (layout) fd.append('layout', layout);
     try {
         const r = await fetch('', { method: 'POST', body: fd });
-        const d = await r.json();
+        const d = await safeJson(r);
         if (d.code !== 0) return;
         box.innerHTML = d.data.html;
 
@@ -706,6 +786,12 @@ async function refreshTimelinePreview(layout) {
 
 // 首屏：将服务端预渲染的 [data-aos] 立即显示（避免预览框初始空白）
 document.querySelectorAll('#timelinePreviewBox [data-aos]').forEach(el => el.classList.add('aos-animate'));
+
+// 把布局相关函数显式挂到 window，方便"重新保存"按钮等外部访问，也避免 hoisting 异常下被 click 委托找不到
+try {
+    window.saveTimelineLayout = saveTimelineLayout;
+    window.saveTimelineSort   = saveTimelineSort;
+} catch (e) { /* ignore */ }
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

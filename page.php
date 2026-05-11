@@ -15,12 +15,12 @@ $channelId = getInt('id');
 $slug = get('slug');
 $parentSlug = get('parent');
 
-// 通过slug或id获取栏目
+// 通过slug或id获取栏目（lang-aware：当前语言不是源时跳到对应翻译行）
 if ($slug) {
-    $channel = getChannelBySlug($slug);
+    $channel = getChannelBySlug($slug, true);
     // 如果有父级slug，验证父子关系
     if ($channel && $parentSlug) {
-        $parent = getChannelBySlug($parentSlug);
+        $parent = getChannelBySlug($parentSlug, true);
         if (!$parent || $channel['parent_id'] != $parent['id']) {
             $channel = null; // 父子关系不匹配
         }
@@ -29,7 +29,7 @@ if ($slug) {
     // 如果找不到栏目，但有parent参数，可能是内容详情页
     if (!$channel && $parentSlug) {
         // 检查是否为内容slug
-        $parentChannel = getChannelBySlug($parentSlug);
+        $parentChannel = getChannelBySlug($parentSlug, true);
         if ($parentChannel) {
             $contentItem = contentModel()->findWhere(['slug' => $slug, 'channel_id' => $parentChannel['id'], 'status' => 1]);
             if ($contentItem) {
@@ -51,6 +51,28 @@ if ($slug) {
 if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
     exit(__('error_page_not_found'));
+}
+
+// 联系页：所有语言版本都委托给 contact.php 渲染
+// （保留 cards / form / map 等专属布局；避免 /en/contact-en.html /ja/contact-ja.html
+//   走通用单页模板时 cards/map 不显示）
+if (!defined('LOADING_FROM_PAGE')) {
+    $_contactSourceSlug = 'contact';
+    $_isContact = false;
+    if (($channel['slug'] ?? '') === $_contactSourceSlug) {
+        $_isContact = true;
+    } elseif (!empty($channel['translation_group_id'])) {
+        $_srcRow = channelModel()->queryOne(
+            "SELECT slug FROM " . channelModel()->tableName() . " WHERE id = ? LIMIT 1",
+            [(int) $channel['translation_group_id']]
+        );
+        if ($_srcRow && ($_srcRow['slug'] ?? '') === $_contactSourceSlug) $_isContact = true;
+    }
+    if ($_isContact) {
+        define('LOADING_FROM_PAGE', true);
+        include __DIR__ . '/contact.php';
+        exit;
+    }
 }
 
 // 如果不是单页类型且不是相册类型，直接加载列表页（避免重定向循环）

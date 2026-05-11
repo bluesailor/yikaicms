@@ -1,6 +1,6 @@
 <?php
 /**
- * ikaiCMS - 内容管理
+ * YikaiCMS - 内容管理
  *
  * PHP 8.0+
  */
@@ -68,9 +68,16 @@ $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
 $perPage = 20;
 
-// 构建查询
-$where = [];
-$params = [];
+// 视图语言（?lang=en/ja 切换）
+$_defaultLang = (string) config('site_lang', 'zh-CN');
+$_viewLang    = (string) get('lang', $_defaultLang);
+$_enabledRaw  = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
+if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_langLabels  = availableLanguages();
+
+$where = ['c.lang = ?'];
+$params = [$_viewLang];
 
 if ($channelId > 0) {
     $where[] = 'c.channel_id = ?';
@@ -122,8 +129,13 @@ $channels = channelModel()->all('sort_order DESC');
 $pageTitle = __('admin_group_content');
 $currentMenu = 'content';
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$transStatus = loadTransStatus('contents');
+
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -185,6 +197,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
@@ -239,6 +252,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
                                 <?php echo $item['status'] ? __('admin_published') : __('admin_draft'); ?>
                             </button>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/content_edit.php'); ?>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
                             <?php echo date('Y-m-d', (int)$item['created_at']); ?>

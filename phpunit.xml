@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         failOnWarning="true"
+         failOnRisky="true">
+    <testsuites>
+        <testsuite name="Models">
+            <directory>tests/Models</directory>
+        </testsuite>
+        <testsuite name="Controllers">
+            <directory>tests/Controllers</directory>
+        </testsuite>
+        <testsuite name="Admin">
+            <directory>tests/Admin</directory>
+        </testsuite>
+        <testsuite name="Routing">
+            <directory>tests/Routing</directory>
+        </testsuite>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">includes/models</directory>
+            <directory suffix=".php">controllers</directory>
+            <file>admin/includes/sidebar_menu.php</file>
+            <file>admin/includes/sidebar_menu_api.php</file>
+            <file>includes/Router.php</file>
+            <file>config/database.php</file>
+        </include>
+        <exclude>
+            <file>includes/models/autoload.php</file>
+        </exclude>
+    </source>
+
+    <php>
+        <const name="ROOT_PATH" value="."/>
+        <env name="APP_ENV" value="testing"/>
+    </php>
+</phpunit>
