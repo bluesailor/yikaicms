@@ -15,6 +15,11 @@ if (!defined('ROOT_PATH')) {
 // 加载 Model 层
 require_once ROOT_PATH . '/includes/models/autoload.php';
 
+// 加载后台公共 helper：adminLangView / adminFilterLangSuffixes / adminRemapLangKeys
+// 以及 renderAdminLangSwitcher / loadTransStatus / renderTransPills
+// 让 admin 页面顶部即可调用，无需各页自行 require
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+
 // 初始化语言
 initLang();
 

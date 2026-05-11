@@ -76,11 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ============== 多语言视图 ==============
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 
 // 获取当前视图语言下的所有单页类型的栏目
 $pages = channelModel()->query(

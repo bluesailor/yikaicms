@@ -16,11 +16,10 @@ checkLogin();
 requirePermission('form');
 
 // ============== 多语言视图（per-lang 用 name_<lang> / fields_<lang> / success_message_<lang> 列） ==============
-$_defaultLang = (string) config('site_lang', 'zh-CN');
-$_viewLang    = (string) get('lang', $_defaultLang);
-$_enabledRaw  = trim((string) config('enabled_languages', ''));
-$_enabledList = $_enabledRaw !== '' ? (json_decode($_enabledRaw, true) ?: []) : [$_defaultLang];
-if (!in_array($_viewLang, $_enabledList, true)) $_viewLang = $_defaultLang;
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
 
 // 检测 i18n 迁移是否已应用（columns 在 /admin/upgrade.php "表单模板：加 EN/JA 列" 升级后才有）
 $_i18nReady = (function (): bool {

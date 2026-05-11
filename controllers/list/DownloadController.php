@@ -23,7 +23,11 @@ final class DownloadController extends ListController
         $keyword   = (string) $request['keyword'];
         $dlCatId   = (int) ($request['cat'] !== '' ? $request['cat'] : 0);
 
-        $filters = ['status' => '1'];
+        // 按当前前台语言过滤，避免下载列表串语言
+        $filters = [
+            'status' => '1',
+            'lang'   => function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN'),
+        ];
         if ($keyword !== '') {
             $filters['keyword'] = $keyword;
         }

@@ -41,15 +41,19 @@ define('DB_PREFIX', 'yikai_');
 // ============================================================
 // 系统版本
 // ============================================================
-define('CMS_VERSION', '1.7.1');
+define('CMS_VERSION', '1.7.2');
 
 // ============================================================
 // 站点配置
+//
+// 注意：不要在此 define SITE_LANG / ADMIN_LANG。前台语言由
+// includes/init.php 根据 URL 前缀（/en/, /ja/）+ cookie + settings 表
+// 里的 site_lang 自动选择；这里硬写常量会让 init.php 的检测被跳过，
+// 导致前台永远显示一种语言。后台语言由 admin/includes/auth.php
+// 同理处理。默认语种在安装向导里写入 settings 表的 site_lang / admin_lang。
 // ============================================================
 define('SITE_NAME', '{{SITE_NAME}}');
 define('SITE_URL', '{{SITE_URL}}');
-define('SITE_LANG', 'zh-CN');   // 前台语言: zh-CN | ja
-define('ADMIN_LANG', 'zh-CN');  // 后台语言: zh-CN | ja
 
 // ============================================================
 // 路径配置

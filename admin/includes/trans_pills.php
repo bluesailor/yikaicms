@@ -20,6 +20,91 @@
 declare(strict_types=1);
 
 /**
+ * 后台视图语言三件套：解析 ?lang= → 校验在 enabled_languages 中 → 返回上下文。
+ *
+ * 用法：
+ *   $lang = adminLangView();
+ *   $lang['view']     => 'en'        当前视图 lang
+ *   $lang['default']  => 'zh-CN'     站点源 lang
+ *   $lang['enabled']  => ['zh-CN','en','ja']
+ *   $lang['suffixes'] => ['_en','_ja']  非默认 lang 的 _suffix，过滤 setting 表 per-lang 种子行很方便
+ *   $lang['isSource'] => true|false  当前视图是否源语言
+ *   $lang['qs']       => '?lang=en'  保留视图的 query string（zh-CN 时为空）
+ *   $lang['qsAmp']    => '&lang=en'  追加用（zh-CN 时为空）
+ *
+ * 之前每个 admin 页都重复 5 行解析，这个 helper 一次到位。
+ */
+function adminLangView(): array
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    $viewLang    = (string) (function_exists('get') ? get('lang', $defaultLang) : ($_GET['lang'] ?? $defaultLang));
+    $enabledRaw  = trim((string) config('enabled_languages', ''));
+    $enabled     = $enabledRaw !== '' ? (json_decode($enabledRaw, true) ?: [$defaultLang]) : [$defaultLang];
+    if (!in_array($viewLang, $enabled, true)) $viewLang = $defaultLang;
+
+    $suffixes = [];
+    foreach ($enabled as $lc) {
+        if ($lc !== $defaultLang) $suffixes[] = '_' . $lc;
+    }
+
+    $isSource = ($viewLang === $defaultLang);
+    $qs       = $isSource ? '' : ('?lang=' . urlencode($viewLang));
+    $qsAmp    = $isSource ? '' : ('&lang=' . urlencode($viewLang));
+
+    return $cache = [
+        'view'     => $viewLang,
+        'default'  => $defaultLang,
+        'enabled'  => $enabled,
+        'suffixes' => $suffixes,
+        'isSource' => $isSource,
+        'qs'       => $qs,
+        'qsAmp'    => $qsAmp,
+    ];
+}
+
+/**
+ * 给 settings/getByGroup 返回的列表过滤掉 per-lang 种子行（key 以 _en / _ja 结尾的）。
+ *
+ *   $items = adminFilterLangSuffixes(settingModel()->getByGroup('contact'));
+ *
+ * 之前每个 setting_*.php 都要 array_filter str_ends_with；这里统一。
+ */
+function adminFilterLangSuffixes(array $rows, string $keyField = 'key'): array
+{
+    $lang = adminLangView();
+    if (empty($lang['suffixes'])) return $rows;
+    return array_values(array_filter($rows, function (array $row) use ($lang, $keyField): bool {
+        $k = (string) ($row[$keyField] ?? '');
+        foreach ($lang['suffixes'] as $suf) {
+            if (str_ends_with($k, $suf)) return false;
+        }
+        return true;
+    }));
+}
+
+/**
+ * POST 保存 settings 时把 lang-able key 重定向到 <key>_<lang>。
+ *
+ *   $remapped = adminRemapLangKeys($_POST['settings'] ?? [], ['site_title','site_desc']);
+ *   settingModel()->saveBatch($remapped);
+ *
+ * 给的 $langKeys 列表是哪些 key 走 per-lang；不在列表里的保持全局共享。
+ */
+function adminRemapLangKeys(array $settings, array $langKeys): array
+{
+    $lang = adminLangView();
+    if ($lang['isSource']) return $settings;
+    $remapped = [];
+    foreach ($settings as $k => $v) {
+        $remapped[in_array($k, $langKeys, true) ? ($k . '_' . $lang['view']) : (string) $k] = $v;
+    }
+    return $remapped;
+}
+
+/**
  * 渲染列表页"查看语言"切换器（仅当启用 ≥2 种语言时输出）。
  *
  *   $currentLang: 当前视图语言（来自 ?lang= 或默认）
