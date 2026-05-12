@@ -85,10 +85,40 @@ if ($channel['type'] !== 'page' && $channel['type'] !== 'album' && !defined('LOA
 }
 
 // 如果是相册类型，获取相册数据
+//   优先：当前 lang 的 album（通过 translation_group_id 关联到 channel.album_id 的源 album）
+//   回退：channel.album_id 直接指向的 album
 $albumData = null;
 $albumPhotos = [];
 if ($channel['type'] === 'album' && $channel['album_id'] > 0) {
-    $albumData = albumModel()->findWhere(['id' => (int)$channel['album_id'], 'status' => 1]);
+    $rawAlbumId = (int)$channel['album_id'];
+    $curLang = function_exists('siteLang') ? siteLang() : (string)config('site_lang', 'zh-CN');
+    $defaultLang = (string)config('site_lang', 'zh-CN');
+
+    // 看 albums 表是否有 lang 列（向后兼容未跑 20260512_album_i18n migration 的库）
+    $albumsHasLang = (bool) db()->fetchOne(
+        db()->isSqlite()
+            ? "SELECT 1 FROM pragma_table_info('" . DB_PREFIX . "albums') WHERE name = 'lang'"
+            : "SHOW COLUMNS FROM `" . DB_PREFIX . "albums` LIKE 'lang'"
+    );
+
+    if ($albumsHasLang && $curLang !== $defaultLang) {
+        // 找 raw album 的 group_id
+        $rawAlbum = db()->fetchOne(
+            "SELECT translation_group_id FROM " . DB_PREFIX . "albums WHERE id = ?",
+            [$rawAlbumId]
+        );
+        $groupId = (int) ($rawAlbum['translation_group_id'] ?? $rawAlbumId);
+        // 优先取当前 lang 的翻译
+        $albumData = db()->fetchOne(
+            "SELECT * FROM " . DB_PREFIX . "albums WHERE translation_group_id = ? AND lang = ? AND status = 1 LIMIT 1",
+            [$groupId ?: $rawAlbumId, $curLang]
+        );
+    }
+
+    // 回退：直接按 channel.album_id 取
+    if (!$albumData) {
+        $albumData = albumModel()->findWhere(['id' => $rawAlbumId, 'status' => 1]);
+    }
     if ($albumData) {
         $albumPhotos = albumPhotoModel()->where(['album_id' => (int)$albumData['id'], 'status' => 1]);
     }
@@ -132,8 +162,8 @@ if (!empty($channel['content'])) {
 
 // 页面信息
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
-$pageKeywords = $channel['seo_keywords'] ?: config('site_keywords');
-$pageDescription = $channel['seo_description'] ?: config('site_description');
+$pageKeywords = $channel['seo_keywords'] ?: configJsonLang('site_keywords');
+$pageDescription = $channel['seo_description'] ?: configJsonLang('site_description');
 $currentChannelId = $channelId;
 
 // 获取侧边栏栏目（同级栏目或子栏目，不限制is_nav）
@@ -300,7 +330,7 @@ require theme_path('partials/page-hero.php');
                 <div class="bg-white rounded-lg shadow mt-6">
                     <div class="px-4 py-3 border-b font-bold text-dark"><?php echo __('footer_contact'); ?></div>
                     <div class="p-4 space-y-3 text-sm">
-                        <?php if ($phone = config('contact_phone')): ?>
+                        <?php if ($phone = configRawLang('contact_phone')): ?>
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
@@ -308,7 +338,7 @@ require theme_path('partials/page-hero.php');
                             <span><?php echo e($phone); ?></span>
                         </div>
                         <?php endif; ?>
-                        <?php if ($email = config('contact_email')): ?>
+                        <?php if ($email = configRawLang('contact_email')): ?>
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -316,7 +346,7 @@ require theme_path('partials/page-hero.php');
                             <span><?php echo e($email); ?></span>
                         </div>
                         <?php endif; ?>
-                        <?php if ($address = config('contact_address')): ?>
+                        <?php if ($address = configRawLang('contact_address')): ?>
                         <div class="flex items-start gap-2">
                             <svg class="w-4 h-4 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>

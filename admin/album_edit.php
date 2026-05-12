@@ -28,6 +28,17 @@ if ($id > 0) {
     $photos = albumPhotoModel()->getByAlbum($id);
 }
 
+// 检测 albums 是否有 lang 列（向后兼容未跑 20260512_album_i18n 的环境）
+$_albumsHasLang = (function (): bool {
+    if (db()->isSqlite()) {
+        foreach (db()->fetchAll("PRAGMA table_info('" . DB_PREFIX . "albums')") as $c) {
+            if ($c['name'] === 'lang') return true;
+        }
+        return false;
+    }
+    return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "albums` LIKE 'lang'"));
+})();
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
@@ -52,7 +63,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $data['created_at'] = time();
         $data['photo_count'] = 0;
+        // 新建默认源语言（zh-CN），translation_group_id 后续回填为自身 id
+        if ($_albumsHasLang) {
+            $data['lang'] = (string) config('site_lang', 'zh-CN');
+            $data['translation_group_id'] = 0;
+        }
         $id = albumModel()->create($data);
+        if ($_albumsHasLang) {
+            db()->execute(
+                "UPDATE " . DB_PREFIX . "albums SET translation_group_id = ? WHERE id = ?",
+                [(int)$id, (int)$id]
+            );
+        }
         adminLog('album', 'create', '创建相册：' . $data['name']);
     }
 

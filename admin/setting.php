@@ -21,9 +21,14 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_tabForLang  = (string) ($_GET['tab'] ?? $_POST['tab_hint'] ?? 'basic');
-$_langAware   = ($_tabForLang === 'footer');  // 当前仅 footer 走 per-lang
-// footer tab 上算 lang-able 的 key
-$FOOTER_LANG_KEYS = ['footer_columns', 'footer_nav', 'footer_copyright_text'];
+// 各 tab 算 lang-able 的 key（其它字段全局共享）
+$TAB_LANG_KEYS = [
+    'footer' => ['footer_columns', 'footer_nav', 'footer_copyright_text'],
+    'header' => ['topbar_left'],
+];
+$_langAware       = isset($TAB_LANG_KEYS[$_tabForLang]);
+$FOOTER_LANG_KEYS = $TAB_LANG_KEYS['footer'];  // 向后兼容（页面里别处可能引用）
+$_currentLangKeys = $TAB_LANG_KEYS[$_tabForLang] ?? [];
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -100,11 +105,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $settings = $_POST['settings'] ?? [];
 
-    // footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
+    // header/footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
+    // tab 关联的 lang keys 在 $TAB_LANG_KEYS 里定义
     if ($_langAware && $_viewLang !== $_defaultLang) {
         $remapped = [];
         foreach ($settings as $k => $v) {
-            $isLangAble = in_array($k, $FOOTER_LANG_KEYS, true);
+            $isLangAble = in_array($k, $_currentLangKeys, true);
             $targetKey = $isLangAble ? ($k . '_' . $_viewLang) : (string) $k;
             $remapped[$targetKey] = $v;
         }
@@ -142,6 +148,8 @@ $hiddenKeys = [
     'sidebar_state',
     'timeline_layout',
     'admin_menu_order',
+    // 由"语言"tab 的 per-lang 复选框管理，不该在基本设置里以裸 key 输入框出现
+    'nav_home_show', 'nav_home_text',
 ];
 // 收集启用的非默认语言后缀 (_en / _ja / ...)，过滤 per-lang 种子行
 $_langSuffixesForFilter = [];
@@ -164,10 +172,10 @@ $items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuf
     return true;
 });
 
-// footer tab + 非默认语言：把 lang-able key 的 value 替换成 _<lang> 值
+// header/footer tab + 非默认语言：把 lang-able key 的 value 替换成 _<lang> 值
 if ($_langAware && $_viewLang !== $_defaultLang) {
     foreach ($items as &$it) {
-        if (!in_array($it['key'], $FOOTER_LANG_KEYS, true)) continue;
+        if (!in_array($it['key'], $_currentLangKeys, true)) continue;
         $it['value'] = (string) config($it['key'] . '_' . $_viewLang, '');
     }
     unset($it);
@@ -182,20 +190,23 @@ require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
 if ($_langAware) {
-    echo renderAdminLangSwitcher($_viewLang, '提示：页脚栏目/导航/版权 按语言独立保存（key_' . $_viewLang . '）；背景色/图片等其余设置全局共享');
+    $_hint = $_tabForLang === 'header'
+        ? '提示：通栏左侧内容（topbar_left）按语言独立保存（key_' . $_viewLang . '）；颜色/开关等全局共享'
+        : '提示：页脚栏目/导航/版权 按语言独立保存（key_' . $_viewLang . '）；背景色/图片等其余设置全局共享';
+    echo renderAdminLangSwitcher($_viewLang, $_hint);
 }
 ?>
 
 <!-- Tab 导航 -->
 <?php
-// 进入/切换 footer tab 时保留 ?lang=；其它 tab 不带 lang 参数（非翻译）
-$_footerLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
+// 进入/切换 lang-aware tab 时保留 ?lang=；其它 tab 不带 lang 参数（非翻译）
+$_aLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
 ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/setting.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
-        <a href="/admin/setting.php?tab=header" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
-        <a href="/admin/setting.php?tab=footer<?php echo $_footerLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
+        <a href="/admin/setting.php?tab=header<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
+        <a href="/admin/setting.php?tab=footer<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
         <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
         <a href="/admin/setting.php?tab=lang" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'lang' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_lang'); ?></a>
     </div>

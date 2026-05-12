@@ -41,8 +41,8 @@ if (in_array($channel['type'], ['page', 'link'], true)) {
 
 // 页面信息
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
-$pageKeywords = $channel['seo_keywords'] ?: config('site_keywords');
-$pageDescription = $channel['seo_description'] ?: config('site_description');
+$pageKeywords = $channel['seo_keywords'] ?: configJsonLang('site_keywords');
+$pageDescription = $channel['seo_description'] ?: configJsonLang('site_description');
 $currentChannelId = $channelId;
 
 // 搜索关键词

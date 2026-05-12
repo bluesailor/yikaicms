@@ -164,9 +164,9 @@ function loadTransStatus(string $table): array
     $placeholders = implode(',', array_fill(0, count($targets), '?'));
 
     // 选出 name/title 字段（不同表命名习惯不同）
-    // 用 name: channels / product_categories / links / brands / product_tags
+    // 用 name: channels / product_categories / links / brands / product_tags / albums
     // 用 title: contents / products / timelines / jobs / downloads / banners
-    $titleCol = in_array($table, ['channels', 'product_categories', 'links', 'brands', 'product_tags'], true) ? 'name' : 'title';
+    $titleCol = in_array($table, ['channels', 'product_categories', 'links', 'brands', 'product_tags', 'albums'], true) ? 'name' : 'title';
 
     $rows = db()->fetchAll(
         "SELECT id, lang, translation_group_id, {$titleCol} AS _title

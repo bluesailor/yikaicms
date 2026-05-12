@@ -15,33 +15,33 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
-// Tab 定义
+// Tab 定义（title 用 __() 后台跟随当前语言）
 $tabs = [
     'smtp' => [
         'icon'  => 'fa-server',
-        'title' => 'SMTP 配置',
+        'title' => __('email_tab_smtp'),
     ],
     'register' => [
         'icon'  => 'fa-user-plus',
-        'title' => '会员注册',
+        'title' => __('email_tab_register'),
         'hint'  => '{{username}} {{email}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_register_subject', 'mail_tpl_register_body'],
     ],
     'forgot' => [
         'icon'  => 'fa-key',
-        'title' => '找回密码',
+        'title' => __('email_tab_forgot'),
         'hint'  => '{{username}} {{email}} {{reset_link}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_forgot_subject', 'mail_tpl_forgot_body'],
     ],
     'reset' => [
         'icon'  => 'fa-lock',
-        'title' => '重置密码',
+        'title' => __('email_tab_reset'),
         'hint'  => '{{username}} {{email}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_reset_subject', 'mail_tpl_reset_body'],
     ],
     'inquiry' => [
         'icon'  => 'fa-envelope-open-text',
-        'title' => '询盘通知',
+        'title' => __('email_tab_inquiry'),
         'hint'  => '{{product_title}} {{name}} {{phone}} {{email}} {{company}} {{content}} {{ip}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_inquiry_subject', 'mail_tpl_inquiry_body'],
     ],
@@ -70,19 +70,19 @@ $EMAIL_LANG_KEYS = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'test') {
     $testEmail = post('test_email');
     if (!$testEmail || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
-        error('请输入有效的测试邮箱');
+        error(__('email_test_invalid_email_err'));
     }
 
     $result = sendMail(
         $testEmail,
-        '测试邮件 - ' . config('site_name'),
-        '这是一封测试邮件，用于验证 SMTP 配置是否正确。' . "\n\n" . '发送时间：' . date('Y-m-d H:i:s')
+        __('email_test_subject') . ' - ' . config('site_name'),
+        __('email_test_body') . "\n\n" . __('email_test_sent_at') . date('Y-m-d H:i:s')
     );
 
     if ($result === true) {
-        success([], '测试邮件发送成功，请检查收件箱');
+        success([], __('email_test_success_msg'));
     } else {
-        error('发送失败：' . $result);
+        error(__('email_test_fail_prefix') . $result);
     }
 }
 
@@ -116,19 +116,19 @@ $readEmailLang = function (string $base) use ($EMAIL_LANG_KEYS, $_emailLangAware
     return (string) config($base, '');
 };
 
-$pageTitle = '邮件配置';
+$pageTitle = __('email_page_title');
 $currentMenu = 'setting_email';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
 if ($_emailLangAware) {
-    echo renderAdminLangSwitcher($_viewLang, '提示：邮件模板的"标题/正文"按语言独立保存（key_' . $_viewLang . '）；SMTP/发件人/收件人 全局共享');
+    echo renderAdminLangSwitcher($_viewLang, __('email_lang_tip'));
 }
 ?>
 
 <div class="mb-6">
-    <p class="text-gray-500">配置SMTP邮件服务器和各类邮件通知模板。</p>
+    <p class="text-gray-500"><?php echo __('email_page_intro'); ?></p>
 </div>
 
 <!-- Tab 导航 -->
@@ -155,13 +155,13 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">SMTP 服务器配置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('email_smtp_settings'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    SMTP服务器
-                    <span class="text-gray-400 text-sm block">如：smtp.qq.com</span>
+                    <?php echo __('email_smtp_host'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_smtp_host_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[smtp_host]" value="<?php echo e(config('smtp_host')); ?>"
@@ -170,8 +170,8 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    SMTP端口
-                    <span class="text-gray-400 text-sm block">SSL常用465，TLS常用587</span>
+                    <?php echo __('email_smtp_port'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_smtp_port_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[smtp_port]" value="<?php echo e(config('smtp_port', '465')); ?>"
@@ -180,8 +180,8 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    加密方式
-                    <span class="text-gray-400 text-sm block">推荐使用SSL</span>
+                    <?php echo __('email_smtp_secure'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_smtp_secure_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[smtp_secure]" class="w-full border rounded px-4 py-2">
@@ -193,8 +193,8 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    SMTP用户名
-                    <span class="text-gray-400 text-sm block">通常是完整邮箱地址</span>
+                    <?php echo __('email_smtp_user'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_smtp_user_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[smtp_user]" value="<?php echo e(config('smtp_user')); ?>"
@@ -203,12 +203,12 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    SMTP密码
-                    <span class="text-gray-400 text-sm block">QQ邮箱需使用授权码</span>
+                    <?php echo __('email_smtp_pass'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_smtp_pass_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[smtp_pass]" value="<?php echo e(config('smtp_pass')); ?>"
-                           placeholder="密码或授权码" class="w-full border rounded px-4 py-2 font-mono" autocomplete="off">
+                           placeholder="<?php echo e(__('email_smtp_pass_placeholder')); ?>" class="w-full border rounded px-4 py-2 font-mono" autocomplete="off">
                 </div>
             </div>
         </div>
@@ -216,13 +216,13 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">发件人 / 通知设置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo __('email_sender_section'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    发件人邮箱
-                    <span class="text-gray-400 text-sm block">留空则使用SMTP用户名</span>
+                    <?php echo __('email_from'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_mail_from_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[mail_from]" value="<?php echo e(config('mail_from')); ?>"
@@ -231,7 +231,7 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    发件人名称
+                    <?php echo __('email_from_name'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('email_empty_site_name'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -241,8 +241,8 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    管理员邮箱
-                    <span class="text-gray-400 text-sm block">接收询盘通知</span>
+                    <?php echo __('email_admin'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_admin_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[mail_admin]" value="<?php echo e(config('mail_admin')); ?>"
@@ -251,8 +251,8 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    询盘提交通知
-                    <span class="text-gray-400 text-sm block">有新询盘时发送通知</span>
+                    <?php echo __('email_notify_form'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_notify_form_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[mail_notify_form]" class="w-full border rounded px-4 py-2">
@@ -276,7 +276,6 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
     </div>
 </form>
 
-<!-- 测试邮件弹窗 -->
 <div id="testModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -284,13 +283,13 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             <button type="button" onclick="closeTestModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <div class="p-6">
-            <p class="text-gray-500 mb-4">请先保存设置，然后输入接收测试邮件的邮箱地址：</p>
+            <p class="text-gray-500 mb-4"><?php echo __('email_test_modal_intro'); ?></p>
             <input type="email" id="testEmailInput" placeholder="your@email.com"
                    value="<?php echo e(config('mail_admin')); ?>"
                    class="w-full border rounded px-4 py-2 mb-4">
             <button type="button" onclick="sendTestEmail()"
                     class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded transition">
-                发送测试
+                <?php echo __('email_test_btn_in_modal'); ?>
             </button>
             <p id="testResult" class="text-sm text-center mt-3 hidden"></p>
         </div>
@@ -313,7 +312,7 @@ function closeTestModal() {
 }
 async function sendTestEmail() {
     const email = document.getElementById('testEmailInput').value;
-    if (!email) { showMessage('请输入测试邮箱', 'error'); return; }
+    if (!email) { showMessage('<?php echo e(__('email_test_empty_email_err')); ?>', 'error'); return; }
     const formData = new FormData();
     formData.append('action', 'test');
     formData.append('test_email', email);
@@ -322,7 +321,7 @@ async function sendTestEmail() {
         const data = await safeJson(response);
         if (data.code === 0) { showMessage(data.msg); closeTestModal(); }
         else showMessage(data.msg, 'error');
-    } catch (err) { showMessage('请求失败', 'error'); }
+    } catch (err) { showMessage('<?php echo e(__('admin_request_failed')); ?>', 'error'); }
 }
 </script>
 
@@ -339,11 +338,11 @@ async function sendTestEmail() {
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800">
-                <i class="fa-solid <?php echo e($tab['icon']); ?> mr-2 text-gray-400"></i><?php echo e($tab['title']); ?> 邮件模板
+                <i class="fa-solid <?php echo e($tab['icon']); ?> mr-2 text-gray-400"></i><?php echo e($tab['title']); ?> <?php echo __('email_template_label'); ?>
             </h2>
             <?php if (!empty($tab['hint'])): ?>
             <p class="text-xs text-gray-400 mt-1">
-                可用变量（点击插入）：
+                <?php echo __('email_available_vars'); ?>
                 <?php foreach (explode(' ', $tab['hint']) as $var): ?>
                 <code class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 cursor-pointer hover:bg-blue-100 hover:text-blue-600 transition" onclick="insertVar('<?php echo e($var); ?>')"><?php echo e($var); ?></code>
                 <?php endforeach; ?>
@@ -357,7 +356,7 @@ async function sendTestEmail() {
                     <input type="text" name="settings[<?php echo e($subjectKey); ?>]"
                            value="<?php echo e($readEmailLang($subjectKey)); ?>"
                            class="w-full border rounded px-4 py-2"
-                           placeholder="请输入邮件标题...">
+                           placeholder="<?php echo e(__('email_subject_placeholder')); ?>">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
@@ -365,7 +364,7 @@ async function sendTestEmail() {
                 <div class="md:col-span-3">
                     <textarea name="settings[<?php echo e($bodyKey); ?>]" rows="14" id="tplBody"
                               class="w-full border rounded px-4 py-2 font-mono text-sm leading-relaxed"
-                              placeholder="请输入邮件正文..."><?php echo e($readEmailLang($bodyKey)); ?></textarea>
+                              placeholder="<?php echo e(__('email_body_placeholder')); ?>"><?php echo e($readEmailLang($bodyKey)); ?></textarea>
                 </div>
             </div>
         </div>
@@ -376,7 +375,7 @@ async function sendTestEmail() {
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition">
                 <?php echo __('admin_save'); ?>
             </button>
-            <span class="text-xs text-gray-400">修改后立即生效，发送时自动替换变量</span>
+            <span class="text-xs text-gray-400"><?php echo __('email_tpl_save_hint'); ?></span>
         </div>
     </div>
 </form>

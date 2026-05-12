@@ -33,7 +33,7 @@ contentModel()->incrementViews((int)$article['id']);
 
 // 页面信息
 $pageTitle = $article['title'];
-$pageKeywords = $article['tags'] ?: config('site_keywords');
+$pageKeywords = $article['tags'] ?: configJsonLang('site_keywords');
 $pageDescription = $article['summary'] ?: cutStr(strip_tags($article['content']), 150);
 
 // 获取上一篇和下一篇

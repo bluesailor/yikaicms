@@ -128,23 +128,35 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色名称</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">权限</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">管理员数</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('role_name'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('role_description'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('role_permissions'); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('role_admin_count'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
-                <?php foreach ($roles as $item):
+                <?php
+                $_curLang = function_exists('getLang') ? getLang() : 'zh-CN';
+                $_defaultLang = (string) config('site_lang', 'zh-CN');
+                foreach ($roles as $item):
                     $perms = json_decode($item['permissions'] ?? '[]', true) ?: [];
                     $isSuperRole = in_array('*', $perms);
                     $userCount = roleModel()->getUserCount((int)$item['id']);
+                    // lang-aware：当前后台语言不是源时优先用 name_<lang> / description_<lang>
+                    $displayName = $item['name'];
+                    $displayDesc = $item['description'];
+                    if ($_curLang !== $_defaultLang) {
+                        $nameKey = 'name_' . $_curLang;
+                        $descKey = 'description_' . $_curLang;
+                        if (!empty($item[$nameKey])) $displayName = $item[$nameKey];
+                        if (!empty($item[$descKey])) $displayDesc = $item[$descKey];
+                    }
                 ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
-                    <td class="px-4 py-3 font-medium"><?php echo e($item['name']); ?></td>
-                    <td class="px-4 py-3 text-sm text-gray-500"><?php echo e($item['description']); ?></td>
+                    <td class="px-4 py-3 font-medium"><?php echo e($displayName); ?></td>
+                    <td class="px-4 py-3 text-sm text-gray-500"><?php echo e($displayDesc); ?></td>
                     <td class="px-4 py-3">
                         <div class="flex flex-wrap gap-1">
                             <?php if ($isSuperRole): ?>

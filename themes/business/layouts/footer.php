@@ -20,7 +20,7 @@ $footerNav = $footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : [];
                 <img src="<?php echo e($qrcode); ?>" alt="QR Code" class="w-32 h-32">
             </div>
             <?php endif; ?>
-            <?php if ($phone = config('contact_phone')): ?>
+            <?php if ($phone = configRawLang('contact_phone')): ?>
             <p class="opacity-80 mb-6"><?php echo __('contact_phone'); ?>：<?php echo e($phone); ?></p>
             <?php endif; ?>
             <a href="/contact.html" class="inline-block bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition">

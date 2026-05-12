@@ -14,8 +14,8 @@ HtmlCache::start(300);
 // 页面信息
 $isHomePage = true;
 $pageTitle = '';
-$pageKeywords = config('site_keywords');
-$pageDescription = config('site_description');
+$pageKeywords = configJsonLang('site_keywords');
+$pageDescription = configJsonLang('site_description');
 
 // 获取首页数据
 $banners = getBanners('home', 5);
