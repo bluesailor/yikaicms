@@ -80,6 +80,13 @@ EXCLUDES=(
     # CSS 源码（编译产物 tailwind.css 已包含）
     "assets/css/src"
 
+    # 前端构建依赖（dev only，运行时不需要）
+    "node_modules"
+    "package.json"
+    "package-lock.json"
+    "tailwind.config.js"
+    "postcss.config.js"
+
     # 运行时数据（保留目录结构）
     "storage/database.sqlite"
     "storage/login_throttle"
