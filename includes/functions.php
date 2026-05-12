@@ -1357,7 +1357,7 @@ function sendMail(string $to, string $subject, string $body, array $attachments 
     $smtpPass = config('smtp_pass');
     $smtpSecure = config('smtp_secure', 'ssl');
     $mailFrom = config('mail_from', $smtpUser);
-    $mailName = config('mail_from_name', config('site_name', 'Yikai CMS'));
+    $mailName = config('mail_from_name', configRawLang('site_name', 'Yikai CMS'));
 
     if (!$smtpHost || !$smtpUser || !$smtpPass) {
         return '邮件服务器未配置';

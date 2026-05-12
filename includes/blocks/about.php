@@ -30,7 +30,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             </div>
             <div data-animate="fade-left">
                 <h2 class="text-3xl font-bold text-dark mb-2">
-                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(config('site_name', '')); ?>
+                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
                 </h2>
                 <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">
@@ -46,7 +46,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <!-- 左文右图（默认） -->
             <div data-animate="fade-right">
                 <h2 class="text-3xl font-bold text-dark mb-2">
-                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(config('site_name', '')); ?>
+                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
                 </h2>
                 <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">

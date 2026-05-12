@@ -82,7 +82,7 @@ if ($footerBgImage) {
             <!-- 无自定义列时的默认布局 -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
-                    <h3 class="text-white text-lg font-bold mb-4"><?php echo e(config('site_name', 'Yikai CMS')); ?></h3>
+                    <h3 class="text-white text-lg font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h3>
                     <p class="text-sm leading-relaxed"><?php echo e(config('site_description', '')); ?></p>
                 </div>
                 <div>
@@ -160,19 +160,21 @@ if ($footerBgImage) {
         <div class="border-t border-gray-700">
             <div class="container mx-auto px-4 py-4 flex flex-wrap gap-4 items-center justify-between text-sm">
                 <div>
-                    &copy; <?php echo date('Y'); ?> <?php echo e(config('site_name', 'Yikai CMS')); ?> <?php echo __('footer_copyright'); ?>.
+                    &copy; <?php echo date('Y'); ?> <?php echo e(configRawLang('site_name', 'Yikai CMS')); ?> <?php echo __('footer_copyright'); ?>.
                 </div>
                 <div class="flex flex-wrap gap-4">
-                    <?php if ($icp = config('site_icp')): ?>
-                    <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition">
-                        <?php echo e($icp); ?>
-                    </a>
-                    <?php endif; ?>
-                    <?php if ($police = config('site_police')): ?>
-                    <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition flex items-center gap-1">
-                        <img src="/images/gaba.png" alt="" class="w-4 h-4">
-                        <?php echo e($police); ?>
-                    </a>
+                    <?php if (siteLang() === 'zh-CN'): ?>
+                        <?php if ($icp = config('site_icp')): ?>
+                        <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition">
+                            <?php echo e($icp); ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($police = config('site_police')): ?>
+                        <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition flex items-center gap-1">
+                            <img src="/images/gaba.png" alt="" class="w-4 h-4">
+                            <?php echo e($police); ?>
+                        </a>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

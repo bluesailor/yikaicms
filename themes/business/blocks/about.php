@@ -8,7 +8,7 @@ $aboutContent = config('home_about_content', '') ?: __('home_about_default');
 <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold text-dark mb-4"><?php echo __('home_about_title'); ?><?php echo e(config('site_name', '')); ?></h2>
+            <h2 class="text-3xl font-bold text-dark mb-4"><?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?></h2>
             <img src="/themes/business/images/divide.png" alt="" class="mx-auto">
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

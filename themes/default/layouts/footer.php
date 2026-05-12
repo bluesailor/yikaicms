@@ -138,7 +138,7 @@ if ($footerBgImage) {
             <!-- Default layout when there are no custom columns -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
-                    <h3 class="text-white text-lg font-bold mb-4"><?php echo e(configJsonLang('site_name') ?: config('site_name', 'Yikai CMS')); ?></h3>
+                    <h3 class="text-white text-lg font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h3>
                     <p class="text-sm leading-relaxed"><?php echo e(configJsonLang('site_description') ?: config('site_description', '')); ?></p>
                 </div>
                 <div>
@@ -230,23 +230,25 @@ if ($footerBgImage) {
                     // lang-aware：当前是 en 时读 footer_copyright_text_en，没有则回退
                     $copyrightTpl = configRawLang('footer_copyright_text', '');
                     if ($copyrightTpl) {
-                        echo e(str_replace(['{year}', '{site_name}'], [date('Y'), config('site_name', 'Yikai CMS')], $copyrightTpl));
+                        echo e(str_replace(['{year}', '{site_name}'], [date('Y'), configRawLang('site_name', 'Yikai CMS')], $copyrightTpl));
                     } else {
-                        echo '&copy; ' . date('Y') . ' ' . e(config('site_name', 'Yikai CMS')) . ' ' . __('footer_copyright') . '.';
+                        echo '&copy; ' . date('Y') . ' ' . e(configRawLang('site_name', 'Yikai CMS')) . ' ' . __('footer_copyright') . '.';
                     }
                     ?>
                 </div>
                 <div class="flex flex-wrap gap-4">
-                    <?php if ($icp = config('site_icp')): ?>
-                    <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition">
-                        <?php echo e($icp); ?>
-                    </a>
-                    <?php endif; ?>
-                    <?php if ($police = config('site_police')): ?>
-                    <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition flex items-center gap-1">
-                        <img src="/images/gaba.png" alt="" class="w-4 h-4">
-                        <?php echo e($police); ?>
-                    </a>
+                    <?php if (siteLang() === 'zh-CN'): ?>
+                        <?php if ($icp = config('site_icp')): ?>
+                        <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition">
+                            <?php echo e($icp); ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($police = config('site_police')): ?>
+                        <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition flex items-center gap-1">
+                            <img src="/images/gaba.png" alt="" class="w-4 h-4">
+                            <?php echo e($police); ?>
+                        </a>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

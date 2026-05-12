@@ -65,7 +65,7 @@ $jsonLd = [
     'dateModified' => date('c', (int)($article['updated_at'] ?: (($article['publish_time'] ?? 0) ?: ($article['created_at'] ?? 0)))),
     'publisher' => [
         '@type' => 'Organization',
-        'name' => config('site_name', 'Yikai CMS'),
+        'name' => configRawLang('site_name', 'Yikai CMS'),
     ],
 ];
 if (!empty($article['cover'])) {

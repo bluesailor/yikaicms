@@ -19,7 +19,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="w-full">
             </div>
             <div>
-                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_about_title'); ?><?php echo e(config('site_name', '')); ?></h2>
+                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?></h2>
                 <div class="w-12 h-px bg-gray-900 mt-4"></div>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
@@ -33,7 +33,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <?php else: ?>
             <!-- Text Left (default) -->
             <div>
-                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_about_title'); ?><?php echo e(config('site_name', '')); ?></h2>
+                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?></h2>
                 <div class="w-12 h-px bg-gray-900 mt-4"></div>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
