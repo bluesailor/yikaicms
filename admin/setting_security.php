@@ -132,7 +132,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    最大失败次数
+                    <?php echo __('sec_max_attempts'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_lock_ip_after'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -140,13 +140,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            value="<?php echo e($secConfig['login_max_attempts']); ?>"
                            min="3" max="20"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">建议 3-10 次，默认 5 次</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_max_attempts_hint'); ?></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    锁定时长（分钟）
+                    <?php echo __('sec_lock_duration'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_lock_duration_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -154,13 +154,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            value="<?php echo e($secConfig['login_lock_minutes']); ?>"
                            min="5" max="1440"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">建议 15-60 分钟，默认 15 分钟</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_lock_duration_hint'); ?></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    Session 超时（分钟）
+                    <?php echo __('sec_session_timeout'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_session_timeout_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -168,13 +168,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            value="<?php echo e($secConfig['session_timeout']); ?>"
                            min="5" max="480"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">建议 30-120 分钟，默认 30 分钟</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_session_timeout_hint'); ?></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    密码最小长度
+                    <?php echo __('sec_password_min_length'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_password_min_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -182,7 +182,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            value="<?php echo e($secConfig['password_min_length']); ?>"
                            min="4" max="32"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">建议 8 位以上，默认 6 位</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_password_min_hint'); ?></div>
                 </div>
             </div>
         </div>
@@ -195,16 +195,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    后台 IP 白名单
+                    <?php echo __('sec_ip_whitelist'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_ip_whitelist_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <textarea name="settings[admin_ip_whitelist]" rows="4"
-                              placeholder="每行一个 IP 地址，留空不限制&#10;例：&#10;192.168.1.100&#10;10.0.0.0/24"
+                              placeholder="<?php echo e(__('sec_ip_whitelist_placeholder')); ?>"
                               class="w-full border rounded px-4 py-2 font-mono text-sm"><?php echo e($secConfig['admin_ip_whitelist']); ?></textarea>
                     <div class="text-xs text-gray-400 mt-1">
-                        留空表示不限制。支持单个 IP 或 CIDR 格式（如 10.0.0.0/24）。
-                        <strong class="text-orange-500">注意：</strong>配置错误可能导致自己无法登录后台，请确保当前 IP（<?php echo e(getClientIp()); ?>）在白名单中。
+                        <?php echo __('sec_ip_whitelist_hint'); ?>
+                        <strong class="text-orange-500"><?php echo __('sec_ip_whitelist_warn_prefix'); ?></strong><?php echo sprintf(__('sec_ip_whitelist_warn'), e(getClientIp())); ?>
                     </div>
                 </div>
             </div>
@@ -218,7 +218,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    最大提交次数
+                    <?php echo __('sec_max_submissions'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_max_submissions_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -231,7 +231,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    时间窗口（分钟）
+                    <?php echo __('sec_time_window'); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_time_window_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -239,7 +239,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            value="<?php echo e($secConfig['form_throttle_minutes']); ?>"
                            min="1" max="60"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">默认：同一 IP 每 5 分钟最多提交 5 次</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_form_throttle_hint'); ?></div>
                 </div>
             </div>
         </div>

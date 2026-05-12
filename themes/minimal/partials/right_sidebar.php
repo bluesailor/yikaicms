@@ -38,9 +38,9 @@ $activeId = $rightSidebarActiveId ?? $channelId;
     </div>
 
     <?php
-    $phone   = config('contact_phone');
-    $email   = config('contact_email');
-    $address = config('contact_address');
+    $phone   = configRawLang('contact_phone');
+    $email   = configRawLang('contact_email');
+    $address = configRawLang('contact_address');
     ?>
     <?php if ($phone || $email || $address): ?>
     <div>

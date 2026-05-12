@@ -15,8 +15,8 @@ $currentChannelId = $channel ? (int)$channel['id'] : 0;
 
 // 页面信息（优先使用栏目SEO设置）
 $pageTitle = ($channel && $channel['seo_title']) ? $channel['seo_title'] : __('contact_title');
-$pageKeywords = ($channel && $channel['seo_keywords']) ? $channel['seo_keywords'] : config('site_keywords');
-$pageDescription = ($channel && $channel['seo_description']) ? $channel['seo_description'] : config('site_description');
+$pageKeywords = ($channel && $channel['seo_keywords']) ? $channel['seo_keywords'] : configJsonLang('site_keywords');
+$pageDescription = ($channel && $channel['seo_description']) ? $channel['seo_description'] : configJsonLang('site_description');
 
 // 获取导航
 $navChannels = getNavChannels();

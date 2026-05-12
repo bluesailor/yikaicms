@@ -39,9 +39,9 @@ $activeId = $rightSidebarActiveId ?? $channelId;
 
     <!-- 联系卡：深色块 -->
     <?php
-    $phone   = config('contact_phone');
-    $email   = config('contact_email');
-    $address = config('contact_address');
+    $phone   = configRawLang('contact_phone');
+    $email   = configRawLang('contact_email');
+    $address = configRawLang('contact_address');
     $hasContact = $phone || $email || $address;
     ?>
     <?php if ($hasContact): ?>

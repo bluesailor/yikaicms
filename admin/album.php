@@ -15,6 +15,23 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('media');
 
+// ============== 多语言视图 ==============
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
+
+// 检测 albums 表是否有 lang 列（向后兼容未跑 20260512_album_i18n migration 的库）
+$_albumsHasLang = (function (): bool {
+    if (db()->isSqlite()) {
+        foreach (db()->fetchAll("PRAGMA table_info('" . DB_PREFIX . "albums')") as $c) {
+            if ($c['name'] === 'lang') return true;
+        }
+        return false;
+    }
+    return !empty(db()->fetchAll("SHOW COLUMNS FROM `" . DB_PREFIX . "albums` LIKE 'lang'"));
+})();
+
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
@@ -117,30 +134,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取相册列表
-$albums = albumModel()->all();
+// 获取相册列表（按 view-lang 过滤；albums 表没 lang 列时列出全部）
+if ($_albumsHasLang) {
+    $albums = db()->fetchAll(
+        "SELECT * FROM " . DB_PREFIX . "albums WHERE lang = ? ORDER BY sort_order ASC, id ASC",
+        [$_viewLang]
+    );
+} else {
+    $albums = albumModel()->all();
+}
+
+// 翻译徽标索引（仅当 albums 有 lang 列时才查；下方 in_array 已加 albums）
+$transStatus = $_albumsHasLang ? loadTransStatus('albums') : [];
 
 $pageTitle = __('admin_album');
 $currentMenu = 'album';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+
+echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存；新建/删除请在源语言（' . $_defaultLang . '）进行，翻译版本通过翻译徽标编辑');
 ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <div class="text-gray-600">
-            共 <?php echo count($albums); ?> 个相册
+            共 <?php echo count($albums); ?> 个相册（<?php echo e($_viewLang); ?>）
         </div>
         <div class="flex gap-2">
             <button onclick="openUploadModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <?php echo __('admin_upload_image'); ?>
             </button>
+            <?php if ($_lang['isSource']): ?>
             <a href="/admin/album_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <?php echo __('admin_add'); ?>
             </a>
+            <?php else: ?>
+            <span class="text-xs text-gray-400">仅源语言可新增；点击卡片右下角徽标编辑翻译版本</span>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -176,6 +209,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-4">
             <h3 class="font-medium text-gray-900 mb-2"><?php echo e($item['name']); ?></h3>
 
+            <?php if ($_lang['isSource'] && $_albumsHasLang): ?>
+            <!-- 翻译徽标（仅源语言视图显示） -->
+            <div class="mb-2"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/album_edit.php'); ?></div>
+            <?php endif; ?>
+
             <!-- 操作 -->
             <div class="flex items-center justify-between pt-3 border-t">
                 <a href="/admin/album_photos.php?id=<?php echo $item['id']; ?>"
@@ -195,11 +233,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </a>
+                    <?php if ($_lang['isSource']): ?>
                     <button onclick="deleteAlbum(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')" class="text-gray-500 hover:text-red-600" title="<?php echo __('admin_delete'); ?>">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

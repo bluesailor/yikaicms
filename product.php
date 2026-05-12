@@ -33,7 +33,7 @@ addProductViews((int)$product['id']);
 
 // 页面信息
 $pageTitle = $product['title'];
-$pageKeywords = $product['tags'] ?: config('site_keywords');
+$pageKeywords = $product['tags'] ?: configJsonLang('site_keywords');
 $pageDescription = $product['summary'] ?: cutStr(strip_tags($product['content']), 150);
 
 // 获取产品分类
@@ -237,16 +237,16 @@ require_once theme_path('layouts/header.php');
 
                     <!-- 咨询信息 -->
                     <div class="border-t pt-5 mt-2 space-y-3">
-                        <?php if (config('contact_phone')): ?>
+                        <?php if (configRawLang('contact_phone')): ?>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
                             <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                            <span><?php echo __('product_hotline'); ?>：<a href="tel:<?php echo e(config('contact_phone')); ?>" class="text-dark font-medium hover:text-primary"><?php echo e(config('contact_phone')); ?></a></span>
+                            <span><?php echo __('product_hotline'); ?>：<a href="tel:<?php echo e(configRawLang('contact_phone')); ?>" class="text-dark font-medium hover:text-primary"><?php echo e(configRawLang('contact_phone')); ?></a></span>
                         </div>
                         <?php endif; ?>
-                        <?php if (config('contact_email')): ?>
+                        <?php if (configRawLang('contact_email')): ?>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
                             <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                            <span><?php echo __('product_email'); ?>：<a href="mailto:<?php echo e(config('contact_email')); ?>" class="text-dark hover:text-primary"><?php echo e(config('contact_email')); ?></a></span>
+                            <span><?php echo __('product_email'); ?>：<a href="mailto:<?php echo e(configRawLang('contact_email')); ?>" class="text-dark hover:text-primary"><?php echo e(configRawLang('contact_email')); ?></a></span>
                         </div>
                         <?php endif; ?>
                         <a href="/contact.php" class="inline-flex items-center gap-2 text-sm text-primary hover:text-secondary font-medium mt-1">
