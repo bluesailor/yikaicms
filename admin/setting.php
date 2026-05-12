@@ -23,6 +23,7 @@ $_enabledList = $_lang['enabled'];
 $_tabForLang  = (string) ($_GET['tab'] ?? $_POST['tab_hint'] ?? 'basic');
 // 各 tab 算 lang-able 的 key（其它字段全局共享）
 $TAB_LANG_KEYS = [
+    'basic'  => ['site_name', 'site_keywords', 'site_description', 'site_logo'],
     'footer' => ['footer_columns', 'footer_nav', 'footer_copyright_text'],
     'header' => ['topbar_left'],
 ];
@@ -190,9 +191,11 @@ require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
 if ($_langAware) {
-    $_hint = $_tabForLang === 'header'
-        ? '提示：通栏左侧内容（topbar_left）按语言独立保存（key_' . $_viewLang . '）；颜色/开关等全局共享'
-        : '提示：页脚栏目/导航/版权 按语言独立保存（key_' . $_viewLang . '）；背景色/图片等其余设置全局共享';
+    $_hint = match ($_tabForLang) {
+        'basic'  => '提示：站点名称 / SEO关键词 / SEO描述 / Logo 按语言独立保存（key_' . $_viewLang . '）；备案号、颜色、Banner 高度等全局共享',
+        'header' => '提示：通栏左侧内容（topbar_left）按语言独立保存（key_' . $_viewLang . '）；颜色/开关等全局共享',
+        default  => '提示：页脚栏目/导航/版权 按语言独立保存（key_' . $_viewLang . '）；背景色/图片等其余设置全局共享',
+    };
     echo renderAdminLangSwitcher($_viewLang, $_hint);
 }
 ?>
@@ -204,7 +207,7 @@ $_aLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) 
 ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/setting.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
+        <a href="/admin/setting.php?tab=basic<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
         <a href="/admin/setting.php?tab=header<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
         <a href="/admin/setting.php?tab=footer<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
         <a href="/admin/setting.php?tab=code" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>

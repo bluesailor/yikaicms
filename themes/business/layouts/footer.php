@@ -1,7 +1,7 @@
     </main>
 
 <?php
-$siteName = config('site_name', 'Yikai CMS');
+$siteName = configRawLang('site_name', 'Yikai CMS');
 // lang-aware：根据当前 siteLang 自动读 footer_nav_en / footer_nav_ja
 $footerNavRaw = function_exists('configJsonLang')
     ? configJsonLang('footer_nav')
@@ -60,7 +60,7 @@ $footerNav = $footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : [];
                     ?>
                 </div>
                 <div class="flex flex-wrap gap-4">
-                    <?php if ($icp = config('site_icp')): ?>
+                    <?php if (siteLang() === 'zh-CN' && ($icp = config('site_icp'))): ?>
                     <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition"><?php echo e($icp); ?></a>
                     <?php endif; ?>
                 </div>

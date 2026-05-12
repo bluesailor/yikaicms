@@ -22,7 +22,7 @@ foreach ($timelines as $it) $timelineYears[(int)$it['year']] = true;
 ksort($timelineYears);
 
 $pageTitle = __('nav_history');
-$pageDescription = sprintf(__('history_page_description'), config('site_name'));
+$pageDescription = sprintf(__('history_page_description'), configRawLang('site_name'));
 $isHistoryPage = true;
 
 // 获取"关于我们"父栏目及子栏目（用于侧边栏）

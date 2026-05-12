@@ -13,18 +13,20 @@ $footerTextColor = config('footer_text_color', '#9ca3af');
         <div class="container mx-auto px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
                 <div>
-                    &copy; <?php echo date('Y'); ?> <?php echo e(config('site_name', 'Yikai CMS')); ?>
+                    &copy; <?php echo date('Y'); ?> <?php echo e(configRawLang('site_name', 'Yikai CMS')); ?>
                 </div>
                 <div class="flex items-center gap-6">
-                    <?php if ($icp = config('site_icp')): ?>
-                    <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-gray-600 transition">
-                        <?php echo e($icp); ?>
-                    </a>
-                    <?php endif; ?>
-                    <?php if ($police = config('site_police')): ?>
-                    <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-gray-600 transition">
-                        <?php echo e($police); ?>
-                    </a>
+                    <?php if (siteLang() === 'zh-CN'): ?>
+                        <?php if ($icp = config('site_icp')): ?>
+                        <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-gray-600 transition">
+                            <?php echo e($icp); ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($police = config('site_police')): ?>
+                        <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-gray-600 transition">
+                            <?php echo e($police); ?>
+                        </a>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
