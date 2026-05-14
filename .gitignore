@@ -25,7 +25,6 @@ uploads/albums/*
 tailwindcss
 tailwindcss.exe
 tailwindcss-windows-x64.exe
-assets/css/src/
 
 # Build output
 releases/
