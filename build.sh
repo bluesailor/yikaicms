@@ -21,7 +21,7 @@ cd "$ROOT_DIR"
 if [ -n "$1" ]; then
     VERSION="$1"
 else
-    VERSION=$(grep -oP "CMS_VERSION',\s*'\\K[0-9]+\.[0-9]+\.[0-9]+" config/config.sample.php 2>/dev/null || echo "")
+    VERSION=$(grep -oP "CMS_VERSION',\s*'\\K[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" config/config.sample.php 2>/dev/null || echo "")
     if [ -z "$VERSION" ]; then
         echo "Error: 无法从 config.sample.php 读取版本号，请手动指定: bash build.sh 1.2.0"
         exit 1
