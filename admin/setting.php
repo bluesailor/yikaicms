@@ -522,14 +522,14 @@ async function saveAdminLanguages() {
                         <div class="flex flex-wrap gap-2">
                             <?php
                             $presets = [
-                                ['name' => 'クラシックブルー', 'primary' => '#3B82F6', 'secondary' => '#1D4ED8'],
-                                ['name' => 'エメラルド',     'primary' => '#10B981', 'secondary' => '#059669'],
-                                ['name' => 'レッド',         'primary' => '#EF4444', 'secondary' => '#DC2626'],
-                                ['name' => 'オレンジ',       'primary' => '#F97316', 'secondary' => '#EA580C'],
-                                ['name' => 'パープル',       'primary' => '#8B5CF6', 'secondary' => '#7C3AED'],
-                                ['name' => 'シアン',         'primary' => '#06B6D4', 'secondary' => '#0891B2'],
-                                ['name' => 'ローズ',         'primary' => '#F43F5E', 'secondary' => '#E11D48'],
-                                ['name' => 'アンバー',       'primary' => '#F59E0B', 'secondary' => '#D97706'],
+                                ['name' => __('setting_color_classic_blue'), 'primary' => '#3B82F6', 'secondary' => '#1D4ED8'],
+                                ['name' => __('setting_color_emerald'),      'primary' => '#10B981', 'secondary' => '#059669'],
+                                ['name' => __('setting_color_red'),          'primary' => '#EF4444', 'secondary' => '#DC2626'],
+                                ['name' => __('setting_color_orange'),       'primary' => '#F97316', 'secondary' => '#EA580C'],
+                                ['name' => __('setting_color_purple'),       'primary' => '#8B5CF6', 'secondary' => '#7C3AED'],
+                                ['name' => __('setting_color_cyan'),         'primary' => '#06B6D4', 'secondary' => '#0891B2'],
+                                ['name' => __('setting_color_rose'),         'primary' => '#F43F5E', 'secondary' => '#E11D48'],
+                                ['name' => __('setting_color_amber'),        'primary' => '#F59E0B', 'secondary' => '#D97706'],
                             ];
                             $currentPrimary = config('primary_color', '#3B82F6');
                             $currentSecondary = config('secondary_color', '#1D4ED8');
