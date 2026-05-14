@@ -525,6 +525,9 @@ return [
     'login_password_placeholder' => '请输入密码',
     'login_button' => '登录',
     'login_empty_fields' => '请输入用户名和密码',
+    'login_invalid' => '用户名或密码错误',
+    'login_throttle_locked' => '登录失败次数过多，请于 :minutes 分钟后重试',
+    'login_success' => '登录成功',
 
     // 社交媒体设置
     'social_page_title' => '社交媒体设置',
