@@ -21,7 +21,7 @@ checkLogin();
 requirePermission('*');
 
 $currentMenu = 'ai_assistant';
-$pageTitle = 'AI 助手';
+$pageTitle = __('admin_ai_assistant');
 $abilities = Abilities::all();
 $aiConfigured = aiService()->isConfigured();
 $cfg = AiService::getProviders()[config('ai_provider', 'openai')] ?? null;
@@ -33,7 +33,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="p-6 max-w-7xl mx-auto">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">AI 助手</h1>
+            <h1 class="text-2xl font-bold text-gray-800"><?php echo __('admin_ai_assistant'); ?></h1>
             <p class="text-sm text-gray-500 mt-1">用自然语言指令让 AI 调用 CMS 能力。基于 Abilities API + function calling。</p>
         </div>
         <a href="/admin/setting_ai.php" class="text-sm text-primary hover:underline">→ AI 设置</a>

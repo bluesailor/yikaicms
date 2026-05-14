@@ -974,6 +974,7 @@ return [
     'admin_quick_search'    => 'Quick page search',
     'admin_quick_search_ph' => 'Find a page',
     'admin_ai_prompt_label' => 'Ask AI assistant',
+    'admin_ai_assistant' => 'AI Assistant',
     'admin_ai_prompt_ph'    => 'Ask anything…',
     'member_register_section' => 'Member Registration',
     'member_allow_register_tip' => 'Disable to block new member signups on the frontend',

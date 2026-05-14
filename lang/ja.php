@@ -1079,6 +1079,7 @@ return [
     'admin_quick_search'    => 'ページをすばやく検索',
     'admin_quick_search_ph' => 'ページを検索',
     'admin_ai_prompt_label' => 'AI アシスタントに質問',
+    'admin_ai_assistant' => 'AI アシスタント',
     'admin_ai_prompt_ph'    => '何でも聞いてください…',
     'member_register_section' => '会員登録',
     'member_allow_register_tip' => 'オフにすると、フロントエンドから新規会員登録ができなくなります',
