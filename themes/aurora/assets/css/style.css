@@ -137,6 +137,219 @@
 
 /* ====== Hamburger（如其他主题用动画版，可同步） ====== */
 
+/* ============================================================
+   ROOT 页面深色适配
+   ============================================================
+   article.php / list.php / page.php 等根级 PHP 不属于主题文件，
+   硬编码了 bg-white / bg-gray-* / bg-primary / text-gray-* 等浅色
+   主题假设。这一层用 .aurora-theme main 作用域覆盖，把这些 utility
+   class 在 Aurora 下转成深色对应物。
+
+   关键设计：
+   - 不用 !important（除按钮 bg-primary 必须强制 gradient）
+   - 选择器低特异度，主题自己的组件不被波及
+   - 仅作用在 main 内，header/footer 已经是 Aurora 设计
+
+   不要为 Aurora 自己的 block 维护这些（它们已经是深色原生）。
+   ============================================================ */
+
+/* ---- 卡片容器：bg-white .rounded-lg .shadow → glass ---- */
+.aurora-theme main .bg-white {
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgb(203, 213, 225);  /* slate-300 */
+}
+
+/* 嵌套 bg-white（如 bg-white inside bg-white）取消叠加 */
+.aurora-theme main .bg-white .bg-white {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* ---- 浅灰底（bg-gray-50 / bg-gray-100）→ 轻量深色 ---- */
+.aurora-theme main .bg-gray-50,
+.aurora-theme main .bg-gray-100 {
+    background: rgba(30, 41, 59, 0.45);
+}
+
+.aurora-theme main .bg-blue-50 {
+    background: rgba(99, 102, 241, 0.12);
+    color: rgb(199, 210, 254);
+}
+
+/* ---- 文字色：text-gray-* → slate-* ---- */
+.aurora-theme main .text-gray-900,
+.aurora-theme main .text-gray-800 {
+    color: rgb(241, 245, 249);  /* slate-100 */
+}
+.aurora-theme main .text-gray-700 {
+    color: rgb(203, 213, 225);  /* slate-300 */
+}
+.aurora-theme main .text-gray-600 {
+    color: rgb(148, 163, 184);  /* slate-400 */
+}
+.aurora-theme main .text-gray-500,
+.aurora-theme main .text-gray-400 {
+    color: rgb(100, 116, 139);  /* slate-500 */
+}
+.aurora-theme main .text-gray-300 {
+    color: rgb(71, 85, 105);  /* slate-600 */
+}
+
+/* hover:text-gray-* */
+.aurora-theme main .hover\:text-gray-900:hover,
+.aurora-theme main .hover\:text-gray-800:hover {
+    color: rgb(248, 250, 252);
+}
+.aurora-theme main .hover\:text-gray-700:hover {
+    color: rgb(241, 245, 249);
+}
+
+/* ---- 边框：border / border-gray-* → 半透明白 ---- */
+.aurora-theme main .border,
+.aurora-theme main .border-t,
+.aurora-theme main .border-b,
+.aurora-theme main .border-l,
+.aurora-theme main .border-r,
+.aurora-theme main .border-gray-100,
+.aurora-theme main .border-gray-200,
+.aurora-theme main .border-gray-300 {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* divide-* utilities (用于 list/table) */
+.aurora-theme main .divide-y > * + *,
+.aurora-theme main .divide-x > * + * {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ---- hover:bg-gray-* → 微亮 ---- */
+.aurora-theme main .hover\:bg-gray-50:hover,
+.aurora-theme main .hover\:bg-gray-100:hover,
+.aurora-theme main .hover\:bg-gray-200:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* ---- bg-primary 按钮 → gradient ---- */
+/* 必须用 !important — 因为 Tailwind utility 的 background-color 否则会被
+   layer 内规则覆盖。这是这套覆盖里唯一的 !important */
+.aurora-theme main .bg-primary,
+.aurora-theme main .hover\:bg-primary:hover {
+    background: linear-gradient(to right, #6366F1, #8B5CF6) !important;
+    color: white;
+}
+
+.aurora-theme main .hover\:bg-secondary:hover {
+    background: linear-gradient(to right, #4F46E5, #7C3AED) !important;
+}
+
+/* bg-primary/5、bg-primary/10 等带透明度的 */
+.aurora-theme main [class*="bg-primary/"] {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+/* ---- 边框 primary ---- */
+.aurora-theme main .border-primary {
+    border-color: rgb(99, 102, 241);
+}
+
+/* ---- text-primary（active 标签/链接）---- */
+.aurora-theme main .text-primary {
+    color: rgb(165, 180, 252);  /* indigo-300 */
+}
+.aurora-theme main .hover\:text-primary:hover {
+    color: rgb(199, 210, 254);  /* indigo-200 */
+}
+
+/* ---- focus ring 在深色背景下更亮 ---- */
+.aurora-theme main .focus\:ring-primary:focus {
+    --tw-ring-color: rgb(165, 180, 252);
+}
+
+/* ---- shadow：浅色阴影看不见，加深 ---- */
+.aurora-theme main .shadow,
+.aurora-theme main .shadow-md,
+.aurora-theme main .shadow-lg,
+.aurora-theme main .shadow-xl {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6),
+                0 4px 12px -4px rgba(99, 102, 241, 0.1);
+}
+
+/* ---- input / textarea / select ---- */
+.aurora-theme main input[type="text"],
+.aurora-theme main input[type="email"],
+.aurora-theme main input[type="tel"],
+.aurora-theme main input[type="password"],
+.aurora-theme main input[type="search"],
+.aurora-theme main input[type="number"],
+.aurora-theme main input[type="url"],
+.aurora-theme main input[type="date"],
+.aurora-theme main textarea,
+.aurora-theme main select {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgb(241, 245, 249);
+}
+.aurora-theme main input::placeholder,
+.aurora-theme main textarea::placeholder {
+    color: rgb(100, 116, 139);
+}
+
+/* ---- prose 深色版（文章/单页正文） ---- */
+.aurora-theme main .prose {
+    color: rgb(203, 213, 225);
+}
+.aurora-theme main .prose h1,
+.aurora-theme main .prose h2,
+.aurora-theme main .prose h3,
+.aurora-theme main .prose h4,
+.aurora-theme main .prose h5,
+.aurora-theme main .prose h6,
+.aurora-theme main .prose strong {
+    color: rgb(248, 250, 252);
+}
+.aurora-theme main .prose a {
+    color: rgb(165, 180, 252);
+    text-decoration-color: rgba(165, 180, 252, 0.4);
+}
+.aurora-theme main .prose a:hover {
+    color: rgb(199, 210, 254);
+    text-decoration-color: rgba(199, 210, 254, 0.7);
+}
+.aurora-theme main .prose blockquote {
+    border-left-color: rgb(99, 102, 241);
+    color: rgb(148, 163, 184);
+}
+.aurora-theme main .prose code {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgb(196, 181, 253);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.aurora-theme main .prose pre {
+    background: rgb(2, 6, 23);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.aurora-theme main .prose pre code {
+    background: transparent;
+    border: none;
+    color: inherit;
+}
+.aurora-theme main .prose img {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+}
+.aurora-theme main .prose table th {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgb(248, 250, 252);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.aurora-theme main .prose table td {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ====== 减少 motion 的用户偏好 ====== */
 @media (prefers-reduced-motion: reduce) {
     .aurora-pulse,
