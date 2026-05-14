@@ -1,0 +1,22 @@
+{
+    "name": "Aurora",
+    "description": "现代科技风主题，深色 hero + 紫蓝渐变 + glassmorphism，适合互联网公司、SaaS、AI 服务商",
+    "version": "1.0.0",
+    "author": "Yikai",
+    "screenshot": "assets/images/screenshot.png",
+    "colors": {
+        "primary": "#6366F1",
+        "secondary": "#8B5CF6"
+    },
+    "supports": [
+        "banner",
+        "about",
+        "stats",
+        "testimonials",
+        "advantage",
+        "cta",
+        "channel"
+    ],
+    "name_en": "Aurora",
+    "description_en": "Modern tech-style theme with dark hero, indigo-purple gradients and glassmorphism — fit for internet companies, SaaS and AI service providers"
+}
