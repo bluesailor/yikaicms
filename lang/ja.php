@@ -67,6 +67,13 @@ return [
     'home_view_all' => 'すべて見る',
     'home_cta_title' => 'ご相談はお気軽に',
     'home_cta_desc' => 'お客様に最適なソリューションをご提案いたします',
+    'home_cta_button' => '今すぐ始める',
+    'home_advantage_title' => '主な特長',
+    'home_stats_clients' => '顧客数',
+    'home_stats_uptime' => '稼働率',
+    'home_stats_support' => 'サポート',
+    'home_stats_years' => '業界経験',
+    'read_more' => '続きを読む',
 
     'list_gallery' => 'ギャラリー',
 
