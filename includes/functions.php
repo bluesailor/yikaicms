@@ -385,13 +385,14 @@ function __(string $key, array $params = []): string
 function configLang(string $configKey, string $langKey = ''): string
 {
     if (!$langKey) $langKey = $configKey;
+    // Always try {key}_{siteLang} first, regardless of whether siteLang is
+    // the configured default. Base value is treated as a language-agnostic
+    // fallback. Previously this branched on `siteLang() !== defaultLang`,
+    // which silently returned the legacy zh-CN base when the user switched
+    // the default language to ja/en — even though *_ja translations existed.
     $lang = siteLang();
-    $defaultLang = (string)config('site_lang', 'zh-CN');
-    if ($lang !== $defaultLang) {
-        $langVal = config($configKey . '_' . $lang, '');
-        if ($langVal !== '') return $langVal;
-        return __($langKey);
-    }
+    $langVal = config($configKey . '_' . $lang, '');
+    if ($langVal !== '') return $langVal;
     return config($configKey, '') ?: __($langKey);
 }
 
@@ -407,13 +408,12 @@ function configLang(string $configKey, string $langKey = ''): string
  */
 function configRawLang(string $configKey, string $default = ''): string
 {
+    // Always check the {key}_{siteLang} variant first. See configLang() for
+    // why we no longer gate this on `siteLang() !== defaultLang`.
     $lang = siteLang();
-    $defaultLang = (string)config('site_lang', 'zh-CN');
-    if ($lang !== $defaultLang) {
-        $langKey = $configKey . '_' . $lang;
-        $langVal = config($langKey, null);
-        if ($langVal !== null && $langVal !== '') return (string) $langVal;
-    }
+    $langKey = $configKey . '_' . $lang;
+    $langVal = config($langKey, null);
+    if ($langVal !== null && $langVal !== '') return (string) $langVal;
     return (string) config($configKey, $default);
 }
 
@@ -423,12 +423,11 @@ function configRawLang(string $configKey, string $default = ''): string
  */
 function configJsonLang(string $configKey): string
 {
+    // Always check the {key}_{siteLang} variant first. See configLang() for
+    // why we no longer gate this on `siteLang() !== defaultLang`.
     $lang = siteLang();
-    $defaultLang = (string)config('site_lang', 'zh-CN');
-    if ($lang !== $defaultLang) {
-        $langVal = config($configKey . '_' . $lang, '');
-        if ($langVal !== '') return $langVal;
-    }
+    $langVal = config($configKey . '_' . $lang, '');
+    if ($langVal !== '') return $langVal;
     return config($configKey, '') ?: '';
 }
 
@@ -2164,15 +2163,15 @@ function renderFormTemplate(string $slug): string
         return '<!-- 表单不存在: ' . e($slug) . ' -->';
     }
 
-    // lang-aware：当前是 EN/JA 且 fields_<lang> 有值则用翻译版字段模板，否则回退到 zh-CN
+    // lang-aware：先按当前 siteLang 找 fields_<lang>，没有再回退到 base。
+    // 不再用 "lang !== defaultLang" 作为门槛 —— 那种写法在用户把默认语言改为
+    // en/ja 后，会让两边相等条件直接跳过翻译查找，导致 base (legacy zh-CN)
+    // 被原样返回，跟 configLang/configRawLang/configJsonLang 同一类 bug。
     $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-    $defaultLang = (string) config('site_lang', 'zh-CN');
     $fieldsRaw = (string) ($template['fields'] ?? '');
-    if ($lang !== $defaultLang) {
-        $langFields = (string) ($template['fields_' . $lang] ?? '');
-        if (trim($langFields) !== '') {
-            $fieldsRaw = $langFields;
-        }
+    $langFields = (string) ($template['fields_' . $lang] ?? '');
+    if (trim($langFields) !== '') {
+        $fieldsRaw = $langFields;
     }
     if (empty(trim($fieldsRaw))) {
         return '';
@@ -2459,16 +2458,14 @@ function getAllMeta(string $ownerType, int $ownerId): array
  */
 function isMultiLangEnabled(string $table = 'contents'): bool
 {
-    static $switcherOn = null;
-    if ($switcherOn === null) {
-        try {
-            $switcherOn = (string)config('show_lang_switcher', '0') === '1';
-        } catch (\Throwable $e) {
-            $switcherOn = false;
-        }
-    }
-    if (!$switcherOn) return false;
-
+    // Pure schema check: does this table carry a `lang` column?
+    //
+    // This used to short-circuit on `show_lang_switcher`, which conflated the
+    // FRONT-END SWITCHER VISIBILITY (a display knob) with WHETHER DATA SHOULD
+    // BE FILTERED BY LANG (a data-correctness knob). Result: turning the
+    // switcher off (e.g. when only one language is enabled) made every
+    // per-table lang query pull rows from every language — homepage showed
+    // zh + en + ja side-by-side. They are unrelated concerns; keep them so.
     static $cache = [];
     if (isset($cache[$table])) return $cache[$table];
     try {

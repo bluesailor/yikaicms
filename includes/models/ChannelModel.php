@@ -22,19 +22,28 @@ class ChannelModel extends Model
      */
     public function findBySlugLang(string $slug): ?array
     {
-        $lang = siteLang();
-        $defaultLang = (string)config('site_lang', 'zh-CN');
-        if ($lang === $defaultLang || !isMultiLangEnabled('channels')) {
+        if (!isMultiLangEnabled('channels')) {
             return $this->findBySlug($slug);
         }
-        // 先找源栏目，再通过 translation_group_id 找目标语言版本
+        $lang = siteLang();
+        // 1) 直接匹配：slug + 当前语言 — 处理 slug 本身就带语言后缀的情形
+        //    (e.g. slug='contact-en', lang='en') 以及 slug 是该 lang 的源 slug.
+        $direct = db()->fetchOne(
+            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND lang = ? AND status = 1",
+            [$slug, $lang]
+        );
+        if ($direct) return $direct;
+        // 2) 通过 translation_group_id 跨语言映射：先找任意 lang 的同 slug 行
         $src = db()->fetchOne("SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1", [$slug]);
         if (!$src) return null;
+        if ($src['lang'] === $lang) return $src;
         $groupId = (int)($src['translation_group_id'] ?: $src['id']);
         $translated = db()->fetchOne(
             "SELECT * FROM {$this->tableName()} WHERE translation_group_id = ? AND lang = ? AND status = 1",
             [$groupId, $lang]
         );
+        // 原有写法在 lang===defaultLang 时直接返回 findBySlug(...) — 当 default
+        // 被改成 en/ja 后会把 legacy zh-CN 行原样吐回。新逻辑始终优先 siteLang。
         return $translated ?: $src;
     }
 
