@@ -153,8 +153,17 @@ class ContentModel extends Model
     public function findBySlugLang(string $slug): ?array
     {
         $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-        $defaultLang = (string) config('site_lang', 'zh-CN');
-        if ($lang === $defaultLang) return $this->findBySlug($slug);
+
+        // 直接尝试 slug + 当前语言（slug 可能已带语言后缀）
+        $direct = db()->fetchOne(
+            "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
+             FROM {$this->tableName()} c
+             LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
+             WHERE c.slug = ? AND c.lang = ? AND c.status = 1
+             LIMIT 1",
+            [$slug, $lang]
+        );
+        if ($direct) return $direct;
 
         // 先找源行
         $src = db()->fetchOne(

@@ -194,8 +194,17 @@ class ProductModel extends Model
     public function findBySlugLang(string $slug): ?array
     {
         $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-        $defaultLang = (string) config('site_lang', 'zh-CN');
-        if ($lang === $defaultLang) return $this->findBySlug($slug);
+
+        // 优先：slug + 当前语言（slug 本身可能就带 -en/-ja 后缀）
+        $direct = db()->fetchOne(
+            "SELECT p.*, pc.name as category_name, pc.slug as category_slug
+             FROM {$this->tableName()} p
+             LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
+             WHERE p.slug = ? AND p.lang = ? AND p.status = 1
+             LIMIT 1",
+            [$slug, $lang]
+        );
+        if ($direct) return $direct;
 
         $src = db()->fetchOne(
             "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1",
