@@ -92,7 +92,6 @@ $albumPhotos = [];
 if ($channel['type'] === 'album' && $channel['album_id'] > 0) {
     $rawAlbumId = (int)$channel['album_id'];
     $curLang = function_exists('siteLang') ? siteLang() : (string)config('site_lang', 'zh-CN');
-    $defaultLang = (string)config('site_lang', 'zh-CN');
 
     // 看 albums 表是否有 lang 列（向后兼容未跑 20260512_album_i18n migration 的库）
     $albumsHasLang = (bool) db()->fetchOne(
@@ -101,14 +100,15 @@ if ($channel['type'] === 'album' && $channel['album_id'] > 0) {
             : "SHOW COLUMNS FROM `" . DB_PREFIX . "albums` LIKE 'lang'"
     );
 
-    if ($albumsHasLang && $curLang !== $defaultLang) {
-        // 找 raw album 的 group_id
+    // 始终按 translation_group_id 找当前 lang 的翻译。不再用
+    // `curLang !== defaultLang` 门槛 — 用户把默认语言改为 en/ja 后，
+    // 该等式恒成立会跳过翻译查找，回退分支把 legacy zh-CN 源 album 吐回。
+    if ($albumsHasLang) {
         $rawAlbum = db()->fetchOne(
             "SELECT translation_group_id FROM " . DB_PREFIX . "albums WHERE id = ?",
             [$rawAlbumId]
         );
         $groupId = (int) ($rawAlbum['translation_group_id'] ?? $rawAlbumId);
-        // 优先取当前 lang 的翻译
         $albumData = db()->fetchOne(
             "SELECT * FROM " . DB_PREFIX . "albums WHERE translation_group_id = ? AND lang = ? AND status = 1 LIMIT 1",
             [$groupId ?: $rawAlbumId, $curLang]
