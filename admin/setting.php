@@ -91,10 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         settingModel()->set('show_lang_switcher', !empty($_POST['show_switcher']) ? '1' : '0');
 
         // per-lang "首页" 菜单显示开关
-        // 表单字段：nav_home_show_zh-CN / nav_home_show_en / nav_home_show_ja
+        // 表单字段：nav_home_show[zh-CN] / nav_home_show[en] / ...
         // 存储约定：默认语言用 nav_home_show（不带后缀）；其他语言用 nav_home_show_{lang}
+        // 只迭代已启用的语言 — 这是访客可见的前台开关，未启用语言不应写入键。
         $homeShowMap = (array) ($_POST['nav_home_show'] ?? []);
-        foreach ($allowed as $lc) {
+        foreach ($enabled as $lc) {
             $val = !empty($homeShowMap[$lc]) ? '1' : '0';
             $settingKey = $lc === $default ? 'nav_home_show' : 'nav_home_show_' . $lc;
             settingModel()->set($settingKey, $val);
@@ -230,8 +231,9 @@ $showSwitcher = config('show_lang_switcher', '0');
 $_allLangsForUI = availableLanguages();
 
 // per-lang "首页" 菜单显示开关：默认语言用 nav_home_show，其他语言用 nav_home_show_{lang}
+// 只为已启用的语言计算 — 未启用的语言不在前台渲染，自然不需要 per-lang 开关。
 $navHomeShowMap = [];
-foreach (array_keys($_allLangsForUI) as $_lc) {
+foreach ($siteEnabled as $_lc) {
     $_key = $_lc === $siteDefault ? 'nav_home_show' : 'nav_home_show_' . $_lc;
     $_val = config($_key, null);
     // null（从未设置过）默认按显示处理
@@ -264,11 +266,11 @@ foreach (array_keys($_allLangsForUI) as $_lc) {
             <?php endforeach; ?>
         </div>
 
-        <!-- per-language 首页菜单显示开关 -->
+        <!-- per-language 首页菜单显示开关：只渲染已启用语言 -->
         <div class="border-t pt-3">
             <p class="text-xs text-gray-500 mb-2">每种语言独立控制是否在导航栏显示「首页」菜单：</p>
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <?php foreach ($_allLangsForUI as $code => $label): ?>
+                <?php foreach ($siteEnabled as $code): $label = $_allLangsForUI[$code] ?? $code; ?>
                 <label class="flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" name="nav_home_show[<?php echo e($code); ?>]" value="1"
                            <?php echo ($navHomeShowMap[$code] ?? '1') === '1' ? 'checked' : ''; ?>>
