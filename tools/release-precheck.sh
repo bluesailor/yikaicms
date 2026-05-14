@@ -52,7 +52,7 @@ section "1. 版本号一致性"
 # ─────────────────────────────────────────────────────────────
 
 # config/config.sample.php
-v=$(grep -oE "CMS_VERSION', '[0-9.]+'" config/config.sample.php 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+v=$(grep -oE "CMS_VERSION', '[0-9.]+'" config/config.sample.php 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
 if [ "$v" = "$VERSION" ]; then
     pass "config/config.sample.php  CMS_VERSION = '$v'"
 else
@@ -60,7 +60,7 @@ else
 fi
 
 # config/config.php.example
-v=$(grep -oE "CMS_VERSION', '[0-9.]+'" config/config.php.example 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+v=$(grep -oE "CMS_VERSION', '[0-9.]+'" config/config.php.example 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
 if [ "$v" = "$VERSION" ]; then
     pass "config/config.php.example  CMS_VERSION = '$v'"
 else
@@ -68,7 +68,7 @@ else
 fi
 
 # README.md 顶部
-v=$(head -1 README.md 2>/dev/null | grep -oE "v?[0-9]+\.[0-9]+\.[0-9]+" | head -1 | tr -d v)
+v=$(head -1 README.md 2>/dev/null | grep -oE "v?[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1 | tr -d v)
 if [ "$v" = "$VERSION" ]; then
     pass "README.md  第 1 行 = 'v$v'"
 else
@@ -253,7 +253,7 @@ for f in index.html changelog.html; do
         fail "$f  未发现 v${VERSION}（首页下载区/changelog 卡片可能未更新）"
     fi
     # 反向检查：是否还有"最新版"标签贴在旧版本上
-    old_latest=$(grep -B1 "最新版" "$fp" 2>/dev/null | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    old_latest=$(grep -B1 "最新版" "$fp" 2>/dev/null | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
     if [ -n "$old_latest" ] && [ "$old_latest" != "v${VERSION}" ]; then
         fail "$f  「最新版」徽章贴在 $old_latest 上（期望: v${VERSION}）"
     fi
@@ -265,7 +265,7 @@ section "8. 演示站 demo.yikaicms config"
 
 demo_cfg="/mnt/d/phpstudy_pro/WWW/demo.yikaicms/config/config.php"
 if [ -f "$demo_cfg" ]; then
-    v=$(grep -oE "CMS_VERSION', '[0-9.]+'" "$demo_cfg" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+    v=$(grep -oE "CMS_VERSION', '[0-9.]+'" "$demo_cfg" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
     if [ "$v" = "$VERSION" ]; then
         pass "demo.yikaicms/config/config.php  CMS_VERSION = '$v'"
     else
