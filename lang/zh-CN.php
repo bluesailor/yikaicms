@@ -1051,6 +1051,7 @@ return [
     'admin_quick_search'    => '快速查找页面',
     'admin_quick_search_ph' => '找页面',
     'admin_ai_prompt_label' => 'AI 助手提问',
+    'admin_ai_assistant' => 'AI 助手',
     'admin_ai_prompt_ph'    => '问点什么…',
     'member_register_section' => '会员注册',
     'member_allow_register_tip' => '关闭后前台将无法注册新会员',
