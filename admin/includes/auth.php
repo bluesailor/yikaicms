@@ -77,7 +77,7 @@ function doLogin(string $username, string $password): array
     // 暴力破解防护：检查登录失败次数
     $lockout = checkLoginThrottle();
     if ($lockout > 0) {
-        return ['success' => false, 'message' => "ログイン失敗回数が多すぎます。{$lockout}分後に再試行してください"];
+        return ['success' => false, 'message' => __('login_throttle_locked', ['minutes' => $lockout])];
     }
 
     $user = userModel()->findWhere(['username' => $username, 'status' => 1]);
@@ -98,7 +98,7 @@ function doLogin(string $username, string $password): array
             'user_agent'   => $_SERVER['HTTP_USER_AGENT'] ?? '',
             'created_at'   => time(),
         ]);
-        return ['success' => false, 'message' => 'ユーザー名またはパスワードが正しくありません'];
+        return ['success' => false, 'message' => __('login_invalid')];
     }
 
     // 登录成功，清除失败记录
@@ -128,7 +128,7 @@ function doLogin(string $username, string $password): array
     // 记录日志
     adminLog('auth', 'login', '登录成功');
 
-    return ['success' => true, 'message' => '登录成功'];
+    return ['success' => true, 'message' => __('login_success')];
 }
 
 /**

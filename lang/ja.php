@@ -509,6 +509,9 @@ return [
     'login_password_placeholder' => 'パスワードを入力',
     'login_button' => 'ログイン',
     'login_empty_fields' => 'ユーザー名とパスワードを入力してください',
+    'login_invalid' => 'ユーザー名またはパスワードが正しくありません',
+    'login_throttle_locked' => 'ログイン失敗回数が多すぎます。:minutes 分後に再試行してください',
+    'login_success' => 'ログイン成功',
 
     'social_page_title' => 'SNS設定',
     'social_heading' => 'SNSリンク設定',
