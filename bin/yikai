@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Yikai CMS CLI entry point (Unix/macOS/WSL).
+# Delegates to bin/yikai.php under the current PHP CLI.
+set -e
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec php "${DIR}/yikai.php" "$@"

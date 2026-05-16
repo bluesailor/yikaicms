@@ -1061,7 +1061,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <?php if ($tab === 'check'): ?>
-<div class="max-w-3xl">
+<div class="max-w-3xl mx-auto">
     <?php if (empty($pendingUpgrades)): ?>
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <svg class="w-16 h-16 mx-auto text-green-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1173,7 +1173,7 @@ async function runUpgrade() {
 <?php endif; ?>
 
 <?php if ($tab === 'history'): ?>
-<div class="max-w-3xl">
+<div class="max-w-3xl mx-auto">
     <?php if (empty($doneUpgrades)): ?>
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <p class="text-gray-400"><?php echo __('upgrade_no_history'); ?></p>
@@ -1205,7 +1205,7 @@ $updateServerUrl = 'https://update.yikaicms.com';
 $updateCheckApi  = $updateServerUrl . '/api/update/check';
 $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 ?>
-<div class="max-w-2xl">
+<div class="max-w-2xl mx-auto">
     <!-- 当前版本信息 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">

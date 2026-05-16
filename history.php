@@ -32,7 +32,7 @@ if ($aboutChannel) {
     $sidebarChannels = getChannels((int)$aboutChannel['id'], false);
 }
 
-require_once ROOT_PATH . '/includes/header.php';
+require_once theme_path('layouts/header.php');
 ?>
 
 <!-- 页面头部 -->
@@ -47,7 +47,7 @@ require theme_path('partials/page-hero.php');
 ?>
 
 <!-- 时间线主体 -->
-<section class="py-16 bg-gradient-to-b from-gray-50 to-white">
+<section class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
         <!-- 主内容区 -->
@@ -164,5 +164,5 @@ require theme_path('partials/page-hero.php');
 <script src="/assets/js/scroll-anim.js" defer></script>
 
 <?php
-require_once ROOT_PATH . '/includes/footer.php';
+require_once theme_path('layouts/footer.php');
 ?>

@@ -1,0 +1,91 @@
+{
+    "name": "企业商业站",
+    "name_ja": "企業コーポレートサイト",
+    "name_en": "Corporate Business Site",
+    "description": "标准企业官网骨架：首页、产品中心、解决方案、新闻动态、关于我们、联系我们。预置产品规格 / 应用场景两个扩展字段。",
+    "description_ja": "標準的な企業サイト構成：製品 / ソリューション / ニュース / 会社案内 / お問い合わせ。型番と応用シーンの 2 つのカスタムフィールドを追加します。",
+    "description_en": "Standard corporate site skeleton: Products, Solutions, News, About Us, Contact Us. Includes 'model number' and 'applications' as custom product fields.",
+    "version": "1.0.0",
+    "author": "Yikai CMS",
+    "requires_cms": "1.7.0",
+    "lang": "zh-CN",
+    "channels": [
+        {
+            "slug": "products",
+            "name": "产品中心",
+            "type": "list",
+            "is_nav": 1,
+            "sort_order": 10,
+            "seo_title": "产品中心 - 全系列产品",
+            "seo_description": "查看我们的全系列产品与应用方案。"
+        },
+        {
+            "slug": "solutions",
+            "name": "解决方案",
+            "type": "list",
+            "is_nav": 1,
+            "sort_order": 20,
+            "seo_title": "行业解决方案"
+        },
+        {
+            "slug": "news",
+            "name": "新闻动态",
+            "type": "list",
+            "is_nav": 1,
+            "sort_order": 30,
+            "seo_title": "公司新闻 - 最新动态"
+        },
+        {
+            "slug": "about",
+            "name": "关于我们",
+            "type": "single",
+            "is_nav": 1,
+            "sort_order": 40,
+            "content": "<h2>公司简介</h2><p>这里填写公司简介。</p>",
+            "seo_title": "关于我们"
+        },
+        {
+            "slug": "contact",
+            "name": "联系我们",
+            "type": "single",
+            "is_nav": 1,
+            "sort_order": 50,
+            "content": "<p>地址、电话、邮箱填这里。</p>",
+            "seo_title": "联系我们"
+        }
+    ],
+    "extfields": [
+        {
+            "owner_type": "product",
+            "field_key": "model_number",
+            "field_name": "型号",
+            "field_type": "TEXT",
+            "is_required": 0,
+            "sort_order": 1
+        },
+        {
+            "owner_type": "product",
+            "field_key": "applications",
+            "field_name": "应用场景",
+            "field_type": "TEXTAREA",
+            "is_required": 0,
+            "sort_order": 2,
+            "help_text": "用逗号分隔多个场景"
+        }
+    ],
+    "contents": [
+        {
+            "channel_slug": "news",
+            "title": "示例新闻：公司里程碑",
+            "slug": "milestone",
+            "type": "article",
+            "summary": "这是企业站配方安装后的示例新闻条目。",
+            "content": "<p>这是一篇示例新闻，演示新闻栏目的内容样式。</p>",
+            "content_type": "html",
+            "status": 1
+        }
+    ],
+    "settings": {
+        "footer_copyright": "© 2026 公司名称 保留所有权利"
+    }
+}

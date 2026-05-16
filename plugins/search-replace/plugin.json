@@ -1,7 +1,11 @@
 {
     "name": "搜索替换",
+    "name_ja": "検索＆置換",
+    "name_en": "Search & Replace",
     "version": "1.0.0",
     "description": "后台数据库批量搜索替换工具，支持选择表和字段，预览匹配数量后执行替换。",
+    "description_ja": "管理画面からデータベースを横断検索・一括置換するツール。テーブルとカラムを選択し、ヒット件数をプレビューしてから実行します。",
+    "description_en": "Admin tool for bulk search-and-replace across database tables. Pick the table and column, preview the match count, then execute.",
     "author": "Yikai CMS",
     "requires_php": "8.0",
     "requires_cms": "1.0.0"

@@ -49,9 +49,9 @@ function checkLogin(): void
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
 
-        // 演示模式：拦截写操作（升级除外）
+        // 演示模式：拦截写操作（升级、演示开关页除外）
         if (defined('DEMO_MODE') && DEMO_MODE) {
-            $demoAllowPages = ['upgrade.php'];
+            $demoAllowPages = ['upgrade.php', 'setting_demo.php'];
             $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
             if (!in_array($currentPage, $demoAllowPages)) {
                 error('演示模式下不允许修改操作');

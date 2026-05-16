@@ -1,0 +1,12 @@
+{
+    "name": "Cookie 同意横幅",
+    "name_ja": "Cookie 同意バナー",
+    "name_en": "Cookie Consent Banner",
+    "version": "1.0.0",
+    "description": "GDPR / PIPL 合规的 cookie 同意横幅，分三档授权（必要 / 分析 / 营销），用户选择保存到 cookie。其他脚本可通过 window.IK_consent 判断是否加载（如 GA 仅在 analytics=true 时挂载）。",
+    "description_ja": "GDPR / PIPL 準拠の Cookie 同意バナー。3 段階の許可（必須 / 解析 / マーケティング）を提供し、選択は Cookie に保存。他のスクリプトは window.IK_consent で同意状態を確認できます（GA は analytics=true の時のみ読み込みなど）。",
+    "description_en": "GDPR / PIPL-compliant cookie consent banner with three consent categories (necessary / analytics / marketing). The visitor's choice is stored in a cookie. Other scripts can check window.IK_consent to gate loading (e.g. load GA only when analytics=true).",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.7.0"
+}

@@ -169,6 +169,19 @@
     -webkit-backdrop-filter: none;
 }
 
+/* bg-white/X 半透明变体（标签/徽章用，timeline 卡片图上的浮层等） */
+/* 属性匹配器不需要转义 /；显式列出几档是为了兼容 Tailwind 编译的转义形式 */
+.aurora-theme main [class*="bg-white/"],
+.aurora-theme main .bg-white\/90,
+.aurora-theme main .bg-white\/80,
+.aurora-theme main .bg-white\/70,
+.aurora-theme main .bg-white\/50,
+.aurora-theme main .bg-white\/40,
+.aurora-theme main .bg-white\/20 {
+    background: rgba(15, 23, 42, 0.7);
+    color: rgb(241, 245, 249);
+}
+
 /* ---- 浅灰底（bg-gray-50 / bg-gray-100）→ 轻量深色 ---- */
 .aurora-theme main .bg-gray-50,
 .aurora-theme main .bg-gray-100 {
@@ -184,6 +197,14 @@
 .aurora-theme main .text-gray-900,
 .aurora-theme main .text-gray-800 {
     color: rgb(241, 245, 249);  /* slate-100 */
+}
+
+/* text-dark：自定义 token，默认是 #1f2937（gray-800），深色下不可见 */
+.aurora-theme main .text-dark {
+    color: rgb(241, 245, 249);  /* slate-100 */
+}
+.aurora-theme main a.text-dark:hover {
+    color: rgb(248, 250, 252);
 }
 .aurora-theme main .text-gray-700 {
     color: rgb(203, 213, 225);  /* slate-300 */
