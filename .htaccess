@@ -12,9 +12,13 @@
     RewriteRule ^vendor/ - [F,L]
     RewriteRule ^includes/ - [F,L]
     RewriteRule ^install/sql/ - [F,L]
+    RewriteRule ^bin/ - [F,L]
+    RewriteRule ^migrations/ - [F,L]
+    RewriteRule ^recipes/ - [F,L]
 
     # 禁止访问敏感文件
     RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^package(-lock)?\.json$ - [F,L]
 
     # Sitemap
     RewriteRule ^sitemap\.xml$ /sitemap.php [L]

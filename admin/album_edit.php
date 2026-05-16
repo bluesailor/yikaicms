@@ -87,7 +87,7 @@ $currentMenu = 'album';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<form id="editForm" class="max-w-2xl">
+<form id="editForm" class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow">
         <div class="p-6 border-b">
             <h2 class="text-lg font-medium"><?php echo $pageTitle; ?></h2>

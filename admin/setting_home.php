@@ -251,7 +251,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
 
 <form id="settingForm">
     <!-- 导航首页文字 -->
-    <div class="bg-white rounded-lg shadow mb-6 max-w-6xl">
+    <div class="bg-white rounded-lg shadow mb-6 max-w-6xl mx-auto">
         <div class="p-5 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <label class="text-gray-700 text-sm">
@@ -294,7 +294,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 
-    <div id="blocksContainer" class="space-y-3 max-w-6xl">
+    <div id="blocksContainer" class="space-y-3 max-w-6xl mx-auto">
         <?php foreach ($blocksConfig as $block):
             $type = $block['type'] ?? '';
             $meta = $blockMeta[$type] ?? null;
@@ -556,7 +556,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     foreach ($displayKeys as $dk) { if (isset($settingsMap[$dk])) { $hasDisplayItems = true; break; } }
     ?>
     <?php if ($hasDisplayItems): ?>
-    <div class="max-w-6xl mt-6">
+    <div class="max-w-6xl mx-auto mt-6">
         <div class="bg-white rounded-lg shadow">
             <div class="px-5 py-3 border-b">
                 <h3 class="text-sm font-medium text-gray-600">合作伙伴</h3>
@@ -596,7 +596,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     </div>
     <?php endif; ?>
 
-    <div class="max-w-6xl mt-6">
+    <div class="max-w-6xl mx-auto mt-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             <?php echo __('btn_save_settings'); ?>

@@ -321,24 +321,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 顶部：快速备份 + 数据库概览 -->
+<!-- 顶部：数据库概览（左）+ 一键备份（右） -->
 <div class="bg-white rounded-lg shadow mb-6 p-5 flex flex-wrap items-center justify-between gap-4">
-    <div class="flex items-center gap-6">
-        <form method="post" class="inline">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="backup">
-            <input type="hidden" name="structure" value="1">
-            <input type="hidden" name="data" value="1">
-            <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> 备份中...'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
-                一键备份
-            </button>
-        </form>
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-1">
         <span class="text-sm text-gray-500"><?php echo count($allTables); ?> 张表 · <?php echo number_format($totalRows); ?> 条 · <?php echo round($totalSize / 1024 / 1024, 2); ?> MB · <?php echo e(DB_NAME); ?></span>
+        <span class="text-xs text-gray-400">已有 <?php echo count($backupFiles); ?> 个备份</span>
     </div>
-    <div class="text-xs text-gray-400">
-        已有 <?php echo count($backupFiles); ?> 个备份
-    </div>
+    <form method="post" class="inline">
+        <?php echo csrfField(); ?>
+        <input type="hidden" name="action" value="backup">
+        <input type="hidden" name="structure" value="1">
+        <input type="hidden" name="data" value="1">
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> 备份中...'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            一键备份
+        </button>
+    </form>
 </div>
 
 <?php if ($restoredMsg): ?>
@@ -429,7 +427,7 @@ async function deleteBackup(file) {
 
 <?php elseif ($tab === 'export'): ?>
 <!-- 按表导出 -->
-<form method="post" class="max-w-3xl">
+<form method="post" class="max-w-3xl mx-auto">
     <?php echo csrfField(); ?>
     <input type="hidden" name="action" value="export">
     <div class="bg-white rounded-lg shadow">
@@ -464,7 +462,7 @@ async function deleteBackup(file) {
 
 <?php elseif ($tab === 'import'): ?>
 <!-- 导入恢复 -->
-<div class="max-w-2xl">
+<div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-4">导入 SQL 文件</h2>
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 mb-4">
@@ -520,7 +518,7 @@ document.getElementById('importForm').addEventListener('submit', async function(
 
 <?php elseif ($tab === 'logs'): ?>
 <!-- 日志清理 -->
-<div class="max-w-2xl space-y-4">
+<div class="max-w-2xl mx-auto space-y-4">
     <?php
     $logItems = [
         ['key' => 'admin_logs', 'name' => '操作日志', 'desc' => '管理员后台操作记录', 'icon' => '📋'],

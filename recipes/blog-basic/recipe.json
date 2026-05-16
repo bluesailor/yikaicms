@@ -1,0 +1,76 @@
+{
+    "name": "博客站基础包",
+    "name_ja": "ブログ基本パック",
+    "name_en": "Blog Starter",
+    "description": "创建博客所需的栏目结构：首页、博客、关于、联系。附一篇示例文章，并预置阅读时长 / 作者头像两个扩展字段。",
+    "description_ja": "ブログに必要な栏目構成（ブログ / 概要 / 連絡）を作成し、サンプル記事 1 件と読了時間 / 著者アイコンの 2 つのカスタムフィールドを追加します。",
+    "description_en": "Creates the channel structure needed for a blog (Blog / About / Contact) plus one sample article. Includes 'reading time' and 'author avatar' as custom fields.",
+    "version": "1.0.0",
+    "author": "Yikai CMS",
+    "requires_cms": "1.7.0",
+    "lang": "zh-CN",
+    "channels": [
+        {
+            "slug": "blog",
+            "name": "博客",
+            "type": "list",
+            "is_nav": 1,
+            "sort_order": 10,
+            "seo_title": "博客 - 最新文章与思考",
+            "seo_description": "持续更新的博客文章，覆盖技术、产品与生活观察。"
+        },
+        {
+            "slug": "about",
+            "name": "关于",
+            "type": "single",
+            "is_nav": 1,
+            "sort_order": 20,
+            "content": "<h2>关于本站</h2><p>这是一个由 Yikai CMS 驱动的博客站点。</p>",
+            "seo_title": "关于我们"
+        },
+        {
+            "slug": "contact",
+            "name": "联系",
+            "type": "single",
+            "is_nav": 1,
+            "sort_order": 30,
+            "content": "<p>欢迎通过邮件联系：hello@example.com</p>",
+            "seo_title": "联系我们"
+        }
+    ],
+    "extfields": [
+        {
+            "owner_type": "content",
+            "field_key": "reading_time",
+            "field_name": "阅读时长（分钟）",
+            "field_type": "NUMBER",
+            "is_required": 0,
+            "sort_order": 1,
+            "placeholder": "5"
+        },
+        {
+            "owner_type": "content",
+            "field_key": "author_avatar",
+            "field_name": "作者头像 URL",
+            "field_type": "TEXT",
+            "is_required": 0,
+            "sort_order": 2,
+            "placeholder": "https://..."
+        }
+    ],
+    "contents": [
+        {
+            "channel_slug": "blog",
+            "title": "欢迎使用 Yikai CMS 博客模板",
+            "slug": "welcome",
+            "type": "article",
+            "summary": "这是博客站配方安装后自动创建的第一篇示例文章，可以随时编辑或删除。",
+            "content": "<h2>开始你的博客之旅</h2><p>这篇文章演示了博客模板的基本布局。你可以在后台编辑或删除它，添加自己的内容。</p><h3>下一步</h3><ul><li>在「内容 → 博客」下创建新文章</li><li>在「站点设置」中修改 logo 与色彩</li><li>在「主题」中切换前台外观</li></ul>",
+            "content_type": "html",
+            "status": 1
+        }
+    ],
+    "settings": {
+        "footer_copyright": "© 2026 我的博客 · Powered by Yikai CMS"
+    }
+}

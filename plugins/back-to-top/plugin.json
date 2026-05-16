@@ -1,7 +1,11 @@
 {
     "name": "返回顶部",
+    "name_ja": "ページトップへ戻る",
+    "name_en": "Back to Top",
     "version": "1.0.0",
     "description": "在页面右下角显示返回顶部按钮，滚动超过一屏后自动出现，点击平滑滚动回顶部。",
+    "description_ja": "画面右下に「ページトップへ戻る」ボタンを表示。1 画面以上スクロールすると現れ、クリックで滑らかに最上部へスクロールします。",
+    "description_en": "Shows a 'back to top' button in the bottom-right of the page. Appears after scrolling more than one viewport; click to smoothly scroll to the top.",
     "author": "Yikai CMS",
     "requires_php": "8.0",
     "requires_cms": "1.0.0"

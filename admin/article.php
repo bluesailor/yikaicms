@@ -16,8 +16,30 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('content');
 
-// 获取 news 栏目及其子栏目 ID
-$newsChannel = getChannelBySlug('news');
+// 视图语言（?lang=en/ja 切换列哪个语言；默认为 site_lang）
+// 必须先于 news 栏目查询：news 栏目在每种语言下是不同的行（id 不同），
+// 用错语言会导致 channel_id 过滤命中空集。
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+$_enabledList = $_lang['enabled'];
+$_langLabels  = availableLanguages();
+
+// 获取视图语言下的 news 栏目。
+// 注意：翻译流程会给 slug 加 -{lang} 后缀（news → news-ja），不能按 slug 直查。
+// 必须先用默认语言 slug 拿到源行，再通过 translation_group_id 找姊妹栏目。
+$newsChannel = null;
+$srcNews = getChannelBySlug('news'); // 默认语言（通常 zh-CN）的源 news
+if ($srcNews) {
+    if ($srcNews['lang'] === $_viewLang) {
+        $newsChannel = $srcNews;
+    } else {
+        $sisterId = findTranslatedChannelId((int)$srcNews['id'], $_viewLang);
+        if ($sisterId > 0) {
+            $newsChannel = channelModel()->find($sisterId);
+        }
+    }
+}
 $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
 $newsChildIds = $newsChannelId > 0 ? channelModel()->getChildIds($newsChannelId) : [];
 
@@ -96,13 +118,6 @@ $page = max(1, getInt('page', 1));
 $perPage = 20;
 
 $offset = ($page - 1) * $perPage;
-
-// 视图语言（?lang=en/ja 切换列哪个语言；默认为 site_lang）
-$_lang        = adminLangView();
-$_defaultLang = $_lang['default'];
-$_viewLang    = $_lang['view'];
-$_enabledList = $_lang['enabled'];
-$_langLabels  = availableLanguages();
 
 $where = ['a.lang = ?'];
 $params = [$_viewLang];

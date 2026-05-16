@@ -74,6 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
+        // 新建时按 URL ?lang= 决定写入哪种语言；否则 DB 默认 'zh-CN' 会把
+        // 在 ja/en 上下文里建的文章存成 zh-CN，导致列表页 ?lang=ja/en 看不到。
+        // 防御：校验语言代码在 availableLanguages() 白名单内，避免写入任意字符串污染 DB。
+        $_reqLang = (string)get('lang', config('site_lang', 'zh-CN'));
+        $_allowedLangs = array_keys(availableLanguages());
+        $data['lang'] = in_array($_reqLang, $_allowedLangs, true) ? $_reqLang : (string)config('site_lang', 'zh-CN');
         if (!isset($data['publish_time'])) {
             $data['publish_time'] = $data['status'] == 1 ? time() : 0;
         }
@@ -84,8 +90,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success(['id' => $id]);
 }
 
-// 获取栏目树（news 下的子栏目）
-$newsChannel = getChannelBySlug('news');
+// 获取栏目树（news 下的子栏目）：按文章所属语言查 news 栏目；
+// 新建文章时按 URL ?lang= 或默认语言。
+// 注意：翻译后的栏目 slug 为 news-{lang}，不能按 slug 直查，必须经 translation_group_id 映射。
+$_editLang = $article['lang'] ?? get('lang', config('site_lang', 'zh-CN'));
+$newsChannel = null;
+$srcNews = getChannelBySlug('news');
+if ($srcNews) {
+    if ($srcNews['lang'] === $_editLang) {
+        $newsChannel = $srcNews;
+    } else {
+        $sisterId = findTranslatedChannelId((int)$srcNews['id'], $_editLang);
+        if ($sisterId > 0) {
+            $newsChannel = channelModel()->find($sisterId);
+        }
+    }
+}
 $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
 $categories = $newsChannelId > 0 ? channelModel()->getFlatList($newsChannelId) : [];
 

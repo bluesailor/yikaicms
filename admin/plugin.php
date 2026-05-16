@@ -175,7 +175,7 @@ $currentMenu = 'plugin';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-4xl">
+<div class="max-w-4xl mx-auto">
     <!-- 操作栏 -->
     <div class="flex items-center justify-between mb-6">
         <div class="text-sm text-gray-500">

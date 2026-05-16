@@ -25,6 +25,7 @@ class Compatibility
         if (self::$bootstrapped) return;
         self::$bootstrapped = true;
 
+        self::initDemoMode();
         self::fixReverseProxyHttps();
         self::fixClientIp();
         self::checkRequiredExtensions();
@@ -32,6 +33,20 @@ class Compatibility
 
         // 让插件 / 主题自定义 quirks
         do_action('yikaicms/compat/bootstrap');
+    }
+
+    // ─────────────────────────────────────────────────────
+    // 演示模式：从 yikai_settings.demo_mode 读取并定义 DEMO_MODE 常量。
+    // 老路径仍兼容在 config.php 中 define('DEMO_MODE', true)。
+    // ─────────────────────────────────────────────────────
+    private static function initDemoMode(): void
+    {
+        if (defined('DEMO_MODE')) return;
+        try {
+            define('DEMO_MODE', (string)config('demo_mode', '0') === '1');
+        } catch (\Throwable $e) {
+            define('DEMO_MODE', false);
+        }
     }
 
     // ─────────────────────────────────────────────────────
