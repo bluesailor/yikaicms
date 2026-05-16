@@ -175,7 +175,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     var modal = document.getElementById('applyModal');
     var applyName = document.getElementById('applyName');
     var pendingSlug = null;
-    // JSON_HEX_TAG 防御 </script> 破出（如果翻译里偶然出现）
+    // JSON_HEX_TAG 防御脚本闭合标签破出（如果翻译里偶然出现）
     var i18n = {
         applying:       <?php echo json_encode(__('recipe_applying'), JSON_HEX_TAG); ?>,
         confirm_apply:  <?php echo json_encode(__('recipe_confirm_apply'), JSON_HEX_TAG); ?>,
