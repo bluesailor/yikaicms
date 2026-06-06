@@ -72,6 +72,7 @@ require_once ROOT_PATH . '/includes/Abilities.php';
 require_once ROOT_PATH . '/includes/abilities/cms_basics.php';
 require_once ROOT_PATH . '/includes/abilities/cms_admin.php';
 require_once ROOT_PATH . '/includes/blocks/timeline.php';
+require_once ROOT_PATH . '/includes/customer_service.php';
 require_once ROOT_PATH . '/includes/plugin.php';
 
 // 前台启动完成，供插件挂载初始化逻辑

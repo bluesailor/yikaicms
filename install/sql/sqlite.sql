@@ -1,963 +1,453 @@
--- -----------------------------------------------------------
--- Yikai CMS v1.4.2 - SQLite Install Script
--- -----------------------------------------------------------
+-- ============================================================
+-- Yikai CMS Install SQL (MySQL)
+-- Version: 1.7.4
+-- Generated: 2026-05-16 20:03:01
+-- ============================================================
+PRAGMA foreign_keys = OFF;
 
-DROP TABLE IF EXISTS yikai_admin_logs;
-CREATE TABLE yikai_admin_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    admin_id INTEGER NOT NULL DEFAULT '0',
-    admin_name TEXT NOT NULL DEFAULT '',
-    module TEXT NOT NULL DEFAULT '',
-    action TEXT NOT NULL DEFAULT '',
-    description TEXT NOT NULL DEFAULT '',
-    url TEXT NOT NULL DEFAULT '',
-    method TEXT NOT NULL DEFAULT '',
-    request_data TEXT,
-    ip TEXT NOT NULL DEFAULT '',
-    user_agent TEXT NOT NULL DEFAULT '',
-    created_at INTEGER NOT NULL DEFAULT '0'
+
+DROP TABLE IF EXISTS "yikai_admin_logs";
+CREATE TABLE "yikai_admin_logs" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "admin_id" INTEGER NOT NULL DEFAULT '0',
+  "admin_name" TEXT NOT NULL DEFAULT '',
+  "module" TEXT NOT NULL DEFAULT '',
+  "action" TEXT NOT NULL DEFAULT '',
+  "description" TEXT NOT NULL DEFAULT '',
+  "url" TEXT NOT NULL DEFAULT '',
+  "method" TEXT NOT NULL DEFAULT '',
+  "request_data" TEXT,
+  "ip" TEXT NOT NULL DEFAULT '',
+  "user_agent" TEXT NOT NULL DEFAULT '',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
 );
-CREATE INDEX idx_admin_admin_logs ON yikai_admin_logs(admin_id);
-CREATE INDEX idx_module_admin_logs ON yikai_admin_logs(module);
-CREATE INDEX idx_created_admin_logs ON yikai_admin_logs(created_at);
+CREATE INDEX "idx_admin_yikai_admin_logs" ON "yikai_admin_logs" ("admin_id");
+CREATE INDEX "idx_module_yikai_admin_logs" ON "yikai_admin_logs" ("module");
+CREATE INDEX "idx_created_yikai_admin_logs" ON "yikai_admin_logs" ("created_at");
 
-DROP TABLE IF EXISTS yikai_ai_logs;
-CREATE TABLE yikai_ai_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider TEXT NOT NULL,
-    model TEXT NOT NULL DEFAULT '',
-    action TEXT NOT NULL DEFAULT '',
-    prompt_tokens INTEGER NOT NULL DEFAULT '0',
-    completion_tokens INTEGER NOT NULL DEFAULT '0',
-    total_tokens INTEGER NOT NULL DEFAULT '0',
-    success INTEGER NOT NULL DEFAULT '1',
-    error_msg TEXT NOT NULL DEFAULT '',
-    admin_id INTEGER NOT NULL DEFAULT '0',
-    created_at datetime DEFAULT CURRENT_TIMESTAMP
+
+DROP TABLE IF EXISTS "yikai_ai_logs";
+CREATE TABLE "yikai_ai_logs" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "provider" TEXT NOT NULL,
+  "model" TEXT NOT NULL DEFAULT '',
+  "action" TEXT NOT NULL DEFAULT '',
+  "prompt_tokens" INTEGER NOT NULL DEFAULT '0',
+  "completion_tokens" INTEGER NOT NULL DEFAULT '0',
+  "total_tokens" INTEGER NOT NULL DEFAULT '0',
+  "success" INTEGER NOT NULL DEFAULT '1',
+  "error_msg" TEXT NOT NULL DEFAULT '',
+  "admin_id" INTEGER NOT NULL DEFAULT '0',
+  "created_at" TEXT DEFAULT (datetime('now'))
 );
-CREATE INDEX idx_provider_ai_logs ON yikai_ai_logs(provider);
-CREATE INDEX idx_created_ai_logs ON yikai_ai_logs(created_at);
+CREATE INDEX "idx_provider_yikai_ai_logs" ON "yikai_ai_logs" ("provider");
+CREATE INDEX "idx_created_yikai_ai_logs" ON "yikai_ai_logs" ("created_at");
 
-DROP TABLE IF EXISTS yikai_album_photos;
-CREATE TABLE yikai_album_photos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    album_id INTEGER NOT NULL,
-    title TEXT DEFAULT '',
-    image TEXT NOT NULL,
-    thumb TEXT DEFAULT '',
-    description TEXT DEFAULT '',
-    sort_order INTEGER DEFAULT '0',
-    status INTEGER DEFAULT '1',
-    created_at INTEGER DEFAULT '0'
+
+DROP TABLE IF EXISTS "yikai_album_photos";
+CREATE TABLE "yikai_album_photos" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "album_id" INTEGER NOT NULL,
+  "title" TEXT DEFAULT '',
+  "image" TEXT NOT NULL,
+  "thumb" TEXT DEFAULT '',
+  "description" TEXT DEFAULT '',
+  "sort_order" INTEGER DEFAULT '0',
+  "status" INTEGER DEFAULT '1',
+  "created_at" INTEGER DEFAULT '0'
 );
-CREATE INDEX idx_album_album_photos ON yikai_album_photos(album_id);
-CREATE INDEX idx_sort_album_photos ON yikai_album_photos(sort_order DESC,id DESC);
+CREATE INDEX "idx_album_yikai_album_photos" ON "yikai_album_photos" ("album_id");
+CREATE INDEX "idx_sort_yikai_album_photos" ON "yikai_album_photos" ("sort_order" DESC,"id" DESC);
 
-DROP TABLE IF EXISTS yikai_albums;
-CREATE TABLE yikai_albums (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category_id INTEGER DEFAULT '0',
-    name TEXT NOT NULL,
-    slug TEXT DEFAULT '',
-    cover TEXT DEFAULT '',
-    description TEXT,
-    photo_count INTEGER DEFAULT '0',
-    sort_order INTEGER DEFAULT '0',
-    status INTEGER DEFAULT '1',
-    created_at INTEGER DEFAULT '0',
-    updated_at INTEGER DEFAULT '0'
+
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (1,1,'高新技术企业证书','https://picsum.photos/600/400?random=401','','',1,1,1776654388);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (2,1,'ISO9001质量管理体系认证','https://picsum.photos/600/400?random=402','','',2,1,1776654388);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (3,1,'软件企业认定证书','https://picsum.photos/600/400?random=403','','',3,1,1776654388);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (4,1,'年度最佳科技创新奖','https://picsum.photos/600/400?random=404','','',4,1,1776654388);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (5,1,'优秀供应商荣誉证书','https://picsum.photos/600/400?random=405','','',5,1,1776654388);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (6,1,'行业十佳品牌奖','https://picsum.photos/600/400?random=406','','',6,1,1776654388);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (7,2,'High-Tech Enterprise Certification','https://picsum.photos/600/400?random=401','','',1,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (8,2,'ISO 9001 Quality Management Certification','https://picsum.photos/600/400?random=402','','',2,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (9,2,'Software Enterprise Certification','https://picsum.photos/600/400?random=403','','',3,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (10,2,'Annual Best Tech Innovation Award','https://picsum.photos/600/400?random=404','','',4,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (11,2,'Excellent Supplier Honor Certificate','https://picsum.photos/600/400?random=405','','',5,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (12,2,'Industry Top 10 Brand Award','https://picsum.photos/600/400?random=406','','',6,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (13,3,'ハイテク企業認定証書','https://picsum.photos/600/400?random=401','','',1,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (14,3,'ISO 9001 品質マネジメント認証','https://picsum.photos/600/400?random=402','','',2,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (15,3,'ソフトウェア企業認定証書','https://picsum.photos/600/400?random=403','','',3,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (16,3,'年間最優秀技術革新賞','https://picsum.photos/600/400?random=404','','',4,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (17,3,'優良サプライヤー栄誉証書','https://picsum.photos/600/400?random=405','','',5,1,1778539841);
+INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (18,3,'業界トップ10ブランド賞','https://picsum.photos/600/400?random=406','','',6,1,1778539841);
+DROP TABLE IF EXISTS "yikai_albums";
+CREATE TABLE "yikai_albums" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "category_id" INTEGER DEFAULT '0',
+  "name" TEXT NOT NULL,
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "slug" TEXT DEFAULT '',
+  "cover" TEXT DEFAULT '',
+  "description" TEXT,
+  "photo_count" INTEGER DEFAULT '0',
+  "sort_order" INTEGER DEFAULT '0',
+  "status" INTEGER DEFAULT '1',
+  "created_at" INTEGER DEFAULT '0',
+  "updated_at" INTEGER DEFAULT '0'
 );
-CREATE INDEX idx_category_albums ON yikai_albums(category_id);
-CREATE INDEX idx_status_albums ON yikai_albums(status);
-CREATE INDEX idx_sort_albums ON yikai_albums(sort_order DESC,id DESC);
+CREATE INDEX "idx_category_yikai_albums" ON "yikai_albums" ("category_id");
+CREATE INDEX "idx_status_yikai_albums" ON "yikai_albums" ("status");
+CREATE INDEX "idx_sort_yikai_albums" ON "yikai_albums" ("sort_order" DESC,"id" DESC);
+CREATE INDEX "idx_alb_trans_yikai_albums" ON "yikai_albums" ("translation_group_id");
 
-DROP TABLE IF EXISTS yikai_article_categories;
-CREATE TABLE yikai_article_categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_id INTEGER NOT NULL DEFAULT '0',
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL DEFAULT '',
-    image TEXT NOT NULL DEFAULT '',
-    description TEXT,
-    seo_title TEXT NOT NULL DEFAULT '',
-    seo_keywords TEXT NOT NULL DEFAULT '',
-    seo_description TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT '1',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0'
+
+INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (1,0,'荣誉资质','zh-CN',1,'honor','https://picsum.photos/400/300?random=401','公司获得的各项荣誉与资质证书',6,1,1,1776654388,1776654388);
+INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (2,0,'Honors & Certifications','en',1,'honor','https://picsum.photos/400/300?random=401','A selection of awards and certifications the company has earned.',6,1,1,1778539841,1778539841);
+INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (3,0,'受賞・認証','ja',1,'honor','https://picsum.photos/400/300?random=401','当社が取得した各種の受賞・認証一覧。',6,1,1,1778539841,1778539841);
+CREATE TABLE "yikai_banner_groups" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL,
+  "slug" TEXT NOT NULL,
+  "height_pc" INTEGER NOT NULL DEFAULT '500',
+  "height_mobile" INTEGER NOT NULL DEFAULT '250',
+  "autoplay_delay" INTEGER NOT NULL DEFAULT '5000',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
 );
-CREATE INDEX idx_parent_article_categories ON yikai_article_categories(parent_id);
-CREATE INDEX idx_status_article_categories ON yikai_article_categories(status);
-CREATE INDEX idx_sort_article_categories ON yikai_article_categories(sort_order);
+CREATE UNIQUE INDEX "uk_slug_yikai_banner_groups" ON "yikai_banner_groups" ("slug");
 
-DROP TABLE IF EXISTS yikai_articles;
-CREATE TABLE yikai_articles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category_id INTEGER NOT NULL DEFAULT '0',
-    title TEXT NOT NULL,
-    subtitle TEXT NOT NULL DEFAULT '',
-    slug TEXT NOT NULL DEFAULT '',
-    cover TEXT NOT NULL DEFAULT '',
-    summary TEXT,
-    content TEXT,
-    author TEXT NOT NULL DEFAULT '',
-    source TEXT NOT NULL DEFAULT '',
-    tags TEXT NOT NULL DEFAULT '',
-    is_top INTEGER NOT NULL DEFAULT '0',
-    is_recommend INTEGER NOT NULL DEFAULT '0',
-    is_hot INTEGER NOT NULL DEFAULT '0',
-    views INTEGER NOT NULL DEFAULT '0',
-    likes INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    publish_time INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0',
-    admin_id INTEGER NOT NULL DEFAULT '0'
+
+INSERT INTO "yikai_banner_groups" ("id", "name", "slug", "height_pc", "height_mobile", "autoplay_delay", "sort_order", "status", "created_at") VALUES (1,'首页','home',650,300,5000,0,1,1776652898);
+INSERT INTO "yikai_banner_groups" ("id", "name", "slug", "height_pc", "height_mobile", "autoplay_delay", "sort_order", "status", "created_at") VALUES (2,'关于我们','about',500,250,5000,1,1,1776652898);
+INSERT INTO "yikai_banner_groups" ("id", "name", "slug", "height_pc", "height_mobile", "autoplay_delay", "sort_order", "status", "created_at") VALUES (3,'产品中心','product',500,250,5000,2,1,1776652898);
+INSERT INTO "yikai_banner_groups" ("id", "name", "slug", "height_pc", "height_mobile", "autoplay_delay", "sort_order", "status", "created_at") VALUES (4,'案例展示','case',500,250,5000,3,1,1776652898);
+DROP TABLE IF EXISTS "yikai_banners";
+CREATE TABLE "yikai_banners" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "position" TEXT NOT NULL DEFAULT 'home',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "title" TEXT NOT NULL DEFAULT '',
+  "subtitle" TEXT NOT NULL DEFAULT '',
+  "btn1_text" TEXT NOT NULL DEFAULT '',
+  "btn1_url" TEXT NOT NULL DEFAULT '',
+  "btn2_text" TEXT NOT NULL DEFAULT '',
+  "btn2_url" TEXT NOT NULL DEFAULT '',
+  "image" TEXT NOT NULL,
+  "image_mobile" TEXT NOT NULL DEFAULT '',
+  "link_url" TEXT NOT NULL DEFAULT '',
+  "link_target" TEXT NOT NULL DEFAULT '_self',
+  "start_time" INTEGER NOT NULL DEFAULT '0',
+  "end_time" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
 );
-CREATE INDEX idx_category_articles ON yikai_articles(category_id);
-CREATE INDEX idx_status_articles ON yikai_articles(status);
-CREATE INDEX idx_publish_articles ON yikai_articles(publish_time);
-CREATE INDEX idx_top_articles ON yikai_articles(is_top);
-CREATE INDEX idx_recommend_articles ON yikai_articles(is_recommend);
+CREATE INDEX "idx_position_yikai_banners" ON "yikai_banners" ("position");
+CREATE INDEX "idx_status_yikai_banners" ON "yikai_banners" ("status");
+CREATE INDEX "idx_sort_yikai_banners" ON "yikai_banners" ("sort_order");
+CREATE INDEX "idx_banner_lang_yikai_banners" ON "yikai_banners" ("lang");
+CREATE INDEX "idx_bn_trans_yikai_banners" ON "yikai_banners" ("translation_group_id");
 
-DROP TABLE IF EXISTS yikai_banner_groups;
-CREATE TABLE yikai_banner_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL,
-    height_pc INTEGER NOT NULL DEFAULT '500',
-    height_mobile INTEGER NOT NULL DEFAULT '250',
-    autoplay_delay INTEGER NOT NULL DEFAULT '5000',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_slug_banner_groups ON yikai_banner_groups(slug);
 
-DROP TABLE IF EXISTS yikai_banners;
-CREATE TABLE yikai_banners (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    position TEXT NOT NULL DEFAULT 'home',
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    title TEXT NOT NULL DEFAULT '',
-    subtitle TEXT NOT NULL DEFAULT '',
-    btn1_text TEXT NOT NULL DEFAULT '',
-    btn1_url TEXT NOT NULL DEFAULT '',
-    btn2_text TEXT NOT NULL DEFAULT '',
-    btn2_url TEXT NOT NULL DEFAULT '',
-    image TEXT NOT NULL,
-    image_mobile TEXT NOT NULL DEFAULT '',
-    link_url TEXT NOT NULL DEFAULT '',
-    link_target TEXT NOT NULL DEFAULT '_self',
-    start_time INTEGER NOT NULL DEFAULT '0',
-    end_time INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_position_banners ON yikai_banners(position);
-CREATE INDEX idx_status_banners ON yikai_banners(status);
-CREATE INDEX idx_sort_banners ON yikai_banners(sort_order);
-CREATE INDEX idx_banner_lang_banners ON yikai_banners(lang);
-CREATE INDEX idx_bn_trans_banners ON yikai_banners(translation_group_id);
-
-DROP TABLE IF EXISTS yikai_brands;
-CREATE TABLE yikai_brands (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL DEFAULT '',
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    logo TEXT NOT NULL DEFAULT '',
-    country TEXT NOT NULL DEFAULT '',
-    description TEXT,
-    url TEXT NOT NULL DEFAULT '',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1'
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (1,'home','zh-CN',1,'数字化转型解决方案','助力企业实现智能化升级','了解更多','/about.html','','','https://picsum.photos/1920/600?random=1','','','_self',0,0,1,1,1776652898);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (2,'home','zh-CN',2,'专业的技术服务团队','7x24小时为您保驾护航','','','','','https://picsum.photos/1920/600?random=2','','','_self',0,0,1,2,1776652898);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (3,'home','zh-CN',3,'创新引领未来','持续创新，追求卓越','','','','','https://picsum.photos/1920/600?random=3','','','_self',0,0,1,3,1776652898);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (4,'home','en',1,'Digital Transformation Solutions','End-to-end digital services helping businesses level up','Learn More','/about.html','Contact Sales','','https://picsum.photos/1920/600?random=1','','','_self',0,0,1,1,1778464860);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (5,'home','en',2,'Professional Technical Team','Senior experts, full-stack capabilities, proven delivery','About Us','','Our Services','','https://picsum.photos/1920/600?random=2','','','_self',0,0,1,2,1778464860);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (6,'home','en',3,'Innovation Leading the Future','Technology lights the path ahead — let us walk it together','Contact Us','','View Cases','','https://picsum.photos/1920/600?random=3','','','_self',0,0,1,3,1778464860);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (7,'home','ja',1,'デジタルトランスフォーメーション・ソリューション','エンドツーエンドのデジタルサービスで企業のレベルアップを支援','詳しく見る','/about.html','お問合せ','','https://picsum.photos/1920/600?random=1','','','_self',0,0,1,1,1778464860);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (8,'home','ja',2,'プロフェッショナルな技術チーム','経験豊富な専門家、フルスタック対応、安心の納品実績','会社案内','','サービス','','https://picsum.photos/1920/600?random=2','','','_self',0,0,1,2,1778464860);
+INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (9,'home','ja',3,'イノベーションで未来を切り開く','テクノロジーが未来を照らす — 共に歩みましょう','お問合せ','','事例を見る','','https://picsum.photos/1920/600?random=3','','','_self',0,0,1,3,1778464860);
+DROP TABLE IF EXISTS "yikai_brands";
+CREATE TABLE "yikai_brands" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL,
+  "slug" TEXT NOT NULL DEFAULT '',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "logo" TEXT NOT NULL DEFAULT '',
+  "country" TEXT NOT NULL DEFAULT '',
+  "description" TEXT,
+  "url" TEXT NOT NULL DEFAULT '',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1'
 );
 
-DROP TABLE IF EXISTS yikai_channels;
-CREATE TABLE yikai_channels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    parent_id INTEGER NOT NULL DEFAULT '0',
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'list',
-    album_id INTEGER DEFAULT '0',
-    icon TEXT NOT NULL DEFAULT '',
-    image TEXT NOT NULL DEFAULT '',
-    description TEXT,
-    content TEXT,
-    link_url TEXT NOT NULL DEFAULT '',
-    link_target TEXT NOT NULL DEFAULT '_self',
-    redirect_type TEXT NOT NULL DEFAULT 'auto',
-    redirect_url TEXT NOT NULL DEFAULT '',
-    seo_title TEXT NOT NULL DEFAULT '',
-    seo_keywords TEXT NOT NULL DEFAULT '',
-    seo_description TEXT NOT NULL DEFAULT '',
-    is_nav INTEGER NOT NULL DEFAULT '1',
-    is_home INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    is_system INTEGER NOT NULL DEFAULT '0',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0'
+
+DROP TABLE IF EXISTS "yikai_channels";
+CREATE TABLE "yikai_channels" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "lang" TEXT NOT NULL DEFAULT 'ja',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "parent_id" INTEGER NOT NULL DEFAULT '0',
+  "name" TEXT NOT NULL,
+  "slug" TEXT NOT NULL,
+  "type" TEXT NOT NULL DEFAULT 'list',
+  "album_id" INTEGER DEFAULT '0',
+  "icon" TEXT NOT NULL DEFAULT '',
+  "image" TEXT NOT NULL DEFAULT '',
+  "description" TEXT,
+  "content" TEXT,
+  "link_url" TEXT NOT NULL DEFAULT '',
+  "link_target" TEXT NOT NULL DEFAULT '_self',
+  "redirect_type" TEXT NOT NULL DEFAULT 'auto',
+  "redirect_url" TEXT NOT NULL DEFAULT '',
+  "seo_title" TEXT NOT NULL DEFAULT '',
+  "seo_keywords" TEXT NOT NULL DEFAULT '',
+  "seo_description" TEXT NOT NULL DEFAULT '',
+  "is_nav" INTEGER NOT NULL DEFAULT '1',
+  "is_home" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "is_system" INTEGER NOT NULL DEFAULT '0',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0',
+  "updated_at" INTEGER NOT NULL DEFAULT '0'
 );
-CREATE UNIQUE INDEX uk_slug_channels ON yikai_channels(slug);
-CREATE INDEX idx_parent_channels ON yikai_channels(parent_id);
-CREATE INDEX idx_type_channels ON yikai_channels(type);
-CREATE INDEX idx_status_channels ON yikai_channels(status);
-CREATE INDEX idx_sort_channels ON yikai_channels(sort_order);
-CREATE INDEX idx_lang_channels ON yikai_channels(lang);
+CREATE UNIQUE INDEX "uk_slug_yikai_channels" ON "yikai_channels" ("slug");
+CREATE INDEX "idx_parent_yikai_channels" ON "yikai_channels" ("parent_id");
+CREATE INDEX "idx_type_yikai_channels" ON "yikai_channels" ("type");
+CREATE INDEX "idx_status_yikai_channels" ON "yikai_channels" ("status");
+CREATE INDEX "idx_sort_yikai_channels" ON "yikai_channels" ("sort_order");
+CREATE INDEX "idx_lang_yikai_channels" ON "yikai_channels" ("lang");
 
-DROP TABLE IF EXISTS yikai_contents;
-CREATE TABLE yikai_contents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    channel_id INTEGER NOT NULL DEFAULT '0',
-    type TEXT NOT NULL DEFAULT 'article',
-    title TEXT NOT NULL,
-    subtitle TEXT NOT NULL DEFAULT '',
-    slug TEXT NOT NULL DEFAULT '',
-    cover TEXT NOT NULL DEFAULT '',
-    images TEXT,
-    summary TEXT,
-    content TEXT,
-    content_type TEXT NOT NULL DEFAULT 'html',
-    blocks_data TEXT,
-    author TEXT NOT NULL DEFAULT '',
-    source TEXT NOT NULL DEFAULT '',
-    tags TEXT NOT NULL DEFAULT '',
-    attachment TEXT NOT NULL DEFAULT '',
-    download_count INTEGER NOT NULL DEFAULT '0',
-    price REAL NOT NULL DEFAULT '0.00',
-    specs TEXT,
-    location TEXT NOT NULL DEFAULT '',
-    salary TEXT NOT NULL DEFAULT '',
-    requirements TEXT,
-    headcount TEXT NOT NULL DEFAULT '',
-    job_type TEXT NOT NULL DEFAULT '',
-    education TEXT NOT NULL DEFAULT '',
-    experience TEXT NOT NULL DEFAULT '',
-    is_top INTEGER NOT NULL DEFAULT '0',
-    is_recommend INTEGER NOT NULL DEFAULT '0',
-    is_hot INTEGER NOT NULL DEFAULT '0',
-    views INTEGER NOT NULL DEFAULT '0',
-    likes INTEGER NOT NULL DEFAULT '0',
-    seo_title TEXT NOT NULL DEFAULT '',
-    seo_keywords TEXT NOT NULL DEFAULT '',
-    seo_description TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT '1',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    publish_time INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0',
-    admin_id INTEGER NOT NULL DEFAULT '0',
-    client_name TEXT NOT NULL DEFAULT '',
-    industry TEXT NOT NULL DEFAULT '',
-    duration TEXT NOT NULL DEFAULT '',
-    result_metric TEXT NOT NULL DEFAULT ''
+
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (1,'zh-CN',1,0,'关于我们','about','page',0,'','','了解我们的企业文化与发展历程',NULL,'','_self','auto','','','','',1,0,1,1,0,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (2,'zh-CN',2,1,'公司简介','company','page',0,'','','公司基本情况介绍',NULL,'','_self','auto','','','','',1,0,1,1,1,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (3,'zh-CN',3,1,'企业文化','culture','page',0,'','','企业核心价值观',NULL,'','_self','auto','','','','',1,0,1,1,2,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (4,'zh-CN',4,1,'发展历程','history','page',0,'','','企业发展里程碑',NULL,'','_self','auto','','','','',1,0,1,1,3,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (5,'zh-CN',5,0,'产品中心','product','product',0,'','','我们的产品与服务',NULL,'','_self','auto','','','','',1,1,1,1,1,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (6,'zh-CN',6,0,'成功案例','cases','case',0,'','','客户成功案例展示',NULL,'','_self','auto','','','','',1,1,1,1,2,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (7,'zh-CN',7,0,'新闻资讯','news','list',0,'','','最新动态与行业资讯',NULL,'','_self','auto','','','','',1,1,1,1,5,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (8,'zh-CN',8,7,'公司新闻','company-news','list',0,'','','公司最新动态',NULL,'','_self','auto','','','','',1,0,1,1,1,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (9,'zh-CN',9,7,'行业动态','industry-news','list',0,'','','行业最新资讯',NULL,'','_self','auto','','','','',1,0,1,1,2,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (10,'zh-CN',10,0,'服务支持','service','page',0,'','','专业的服务与技术支持',NULL,'','_self','auto','','','','',1,0,1,1,6,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (11,'zh-CN',11,10,'服务流程','process','page',0,'','','标准化服务流程',NULL,'','_self','auto','','','','',1,0,1,1,1,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (12,'zh-CN',12,10,'常见问题','faq','list',0,'','','常见问题解答',NULL,'','_self','auto','','','','',1,0,1,1,2,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (13,'zh-CN',13,0,'下载中心','download','download',0,'','','资料与软件下载',NULL,'','_self','none','','','','',1,0,1,1,3,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (14,'zh-CN',14,0,'人才招聘','job','job',0,'','','加入我们',NULL,'','_self','auto','','','','',1,0,1,1,7,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (15,'zh-CN',15,0,'联系我们','contact','page',0,'','','联系方式与在线留言',NULL,'','_self','auto','','','','',1,0,1,1,8,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (16,'zh-CN',16,0,'隐私政策','privacy','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,98,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (17,'zh-CN',17,0,'服务条款','terms','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,99,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (18,'zh-CN',18,1,'荣誉资质','honor','album',1,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,1,4,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (19,'zh-CN',19,1,'组织架构','organization','page',0,'','',NULL,NULL,'','_self','none','','','','',1,0,1,1,5,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (20,'zh-CN',20,0,'解决方案','solution','case',0,'','','行业解决方案',NULL,'','_self','auto','','','','',1,0,1,1,4,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (21,'zh-CN',21,20,'行业方案','industry','case',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,1,1,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (22,'zh-CN',22,7,'技术分享','tech-share','list',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,3,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (23,'zh-CN',23,13,'软件下载','software-download','download',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,1,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (24,'zh-CN',24,13,'文档资料','document-download','download',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,2,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (25,'zh-CN',25,13,'驱动程序','driver-download','download',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,3,1776654080,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (27,'en',1,0,'About','about-en','page',0,'','','Learn about our corporate culture and development history.',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (28,'en',2,27,'Company','company-en','page',0,'','','Company Overview',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (29,'en',3,27,'Culture','culture-en','page',0,'','','Corporate core values',NULL,'','_self','auto','','','','',1,0,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (30,'en',4,27,'History','history-en','page',0,'','','Corporate Development Milestones',NULL,'','_self','auto','','','','',1,0,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (31,'en',5,0,'Products','product-en','product',0,'','','Our products and services',NULL,'','_self','auto','','','','',1,1,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (32,'en',6,0,'Cases','cases-en','case',0,'','','Customer Success Showcase',NULL,'','_self','auto','','','','',1,1,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (33,'en',7,0,'News','news-en','list',0,'','','Latest Updates and Industry News',NULL,'','_self','auto','','','','',1,1,1,1,4,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (34,'en',8,33,'Company News','company-news-en','list',0,'','','Latest Company News',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (35,'en',9,33,'Industry News','industry-news-en','list',0,'','','Latest industry news',NULL,'','_self','auto','','','','',1,0,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (36,'en',10,0,'Support','service-en','page',0,'','','Professional Services and Technical Support',NULL,'','_self','auto','','','','',1,0,1,1,5,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (37,'en',11,36,'Process','process-en','page',0,'','','Standardized Service Process',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (38,'en',12,36,'FAQ','faq-en','list',0,'','','Frequently Asked Questions',NULL,'','_self','auto','','','','',1,0,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (39,'en',13,0,'Downloads','download-en','download',0,'','','Materials and Software Download',NULL,'','_self','none','','','','',1,0,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (40,'en',14,0,'Careers','job-en','job',0,'','','Join us',NULL,'','_self','auto','','','','',1,0,1,1,6,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (41,'en',15,0,'Contact','contact-en','page',0,'','','Contact info & online inquiry',NULL,'','_self','auto','','','','',1,0,1,1,7,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (42,'en',16,0,'Privacy','privacy-en','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,98,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (43,'en',17,0,'Terms','terms-en','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,99,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (44,'en',18,27,'Honors','honor-en','album',2,'','','',NULL,'','_self','auto','','','','',1,0,1,1,4,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (45,'en',19,27,'Organization','organization-en','page',0,'','','',NULL,'','_self','none','','','','',1,0,1,1,5,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (46,'en',20,0,'Solutions','solution-en','case',0,'','','Industry Solutions',NULL,'','_self','auto','','','','',1,0,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (47,'en',21,46,'Industry','industry-en','case',0,'','','',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (48,'en',22,33,'Tech','tech-share-en','list',0,'','','',NULL,'','_self','auto','','','','',1,0,1,0,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (49,'en',23,39,'Software','software-download-en','download',0,'','','',NULL,'','_self','auto','','','','',1,0,1,0,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (50,'en',24,39,'Documents','document-download-en','download',0,'','','',NULL,'','_self','auto','','','','',1,0,1,0,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (51,'en',25,39,'Drivers','driver-download-en','download',0,'','','',NULL,'','_self','auto','','','','',1,0,1,0,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (52,'ja',1,0,'会社案内','about-ja','page',0,'','','会社理念と沿革のご紹介',NULL,'','_self','auto','','会社案内','','会社理念と沿革のご紹介',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (53,'ja',2,52,'会社概要','company-ja','page',0,'','','会社情報','<table style="width:100%;border-collapse:collapse">
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">会社名</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">株式会社○○（かぶしきがいしゃ ○○）</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">設立</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">2020年4月</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">代表者</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">代表取締役　○○ ○○</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">資本金</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">1,000万円</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">従業員数</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">50名（2024年4月現在）</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">事業内容</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">・IoTソリューションの企画・開発・販売<br>・企業向けクラウドサービスの提供<br>・システムインテグレーション<br>・テクニカルサポート・コンサルティング</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">本社所在地</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">〒150-0000<br>東京都渋谷区XX町X丁目X-X XXビル 5F</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">大阪支社</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">〒530-0000<br>大阪府大阪市北区XX町X丁目X-X XXビル 3F</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">電話番号</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">03-0000-0000</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">FAX</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">03-0000-0001</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">メールアドレス</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">info@example.co.jp</td>
+</tr>
+<tr style="border-bottom:1px solid #e5e7eb">
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">取引銀行</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">三菱UFJ銀行 ○○支店<br>みずほ銀行 ○○支店</td>
+</tr>
+<tr>
+<th style="padding:16px 20px;text-align:left;width:180px;background:#f9fafb;font-weight:bold;font-size:14px;color:#374151;vertical-align:top">主要取引先</th>
+<td style="padding:16px 20px;font-size:14px;color:#4b5563">株式会社○○<br>○○株式会社<br>○○グループ（順不同・敬称略）</td>
+</tr>
+</table>','','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (54,'ja',3,52,'企業文化','culture-ja','page',0,'','','私たちの価値観',NULL,'','_self','auto','','企業文化','','私たちの価値観',1,0,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (55,'ja',4,52,'沿革','history-ja','page',0,'','','会社の歩み',NULL,'','_self','auto','','','','',1,0,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (56,'ja',5,0,'製品情報','product-ja','product',0,'','','製品・サービス一覧',NULL,'','_self','auto','','','','',1,1,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (57,'ja',6,0,'導入事例','cases-ja','case',0,'','','お客様の成功事例',NULL,'','_self','auto','','導入事例','','お客様の成功事例',1,1,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (58,'ja',7,0,'お知らせ','news-ja','list',0,'','','最新のお知らせ',NULL,'','_self','auto','','','','',1,1,1,1,4,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (59,'ja',8,58,'ニュース','company-news-ja','list',0,'','','企業ニュース',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (60,'ja',9,58,'業界動向','industry-news-ja','list',0,'','','業界の最新情報',NULL,'','_self','auto','','業界動向','','業界の最新情報',1,0,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (61,'ja',10,0,'事業内容','service-ja','page',0,'','','事業内容のご紹介',NULL,'','_self','auto','','','','',1,0,1,1,5,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (62,'ja',11,61,'サービスフロー','process-ja','page',0,'','','標準化されたサービスフロー',NULL,'','_self','auto','','サービスフロー','','標準化されたサービスフロー',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (63,'ja',12,61,'よくあるご質問','faq-ja','list',0,'','','お客様からよく寄せられるご質問',NULL,'','_self','auto','','','','',1,0,1,1,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (64,'ja',13,0,'ダウンロード','download-ja','download',0,'','','資料とソフトウェアダウンロード',NULL,'','_self','none','','ダウンロード','','資料とソフトウェアダウンロード',1,0,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (65,'ja',14,0,'採用情報','job-ja','job',0,'','','私たちと一緒に働きませんか',NULL,'','_self','auto','','採用情報','','私たちと一緒に働きませんか',1,0,1,1,6,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (66,'ja',15,0,'お問い合わせ','contact-ja','page',0,'','','お問い合わせフォーム',NULL,'','_self','auto','','','','',1,0,1,1,7,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (67,'ja',16,0,'プライバシーポリシー','privacy-ja','page',0,'','','個人情報の取り扱いについて',NULL,'','_self','auto','','','','',0,0,1,1,98,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (68,'ja',17,0,'利用規約','terms-ja','page',0,'','','ウェブサイトのご利用条件',NULL,'','_self','auto','','','','',0,0,1,1,99,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (69,'ja',18,52,'受賞・認証','honor-ja','album',3,'','','',NULL,'','_self','auto','','受賞・認証','','',1,0,1,1,4,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (70,'ja',19,52,'組織体制','organization-ja','page',0,'','','',NULL,'','_self','none','','組織体制','','',1,0,1,1,5,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (71,'ja',20,0,'ソリューション','solution-ja','case',0,'','','',NULL,'','_self','auto','','ソリューション','','',1,0,1,1,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (72,'ja',21,71,'業界別ソリューション','industry-ja','case',0,'','','',NULL,'','_self','auto','','業界別ソリューション','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (73,'ja',22,58,'技術情報','tech-share-ja','list',0,'','','',NULL,'','_self','auto','','技術情報','','',1,0,1,0,3,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (74,'ja',23,64,'ソフトウェア','software-download-ja','download',0,'','','',NULL,'','_self','auto','','ソフトウェア','','',1,0,1,0,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (75,'ja',24,64,'文書資料','document-download-ja','download',0,'','','',NULL,'','_self','auto','','文書資料','','',1,0,1,0,2,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (76,'ja',25,64,'ドライバー','driver-download-ja','download',0,'','','',NULL,'','_self','auto','','ドライバー','','',1,0,1,0,3,1778434704,1778434704);
+DROP TABLE IF EXISTS "yikai_contents";
+CREATE TABLE "yikai_contents" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "lang" TEXT NOT NULL DEFAULT 'ja',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "channel_id" INTEGER NOT NULL DEFAULT '0',
+  "type" TEXT NOT NULL DEFAULT 'article',
+  "title" TEXT NOT NULL,
+  "subtitle" TEXT NOT NULL DEFAULT '',
+  "slug" TEXT NOT NULL DEFAULT '',
+  "cover" TEXT NOT NULL DEFAULT '',
+  "images" TEXT,
+  "summary" TEXT,
+  "content" TEXT,
+  "content_type" TEXT NOT NULL DEFAULT 'html',
+  "blocks_data" TEXT,
+  "author" TEXT NOT NULL DEFAULT '',
+  "source" TEXT NOT NULL DEFAULT '',
+  "tags" TEXT NOT NULL DEFAULT '',
+  "attachment" TEXT NOT NULL DEFAULT '',
+  "download_count" INTEGER NOT NULL DEFAULT '0',
+  "price" REAL NOT NULL DEFAULT '0.00',
+  "specs" TEXT,
+  "location" TEXT NOT NULL DEFAULT '',
+  "salary" TEXT NOT NULL DEFAULT '',
+  "requirements" TEXT,
+  "headcount" TEXT NOT NULL DEFAULT '',
+  "job_type" TEXT NOT NULL DEFAULT '',
+  "education" TEXT NOT NULL DEFAULT '',
+  "experience" TEXT NOT NULL DEFAULT '',
+  "is_top" INTEGER NOT NULL DEFAULT '0',
+  "is_recommend" INTEGER NOT NULL DEFAULT '0',
+  "is_hot" INTEGER NOT NULL DEFAULT '0',
+  "views" INTEGER NOT NULL DEFAULT '0',
+  "likes" INTEGER NOT NULL DEFAULT '0',
+  "seo_title" TEXT NOT NULL DEFAULT '',
+  "seo_keywords" TEXT NOT NULL DEFAULT '',
+  "seo_description" TEXT NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "publish_time" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0',
+  "updated_at" INTEGER NOT NULL DEFAULT '0',
+  "admin_id" INTEGER NOT NULL DEFAULT '0',
+  "client_name" TEXT NOT NULL DEFAULT '',
+  "industry" TEXT NOT NULL DEFAULT '',
+  "duration" TEXT NOT NULL DEFAULT '',
+  "result_metric" TEXT NOT NULL DEFAULT ''
 );
-CREATE INDEX idx_channel_contents ON yikai_contents(channel_id);
-CREATE INDEX idx_type_contents ON yikai_contents(type);
-CREATE INDEX idx_status_contents ON yikai_contents(status);
-CREATE INDEX idx_publish_contents ON yikai_contents(publish_time);
-CREATE INDEX idx_top_contents ON yikai_contents(is_top);
-CREATE INDEX idx_recommend_contents ON yikai_contents(is_recommend);
-CREATE INDEX idx_hot_contents ON yikai_contents(is_hot);
-CREATE INDEX idx_lang_status_contents ON yikai_contents(lang,status);
-CREATE INDEX idx_trans_group_contents ON yikai_contents(translation_group_id);
-CREATE INDEX idx_sort_contents ON yikai_contents(sort_order);
+CREATE INDEX "idx_channel_yikai_contents" ON "yikai_contents" ("channel_id");
+CREATE INDEX "idx_type_yikai_contents" ON "yikai_contents" ("type");
+CREATE INDEX "idx_status_yikai_contents" ON "yikai_contents" ("status");
+CREATE INDEX "idx_publish_yikai_contents" ON "yikai_contents" ("publish_time");
+CREATE INDEX "idx_top_yikai_contents" ON "yikai_contents" ("is_top");
+CREATE INDEX "idx_recommend_yikai_contents" ON "yikai_contents" ("is_recommend");
+CREATE INDEX "idx_hot_yikai_contents" ON "yikai_contents" ("is_hot");
+CREATE INDEX "idx_lang_status_yikai_contents" ON "yikai_contents" ("lang","status");
+CREATE INDEX "idx_trans_group_yikai_contents" ON "yikai_contents" ("translation_group_id");
+CREATE INDEX "idx_sort_yikai_contents" ON "yikai_contents" ("sort_order");
 
-DROP TABLE IF EXISTS yikai_download_categories;
-CREATE TABLE yikai_download_categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT DEFAULT '',
-    sort_order INTEGER DEFAULT '0',
-    status INTEGER DEFAULT '1',
-    created_at INTEGER DEFAULT '0'
-);
 
-DROP TABLE IF EXISTS yikai_downloads;
-CREATE TABLE yikai_downloads (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category_id INTEGER DEFAULT '0',
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    title TEXT NOT NULL,
-    description TEXT,
-    cover TEXT DEFAULT '',
-    file_url TEXT DEFAULT '',
-    file_name TEXT DEFAULT '',
-    file_size bigINTEGER DEFAULT '0',
-    file_ext TEXT DEFAULT '',
-    download_count INTEGER DEFAULT '0',
-    is_external INTEGER DEFAULT '0',
-    require_login INTEGER NOT NULL DEFAULT '0',
-    sort_order INTEGER DEFAULT '0',
-    status INTEGER DEFAULT '1',
-    created_at INTEGER DEFAULT '0',
-    updated_at INTEGER DEFAULT '0',
-    admin_id INTEGER DEFAULT '0'
-);
-CREATE INDEX idx_category_downloads ON yikai_downloads(category_id);
-CREATE INDEX idx_status_downloads ON yikai_downloads(status);
-CREATE INDEX idx_sort_downloads ON yikai_downloads(sort_order DESC,id DESC);
-CREATE INDEX idx_dl_lang_downloads ON yikai_downloads(lang);
-
-DROP TABLE IF EXISTS yikai_extfields;
-CREATE TABLE yikai_extfields (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_type TEXT NOT NULL,
-    field_key TEXT NOT NULL,
-    field_name TEXT NOT NULL,
-    field_type TEXT NOT NULL DEFAULT 'TEXT',
-    options TEXT,
-    placeholder TEXT NOT NULL DEFAULT '',
-    help_text TEXT NOT NULL DEFAULT '',
-    is_required INTEGER NOT NULL DEFAULT '0',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_owner_key_extfields ON yikai_extfields(owner_type,field_key);
-CREATE INDEX idx_owner_extfields ON yikai_extfields(owner_type,status,sort_order);
-
-DROP TABLE IF EXISTS yikai_form_templates;
-CREATE TABLE yikai_form_templates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL,
-    fields TEXT,
-    success_message TEXT NOT NULL DEFAULT '提交成功，感谢您的反馈！',
-    status INTEGER NOT NULL DEFAULT '1',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_slug_form_templates ON yikai_form_templates(slug);
-
-DROP TABLE IF EXISTS yikai_forms;
-CREATE TABLE yikai_forms (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL DEFAULT 'contact',
-    product_id INTEGER NOT NULL DEFAULT '0',
-    product_title TEXT NOT NULL DEFAULT '',
-    source TEXT NOT NULL DEFAULT 'contact',
-    name TEXT NOT NULL DEFAULT '',
-    phone TEXT NOT NULL DEFAULT '',
-    email TEXT NOT NULL DEFAULT '',
-    company TEXT NOT NULL DEFAULT '',
-    content TEXT,
-    extra TEXT,
-    ip TEXT NOT NULL DEFAULT '',
-    user_agent TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT '0',
-    follow_admin INTEGER NOT NULL DEFAULT '0',
-    follow_note TEXT,
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_type_forms ON yikai_forms(type);
-CREATE INDEX idx_status_forms ON yikai_forms(status);
-CREATE INDEX idx_created_forms ON yikai_forms(created_at);
-CREATE INDEX idx_product_forms ON yikai_forms(product_id);
-CREATE INDEX idx_source_forms ON yikai_forms(source);
-
-DROP TABLE IF EXISTS yikai_jobs;
-CREATE TABLE yikai_jobs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    cover TEXT NOT NULL DEFAULT '',
-    summary TEXT,
-    content TEXT,
-    location TEXT NOT NULL DEFAULT '',
-    salary TEXT NOT NULL DEFAULT '',
-    job_type TEXT NOT NULL DEFAULT '',
-    education TEXT NOT NULL DEFAULT '',
-    experience TEXT NOT NULL DEFAULT '',
-    headcount TEXT NOT NULL DEFAULT '',
-    requirements TEXT,
-    views INTEGER NOT NULL DEFAULT '0',
-    is_top INTEGER NOT NULL DEFAULT '0',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    publish_time INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0',
-    admin_id INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_status_jobs ON yikai_jobs(status);
-CREATE INDEX idx_top_jobs ON yikai_jobs(is_top DESC,sort_order DESC,id DESC);
-CREATE INDEX idx_job_lang_jobs ON yikai_jobs(lang);
-
-DROP TABLE IF EXISTS yikai_links;
-CREATE TABLE yikai_links (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    name TEXT NOT NULL,
-    url TEXT NOT NULL,
-    logo TEXT NOT NULL DEFAULT '',
-    description TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT '1',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_status_links ON yikai_links(status);
-CREATE INDEX idx_sort_links ON yikai_links(sort_order);
-CREATE INDEX idx_lk_lang_links ON yikai_links(lang);
-CREATE INDEX idx_lk_trans_links ON yikai_links(translation_group_id);
-
-DROP TABLE IF EXISTS yikai_media;
-CREATE TABLE yikai_media (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    path TEXT NOT NULL,
-    url TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'image',
-    ext TEXT NOT NULL DEFAULT '',
-    mime TEXT NOT NULL DEFAULT '',
-    size INTEGER NOT NULL DEFAULT '0',
-    width INTEGER NOT NULL DEFAULT '0',
-    height INTEGER NOT NULL DEFAULT '0',
-    md5 TEXT NOT NULL DEFAULT '',
-    admin_id INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_type_media ON yikai_media(type);
-CREATE INDEX idx_admin_media ON yikai_media(admin_id);
-CREATE INDEX idx_md5_media ON yikai_media(md5);
-
-DROP TABLE IF EXISTS yikai_members;
-CREATE TABLE yikai_members (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL,
-    email TEXT NOT NULL DEFAULT '',
-    nickname TEXT NOT NULL DEFAULT '',
-    avatar TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT '1',
-    last_login_time INTEGER NOT NULL DEFAULT '0',
-    last_login_ip TEXT NOT NULL DEFAULT '',
-    login_count INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_username_members ON yikai_members(username);
-CREATE UNIQUE INDEX uk_email_members ON yikai_members(email);
-
-DROP TABLE IF EXISTS yikai_metas;
-CREATE TABLE yikai_metas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_type TEXT NOT NULL,
-    owner_id INTEGER NOT NULL DEFAULT '0',
-    meta_key TEXT NOT NULL,
-    meta_value TEXT,
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_owner_key_metas ON yikai_metas(owner_type,owner_id,meta_key);
-CREATE INDEX idx_owner_metas ON yikai_metas(owner_type,owner_id);
-
-DROP TABLE IF EXISTS yikai_plugins;
-CREATE TABLE yikai_plugins (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug TEXT NOT NULL,
-    status INTEGER NOT NULL DEFAULT '0',
-    installed_at INTEGER NOT NULL DEFAULT '0',
-    activated_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_slug_plugins ON yikai_plugins(slug);
-
-DROP TABLE IF EXISTS yikai_product_categories;
-CREATE TABLE yikai_product_categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_id INTEGER NOT NULL DEFAULT '0',
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL DEFAULT '',
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    image TEXT NOT NULL DEFAULT '',
-    description TEXT,
-    seo_title TEXT NOT NULL DEFAULT '',
-    seo_keywords TEXT NOT NULL DEFAULT '',
-    seo_description TEXT NOT NULL DEFAULT '',
-    status INTEGER NOT NULL DEFAULT '1',
-    is_nav INTEGER NOT NULL DEFAULT '1',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_parent_product_categories ON yikai_product_categories(parent_id);
-CREATE INDEX idx_status_product_categories ON yikai_product_categories(status);
-CREATE INDEX idx_sort_product_categories ON yikai_product_categories(sort_order);
-CREATE INDEX idx_pc_lang_product_categories ON yikai_product_categories(lang);
-
-DROP TABLE IF EXISTS yikai_product_tag_map;
-CREATE TABLE yikai_product_tag_map (
-    product_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL
-);
-CREATE INDEX idx_tag_product_tag_map ON yikai_product_tag_map(tag_id);
-
-DROP TABLE IF EXISTS yikai_product_tags;
-CREATE TABLE yikai_product_tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_name TEXT NOT NULL,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL DEFAULT '',
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1'
-);
-CREATE INDEX idx_group_product_tags ON yikai_product_tags(group_name);
-
-DROP TABLE IF EXISTS yikai_products;
-CREATE TABLE yikai_products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    category_id INTEGER NOT NULL DEFAULT '0',
-    brand_id INTEGER NOT NULL DEFAULT '0',
-    title TEXT NOT NULL,
-    subtitle TEXT NOT NULL DEFAULT '',
-    slug TEXT NOT NULL DEFAULT '',
-    cover TEXT NOT NULL DEFAULT '',
-    images TEXT,
-    summary TEXT,
-    content TEXT,
-    price REAL NOT NULL DEFAULT '0.00',
-    market_price REAL NOT NULL DEFAULT '0.00',
-    model TEXT NOT NULL DEFAULT '',
-    specs TEXT,
-    tags TEXT NOT NULL DEFAULT '',
-    is_top INTEGER NOT NULL DEFAULT '0',
-    is_recommend INTEGER NOT NULL DEFAULT '0',
-    is_hot INTEGER NOT NULL DEFAULT '0',
-    is_new INTEGER NOT NULL DEFAULT '0',
-    views INTEGER NOT NULL DEFAULT '0',
-    status INTEGER NOT NULL DEFAULT '1',
-    sort_order INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0',
-    admin_id INTEGER NOT NULL DEFAULT '0'
-);
-CREATE INDEX idx_category_products ON yikai_products(category_id);
-CREATE INDEX idx_status_products ON yikai_products(status);
-CREATE INDEX idx_top_products ON yikai_products(is_top);
-CREATE INDEX idx_recommend_products ON yikai_products(is_recommend);
-CREATE INDEX idx_sort_products ON yikai_products(sort_order);
-CREATE INDEX idx_lang_status_products ON yikai_products(lang,status);
-CREATE INDEX idx_trans_group_products ON yikai_products(translation_group_id);
-
-DROP TABLE IF EXISTS yikai_roles;
-CREATE TABLE yikai_roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    permissions TEXT,
-    status INTEGER NOT NULL DEFAULT '1',
-    created_at INTEGER NOT NULL DEFAULT '0'
-);
-
-DROP TABLE IF EXISTS yikai_settings;
-CREATE TABLE yikai_settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    "group" TEXT NOT NULL DEFAULT 'basic',
-    "key" TEXT NOT NULL,
-    value TEXT,
-    type TEXT NOT NULL DEFAULT 'TEXT',
-    name TEXT NOT NULL DEFAULT '',
-    tip TEXT NOT NULL DEFAULT '',
-    options TEXT,
-    sort_order INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_key_settings ON yikai_settings(key);
-CREATE INDEX idx_group_settings ON yikai_settings("group");
-
-DROP TABLE IF EXISTS yikai_timelines;
-CREATE TABLE yikai_timelines (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    lang TEXT NOT NULL DEFAULT 'zh-CN',
-    translation_group_id INTEGER NOT NULL DEFAULT '0',
-    year INTEGER NOT NULL,
-    month INTEGER DEFAULT '0',
-    day INTEGER DEFAULT '0',
-    title TEXT NOT NULL,
-    content TEXT,
-    image TEXT DEFAULT '',
-    icon TEXT DEFAULT '',
-    color TEXT DEFAULT '',
-    sort_order INTEGER DEFAULT '0',
-    status INTEGER DEFAULT '1',
-    created_at INTEGER DEFAULT '0',
-    updated_at INTEGER DEFAULT '0'
-);
-CREATE INDEX idx_year_timelines ON yikai_timelines(year);
-CREATE INDEX idx_status_timelines ON yikai_timelines(status);
-CREATE INDEX idx_sort_timelines ON yikai_timelines(sort_order DESC,year DESC,month DESC);
-CREATE INDEX idx_tl_lang_timelines ON yikai_timelines(lang);
-CREATE INDEX idx_tl_trans_timelines ON yikai_timelines(translation_group_id);
-
-DROP TABLE IF EXISTS yikai_users;
-CREATE TABLE yikai_users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL,
-    nickname TEXT NOT NULL DEFAULT '',
-    email TEXT NOT NULL DEFAULT '',
-    avatar TEXT NOT NULL DEFAULT '',
-    role_id INTEGER NOT NULL DEFAULT '1',
-    status INTEGER NOT NULL DEFAULT '1',
-    last_login_time INTEGER NOT NULL DEFAULT '0',
-    last_login_ip TEXT NOT NULL DEFAULT '',
-    login_count INTEGER NOT NULL DEFAULT '0',
-    created_at INTEGER NOT NULL DEFAULT '0',
-    updated_at INTEGER NOT NULL DEFAULT '0'
-);
-CREATE UNIQUE INDEX uk_username_users ON yikai_users(username);
-CREATE INDEX idx_status_users ON yikai_users(status);
--- Default Roles
--- -----------------------------------------------------------
-INSERT INTO yikai_roles (id, name, description, permissions, status, created_at) VALUES
-(1, '超级管理员', '拥有全部权限', '["*"]', 1, strftime('%s','now')),
-(2, '编辑', '内容编辑权限', '["content","media"]', 1, strftime('%s','now')),
-(3, '运营', '运营管理权限', '["content","media","form","banner","link"]', 1, strftime('%s','now'));
-
--- -----------------------------------------------------------
--- Default Banner Groups
--- -----------------------------------------------------------
-INSERT INTO yikai_banner_groups (name, slug, height_pc, height_mobile, autoplay_delay, sort_order, status, created_at) VALUES
-('首页', 'home', 650, 300, 5000, 0, 1, strftime('%s','now')),
-('关于我们', 'about', 500, 250, 5000, 1, 1, strftime('%s','now')),
-('产品中心', 'product', 500, 250, 5000, 2, 1, strftime('%s','now')),
-('案例展示', 'case', 500, 250, 5000, 3, 1, strftime('%s','now'));
-
--- -----------------------------------------------------------
--- Default Settings
--- -----------------------------------------------------------
-INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order) VALUES
--- basic
-('basic', 'site_url', '', 'text', '站点域名', '如 https://www.example.com', NULL, 0),
-('basic', 'site_name', 'Yikai CMS', 'text', '站点名称', '', NULL, 1),
-('basic', 'site_keywords', '企业官网,CMS,内容管理', 'textarea', 'SEO关键词', '多个关键词用逗号分隔', NULL, 2),
-('basic', 'site_description', '专业的企业内容管理系统，助力企业数字化转型', 'textarea', 'SEO描述', '', NULL, 3),
-('basic', 'site_logo', '', 'image', '站点Logo', '', NULL, 4),
-('basic', 'site_favicon', '/favicon.ico', 'image', '站点图标', '', NULL, 5),
-('basic', 'primary_color', '#3B82F6', 'color', '主题色', '', NULL, 6),
-('basic', 'secondary_color', '#1D4ED8', 'color', '辅助色', '', NULL, 7),
-('basic', 'site_icp', '', 'text', 'ICP备案号', '', NULL, 10),
-('basic', 'site_police', '', 'text', '公安备案号', '', NULL, 11),
-('basic', 'admin_title', 'Yikai CMS', 'text', '后台名称', '后台左上角显示的名称', NULL, 20),
-('basic', 'admin_logo', '/images/logo.png', 'image', '后台Logo', '留空显示文字', NULL, 21),
-('basic', 'admin_copyright', '', 'text', '后台版权', '留空不显示', NULL, 22),
--- header
-('header', 'topbar_enabled', '0', 'select', '顶部通栏', '', '{"0":"隐藏","1":"显示"}', 0),
-('header', 'topbar_bg_color', '#f3f4f6', 'color', '通栏背景色', '', NULL, 1),
-('header', 'topbar_left', '', 'code', '通栏左侧内容', '', NULL, 2),
-('header', 'show_member_entry', '0', 'select', '会员入口', '', '{"0":"隐藏","1":"显示"}', 3),
-('header', 'header_nav_layout', 'right', 'select', '导航布局', '', '{"right":"Logo右侧","below":"Logo下方通栏"}', 10),
-('header', 'header_sticky', '0', 'select', '固定顶部', '', '{"1":"是","0":"否"}', 11),
-('header', 'header_bg_color', '#ffffff', 'color', '背景颜色', '', NULL, 12),
-('header', 'header_text_color', '#4b5563', 'color', '文字颜色', '', NULL, 13),
--- footer
-('footer', 'footer_columns', '[{"title":"关于我们","content":"{{site_description}}","col_span":2},{"title":"联系方式","content":"{{contact_info}}","col_span":1},{"title":"关注我们","content":"{{qrcode}}","col_span":1}]', 'footer_columns', '页脚栏目', '', NULL, 1),
-('footer', 'footer_bg_color', '#1f2937', 'color', '背景颜色', '', NULL, 2),
-('footer', 'footer_bg_image', '', 'image', '背景图片', '', NULL, 3),
-('footer', 'footer_text_color', '#9ca3af', 'color', '文字颜色', '', NULL, 4),
-('footer', 'footer_nav', '[{"title":"","links":[{"name":"隐私政策","url":"/privacy.html"},{"name":"服务条款","url":"/terms.html"}]}]', 'footer_nav', '页脚导航', '', NULL, 5),
-('footer', 'footer_copyright_text', '© {year} {site_name} 版权所有.', 'text', '版权文字', '{year}=年份 {site_name}=站点名', NULL, 6),
--- code
-('code', 'custom_head_code', '', 'code', 'Head代码', '', NULL, 1),
-('code', 'custom_body_code', '', 'code', 'Body代码', '', NULL, 2),
--- contact
-('contact', 'contact_cards', '[{"icon":"phone","label":"联系电话","value":"400-888-8888"},{"icon":"email","label":"电子邮箱","value":"contact@example.com"},{"icon":"location","label":"公司地址","value":"上海市浦东新区XX路XX号"}]', 'contact_cards', '联系卡片', '', NULL, 0),
-('contact', 'contact_phone', '400-888-8888', 'text', '联系电话', '', NULL, 1),
-('contact', 'contact_email', 'contact@example.com', 'text', '联系邮箱', '', NULL, 2),
-('contact', 'contact_address', '上海市浦东新区XX路XX号', 'textarea', '联系地址', '', NULL, 3),
-('contact', 'contact_qrcode', '', 'image', '二维码', '', NULL, 4),
-('contact', 'contact_map', '', 'image', '地图图片', '', NULL, 5),
-('contact', 'contact_form_title', '在线留言', 'text', '表单标题', '', NULL, 10),
-('contact', 'contact_form_desc', '', 'textarea', '表单描述', '', NULL, 11),
-('contact', 'contact_form_fields', '[{"key":"name","label":"您的姓名","type":"text","required":true,"enabled":true},{"key":"phone","label":"联系电话","type":"tel","required":true,"enabled":true},{"key":"email","label":"电子邮箱","type":"email","required":false,"enabled":true},{"key":"company","label":"公司名称","type":"text","required":false,"enabled":true},{"key":"content","label":"留言内容","type":"textarea","required":true,"enabled":true}]', 'contact_form_fields', '表单字段', '', NULL, 12),
-('contact', 'contact_form_success', '提交成功，我们会尽快与您联系！', 'text', '提交成功提示', '', NULL, 13),
--- home
-('home', 'home_about_content', '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。', 'textarea', '关于我们简介', '', NULL, 1),
-('home', 'home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80', 'image', '关于我们图片', '', NULL, 2),
-('home', 'home_about_tag_title', '专业服务', 'text', '角标标题', '', NULL, 3),
-('home', 'home_about_tag_desc', '品质 · 创新 · 共赢', 'text', '角标描述', '', NULL, 4),
-('home', 'home_about_layout', 'text_left', 'select', '关于我们布局', '', '{"text_left":"左文右图","image_left":"左图右文"}', 6),
-('home', 'home_stat_1_num', '10+', 'text', '统计数字1', '', NULL, 5),
-('home', 'home_stat_1_text', '年行业经验', 'text', '统计文字1', '', NULL, 6),
-('home', 'home_stat_2_num', '1000+', 'text', '统计数字2', '', NULL, 7),
-('home', 'home_stat_2_text', '服务客户', 'text', '统计文字2', '', NULL, 8),
-('home', 'home_stat_3_num', '50+', 'text', '统计数字3', '', NULL, 9),
-('home', 'home_stat_3_text', '专业团队', 'text', '统计文字3', '', NULL, 10),
-('home', 'home_stat_4_num', '100%', 'text', '统计数字4', '', NULL, 11),
-('home', 'home_stat_4_text', '客户满意', 'text', '统计文字4', '', NULL, 12),
-('home', 'home_stat_bg', '', 'image', '统计区背景图', '', NULL, 12),
-('home', 'home_advantage_desc', '专业团队，优质服务，值得信赖', 'text', '优势区块描述', '', NULL, 13),
-('home', 'home_adv_1_icon', 'check-circle', 'icon', '优势1图标', '', NULL, 14),
-('home', 'home_adv_1_title', '品质保证', 'text', '优势1标题', '', NULL, 14),
-('home', 'home_adv_1_desc', '严格把控产品质量，确保每一件产品都符合标准', 'text', '优势1描述', '', NULL, 15),
-('home', 'home_adv_2_icon', 'academic-cap', 'icon', '优势2图标', '', NULL, 16),
-('home', 'home_adv_2_title', '技术领先', 'text', '优势2标题', '', NULL, 16),
-('home', 'home_adv_2_desc', '持续研发创新，保持技术的领先优势', 'text', '优势2描述', '', NULL, 17),
-('home', 'home_adv_3_icon', 'briefcase', 'icon', '优势3图标', '', NULL, 18),
-('home', 'home_adv_3_title', '专业服务', 'text', '优势3标题', '', NULL, 18),
-('home', 'home_adv_3_desc', '专业团队7x24小时技术支持服务', 'text', '优势3描述', '', NULL, 19),
-('home', 'home_adv_4_icon', 'users', 'icon', '优势4图标', '', NULL, 20),
-('home', 'home_adv_4_title', '合作共赢', 'text', '优势4标题', '', NULL, 20),
-('home', 'home_adv_4_desc', '与客户建立长期合作关系，实现互利共赢', 'text', '优势4描述', '', NULL, 21),
-('home', 'home_cta_title', '准备好开始合作了吗？', 'text', 'CTA标题', '', NULL, 22),
-('home', 'home_cta_desc', '联系我们，获取专业的解决方案', 'text', 'CTA描述', '', NULL, 23),
-('home', 'home_show_links', '0', 'select', '显示合作伙伴', '', NULL, 24),
-('home', 'home_links_title', '合作伙伴', 'text', '链接区块标题', '', NULL, 25),
-('home', 'home_testimonials', '[{"avatar":"","name":"张先生","company":"某科技有限公司","content":"非常专业的服务团队，合作非常愉快！"},{"avatar":"","name":"李女士","company":"某贸易公司","content":"产品质量优秀，售后服务及时，值得信赖。"},{"avatar":"","name":"王总","company":"某集团公司","content":"多年合作，一直保持高品质的服务水准！"}]', 'home_testimonials', '客户评价', '', NULL, 26),
-('home', 'home_testimonials_title', '客户评价', 'text', '评价区标题', '', NULL, 27),
-('home', 'home_testimonials_desc', '听听合作伙伴怎么说', 'text', '评价区描述', '', NULL, 28),
-('home', 'home_show_banner', '1', 'select', '显示轮播图', '', NULL, 30),
-('home', 'home_show_about', '1', 'select', '显示关于我们', '', NULL, 31),
-('home', 'home_show_stats', '1', 'select', '显示数据统计', '', NULL, 32),
-('home', 'home_show_channels', '1', 'select', '显示栏目区块', '', NULL, 33),
-('home', 'home_show_advantage', '1', 'select', '显示优势展示', '', NULL, 34),
-('home', 'home_show_cta', '1', 'select', '显示行动号召', '', NULL, 35),
-('home', 'home_blocks_config', '[{"type":"banner","enabled":true},{"type":"about","enabled":true},{"type":"stats","enabled":true},{"type":"channels","enabled":true},{"type":"testimonials","enabled":true},{"type":"advantage","enabled":true},{"type":"cta","enabled":true}]', 'home_blocks', '首页区块配置', '', NULL, 40),
--- email
-('email', 'smtp_host', '', 'text', 'SMTP服务器', '', NULL, 1),
-('email', 'smtp_port', '465', 'text', 'SMTP端口', '', NULL, 2),
-('email', 'smtp_secure', 'ssl', 'text', '加密方式', '', NULL, 3),
-('email', 'smtp_user', '', 'text', 'SMTP用户名', '', NULL, 4),
-('email', 'smtp_pass', '', 'text', 'SMTP密码', '', NULL, 5),
-('email', 'mail_from', '', 'text', '发件人邮箱', '', NULL, 6),
-('email', 'mail_from_name', '', 'text', '发件人名称', '', NULL, 7),
-('email', 'mail_admin', '', 'text', '管理员邮箱', '', NULL, 8),
-('email', 'mail_notify_form', '0', 'text', '表单提交通知', '', NULL, 9),
-('email', 'mail_tpl_register_subject', '欢迎注册 — {{site_name}}', 'text', '注册邮件标题', '', NULL, 20),
-('email', 'mail_tpl_register_body', '{{username}}，您好！\n欢迎注册 {{site_name}}！\n{{site_url}}/member/\n{{site_name}} {{date}}', 'textarea', '注册邮件内容', '', NULL, 21),
-('email', 'mail_tpl_forgot_subject', '密码找回 — {{site_name}}', 'text', '找回密码标题', '', NULL, 22),
-('email', 'mail_tpl_forgot_body', '{{username}}，您好！\n请点击以下链接重置密码：\n{{reset_link}}\n链接30分钟有效。\n{{site_name}} {{date}}', 'textarea', '找回密码内容', '', NULL, 23),
-('email', 'mail_tpl_reset_subject', '密码已重置 — {{site_name}}', 'text', '密码重置标题', '', NULL, 24),
-('email', 'mail_tpl_reset_body', '{{username}}，您好！\n您的密码已成功重置。\n{{site_name}} {{date}}', 'textarea', '密码重置内容', '', NULL, 25),
-('email', 'mail_tpl_inquiry_subject', '新询盘：{{product_title}} — {{site_name}}', 'text', '询盘通知标题', '', NULL, 26),
-('email', 'mail_tpl_inquiry_body', '产品：{{product_title}}\n姓名：{{name}}\n电话：{{phone}}\n邮箱：{{email}}\n公司：{{company}}\n内容：{{content}}\n时间：{{date}}\nIP：{{ip}}', 'textarea', '询盘通知内容', '', NULL, 27),
--- product
-('product', 'product_layout', 'sidebar', 'select', '产品列表版式', '', '{"sidebar":"侧栏模式","top":"顶栏模式"}', 1),
-('product', 'show_price', '0', 'select', '显示产品价格', '', '{"0":"隐藏","1":"显示"}', 2),
-('product', 'product_sort_options', '["default","newest","views"]', 'text', '可用排序选项', '', NULL, 3),
-('product', 'product_default_sort', 'default', 'select', '产品默认排序', '', '{"default":"默认","newest":"最新","views":"浏览量"}', 4),
--- banner
-('banner', 'banner_height_pc', '650', 'number', '轮播图高度(PC)', '', NULL, 1),
-('banner', 'banner_height_mobile', '300', 'number', '轮播图高度(移动)', '', NULL, 2),
--- member
-('member', 'allow_member_register', '0', 'switch', '允许会员注册', '', NULL, 1),
-('member', 'download_require_login', '0', 'switch', '下载需要登录', '', NULL, 2),
--- social
-('social', 'social_links', '[]', 'social_links', '社交媒体链接', '', NULL, 1),
--- system
-('system', 'current_theme', 'default', 'text', '当前主题', '', NULL, 0),
-('system', 'cms_version', '1.4.2', 'text', 'CMS版本号', '', NULL, 1),
-('system', 'site_lang', 'zh-CN', 'text', '站点语言', '', NULL, 2),
-('system', 'admin_lang', 'zh-CN', 'text', '后台语言', '', NULL, 3),
-('system', 'html_cache_enabled', '0', 'select', 'HTML缓存', '', '{"0":"关闭","1":"开启"}', 10),
-('system', 'html_cache_ttl', '300', 'number', '缓存有效期', '秒', NULL, 11);
-
--- -----------------------------------------------------------
--- Default Channels
--- -----------------------------------------------------------
-INSERT INTO yikai_channels (lang, translation_group_id, parent_id, name, slug, type, album_id, icon, image, description, content, link_url, link_target, redirect_type, redirect_url, seo_title, seo_keywords, seo_description, is_nav, is_home, status, is_system, sort_order, created_at, updated_at) VALUES
-('zh-CN', 0, 0, '关于我们', 'about', 'page', 0, '', '', '了解我们的企业文化与发展历程', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 1, strftime('%s','now'), 0),
-('zh-CN', 0, 1, '公司简介', 'company', 'page', 0, '', '', '公司基本情况介绍', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 1, strftime('%s','now'), 0),
-('zh-CN', 0, 1, '企业文化', 'culture', 'page', 0, '', '', '企业核心价值观', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 2, strftime('%s','now'), 0),
-('zh-CN', 0, 1, '发展历程', 'history', 'page', 0, '', '', '企业发展里程碑', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 3, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '产品中心', 'product', 'product', 0, '', '', '我们的产品与服务', NULL, '', '_self', 'auto', '', '', '', '', 1, 1, 1, 1, 2, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '成功案例', 'cases', 'case', 0, '', '', '客户成功案例展示', NULL, '', '_self', 'auto', '', '', '', '', 1, 1, 1, 1, 3, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '新闻资讯', 'news', 'list', 0, '', '', '最新动态与行业资讯', NULL, '', '_self', 'auto', '', '', '', '', 1, 1, 1, 1, 4, strftime('%s','now'), 0),
-('zh-CN', 0, 7, '公司新闻', 'company-news', 'list', 0, '', '', '公司最新动态', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 1, strftime('%s','now'), 0),
-('zh-CN', 0, 7, '行业动态', 'industry-news', 'list', 0, '', '', '行业最新资讯', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 2, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '服务支持', 'service', 'page', 0, '', '', '专业的服务与技术支持', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 5, strftime('%s','now'), 0),
-('zh-CN', 0, 10, '服务流程', 'process', 'page', 0, '', '', '标准化服务流程', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 1, strftime('%s','now'), 0),
-('zh-CN', 0, 10, '常见问题', 'faq', 'list', 0, '', '', '常见问题解答', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 2, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '下载中心', 'download', 'download', 0, '', '', '资料与软件下载', NULL, '', '_self', 'none', '', '', '', '', 1, 0, 1, 1, 3, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '人才招聘', 'job', 'job', 0, '', '', '加入我们', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 6, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '联系我们', 'contact', 'page', 0, '', '', '联系方式与在线留言', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 7, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '隐私政策', 'privacy', 'page', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 0, 0, 1, 1, 98, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '服务条款', 'terms', 'page', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 0, 0, 1, 1, 99, strftime('%s','now'), 0),
-('zh-CN', 0, 1, '荣誉资质', 'honor', 'album', 1, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 4, strftime('%s','now'), 0),
-('zh-CN', 0, 1, '组织架构', 'organization', 'page', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 5, strftime('%s','now'), 0),
-('zh-CN', 0, 0, '解决方案', 'solution', 'case', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 3, strftime('%s','now'), 0),
-('zh-CN', 0, 20, '行业方案', 'industry', 'case', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 1, 1, strftime('%s','now'), 0),
-('zh-CN', 0, 7, '技术分享', 'tech-share', 'list', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 0, 3, strftime('%s','now'), 0),
-('zh-CN', 0, 13, '软件下载', 'software-download', 'download', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 0, 1, strftime('%s','now'), 0),
-('zh-CN', 0, 13, '文档资料', 'document-download', 'download', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 0, 2, strftime('%s','now'), 0),
-('zh-CN', 0, 13, '驱动程序', 'driver-download', 'download', 0, '', '', '', NULL, '', '_self', 'auto', '', '', '', '', 1, 0, 1, 0, 3, strftime('%s','now'), 0);
-
--- -----------------------------------------------------------
--- Default Albums (Demo)
--- -----------------------------------------------------------
--- @demo:start
-INSERT INTO yikai_albums (category_id, name, slug, cover, description, photo_count, sort_order, status, created_at, updated_at) VALUES
-(0, '荣誉资质', 'honor', 'https://picsum.photos/400/300?random=401', '公司获得的各项荣誉与资质证书', 6, 1, 1, strftime('%s','now'), strftime('%s','now'));
-
-INSERT INTO yikai_album_photos (album_id, title, image, thumb, description, sort_order, status, created_at) VALUES
-(1, '高新技术企业证书', 'https://picsum.photos/600/400?random=401', '', '', 1, 1, strftime('%s','now')),
-(1, 'ISO9001质量管理体系认证', 'https://picsum.photos/600/400?random=402', '', '', 2, 1, strftime('%s','now')),
-(1, '软件企业认定证书', 'https://picsum.photos/600/400?random=403', '', '', 3, 1, strftime('%s','now')),
-(1, '年度最佳科技创新奖', 'https://picsum.photos/600/400?random=404', '', '', 4, 1, strftime('%s','now')),
-(1, '优秀供应商荣誉证书', 'https://picsum.photos/600/400?random=405', '', '', 5, 1, strftime('%s','now')),
-(1, '行业十佳品牌奖', 'https://picsum.photos/600/400?random=406', '', '', 6, 1, strftime('%s','now'));
--- @demo:end
-
--- -----------------------------------------------------------
--- Default Product Categories
--- -----------------------------------------------------------
-INSERT INTO yikai_product_categories (parent_id, name, slug, lang, translation_group_id, image, description, seo_title, seo_keywords, seo_description, status, is_nav, sort_order, created_at) VALUES
-(0, '智能设备', 'smart-device', 'zh-CN', 0, '', NULL, '', '', '', 1, 1, 1, strftime('%s','now')),
-(0, '软件服务', 'software', 'zh-CN', 0, '', NULL, '', '', '', 1, 1, 2, strftime('%s','now')),
-(1, '传感器模块', 'sensor-module', 'zh-CN', 0, '', NULL, '', '', '', 1, 1, 1, strftime('%s','now')),
-(1, '控制终端', 'control-terminal', 'zh-CN', 0, '', NULL, '', '', '', 1, 1, 2, strftime('%s','now'));
-
--- -----------------------------------------------------------
--- Default Products (Demo)
--- -----------------------------------------------------------
--- @demo:start
-INSERT INTO yikai_products (lang, translation_group_id, category_id, brand_id, title, subtitle, slug, cover, images, summary, content, price, market_price, model, specs, tags, is_top, is_recommend, is_hot, is_new, views, status, sort_order, created_at, updated_at, admin_id) VALUES
-('zh-CN', 0, 1, 0, '智能物联网网关', '', '', 'https://picsum.photos/600/600?random=101', NULL, '多协议兼容，边缘计算能力', '<h2>产品概述</h2>
-<p>智能物联网网关是一款高性能的边缘计算网关设备，支持多种通信协议（MQTT、HTTP、Modbus、OPC UA），可实现设备数据的实时采集、边缘计算和云端同步。</p>
-<h3>核心特点</h3>
-<ul>
-<li>支持 Wi-Fi/4G/以太网多种联网方式</li>
-<li>内置边缘计算引擎，支持本地数据处理</li>
-<li>兼容 100+ 种工业协议</li>
-<li>工业级设计，-40°C ~ 85°C 宽温工作</li>
-</ul>
-<h3>应用场景</h3>
-<p>智能工厂、智慧农业、智慧城市、能源管理等领域。</p>', 0.00, 0.00, 'IoT-GW-100', NULL, '', 0, 0, 0, 0, 0, 1, 1, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 0, 2, 0, '企业管理云平台', '', '', 'https://picsum.photos/600/600?random=102', NULL, '集成ERP/CRM/OA功能', '<h2>产品概述</h2>
-<p>企业管理云平台是一站式企业数字化管理解决方案，集成 ERP、CRM、OA 三大核心模块，帮助企业实现业务流程数字化。</p>
-<h3>功能模块</h3>
-<ul>
-<li><strong>ERP</strong> — 采购、库存、生产、财务一体化管理</li>
-<li><strong>CRM</strong> — 客户管理、销售漏斗、业绩分析</li>
-<li><strong>OA</strong> — 审批流程、日程管理、即时通讯</li>
-</ul>
-<h3>技术优势</h3>
-<p>基于微服务架构，支持私有化部署和 SaaS 模式，数据安全有保障。</p>', 0.00, 0.00, 'Cloud-ERP', NULL, '', 0, 0, 0, 0, 0, 1, 2, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 0, 3, 0, '温湿度传感器 TH-200', '', '', 'https://picsum.photos/600/600?random=103', NULL, '瑞士芯片，精度±0.1°C', '<h2>产品概述</h2>
-<p>TH-200 温湿度传感器采用瑞士进口高精度芯片，精度达 ±0.1°C / ±1.5%RH，适用于工业环境监测、仓储管理、智慧农业等场景。</p>
-<h3>技术参数</h3>
-<ul>
-<li>温度范围：-40°C ~ 125°C</li>
-<li>湿度范围：0 ~ 100%RH</li>
-<li>通信接口：RS485 / Modbus RTU</li>
-<li>供电方式：DC 12-24V</li>
-<li>防护等级：IP65</li>
-</ul>', 0.00, 0.00, 'TH-200', NULL, '', 0, 0, 0, 0, 0, 1, 3, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 0, 3, 0, '光照传感器 LS-100', '', '', 'https://picsum.photos/600/600?random=104', NULL, '检测范围0-200000Lux', '<h2>产品概述</h2>
-<p>LS-100 光照传感器检测范围 0-200,000 Lux，采用高灵敏度光电二极管，响应速度快，线性度好。</p>
-<h3>技术参数</h3>
-<ul>
-<li>测量范围：0 ~ 200,000 Lux</li>
-<li>精度：±3%</li>
-<li>通信接口：RS485 / Modbus</li>
-<li>供电方式：DC 5-24V</li>
-</ul>
-<h3>应用场景</h3>
-<p>智慧农业、气象观测、智能照明控制。</p>', 0.00, 0.00, 'LS-100', NULL, '', 0, 0, 0, 0, 0, 1, 4, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 0, 4, 0, '工业边缘控制器 EC-500', '', '', 'https://picsum.photos/600/600?random=105', NULL, 'ARM Cortex-A72，支持AI推理', '<h2>产品概述</h2>
-<p>EC-500 工业边缘控制器搭载 ARM Cortex-A72 处理器，支持多种工业协议和 AI 模型本地推理，是智能工厂的核心控制单元。</p>
-<h3>核心特点</h3>
-<ul>
-<li>四核 ARM Cortex-A72，主频 1.8GHz</li>
-<li>4GB RAM / 32GB eMMC 存储</li>
-<li>支持 TensorFlow Lite / ONNX 推理</li>
-<li>丰富 I/O 接口：4×RS485、2×CAN、4×DI、4×DO</li>
-</ul>', 0.00, 0.00, 'EC-500', NULL, '', 0, 0, 0, 0, 0, 1, 5, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 0, 4, 0, '智能网关控制器 GC-300', '', '', 'https://picsum.photos/600/600?random=106', NULL, 'Wi-Fi/Zigbee/LoRa/4G多协议', '<h2>产品概述</h2>
-<p>GC-300 智能网关控制器支持 Wi-Fi/Zigbee/LoRa/4G 四种无线协议同时工作，内置边缘计算模块，实现设备统一管理。</p>
-<h3>核心特点</h3>
-<ul>
-<li>四协议同时在线，最大接入 500 个终端</li>
-<li>内置边缘计算引擎</li>
-<li>支持 OTA 远程升级</li>
-<li>Web 管理界面，零代码配置</li>
-</ul>
-<h3>应用场景</h3>
-<p>智慧楼宇、智能家居、工业物联网。</p>', 0.00, 0.00, 'GC-300', NULL, '', 0, 0, 0, 0, 0, 1, 6, strftime('%s','now'), strftime('%s','now'), 0);
-
--- -----------------------------------------------------------
--- Default Contents (Demo)
--- -----------------------------------------------------------
-INSERT INTO yikai_contents (lang, channel_id, title, slug, type, cover, summary, content, seo_title, seo_keywords, seo_description, views, status, sort_order, created_at, updated_at, admin_id) VALUES
-('zh-CN', 8, '公司荣获年度最佳科技创新奖', 'tech-innovation-award', 'article', 'https://picsum.photos/800/500?random=201', '在2024年科技创新大会上，我公司凭借技术实力获此殊荣。', '<p>在日前举行的2024年度科技创新大会上，我公司凭借在物联网和边缘计算领域的突出贡献，荣获"年度最佳科技创新奖"。</p>
-<p>此次评选由中国信息通信研究院主办，经过专家委员会的严格评审，从数百家参评企业中脱颖而出。评委会高度评价了我公司在智能物联网网关、边缘计算平台等核心产品上的技术创新成果。</p>
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (1,'zh-CN',1,8,'article','公司荣获年度最佳科技创新奖','','tech-innovation-award','https://picsum.photos/800/500?random=201',NULL,'在2024年科技创新大会上，我公司凭借技术实力获此殊荣。','<p>在日前举行的2024年度科技创新大会上，我公司凭借在物联网和边缘计算领域的突出贡献，荣获"年度最佳科技创新奖"。</p>
+<p>此次评选由中国信息通信研究院主办，经过专家委员会的严格评审，从数百家参评企业中脱颖而出。</p>
 <h3>获奖亮点</h3>
 <ul>
 <li>自主研发的物联网协议栈，兼容100+种工业协议</li>
 <li>边缘AI推理引擎，支持毫秒级实时决策</li>
 <li>累计申请技术专利32项，其中发明专利12项</li>
 </ul>
-<p>公司CEO表示："这个奖项是对我们团队持续创新的认可，未来我们将继续加大研发投入，为行业数字化转型贡献力量。"</p>', '公司荣获年度最佳科技创新奖', '科技创新,物联网,边缘计算,技术奖项', '我公司在2024年度科技创新大会上荣获年度最佳科技创新奖，表彰在物联网和边缘计算领域的突出贡献。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 8, '公司与战略合作伙伴签署合作协议', 'strategic-partnership', 'article', 'https://picsum.photos/800/500?random=202', '双方将在智能制造领域展开深度合作。', '<p>近日，我公司与国内领先的智能制造解决方案提供商正式签署战略合作协议，双方将在工业物联网、智能制造和数字化工厂等领域展开全方位深度合作。</p>
+<p>公司CEO表示："这个奖项是对我们团队持续创新的认可，未来我们将继续加大研发投入。"</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',1,0,0,7,0,'公司荣获年度最佳科技创新��','科技创新,物联网,边缘计算,技术奖项','我公司在2024年度科技创新大会上荣获年度最佳科技创新奖。',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (2,'zh-CN',2,8,'article','公司与战略合作伙伴签署合作协议','','strategic-partnership','https://picsum.photos/800/500?random=202',NULL,'双方将在智能制造领域展开深度合作。','<p>近日，我公司与国内领先的智能制造解决方案提供商正式签署战略合作协议，双方将在工业物联网、智能制造和数字化工厂等领域展开全方位深度合作。</p>
 <h3>合作内容</h3>
 <ul>
 <li><strong>技术融合</strong>：将我公司的物联网网关与合作伙伴的MES系统深度集成</li>
 <li><strong>市场协同</strong>：共同开拓华东和华南区域的制造业客户</li>
 <li><strong>产品共创</strong>：联合开发面向中小制造企业的轻量化数字工厂方案</li>
-</ul>
-<p>此次合作将充分发挥双方在各自领域的技术优势和市场资源，为制造业客户提供从设备连接到生产管理的一站式数字化解决方案。</p>', '公司与战略合作伙伴签署合作协议', '战略合作,智能制造,工业物联网,数字化工厂', '我公司与智能制造解决方案提供商签署战略合作协议，将在工业物联网和数字化工厂领域展开深度合作。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 9, '数字化转型趋势报告发布', 'digital-transformation-report', 'article', 'https://picsum.photos/800/500?random=203', '报告分析了企业数字化转型的最新趋势和最佳实践。', '<p>我公司研究院正式发布《2024企业数字化转型趋势报告》，报告基于对500+企业的调研数据，深入分析了当前数字化转型的关键趋势和实践路径。</p>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'公司与战略合作伙伴签署合作协议','战略合作,智能制造,工业物联网','我公司与智能制造解决方案提供商签署战略合作协议。',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (3,'zh-CN',3,9,'article','数字化转型趋势报告发布','','digital-transformation-report','https://picsum.photos/800/500?random=203',NULL,'报告分析了企业数字化转型的最新趋势和最佳实践。','<p>我公司研究院正式发布《2024企业数字化转型趋势报告》，深入分析了当前数字化转型的关键趋势。</p>
 <h3>核心发现</h3>
 <ol>
 <li><strong>AI驱动成为主流</strong>：78%的受访企业已将AI技术纳入数字化转型规划</li>
 <li><strong>边缘计算崛起</strong>：工业场景中边缘计算部署量同比增长150%</li>
 <li><strong>数据安全受重视</strong>：65%的企业将数据安全列为转型首要考量</li>
-<li><strong>中小企业加速</strong>：轻量化SaaS方案推动中小企业数字化渗透率提升至45%</li>
-</ol>
-<h3>趋势展望</h3>
-<p>报告指出，未来三年，数字孪生、工业元宇宙和绿色智能制造将成为企业数字化转型的三大新方向。</p>
-<p>完整报告可在官网下载中心获取。</p>', '数字化转型趋势报告发布', '数字化转型,趋势报告,AI,边缘计算', '2024企业数字化转型趋势报告发布，分析500+企业调研数据，解读AI驱动和边缘计算等关键趋势。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 9, 'PHP 8.0 新特性详解', 'php80-new-features', 'article', 'https://picsum.photos/800/500?random=204', '深入解析PHP 8.0带来的性能提升和新语法特性。', '<p>PHP 8.0 是 PHP 语言的重大版本更新，带来了众多令人兴奋的新特性和性能改进。本文将深入解析其中最重要的变化。</p>
+</ol>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'数字化转型趋势报告发布','数字化转型,趋势报告,AI,边缘计算','2024企业数字化转型趋势报告发布。',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (4,'zh-CN',4,9,'article','PHP 8.0 新特性详解','','php80-new-features','https://picsum.photos/800/500?random=204',NULL,'深入解析PHP 8.0带来的性能提升和新语法特性。','<p>PHP 8.0 是 PHP 语言的重大版本更新，带来了众多令人兴奋的新特性。</p>
 <h3>JIT 编译器</h3>
-<p>PHP 8.0 引入了 JIT（即时编译）支持，在计算密集型场景下性能提升可达3倍。虽然对典型 Web 应用提升有限，但在数据处理和科学计算场景表现优异。</p>
+<p>PHP 8.0 引入了 JIT 支持，在计算密集型场景下性能提升可达3��。</p>
 <h3>命名参数</h3>
-<pre><code>htmlspecialchars($string, double_encode: false);</code></pre>
 <p>命名参数使代码更具可读性，不再需要记忆参数顺序。</p>
 <h3>联合类型</h3>
-<pre><code>function foo(int|string $id): void {}</code></pre>
 <p>原生支持联合类型声明，减少对 PHPDoc 注释的依赖。</p>
 <h3>Match 表达式</h3>
-<pre><code>$result = match($status) {
-    1 => "active",
-    2 => "inactive",
-    default => "unknown",
-};</code></pre>
-<p>match 是 switch 的现代替代，支持严格比较和返回值。</p>
-<h3>Null 安全运算符</h3>
-<pre><code>$country = $user?->getAddress()?->country;</code></pre>
-<p>链式调用中优雅处理 null 值，避免冗长的 null 检查。</p>', 'PHP 8.0 新特性详解', 'PHP8,JIT,命名参数,联合类型,技术分享', '深入解析PHP 8.0的JIT编译器、命名参数、联合类型、Match表达式和Null安全运算符等重要新特性。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 6, '某大型制造企业数字化转型项目', 'manufacturing-digital-transformation', 'case', 'https://picsum.photos/800/500?random=301', '帮助客户实现生产效率提升30%', '<h3>项目背景</h3>
-<p>客户为国内大型制造企业，拥有5个生产基地、2000+台设备。面临设备数据孤岛、生产计划依赖人工经验、质量追溯困难等痛点。</p>
+<p>match 是 switch 的现代替代，支持严格比较和返回值。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'PHP 8.0 新特性详解','PHP8,JIT,命名参数,技术分享','深入解析PHP 8.0的重要新特性。',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (5,'zh-CN',5,6,'case','某大型制造企业数字化转型项目','','manufacturing-digital-transformation','https://picsum.photos/800/500?random=301',NULL,'帮助客户实现生产效率提升30%','<h3>项目背景</h3>
+<p>客户为国内大型制造企业，拥有5个生产基地、2000+台设备。</p>
 <h3>解决方案</h3>
 <ul>
-<li><strong>设备互联</strong>：部署200+台IoT网关，接入全部生产设备，实现数据实时采集</li>
-<li><strong>数据中台</strong>：搭建统一数据平台，打通ERP、MES、WMS系统数据</li>
-<li><strong>智能排产</strong>：基于AI算法的智能排产系统，优化生产计划</li>
-<li><strong>质量追溯</strong>：全流程二维码追溯体系，精准定位质量问题</li>
+<li><strong>设备互联</strong>：部署200+台IoT网关，实现数据实时采集</li>
+<li><strong>数据中台</strong>：搭建统一数据平台，打通ERP、MES、WMS系统</li>
+<li><strong>智能排产</strong>：基于AI算法的智能排产系统</li>
 </ul>
-<h3>项目成果</h3>
+<h3>项目成��</h3>
 <ul>
 <li>生产效率提升 <strong>30%</strong></li>
 <li>设备停机时间减少 <strong>45%</strong></li>
 <li>产品不良率降低 <strong>60%</strong></li>
-<li>库存周转率提升 <strong>25%</strong></li>
-</ul>
-<p>项目实施周期6个月，投入使用后第一年即实现投资回报。</p>', '大型制造企业数字化转型案例', '数字化转型,智能制造,物联网,成功案例', '帮助大型制造企业实现设备互联与智能排产，生产效率提升30%，设备停机减少45%。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 2, '公司简介', 'company', 'article', '', NULL, '<h2>关于我们</h2>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,10,0,'大型制造企业数字化转型案��','数字化转型,智能制造,成功案例','帮助大型制造企业实现生产效率提升30%。',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (6,'zh-CN',6,2,'article','公司简介','','company','',NULL,NULL,'<h2>关于我们</h2>
 <p>我们是一家专注于企业数字化转型的科技公司，成立于2010年，总部位于上海。经过十余年的发展，已成为行业内具有影响力的企业之一。</p>
 <p>公司拥有一支经验丰富的技术团队，核心成员来自国内外知名企业，在物联网、云计算、人工智能等领域拥有深厚的技术积累。</p>
 <h3>我们的使命</h3>
@@ -970,8 +460,8 @@ INSERT INTO yikai_contents (lang, channel_id, title, slug, type, cover, summary,
 <li>1000+ 企业客户信赖</li>
 <li>50+ 人专业研发团队</li>
 <li>7×24 小时技术支持</li>
-</ul>', '公司简介', '企业简介,数字化转型,科技公司', '专注于企业数字化转型的科技公司，成立于2010年，拥有10+年行业经验和50+人专业团队。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 3, '企业文化', 'culture', 'article', '', NULL, '<h2>企业文化</h2>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (7,'zh-CN',7,3,'article','企业文化','','culture','',NULL,NULL,'<h2>企业文化</h2>
 <h3>核心价值观</h3>
 <p><strong>以人为本</strong> — 尊重每一位员工，激发团队潜能，共同成长。</p>
 <p><strong>创新驱动</strong> — 持续技术创新，保持行业领先优势。</p>
@@ -980,41 +470,150 @@ INSERT INTO yikai_contents (lang, channel_id, title, slug, type, cover, summary,
 <h3>企业精神</h3>
 <p>诚信、专业、高效、创新</p>
 <h3>工作理念</h3>
-<p>以客户需求为导向，以技术创新为驱动，以团队协作为基础，持续为客户创造价值。</p>', '企业文化', '企业文化,核心价值观,企业精神', '以人为本、创新驱动、追求卓越、合作共赢 — 我们的核心价值观和企业精神。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 15, '联系我们', 'contact', 'article', '', NULL, '<p>欢迎通过以下方式联系我们。</p>', '联系我们', '联系方式,在线留言', '通过电话、邮件或在线表单联系我们，我们将尽快回复。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 16, '隐私政策', 'privacy', 'article', '', NULL, '<h2>隐私政策</h2>
-<p>我们重视您的隐私保护。本隐私政策说明了我们如何收集、使用和保护您的个人信息。</p>
-<h3>信息收集</h3>
-<p>我们在您使用网站服务时，可能收集以下信息：姓名、联系方式、公司名称等您主动提交的信息。</p>
-<h3>信息使用</h3>
-<p>收集的信息仅用于：回复您的咨询、提供客户服务、改善产品和服务质量。</p>
-<h3>信息保护</h3>
-<p>我们采取行业标准的安全措施保护您的个人信息，未经您的同意不会向第三方透露。</p>', '隐私政策', '隐私政策,个人信息保护', '了解我们如何收集、使用和保护您的个人信息。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 17, '服务条款', 'terms', 'article', '', NULL, '<h2>服务条款</h2>
-<p>欢迎使用我们的网站和服务。使用本网站即表示您同意以下条款。</p>
-<h3>服务说明</h3>
-<p>本网站提供企业信息展示和产品咨询服务。我们保留随时修改或中断服务的权利。</p>
-<h3>知识产权</h3>
-<p>本网站所有内容（包括但不限于文字、图片、标志）均受知识产权法保护，未经授权不得复制或传播。</p>
-<h3>免责声明</h3>
-<p>我们尽力确保网站信息准确，但不对信息的完整性和实时性作出保证。</p>', '服务条款', '服务条款,使用协议', '了解使用本网站的服务条款和相关规定。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 4, '发展历程', 'history', 'article', '', NULL, '<h2>发展历程</h2>
+<p>以客户需求为导向，以技术创新为驱动，以团队协作为基础，持续为客户创造价值。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (8,'zh-CN',8,15,'article','联系我们','','contact','',NULL,NULL,'<p>欢迎通过以下方式联系我们。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (9,'zh-CN',9,16,'article','隐私政策','','privacy','',NULL,NULL,'<h2>隐私政策</h2>
+<p><em>最后更新日期：[更新日期]</em></p>
+<p>[公司名称]（下称"我们"）非常重视您的个人信息保护。本隐私政策说明我们如何收集、使用、存储和保护您在使用本网站及相关服务时提供的个人信息。请您仔细阅读本政策，以了解我们对个人信息的处理方式。</p>
+
+<h3>一、我们收集的信息</h3>
+<p>在您使用本网站服务时，我们可能收集以下类型的信息：</p>
+<ul>
+    <li><strong>您主动提供的信息</strong>：当您填写联系表单、注册账户、订阅资讯或提交询盘时填写的姓名、邮箱、电话、公司名称等。</li>
+    <li><strong>自动收集的信息</strong>：访问日志（IP 地址、浏览器类型、访问时间、来源页面）、Cookie 记录、设备信息等。</li>
+    <li><strong>第三方提供的信息</strong>：当您通过社交媒体登录或第三方平台与我们交互时，对方平台按其政策向我们提供的有限信息。</li>
+</ul>
+
+<h3>二、我们如何使用信息</h3>
+<p>收集到的信息用于：</p>
+<ul>
+    <li>响应您的咨询、提供售前或售后服务</li>
+    <li>改进网站功能、优化用户体验</li>
+    <li>统计分析访问数据（仅汇总形式，不针对个人）</li>
+    <li>发送您订阅的资讯或重要服务通知（您可随时取消订阅）</li>
+    <li>履行法律法规要求或配合政府部门调查</li>
+</ul>
+
+<h3>三、Cookie 与同类技术</h3>
+<p>我们使用 Cookie 和类似技术记录您的访问偏好（如语言选择）、维持登录状态、统计访问数据。您可通过浏览器设置拒绝 Cookie，但部分功能可能因此受影响。详见我们的 Cookie 设置。</p>
+
+<h3>四、信息共享与第三方</h3>
+<p>除以下情形外，我们不会向第三方出售、出租或交换您的个人信息：</p>
+<ul>
+    <li>获得您明确同意</li>
+    <li>为完成服务必须共享给受我们委托的供应商（如邮件服务、云存储），且对方需签订保密协议</li>
+    <li>法律法规要求或司法机关合法调查</li>
+    <li>保护公共利益、本公司或他人的合法权益</li>
+</ul>
+
+<h3>五、信息存储与安全</h3>
+<p>我们采取加密传输（HTTPS）、访问权限控制、定期备份等技术与管理措施保护您的信息。但请理解互联网传输无法保证 100% 安全，请您妥善保管账号密码。</p>
+
+<h3>六、您的权利</h3>
+<p>您对您的个人信息享有以下权利：</p>
+<ul>
+    <li>查询、复制您的个人信息</li>
+    <li>更正、补充不准确的信息</li>
+    <li>请求删除您的个人信息（法律要求保留的除外）</li>
+    <li>撤回此前的同意授权</li>
+    <li>注销账户</li>
+</ul>
+<p>行使上述权利请通过下方联系方式与我们联系，我们将在 15 个工作日内回复。</p>
+
+<h3>七、未成年人保护</h3>
+<p>本网站面向成年人。我们不会主动向未满 14 周岁的未成年人收集个人信息。如发现未成年人未经监护人同意提交了信息，请联系我们删除。</p>
+
+<h3>八、政策更新</h3>
+<p>本政策可能根据业务调整或法律变化而更新。重大变更我们将通过网站公告或邮件通知您。继续使用服务即视为接受更新后的政策。</p>
+
+<h3>九、联系我们</h3>
+<p>如对本隐私政策有任何疑问、意见或投诉，请通过以下方式联系：</p>
+<ul>
+    <li>邮箱：[隐私事务联系邮箱]</li>
+    <li>电话：[联系电话]</li>
+    <li>地址：[公司地址]</li>
+</ul>
+','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (10,'zh-CN',10,17,'article','服务条款','','terms','',NULL,NULL,'<h2>服务条款</h2>
+<p><em>最后更新日期：[更新日期]</em></p>
+<p>欢迎使用 [公司名称]（下称"本公司"或"我们"）提供的网站及相关服务。请您在使用前仔细阅读本服务条款（下称"本条款"）。一旦您访问、浏览或使用本网站，即视为您已阅读、理解并同意接受本条款全部内容的约束。</p>
+
+<h3>一、条款的接受</h3>
+<p>本条款是您与本公司之间就使用本网站及相关服务达成的协议。如您不同意本条款的任何内容，请停止使用本网站。继续使用即视为同意。</p>
+
+<h3>二、服务说明</h3>
+<p>本网站提供企业信息展示、产品介绍、在线咨询、内容浏览等服务。服务的具体内容可能根据业务需要随时调整，恕不另行通知。</p>
+
+<h3>三、使用许可</h3>
+<p>在遵守本条款的前提下，我们授予您一项有限的、非排他的、不可转让的许可，允许您出于个人或内部业务目的访问和浏览本网站内容。您不得：</p>
+<ul>
+    <li>以商业目的复制、分发、修改本网站任何内容</li>
+    <li>对本网站进行反向工程、反编译或试图获取源代码</li>
+    <li>使用爬虫、机器人或自动化工具大规模抓取数据</li>
+    <li>干扰、破坏本网站的正常运行或安全</li>
+    <li>冒用他人身份、虚构信息或从事其它违法活动</li>
+</ul>
+
+<h3>四、用户行为规范</h3>
+<p>使用本网站时，您承诺：</p>
+<ul>
+    <li>提供真实、准确、完整的信息</li>
+    <li>遵守中华人民共和国相关法律法规及国际公约</li>
+    <li>尊重他人合法权益，不发布侵权、违法、有害内容</li>
+    <li>对您账户下的所有活动承担责任</li>
+</ul>
+
+<h3>五、知识产权</h3>
+<p>本网站所有内容（包括但不限于文字、图片、Logo、UI 设计、源代码）的著作权、商标权及其它知识产权均归本公司或权利人所有，受相关法律保护。未经事先书面许可，任何人不得擅自使用。</p>
+
+<h3>六、第三方链接</h3>
+<p>本网站可能包含指向第三方网站的链接，仅为方便您使用。我们不对第三方网站的内容、隐私政策或可用性承担责任。访问第三方网站请遵守对方的条款。</p>
+
+<h3>七、免责声明</h3>
+<p>在适用法律允许的最大范围内：</p>
+<ul>
+    <li>本网站内容按"现状"提供，不保证完全准确、最新或无错误</li>
+    <li>不对因不可抗力（如网络故障、服务器宕机、黑客攻击）导致的服务中断负责</li>
+    <li>不对您因使用或无法使用本网站而产生的任何直接或间接损失承担责任</li>
+</ul>
+
+<h3>八、责任限制</h3>
+<p>本公司就本条款及本网站服务承担的总责任，在任何情况下不超过您过去 12 个月支付给我们的费用（如有），或人民币 100 元（取较高者）。</p>
+
+<h3>九、条款修改</h3>
+<p>我们保留随时修改本条款的权利。重大变更将通过网站公告或邮件通知。修改后继续使用即视为接受新条款。</p>
+
+<h3>十、终止</h3>
+<p>如您违反本条款，我们有权立即暂停或终止您的访问权限，且无需事先通知。本条款中关于知识产权、免责声明、责任限制等条款，在条款终止后仍持续有效。</p>
+
+<h3>十一、适用法律与争议解决</h3>
+<p>本条款的解释、效力及争议解决适用中华人民共和国法律（港澳台地区除外）。因本条款引发的争议，双方应友好协商；协商不成的，提交本公司所在地有管辖权的人民法院诉讼解决。</p>
+
+<h3>十二、联系我们</h3>
+<p>关于本条款的任何问题，请通过以下方式联系：</p>
+<ul>
+    <li>邮箱：[联系邮箱]</li>
+    <li>电话：[联系电话]</li>
+    <li>地址：[公司地址]</li>
+</ul>
+','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (11,'zh-CN',11,4,'article','发展历程','','history','',NULL,NULL,'<h2>发展历程</h2>
 <p><strong>2024年</strong> — 发布新一代智能物联网平台，服务客户突破1000家。</p>
 <p><strong>2022年</strong> — 获得国家高新技术企业认定，完成B轮融资。</p>
 <p><strong>2020年</strong> — 推出企业管理云平台，实现SaaS化服务。</p>
 <p><strong>2018年</strong> — 成立研发中心，团队扩展至50人。</p>
 <p><strong>2015年</strong> — 产品线扩展至传感器、控制器等硬件领域。</p>
 <p><strong>2012年</strong> — 首个物联网项目落地，服务首批企业客户。</p>
-<p><strong>2010年</strong> — 公司成立，专注于企业信息化解决方案。</p>', '发展历程', '发展历程,公司历史,企业大事记', '从2010年创立至今，回顾企业发展的重要里程碑。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 8, '公司参加2024国际物联网博览会', 'iot-expo-2024', 'article', 'https://picsum.photos/800/500?random=206', '展示最新智能物联网解决方案。', '<p>我公司携旗下全系列物联网产品亮相2024国际物联网博览会，全面展示了在智能物联网领域的最新技术成果。</p>
+<p><strong>2010年</strong> — 公司成立，专注于企业信息化解决方案。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776653934,1776653934,1776653934,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (12,'zh-CN',12,8,'article','公司与战略合作伙伴签署合作协议','','strategic-partnership-2','https://picsum.photos/800/500?random=205',NULL,'双方将在智能制造领域展开深度合作。','<p>双方将在智能制造领域展开深度合作，共同推进工业4.0解决方案落地。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,5,0,'','','',1,0,1776567680,1776654080,1776654080,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (13,'zh-CN',13,8,'article','公司参加2024国际物联网博览会','','iot-expo-2024','https://picsum.photos/800/500?random=206',NULL,'展示最新智能物联网解决方案。','<p>我公司携旗下全系列物联网产品亮相2024国际物联网博览会，展示了最新技术成果。</p>
 <h3>展品亮点</h3>
 <ul>
-<li><strong>新一代IoT网关</strong>：支持5G+Wi-Fi 6双模连接，处理性能提升200%</li>
-<li><strong>边缘AI套件</strong>：集成视觉检测和预测性维护功能</li>
-<li><strong>数字孪生平台</strong>：实时3D可视化工厂运行状态</li>
-</ul>
-<p>展会期间接待了来自30多个国家的500余位专业观众，达成多项合作意向。公司展位获评"最佳创新展示奖"。</p>', '公司参加2024国际物联网博览会', '物联网博览会,IoT,5G,边缘AI', '公司携全系列物联网产品亮相2024国际物联网博览会，展示5G网关和边缘AI等最新技术成果。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 19, '组织架构', 'organization', 'article', '', NULL, '<style>
+<li>新一代IoT网关：支持5G+Wi-Fi 6双模连接</li>
+<li>边缘AI套件：集成视觉检测和预测性维护</li>
+<li>数字孪生平台：实时3D可视化</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,3,0,'公司参加2024国际物联��博览会','物联网博览会,IoT,5G','公司携全系列物联网产品亮相2024国际物联网博览会。',1,0,1776481280,1776654080,1776654080,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (14,'zh-CN',14,19,'article','组织架构','','organization','',NULL,NULL,'<style>
 .org-chart { text-align: center; }
 .org-chart ul { padding-top: 20px; position: relative; display: flex; justify-content: center; list-style: none; margin: 0; padding-left: 0; }
 .org-chart ul::before { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 20px; border-left: 2px solid #cbd5e1; }
@@ -1033,82 +632,1705 @@ INSERT INTO yikai_contents (lang, channel_id, title, slug, type, cover, summary,
 .org-chart .org-dept { background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; font-size: 14px; }
 .org-chart .org-title { display: block; font-size: 11px; opacity: 0.85; margin-top: 2px; font-weight: 400; }
 </style>
-<div class="org-chart"><ul style="padding-top:0"><li style="padding-top:0"><ul style="padding-top:0"><li style="padding-top:0"><div class="org-node org-ceo">张伟<span class="org-title">董事长 / CEO</span></div><ul><li><div class="org-node org-vp">李明<span class="org-title">副总裁 · 技术</span></div><ul><li><div class="org-node org-dept">研发部</div></li><li><div class="org-node org-dept">测试部</div></li><li><div class="org-node org-dept">运维部</div></li></ul></li><li><div class="org-node org-vp">王芳<span class="org-title">副总裁 · 营销</span></div><ul><li><div class="org-node org-dept">市场部</div></li><li><div class="org-node org-dept">销售部</div></li><li><div class="org-node org-dept">客服部</div></li></ul></li><li><div class="org-node org-vp">赵强<span class="org-title">副总裁 · 运营</span></div><ul><li><div class="org-node org-dept">财务部</div></li><li><div class="org-node org-dept">人力资源部</div></li><li><div class="org-node org-dept">行政部</div></li></ul></li></ul></li></ul></li></ul></div>
-<div style="margin-top:40px;padding:24px;background:#f8fafc;border-radius:8px;"><h3 style="margin-top:0;">组织概况</h3><p>公司设有<strong>技术中心</strong>、<strong>营销中心</strong>和<strong>运营中心</strong>三大业务板块，下辖9个职能部门。现有员工50余人，其中技术研发人员占比超过60%。</p><p>我们秉承扁平化管理理念，鼓励跨部门协作，确保信息高效流通和快速决策。</p></div>', '组织架构', '组织架构,公司架构,团队结构', '公司组织架构图，设有技术、营销、运营三大中心及9个职能部门。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 11, '服务流程', 'process', 'article', '', NULL, '<div style="max-width:800px;margin:0 auto;"><p style="text-align:center;color:#6b7280;margin-bottom:2em;">我们以标准化的服务流程，确保每一个项目高效交付、客户满意。</p><div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#3b82f6,#60a5fa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">1</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">需求沟通</h3><p style="color:#6b7280;">与客户深入交流，了解业务场景和具体需求，形成详细的需求规格说明书。</p></div></div><div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">2</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">方案设计</h3><p style="color:#6b7280;">制定技术方案和实施计划，包括系统架构设计、硬件选型、网络规划和项目排期。</p></div></div><div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">3</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">开发实施</h3><p style="color:#6b7280;">采用敏捷开发模式，定期汇报进度，关键节点邀请客户参与验收。</p></div></div><div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">4</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">测试验收</h3><p style="color:#6b7280;">全面系统测试，确保稳定可靠后交付上线。</p></div></div><div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#ef4444,#f87171);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">5</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">培训交付</h3><p style="color:#6b7280;">提供操作培训和技术文档，确保客户能独立运维。</p></div></div><div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#06b6d4,#22d3ee);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">6</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">售后支持</h3><p style="color:#6b7280;">7×24小时技术支持，定期巡检和系统优化。</p></div></div></div>', '服务流程', '服务流程,项目交付,技术支持', '标准化六步服务流程：需求沟通、方案设计、开发实施、测试验收、培训交付、售后支持。', 0, 1, 0, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 12, '你们的产品支持哪些通信协议？', 'faq-protocols', 'article', '', '我们的物联网网关支持MQTT、HTTP、Modbus、OPC UA等100+种工业协议。', '<p>我们的物联网网关产品支持丰富的通信协议，包括但不限于：</p>
+<div class="org-chart">
+  <ul style="padding-top:0">
+    <li style="padding-top:0">
+      <ul style="padding-top:0"><li style="padding-top:0">
+        <div class="org-node org-ceo">张伟<span class="org-title">董事长 / CEO</span></div>
+        <ul>
+          <li>
+            <div class="org-node org-vp">李明<span class="org-title">副总裁 · 技术</span></div>
+            <ul>
+              <li><div class="org-node org-dept">研发部</div></li>
+              <li><div class="org-node org-dept">测试部</div></li>
+              <li><div class="org-node org-dept">运维部</div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="org-node org-vp">王芳<span class="org-title">副总裁 · 营销</span></div>
+            <ul>
+              <li><div class="org-node org-dept">市场部</div></li>
+              <li><div class="org-node org-dept">销售部</div></li>
+              <li><div class="org-node org-dept">客服部</div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="org-node org-vp">赵强<span class="org-title">副总裁 · 运营</span></div>
+            <ul>
+              <li><div class="org-node org-dept">财务部</div></li>
+              <li><div class="org-node org-dept">人力资源部</div></li>
+              <li><div class="org-node org-dept">行政部</div></li>
+            </ul>
+          </li>
+        </ul>
+      </li></ul>
+    </li>
+  </ul>
+</div>
+<div style="margin-top:40px;padding:24px;background:#f8fafc;border-radius:8px;">
+  <h3 style="margin-top:0;">组织概况</h3>
+  <p>公司设有<strong>技术中心</strong>、<strong>营销中心</strong>、<strong>运营中心</strong>三大业务板块，下辖9个职能部门。现有员工50余人，其中技术研发人员占比超过60%。</p>
+  <p>我们秉承扁平化管理理念，鼓励跨部门协作，确保信息高效流通和快速决策。</p>
+</div>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'组织架构','组织架构,公司架构,团队结构','公司组织架构图，设有技术、营销、运营三大中心及9个职能部门。',1,0,0,1776727823,1776727823,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (15,'zh-CN',15,11,'article','服务流程','','process','',NULL,NULL,'<div style="max-width:800px;margin:0 auto;">
+<p style="text-align:center;color:#6b7280;margin-bottom:2em;">我们以标准化的服务流程，确保每一个项目高效交付、客户满意。</p>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#3b82f6,#60a5fa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">1</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">需求沟通</h3>
+<p style="color:#6b7280;">与客户深入交流，了解业务场景和具体需求。通过现场调研、需求访谈等方式，形成详细的需求规格说明书。</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">2</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">方案设计</h3>
+<p style="color:#6b7280;">根据需求制定技术方案和实施计划，包括系统架构设计、硬件选型、网络规划和项目排期。提交方案书并与客户确认。</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">3</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">开发实施</h3>
+<p style="color:#6b7280;">按照确认的方案进行开发和部署。采用敏捷开发模式，定期向客户汇报进度。关键节点邀请客户参与验收。</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">4</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">测试验收</h3>
+<p style="color:#6b7280;">进行全面的系统测试，包括功能测试、性能测试、安全测试和用户验收测试。确保系统稳定可靠后交付上线。</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#ef4444,#f87171);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">5</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">培训交付</h3>
+<p style="color:#6b7280;">为客户团队提供操作培训和技术培训，交付完整的技术文档和使用手册，确保客户能独立运维。</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#06b6d4,#22d3ee);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">6</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">售后支持</h3>
+<p style="color:#6b7280;">提供7×24小时技术支持热线，定期巡检和系统优化。快速响应故障处理，保障系统长期稳定运行。</p>
+</div>
+</div>
+</div>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'服务流程','服务流程,项目交付,技术支持','标准化六步服务流程：需求沟通、方案设计、开发实施、测试验收、培训交付、售后支持。',1,0,0,1776732434,1776732434,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (16,'zh-CN',16,12,'article','你们的产品支持哪些通信协议？','','faq-protocols','',NULL,'我们的物联网网关支持MQTT、HTTP、Modbus、OPC UA等100+种工业协议。','<p>我们的物联网网关产品支持丰富的通信协议，包括但不限于：</p>
 <ul>
 <li><strong>物联网协议</strong>：MQTT、CoAP、HTTP/HTTPS、WebSocket</li>
 <li><strong>工业协议</strong>：Modbus RTU/TCP、OPC UA、Profinet、EtherCAT</li>
 <li><strong>无线协议</strong>：Wi-Fi、蓝牙、Zigbee、LoRa、NB-IoT、4G/5G</li>
-</ul>', '支持的通信协议', '通信协议,MQTT,Modbus', '我们的物联网网关支持MQTT、Modbus、OPC UA等100+种工业协议。', 0, 1, 1, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 12, '项目实施周期一般多长？', 'faq-timeline', 'article', '', '根据项目规模不同，实施周期通常在1-6个月。', '<p>项目实施周期取决于规模和复杂度：</p>
+<li><strong>数据库协议</strong>：MySQL、PostgreSQL、InfluxDB、TDengine</li>
+</ul>
+<p>同时支持自定义协议开发，可根据客户特殊需求进行定制。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'支持的通信协议','通信协议,MQTT,Modbus,OPC UA','我们的物联网网关支持MQTT、Modbus、OPC UA等100+种工业协议。',1,1,0,1776732434,1776732434,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (17,'zh-CN',17,12,'article','项目实施周期一般多长？','','faq-timeline','',NULL,'根据项目规模不同，实施周期通常在1-6个月。','<p>项目实施周期取决于项目的规模和复杂度：</p>
 <ul>
-<li><strong>小型项目</strong>（50台以内设备）：1-2个月</li>
-<li><strong>中型项目</strong>（200台以内设备）：2-4个月</li>
-<li><strong>大型项目</strong>（集团级跨区域）：4-6个月</li>
-</ul>', '项目实施周期', '项目周期,实施计划', '项目实施周期根据规模不同通常在1-6个月。', 0, 1, 2, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 12, '是否支持私有化部署？', 'faq-private-deploy', 'article', '', '支持。我们的所有软件产品均支持私有化部署和SaaS两种模式。', '<p>是的，支持两种部署模式：</p>
+<li><strong>小型项目</strong>（单一场景、50台以内设备）：1-2个月</li>
+<li><strong>中型项目</strong>（多场景、200台以内设备）：2-4个月</li>
+<li><strong>大型项目</strong>（集团级、跨区域部署）：4-6个月</li>
+</ul>
+<p>我们采用敏捷开发模式，可以在项目初期快速交付核心功能的MVP版本，后续逐步迭代完善。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'项目实施周期','项目周期,实施计划,敏捷开发','项目实施周期根据规模不同通常在1-6个月，采用敏捷开发快速交付。',1,2,0,1776732434,1776732434,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (18,'zh-CN',18,12,'article','是否支持私有化部署？','','faq-private-deploy','',NULL,'支持。我们的所有软件产品均支持私有化部署和SaaS两种模式。','<p>是的，我们的所有软件产品均支持两种部署模式：</p>
 <h4>私有化部署</h4>
-<ul><li>部署在客户自有服务器</li><li>数据完全掌握在客户手中</li><li>支持内网离线运行</li></ul>
+<ul>
+<li>部署在客户自有服务器或私有云</li>
+<li>数据完全掌握在客户手中</li>
+<li>支持内网离线运行</li>
+<li>适合对数据安全有严格要求的企业</li>
+</ul>
 <h4>SaaS 云服务</h4>
-<ul><li>开箱即用，无需运维</li><li>按需付费，灵活扩展</li></ul>', '是否支持私有化部署', '私有化部署,SaaS,数据安全', '支持私有化部署和SaaS云服务两种模式。', 0, 1, 3, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 12, '售后服务包括哪些内容？', 'faq-after-sales', 'article', '', '提供7×24小时技术支持、定期巡检、系统升级和远程运维服务。', '<ul>
-<li><strong>技术支持</strong>：7×24小时热线和在线客服</li>
-<li><strong>故障响应</strong>：紧急问题1小时内响应</li>
-<li><strong>定期巡检</strong>：每季度一次系统巡检</li>
-<li><strong>系统升级</strong>：免费一年版本升级</li>
-<li><strong>远程运维</strong>：安全通道远程协助</li>
-</ul>', '售后服务内容', '售后服务,技术支持', '提供7×24小时技术支持、定期巡检、系统升级和远程运维服务。', 0, 1, 4, strftime('%s','now'), strftime('%s','now'), 0),
-('zh-CN', 12, '如何获取产品报价？', 'faq-pricing', 'article', '', '可通过在线咨询、电话或填写询盘表单获取定制化报价方案。', '<ol>
-<li><strong>在线咨询</strong>：网站在线客服</li>
-<li><strong>电话咨询</strong>：拨打 400-888-8888</li>
-<li><strong>询盘表单</strong>：产品页面提交，24小时内回复</li>
-<li><strong>邮件联系</strong>：contact@example.com</li>
-</ol>', '如何获取报价', '产品报价,询盘', '通过在线咨询、电话或询盘表单获取定制化报价方案。', 0, 1, 5, strftime('%s','now'), strftime('%s','now'), 0);
+<ul>
+<li>开箱即用，无需运维</li>
+<li>按需付费，灵活扩展</li>
+<li>自动更新，持续迭代</li>
+<li>适合快速启动的中小企业</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'是否支持私有化部署','私有化部署,SaaS,数据安全','支持私有化部署和SaaS云服务两种模式，满足不同企业需求。',1,3,0,1776732434,1776732434,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (19,'zh-CN',19,12,'article','售后服务包括哪些内容？','','faq-after-sales','',NULL,'提供7×24小时技术支持、定期巡检、系统升级和远程运维服务。','<p>我们的售后服务体系包括：</p>
+<ul>
+<li><strong>技术支持</strong>：7×24小时热线电话和在线客服</li>
+<li><strong>故障响应</strong>：一般问题4小时内响应，紧急问题1小时内响应</li>
+<li><strong>定期巡检</strong>：每季度一次现场或远程系统巡检</li>
+<li><strong>系统升级</strong>：免费提供一年内的版本升级服务</li>
+<li><strong>远程运维</strong>：通过安全通道远程协助排查和解决问题</li>
+<li><strong>知识库</strong>：提供在线文档和视频教程</li>
+</ul>
+<p>质保期为交付后12个月，可选购延保服务。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'售后服务内容','售后服务,技术支持,运维保障','提供7×24小时技术支持、定期巡检、系统升级和远程运维服务。',1,4,0,1776732434,1776732434,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (20,'zh-CN',20,12,'article','如何获取产品报价？','','faq-pricing','',NULL,'可通过在线咨询、电话或填写询盘表单获取定制化报价方案。','<p>获取报价的方式：</p>
+<ol>
+<li><strong>在线咨询</strong>：通过网站在线客服实时沟通需求</li>
+<li><strong>电话咨询</strong>：拨打 400-888-8888 联系销售顾问</li>
+<li><strong>询盘表单</strong>：在产品页面提交询盘，我们将在24小时内回复</li>
+<li><strong>邮件联系</strong>：发送需求说明至 contact@example.com</li>
+</ol>
+<p>我们会根据您的具体需求、设备数量、部署规模等因素，提供详细的定制化报价方案。标准产品可直接参考产品页面价格。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'如何获取报价','产品报价,价格咨询,询盘','通过在线咨询、电话或询盘表单获取定制化报价方案。',1,5,0,1776732434,1776732434,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (21,'en',1,34,'article','The company was awarded the Annual Best Technology Innovation Award.','','tech-innovation-award','https://picsum.photos/800/500?random=201',NULL,'At the 2024 Science and Technology Innovation Conference, our company received this honor due to our technological strength.','<p>At the recently held 2024 Science and Technology Innovation Conference, our company was awarded the "Best Annual Science and Technology Innovation Award" for its outstanding contributions in the fields of IoT and edge computing.</p>
+<p>The selection was organized by the China Academy of Information and Communications Technology, and after rigorous evaluation by an expert committee, we stood out from hundreds of participating enterprises.</p>
+<h3>Award Highlights</h3>
+<ul>
+<li>Self-developed IoT protocol stack, compatible with 100+ industrial protocols</li>
+<li>Edge AI inference engine, supporting millisecond-level real-time decision-making</li>
+<li>A total of 32 technology patents filed, including 12 invention patents</li>
+</ul>
+<p>The company''s CEO stated: "This award is a recognition of our team''s continuous innovation, and we will continue to increase our R&D investment in the future."</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',1,0,0,6,0,'The company won the annual best technological innovation','Technological Innovation, Internet of Things, Edge Computing, Technology Awards','Our company was awarded the Annual Best Scientific and Technological Innovation Award at the 2024 Science and Technology Innovation Conference.',1,0,1776652898,1778434704,1778434704,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (22,'en',2,34,'article','The Company signs a cooperation agreement with its strategic partner.','','strategic-partnership','https://picsum.photos/800/500?random=202',NULL,'The two parties will engage in deep cooperation in the field of intelligent manufacturing.','<p>Recently, our company officially signed a strategic cooperation agreement with a leading domestic provider of intelligent manufacturing solutions. The two parties will engage in comprehensive and in-depth cooperation in areas such as the Industrial Internet of Things, intelligent manufacturing, and digital factories.</p>
+<h3>Cooperation Content</h3>
+<ul>
+<li><strong>Technology Integration</strong>: Deep integration of our IoT gateway with the partner''s MES system</li>
+<li><strong>Market Synergy</strong>: Jointly explore manufacturing customers in the East and South China regions</li>
+<li><strong>Product Co-creation</strong>: Jointly develop lightweight digital factory solutions for small and medium-sized manufacturing enterprises</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'The Company signs a cooperation agreement with its strategic partner.','Strategic Cooperation, Smart Manufacturing, Industrial IoT','Our company has signed a strategic cooperation agreement with an intelligent manufacturing solutions provider.',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (23,'en',3,35,'article','Digital Transformation Trend Report Released','','digital-transformation-report','https://picsum.photos/800/500?random=203',NULL,'The report analyzes the latest trends and best practices in enterprise digital transformation.','<p>The research institute of our company officially released the <strong>2024 Enterprise Digital Transformation Trends Report</strong>, providing an in-depth analysis of key trends in current digital transformation.</p>
+<h3>Key Findings</h3>
+<ol>
+<li><strong>AI-driven becomes mainstream</strong>: 78% of surveyed enterprises have integrated AI technology into their digital transformation plans.</li>
+<li><strong>Rise of edge computing</strong>: The deployment of edge computing in industrial scenarios has increased by 150% year-over-year.</li>
+<li><strong>Data security gains attention</strong>: 65% of enterprises prioritize data security as the top consideration in transformation.</li>
+</ol>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'Digital Transformation Trend Report Released','digital transformation, trend report, AI, edge computing','2024 Enterprise Digital Transformation Trend Report Released.',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (24,'en',4,35,'article','PHP 8.0 New Features Explained','','php80-new-features','https://picsum.photos/800/500?random=204',NULL,'In-depth analysis of the performance improvements and new syntax features brought by PHP 8.0.','<p>PHP 8.0 is a major version update of the PHP language, bringing many exciting new features.</p>
+<h3>JIT Compiler</h3>
+<p>PHP 8.0 introduces JIT support, achieving performance improvements of up to 3 times in compute-intensive scenarios.</p>
+<h3>Named Arguments</h3>
+<p>Named arguments make code more readable, eliminating the need to remember the order of parameters.</p>
+<h3>Union Types</h3>
+<p>Native support for union type declarations reduces reliance on PHPDoc annotations.</p>
+<h3>Match Expression</h3>
+<p>match is a modern alternative to switch, supporting strict comparison and returning values.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'PHP 8.0 New Features Explained','PHP8, JIT, Named Parameters, Technical Sharing','In-depth analysis of important new features of PHP 8.0.',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (25,'en',5,32,'case','Digital Transformation Project for a Large Manufacturing Enterprise','','manufacturing-digital-transformation','https://picsum.photos/800/500?random=301',NULL,'Help customers achieve a 30% increase in production efficiency','<h3>Project Background</h3>
+<p>The client is a large domestic manufacturing enterprise with 5 production bases and 2000+ pieces of equipment.</p>
+<h3>Solution</h3>
+<ul>
+<li><strong>Device Connectivity</strong>: Deployed 200+ IoT gateways for real-time data collection</li>
+<li><strong>Data Middle Platform</strong>: Built a unified data platform integrating ERP, MES, and WMS systems</li>
+<li><strong>Smart Scheduling</strong>: AI algorithm-based intelligent production scheduling system</li>
+</ul>
+<h3>Project Achievements</h3>
+<ul>
+<li>Production efficiency increased by <strong>30%</strong></li>
+<li>Equipment downtime reduced by <strong>45%</strong></li>
+<li>Product defect rate decreased by <strong>60%</strong></li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,2,0,'Digital Transformation Solution for Large Manufacturing Enterprises','Digital Transformation, Intelligent Manufacturing, Success Cases','Help large manufacturing enterprises achieve a 30% increase in production efficiency.',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (26,'en',6,28,'article','Company Profile','','company','',NULL,NULL,'<h2>About Us</h2>
+<p>We are a technology company focusing on enterprise digital transformation, founded in 2010 with headquarters in Shanghai. Over a decade of development, we have become one of the influential enterprises in the industry.</p>
+<p>The company boasts an experienced technical team, with core members from renowned domestic and international enterprises, possessing deep technical expertise in fields such as the Internet of Things, cloud computing, and artificial intelligence.</p>
+<h3>Our Mission</h3>
+<p>To drive enterprise digital upgrade through technological innovation, helping clients achieve intelligent operations and enhance core competitiveness.</p>
+<h3>Our Vision</h3>
+<p>To become the most trusted technology partner in the field of enterprise digital transformation.</p>
+<h3>Core Strengths</h3>
+<ul>
+<li>10+ years of industry expertise</li>
+<li>1,000+ enterprise clients trust us</li>
+<li>50+ professional R&D team members</li>
+<li>7×24 technical support</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (27,'en',7,29,'article','Corporate culture','','culture','',NULL,NULL,'<h2>Corporate Culture</h2>
+<h3>Core Values</h3>
+<p><strong>People First</strong> — Respect every employee, inspire team potential, and grow together.</p>
+<p><strong>Innovation Driven</strong> — Continuously pursue technological innovation to maintain industry leadership.</p>
+<p><strong>Pursuit of Excellence</strong> — Strive for perfection, holding every product and service to the highest standards.</p>
+<p><strong>Win-Win Cooperation</strong> — Build long-term partnerships with clients to achieve mutual benefits.</p>
+<h3>Corporate Spirit</h3>
+<p>Integrity, Professionalism, Efficiency, Innovation</p>
+<h3>Work Philosophy</h3>
+<p>Guided by customer needs, driven by technological innovation, and grounded in teamwork, we continuously create value for our clients.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (28,'en',8,41,'article','Contact Us','','contact','',NULL,NULL,'<p>Welcome to contact us through the following methods.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (29,'en',9,42,'article','Privacy Policy','','privacy','',NULL,'How we collect, use, and protect your personal information.','<h2>Privacy Policy</h2>
+<p><em>Last updated: 2026-05-01</em></p>
+<p>This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website. Please read this Privacy Policy carefully. If you do not agree with the terms, please do not access the site.</p>
 
--- -----------------------------------------------------------
--- Default Jobs (Demo)
--- -----------------------------------------------------------
-INSERT INTO yikai_jobs (title, lang, translation_group_id, cover, summary, content, location, salary, job_type, education, experience, headcount, requirements, views, is_top, sort_order, status, publish_time, created_at, updated_at, admin_id) VALUES
-('PHP高级工程师', 'zh-CN', 0, '', '负责公司核心产品的后端开发', NULL, '上海（可远程）', '25-40K', '全职', '本科', '3年以上', 2, '熟悉PHP 8.0+
+<h3>1. Information We Collect</h3>
+<p>We may collect personal information that you voluntarily provide, including:</p>
+<ul>
+<li><strong>Contact details</strong>: name, email address, phone number, company name when you submit an inquiry or contact us.</li>
+<li><strong>Usage data</strong>: IP address, browser type, pages visited, time stamps and referrer URLs collected automatically via cookies and standard server logs.</li>
+<li><strong>Cookies</strong>: small text files used to remember preferences and analyze site traffic.</li>
+</ul>
+
+<h3>2. How We Use Your Information</h3>
+<p>We use the collected information to:</p>
+<ul>
+<li>Respond to your inquiries and provide customer service.</li>
+<li>Improve our products, services, and website experience.</li>
+<li>Send you administrative information such as inquiry confirmations.</li>
+<li>Comply with legal obligations and enforce our Terms of Service.</li>
+</ul>
+<p>We do not sell your personal information to third parties.</p>
+
+<h3>3. Information Sharing</h3>
+<p>We may share your information only:</p>
+<ul>
+<li>With service providers who assist us in operating the website (under confidentiality obligations).</li>
+<li>When required by law, court order, or government regulation.</li>
+<li>To protect our rights, property, or safety, or that of our users.</li>
+</ul>
+
+<h3>4. Data Security</h3>
+<p>We implement industry-standard administrative, technical, and physical safeguards to protect your personal information. However, no method of transmission over the Internet is 100% secure.</p>
+
+<h3>5. Your Rights</h3>
+<p>Subject to applicable law, you may have the right to access, correct, delete, or restrict the processing of your personal information. To exercise these rights, please contact us using the details below.</p>
+
+<h3>6. Cookies and Tracking</h3>
+<p>You can control cookies through your browser settings. Disabling cookies may affect the functionality of the website.</p>
+
+<h3>7. Third-Party Links</h3>
+<p>Our website may contain links to third-party sites. We are not responsible for the privacy practices of those sites and recommend you review their privacy policies.</p>
+
+<h3>8. Children''s Privacy</h3>
+<p>Our services are not directed to children under 13. We do not knowingly collect personal information from children. If you believe we have collected such information, please contact us immediately.</p>
+
+<h3>9. Changes to This Policy</h3>
+<p>We may update this Privacy Policy from time to time. The updated version will be posted on this page with a revised "Last updated" date.</p>
+
+<h3>10. Contact Us</h3>
+<p>If you have questions about this Privacy Policy, please contact us via the contact form on our website or by email.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'Privacy Policy','privacy policy, personal information, data protection','Learn how we collect, use, and protect your personal information.',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (30,'en',10,43,'article','Terms of Service','','terms','',NULL,'The terms governing your use of our website and services.','<h2>Terms of Service</h2>
+<p><em>Last updated: 2026-05-01</em></p>
+<p>Welcome to our website. By accessing or using this site, you agree to be bound by these Terms of Service ("Terms"). If you do not agree, please do not use the site.</p>
+
+<h3>1. Acceptance of Terms</h3>
+<p>Your access to and use of the website is conditioned on your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who access or use the website.</p>
+
+<h3>2. Use of the Website</h3>
+<p>You agree to use the website only for lawful purposes and in a manner that does not infringe the rights of, or restrict or inhibit the use of this website by, any third party. Prohibited behavior includes:</p>
+<ul>
+<li>Harassing, threatening, or causing distress to others.</li>
+<li>Transmitting obscene, offensive, or otherwise objectionable content.</li>
+<li>Disrupting the normal flow of dialogue or interfering with the website operation.</li>
+<li>Attempting to gain unauthorized access to any part of the website.</li>
+</ul>
+
+<h3>3. Intellectual Property</h3>
+<p>All content on this website — including text, graphics, logos, images, audio clips, digital downloads, and software — is the property of the website operator or its content suppliers and is protected by international copyright laws. Reproduction, distribution, or modification without prior written permission is prohibited.</p>
+
+<h3>4. Product Information and Availability</h3>
+<p>We strive to ensure that product descriptions, pricing, and availability information are accurate. However, we do not warrant the accuracy, completeness, or timeliness of such information. We reserve the right to correct errors and update information at any time without prior notice.</p>
+
+<h3>5. User Submissions</h3>
+<p>By submitting any inquiry or content via the website, you grant us a non-exclusive, royalty-free, worldwide license to use, reproduce, and adapt that content for the purpose of providing our services to you. You represent that you have all necessary rights to submit such content.</p>
+
+<h3>6. Disclaimer of Warranties</h3>
+<p>The website is provided on an "as is" and "as available" basis. We disclaim all warranties, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
+
+<h3>7. Limitation of Liability</h3>
+<p>In no event shall we be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising out of or in connection with your use of the website.</p>
+
+<h3>8. Indemnification</h3>
+<p>You agree to indemnify and hold us harmless from any claims, losses, or damages arising out of your breach of these Terms or your use of the website in violation of applicable law.</p>
+
+<h3>9. Modifications to Terms</h3>
+<p>We reserve the right to modify these Terms at any time. Changes become effective upon posting on this page. Your continued use of the website after changes constitutes acceptance of the revised Terms.</p>
+
+<h3>10. Governing Law</h3>
+<p>These Terms are governed by and construed in accordance with the laws of the jurisdiction in which the website operator is established, without regard to conflict of law principles.</p>
+
+<h3>11. Contact</h3>
+<p>If you have questions about these Terms, please contact us via the contact form on our website.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'Terms of Service','terms of service, terms of use, user agreement','Read the terms governing your use of our website and services.',1,0,1776652898,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (31,'en',11,30,'article','Development History','','history','',NULL,NULL,'<h2>Development History</h2>
+<p><strong>2024</strong> — Launched the next-generation intelligent IoT platform, serving over 1,000 clients.</p>
+<p><strong>2022</strong> — Received recognition as a National High-tech Enterprise and completed Series B financing.</p>
+<p><strong>2020</strong> — Launched the enterprise management cloud platform, achieving SaaS-based services.</p>
+<p><strong>2018</strong> — Established R&D center, team expanded to 50 people.</p>
+<p><strong>2015</strong> — Expanded product line to hardware fields such as sensors and controllers.</p>
+<p><strong>2012</strong> — First IoT project implemented, serving the first batch of enterprise clients.</p>
+<p><strong>2010</strong> — Company established, focusing on enterprise informatization solutions.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776653934,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (32,'en',12,34,'article','The Company signs a cooperation agreement with its strategic partner.','','strategic-partnership-2','https://picsum.photos/800/500?random=205',NULL,'The two parties will engage in deep cooperation in the field of intelligent manufacturing.','<p>The two parties will engage in deep cooperation in the field of smart manufacturing to jointly advance the implementation of Industry 4.0 solutions.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,3,0,'','','',1,0,1776567680,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (33,'en',13,34,'article','Company participates in the 2024 International IoT Expo','','iot-expo-2024','https://picsum.photos/800/500?random=206',NULL,'Showcase the latest intelligent IoT solutions.','<p>Our company showcased its full range of IoT products at the 2024 International IoT Expo, presenting the latest technological achievements.</p>
+<h3>Exhibition Highlights</h3>
+<ul>
+<li>New-generation IoT gateway: Supports 5G + Wi-Fi 6 dual-mode connectivity</li>
+<li>Edge AI suite: Integrated vision detection and predictive maintenance</li>
+<li>Digital twin platform: Real-time 3D visualization</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,2,0,'The company participated in the 2024 International Internet of Things Expo.','Internet of Things Expo, IoT, 5G','The company showcased its full range of IoT products at the 2024 International Internet of Things Expo.',1,0,1776481280,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (34,'en',14,45,'article','Organizational structure','','organization','',NULL,NULL,'<style>
+.org-chart { text-align: center; }
+.org-chart ul { padding-top: 20px; position: relative; display: flex; justify-content: center; list-style: none; margin: 0; padding-left: 0; }
+.org-chart ul::before { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 20px; border-left: 2px solid #cbd5e1; }
+.org-chart li { position: relative; padding: 20px 5px 0; display: flex; flex-direction: column; align-items: center; }
+.org-chart li::before, .org-chart li::after { content: ""; position: absolute; top: 0; width: 50%; height: 20px; border-top: 2px solid #cbd5e1; }
+.org-chart li::before { left: 0; border-left: 2px solid #cbd5e1; }
+.org-chart li::after { right: 0; border-right: 2px solid #cbd5e1; }
+.org-chart li:first-child::before { display: none; }
+.org-chart li:last-child::after { display: none; }
+.org-chart li:only-child::before, .org-chart li:only-child::after { display: none; }
+.org-chart li:first-child::after { border-radius: 5px 0 0 0; }
+.org-chart li:last-child::before { border-radius: 0 5px 0 0; }
+.org-chart .org-node { display: inline-block; padding: 10px 20px; border-radius: 8px; text-align: center; min-width: 120px; }
+.org-chart .org-ceo { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; font-size: 16px; font-weight: 700; padding: 14px 28px; }
+.org-chart .org-vp { background: linear-gradient(135deg, #0f766e, #14b8a6); color: #fff; font-weight: 600; }
+.org-chart .org-dept { background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; font-size: 14px; }
+.org-chart .org-title { display: block; font-size: 11px; opacity: 0.85; margin-top: 2px; font-weight: 400; }
+</style>
+<div class="org-chart">
+  <ul style="padding-top:0">
+    <li style="padding-top:0">
+      <ul style="padding-top:0"><li style="padding-top:0">
+        <div class="org-node org-ceo">Zhang Wei<span class="org-title">Chairman / CEO</span></div>
+        <ul>
+          <li>
+            <div class="org-node org-vp">Li Ming<span class="org-title">VP · Technology</span></div>
+            <ul>
+              <li><div class="org-node org-dept">R&D</div></li>
+              <li><div class="org-node org-dept">Testing</div></li>
+              <li><div class="org-node org-dept">Operations</div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="org-node org-vp">Wang Fang<span class="org-title">VP · Marketing</span></div>
+            <ul>
+              <li><div class="org-node org-dept">Marketing</div></li>
+              <li><div class="org-node org-dept">Sales</div></li>
+              <li><div class="org-node org-dept">Customer Service</div></li>
+            </ul>
+          </li>
+          <li>
+            <div class="org-node org-vp">Zhao Qiang<span class="org-title">VP · Operations</span></div>
+            <ul>
+              <li><div class="org-node org-dept">Finance</div></li>
+              <li><div class="org-node org-dept">Human Resources</div></li>
+              <li><div class="org-node org-dept">Administration</div></li>
+            </ul>
+          </li>
+        </ul>
+      </li></ul>
+    </li>
+  </ul>
+</div>
+<div style="margin-top:40px;padding:24px;background:#f8fafc;border-radius:8px;">
+  <h3 style="margin-top:0;">Organization Overview</h3>
+  <p>The company has three major business divisions: <strong>Technology Center</strong>, <strong>Marketing Center</strong>, and <strong>Operations Center</strong>, overseeing 9 functional departments. Currently, it has over 50 employees, with technical R&D staff accounting for more than 60%.</p>
+  <p>We adhere to a flat management philosophy, encourage cross-departmental collaboration, and ensure efficient information flow and rapid decision-making.</p>
+</div>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'Organizational structure','organizational structure, company structure, team structure','Company organizational chart, with three major centers: Technology, Marketing, and Operations, and 9 functional departments.',1,0,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (35,'en',15,37,'article','Service Process','','process','',NULL,NULL,'<div style="max-width:800px;margin:0 auto;">
+<p style="text-align:center;color:#6b7280;margin-bottom:2em;">We ensure efficient delivery and customer satisfaction for every project through standardized service processes.</p>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#3b82f6,#60a5fa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">1</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">Requirement Communication</h3>
+<p style="color:#6b7280;">Engage in in-depth discussions with clients to understand business scenarios and specific needs. Through on-site surveys, requirement interviews, etc., produce a detailed requirements specification.</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">2</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">Solution Design</h3>
+<p style="color:#6b7280;">Develop technical solutions and implementation plans based on requirements, including system architecture design, hardware selection, network planning, and project scheduling. Submit the proposal and seek client confirmation.</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">3</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">Development & Implementation</h3>
+<p style="color:#6b7280;">Proceed with development and deployment according to the confirmed plan. Adopt agile development methodology, report progress to clients regularly, and invite clients to participate in acceptance at key milestones.</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">4</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">Testing & Acceptance</h3>
+<p style="color:#6b7280;">Conduct comprehensive system testing, including functional testing, performance testing, security testing, and user acceptance testing. Ensure the system is stable and reliable before delivery and go-live.</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#ef4444,#f87171);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">5</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">Training & Handover</h3>
+<p style="color:#6b7280;">Provide operational and technical training to the client''s team, deliver complete technical documentation and user manuals, ensuring the client can independently manage operations.</p>
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;">
+<div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#06b6d4,#22d3ee);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">6</div>
+<div style="margin-left:20px;flex:1;">
+<h3 style="margin-top:0;margin-bottom:4px;">After-Sales Support</h3>
+<p style="color:#6b7280;">Offer a 7×24 hour technical support hotline, regular inspections, and system optimization. Respond quickly to faults and ensure long-term stable operation of the system.</p>
+</div>
+</div>
+</div>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'Service Process','Service Process, Project Delivery, Technical Support','Standardized Six-Step Service Process: Requirements Communication, Solution Design, Development Implementation, Testing and Acceptance, Training and Delivery, After-Sales Support.',1,0,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (36,'en',16,38,'article','What communication protocols do your products support?','','faq-protocols','',NULL,'Our IoT gateway supports over 100 industrial protocols, including MQTT, HTTP, Modbus, OPC UA, and more.','<p>Our IoT gateway product supports a wide range of communication protocols, including but not limited to:</p>
+<ul>
+<li><strong>IoT Protocols</strong>: MQTT, CoAP, HTTP/HTTPS, WebSocket</li>
+<li><strong>Industrial Protocols</strong>: Modbus RTU/TCP, OPC UA, Profinet, EtherCAT</li>
+<li><strong>Wireless Protocols</strong>: Wi-Fi, Bluetooth, Zigbee, LoRa, NB-IoT, 4G/5G</li>
+<li><strong>Database Protocols</strong>: MySQL, PostgreSQL, InfluxDB, TDengine</li>
+</ul>
+<p>It also supports custom protocol development, which can be tailored to meet specific customer requirements.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'Supported communication protocols','Communication protocols, MQTT, Modbus, OPC UA','Our IoT gateway supports 100+ industrial protocols including MQTT, Modbus, OPC UA, and more.',1,1,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (37,'en',17,38,'article','The typical project implementation cycle generally ranges from 3 to 12 months, depending on the project''s scope, complexity, and specific requirements.','','faq-timeline','',NULL,'Depending on the project scale, the implementation cycle typically ranges from 1 to 6 months.','<p>The project implementation timeline depends on the scale and complexity of the project:</p>
+<ul>
+<li><strong>Small projects</strong> (single scenario, up to 50 devices): 1-2 months</li>
+<li><strong>Medium projects</strong> (multiple scenarios, up to 200 devices): 2-4 months</li>
+<li><strong>Large projects</strong> (group-level, cross-regional deployment): 4-6 months</li>
+</ul>
+<p>We adopt an agile development model, which allows for quick delivery of an MVP version with core features in the early stages of the project, followed by gradual iteration and refinement.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'project implementation period','Project lifecycle, implementation plan, agile development','The project implementation cycle typically ranges from 1 to 6 months depending on the scale, utilizing agile development for rapid delivery.',1,2,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (38,'en',18,38,'article','Do you support private deployment?','','faq-private-deploy','',NULL,'Supported. All of our software products support both private deployment and SaaS models.','<p>Yes, all our software products support two deployment modes:</p>
+<h4>Private Deployment</h4>
+<ul>
+<li>Deployed on customer''s own servers or private cloud</li>
+<li>Data is fully under customer''s control</li>
+<li>Supports offline operation on intranet</li>
+<li>Suitable for enterprises with strict data security requirements</li>
+</ul>
+<h4>SaaS Cloud Service</h4>
+<ul>
+<li>Ready to use out of the box, no maintenance required</li>
+<li>Pay-as-you-go, flexible scalability</li>
+<li>Automatic updates, continuous iteration</li>
+<li>Suitable for SMEs looking for quick startup</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'Does it support private deployment?','On-premises deployment, SaaS, data security','Supports both on-premises deployment and SaaS cloud service models to meet the needs of different enterprises.',1,3,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (39,'en',19,38,'article','What does after-sales service include?','','faq-after-sales','',NULL,'Providing 7×24 technical support, periodic inspections, system upgrades, and remote operation and maintenance services.','<p>Our after-sales service system includes:</p>
+<ul>
+<li><strong>Technical Support</strong>: 7×24 hotline and online customer service</li>
+<li><strong>Fault Response</strong>: Response within 4 hours for general issues, within 1 hour for urgent issues</li>
+<li><strong>Periodic Inspection</strong>: On-site or remote system inspection once per quarter</li>
+<li><strong>System Upgrade</strong>: Free version upgrade service within one year</li>
+<li><strong>Remote Operation</strong>: Remote assistance for troubleshooting and problem resolution via a secure channel</li>
+<li><strong>Knowledge Base</strong>: Online documentation and video tutorials provided</li>
+</ul>
+<p>The warranty period is 12 months from delivery, with extended warranty service available for purchase.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'After-Sales Service Content','After-sales service, technical support, operation and maintenance support','Providing 7×24 technical support, periodic inspections, system upgrades, and remote operation and maintenance services.',1,4,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (40,'en',20,38,'article','How to obtain a product quotation?','','faq-pricing','',NULL,'Customized quotation proposals can be obtained through online consultation, phone calls, or by filling in an inquiry form.','<p>Ways to Get a Quote:</p>
+<ol>
+<li><strong>Online Chat</strong>: Communicate your needs in real time through the website''s live chat support.</li>
+<li><strong>Phone Consultation</strong>: Call 400-888-8888 to speak with a sales consultant.</li>
+<li><strong>Inquiry Form</strong>: Submit an inquiry on the product page, and we will respond within 24 hours.</li>
+<li><strong>Email Contact</strong>: Send your requirements to contact@example.com.</li>
+</ol>
+<p>We will provide a detailed customized quote based on your specific needs, equipment quantity, deployment scale, and other factors. For standard products, you can directly refer to the prices listed on the product page.</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'How to get a quote','Product Quotation, Price Inquiry, Inquiry','Obtain a customized quotation plan through online consultation, phone, or inquiry form.',1,5,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (41,'ja',8,66,'article','お問い合わせ','','contact','',NULL,NULL,'<p>お気軽にお問い合わせください。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,0,1778434705,1778434705,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (42,'ja',9,67,'article','プライバシーポリシー','','privacy','',NULL,'個人情報の取り扱いについて','<h2>プライバシーポリシー</h2>
+<p>当社（以下「当社」）は、お客様の個人情報の重要性を認識し、個人情報の保護に関する法律（個人情報保護法）を遵守するとともに、以下のプライバシーポリシーに従い、適切な取り扱い及び保護に努めます。</p>
+
+<h3>1. 個人情報の収集</h3>
+<p>当社は、以下の場合に個人情報を収集することがあります。</p>
+<ul>
+<li><strong>お問い合わせフォーム</strong>：お名前、メールアドレス、電話番号、会社名など</li>
+<li><strong>アクセスログ</strong>：IPアドレス、ブラウザの種類、アクセス日時、閲覧ページなど</li>
+<li><strong>Cookie</strong>：ユーザー体験の向上およびサイト機能の改善のために使用します</li>
+</ul>
+
+<h3>2. 個人情報の利用目的</h3>
+<p>収集した個人情報は、以下の目的で利用いたします。</p>
+<ul>
+<li>サービスの提供、維持、改善</li>
+<li>お問い合わせやご依頼への対応</li>
+<li>サービスに関するご連絡・ご案内</li>
+<li>不正行為の防止</li>
+</ul>
+
+<h3>3. 個人情報の管理</h3>
+<p>当社は、個人情報の正確性を保ち、不正アクセス、漏洩、改ざん、紛失を防止するため、適切な技術的・組織的措置を講じます。</p>
+
+<h3>4. 第三者への提供</h3>
+<p>当社は、以下の場合を除き、お客様の個人情報を第三者に提供することはありません。</p>
+<ul>
+<li>お客様の同意がある場合</li>
+<li>法令に基づく場合</li>
+<li>当社の権利・利益を保護するために必要な場合</li>
+</ul>
+
+<h3>5. Cookieの使用について</h3>
+<p>当サイトでは、ユーザー体験の向上のためCookieを使用しています。ブラウザの設定によりCookieの受け入れを拒否することが可能ですが、一部の機能が正常に動作しなくなる場合があります。</p>
+
+<h3>6. プライバシーポリシーの変更</h3>
+<p>当社は、必要に応じて本ポリシーを変更することがあります。変更後のポリシーは当ページに掲載いたします。定期的にご確認いただくことをお勧めいたします。</p>
+
+<h3>7. お問い合わせ</h3>
+<p>本プライバシーポリシーに関するご質問は、<a href="/contact.html">お問い合わせページ</a>よりご連絡ください。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1770899116,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (43,'ja',10,68,'article','利用規約','','terms','',NULL,'ウェブサイトのご利用条件','<h2>利用規約</h2>
+<p>本ウェブサイト（以下「当サイト」）をご利用いただく前に、以下の利用規約をよくお読みください。当サイトをご利用になることにより、本規約に同意したものとみなされます。</p>
+
+<h3>1. サービスについて</h3>
+<p>当サイトで提供する情報およびサービスは参考目的であり、予告なく変更、中断、終了する場合があります。</p>
+
+<h3>2. 禁止事項</h3>
+<p>当サイトのご利用にあたり、以下の行為を禁止します。</p>
+<ul>
+<li>法令に違反する行為</li>
+<li>ウイルスや悪意のあるコードを含むコンテンツの送信</li>
+<li>他者の知的財産権その他の権利を侵害する行為</li>
+<li>当サイトの正常な運営を妨害する行為</li>
+</ul>
+
+<h3>3. 知的財産権</h3>
+<p>当サイトに掲載されているすべてのコンテンツ（テキスト、画像、動画、ソフトウェア、デザインを含む）は、著作権法およびその他の知的財産権法により保護されています。当社の書面による許可なく、複製、転載、改変、商用利用することはできません。</p>
+
+<h3>4. 免責事項</h3>
+<ul>
+<li>当サイトの情報は一般的な参考情報であり、いかなる助言や保証を構成するものではありません。</li>
+<li>当サイトの情報の正確性、完全性、最新性について保証するものではありません。</li>
+<li>当サイトの利用に起因するいかなる直接的または間接的な損害についても、当社は責任を負いません。</li>
+<li>当サイトには第三者のウェブサイトへのリンクが含まれる場合がありますが、当社はそれらのサイトの内容について一切の責任を負いません。</li>
+</ul>
+
+<h3>5. アカウント管理</h3>
+<p>当サイトでアカウントを登録された場合、アカウント情報およびパスワードの管理はお客様の責任となります。アカウント情報の漏洩による損害について、当社は責任を負いかねます。</p>
+
+<h3>6. プライバシー</h3>
+<p>個人情報の取り扱いについては、<a href="/privacy.html">プライバシーポリシー</a>をご参照ください。</p>
+
+<h3>7. 規約の変更</h3>
+<p>当社は、本利用規約を随時変更する権利を有します。変更後の規約は当ページに掲載され、当サイトを継続してご利用になることにより、変更後の規約に同意したものとみなされます。</p>
+
+<h3>8. 準拠法</h3>
+<p>本利用規約は日本法に準拠するものとし、本規約に関する紛争については、東京地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
+
+<h3>9. お問い合わせ</h3>
+<p>本利用規約に関するご質問は、<a href="/contact.html">お問い合わせページ</a>よりご連絡ください。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1770899116,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (44,'ja',11,55,'article','沿革','','history','',NULL,'会社の歩み','<p>当社の設立から現在までの歩みをご紹介します。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1775432984,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (45,'ja',15,62,'article','サービスフロー','','process','',NULL,'标准化的服务流程，确保服务质量','<div style="max-width:800px;margin:0 auto;">
+<p style="text-align:center;color:#6b7280;margin-bottom:2em;">標準化されたサービスフローで、すべてのプロジェ���トを高品質にお届けします。</p>
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#3b82f6,#60a5fa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">1</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">ヒアリング</h3><p style="color:#6b7280;">お客様の業務課題やご要望を詳しくお伺いし、要件定義書を作成します。</p></div></div>
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">2</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">設計・提案</h3><p style="color:#6b7280;">システム設計、ハードウェア選定、ネットワーク設計、プロジェクト計画を策定しご提案します。</p></div></div>
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">3</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">開発・構築</h3><p style="color:#6b7280;">アジャイル開発で定期的に進捗をご報告。重要マイルストーンではお客様にレビューいただきます。</p></div></div>
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">4</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">テスト・検収</h3><p style="color:#6b7280;">機能テスト、性能テスト、セキュリティテスト、受入テストを実施し、安定稼働を確認後に本番移行します。</p></div></div>
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#ef4444,#f87171);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">5</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">研修・納品</h3><p style="color:#6b7280;">操作研修と技術ドキュメントをご提供し、お客様が独立して運用できるよう支援します。</p></div></div>
+<div style="display:flex;align-items:flex-start;margin-bottom:2em;"><div style="flex-shrink:0;width:60px;height:60px;background:linear-gradient(135deg,#06b6d4,#22d3ee);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">6</div><div style="margin-left:20px;flex:1;"><h3 style="margin-top:0;margin-bottom:4px;">アフターサポート</h3><p style="color:#6b7280;">24時間365日の技術サポート、定期点検、システム最適化を提供します。</p></div></div>
+</div>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',1,0,0,150,0,'サービスフロー','サービスフロー,導入プ��セス','6ステップの標準サービスフロー。',1,0,1770899116,1778434705,1778434705,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (46,'ja',1,59,'article','当社が年間最優秀テクノロジー革新賞を受賞','','tech-innovation-award-ja','https://picsum.photos/800/500?random=201',NULL,'2024 年テクノロジー革新大会において、当社が技術力で受賞しました。','<p>先日行われた 2024 年度テクノロジー革新大会において、当社は IoT とエッジコンピューティング分野での貢献が評価され、「年間最優秀テクノロジー革新賞」を受賞いたしました。</p>
+<p>本選考は中国情報通信研究院が主催し、専門委員会による厳しい審査を経て、数百社の中から選出されました。審査委員会は、当社のスマート IoT ゲートウェイやエッジコンピューティングプラットフォームの技術革新を高く評価しました。</p>
+<h3>受賞ポイント</h3>
+<ul>
+<li>自社開発の IoT プロトコルスタック、100+ 種の産業プロトコルに対応</li>
+<li>エッジ AI 推論エンジン、ミリ秒級のリアルタイム判定をサポート</li>
+<li>累計 32 件の特許出願、うち発明特許 12 件</li>
+</ul>
+<p>CEO は「この賞は当社チームの絶え間ない革新に対する評価です。今後も研究開発投資を強化し、業界のデジタル化に貢献してまいります。」とコメントしました。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',1,0,0,7,0,'当社が年間最優秀テクノロジー革新賞を受賞','科技创新,物联网,边缘计算,技术奖项','我公司在2024年度科技创新大会上荣获年度最佳科技创新奖。',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (47,'ja',2,59,'article','戦略パートナーと協力協定を締結','','strategic-partnership-ja','https://picsum.photos/800/500?random=202',NULL,'両社はスマート製造分野で深い協力を展開します。','<p>先日、当社は国内大手スマート製造ソリューションプロバイダと戦略的協力協定を正式に締結しました。両社は産業 IoT、スマート製造、デジタル工場などの分野で包括的な協力を展開します。</p>
+<h3>協力内容</h3>
+<ul>
+<li><strong>技術統合</strong>：当社の IoT ゲートウェイをパートナーの MES システムと深く統合</li>
+<li><strong>市場連携</strong>：華東および華南地域の製造業顧客を共同開拓</li>
+<li><strong>製品共創</strong>：中小製造業向けの軽量化デジタル工場ソリューションを共同開発</li>
+</ul>
+<p>今回の協力により、両社の技術的優位性と市場リソースを活かし、製造業顧客にデバイス接続から生産管理までのワンストップデジタルソリューションを提供します。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'戦略パートナーと協力協定を締結','战略合作,智能制造,工业物联网','我公司与智能制造解决方案提供商签署战略合作协议。',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (48,'ja',3,60,'article','デジタルトランスフォーメーション動向レポート発表','','digital-transformation-report-ja','https://picsum.photos/800/500?random=203',NULL,'本レポートは企業のデジタルトランスフォーメーションの最新動向とベストプラクティスを分析しています。','<p>当社研究所は『2024 企業デジタルトランスフォーメーション動向レポート』を正式発表しました。本レポートは 500 社以上の企業調査データに基づき、デジタル化の主要動向と実践パスを深く分析しています。</p>
+<h3>主要な発見</h3>
+<ol>
+<li><strong>AI 主導が主流に</strong>：78% の企業がデジタル化計画に AI 技術を組み込み済み</li>
+<li><strong>エッジコンピューティングの台頭</strong>：産業領域でエッジコンピューティングの導入数が前年比 150% 増</li>
+<li><strong>データセキュリティ重視</strong>：65% の企業がデータセキュリティを最優先課題に</li>
+<li><strong>中小企業の加速</strong>：軽量化 SaaS により中小企業のデジタル化率が 45% に上昇</li>
+</ol>
+<h3>今後の展望</h3>
+<p>レポートによれば、今後 3 年間、デジタルツイン、産業メタバース、グリーンスマート製造が企業デジタル化の三大新方向となります。</p>
+<p>完全版レポートは当社ウェブサイトのダウンロードセンターからご利用いただけます。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'デジタルトランスフォーメーション動向レポート発表','数字化转型,趋势报告,AI,边缘计算','2024企业数字化转型趋势报告发布。',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (49,'ja',4,60,'article','PHP 8.0 の新機能解説','','php80-new-features-ja','https://picsum.photos/800/500?random=204',NULL,'PHP 8.0 がもたらすパフォーマンス向上と新しい構文機能を深く解説します。','<p>PHP 8.0 は PHP 言語のメジャーバージョンアップであり、多くのエキサイティングな新機能とパフォーマンス改善をもたらしました。本記事では最も重要な変更を解説します。</p>
+<h3>JIT コンパイラ</h3>
+<p>PHP 8.0 は JIT（Just-In-Time）コンパイル対応を導入し、計算負荷の高いシナリオで最大 3 倍のパフォーマンス向上を実現します。典型的な Web アプリではメリットは限定的ですが、データ処理や科学計算で優れた効果を発揮します。</p>
+<h3>名前付き引数</h3>
+<pre><code>htmlspecialchars($string, double_encode: false);</code></pre>
+<p>名前付き引数によりコードの可読性が向上し、引数の順序を覚える必要がなくなります。</p>
+<h3>共用体型</h3>
+<pre><code>function foo(int|string $id): void {}</code></pre>
+<p>共用体型を言語ネイティブでサポートし、PHPDoc コメントへの依存を減らします。</p>
+<h3>Match 式</h3>
+<pre><code>$result = match($status) {
+    1 => "active",
+    2 => "inactive",
+    default => "unknown",
+};</code></pre>
+<p>match は switch のモダンな代替で、厳密比較と戻り値をサポートします。</p>
+<h3>Null セーフ演算子</h3>
+<pre><code>$country = $user?->getAddress()?->country;</code></pre>
+<p>チェーン呼び出しで null 値を優雅に扱い、冗長な null チェックを回避します。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'PHP 8.0 の新機能解説','PHP8,JIT,命名参数,技术分享','深入解析PHP 8.0的重要新特性。',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (50,'ja',5,57,'case','大手製造業のデジタル化プロジェクト','','manufacturing-digital-transformation-ja','https://picsum.photos/800/500?random=301',NULL,'お客様の生産効率を 30% 向上させた事例','<h3>プロジェクト背景</h3>
+<p>お客様は国内の大手製造企業で、5 つの生産拠点と 2000+ 台の設備を保有しています。設備データの孤立、人的経験に依存した生産計画、品質トレーサビリティの困難といった課題に直面していました。</p>
+<h3>ソリューション</h3>
+<ul>
+<li><strong>設備接続</strong>：200+ 台の IoT ゲートウェイを配備し、全生産設備にアクセスしてリアルタイムデータを収集</li>
+<li><strong>データ基盤</strong>：統一データプラットフォームを構築、ERP・MES・WMS システムを連携</li>
+<li><strong>スマートスケジューリング</strong>：AI アルゴリズムによる生産計画の最適化</li>
+<li><strong>品質トレース</strong>：全工程の二次元コードトレース体系で品質問題を正確に特定</li>
+</ul>
+<h3>プロジェクト成果</h3>
+<ul>
+<li>生産効率 <strong>30%</strong> 向上</li>
+<li>設備停止時間 <strong>45%</strong> 削減</li>
+<li>不良品率 <strong>60%</strong> 低下</li>
+<li>在庫回転率 <strong>25%</strong> 向上</li>
+</ul>
+<p>プロジェクト実施期間 6 ヶ月、稼働開始から 1 年で投資回収を達成。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,8,0,'大手製造業のデジタル化プロジェクト','数字化转型,智能制造,成功案例','帮助大型制造企业实现生产效率提升30%。',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (51,'ja',6,53,'article','会社概要','','company-ja','',NULL,'会社の基本情報','<h2>会社案内</h2>
+<p>当社は企業のデジタルトランスフォーメーションに特化したテクノロジー企業として 2010 年に設立、上海に本社を置いています。10 年以上の歩みを経て、業界内で影響力のある企業の一社となりました。</p>
+<p>経験豊富な技術チームを擁し、コアメンバーは国内外の著名企業出身で、IoT、クラウドコンピューティング、AI などの領域で深い技術蓄積を持ちます。</p>
+<h3>ミッション</h3>
+<p>技術革新で企業のデジタル化を推進し、お客様のインテリジェントな運営とコア競争力の向上を支援します。</p>
+<h3>ビジョン</h3>
+<p>企業デジタルトランスフォーメーション領域で最も信頼できる技術パートナーとなる。</p>
+<h3>強み</h3>
+<ul>
+<li>10 年以上の業界経験</li>
+<li>1000+ 社の企業顧客実績</li>
+<li>50+ 名の R&D チーム</li>
+<li>24 時間 365 日のテクニカルサポート</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'会社概要','','',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (52,'ja',7,54,'article','企業文化','','culture-ja','',NULL,'私たちの価値観','<h2>企業文化</h2>
+<h3>コアバリュー</h3>
+<p><strong>人を大切に</strong> — すべての社員を尊重し、チームの可能性を引き出し、共に成長します。</p>
+<p><strong>イノベーション主導</strong> — 継続的な技術革新で、業界のリーディングポジションを保ちます。</p>
+<p><strong>卓越を追求</strong> — 全ての製品とサービスを最高水準で提供します。</p>
+<p><strong>Win-Win の協力</strong> — お客様と長期的な信頼関係を築き、共に成長します。</p>
+<h3>企業精神</h3>
+<p>誠実・専門性・効率性・革新</p>
+<h3>仕事の理念</h3>
+<p>お客様のニーズを起点に、技術革新を推進力に、チーム協働を基盤に、継続的にお客様の価値を創造します。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'企業文化','','',1,0,1776652898,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (53,'ja',12,59,'article','戦略パートナーと協力協定を締結','','strategic-partnership-2-ja','https://picsum.photos/800/500?random=205',NULL,'両社はスマート製造分野で深い協力を展開します。','<p>当社は国内大手スマート製造ソリューションプロバイダと戦略的協力協定を締結しました。両社は産業 IoT、スマート製造、デジタル工場などの分野で包括的な協力を展開します。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,4,0,'戦略パートナーと協力協定を締結','','',1,0,1776567680,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (54,'ja',13,59,'article','2024 国際 IoT 博覧会に出展','','iot-expo-2024-ja','https://picsum.photos/800/500?random=206',NULL,'最新のスマート IoT ソリューションを展示しました。','<p>当社は 2024 年国際 IoT 博覧会に出展し、スマート IoT 分野の最新技術成果を全面的に紹介しました。</p>
+<h3>展示の見どころ</h3>
+<ul>
+<li><strong>次世代 IoT ゲートウェイ</strong>：5G + Wi-Fi 6 デュアル接続、処理性能 200% 向上</li>
+<li><strong>エッジ AI キット</strong>：画像検査と予知保全機能を統合</li>
+<li><strong>デジタルツインプラットフォーム</strong>：3D 可視化による工場のリアルタイム稼働状況</li>
+</ul>
+<p>会期中、30 カ国以上から 500 名超の専門来場者を迎え、複数の協業合意に至りました。当社ブースは「最優秀イノベーション展示賞」を受賞しました。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,3,0,'2024 国際 IoT 博覧会に出展','物联网博览会,IoT,5G','公司携全系列物联网产品亮相2024国际物联网博览会。',1,0,1776481280,1778457949,1778458636,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (55,'ja',14,70,'article','組織体制','','organization-ja','',NULL,'会社の組織図：技術・マーケティング・運営の三大センターと 9 部門。','<h2>組織体制</h2>
+<p>当社は<strong>技術センター</strong>、<strong>マーケティングセンター</strong>、<strong>運営センター</strong>の三大事業部を設置し、その下に 9 つの機能部門を擁します。50 名超の社員のうち、R&D 人員が 60% 以上を占めます。</p>
+<p>フラットな組織管理を基本理念とし、部門横断の協働を推奨することで、迅速な情報伝達と意思決定を実現しています。</p>
+<h3>主要部門</h3>
+<ul>
+<li>技術センター — 研究開発部 / テスト部 / 運用保守部</li>
+<li>マーケティングセンター — マーケティング部 / 営業部 / カスタマーサポート部</li>
+<li>運営センター — 財務部 / 人事部 / 総務部</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'組織体制','组织架构,公司架构,团队结构','公司组织架构图，设有技术、营销、运营三大中心及9个职能部门。',1,0,0,1778457949,1778458636,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (56,'ja',16,63,'article','どの通信プロトコルに対応していますか？','','faq-protocols-ja','',NULL,'当社の IoT ゲートウェイは MQTT、HTTP、Modbus、OPC UA など 100+ 種の産業プロトコルに対応します。','<p>当社の IoT ゲートウェイ製品は、以下を含む豊富な通信プロトコルに対応します：</p>
+<ul>
+<li><strong>IoT プロトコル</strong>：MQTT、CoAP、HTTP/HTTPS、WebSocket</li>
+<li><strong>産業プロトコル</strong>：Modbus RTU/TCP、OPC UA、Profinet、EtherCAT</li>
+<li><strong>無線プロトコル</strong>：Wi-Fi、Bluetooth、Zigbee、LoRa、NB-IoT、4G/5G</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'どの通信プロトコルに対応していますか？','通信协议,MQTT,Modbus,OPC UA','我们的物联网网关支持MQTT、Modbus、OPC UA等100+种工业协议。',1,1,0,1778457949,1778458636,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (57,'ja',17,63,'article','プロジェクトの実施期間はどのくらいですか？','','faq-timeline-ja','',NULL,'プロジェクト規模により、通常 1〜6 ヶ月の実施期間です。','<p>プロジェクト実施期間は規模と複雑さによります：</p>
+<ul>
+<li><strong>小規模プロジェクト</strong>（50 台以内の設備）：1〜2 ヶ月</li>
+<li><strong>中規模プロジェクト</strong>（200 台以内の設備）：2〜4 ヶ月</li>
+<li><strong>大規模プロジェクト</strong>（グループ・複数拠点）：4〜6 ヶ月</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'プロジェクトの実施期間はどのくらいですか？','项目周期,实施计划,敏捷开发','项目实施周期根据规模不同通常在1-6个月，采用敏捷开发快速交付。',1,2,0,1778457949,1778458636,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (58,'ja',18,63,'article','オンプレミス導入に対応していますか？','','faq-private-deploy-ja','',NULL,'対応しています。すべてのソフトウェア製品がオンプレミス導入と SaaS の両方をサポートします。','<p>はい、2 つの導入モードをサポートします：</p>
+<h4>オンプレミス導入</h4>
+<ul><li>お客様自身のサーバーに導入</li><li>データを完全にお客様側で管理</li><li>イントラネットオフライン動作可能</li></ul>
+<h4>SaaS クラウドサービス</h4>
+<ul><li>すぐに使える、運用保守不要</li><li>従量課金、柔軟に拡張可能</li></ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'オンプレミス導入に対応していますか？','私有化部署,SaaS,数据安全','支持私有化部署和SaaS云服务两种模式，满足不同企业需求。',1,3,0,1778457949,1778458636,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (59,'ja',19,63,'article','アフターサービスにはどんな内容が含まれますか？','','faq-after-sales-ja','',NULL,'24 時間 365 日のテクニカルサポート、定期点検、システムアップグレード、リモート運用保守を提供します。','<ul>
+<li><strong>テクニカルサポート</strong>：24 時間 365 日ホットラインとオンラインカスタマーサービス</li>
+<li><strong>緊急対応</strong>：緊急問題は 1 時間以内に応答</li>
+<li><strong>定期点検</strong>：四半期ごとのシステム点検</li>
+<li><strong>システムアップグレード</strong>：1 年間の無料バージョンアップ</li>
+<li><strong>リモート運用</strong>：セキュアなチャネル経由のリモート支援</li>
+</ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,1,0,'アフターサービスにはどんな内容が含まれますか？','售后服务,技术支持,运维保障','提供7×24小时技术支持、定期巡检、系统升级和远程运维服务。',1,4,0,1778457949,1778458636,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (60,'ja',20,63,'article','見積もりはどのように取得しますか？','','faq-pricing-ja','',NULL,'オンライン相談、電話、または問合せフォームでカスタマイズ見積もりを取得できます。','<ol>
+<li><strong>オンライン相談</strong>：ウェブサイトのオンラインカスタマーサービス</li>
+<li><strong>電話相談</strong>：400-888-8888</li>
+<li><strong>問合せフォーム</strong>：製品ページから送信、24 時間以内に返信</li>
+<li><strong>メール連絡</strong>：contact@example.com</li>
+</ol>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'見積もりはどのように取得しますか？','产品报价,价格咨询,询盘','通过在线咨询、电话或询盘表单获取定制化报价方案。',1,5,0,1778457949,1778458636,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (61,'zh-CN',61,20,'case','某制造业智能工厂解决方案','从单点信息化到工厂级数字化转型','smart-factory-solution','https://picsum.photos/seed/smart-factory/1200/600',NULL,'通过 IoT 设备联网、MES 工单调度与 BI 可视化，帮助某大型制造企业实现 OEE 提升 18%、工单周期缩短 30%。','<h2>项目背景</h2>
+<p>某大型制造企业生产管理系统老旧，无法实时掌握车间设备状态与生产进度，质量数据靠纸质单据回收，月度对账周期长达 7 天。</p>
+<h2>解决方案</h2>
+<ul>
+  <li><strong>设备联网层：</strong>通过 IoT 网关接入 200+ 台数控机床，采集 OEE / 主轴负载 / 报警代码等关键指标。</li>
+  <li><strong>MES 调度层：</strong>工单实时下发到工位终端，扫码报工自动汇总产量与不良率。</li>
+  <li><strong>BI 可视化：</strong>车间看板 + 移动端报表，管理层随时掌握产能与库存。</li>
+</ul>
+<h2>实施成效</h2>
+<p>上线 6 个月后，设备综合效率（OEE）提升 18%，工单周期缩短 30%，质量追溯从天级缩短到秒级。</p>','html',NULL,'','','IoT,MES,智能制造','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,2,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (62,'en',61,46,'case','Smart Factory Solution for a Manufacturer','From point IT to factory-wide digital transformation','smart-factory-solution-en','https://picsum.photos/seed/smart-factory/1200/600',NULL,'By connecting IoT devices, MES dispatch, and BI dashboards, we helped a large manufacturer lift OEE by 18% and shorten work-order cycles by 30%.','<h2>Background</h2>
+<p>A large manufacturer''s legacy production-management system couldn''t track shop-floor equipment status or production progress in real time. Quality data was collected on paper forms and the monthly reconciliation cycle stretched to 7 days.</p>
+<h2>Solution</h2>
+<ul>
+  <li><strong>Device-connectivity layer:</strong> IoT gateways onboarded 200+ CNC machines, capturing OEE, spindle load, and alarm codes.</li>
+  <li><strong>MES scheduling:</strong> Work orders dispatched to station terminals; scan-to-report auto-aggregates output and defect rates.</li>
+  <li><strong>BI dashboards:</strong> Shop-floor displays and mobile reports keep management on top of capacity and inventory.</li>
+</ul>
+<h2>Results</h2>
+<p>Six months after go-live, OEE rose by 18%, work-order cycle time dropped 30%, and quality traceability shortened from days to seconds.</p>','html',NULL,'','','IoT,MES,Smart Manufacturing','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,1,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (63,'ja',61,71,'case','ある製造業のスマートファクトリー導入事例','部分的なIT化から、工場全体のデジタルトランスフォーメーションへ','smart-factory-solution-ja','https://picsum.photos/seed/smart-factory/1200/600',NULL,'IoT機器接続、MES作業指示、BIダッシュボードを組み合わせ、大手製造業のお客様のOEEを18%向上させ、作業サイクルを30%短縮しました。','<h2>プロジェクト背景</h2>
+<p>ある大手製造業のお客様は、旧式の生産管理システムでは現場設備の稼働状況や生産進捗をリアルタイムで把握できず、品質データも紙の伝票で回収していました。月次照合には7日かかっていました。</p>
+<h2>ソリューション</h2>
+<ul>
+  <li><strong>設備接続層：</strong>IoTゲートウェイ経由でNC工作機械200台以上を接続し、OEE・主軸負荷・アラームコードなどの主要指標を収集。</li>
+  <li><strong>MESスケジューリング：</strong>作業指示書を作業ステーション端末にリアルタイム配信し、スキャン報告で生産数と不良率を自動集計。</li>
+  <li><strong>BIビジュアライゼーション：</strong>現場ダッシュボードとモバイル帳票で、経営陣がいつでも能力と在庫を把握。</li>
+</ul>
+<h2>導入効果</h2>
+<p>稼働から6ヶ月後、OEEは18%向上、作業指示サイクルは30%短縮、品質トレーサビリティは日単位から秒単位に短縮されました。</p>','html',NULL,'','','IoT,MES,スマート製造','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,1,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (64,'zh-CN',64,21,'case','零售连锁数字化升级方案','300+门店的统一中台、智能补货与会员全渠道','retail-chain-digitalization','https://picsum.photos/seed/retail-chain/1200/600',NULL,'为全国连锁零售品牌打通 POS / 会员 / 库存 / 优惠券四大系统，借助智能补货模型，店均销售提升 12%，缺货率从 8.2% 降至 2.1%。','<h2>行业背景</h2>
+<p>某全国连锁零售品牌旗下 300+ 门店，各门店 POS、会员、库存系统割裂运行，总部无法获取实时销售与库存数据，促销活动响应慢，库存周转率长期低于行业平均。</p>
+<h2>解决方案</h2>
+<ul>
+  <li><strong>统一中台：</strong>POS / 会员 / 库存 / 优惠券 整合到一个数据中台，门店与总部数据实时同步。</li>
+  <li><strong>智能补货：</strong>基于历史销量 + 季节因子 + 天气因子的预测模型，自动生成门店补货建议。</li>
+  <li><strong>会员全渠道：</strong>线上小程序与线下门店共享会员积分体系，全域营销可触达。</li>
+</ul>
+<h2>实施成效</h2>
+<p>上线一年内：门店日均销售提升 12%，缺货率从 8.2% 降至 2.1%，库存周转率提升 25%，会员复购率提升 18%。</p>','html',NULL,'','','零售,中台,智能补货,会员','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (65,'en',64,47,'case','Retail Chain Digital Transformation','Unified platform, smart replenishment, and omnichannel membership for 300+ stores','retail-chain-digitalization-en','https://picsum.photos/seed/retail-chain/1200/600',NULL,'Unified POS, membership, inventory, and coupons for a national retail chain. With a smart replenishment model, daily store sales rose 12% and the out-of-stock rate fell from 8.2% to 2.1%.','<h2>Industry Context</h2>
+<p>A nationwide retail chain with 300+ stores ran POS, membership, and inventory systems that didn''t talk to each other. HQ had no real-time view of sales or stock; promotions launched slowly and inventory turnover trailed the industry average.</p>
+<h2>Solution</h2>
+<ul>
+  <li><strong>Unified data platform:</strong> POS / membership / inventory / coupons consolidated into one platform; stores and HQ stay in sync.</li>
+  <li><strong>Smart replenishment:</strong> Forecasting model combines historical sales, seasonality, and weather to auto-generate per-store replenishment recommendations.</li>
+  <li><strong>Omnichannel membership:</strong> Online mini-program and offline stores share a single loyalty system, enabling unified marketing reach.</li>
+</ul>
+<h2>Results</h2>
+<p>One year after launch: daily store sales up 12%, out-of-stock rate down from 8.2% to 2.1%, inventory turnover up 25%, member repurchase rate up 18%.</p>','html',NULL,'','','Retail,Platform,Replenishment,Membership','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (66,'ja',64,72,'case','小売チェーンのデジタル変革ソリューション','300店舗以上のための統合基盤・スマート補充・会員オムニチャネル','retail-chain-digitalization-ja','https://picsum.photos/seed/retail-chain/1200/600',NULL,'全国小売チェーン向けに POS／会員／在庫／クーポンを統合。スマート補充モデルにより、店舗日次売上を12%向上、欠品率を8.2%から2.1%に低減しました。','<h2>業界背景</h2>
+<p>全国に300店舗以上を展開する小売チェーンでは、各店舗のPOS・会員・在庫システムが分断されており、本部はリアルタイムの売上・在庫データを取得できず、販促活動の対応も遅れ、在庫回転率は業界平均を下回っていました。</p>
+<h2>ソリューション</h2>
+<ul>
+  <li><strong>統合データ基盤：</strong>POS／会員／在庫／クーポンを一つのデータ基盤に統合し、店舗と本部のデータをリアルタイム同期。</li>
+  <li><strong>スマート補充：</strong>過去の販売実績＋季節要因＋天候要因を組み合わせた予測モデルで、店舗別の補充推奨を自動生成。</li>
+  <li><strong>会員のオムニチャネル化：</strong>オンラインミニプログラムと実店舗で会員ポイントを共有し、全チャネルでマーケティングが可能に。</li>
+</ul>
+<h2>導入効果</h2>
+<p>稼働1年後：店舗の日次売上12%向上、欠品率8.2%から2.1%へ低減、在庫回転率25%向上、会員リピート率18%向上。</p>','html',NULL,'','','小売,プラットフォーム,補充,会員','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+DROP TABLE IF EXISTS "yikai_download_categories";
+CREATE TABLE "yikai_download_categories" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL,
+  "description" TEXT DEFAULT '',
+  "sort_order" INTEGER DEFAULT '0',
+  "status" INTEGER DEFAULT '1',
+  "created_at" INTEGER DEFAULT '0'
+);
+
+
+DROP TABLE IF EXISTS "yikai_downloads";
+CREATE TABLE "yikai_downloads" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "category_id" INTEGER DEFAULT '0',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "title" TEXT NOT NULL,
+  "description" TEXT,
+  "cover" TEXT DEFAULT '',
+  "file_url" TEXT DEFAULT '',
+  "file_name" TEXT DEFAULT '',
+  "file_size" INTEGER DEFAULT '0',
+  "file_ext" TEXT DEFAULT '',
+  "download_count" INTEGER DEFAULT '0',
+  "is_external" INTEGER DEFAULT '0',
+  "require_login" INTEGER NOT NULL DEFAULT '0',
+  "sort_order" INTEGER DEFAULT '0',
+  "status" INTEGER DEFAULT '1',
+  "created_at" INTEGER DEFAULT '0',
+  "updated_at" INTEGER DEFAULT '0',
+  "admin_id" INTEGER DEFAULT '0'
+);
+CREATE INDEX "idx_category_yikai_downloads" ON "yikai_downloads" ("category_id");
+CREATE INDEX "idx_status_yikai_downloads" ON "yikai_downloads" ("status");
+CREATE INDEX "idx_sort_yikai_downloads" ON "yikai_downloads" ("sort_order" DESC,"id" DESC);
+CREATE INDEX "idx_dl_lang_yikai_downloads" ON "yikai_downloads" ("lang");
+
+
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (1,0,'zh-CN',1,'产品使用手册 V2.0','最新版产品使用说明书','','','',0,'pdf',0,0,0,0,1,1776652898,1776652898,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (2,0,'zh-CN',2,'客户端软件 V3.5.1','适用于Windows系统的客户端软件','','','',0,'exe',0,0,0,0,1,1776652898,1776652898,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (3,0,'zh-CN',3,'API接口文档','完整的API接口说明文档','','','',0,'pdf',0,0,0,0,1,1776652898,1776652898,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (4,0,'en',1,'Product Manual V2.0','Latest product user manual','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (5,0,'en',2,'Client Software V3.5.1','Windows client software','','','',0,'exe',0,0,0,0,1,1778457949,1778457949,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (6,0,'en',3,'API Documentation','Complete API reference','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (7,0,'ja',1,'製品マニュアル V2.0','最新版ユーザーマニュアル','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (8,0,'ja',2,'クライアントソフトウェア V3.5.1','Windows 用クライアント','','','',0,'exe',0,0,0,0,1,1778457949,1778457949,0);
+INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (9,0,'ja',3,'API ドキュメント','完全な API リファレンス','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
+DROP TABLE IF EXISTS "yikai_extfields";
+CREATE TABLE "yikai_extfields" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "owner_type" TEXT NOT NULL,
+  "field_key" TEXT NOT NULL,
+  "field_name" TEXT NOT NULL,
+  "field_type" TEXT NOT NULL DEFAULT 'TEXT',
+  "options" TEXT,
+  "placeholder" TEXT NOT NULL DEFAULT '',
+  "help_text" TEXT NOT NULL DEFAULT '',
+  "is_required" INTEGER NOT NULL DEFAULT '0',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_owner_key_yikai_extfields" ON "yikai_extfields" ("owner_type","field_key");
+CREATE INDEX "idx_owner_yikai_extfields" ON "yikai_extfields" ("owner_type","status","sort_order");
+
+
+DROP TABLE IF EXISTS "yikai_form_templates";
+CREATE TABLE "yikai_form_templates" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL,
+  "name_en" TEXT NOT NULL DEFAULT '',
+  "name_ja" TEXT NOT NULL DEFAULT '',
+  "slug" TEXT NOT NULL,
+  "fields" TEXT,
+  "fields_en" TEXT,
+  "fields_ja" TEXT,
+  "success_message" TEXT NOT NULL DEFAULT '提交成功，感谢您的反馈！',
+  "success_message_en" TEXT NOT NULL DEFAULT '',
+  "success_message_ja" TEXT NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_slug_yikai_form_templates" ON "yikai_form_templates" ("slug");
+
+
+INSERT INTO "yikai_form_templates" ("id", "name", "name_en", "name_ja", "slug", "fields", "fields_en", "fields_ja", "success_message", "success_message_en", "success_message_ja", "status", "created_at") VALUES (1,'产品询盘','Product Inquiry','製品お問い合わせ','product-inquiry','[{"key":"name","label":"您的姓名","type":"text","required":true},{"key":"phone","label":"联系电话","type":"tel","required":true},{"key":"email","label":"电子邮箱","type":"email","required":false},{"key":"company","label":"公司名称","type":"text","required":false},{"key":"content","label":"咨询内容","type":"textarea","required":true}]','[{"key":"name","label":"Your Name","type":"text","required":true},{"key":"phone","label":"Phone","type":"tel","required":true},{"key":"email","label":"Email","type":"email","required":false},{"key":"company","label":"Company","type":"text","required":false},{"key":"content","label":"Inquiry Details","type":"textarea","required":true}]','[{"key":"name","label":"お名前","type":"text","required":true},{"key":"phone","label":"電話番号","type":"tel","required":true},{"key":"email","label":"メールアドレス","type":"email","required":false},{"key":"company","label":"会社名","type":"text","required":false},{"key":"content","label":"お問い合わせ内容","type":"textarea","required":true}]','提交成功，我们会尽快与您联系！','Thank you for your inquiry. We will contact you shortly.','お問い合わせいただきありがとうございます。担当者よりご連絡いたします。',1,1776653097);
+INSERT INTO "yikai_form_templates" ("id", "name", "name_en", "name_ja", "slug", "fields", "fields_en", "fields_ja", "success_message", "success_message_en", "success_message_ja", "status", "created_at") VALUES (2,'联系表单','Contact Form','お問い合わせフォーム','contact','[{"key":"name","label":"您的姓名","type":"text","required":true},{"key":"phone","label":"联系电话","type":"tel","required":true},{"key":"email","label":"电子邮箱","type":"email","required":false},{"key":"company","label":"公司名称","type":"text","required":false},{"key":"content","label":"留言内容","type":"textarea","required":true}]','[{"key":"name","label":"Your Name","type":"text","required":true},{"key":"phone","label":"Phone","type":"tel","required":true},{"key":"email","label":"Email","type":"email","required":false},{"key":"company","label":"Company","type":"text","required":false},{"key":"content","label":"Message","type":"textarea","required":true}]','[{"key":"name","label":"お名前","type":"text","required":true},{"key":"phone","label":"電話番号","type":"tel","required":true},{"key":"email","label":"メールアドレス","type":"email","required":false},{"key":"company","label":"会社名","type":"text","required":false},{"key":"content","label":"お問い合わせ内容","type":"textarea","required":true}]','提交成功，我们会尽快与您联系！','Thank you! Your message has been received. We will contact you shortly.','ありがとうございます。お問い合わせを受け付けました。担当者よりご連絡いたします。',1,1776656141);
+DROP TABLE IF EXISTS "yikai_forms";
+CREATE TABLE "yikai_forms" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "type" TEXT NOT NULL DEFAULT 'contact',
+  "product_id" INTEGER NOT NULL DEFAULT '0',
+  "product_title" TEXT NOT NULL DEFAULT '',
+  "source" TEXT NOT NULL DEFAULT 'contact',
+  "name" TEXT NOT NULL DEFAULT '',
+  "phone" TEXT NOT NULL DEFAULT '',
+  "email" TEXT NOT NULL DEFAULT '',
+  "company" TEXT NOT NULL DEFAULT '',
+  "content" TEXT,
+  "extra" TEXT,
+  "ip" TEXT NOT NULL DEFAULT '',
+  "user_agent" TEXT NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT '0',
+  "follow_admin" INTEGER NOT NULL DEFAULT '0',
+  "follow_note" TEXT,
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE INDEX "idx_type_yikai_forms" ON "yikai_forms" ("type");
+CREATE INDEX "idx_status_yikai_forms" ON "yikai_forms" ("status");
+CREATE INDEX "idx_created_yikai_forms" ON "yikai_forms" ("created_at");
+CREATE INDEX "idx_product_yikai_forms" ON "yikai_forms" ("product_id");
+CREATE INDEX "idx_source_yikai_forms" ON "yikai_forms" ("source");
+
+
+DROP TABLE IF EXISTS "yikai_jobs";
+CREATE TABLE "yikai_jobs" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "title" TEXT NOT NULL,
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "cover" TEXT NOT NULL DEFAULT '',
+  "summary" TEXT,
+  "content" TEXT,
+  "location" TEXT NOT NULL DEFAULT '',
+  "salary" TEXT NOT NULL DEFAULT '',
+  "job_type" TEXT NOT NULL DEFAULT '',
+  "education" TEXT NOT NULL DEFAULT '',
+  "experience" TEXT NOT NULL DEFAULT '',
+  "headcount" TEXT NOT NULL DEFAULT '',
+  "requirements" TEXT,
+  "views" INTEGER NOT NULL DEFAULT '0',
+  "is_top" INTEGER NOT NULL DEFAULT '0',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "publish_time" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0',
+  "updated_at" INTEGER NOT NULL DEFAULT '0',
+  "admin_id" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE INDEX "idx_status_yikai_jobs" ON "yikai_jobs" ("status");
+CREATE INDEX "idx_top_yikai_jobs" ON "yikai_jobs" ("is_top" DESC,"sort_order" DESC,"id" DESC);
+CREATE INDEX "idx_job_lang_yikai_jobs" ON "yikai_jobs" ("lang");
+
+
+INSERT INTO "yikai_jobs" ("id", "title", "lang", "translation_group_id", "cover", "summary", "content", "location", "salary", "job_type", "education", "experience", "headcount", "requirements", "views", "is_top", "sort_order", "status", "publish_time", "created_at", "updated_at", "admin_id") VALUES (1,'PHP高级工程师','zh-CN',1,'','负责公司核心产品的后端开发',NULL,'上海（可远程）','25-40K','全职','本科','3年以上','2','熟悉PHP 8.0+
 熟悉MySQL
-有CMS开发经验优先', 0, 0, 0, 1, strftime('%s','now'), strftime('%s','now'), strftime('%s','now'), 0),
-('前端开发工程师', 'zh-CN', 0, '', '负责公司产品的前端界面开发', NULL, '上海（可远程）', '20-35K', '全职', '本科', '2年以上', 1, '熟悉Vue/React
+有CMS开发经验优先',1,0,0,1,1776652898,1776652898,1776652898,0);
+INSERT INTO "yikai_jobs" ("id", "title", "lang", "translation_group_id", "cover", "summary", "content", "location", "salary", "job_type", "education", "experience", "headcount", "requirements", "views", "is_top", "sort_order", "status", "publish_time", "created_at", "updated_at", "admin_id") VALUES (2,'前端开发工程师','zh-CN',2,'','负责公司产品的前端界面开发',NULL,'上海（可远程）','20-35K','全职','本科','2年以上','1','熟悉Vue/React
 熟悉Tailwind CSS
-注重代码质量', 0, 0, 0, 1, strftime('%s','now'), strftime('%s','now'), strftime('%s','now'), 0);
+注重代码质量',6,0,0,1,1776652898,1776652898,1776652898,0);
+INSERT INTO "yikai_jobs" ("id", "title", "lang", "translation_group_id", "cover", "summary", "content", "location", "salary", "job_type", "education", "experience", "headcount", "requirements", "views", "is_top", "sort_order", "status", "publish_time", "created_at", "updated_at", "admin_id") VALUES (3,'Senior PHP Engineer','en',1,'','负责公司核心产品的后端开发',NULL,'Shanghai (Remote OK)','25-40K','Full-time','本科','3年以上','2','熟悉PHP 8.0+
+熟悉MySQL
+有CMS开发经验优先',1,0,0,1,1776652898,1778457949,1778457949,0);
+INSERT INTO "yikai_jobs" ("id", "title", "lang", "translation_group_id", "cover", "summary", "content", "location", "salary", "job_type", "education", "experience", "headcount", "requirements", "views", "is_top", "sort_order", "status", "publish_time", "created_at", "updated_at", "admin_id") VALUES (4,'Frontend Engineer','en',2,'','负责公司产品的前端界面开发',NULL,'Shanghai (Remote OK)','20-35K','Full-time','本科','2年以上','1','熟悉Vue/React
+熟悉Tailwind CSS
+注重代码质量',6,0,0,1,1776652898,1778457949,1778457949,0);
+INSERT INTO "yikai_jobs" ("id", "title", "lang", "translation_group_id", "cover", "summary", "content", "location", "salary", "job_type", "education", "experience", "headcount", "requirements", "views", "is_top", "sort_order", "status", "publish_time", "created_at", "updated_at", "admin_id") VALUES (5,'PHP シニアエンジニア','ja',1,'','负责公司核心产品的后端开发',NULL,'上海（リモート可）','25-40K','正社員','本科','3年以上','2','熟悉PHP 8.0+
+熟悉MySQL
+有CMS开发经验优先',1,0,0,1,1776652898,1778457949,1778457949,0);
+INSERT INTO "yikai_jobs" ("id", "title", "lang", "translation_group_id", "cover", "summary", "content", "location", "salary", "job_type", "education", "experience", "headcount", "requirements", "views", "is_top", "sort_order", "status", "publish_time", "created_at", "updated_at", "admin_id") VALUES (6,'フロントエンドエンジニア','ja',2,'','负责公司产品的前端界面开发',NULL,'上海（リモート可）','20-35K','正社員','本科','2年以上','1','熟悉Vue/React
+熟悉Tailwind CSS
+注重代码质量',6,0,0,1,1776652898,1778457949,1778457949,0);
+DROP TABLE IF EXISTS "yikai_links";
+CREATE TABLE "yikai_links" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "name" TEXT NOT NULL,
+  "url" TEXT NOT NULL,
+  "logo" TEXT NOT NULL DEFAULT '',
+  "description" TEXT NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE INDEX "idx_status_yikai_links" ON "yikai_links" ("status");
+CREATE INDEX "idx_sort_yikai_links" ON "yikai_links" ("sort_order");
+CREATE INDEX "idx_lk_lang_yikai_links" ON "yikai_links" ("lang");
+CREATE INDEX "idx_lk_trans_yikai_links" ON "yikai_links" ("translation_group_id");
 
--- -----------------------------------------------------------
--- Default Downloads (Demo)
--- -----------------------------------------------------------
-INSERT INTO yikai_downloads (category_id, lang, translation_group_id, title, description, cover, file_url, file_name, file_size, file_ext, download_count, is_external, require_login, sort_order, status, created_at, updated_at, admin_id) VALUES
-(0, 'zh-CN', 0, '产品使用手册 V2.0', '最新版产品使用说明书', '', '', '', 0, 'pdf', 0, 0, 0, 0, 1, strftime('%s','now'), strftime('%s','now'), 0),
-(0, 'zh-CN', 0, '客户端软件 V3.5.1', '适用于Windows系统的客户端软件', '', '', '', 0, 'exe', 0, 0, 0, 0, 1, strftime('%s','now'), strftime('%s','now'), 0),
-(0, 'zh-CN', 0, 'API接口文档', '完整的API接口说明文档', '', '', '', 0, 'pdf', 0, 0, 0, 0, 1, strftime('%s','now'), strftime('%s','now'), 0);
 
--- -----------------------------------------------------------
--- Default Timelines (Demo)
--- -----------------------------------------------------------
-INSERT INTO yikai_timelines (lang, year, month, day, title, content, image, icon, color, sort_order, status, created_at, updated_at) VALUES
-('zh-CN', 2024, 1, 0, '智能物联网平台发布', '发布新一代智能物联网平台，集成AI边缘计算能力，服务客户突破1000家。', '', 'rocket', '#3B82F6', 1, 1, strftime('%s','now'), strftime('%s','now')),
-('zh-CN', 2022, 6, 0, '国家高新技术企业认定', '通过国家高新技术企业认定，完成B轮融资，估值突破5亿。', '', 'star', '#10B981', 2, 1, strftime('%s','now'), strftime('%s','now')),
-('zh-CN', 2020, 3, 0, '企业管理云平台上线', '推出企业管理云平台，实现ERP/CRM/OA一体化SaaS服务。', '', 'cloud', '#8B5CF6', 3, 1, strftime('%s','now'), strftime('%s','now')),
-('zh-CN', 2018, 9, 0, '研发中心成立', '成立独立研发中心，团队规模扩展至50人，获得多项技术专利。', '', 'office', '#F59E0B', 4, 1, strftime('%s','now'), strftime('%s','now')),
-('zh-CN', 2015, 1, 0, '产品线扩展', '产品线从软件扩展至传感器、控制器等硬件领域，形成软硬一体解决方案。', '', 'chip', '#EF4444', 5, 1, strftime('%s','now'), strftime('%s','now')),
-('zh-CN', 2012, 6, 0, '首个物联网项目', '首个物联网项目成功落地，服务首批企业客户，营收突破500万。', '', 'flag', '#06B6D4', 6, 1, strftime('%s','now'), strftime('%s','now')),
-('zh-CN', 2010, 3, 0, '公司成立', '公司在上海正式注册成立，专注于企业信息化解决方案，初始团队5人。', '', 'home', '#6366F1', 7, 1, strftime('%s','now'), strftime('%s','now'));
--- @demo:end
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (1,'zh-CN',1,'易开网主机','https://www.yikai.cn/member/vhost-buy.php?productcode=P2161','','',1,0,1776652898);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (2,'zh-CN',2,'阿里云','https://www.aliyun.com','','',1,1,1776652898);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (3,'zh-CN',3,'腾讯云','https://cloud.tencent.com','','',1,2,1776652898);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (4,'en',1,'Yikai Hosting','https://www.yikai.cn/member/vhost-buy.php?productcode=P2161','','',1,0,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (5,'en',2,'Alibaba Cloud','https://www.aliyun.com','','',1,1,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (6,'en',3,'Tencent Cloud','https://cloud.tencent.com','','',1,2,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (7,'ja',1,'Yikai Hosting','https://www.yikai.cn/member/vhost-buy.php?productcode=P2161','','',1,0,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (8,'ja',2,'Alibaba Cloud','https://www.aliyun.com','','',1,1,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (9,'ja',3,'Tencent Cloud','https://cloud.tencent.com','','',1,2,1778462748);
+DROP TABLE IF EXISTS "yikai_media";
+CREATE TABLE "yikai_media" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL,
+  "path" TEXT NOT NULL,
+  "url" TEXT NOT NULL,
+  "type" TEXT NOT NULL DEFAULT 'image',
+  "ext" TEXT NOT NULL DEFAULT '',
+  "mime" TEXT NOT NULL DEFAULT '',
+  "size" INTEGER NOT NULL DEFAULT '0',
+  "width" INTEGER NOT NULL DEFAULT '0',
+  "height" INTEGER NOT NULL DEFAULT '0',
+  "md5" TEXT NOT NULL DEFAULT '',
+  "admin_id" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE INDEX "idx_type_yikai_media" ON "yikai_media" ("type");
+CREATE INDEX "idx_admin_yikai_media" ON "yikai_media" ("admin_id");
+CREATE INDEX "idx_md5_yikai_media" ON "yikai_media" ("md5");
 
--- -----------------------------------------------------------
--- Default Banners (Demo)
--- -----------------------------------------------------------
--- @demo:start
-INSERT INTO yikai_banners (position, lang, title, subtitle, btn1_text, btn1_url, btn2_text, btn2_url, image, image_mobile, link_url, link_target, start_time, end_time, status, sort_order, created_at) VALUES
-('home', 'zh-CN', '数字化转型解决方案', '助力企业实现智能化升级', '了解更多', '/about.html', '', '', 'https://picsum.photos/1920/600?random=1', '', '', '_self', 0, 0, 1, 1, strftime('%s','now')),
-('home', 'zh-CN', '专业的技术服务团队', '7x24小时为您保驾护航', '', '', '', '', 'https://picsum.photos/1920/600?random=2', '', '', '_self', 0, 0, 1, 2, strftime('%s','now')),
-('home', 'zh-CN', '创新引领未来', '持续创新，追求卓越', '', '', '', '', 'https://picsum.photos/1920/600?random=3', '', '', '_self', 0, 0, 1, 3, strftime('%s','now'));
--- @demo:end
 
-INSERT INTO yikai_form_templates ("name", "slug", fields, success_message, status, created_at) VALUES
-('联系表单', 'contact', '[{"key":"name","label":"您的姓名","type":"text","required":true},{"key":"phone","label":"联系电话","type":"tel","required":true},{"key":"email","label":"电子邮箱","type":"email","required":false},{"key":"company","label":"公司名称","type":"text","required":false},{"key":"content","label":"留言内容","type":"textarea","required":true}]', '提交成功，我们会尽快与您联系！', 1, strftime('%s','now')),
-('产品询盘', 'product-inquiry', '[{"key":"name","label":"您的姓名","type":"text","required":true},{"key":"phone","label":"联系电话","type":"tel","required":true},{"key":"email","label":"电子邮箱","type":"email","required":false},{"key":"company","label":"公司名称","type":"text","required":false},{"key":"content","label":"咨询内容","type":"textarea","required":true}]', '提交成功，我们会尽快与您联系！', 1, strftime('%s','now'));
+DROP TABLE IF EXISTS "yikai_members";
+CREATE TABLE "yikai_members" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "username" TEXT NOT NULL,
+  "password" TEXT NOT NULL,
+  "email" TEXT NOT NULL DEFAULT '',
+  "nickname" TEXT NOT NULL DEFAULT '',
+  "avatar" TEXT NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "last_login_time" INTEGER NOT NULL DEFAULT '0',
+  "last_login_ip" TEXT NOT NULL DEFAULT '',
+  "login_count" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_username_yikai_members" ON "yikai_members" ("username");
+CREATE UNIQUE INDEX "uk_email_yikai_members" ON "yikai_members" ("email");
+
+
+DROP TABLE IF EXISTS "yikai_metas";
+CREATE TABLE "yikai_metas" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "owner_type" TEXT NOT NULL,
+  "owner_id" INTEGER NOT NULL DEFAULT '0',
+  "meta_key" TEXT NOT NULL,
+  "meta_value" TEXT,
+  "created_at" INTEGER NOT NULL DEFAULT '0',
+  "updated_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_owner_key_yikai_metas" ON "yikai_metas" ("owner_type","owner_id","meta_key");
+CREATE INDEX "idx_owner_yikai_metas" ON "yikai_metas" ("owner_type","owner_id");
+
+
+DROP TABLE IF EXISTS "yikai_plugins";
+CREATE TABLE "yikai_plugins" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "slug" TEXT NOT NULL,
+  "status" INTEGER NOT NULL DEFAULT '0',
+  "installed_at" INTEGER NOT NULL DEFAULT '0',
+  "activated_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_slug_yikai_plugins" ON "yikai_plugins" ("slug");
+
+
+DROP TABLE IF EXISTS "yikai_product_categories";
+CREATE TABLE "yikai_product_categories" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "parent_id" INTEGER NOT NULL DEFAULT '0',
+  "name" TEXT NOT NULL,
+  "slug" TEXT NOT NULL DEFAULT '',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "image" TEXT NOT NULL DEFAULT '',
+  "description" TEXT,
+  "seo_title" TEXT NOT NULL DEFAULT '',
+  "seo_keywords" TEXT NOT NULL DEFAULT '',
+  "seo_description" TEXT NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "is_nav" INTEGER NOT NULL DEFAULT '1',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE INDEX "idx_parent_yikai_product_categories" ON "yikai_product_categories" ("parent_id");
+CREATE INDEX "idx_status_yikai_product_categories" ON "yikai_product_categories" ("status");
+CREATE INDEX "idx_sort_yikai_product_categories" ON "yikai_product_categories" ("sort_order");
+CREATE INDEX "idx_pc_lang_yikai_product_categories" ON "yikai_product_categories" ("lang");
+
+
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (1,0,'智能设备','smart-device','zh-CN',1,'',NULL,'','','',1,1,1,1776652898);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (2,0,'软件服务','software','zh-CN',2,'',NULL,'','','',1,1,2,1776652898);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (3,1,'传感器模块','sensor-module','zh-CN',3,'',NULL,'','','',1,1,1,1776652898);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (4,1,'控制终端','control-terminal','zh-CN',4,'',NULL,'','','',1,1,2,1776652898);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (5,0,'Smart Devices','smart-device-en','en',1,'','Smart hardware and devices','Smart Devices','','Smart hardware and devices',1,1,1,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (6,0,'Software','software-en','en',2,'','Software and SaaS services','Software','','Software and SaaS services',1,1,2,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (7,5,'Sensor Modules','sensor-module-en','en',3,'','Industrial sensor modules','Sensor Modules','','Industrial sensor modules',1,1,1,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (8,5,'Control Terminals','control-terminal-en','en',4,'','Industrial control terminals','Control Terminals','','Industrial control terminals',1,1,2,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (9,0,'スマートデバイス','smart-device-ja','ja',1,'','スマートハードウェア','スマートデバイス','','スマートハードウェア',1,1,1,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (10,0,'ソフトウェア','software-ja','ja',2,'','ソフトウェアと SaaS サービス','ソフトウェア','','ソフトウェアと SaaS サービス',1,1,2,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (11,9,'センサーモジュール','sensor-module-ja','ja',3,'','工業用センサーモジュール','センサーモジュール','','工業用センサーモジュール',1,1,1,1778456809);
+INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (12,9,'制御端末','control-terminal-ja','ja',4,'','工業用制御端末','制御端末','','工業用制御端末',1,1,2,1778456809);
+DROP TABLE IF EXISTS "yikai_product_tag_map";
+CREATE TABLE "yikai_product_tag_map" (
+  "product_id" INTEGER NOT NULL,
+  "tag_id" INTEGER NOT NULL,
+  PRIMARY KEY ("product_id","tag_id")
+);
+CREATE INDEX "idx_tag_yikai_product_tag_map" ON "yikai_product_tag_map" ("tag_id");
+
+
+DROP TABLE IF EXISTS "yikai_product_tags";
+CREATE TABLE "yikai_product_tags" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "group_name" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "slug" TEXT NOT NULL DEFAULT '',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1'
+);
+CREATE INDEX "idx_group_yikai_product_tags" ON "yikai_product_tags" ("group_name");
+
+
+DROP TABLE IF EXISTS "yikai_products";
+CREATE TABLE "yikai_products" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "lang" TEXT NOT NULL DEFAULT 'ja',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "category_id" INTEGER NOT NULL DEFAULT '0',
+  "brand_id" INTEGER NOT NULL DEFAULT '0',
+  "title" TEXT NOT NULL,
+  "subtitle" TEXT NOT NULL DEFAULT '',
+  "slug" TEXT NOT NULL DEFAULT '',
+  "cover" TEXT NOT NULL DEFAULT '',
+  "images" TEXT,
+  "summary" TEXT,
+  "content" TEXT,
+  "price" REAL NOT NULL DEFAULT '0.00',
+  "market_price" REAL NOT NULL DEFAULT '0.00',
+  "model" TEXT NOT NULL DEFAULT '',
+  "specs" TEXT,
+  "tags" TEXT NOT NULL DEFAULT '',
+  "product_type" TEXT NOT NULL DEFAULT 'custom',
+  "material" TEXT NOT NULL DEFAULT '',
+  "scene" TEXT NOT NULL DEFAULT '',
+  "is_top" INTEGER NOT NULL DEFAULT '0',
+  "is_recommend" INTEGER NOT NULL DEFAULT '0',
+  "is_hot" INTEGER NOT NULL DEFAULT '0',
+  "is_new" INTEGER NOT NULL DEFAULT '0',
+  "views" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0',
+  "updated_at" INTEGER NOT NULL DEFAULT '0',
+  "admin_id" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE INDEX "idx_category_yikai_products" ON "yikai_products" ("category_id");
+CREATE INDEX "idx_status_yikai_products" ON "yikai_products" ("status");
+CREATE INDEX "idx_top_yikai_products" ON "yikai_products" ("is_top");
+CREATE INDEX "idx_recommend_yikai_products" ON "yikai_products" ("is_recommend");
+CREATE INDEX "idx_sort_yikai_products" ON "yikai_products" ("sort_order");
+CREATE INDEX "idx_lang_status_yikai_products" ON "yikai_products" ("lang","status");
+CREATE INDEX "idx_trans_group_yikai_products" ON "yikai_products" ("translation_group_id");
+
+
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (1,'zh-CN',1,1,0,'智能物联网网关','','iot-gateway-100','https://picsum.photos/600/600?random=101',NULL,'多协议兼容，边缘计算能力','<h2>产品概述</h2>
+<p>智能物联网网关是一款高性能的边缘计算网关设备，支持多种通信协议（MQTT、HTTP、Modbus、OPC UA），可实现设备数据的实时采集、边缘计算和云端同步。</p>
+<h3>核心特点</h3>
+<ul>
+<li>支持 Wi-Fi/4G/以太网多种联网方式</li>
+<li>内置边缘计算引擎，支持本地数据处理</li>
+<li>兼容 100+ 种工业协议</li>
+<li>工业级设计，-40°C ~ 85°C 宽温工作</li>
+</ul>
+<h3>应用场景</h3>
+<p>智能工厂、智慧农业、智慧城市、能源管理等领域。</p>',0.00,0.00,'IoT-GW-100',NULL,'','custom','','',0,0,0,0,5,1,1,1776652898,1776652898,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (2,'zh-CN',2,2,0,'企业管理云平台','','cloud-erp','https://picsum.photos/600/600?random=102',NULL,'集成ERP/CRM/OA功能','<h2>产品概述</h2>
+<p>企业管理云平台是一站式企业数字化管理解决方案，集成 ERP、CRM、OA 三大核心模块，帮助企业实现业务流程数字化。</p>
+<h3>功能模块</h3>
+<ul>
+<li><strong>ERP</strong> — 采购、库存、生产、财务一体化管理</li>
+<li><strong>CRM</strong> — 客户管理、销售漏斗、业绩分析</li>
+<li><strong>OA</strong> — 审批流程、日程管理、即时通讯</li>
+</ul>
+<h3>技术优势</h3>
+<p>基于微服务架构，支持私有化部署和 SaaS 模式，数据安全有保障。</p>',0.00,0.00,'Cloud-ERP',NULL,'','custom','','',0,0,0,0,6,1,2,1776652898,1776652898,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (3,'zh-CN',3,3,0,'温湿度传感器 TH-200','','th-200','https://picsum.photos/600/600?random=103',NULL,'瑞士芯片，精度±0.1°C','<h2>产品概述</h2>
+<p>TH-200 温湿度传感器采用瑞士进口高精度芯片，精度达 ±0.1°C / ±1.5%RH，适用于工业环境监测、仓储管理、智慧农业等场景。</p>
+<h3>技术参数</h3>
+<ul>
+<li>温度范围：-40°C ~ 125°C</li>
+<li>湿度范围：0 ~ 100%RH</li>
+<li>通信接口：RS485 / Modbus RTU</li>
+<li>供电方式：DC 12-24V</li>
+<li>防护等级：IP65</li>
+</ul>',0.00,0.00,'TH-200',NULL,'','custom','','',0,0,0,0,3,1,3,1776652898,1776652898,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (4,'zh-CN',4,3,0,'光照传感器 LS-100','','ls-100','https://picsum.photos/600/600?random=104',NULL,'检测范围0-200000Lux','<h2>产品概述</h2>
+<p>LS-100 光照传感器检测范围 0-200,000 Lux，采用高灵敏度光电二极管，响应速度快，线性度好。</p>
+<h3>技术参数</h3>
+<ul>
+<li>测量范围：0 ~ 200,000 Lux</li>
+<li>精度：±3%</li>
+<li>通信接口：RS485 / Modbus</li>
+<li>供电方式：DC 5-24V</li>
+</ul>
+<h3>应用场景</h3>
+<p>智慧农业、气象观测、智能照明控制。</p>',0.00,0.00,'LS-100',NULL,'','custom','','',0,0,0,0,1,1,4,1776652898,1776652898,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (5,'zh-CN',5,4,0,'工业边缘控制器 EC-500','','ec-500','https://picsum.photos/600/600?random=105',NULL,'ARM Cortex-A72，支持AI推理','<h2>产品概述</h2>
+<p>EC-500 工业边缘控制器搭载 ARM Cortex-A72 处理器，支持多种工业协议和 AI 模型本地推理，是智能工厂的核心控制单元。</p>
+<h3>核心特点</h3>
+<ul>
+<li>四核 ARM Cortex-A72，主频 1.8GHz</li>
+<li>4GB RAM / 32GB eMMC 存储</li>
+<li>支持 TensorFlow Lite / ONNX 推理</li>
+<li>丰富 I/O 接口：4×RS485、2×CAN、4×DI、4×DO</li>
+</ul>',0.00,0.00,'EC-500',NULL,'','custom','','',0,0,0,0,3,1,5,1776652898,1776652898,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (6,'zh-CN',6,4,0,'智能网关控制器 GC-300','','gc-300','https://picsum.photos/600/600?random=106',NULL,'Wi-Fi/Zigbee/LoRa/4G多协议','<h2>产品概述</h2>
+<p>GC-300 智能网关控制器支持 Wi-Fi/Zigbee/LoRa/4G 四种无线协议同时工作，内置边缘计算模块，实现设备统一管理。</p>
+<h3>核心特点</h3>
+<ul>
+<li>四协议同时在线，最大接入 500 个终端</li>
+<li>内置边缘计算引擎</li>
+<li>支持 OTA 远程升级</li>
+<li>Web 管理界面，零代码配置</li>
+</ul>
+<h3>应用场景</h3>
+<p>智慧楼宇、智能家居、工业物联网。</p>',0.00,0.00,'GC-300',NULL,'','custom','','',0,0,0,0,2,1,6,1776652898,1776652898,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (7,'en',1,5,0,'Smart IoT Gateway','','iot-gateway-100-en','https://picsum.photos/600/600?random=101',NULL,'Multi-protocol compatible with edge computing','<h2>Overview</h2>
+<p>The Smart IoT Gateway is a high-performance edge computing gateway supporting multiple communication protocols (MQTT, HTTP, Modbus, OPC UA), enabling real-time device data collection, edge computation, and cloud sync.</p>
+<h3>Key Features</h3>
+<ul>
+<li>Wi-Fi / 4G / Ethernet connectivity</li>
+<li>Built-in edge computing engine for local data processing</li>
+<li>Compatible with 100+ industrial protocols</li>
+<li>Industrial-grade design, wide temp range -40°C to 85°C</li>
+</ul>
+<h3>Use Cases</h3>
+<p>Smart factories, smart agriculture, smart cities, energy management.</p>',0.00,0.00,'IoT-GW-100',NULL,'','custom','','',0,0,0,0,6,1,1,1778457949,1778458635,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (8,'en',2,6,0,'Enterprise Cloud Platform','','cloud-erp-en','https://picsum.photos/600/600?random=102',NULL,'Integrated ERP/CRM/OA','<h2>Overview</h2>
+<p>The Enterprise Cloud Platform is a one-stop enterprise digital management solution integrating ERP, CRM, and OA core modules to help organizations digitize their business processes.</p>
+<h3>Modules</h3>
+<ul>
+<li><strong>ERP</strong> — Procurement, inventory, production, and finance, all unified</li>
+<li><strong>CRM</strong> — Customer management, sales funnel, performance analytics</li>
+<li><strong>OA</strong> — Approval workflows, calendar, instant messaging</li>
+</ul>
+<h3>Technical Advantages</h3>
+<p>Built on a microservices architecture, supports both on-premises and SaaS deployment with full data security.</p>',0.00,0.00,'Cloud-ERP',NULL,'','custom','','',0,0,0,0,4,1,2,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (9,'en',3,7,0,'Temp & Humidity Sensor TH-200','','th-200-en','https://picsum.photos/600/600?random=103',NULL,'Swiss chip, ±0.1°C precision','<h2>Overview</h2>
+<p>The TH-200 temperature & humidity sensor uses a Swiss-imported high-precision chip with ±0.1°C / ±1.5%RH accuracy, ideal for industrial monitoring, warehousing, and smart agriculture.</p>
+<h3>Specifications</h3>
+<ul>
+<li>Temperature range: -40°C to 125°C</li>
+<li>Humidity range: 0 to 100%RH</li>
+<li>Communication: RS485 / Modbus RTU</li>
+<li>Power: DC 12-24V</li>
+<li>Protection rating: IP65</li>
+</ul>',0.00,0.00,'TH-200',NULL,'','custom','','',0,0,0,0,3,1,3,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (10,'en',4,7,0,'Light Sensor LS-100','','ls-100-en','https://picsum.photos/600/600?random=104',NULL,'Range 0–200000 Lux','<h2>Overview</h2>
+<p>The LS-100 light sensor measures 0–200,000 Lux using a high-sensitivity photodiode for fast response and excellent linearity.</p>
+<h3>Specifications</h3>
+<ul>
+<li>Measurement range: 0 to 200,000 Lux</li>
+<li>Accuracy: ±3%</li>
+<li>Communication: RS485 / Modbus</li>
+<li>Power: DC 5-24V</li>
+</ul>
+<h3>Use Cases</h3>
+<p>Smart agriculture, meteorological observation, intelligent lighting control.</p>',0.00,0.00,'LS-100',NULL,'','custom','','',0,0,0,0,1,1,4,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (11,'en',5,8,0,'Industrial Edge Controller EC-500','','ec-500-en','https://picsum.photos/600/600?random=105',NULL,'ARM Cortex-A72, supports AI inference','<h2>Overview</h2>
+<p>The EC-500 industrial edge controller is powered by an ARM Cortex-A72 processor, supports multiple industrial protocols and local AI model inference — the core control unit of the smart factory.</p>
+<h3>Key Features</h3>
+<ul>
+<li>Quad-core ARM Cortex-A72 @ 1.8GHz</li>
+<li>4GB RAM / 32GB eMMC storage</li>
+<li>TensorFlow Lite / ONNX inference support</li>
+<li>Rich I/O: 4×RS485, 2×CAN, 4×DI, 4×DO</li>
+</ul>',0.00,0.00,'EC-500',NULL,'','custom','','',0,0,0,0,3,1,5,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (12,'en',6,8,0,'Smart Gateway Controller GC-300','','gc-300-en','https://picsum.photos/600/600?random=106',NULL,'Wi-Fi/Zigbee/LoRa/4G multi-protocol','<h2>Overview</h2>
+<p>The GC-300 smart gateway controller supports Wi-Fi / Zigbee / LoRa / 4G concurrent operation across four wireless protocols. Its built-in edge computing module unifies device management.</p>
+<h3>Key Features</h3>
+<ul>
+<li>Four protocols online simultaneously, up to 500 devices</li>
+<li>Built-in edge computing engine</li>
+<li>OTA remote upgrade</li>
+<li>Web management UI, zero-code configuration</li>
+</ul>
+<h3>Use Cases</h3>
+<p>Smart buildings, smart homes, industrial IoT.</p>',0.00,0.00,'GC-300',NULL,'','custom','','',0,0,0,0,2,1,6,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (13,'ja',1,9,0,'スマート IoT ゲートウェイ','','iot-gateway-100-ja','https://picsum.photos/600/600?random=101',NULL,'マルチプロトコル対応、エッジコンピューティング','<h2>製品概要</h2>
+<p>スマート IoT ゲートウェイは、複数の通信プロトコル（MQTT、HTTP、Modbus、OPC UA）に対応した高性能エッジコンピューティング機器です。デバイスデータのリアルタイム収集、エッジ処理、クラウド同期を実現します。</p>
+<h3>主な特徴</h3>
+<ul>
+<li>Wi-Fi / 4G / Ethernet マルチ接続</li>
+<li>内蔵エッジコンピューティングエンジンによるローカルデータ処理</li>
+<li>100 種類以上の産業プロトコルに対応</li>
+<li>産業グレード設計、-40°C 〜 85°C の広温度範囲</li>
+</ul>
+<h3>適用シーン</h3>
+<p>スマートファクトリー、スマート農業、スマートシティ、エネルギー管理。</p>',0.00,0.00,'IoT-GW-100',NULL,'','custom','','',0,0,0,0,6,1,1,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (14,'ja',2,10,0,'企業管理クラウドプラットフォーム','','cloud-erp-ja','https://picsum.photos/600/600?random=102',NULL,'ERP/CRM/OA を統合','<h2>製品概要</h2>
+<p>企業管理クラウドプラットフォームは、ERP・CRM・OA の三大コアモジュールを統合したワンストップの企業デジタル管理ソリューションです。業務プロセスのデジタル化を支援します。</p>
+<h3>機能モジュール</h3>
+<ul>
+<li><strong>ERP</strong> — 購買、在庫、生産、財務の一元管理</li>
+<li><strong>CRM</strong> — 顧客管理、セールスファネル、業績分析</li>
+<li><strong>OA</strong> — 承認ワークフロー、スケジュール管理、インスタントメッセージ</li>
+</ul>
+<h3>技術優位性</h3>
+<p>マイクロサービスアーキテクチャに基づき、オンプレミス導入と SaaS の両方に対応。データセキュリティを確保します。</p>',0.00,0.00,'Cloud-ERP',NULL,'','custom','','',0,0,0,0,2,1,2,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (15,'ja',3,11,0,'温湿度センサー TH-200','','th-200-ja','https://picsum.photos/600/600?random=103',NULL,'スイス製チップ、精度 ±0.1°C','<h2>製品概要</h2>
+<p>TH-200 温湿度センサーはスイス製の高精度チップを採用し、精度 ±0.1°C / ±1.5%RH を実現。産業環境モニタリング、倉庫管理、スマート農業などに最適です。</p>
+<h3>仕様</h3>
+<ul>
+<li>温度範囲：-40°C 〜 125°C</li>
+<li>湿度範囲：0 〜 100%RH</li>
+<li>通信インターフェース：RS485 / Modbus RTU</li>
+<li>電源：DC 12-24V</li>
+<li>保護等級：IP65</li>
+</ul>',0.00,0.00,'TH-200',NULL,'','custom','','',0,0,0,0,3,1,3,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (16,'ja',4,11,0,'照度センサー LS-100','','ls-100-ja','https://picsum.photos/600/600?random=104',NULL,'測定範囲 0〜200000 Lux','<h2>製品概要</h2>
+<p>LS-100 照度センサーは 0〜200,000 Lux の測定範囲を持ち、高感度フォトダイオードによる高速応答と優れた直線性を実現します。</p>
+<h3>仕様</h3>
+<ul>
+<li>測定範囲：0 〜 200,000 Lux</li>
+<li>精度：±3%</li>
+<li>通信インターフェース：RS485 / Modbus</li>
+<li>電源：DC 5-24V</li>
+</ul>
+<h3>適用シーン</h3>
+<p>スマート農業、気象観測、インテリジェント照明制御。</p>',0.00,0.00,'LS-100',NULL,'','custom','','',0,0,0,0,1,1,4,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (17,'ja',5,12,0,'産業用エッジコントローラ EC-500','','ec-500-ja','https://picsum.photos/600/600?random=105',NULL,'ARM Cortex-A72、AI 推論対応','<h2>製品概要</h2>
+<p>EC-500 産業用エッジコントローラは ARM Cortex-A72 プロセッサを搭載し、複数の産業プロトコルとローカル AI モデル推論に対応。スマートファクトリーのコア制御ユニットです。</p>
+<h3>主な特徴</h3>
+<ul>
+<li>クアッドコア ARM Cortex-A72、1.8GHz</li>
+<li>4GB RAM / 32GB eMMC ストレージ</li>
+<li>TensorFlow Lite / ONNX 推論対応</li>
+<li>豊富な I/O：4×RS485、2×CAN、4×DI、4×DO</li>
+</ul>',0.00,0.00,'EC-500',NULL,'','custom','','',0,0,0,0,4,1,5,1778457949,1778458636,0);
+INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (18,'ja',6,12,0,'スマートゲートウェイ GC-300','','gc-300-ja','https://picsum.photos/600/600?random=106',NULL,'Wi-Fi/Zigbee/LoRa/4G マルチプロトコル','<h2>製品概要</h2>
+<p>GC-300 スマートゲートウェイコントローラは、Wi-Fi / Zigbee / LoRa / 4G の 4 つのワイヤレスプロトコルを同時に動作させます。エッジコンピューティングモジュールを内蔵し、デバイスの統合管理を実現します。</p>
+<h3>主な特徴</h3>
+<ul>
+<li>4 プロトコル同時オンライン、最大 500 デバイス接続</li>
+<li>エッジコンピューティングエンジン内蔵</li>
+<li>OTA リモートアップグレード</li>
+<li>Web 管理画面、ノーコード設定</li>
+</ul>
+<h3>適用シーン</h3>
+<p>スマートビル、スマートホーム、産業 IoT。</p>',0.00,0.00,'GC-300',NULL,'','custom','','',0,0,0,0,2,1,6,1778457949,1778458636,0);
+DROP TABLE IF EXISTS "yikai_roles";
+CREATE TABLE "yikai_roles" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" TEXT NOT NULL,
+  "name_en" TEXT NOT NULL DEFAULT '',
+  "name_ja" TEXT NOT NULL DEFAULT '',
+  "description" TEXT NOT NULL DEFAULT '',
+  "description_en" TEXT NOT NULL DEFAULT '',
+  "description_ja" TEXT NOT NULL DEFAULT '',
+  "permissions" TEXT,
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+
+
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (1,'超级管理员','Super Admin','スーパー管理者','拥有全部权限','Full access to all features','すべての機能にアクセス可能','["*"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (2,'编辑','Editor','編集者','内容编辑权限','Content editing permissions','コンテンツ編集権限','["content","media"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (3,'运营','Operations','運営','运营管理权限','Operations management permissions','運営管理権限','["content","media","form","banner","link"]',1,1776652898);
+DROP TABLE IF EXISTS "yikai_settings";
+CREATE TABLE "yikai_settings" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "group" TEXT NOT NULL DEFAULT 'basic',
+  "key" TEXT NOT NULL,
+  "value" TEXT,
+  "type" TEXT NOT NULL DEFAULT 'TEXT',
+  "name" TEXT NOT NULL DEFAULT '',
+  "tip" TEXT NOT NULL DEFAULT '',
+  "options" TEXT,
+  "sort_order" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_key_yikai_settings" ON "yikai_settings" ("key");
+CREATE INDEX "idx_group_yikai_settings" ON "yikai_settings" ("group");
+
+
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (1,'basic','site_url','','text','站点域名','如 https://www.example.com',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (2,'basic','site_name','Yikai CMS','text','站点名称','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (3,'basic','site_keywords','企业官网,CMS,内容管理,数字化转型,智能制造','textarea','SEO关键词','多个关键词用逗号分隔',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (4,'basic','site_description','专业的企业内容管理系统，助力企业数字化转型；支持多语言、SEO 优化、响应式设计。','textarea','SEO描述','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (5,'basic','site_logo','/images/logo.png','image','站点Logo','',NULL,4);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (6,'basic','site_favicon','/favicon.ico','image','站点图标','',NULL,5);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (7,'basic','primary_color','#3B82F6','color','主题色','',NULL,6);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (8,'basic','secondary_color','#1D4ED8','color','辅助色','',NULL,7);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (9,'basic','site_icp','','text','ICP备案号','',NULL,10);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (10,'basic','site_police','','text','公安备案号','',NULL,11);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (11,'basic','admin_title','后台管理','text','后台名称','后台左上角显示的名称',NULL,20);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (12,'basic','admin_logo','','image','后台Logo','留空显示文字',NULL,21);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (13,'basic','admin_copyright','','text','后台版权','留空不显示',NULL,22);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (14,'header','topbar_enabled','0','select','顶部通栏','','{"0":"隐藏","1":"显示"}',0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (15,'header','topbar_bg_color','#f3f4f6','color','通栏背景色','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (16,'header','topbar_left','','code','通栏左侧内容','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (17,'header','show_member_entry','0','select','会员入口','','{"0":"隐藏","1":"显示"}',3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (18,'header','header_nav_layout','right','select','导航布局','','{"right":"Logo右侧","below":"Logo下方通栏"}',10);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (19,'header','header_sticky','0','select','固定顶部','','{"1":"是","0":"否"}',11);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (20,'header','header_bg_color','#ffffff','color','背景颜色','',NULL,12);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (21,'header','header_text_color','#4b5563','color','文字颜色','',NULL,13);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (22,'footer','footer_columns','[{"title":"关于我们","content":"{{site_description}}","col_span":2},{"title":"联系方式","content":"{{contact_info}}","col_span":1},{"title":"关注我们","content":"{{qrcode}}","col_span":1}]','footer_columns','页脚栏目','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (23,'footer','footer_bg_color','#1f2937','color','背景颜色','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (24,'footer','footer_bg_image','','image','背景图片','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (25,'footer','footer_text_color','#9ca3af','color','文字颜色','',NULL,4);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (26,'footer','footer_nav','[{"title":"","links":[{"name":"隐私政策","url":"/privacy.html"},{"name":"服务条款","url":"/terms.html"}]}]','footer_nav','页脚导航','',NULL,5);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (27,'footer','footer_copyright_text','© {year} {site_name} 版权所有.','text','版权文字','{year}=年份 {site_name}=站点名',NULL,6);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (28,'code','custom_head_code','','code','Head代码','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (29,'code','custom_body_code','','code','Body代码','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (30,'contact','contact_cards','[{"icon":"phone","label":"联系电话","value":"400-888-8888"},{"icon":"email","label":"电子邮箱","value":"contact@example.com"},{"icon":"location","label":"公司地址","value":"上海市浦东新区XX路XX号"}]','contact_cards','联系卡片','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (31,'contact','contact_phone','400-888-8888','text','联系电话','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (32,'contact','contact_email','contact@example.com','text','联系邮箱','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (33,'contact','contact_address','上海市浦东新区XX路XX号','textarea','联系地址','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (34,'contact','contact_qrcode','','image','二维码','',NULL,4);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (35,'contact','contact_map','','image','地图图片','',NULL,5);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (36,'contact','contact_form_title','在线留言','text','表单标题','',NULL,10);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (37,'contact','contact_form_desc','','textarea','表单描述','',NULL,11);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (38,'contact','contact_form_fields','[{"key":"name","label":"您的姓名","type":"text","required":true,"enabled":true},{"key":"phone","label":"联系电话","type":"tel","required":true,"enabled":true},{"key":"email","label":"电子邮箱","type":"email","required":false,"enabled":true},{"key":"company","label":"公司名称","type":"text","required":false,"enabled":true},{"key":"content","label":"留言内容","type":"textarea","required":true,"enabled":true}]','contact_form_fields','表单字段','',NULL,12);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (39,'contact','contact_form_success','提交成功，我们会尽快与您联系！','text','提交成功提示','',NULL,13);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (40,'home','home_about_content','我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。','textarea','关于我们简介','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (41,'home','home_about_image','https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80','image','关于我们图片','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (42,'home','home_about_tag_title','专业服务','text','角标标题','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (43,'home','home_about_tag_desc','品质 · 创新 · 共赢','text','角标描述','',NULL,4);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (44,'home','home_about_layout','text_left','select','关于我们布局','','{"text_left":"左文右图","image_left":"左图右文"}',6);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (45,'home','home_stat_1_num','10+','text','统计数字1','',NULL,5);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (46,'home','home_stat_1_text','年行业经验','text','统计文字1','',NULL,6);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (47,'home','home_stat_2_num','1000+','text','统计数字2','',NULL,7);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (48,'home','home_stat_2_text','服务客户','text','统计文字2','',NULL,8);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (49,'home','home_stat_3_num','50+','text','统计数字3','',NULL,9);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (50,'home','home_stat_3_text','专业团队','text','统计文字3','',NULL,10);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (51,'home','home_stat_4_num','100%','text','统计数字4','',NULL,11);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (52,'home','home_stat_4_text','客户满意','text','统计文字4','',NULL,12);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (53,'home','home_stat_bg','','image','统计区背景图','',NULL,12);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (54,'home','home_advantage_desc','专业团队，优质服务，值得信赖','text','优势区块描述','',NULL,13);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (55,'home','home_adv_1_icon','check-circle','icon','优势1图标','',NULL,14);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (56,'home','home_adv_1_title','品质保证','text','优势1标题','',NULL,14);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (57,'home','home_adv_1_desc','严格把控产品质量，确保每一件产品都符合标准','text','优势1描述','',NULL,15);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (58,'home','home_adv_2_icon','academic-cap','icon','优势2图标','',NULL,16);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (59,'home','home_adv_2_title','技术领先','text','优势2标题','',NULL,16);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (60,'home','home_adv_2_desc','持续研发创新，保持技术的领先优势','text','优势2描述','',NULL,17);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (61,'home','home_adv_3_icon','briefcase','icon','优势3图标','',NULL,18);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (62,'home','home_adv_3_title','专业服务','text','优势3标题','',NULL,18);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (63,'home','home_adv_3_desc','专业团队7x24小时技术支持服务','text','优势3描述','',NULL,19);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (64,'home','home_adv_4_icon','users','icon','优势4图标','',NULL,20);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (65,'home','home_adv_4_title','合作共赢','text','优势4标题','',NULL,20);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (66,'home','home_adv_4_desc','与客户建立长期合作关系，实现互利共赢','text','优势4描述','',NULL,21);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (67,'home','home_cta_title','准备好开始合作了吗？','text','CTA标题','',NULL,22);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (68,'home','home_cta_desc','联系我们，获取专业的解决方案','text','CTA描述','',NULL,23);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (69,'home','home_show_links','1','select','显示合作伙伴','',NULL,24);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (70,'home','home_links_title','合作伙伴','text','链接区块标题','',NULL,25);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (71,'home','home_testimonials','[{"avatar":"","name":"张先生","company":"某科技有限公司","content":"非常专业的服务团队，合作非常愉快！"},{"avatar":"","name":"李女士","company":"某贸易公司","content":"产品质量优秀，售后服务及时，值得信赖。"},{"avatar":"","name":"王总","company":"某集团公司","content":"多年合作，一直保持高品质的服务水准！"}]','home_testimonials','客户评价','',NULL,26);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (72,'home','home_testimonials_title','客户评价','text','评价区标题','',NULL,27);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (73,'home','home_testimonials_desc','听听合作伙伴怎么说','text','评价区描述','',NULL,28);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (74,'home','home_show_banner','1','select','显示轮播图','',NULL,30);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (75,'home','home_show_about','1','select','显示关于我们','',NULL,31);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (76,'home','home_show_stats','1','select','显示数据统计','',NULL,32);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (77,'home','home_show_channels','1','select','显示栏目区块','',NULL,33);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (78,'home','home_show_advantage','1','select','显示优势展示','',NULL,34);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (79,'home','home_show_cta','1','select','显示行动号召','',NULL,35);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (80,'home','home_blocks_config','[{"type":"banner","enabled":true},{"type":"about","enabled":true},{"type":"stats","enabled":true},{"type":"channels","enabled":true},{"type":"testimonials","enabled":true},{"type":"advantage","enabled":true},{"type":"cta","enabled":true}]','home_blocks','首页区块配置','',NULL,40);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (81,'email','smtp_host','','text','SMTP服务器','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (82,'email','smtp_port','465','text','SMTP端口','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (83,'email','smtp_secure','ssl','text','加密方式','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (84,'email','smtp_user','','text','SMTP用户名','',NULL,4);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (85,'email','smtp_pass','','text','SMTP密码','',NULL,5);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (86,'email','mail_from','','text','发件人邮箱','',NULL,6);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (87,'email','mail_from_name','','text','发件人名称','',NULL,7);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (88,'email','mail_admin','','text','管理员邮箱','',NULL,8);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (89,'email','mail_notify_form','0','text','表单提交通知','',NULL,9);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (90,'email','mail_tpl_register_subject','欢迎注册 — {{site_name}}','text','注册邮件标题','',NULL,20);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (91,'email','mail_tpl_register_body','{{username}}，您好！
+欢迎注册 {{site_name}}！
+{{site_url}}/member/
+{{site_name}} {{date}}','textarea','注册邮件内容','',NULL,21);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (92,'email','mail_tpl_forgot_subject','密码找回 — {{site_name}}','text','找回密码标题','',NULL,22);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (93,'email','mail_tpl_forgot_body','{{username}}，您好！
+请点击以下链接重置密码：
+{{reset_link}}
+链接30分钟有效。
+{{site_name}} {{date}}','textarea','找回密码内容','',NULL,23);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (94,'email','mail_tpl_reset_subject','密码已重置 — {{site_name}}','text','密码重置标题','',NULL,24);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (95,'email','mail_tpl_reset_body','{{username}}，您好！
+您的密码已成功重置。
+{{site_name}} {{date}}','textarea','密码重置内容','',NULL,25);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (96,'email','mail_tpl_inquiry_subject','新询盘：{{product_title}} — {{site_name}}','text','询盘通知标题','',NULL,26);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (97,'email','mail_tpl_inquiry_body','产品：{{product_title}}
+姓名：{{name}}
+电话：{{phone}}
+邮箱：{{email}}
+公司：{{company}}
+内容：{{content}}
+时间：{{date}}
+IP：{{ip}}','textarea','询盘通知内容','',NULL,27);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (98,'product','product_layout','sidebar','select','产品列表版式','','{"sidebar":"侧栏模式","top":"顶栏模式"}',1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (99,'product','show_price','0','select','显示产品价格','','{"0":"隐藏","1":"显示"}',2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (100,'product','product_sort_options','["default","newest","views"]','text','可用排序选项','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (101,'product','product_default_sort','default','select','产品默认排序','','{"default":"默认","newest":"最新","views":"浏览量"}',4);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (102,'banner','banner_height_pc','650','number','轮播图高度(PC)','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (103,'banner','banner_height_mobile','300','number','轮播图高度(移动)','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (104,'member','allow_member_register','1','switch','允许会员注册','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (105,'member','download_require_login','0','switch','下载需要登录','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (106,'social','social_links','[]','social_links','社交媒体链接','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (107,'system','current_theme','default','text','当前主题','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (108,'system','cms_version','1.7.4','text','CMS版本号','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (109,'system','site_lang','zh-CN','text','站点语言','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (110,'system','admin_lang','zh-CN','text','后台语言','',NULL,3);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (111,'basic','html_cache_enabled','1','select','HTML缓存','','{"0":"关闭","1":"开启"}',15);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (112,'basic','html_cache_ttl','300','number','缓存有效期','秒',NULL,16);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (113,'timeline','timeline_sort','asc','text','timeline_sort','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (114,'basic','ai_provider','deepseek','text','ai_provider','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (115,'basic','ai_api_key','','text','ai_api_key','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (116,'basic','ai_model','deepseek-v4-flash','text','ai_model','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (117,'basic','ai_base_url','','text','ai_base_url','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (118,'translate','translate_api','deepl','select','翻译API','选择翻译服务提供商','{"deepl":"DeepL","google":"Google Translate"}',1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (119,'translate','translate_api_key','','text','API Key','DeepL: 注册 https://www.deepl.com/pro-api 获取免费Key',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (120,'basic','admin_languages','zh-CN,en,ja','text','admin_languages','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (121,'basic','timeline_layout','vertical','text','timeline_layout','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (122,'basic','enabled_languages','["en","ja","zh-CN"]','text','enabled_languages','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (123,'basic','show_lang_switcher','1','text','show_lang_switcher','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (124,'basic','nav_home_show','1','text','nav_home_show','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (125,'seo','seo_title','YikaiCMS - 专业企业内容管理系统','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (128,'seo','seo_title_en','YikaiCMS - Professional Enterprise CMS','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (129,'seo','site_keywords_en','enterprise CMS, content management, digital transformation, smart manufacturing','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (130,'seo','site_description_en','A professional CMS for enterprises, supporting multilingual content, SEO optimization, and responsive design.','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (131,'seo','seo_title_ja','YikaiCMS - 企業向けプロフェッショナル CMS','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (132,'seo','site_keywords_ja','企業 CMS,コンテンツ管理,デジタル化,スマート製造','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (133,'seo','site_description_ja','企業のデジタルトランスフォーメーションを支えるプロフェッショナル CMS。多言語対応、SEO 最適化、レスポンシブデザイン。','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (134,'footer','footer_columns_en','[{"title":"About Us","content":"{{site_description}}","col_span":2},{"title":"Contact","content":"{{contact_info}}","col_span":1},{"title":"Follow Us","content":"{{qrcode}}","col_span":1}]','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (135,'footer','footer_nav_en','[{"title":"","links":[{"name":"Privacy Policy","url":"/privacy.html"},{"name":"Terms of Service","url":"/terms.html"}]}]','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (136,'footer','footer_copyright_text_en','© {year} {site_name}. All Rights Reserved.','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (137,'home','home_about_content_en','We are a technology company focused on enterprise digital transformation, delivering high-quality products and services to our customers.','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (138,'home','home_about_tag_desc_en','Quality · Innovation · Win-Win','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (139,'home','home_about_tag_title_en','Professional Service','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (140,'home','home_links_title_en','Partners','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (141,'footer','footer_columns_ja','[{"title":"会社案内","content":"{{site_description}}","col_span":2},{"title":"お問合せ","content":"{{contact_info}}","col_span":1},{"title":"フォロー","content":"{{qrcode}}","col_span":1}]','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (142,'footer','footer_nav_ja','[{"title":"","links":[{"name":"プライバシーポリシー","url":"/privacy.html"},{"name":"利用規約","url":"/terms.html"}]}]','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (143,'footer','footer_copyright_text_ja','© {year} {site_name}. All Rights Reserved.','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (144,'home','home_about_content_ja','当社は企業のデジタルトランスフォーメーションに特化したテクノロジー企業として、お客様に高品質な製品とサービスを提供しています。','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (145,'home','home_about_tag_desc_ja','品質 · イノベーション · 共創','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (146,'home','home_about_tag_title_ja','プロフェッショナルサービス','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (147,'home','home_links_title_ja','パートナー','','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (148,'contact','contact_phone_en','+86-400-888-8888','text','Contact phone (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (149,'contact','contact_phone_ja','+86-400-888-8888','text','Contact phone (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (150,'contact','contact_email_en','contact@example.com','text','Contact email (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (151,'contact','contact_email_ja','contact@example.com','text','Contact email (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (152,'contact','contact_address_en','XX Road, Pudong New Area, Shanghai, China','textarea','Contact address (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (153,'contact','contact_address_ja','中国 上海市浦東新区XX路XX号','textarea','Contact address (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (154,'home','nav_home_text_en','Home','text','Nav Home text (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (155,'home','nav_home_text_ja','ホーム','text','Nav Home text (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (156,'home','home_stat_1_text_en','Years in Industry','text','Stat 1 (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (157,'home','home_stat_1_text_ja','業界経験年数','text','Stat 1 (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (158,'home','home_stat_2_text_en','Customers Served','text','Stat 2 (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (159,'home','home_stat_2_text_ja','取引実績数','text','Stat 2 (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (160,'home','home_stat_3_text_en','Professional Team','text','Stat 3 (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (161,'home','home_stat_3_text_ja','プロフェッショナルチーム','text','Stat 3 (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (162,'home','home_stat_4_text_en','Customer Satisfaction','text','Stat 4 (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (163,'home','home_stat_4_text_ja','顧客満足度','text','Stat 4 (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (164,'home','home_testimonials_title_en','Testimonials','text','Testimonials title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (165,'home','home_testimonials_title_ja','お客様の声','text','Testimonials title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (166,'home','home_testimonials_desc_en','What our partners say','text','Testimonials desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (167,'home','home_testimonials_desc_ja','パートナーからの声','text','Testimonials desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (168,'home','home_testimonials_en','[{"avatar":"","name":"Mr. Zhang","company":"Tech Co., Ltd.","content":"A very professional team — a pleasure to work with."},{"avatar":"","name":"Ms. Li","company":"Trading Corp.","content":"Quality products and excellent service."}]','textarea','Testimonials JSON (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (169,'home','home_testimonials_ja','[{"avatar":"","name":"張様","company":"テクノロジー会社","content":"非常にプロフェッショナルなチームで、ご一緒できて大変光栄でした。"},{"avatar":"","name":"李様","company":"商社","content":"高品質な製品と優れたサービス。"}]','textarea','Testimonials JSON (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (170,'home','home_advantage_desc_en','Professional team, quality service, trusted partner','text','Advantage desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (171,'home','home_advantage_desc_ja','プロフェッショナルチーム・優れたサービス・信頼のパートナー','text','Advantage desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (172,'home','home_adv_1_title_en','Quality Assured','text','Adv 1 title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (173,'home','home_adv_1_title_ja','品質保証','text','Adv 1 title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (174,'home','home_adv_1_desc_en','Strict quality control ensures every product meets standards','text','Adv 1 desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (175,'home','home_adv_1_desc_ja','厳格な品質管理で、すべての製品が基準を満たすことを保証','text','Adv 1 desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (176,'home','home_adv_2_title_en','Tech Leadership','text','Adv 2 title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (177,'home','home_adv_2_title_ja','技術リーダーシップ','text','Adv 2 title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (178,'home','home_adv_2_desc_en','Continuous R&D investment keeps us ahead of the curve','text','Adv 2 desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (179,'home','home_adv_2_desc_ja','継続的な研究開発で、技術の最前線をリードします','text','Adv 2 desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (180,'home','home_adv_3_title_en','Professional Service','text','Adv 3 title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (181,'home','home_adv_3_title_ja','プロフェッショナルサービス','text','Adv 3 title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (182,'home','home_adv_3_desc_en','Expert team provides 24/7 technical support','text','Adv 3 desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (183,'home','home_adv_3_desc_ja','専門チームが24時間365日テクニカルサポートを提供','text','Adv 3 desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (184,'home','home_adv_4_title_en','Win-Win Partnership','text','Adv 4 title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (185,'home','home_adv_4_title_ja','共創パートナーシップ','text','Adv 4 title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (186,'home','home_adv_4_desc_en','Long-term cooperation that creates mutual value','text','Adv 4 desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (187,'home','home_adv_4_desc_ja','長期的なパートナーシップで、共に成長します','text','Adv 4 desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (188,'home','home_cta_title_en','Ready to get started?','text','CTA title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (189,'home','home_cta_title_ja','お取引を始めませんか？','text','CTA title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (190,'home','home_cta_desc_en','Contact us for a professional solution','text','CTA desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (191,'home','home_cta_desc_ja','お問い合わせいただければ、最適なソリューションをご提案いたします','text','CTA desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (192,'contact','contact_form_title_en','Online Inquiry','text','Form title (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (193,'contact','contact_form_title_ja','お問い合わせ','text','Form title (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (194,'contact','contact_form_desc_en','Leave us a message and we''ll get back to you shortly.','textarea','Form desc (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (195,'contact','contact_form_desc_ja','お気軽にメッセージをお寄せください。担当者よりご連絡いたします。','textarea','Form desc (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (196,'contact','contact_form_success_en','Thank you! Your message has been received. We''ll contact you soon.','text','Form success (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (197,'contact','contact_form_success_ja','ありがとうございます。お問い合わせを受け付けました。担当者よりご連絡いたします。','text','Form success (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (198,'contact','contact_form_fields_en','[{"key":"name","label":"Your Name","type":"text","required":true,"enabled":true},{"key":"phone","label":"Phone","type":"tel","required":true,"enabled":true},{"key":"email","label":"Email","type":"email","required":false,"enabled":true},{"key":"company","label":"Company","type":"text","required":false,"enabled":true},{"key":"content","label":"Message","type":"textarea","required":true,"enabled":true}]','textarea','Form fields (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (199,'contact','contact_form_fields_ja','[{"key":"name","label":"お名前","type":"text","required":true,"enabled":true},{"key":"phone","label":"電話番号","type":"tel","required":true,"enabled":true},{"key":"email","label":"メールアドレス","type":"email","required":false,"enabled":true},{"key":"company","label":"会社名","type":"text","required":false,"enabled":true},{"key":"content","label":"お問い合わせ内容","type":"textarea","required":true,"enabled":true}]','textarea','Form fields (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (200,'contact','contact_cards_en','[{"icon":"phone","label":"Phone","value":"+86-400-888-8888"},{"icon":"email","label":"Email","value":"contact@example.com"},{"icon":"location","label":"Address","value":"XX Road, Pudong New Area, Shanghai, China"}]','contact_cards','Contact cards (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (201,'contact','contact_cards_ja','[{"icon":"phone","label":"電話","value":"+86-400-888-8888"},{"icon":"email","label":"メール","value":"contact@example.com"},{"icon":"location","label":"住所","value":"中国 上海市浦東新区XX路XX号"}]','contact_cards','Contact cards (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (202,'email','mail_tpl_register_subject_en','Welcome to {{site_name}}','text','Register subject (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (203,'email','mail_tpl_register_subject_ja','{{site_name}} へのご登録ありがとうございます','text','Register subject (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (204,'email','mail_tpl_register_body_en','Hi {{username}},
+
+Thank you for registering at {{site_name}}.
+Visit your member dashboard: {{site_url}}/member/
+
+— {{site_name}} {{date}}','textarea','Register body (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (205,'email','mail_tpl_register_body_ja','{{username}} 様
+
+{{site_name}} へのご登録ありがとうございます。
+会員ページ: {{site_url}}/member/
+
+— {{site_name}} {{date}}','textarea','Register body (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (206,'email','mail_tpl_forgot_subject_en','Reset your password — {{site_name}}','text','Forgot subject (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (207,'email','mail_tpl_forgot_subject_ja','パスワード再設定 — {{site_name}}','text','Forgot subject (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (208,'email','mail_tpl_forgot_body_en','Hi {{username}},
+
+Click the link below to reset your password (valid for 30 minutes):
+{{reset_link}}
+
+If you did not request this, please ignore this email.
+
+— {{site_name}} {{date}}','textarea','Forgot body (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (209,'email','mail_tpl_forgot_body_ja','{{username}} 様
+
+下記リンクからパスワードを再設定してください（30分間有効）:
+{{reset_link}}
+
+心当たりがない場合は本メールを無視してください。
+
+— {{site_name}} {{date}}','textarea','Forgot body (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (210,'email','mail_tpl_reset_subject_en','Your password has been reset — {{site_name}}','text','Reset subject (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (211,'email','mail_tpl_reset_subject_ja','パスワード変更完了 — {{site_name}}','text','Reset subject (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (212,'email','mail_tpl_reset_body_en','Hi {{username}},
+
+Your password has been successfully reset.
+If you did not perform this action, please contact us immediately.
+
+— {{site_name}} {{date}}','textarea','Reset body (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (213,'email','mail_tpl_reset_body_ja','{{username}} 様
+
+パスワードが正常に変更されました。
+お心当たりのない場合は、至急ご連絡ください。
+
+— {{site_name}} {{date}}','textarea','Reset body (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (214,'email','mail_tpl_inquiry_subject_en','New inquiry: {{product_title}} — {{site_name}}','text','Inquiry subject (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (215,'email','mail_tpl_inquiry_subject_ja','新規お問い合わせ：{{product_title}} — {{site_name}}','text','Inquiry subject (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (216,'email','mail_tpl_inquiry_body_en','A new inquiry has been received:
+
+Product: {{product_title}}
+Name:    {{name}}
+Phone:   {{phone}}
+Email:   {{email}}
+Company: {{company}}
+
+Message:
+{{content}}
+
+---
+IP: {{ip}}
+Submitted: {{date}}
+— {{site_name}}','textarea','Inquiry body (EN)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (217,'email','mail_tpl_inquiry_body_ja','新しいお問い合わせを受信しました：
+
+製品:    {{product_title}}
+お名前:  {{name}}
+電話:    {{phone}}
+メール:  {{email}}
+会社:    {{company}}
+
+お問い合わせ内容:
+{{content}}
+
+---
+IP: {{ip}}
+受信日時: {{date}}
+— {{site_name}}','textarea','Inquiry body (JA)','',NULL,0);
+DROP TABLE IF EXISTS "yikai_timelines";
+CREATE TABLE "yikai_timelines" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "year" INTEGER NOT NULL,
+  "month" INTEGER DEFAULT '0',
+  "day" INTEGER DEFAULT '0',
+  "title" TEXT NOT NULL,
+  "content" TEXT,
+  "image" TEXT DEFAULT '',
+  "icon" TEXT DEFAULT '',
+  "color" TEXT DEFAULT '',
+  "sort_order" INTEGER DEFAULT '0',
+  "status" INTEGER DEFAULT '1',
+  "created_at" INTEGER DEFAULT '0',
+  "updated_at" INTEGER DEFAULT '0'
+);
+CREATE INDEX "idx_year_yikai_timelines" ON "yikai_timelines" ("year");
+CREATE INDEX "idx_status_yikai_timelines" ON "yikai_timelines" ("status");
+CREATE INDEX "idx_sort_yikai_timelines" ON "yikai_timelines" ("sort_order" DESC,"year" DESC,"month" DESC);
+CREATE INDEX "idx_tl_lang_yikai_timelines" ON "yikai_timelines" ("lang");
+CREATE INDEX "idx_tl_trans_yikai_timelines" ON "yikai_timelines" ("translation_group_id");
+
+
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (1,'zh-CN',1,2024,1,0,'智能物联网平台发布','发布新一代智能物联网平台，集成AI边缘计算能力，服务客户突破1000家。','','rocket','#3B82F6',1,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (2,'zh-CN',2,2022,6,0,'国家高新技术企业认定','通过国家高新技术企业认定，完成B轮融资，估值突破5亿。','','star','#10B981',2,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (3,'zh-CN',3,2020,3,0,'企业管理云平台上线','推出企业管理云平台，实现ERP/CRM/OA一体化SaaS服务。','','cloud','#8B5CF6',3,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (4,'zh-CN',4,2018,9,0,'研发中心成立','成立独立研发中心，团队规模扩展至50人，获得多项技术专利。','','office','#F59E0B',4,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (5,'zh-CN',5,2015,1,0,'产品线扩展','产品线从软件扩展至传感器、控制器等硬件领域，形成软硬一体解决方案。','','chip','#EF4444',5,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (6,'zh-CN',6,2012,6,0,'首个物联网项目','首个物联网项目成功落地，服务首批企业客户，营收突破500万。','','flag','#06B6D4',6,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (7,'zh-CN',7,2010,3,0,'公司成立','公司在上海正式注册成立，专注于企业信息化解决方案，初始团队5人。','','home','#6366F1',7,1,1776654208,1776654208);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (8,'en',1,2024,1,0,'Smart IoT Platform Launched','Released a new generation Smart IoT platform with integrated AI edge computing; over 1,000 enterprise customers served.','','rocket','#3B82F6',1,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (9,'en',2,2022,6,0,'High-Tech Enterprise Certification','Certified as a National High-Tech Enterprise; closed Series B funding at over 500M valuation.','','star','#10B981',2,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (10,'en',3,2020,3,0,'Enterprise Cloud Platform Launch','Launched the Enterprise Cloud Platform — unified ERP/CRM/OA as SaaS.','','cloud','#8B5CF6',3,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (11,'en',4,2018,9,0,'R&D Center Established','Established an independent R&D center; team grew to 50 people, multiple patents granted.','','office','#F59E0B',4,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (12,'en',5,2015,1,0,'Product Line Expansion','Expanded from software into sensors and controllers, building integrated hardware/software solutions.','','chip','#EF4444',5,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (13,'en',6,2012,6,0,'First IoT Project','Successfully delivered our first IoT project, serving early enterprise customers; revenue exceeded 5M.','','flag','#06B6D4',6,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (14,'en',7,2010,3,0,'Company Founded','Officially incorporated in Shanghai, focusing on enterprise IT solutions; initial team of 5.','','home','#6366F1',7,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (15,'ja',1,2024,1,0,'スマート IoT プラットフォーム発表','次世代スマート IoT プラットフォームを発表。AI エッジコンピューティング統合、顧客数 1,000 社突破。','','rocket','#3B82F6',1,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (16,'ja',2,2022,6,0,'高新技術企業認定取得','国家高新技術企業認定を取得、シリーズ B 資金調達完了、評価額 5 億超。','','star','#10B981',2,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (17,'ja',3,2020,3,0,'企業管理クラウドプラットフォーム公開','企業管理クラウドプラットフォームを公開、ERP/CRM/OA 統合 SaaS サービスを実現。','','cloud','#8B5CF6',3,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (18,'ja',4,2018,9,0,'R&D センター設立','独立した R&D センターを設立、チーム規模 50 名へ拡大、複数の技術特許を取得。','','office','#F59E0B',4,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (19,'ja',5,2015,1,0,'製品ライン拡張','ソフトウェアからセンサー・コントローラなどのハードウェア領域へ拡張、ハード・ソフト一体型ソリューションを形成。','','chip','#EF4444',5,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (20,'ja',6,2012,6,0,'初の IoT プロジェクト','初の IoT プロジェクトを成功裏に納入、初期エンタープライズ顧客にサービス提供、売上 500 万円超達成。','','flag','#06B6D4',6,1,1778462655,1778462655);
+INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "month", "day", "title", "content", "image", "icon", "color", "sort_order", "status", "created_at", "updated_at") VALUES (21,'ja',7,2010,3,0,'会社設立','上海で正式に設立、企業情報化ソリューションに特化、初期チーム 5 名。','','home','#6366F1',7,1,1778462655,1778462655);
+DROP TABLE IF EXISTS "yikai_users";
+CREATE TABLE "yikai_users" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "username" TEXT NOT NULL,
+  "password" TEXT NOT NULL,
+  "nickname" TEXT NOT NULL DEFAULT '',
+  "email" TEXT NOT NULL DEFAULT '',
+  "avatar" TEXT NOT NULL DEFAULT '',
+  "role_id" INTEGER NOT NULL DEFAULT '1',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "last_login_time" INTEGER NOT NULL DEFAULT '0',
+  "last_login_ip" TEXT NOT NULL DEFAULT '',
+  "login_count" INTEGER NOT NULL DEFAULT '0',
+  "created_at" INTEGER NOT NULL DEFAULT '0',
+  "updated_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_username_yikai_users" ON "yikai_users" ("username");
+CREATE INDEX "idx_status_yikai_users" ON "yikai_users" ("status");
+CREATE INDEX "idx_role_yikai_users" ON "yikai_users" ("role_id");
+
+
+
+
+
+PRAGMA foreign_keys = ON;

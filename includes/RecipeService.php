@@ -97,6 +97,7 @@ class RecipeService
             'contents_created'   => 0,
             'contents_skipped'   => 0,
             'settings_set'       => 0,
+            'settings_skipped'   => 0,
             'errors'             => [],
         ];
 
@@ -232,10 +233,24 @@ class RecipeService
             }
 
             // ── settings ──────────────────────────────────────
+            // 默认守"已有非空值则跳过"——避免覆盖用户已自定义的 footer_copyright、
+            // 主题色等。update_existing=true 时才允许覆盖。
             foreach ($recipe['settings'] as $k => $v) {
+                $existing = (string)config((string)$k, '');
+                if ($existing !== '' && !$updateExisting) {
+                    $report['settings_skipped'] = ($report['settings_skipped'] ?? 0) + 1;
+                    continue;
+                }
                 settingModel()->set((string)$k, (string)$v);
                 $report['settings_set']++;
             }
+
+            // ── 应用历史 ──────────────────────────────────────
+            // 用一个 JSON setting 存所有曾应用的方案：{"slug": timestamp, ...}
+            $history = json_decode((string)config('recipe_applied', '{}'), true);
+            if (!is_array($history)) $history = [];
+            $history[$slug] = $now;
+            settingModel()->set('recipe_applied', json_encode($history, JSON_UNESCAPED_UNICODE));
 
             db()->commit();
         } catch (\Throwable $e) {
@@ -244,6 +259,21 @@ class RecipeService
         }
 
         return $report;
+    }
+
+    /**
+     * 查应用历史。返回 [slug => unix_timestamp]，slug 不存在则该项为 null。
+     * @return array<string, ?int>
+     */
+    public function appliedHistory(): array
+    {
+        try {
+            $raw = (string)config('recipe_applied', '{}');
+            $data = json_decode($raw, true);
+            return is_array($data) ? $data : [];
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     private function buildChannelData(array $c, string $lang, int $now, bool $forInsert): array

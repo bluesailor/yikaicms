@@ -73,9 +73,22 @@ EXCLUDES=(
     "build.sh"
     "build.bat"
     "psalm.xml"
+    "phpunit.xml"
     "composer.lock"
+    "composer.phar"
     ".editorconfig"
     ".claude"
+
+    # 开发文档（内部说明，不发布给用户）
+    "docs"
+    "AGENTS.md"
+
+    # 测试 / 工具脚本（dev only）
+    "tests"
+    "tools"
+
+    # Composer 依赖（dev only，YikaiCMS 运行时零 composer 依赖）
+    "vendor"
 
     # CSS 源码（编译产物 tailwind.css 已包含）
     "assets/css/src"
@@ -86,6 +99,10 @@ EXCLUDES=(
     "package-lock.json"
     "tailwind.config.js"
     "postcss.config.js"
+
+    # 临时测试文件（如本地 dev 时手写的）
+    "recipe_test.php"
+    "_i18n_test.php"
 
     # 运行时数据（保留目录结构）
     "storage/database.sqlite"

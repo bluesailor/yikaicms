@@ -27,27 +27,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status'   => postInt('status', 1),
         ];
 
-        if ($id <= 0) error('无效的会员ID');
-
         if (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            error('请输入正确的邮箱');
+            error(__('member_err_invalid_email'));
         }
 
         if (!memberModel()->isEmailUnique($data['email'], $id)) {
-            error('邮箱已被其他账号使用');
+            error(__('member_err_email_taken'));
         }
 
-        // 重置密码
-        $newPassword = post('new_password');
-        if (!empty($newPassword)) {
-            if (strlen($newPassword) < 8) {
-                error('密码至少8位');
+        if ($id > 0) {
+            // 重置密码
+            $newPassword = post('new_password');
+            if (!empty($newPassword)) {
+                if (strlen($newPassword) < 8) {
+                    error(__('member_err_password_short'));
+                }
+                $data['password'] = password_hash($newPassword, PASSWORD_DEFAULT);
             }
-            $data['password'] = password_hash($newPassword, PASSWORD_DEFAULT);
+
+            memberModel()->updateById($id, $data);
+            adminLog('member', 'update', "更新会员ID: $id");
+            success();
         }
 
-        memberModel()->updateById($id, $data);
-        adminLog('member', 'update', "更新会员ID: $id");
+        // 新增会员
+        $username = trim((string)post('username'));
+        $password = (string)post('new_password');
+
+        if (mb_strlen($username) < 3 || mb_strlen($username) > 20) {
+            error(__('member_err_username_length'));
+        }
+        if (!preg_match('/^[a-zA-Z0-9_\x{4e00}-\x{9fa5}]+$/u', $username)) {
+            error(__('member_err_username_format'));
+        }
+        if (!memberModel()->isUsernameUnique($username)) {
+            error(__('member_err_username_taken'));
+        }
+        if (strlen($password) < 8) {
+            error(__('member_err_password_short'));
+        }
+
+        $data['username']   = $username;
+        $data['password']   = password_hash($password, PASSWORD_DEFAULT);
+        $data['nickname']   = $data['nickname'] !== '' ? $data['nickname'] : $username;
+        $data['created_at'] = time();
+
+        $newId = (int)memberModel()->create($data);
+        adminLog('member', 'create', "新增会员ID: $newId");
         success();
     }
 
@@ -99,7 +125,7 @@ $members = db()->fetchAll(
 
 $totalPages = (int)ceil($total / $perPage);
 
-$pageTitle = '会员管理';
+$pageTitle = __('admin_member');
 $currentMenu = 'member';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -117,12 +143,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <form method="get" class="p-4 flex gap-4 items-center">
         <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-               class="border rounded px-4 py-2 w-64" placeholder="搜索用户名 / 邮箱 / 昵称">
+               class="border rounded px-4 py-2 w-64" placeholder="<?php echo __('member_search_ph'); ?>">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded"><?php echo __('btn_search'); ?></button>
         <?php if ($keyword): ?>
-        <a href="/admin/member.php" class="text-gray-500 hover:text-gray-700 text-sm">清除</a>
+        <a href="/admin/member.php" class="text-gray-500 hover:text-gray-700 text-sm"><?php echo __('member_clear'); ?></a>
         <?php endif; ?>
-        <span class="text-gray-400 text-sm ml-auto">共 <?php echo $total; ?> 位会员</span>
+        <button type="button" onclick="openAddModal()" class="ml-auto bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <?php echo __('member_add'); ?>
+        </button>
+        <span class="text-gray-400 text-sm"><?php echo __('member_total', ['count' => $total]); ?></span>
     </form>
 </div>
 
@@ -133,11 +163,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('member_field_username'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('member_field_nickname'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('member_field_email'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('member_reg_time'); ?></th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">最后登录</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('member_field_last_login'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
@@ -154,7 +184,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'; ?>">
-                            <?php echo $item['status'] ? '正常' : '禁用'; ?>
+                            <?php echo $item['status'] ? __('user_status_normal') : __('admin_disabled'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -167,7 +197,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($members)): ?>
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无会员</td>
+                    <td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo __('member_empty'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -197,7 +227,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800" id="modalTitle">编辑会员</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo __('member_edit_title'); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
@@ -205,29 +235,29 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="editId" value="0">
 
             <div>
-                <label class="block text-gray-700 mb-1">用户名</label>
-                <input type="text" id="editUsername" disabled class="w-full border rounded px-4 py-2 bg-gray-50 text-gray-500">
+                <label class="block text-gray-700 mb-1"><?php echo __('member_field_username'); ?></label>
+                <input type="text" name="username" id="editUsername" class="w-full border rounded px-4 py-2" placeholder="<?php echo __('member_username_ph'); ?>">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">昵称</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('member_field_nickname'); ?></label>
                 <input type="text" name="nickname" id="editNickname" class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">邮箱</label>
+                <label class="block text-gray-700 mb-1"><?php echo __('member_field_email'); ?></label>
                 <input type="email" name="email" id="editEmail" required class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">重置密码</label>
-                <input type="text" name="new_password" id="editPassword" class="w-full border rounded px-4 py-2" placeholder="留空不修改，至少8位">
+                <label class="block text-gray-700 mb-1" id="editPasswordLabel"><?php echo __('member_field_reset_password'); ?></label>
+                <input type="text" name="new_password" id="editPassword" class="w-full border rounded px-4 py-2" placeholder="<?php echo __('member_reset_password_ph'); ?>">
             </div>
 
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                 <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
-                    <option value="1">正常</option>
+                    <option value="1"><?php echo __('user_status_normal'); ?></option>
                     <option value="0"><?php echo __('admin_disabled'); ?></option>
                 </select>
             </div>
@@ -241,13 +271,53 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <script>
+const I18N = {
+    edit_title: <?php echo json_encode(__('member_edit_title'), JSON_UNESCAPED_UNICODE); ?>,
+    add_title: <?php echo json_encode(__('member_add'), JSON_UNESCAPED_UNICODE); ?>,
+    pwd_label_reset: <?php echo json_encode(__('member_field_reset_password'), JSON_UNESCAPED_UNICODE); ?>,
+    pwd_label_set: <?php echo json_encode(__('member_field_password'), JSON_UNESCAPED_UNICODE); ?>,
+    pwd_ph_reset: <?php echo json_encode(__('member_reset_password_ph'), JSON_UNESCAPED_UNICODE); ?>,
+    pwd_ph_set: <?php echo json_encode(__('member_password_ph'), JSON_UNESCAPED_UNICODE); ?>,
+    confirm_delete: <?php echo json_encode(__('member_confirm_delete'), JSON_UNESCAPED_UNICODE); ?>,
+    status_normal: <?php echo json_encode(__('user_status_normal'), JSON_UNESCAPED_UNICODE); ?>,
+    status_disabled: <?php echo json_encode(__('admin_disabled'), JSON_UNESCAPED_UNICODE); ?>,
+    saved: <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>,
+    deleted: <?php echo json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE); ?>,
+};
+
 function openEditModal(item) {
+    document.getElementById('modalTitle').textContent = I18N.edit_title;
     document.getElementById('editId').value = item.id;
-    document.getElementById('editUsername').value = item.username;
+    const usernameInput = document.getElementById('editUsername');
+    usernameInput.value = item.username;
+    usernameInput.readOnly = true;
+    usernameInput.classList.add('bg-gray-50', 'text-gray-500');
     document.getElementById('editNickname').value = item.nickname || '';
     document.getElementById('editEmail').value = item.email || '';
-    document.getElementById('editPassword').value = '';
+    const pwd = document.getElementById('editPassword');
+    pwd.value = '';
+    pwd.required = false;
+    pwd.placeholder = I18N.pwd_ph_reset;
+    document.getElementById('editPasswordLabel').textContent = I18N.pwd_label_reset;
     document.getElementById('editStatus').value = item.status;
+    document.getElementById('editModal').classList.remove('hidden');
+}
+
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = I18N.add_title;
+    document.getElementById('editId').value = 0;
+    const usernameInput = document.getElementById('editUsername');
+    usernameInput.value = '';
+    usernameInput.readOnly = false;
+    usernameInput.classList.remove('bg-gray-50', 'text-gray-500');
+    document.getElementById('editNickname').value = '';
+    document.getElementById('editEmail').value = '';
+    const pwd = document.getElementById('editPassword');
+    pwd.value = '';
+    pwd.required = true;
+    pwd.placeholder = I18N.pwd_ph_set;
+    document.getElementById('editPasswordLabel').textContent = I18N.pwd_label_set;
+    document.getElementById('editStatus').value = 1;
     document.getElementById('editModal').classList.remove('hidden');
 }
 
@@ -261,7 +331,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_saved'); ?>');
+        showMessage(I18N.saved);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -277,23 +347,23 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-green-100 text-green-600';
-            btn.textContent = '正常';
+            btn.textContent = I18N.status_normal;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-red-100 text-red-600';
-            btn.textContent = '<?php echo __('admin_disabled'); ?>';
+            btn.textContent = I18N.status_disabled;
         }
     }
 }
 
 async function deleteMember(id) {
-    if (!confirm('确定要删除该会员吗？')) return;
+    if (!confirm(I18N.confirm_delete)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(I18N.deleted);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

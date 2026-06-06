@@ -97,7 +97,7 @@ if ($tab === 'info') {
     $uploadsSize = dirSize(ROOT_PATH . '/uploads');
 
     $tableStats = [];
-    $tables = ['channels', 'contents', 'articles', 'products', 'cases', 'albums', 'forms', 'admin_users', 'settings', 'admin_logs'];
+    $tables = ['channels', 'contents', 'products', 'cases', 'albums', 'forms', 'admin_users', 'settings', 'admin_logs'];
     foreach ($tables as $t) {
         try {
             $count = (int)db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . $t);
@@ -316,7 +316,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <?php
                 $tableNames = [
-                    'channels' => '栏目', 'contents' => '单页内容', 'articles' => '文章',
+                    'channels' => '栏目', 'contents' => '单页内容',
                     'products' => '产品', 'cases' => '案例', 'albums' => '相册',
                     'forms' => '表单', 'admin_users' => '管理员', 'settings' => '设置项',
                     'admin_logs' => '操作日志',
