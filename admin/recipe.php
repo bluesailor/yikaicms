@@ -53,6 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $recipes = $svc->list();
+$applied = $svc->appliedHistory();
+
+// 应用过的方案排前面（按时间倒序），未应用的按 manifest 顺序保持
+uksort($recipes, function ($a, $b) use ($applied) {
+    $ta = $applied[$a] ?? 0;
+    $tb = $applied[$b] ?? 0;
+    if ($ta === $tb) return 0;
+    return $tb <=> $ta;
+});
+
 $lang = getLang();
 $langSuffix = $lang !== 'zh-CN' ? '_' . $lang : '';
 
@@ -85,13 +95,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php if (empty($recipes)): ?>
                 <p class="text-gray-400 text-center py-4"><?php echo __('recipe_empty'); ?></p>
             <?php else: foreach ($recipes as $slug => $r): ?>
-                <div class="border rounded-lg p-4 hover:border-primary transition">
+                <?php $appliedAt = $applied[$slug] ?? null; ?>
+                <div class="border rounded-lg p-4 hover:border-primary transition <?php echo $appliedAt ? 'border-green-300 bg-green-50/40' : ''; ?>">
                     <div class="flex items-start justify-between gap-4">
                         <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <h3 class="font-bold text-gray-800"><?php echo e($pick($r, 'name')); ?></h3>
                                 <span class="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono"><?php echo e($slug); ?></span>
                                 <span class="text-xs text-gray-400">v<?php echo e((string)($r['version'] ?? '1.0.0')); ?></span>
+                                <?php if ($appliedAt): ?>
+                                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded inline-flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                    <?php echo __('recipe_applied_at', ['date' => date('Y-m-d', (int)$appliedAt)]); ?>
+                                </span>
+                                <?php endif; ?>
                             </div>
                             <p class="text-sm text-gray-600 mb-2"><?php echo e($pick($r, 'description')); ?></p>
                             <div class="flex flex-wrap gap-2 text-xs text-gray-500">

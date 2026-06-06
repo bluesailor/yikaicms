@@ -86,6 +86,12 @@ function getThemes(): array
             }
         }
     }
+    // default 主题永远排第一，其余按 slug 字母序
+    usort($themes, function ($a, $b) {
+        if ($a['slug'] === 'default') return -1;
+        if ($b['slug'] === 'default') return 1;
+        return strcmp($a['slug'], $b['slug']);
+    });
     return $themes;
 }
 

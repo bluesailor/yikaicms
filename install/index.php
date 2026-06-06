@@ -289,6 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $siteLang  = in_array($_POST['site_lang'] ?? '', $_installerSupported, true) ? $_POST['site_lang'] : 'zh-CN';
             $adminLang = in_array($_POST['admin_lang'] ?? '', $_installerSupported, true) ? $_POST['admin_lang'] : 'zh-CN';
             $installDemo = !empty($_POST['install_demo']);
+            // 初始场景预设功能 v1.7.4 移除（装完后台 → 外观 → 场景预设 操作）
 
             // 验证表前缀（仅允许字母数字下划线）
             if (!preg_match('/^[a-zA-Z0-9_]*$/', $prefix)) {
@@ -742,11 +743,13 @@ $envAllPass = checkAllPass($envChecks);
 
                     <div class="mt-2">
                         <label class="inline-flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="install_demo" value="1" class="rounded">
+                            <input type="checkbox" name="install_demo" value="1" checked class="rounded">
                             <span class="text-gray-700"><?php echo $L['install_demo_label']; ?></span>
                         </label>
                         <p class="text-sm text-gray-500 mt-1 ml-6"><?php echo $L['install_demo_tip']; ?></p>
                     </div>
+
+                    <!-- 初始场景预设：v1.7.4 移除（默认就是企业站 CMS，装完后台 → 外观 → 场景预设 可再换） -->
                 </form>
 
                 <div id="installProgress" class="hidden mt-6">

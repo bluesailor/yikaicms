@@ -1,0 +1,77 @@
+# ============================================================
+# nginx 伪静态规则（阿里云云·虚拟主机专用）
+#
+# 来源：https://help.aliyun.com/zh/cloud-web-hosting/user-guide/nginx-configuration-file
+# 限制：只支持 location/allow/deny/try_files/rewrite/return/if/set 八条指令
+#       且后七条必须在 location 块内使用
+#
+# 操作：登录主机控制台 → 高级环境设置 → NGINX 设置 → 粘贴下面内容
+# ============================================================
+
+# ---- 1) 拦截敏感目录 / 文件（独立 location，单独 deny） ----
+location ~ ^/(config|storage|vendor|includes|install/sql|bin|migrations|recipes)/ {
+    deny all;
+}
+location ~ /\.(git|env|htaccess|htpasswd) {
+    deny all;
+}
+location ~ ^/composer\.(json|lock)$ {
+    deny all;
+}
+location ~ ^/package(-lock)?\.json$ {
+    deny all;
+}
+
+# ---- 2) 主伪静态规则（全部 rewrite 集中在一个 location） ----
+location / {
+    # Sitemap & 搜索
+    rewrite ^/sitemap\.xml$ /sitemap.php last;
+    rewrite ^/search\.html$ /search.php last;
+
+    # 多语言前缀剥离：/ja/foo → /foo?_lang=ja
+    rewrite ^/(ja|en|zh-CN)/(.*)$ /$2?_lang=$1 last;
+
+    # 新闻系统
+    rewrite ^/news\.html$ /news.php last;
+    rewrite ^/news/page/(\d+)\.html$ /news.php?page=$1 last;
+    rewrite ^/news/article/(\d+)\.html$ /article.php?id=$1 last;
+    rewrite ^/news/article/([a-z0-9_-]+)\.html$ /article.php?slug=$1 last;
+    rewrite ^/news/([a-z0-9_-]+)/page/(\d+)\.html$ /news.php?cat=$1&page=$2 last;
+    rewrite ^/news/([a-z0-9_-]+)\.html$ /news.php?cat=$1 last;
+
+    # 栏目列表
+    rewrite ^/list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 last;
+    rewrite ^/list/(\d+)\.html$ /list.php?id=$1 last;
+
+    # 案例详情
+    rewrite ^/case/(\d+)\.html$ /detail.php?id=$1 last;
+    rewrite ^/case/([a-z0-9_-]+)\.html$ /detail.php?slug=$1 last;
+
+    # 招聘详情
+    rewrite ^/job/(\d+)\.html$ /job_detail.php?id=$1 last;
+
+    # 下载 / 通用详情
+    rewrite ^/download/detail/(\d+)\.html$ /detail.php?id=$1 last;
+    rewrite ^/detail/(\d+)\.html$ /detail.php?id=$1 last;
+
+    # 产品
+    rewrite ^/product/(\d+)\.html$ /product.php?id=$1 last;
+    rewrite ^/product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /product.php?slug=$2 last;
+    rewrite ^/product/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=product&cat=$1&page=$2 last;
+    rewrite ^/product/([a-z0-9_-]+)\.html$ /list.php?slug=product&cat=$1 last;
+
+    # 特殊页面
+    rewrite ^/about/history\.html$ /history.php last;
+    rewrite ^/contact\.html$ /contact.php last;
+
+    # 单页 / 列表分页
+    rewrite ^/page/(\d+)\.html$ /page.php?id=$1 last;
+    rewrite ^/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=$1&page=$2 last;
+    rewrite ^/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /page.php?parent=$1&slug=$2 last;
+    rewrite ^/([a-z0-9_-]+)\.html$ /page.php?slug=$1 last;
+
+    # 兜底：文件不存在交给 index.php
+    if (!-e $request_filename) {
+        rewrite ^ /index.php last;
+    }
+}

@@ -341,6 +341,7 @@ if ($footerBgImage) {
     <?php endif; ?>
     <?php do_action('ik_footer_scripts'); ?>
     <?php do_action('render_footer'); ?>
+    <?php renderCustomerService(); ?>
     <?php echo config('custom_body_code', ''); ?>
 </body>
 </html>

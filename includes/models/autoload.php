@@ -34,14 +34,6 @@ function contentModel(): ContentModel {
     static $i; return $i ??= new ContentModel();
 }
 
-function articleModel(): ArticleModel {
-    static $i; return $i ??= new ArticleModel();
-}
-
-function articleCategoryModel(): ArticleCategoryModel {
-    static $i; return $i ??= new ArticleCategoryModel();
-}
-
 function productModel(): ProductModel {
     static $i; return $i ??= new ProductModel();
 }
