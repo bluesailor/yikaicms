@@ -11,6 +11,14 @@ declare(strict_types=1);
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
 
+// 读取 CMS 版本号（安装阶段 config.php 尚未生成，从模板 config.sample.php 提取）
+$cmsVersion = '1.0.0';
+$sampleConfig = ROOT_PATH . '/config/config.sample.php';
+if (is_file($sampleConfig)
+    && preg_match("/CMS_VERSION',\\s*'([^']+)'/", (string) file_get_contents($sampleConfig), $m)) {
+    $cmsVersion = $m[1];
+}
+
 // 检查是否已安装（允许step=4显示完成页面）
 $step = (int)($_GET['step'] ?? 1);
 if (file_exists(ROOT_PATH . '/installed.lock') && $step !== 4) {
@@ -440,7 +448,7 @@ $envAllPass = checkAllPass($envChecks);
         <!-- 头部 -->
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800 mb-2"><?php echo $L['title']; ?></h1>
-            <p class="text-gray-400 text-sm">v1.0.0</p>
+            <p class="text-gray-400 text-sm">v<?php echo htmlspecialchars($cmsVersion); ?></p>
         </div>
 
         <!-- 步骤指示器 -->
