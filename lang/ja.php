@@ -441,6 +441,8 @@ return [
     'admin_preview' => 'プレビュー',
     'admin_published' => '公開',
     'admin_draft' => '下書き',
+    'admin_scheduled' => '予約投稿',
+    'admin_scheduled_hint' => '「予約投稿」を選び、未来の公開日時を設定すると、その時刻に自動で公開されます。',
     'admin_unpublished' => '非公開',
     'admin_sort_order' => '並び順',
     'admin_update' => '更新',

@@ -75,5 +75,17 @@ require_once ROOT_PATH . '/includes/blocks/timeline.php';
 require_once ROOT_PATH . '/includes/customer_service.php';
 require_once ROOT_PATH . '/includes/plugin.php';
 
+// 定时发布：到点的定时内容（status=3）自动上线为已发布（status=1）。
+// 无需 cron，由访问触发；限流每 60 秒最多扫描一次。
+try {
+    $sweepAt = (int) settingModel()->get('sched_sweep_at', '0');
+    if (time() - $sweepAt >= 60) {
+        contentModel()->promoteDue();
+        settingModel()->set('sched_sweep_at', (string) time(), 'system');
+    }
+} catch (\Throwable $e) {
+    // 安装未完成 / 表缺失时静默跳过
+}
+
 // 前台启动完成，供插件挂载初始化逻辑
 do_action('init');

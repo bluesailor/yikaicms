@@ -261,6 +261,20 @@ class ContentModel extends Model
     }
 
     /**
+     * 定时发布：将已到发布时间的定时内容（status=3）提升为已发布（status=1）。
+     * 无需 cron，由 init.php 在访问时限流触发。返回提升的条数。
+     */
+    public function promoteDue(): int
+    {
+        $now = time();
+        return db()->execute(
+            "UPDATE {$this->tableName()} SET status = 1, updated_at = ?
+             WHERE status = 3 AND publish_time > 0 AND publish_time <= ?",
+            [$now, $now]
+        );
+    }
+
+    /**
      * 获取含 sort_order 的排序（兼容未升级的数据库）
      */
     public function getEffectiveOrder(): string

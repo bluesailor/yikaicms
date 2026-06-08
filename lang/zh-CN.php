@@ -450,6 +450,8 @@ return [
     'admin_preview' => '预览',
     'admin_published' => '已发布',
     'admin_draft' => '草稿',
+    'admin_scheduled' => '定时发布',
+    'admin_scheduled_hint' => '选择「定时发布」并设置未来的发布时间，文章将在该时间自动上线。',
     'admin_unpublished' => '未发布',
     'admin_sort_order' => '排序',
     'admin_update' => '更新',
