@@ -162,6 +162,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_status'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
+                <option value="3" <?php echo $status === '3' ? 'selected' : ''; ?>><?php echo __('admin_scheduled'); ?></option>
             </select>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
@@ -247,10 +248,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </button>
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <button onclick="toggleField(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>)"
-                                    class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                                <?php echo $item['status'] ? __('admin_published') : __('admin_draft'); ?>
-                            </button>
+                            <?php if ((int)$item['status'] === 3): ?>
+                                <button onclick="toggleField(<?php echo $item['id']; ?>, 'status', 1)"
+                                        title="<?php echo __('admin_scheduled') . '：' . date('Y-m-d H:i', (int)($item['publish_time'] ?? 0)); ?>"
+                                        class="text-xs px-2 py-1 rounded bg-orange-100 text-orange-600">
+                                    <?php echo __('admin_scheduled'); ?><br><span class="text-[10px]"><?php echo date('m-d H:i', (int)($item['publish_time'] ?? 0)); ?></span>
+                                </button>
+                            <?php else: ?>
+                                <button onclick="toggleField(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>)"
+                                        class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
+                                    <?php echo $item['status'] ? __('admin_published') : __('admin_draft'); ?>
+                                </button>
+                            <?php endif; ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/content_edit.php'); ?>

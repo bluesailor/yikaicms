@@ -390,6 +390,8 @@ return [
     'admin_preview' => 'Preview',
     'admin_published' => 'Published',
     'admin_draft' => 'Draft',
+    'admin_scheduled' => 'Scheduled',
+    'admin_scheduled_hint' => 'Choose "Scheduled" and set a future publish time; the article goes live automatically at that time.',
     'admin_unpublished' => 'Unpublished',
     'admin_sort_order' => 'Sort',
     'admin_update' => 'Update',

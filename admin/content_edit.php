@@ -63,6 +63,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
+    // 定时发布（以发布时间为准）：
+    //  - 选「定时」但时间已过 → 按已发布
+    //  - 选「发布」但时间在未来 → 自动转为定时
+    if ((int) $data['status'] === 3 && $data['publish_time'] <= time()) {
+        $data['status'] = 1;
+    } elseif ((int) $data['status'] === 1 && $data['publish_time'] > time()) {
+        $data['status'] = 3;
+    }
+
     if (empty($data['title'])) {
         error('请输入标题');
     }
@@ -268,9 +277,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
-                        <select name="status" class="w-full border rounded px-4 py-2">
+                        <select name="status" id="statusSelect" class="w-full border rounded px-4 py-2">
                             <option value="1" <?php echo ($content['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
                             <option value="0" <?php echo ($content['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
+                            <option value="3" <?php echo ($content['status'] ?? 1) == 3 ? 'selected' : ''; ?>><?php echo __('admin_scheduled'); ?></option>
                         </select>
                     </div>
 
@@ -279,7 +289,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="datetime-local" name="publish_time"
                                value="<?php echo date('Y-m-d\TH:i', ($content['publish_time'] ?? 0) ?: time()); ?>"
                                class="w-full border rounded px-4 py-2">
+                        <p id="schedHint" class="text-xs text-orange-500 mt-1" style="display:none;"><?php echo __('admin_scheduled_hint'); ?></p>
                     </div>
+                    <script>
+                    (function () {
+                        var sel = document.getElementById('statusSelect');
+                        var hint = document.getElementById('schedHint');
+                        function sync() { if (sel && hint) hint.style.display = sel.value === '3' ? 'block' : 'none'; }
+                        if (sel) { sel.addEventListener('change', sync); sync(); }
+                    })();
+                    </script>
 
                     <div class="flex flex-wrap gap-4">
                         <label class="flex items-center">
