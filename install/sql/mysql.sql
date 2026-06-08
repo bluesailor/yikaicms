@@ -37,7 +37,7 @@ CREATE TABLE `yikai_admin_logs` (
   KEY `idx_admin` (`admin_id`),
   KEY `idx_module` (`module`),
   KEY `idx_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='操作日志';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_admin_logs` WRITE;
@@ -62,7 +62,7 @@ CREATE TABLE `yikai_ai_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_provider` (`provider`),
   KEY `idx_created` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI调用日志';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI调用日志';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_ai_logs` WRITE;
@@ -85,7 +85,7 @@ CREATE TABLE `yikai_album_photos` (
   PRIMARY KEY (`id`),
   KEY `idx_album` (`album_id`),
   KEY `idx_sort` (`sort_order` DESC,`id` DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='相册图片';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='相册图片';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_album_photos` WRITE;
@@ -132,7 +132,7 @@ CREATE TABLE `yikai_albums` (
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order` DESC,`id` DESC),
   KEY `idx_alb_trans` (`translation_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='相册';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='相册';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_albums` WRITE;
@@ -157,7 +157,7 @@ CREATE TABLE `yikai_banner_groups` (
   `created_at` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='轮播图分组';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='轮播图分组';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_banner_groups` WRITE;
@@ -197,7 +197,7 @@ CREATE TABLE `yikai_banners` (
   KEY `idx_sort` (`sort_order`),
   KEY `idx_banner_lang` (`lang`),
   KEY `idx_bn_trans` (`translation_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='轮播图';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='轮播图';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_banners` WRITE;
@@ -229,7 +229,7 @@ CREATE TABLE `yikai_brands` (
   `sort_order` int(11) NOT NULL DEFAULT '0',
   `status` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='品牌管理';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='品牌管理';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_brands` WRITE;
@@ -273,7 +273,7 @@ CREATE TABLE `yikai_channels` (
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order`),
   KEY `idx_lang` (`lang`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='栏目表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='栏目表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_channels` WRITE;
@@ -395,7 +395,7 @@ CREATE TABLE `yikai_contents` (
   `seo_title` varchar(255) NOT NULL DEFAULT '',
   `seo_keywords` varchar(255) NOT NULL DEFAULT '',
   `seo_description` varchar(500) NOT NULL DEFAULT '',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：0草稿 1发布 2归档',
+  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：0草稿 1发布 2归档 3定时',
   `sort_order` int(11) NOT NULL DEFAULT '0' COMMENT '排序权重',
   `publish_time` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '发布时间',
   `created_at` int(11) unsigned NOT NULL DEFAULT '0',
@@ -417,7 +417,7 @@ CREATE TABLE `yikai_contents` (
   KEY `idx_trans_group` (`translation_group_id`),
   KEY `idx_sort` (`sort_order`),
   FULLTEXT KEY `ft_search` (`title`,`summary`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='内容表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='内容表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_contents` WRITE;
@@ -501,7 +501,7 @@ CREATE TABLE `yikai_download_categories` (
   `status` tinyint(4) DEFAULT '1' COMMENT '状态',
   `created_at` int(10) unsigned DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下载分类';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='下载分类';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_download_categories` WRITE;
@@ -536,7 +536,7 @@ CREATE TABLE `yikai_downloads` (
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order` DESC,`id` DESC),
   KEY `idx_dl_lang` (`lang`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='下载管理';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='下载管理';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_downloads` WRITE;
@@ -571,7 +571,7 @@ CREATE TABLE `yikai_extfields` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_owner_key` (`owner_type`,`field_key`),
   KEY `idx_owner` (`owner_type`,`status`,`sort_order`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='扩展字段定义表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='扩展字段定义表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_extfields` WRITE;
@@ -597,7 +597,7 @@ CREATE TABLE `yikai_form_templates` (
   `created_at` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='表单模板';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='表单模板';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_form_templates` WRITE;
@@ -633,7 +633,7 @@ CREATE TABLE `yikai_forms` (
   KEY `idx_created` (`created_at`),
   KEY `idx_product` (`product_id`),
   KEY `idx_source` (`source`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='表单数据';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='表单数据';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_forms` WRITE;
@@ -670,7 +670,7 @@ CREATE TABLE `yikai_jobs` (
   KEY `idx_status` (`status`),
   KEY `idx_top` (`is_top` DESC,`sort_order` DESC,`id` DESC),
   KEY `idx_job_lang` (`lang`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='招聘管理';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='招聘管理';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_jobs` WRITE;
@@ -702,7 +702,7 @@ CREATE TABLE `yikai_links` (
   KEY `idx_sort` (`sort_order`),
   KEY `idx_lk_lang` (`lang`),
   KEY `idx_lk_trans` (`translation_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='友情链接';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='友情链接';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_links` WRITE;
@@ -739,7 +739,7 @@ CREATE TABLE `yikai_media` (
   KEY `idx_type` (`type`),
   KEY `idx_admin` (`admin_id`),
   KEY `idx_md5` (`md5`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='媒体库';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='媒体库';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_media` WRITE;
@@ -764,7 +764,7 @@ CREATE TABLE `yikai_members` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`),
   UNIQUE KEY `uk_email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='前台会员表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='前台会员表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_members` WRITE;
@@ -785,7 +785,7 @@ CREATE TABLE `yikai_metas` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_owner_key` (`owner_type`,`owner_id`,`meta_key`),
   KEY `idx_owner` (`owner_type`,`owner_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通用元数据键值表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='通用元数据键值表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_metas` WRITE;
@@ -803,7 +803,7 @@ CREATE TABLE `yikai_plugins` (
   `activated_at` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '启用时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='插件表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='插件表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_plugins` WRITE;
@@ -834,7 +834,7 @@ CREATE TABLE `yikai_product_categories` (
   KEY `idx_status` (`status`),
   KEY `idx_sort` (`sort_order`),
   KEY `idx_pc_lang` (`lang`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='产品分类';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='产品分类';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_product_categories` WRITE;
@@ -861,7 +861,7 @@ CREATE TABLE `yikai_product_tag_map` (
   `tag_id` int(11) unsigned NOT NULL,
   PRIMARY KEY (`product_id`,`tag_id`),
   KEY `idx_tag` (`tag_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='产品标签关联';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='产品标签关联';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_product_tag_map` WRITE;
@@ -882,7 +882,7 @@ CREATE TABLE `yikai_product_tags` (
   `status` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `idx_group` (`group_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='产品标签';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='产品标签';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_product_tags` WRITE;
@@ -931,7 +931,7 @@ CREATE TABLE `yikai_products` (
   KEY `idx_sort` (`sort_order`),
   KEY `idx_lang_status` (`lang`,`status`),
   KEY `idx_trans_group` (`translation_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='产品表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='产品表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_products` WRITE;
@@ -971,7 +971,7 @@ CREATE TABLE `yikai_roles` (
   `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态',
   `created_at` int(11) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='角色表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_roles` WRITE;
@@ -997,7 +997,7 @@ CREATE TABLE `yikai_settings` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_key` (`key`),
   KEY `idx_group` (`group`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='配置表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='配置表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_settings` WRITE;
@@ -1244,7 +1244,7 @@ CREATE TABLE `yikai_timelines` (
   KEY `idx_sort` (`sort_order` DESC,`year` DESC,`month` DESC),
   KEY `idx_tl_lang` (`lang`),
   KEY `idx_tl_trans` (`translation_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='发展历程时间线';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='发展历程时间线';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_timelines` WRITE;
@@ -1293,7 +1293,7 @@ CREATE TABLE `yikai_users` (
   UNIQUE KEY `uk_username` (`username`),
   KEY `idx_status` (`status`),
   KEY `idx_role` (`role_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `yikai_users` WRITE;
