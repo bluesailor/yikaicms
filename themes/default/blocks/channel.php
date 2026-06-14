@@ -111,19 +111,23 @@ $contents = $hChannel['contents'];
         </div>
 
         <?php else: ?>
-        <!-- Articles/News: List Style (show only those with cover images) -->
-        <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
+        <!-- Articles/News: List Style (无封面文章显示占位图，不再过滤丢弃) -->
+        <?php $withCover = $contents; ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach (array_slice($withCover, 0, 4) as $item):
                 $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
             ?>
             <a href="<?php echo $itemUrl; ?>" class="block bg-white rounded-lg overflow-hidden hover:shadow-lg transition group">
-                <?php if ($item['cover']): ?>
                 <div class="overflow-hidden h-40">
+                <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
-                </div>
+                <?php else: ?>
+                    <div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
                 <?php endif; ?>
+                </div>
                 <div class="p-4">
                     <div class="text-xs text-gray-400 mb-2">
                         <?php echo e($itemCatName); ?> · <?php echo friendlyTime((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?>

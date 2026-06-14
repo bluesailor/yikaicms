@@ -98,5 +98,9 @@ class SettingModel extends Model
                 );
             }
         }
+        // 设置变更后触发 data_changed，让前台 HTML 缓存自动失效
+        if (function_exists('do_action')) {
+            do_action('data_changed', $this->tableName(), 0);
+        }
     }
 }

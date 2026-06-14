@@ -365,8 +365,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'admin_lang'");
             $stmt->execute([$adminLang]);
 
-            // 启用三语（菜单已镜像到 en/ja，hreflang 需要 enabled_languages ≥ 2）
-            $enabledJson = json_encode(['zh-CN', 'en', 'ja']);
+            // 默认仅启用所选站点语言（其它语言可在后台「语言设置」中开启）
+            $enabledJson = json_encode([$siteLang]);
             if ($driver === 'sqlite') {
                 $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('site', 'enabled_languages', ?, '', '', 0)");
             } else {

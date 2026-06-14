@@ -60,6 +60,7 @@ CREATE INDEX "idx_album_yikai_album_photos" ON "yikai_album_photos" ("album_id")
 CREATE INDEX "idx_sort_yikai_album_photos" ON "yikai_album_photos" ("sort_order" DESC,"id" DESC);
 
 
+-- @demo:start
 INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (1,1,'高新技术企业证书','https://picsum.photos/600/400?random=401','','',1,1,1776654388);
 INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (2,1,'ISO9001质量管理体系认证','https://picsum.photos/600/400?random=402','','',2,1,1776654388);
 INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (3,1,'软件企业认定证书','https://picsum.photos/600/400?random=403','','',3,1,1776654388);
@@ -78,6 +79,7 @@ INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "
 INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (16,3,'年間最優秀技術革新賞','https://picsum.photos/600/400?random=404','','',4,1,1778539841);
 INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (17,3,'優良サプライヤー栄誉証書','https://picsum.photos/600/400?random=405','','',5,1,1778539841);
 INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "description", "sort_order", "status", "created_at") VALUES (18,3,'業界トップ10ブランド賞','https://picsum.photos/600/400?random=406','','',6,1,1778539841);
+-- @demo:end
 DROP TABLE IF EXISTS "yikai_albums";
 CREATE TABLE "yikai_albums" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,9 +102,11 @@ CREATE INDEX "idx_sort_yikai_albums" ON "yikai_albums" ("sort_order" DESC,"id" D
 CREATE INDEX "idx_alb_trans_yikai_albums" ON "yikai_albums" ("translation_group_id");
 
 
+-- @demo:start
 INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (1,0,'荣誉资质','zh-CN',1,'honor','https://picsum.photos/400/300?random=401','公司获得的各项荣誉与资质证书',6,1,1,1776654388,1776654388);
 INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (2,0,'Honors & Certifications','en',1,'honor','https://picsum.photos/400/300?random=401','A selection of awards and certifications the company has earned.',6,1,1,1778539841,1778539841);
 INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (3,0,'受賞・認証','ja',1,'honor','https://picsum.photos/400/300?random=401','当社が取得した各種の受賞・認証一覧。',6,1,1,1778539841,1778539841);
+-- @demo:end
 CREATE TABLE "yikai_banner_groups" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "name" TEXT NOT NULL,
@@ -150,6 +154,7 @@ CREATE INDEX "idx_banner_lang_yikai_banners" ON "yikai_banners" ("lang");
 CREATE INDEX "idx_bn_trans_yikai_banners" ON "yikai_banners" ("translation_group_id");
 
 
+-- @demo:start
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (1,'home','zh-CN',1,'数字化转型解决方案','助力企业实现智能化升级','了解更多','/about.html','','','https://picsum.photos/1920/600?random=1','','','_self',0,0,1,1,1776652898);
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (2,'home','zh-CN',2,'专业的技术服务团队','7x24小时为您保驾护航','','','','','https://picsum.photos/1920/600?random=2','','','_self',0,0,1,2,1776652898);
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (3,'home','zh-CN',3,'创新引领未来','持续创新，追求卓越','','','','','https://picsum.photos/1920/600?random=3','','','_self',0,0,1,3,1776652898);
@@ -159,6 +164,7 @@ INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (7,'home','ja',1,'デジタルトランスフォーメーション・ソリューション','エンドツーエンドのデジタルサービスで企業のレベルアップを支援','詳しく見る','/about.html','お問合せ','','https://picsum.photos/1920/600?random=1','','','_self',0,0,1,1,1778464860);
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (8,'home','ja',2,'プロフェッショナルな技術チーム','経験豊富な専門家、フルスタック対応、安心の納品実績','会社案内','','サービス','','https://picsum.photos/1920/600?random=2','','','_self',0,0,1,2,1778464860);
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (9,'home','ja',3,'イノベーションで未来を切り開く','テクノロジーが未来を照らす — 共に歩みましょう','お問合せ','','事例を見る','','https://picsum.photos/1920/600?random=3','','','_self',0,0,1,3,1778464860);
+-- @demo:end
 DROP TABLE IF EXISTS "yikai_brands";
 CREATE TABLE "yikai_brands" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -401,6 +407,7 @@ CREATE INDEX "idx_trans_group_yikai_contents" ON "yikai_contents" ("translation_
 CREATE INDEX "idx_sort_yikai_contents" ON "yikai_contents" ("sort_order");
 
 
+-- @demo:start
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (1,'zh-CN',1,8,'article','公司荣获年度最佳科技创新奖','','tech-innovation-award','https://picsum.photos/800/500?random=201',NULL,'在2024年科技创新大会上，我公司凭借技术实力获此殊荣。','<p>在日前举行的2024年度科技创新大会上，我公司凭借在物联网和边缘计算领域的突出贡献，荣获"年度最佳科技创新奖"。</p>
 <p>此次评选由中国信息通信研究院主办，经过专家委员会的严格评审，从数百家参评企业中脱颖而出。</p>
 <h3>获奖亮点</h3>
@@ -1385,6 +1392,7 @@ INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id"
 <h2>Results</h2>
 <p>One year after launch: daily store sales up 12%, out-of-stock rate down from 8.2% to 2.1%, inventory turnover up 25%, member repurchase rate up 18%.</p>','html',NULL,'','','Retail,Platform,Replenishment,Membership','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (66,'ja',64,72,'case','小売チェーンのデジタル変革ソリューション','300店舗以上のための統合基盤・スマート補充・会員オムニチャネル','retail-chain-digitalization-ja','https://picsum.photos/seed/retail-chain/1200/600',NULL,'全国小売チェーン向けに POS／会員／在庫／クーポンを統合。スマート補充モデルにより、店舗日次売上を12%向上、欠品率を8.2%から2.1%に低減しました。','<h2>業界背景</h2>
+-- @demo:end
 <p>全国に300店舗以上を展開する小売チェーンでは、各店舗のPOS・会員・在庫システムが分断されており、本部はリアルタイムの売上・在庫データを取得できず、販促活動の対応も遅れ、在庫回転率は業界平均を下回っていました。</p>
 <h2>ソリューション</h2>
 <ul>
@@ -1576,13 +1584,13 @@ CREATE INDEX "idx_lk_lang_yikai_links" ON "yikai_links" ("lang");
 CREATE INDEX "idx_lk_trans_yikai_links" ON "yikai_links" ("translation_group_id");
 
 
-INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (1,'zh-CN',1,'易开网主机','https://www.yikai.cn/member/vhost-buy.php?productcode=P2161','','',1,0,1776652898);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (1,'zh-CN',1,'易开网','https://www.yikai.cn','','',1,0,1776652898);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (2,'zh-CN',2,'阿里云','https://www.aliyun.com','','',1,1,1776652898);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (3,'zh-CN',3,'腾讯云','https://cloud.tencent.com','','',1,2,1776652898);
-INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (4,'en',1,'Yikai Hosting','https://www.yikai.cn/member/vhost-buy.php?productcode=P2161','','',1,0,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (4,'en',1,'Yikai','https://www.yikai.cn','','',1,0,1778462748);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (5,'en',2,'Alibaba Cloud','https://www.aliyun.com','','',1,1,1778462748);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (6,'en',3,'Tencent Cloud','https://cloud.tencent.com','','',1,2,1778462748);
-INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (7,'ja',1,'Yikai Hosting','https://www.yikai.cn/member/vhost-buy.php?productcode=P2161','','',1,0,1778462748);
+INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (7,'ja',1,'Yikai','https://www.yikai.cn','','',1,0,1778462748);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (8,'ja',2,'Alibaba Cloud','https://www.aliyun.com','','',1,1,1778462748);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (9,'ja',3,'Tencent Cloud','https://cloud.tencent.com','','',1,2,1778462748);
 DROP TABLE IF EXISTS "yikai_media";
@@ -1673,6 +1681,7 @@ CREATE INDEX "idx_sort_yikai_product_categories" ON "yikai_product_categories" (
 CREATE INDEX "idx_pc_lang_yikai_product_categories" ON "yikai_product_categories" ("lang");
 
 
+-- @demo:start
 INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (1,0,'智能设备','smart-device','zh-CN',1,'',NULL,'','','',1,1,1,1776652898);
 INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (2,0,'软件服务','software','zh-CN',2,'',NULL,'','','',1,1,2,1776652898);
 INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (3,1,'传感器模块','sensor-module','zh-CN',3,'',NULL,'','','',1,1,1,1776652898);
@@ -1685,6 +1694,7 @@ INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang
 INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (10,0,'ソフトウェア','software-ja','ja',2,'','ソフトウェアと SaaS サービス','ソフトウェア','','ソフトウェアと SaaS サービス',1,1,2,1778456809);
 INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (11,9,'センサーモジュール','sensor-module-ja','ja',3,'','工業用センサーモジュール','センサーモジュール','','工業用センサーモジュール',1,1,1,1778456809);
 INSERT INTO "yikai_product_categories" ("id", "parent_id", "name", "slug", "lang", "translation_group_id", "image", "description", "seo_title", "seo_keywords", "seo_description", "status", "is_nav", "sort_order", "created_at") VALUES (12,9,'制御端末','control-terminal-ja','ja',4,'','工業用制御端末','制御端末','','工業用制御端末',1,1,2,1778456809);
+-- @demo:end
 DROP TABLE IF EXISTS "yikai_product_tag_map";
 CREATE TABLE "yikai_product_tag_map" (
   "product_id" INTEGER NOT NULL,
@@ -1750,6 +1760,7 @@ CREATE INDEX "idx_lang_status_yikai_products" ON "yikai_products" ("lang","statu
 CREATE INDEX "idx_trans_group_yikai_products" ON "yikai_products" ("translation_group_id");
 
 
+-- @demo:start
 INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (1,'zh-CN',1,1,0,'智能物联网网关','','iot-gateway-100','https://picsum.photos/600/600?random=101',NULL,'多协议兼容，边缘计算能力','<h2>产品概述</h2>
 <p>智能物联网网关是一款高性能的边缘计算网关设备，支持多种通信协议（MQTT、HTTP、Modbus、OPC UA），可实现设备数据的实时采集、边缘计算和云端同步。</p>
 <h3>核心特点</h3>
@@ -1926,6 +1937,7 @@ INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id
 <li>豊富な I/O：4×RS485、2×CAN、4×DI、4×DO</li>
 </ul>',0.00,0.00,'EC-500',NULL,'','custom','','',0,0,0,0,4,1,5,1778457949,1778458636,0);
 INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (18,'ja',6,12,0,'スマートゲートウェイ GC-300','','gc-300-ja','https://picsum.photos/600/600?random=106',NULL,'Wi-Fi/Zigbee/LoRa/4G マルチプロトコル','<h2>製品概要</h2>
+-- @demo:end
 <p>GC-300 スマートゲートウェイコントローラは、Wi-Fi / Zigbee / LoRa / 4G の 4 つのワイヤレスプロトコルを同時に動作させます。エッジコンピューティングモジュールを内蔵し、デバイスの統合管理を実現します。</p>
 <h3>主な特徴</h3>
 <ul>
