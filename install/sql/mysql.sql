@@ -1138,7 +1138,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (122,'basic','enabled_languages','[\"en\",\"ja\",\"zh-CN\"]','text','enabled_languages','',NULL,0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (123,'basic','show_lang_switcher','1','text','show_lang_switcher','',NULL,0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (124,'basic','nav_home_show','1','text','nav_home_show','',NULL,0);
-INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (125,'seo','seo_title','YikaiCMS - 专业企业内容管理系统','','','',NULL,0);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (125,'seo','seo_title','','','','',NULL,0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (128,'seo','seo_title_en','YikaiCMS - Professional Enterprise CMS','','','',NULL,0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (129,'seo','site_keywords_en','enterprise CMS, content management, digital transformation, smart manufacturing','','','',NULL,0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (130,'seo','site_description_en','A professional CMS for enterprises, supporting multilingual content, SEO optimization, and responsive design.','','','',NULL,0);
