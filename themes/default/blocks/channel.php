@@ -4,10 +4,12 @@
  * 变量：$currentChannel, $block
  */
 if (empty($currentChannel)) return;
-$bg = getBlockBg($block ?? [], 'bg-gray-50');
 $hChannel = $currentChannel;
 $channelType = $hChannel['type'];
 $contents = $hChannel['contents'];
+// 无内容的栏目不在首页渲染（避免输出只有标题/骨架占位的空区块）
+if (empty($contents)) return;
+$bg = getBlockBg($block ?? [], 'bg-gray-50');
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
