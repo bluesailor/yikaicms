@@ -91,10 +91,26 @@ class SettingModel extends Model
                     [(string) $value, (string) $key]
                 );
             } else {
-                // 新键：基础列填上默认值（group 用 basic，name 复用 key 占位）
+                // 新键：从 defaults.php 取正确的 group/name/type/tip（取不到才退回 basic），
+                // 避免任意页面保存的设置都堆进"基础设置"、显示成裸 key。
+                $grp = 'basic';
+                $nm  = (string) $key;
+                $tp  = 'text';
+                $tip = '';
+                if (function_exists('getDefaults')) {
+                    foreach (getDefaults() as $g => $items) {
+                        if (isset($items[$key])) {
+                            $grp = (string) $g;
+                            $nm  = (string) ($items[$key]['name'] ?? $key);
+                            $tp  = (string) ($items[$key]['type'] ?? 'text');
+                            $tip = (string) ($items[$key]['tip'] ?? '');
+                            break;
+                        }
+                    }
+                }
                 db()->execute(
-                    "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`) VALUES (?, ?, ?, ?, ?)",
-                    [(string) $key, (string) $value, 'basic', (string) $key, '']
+                    "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`, `type`) VALUES (?, ?, ?, ?, ?, ?)",
+                    [(string) $key, (string) $value, $grp, $nm, $tip, $tp]
                 );
             }
         }

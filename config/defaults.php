@@ -177,4 +177,16 @@ return [
         'social_links'          => ['value' => '[]', 'type' => 'social_links', 'name' => '社交链接', 'tip' => '页脚等位置显示的社交媒体图标链接', 'sort_order' => 1],
     ],
 
+    // ============================================================
+    // 在线客服（由 admin/setting_customer_service.php 管理）
+    // ============================================================
+    'customer_service' => [
+        'cs_enabled'     => ['value' => '0', 'type' => 'switch', 'name' => '启用在线客服', 'tip' => '', 'sort_order' => 1],
+        'cs_position'    => ['value' => 'right', 'type' => 'select', 'name' => '悬浮位置', 'tip' => '', 'options' => '{"left":"左侧","right":"右侧"}', 'sort_order' => 2],
+        'cs_show_mobile' => ['value' => '1', 'type' => 'switch', 'name' => '移动端显示', 'tip' => '', 'sort_order' => 3],
+        'cs_button_text' => ['value' => '在线客服', 'type' => 'text', 'name' => '按钮文字', 'tip' => '', 'sort_order' => 4],
+        'cs_panel_title' => ['value' => '欢迎咨询，期待与您合作', 'type' => 'text', 'name' => '面板标题', 'tip' => '', 'sort_order' => 5],
+        'cs_items'       => ['value' => '[]', 'type' => 'text', 'name' => '客服项目', 'tip' => '客服渠道列表(JSON)，在「在线客服」页面编辑', 'sort_order' => 6],
+    ],
+
 ];
