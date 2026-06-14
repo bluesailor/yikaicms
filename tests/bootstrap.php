@@ -57,3 +57,13 @@ if (!function_exists('config')) {
 if (!function_exists('__')) {
     function __(string $key, string $default = ''): string { return $default !== '' ? $default : $key; }
 }
+if (!function_exists('getDefaults')) {
+    // 镜像 includes/functions.php 的 getDefaults()：从 config/defaults.php 读默认设置。
+    function getDefaults(string $group = ''): array {
+        static $all = null;
+        if ($all === null) {
+            $all = require ROOT_PATH . '/config/defaults.php';
+        }
+        return $group ? ($all[$group] ?? []) : $all;
+    }
+}
