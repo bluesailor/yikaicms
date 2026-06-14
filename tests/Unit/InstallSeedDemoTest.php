@@ -98,4 +98,17 @@ class InstallSeedDemoTest extends TestCase
         $this->assertStringNotContainsString('@demo:start', $clean);
         $this->assertStringNotContainsString('@demo:end', $clean);
     }
+
+    /**
+     * 首页 SEO 标题(seo_title)应种子为空——即便安装演示数据也不预填默认标题，
+     * 让首页 title 回退到站点名称、由用户自行填写。
+     *
+     * @dataProvider driverProvider
+     */
+    public function testHomeSeoTitleSeededEmpty(string $driver): void
+    {
+        $sql = $this->seed($driver);
+        $this->assertStringNotContainsString("'seo_title','YikaiCMS", $sql, "首页SEO标题不应预填 YikaiCMS 默认 ({$driver})");
+        $this->assertStringContainsString("'seo_title','',", $sql, "seo_title 应为空值 ({$driver})");
+    }
 }
