@@ -123,6 +123,7 @@ return [
         'home_stat_4_num'           => ['value' => '100%', 'type' => 'text', 'name' => '统计数值4', 'tip' => '', 'sort_order' => 11],
         'home_stat_bg'              => ['value' => '', 'type' => 'image', 'name' => '统计区块背景', 'tip' => '统计横栏的背景图', 'sort_order' => 12],
         'home_stat_4_text'          => ['value' => '客户满意', 'type' => 'text', 'name' => '统计文字4', 'tip' => '', 'sort_order' => 12],
+        'home_advantage_title'      => ['value' => '我们的优势', 'type' => 'text', 'name' => '优势区块标题', 'tip' => '首页"优势"区块的大标题', 'sort_order' => 13],
         'home_advantage_desc'       => ['value' => '专业团队，优质服务，值得信赖', 'type' => 'text', 'name' => '优势区块描述', 'tip' => '', 'sort_order' => 13],
         'home_adv_1_icon'           => ['value' => 'check-circle', 'type' => 'icon', 'name' => '优势1图标', 'tip' => '', 'sort_order' => 14],
         'home_adv_1_title'          => ['value' => '品质保证', 'type' => 'text', 'name' => '优势1标题', 'tip' => '', 'sort_order' => 14],

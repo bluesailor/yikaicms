@@ -27,7 +27,7 @@ $LANG_KEYS = [
     'home_about_content', 'home_about_tag_title', 'home_about_tag_desc',
     'home_stat_1_text', 'home_stat_2_text', 'home_stat_3_text', 'home_stat_4_text',
     'home_testimonials_title', 'home_testimonials_desc', 'home_testimonials',
-    'home_advantage_desc',
+    'home_advantage_title', 'home_advantage_desc',
     'home_adv_1_title', 'home_adv_1_desc',
     'home_adv_2_title', 'home_adv_2_desc',
     'home_adv_3_title', 'home_adv_3_desc',
@@ -96,8 +96,21 @@ $readLang = function (string $base, string $default = '') use ($LANG_KEYS, $_vie
 // 获取全部 home 组设置
 $allSettings = settingModel()->getByGroup('home');
 
-// 构建 key => row 映射
+// 构建 key => row 映射：先用 defaults.php 兜底（保证新增的默认设置项也出现在表单，
+// 即使 DB 尚无该行），再用 DB 已存的值覆盖。
 $settingsMap = [];
+foreach (getDefaults('home') as $key => $def) {
+    $settingsMap[$key] = [
+        'key'     => $key,
+        'value'   => (string) ($def['value'] ?? ''),
+        'type'    => $def['type'] ?? 'text',
+        'name'    => $def['name'] ?? $key,
+        'tip'     => $def['tip'] ?? '',
+        'options' => isset($def['options'])
+            ? (is_array($def['options']) ? json_encode($def['options'], JSON_UNESCAPED_UNICODE) : $def['options'])
+            : null,
+    ];
+}
 foreach ($allSettings as $item) {
     $settingsMap[$item['key']] = $item;
 }
@@ -214,7 +227,7 @@ $blockMeta = [
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
         'bg_default' => '#1f2937',
         'text_light' => true,
-        'keys'  => ['home_advantage_desc', 'home_adv_1_icon', 'home_adv_1_title', 'home_adv_1_desc', 'home_adv_2_icon', 'home_adv_2_title', 'home_adv_2_desc', 'home_adv_3_icon', 'home_adv_3_title', 'home_adv_3_desc', 'home_adv_4_icon', 'home_adv_4_title', 'home_adv_4_desc'],
+        'keys'  => ['home_advantage_title', 'home_advantage_desc', 'home_adv_1_icon', 'home_adv_1_title', 'home_adv_1_desc', 'home_adv_2_icon', 'home_adv_2_title', 'home_adv_2_desc', 'home_adv_3_icon', 'home_adv_3_title', 'home_adv_3_desc', 'home_adv_4_icon', 'home_adv_4_title', 'home_adv_4_desc'],
     ],
     'cta' => [
         'title' => '行动号召',

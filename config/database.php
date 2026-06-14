@@ -265,7 +265,12 @@ class Database
     }
 
     /**
-     * 检查表是否存在
+     * 检查表是否存在。
+     *
+     * 注意：$table 传【不带前缀】的表名（与 insert/update/delete/insertBatch 一致，
+     * 方法内部会自动拼接 DB_PREFIX）。例：tableExists('albums')；
+     * 不要写成 tableExists(DB_PREFIX . 'albums')，否则会双前缀而永远返回 false。
+     * （fetchAll/fetchOne/execute 走原始 SQL，需自行写 DB_PREFIX。）
      */
     public function tableExists(string $table): bool
     {

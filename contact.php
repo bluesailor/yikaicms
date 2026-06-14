@@ -69,10 +69,14 @@ require theme_path('partials/page-hero.php');
         <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6 mb-12">
             <?php foreach ($contactCards as $card): ?>
             <div class="bg-white rounded-lg shadow p-6 text-center">
-                <?php if (!empty($card['icon']) && isset($iconPaths[$card['icon']])): ?>
+                <?php
+                // 已填图标名但不在内置图标表时，兜底到通用图标，避免图标静默丢失
+                $__cardIcon = !empty($card['icon']) ? ($iconPaths[$card['icon']] ?? $iconPaths['message']) : '';
+                if ($__cardIcon !== ''):
+                ?>
                 <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <?php echo $iconPaths[$card['icon']]; ?>
+                        <?php echo $__cardIcon; ?>
                     </svg>
                 </div>
                 <?php endif; ?>
