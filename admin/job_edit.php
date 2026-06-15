@@ -297,7 +297,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
         const response = await fetch("", { method: "POST", body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage("<?php echo __('msg_save_success'); ?>");
+            showMessage("' . __('msg_save_success') . '");
             ' . ($isEdit ? '' : 'setTimeout(function() { location.href = "/admin/job_edit.php?id=" + data.data.id; }, 1000);') . '
         } else {
             showMessage(data.msg, "error");

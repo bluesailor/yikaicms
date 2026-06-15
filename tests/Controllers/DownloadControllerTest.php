@@ -31,6 +31,7 @@ class DownloadControllerTest extends TestCase
             )",
             "CREATE TABLE downloads (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lang TEXT DEFAULT 'zh-CN',
                 category_id INTEGER DEFAULT 0,
                 title TEXT, description TEXT, file_url TEXT,
                 status INTEGER DEFAULT 1,

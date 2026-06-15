@@ -26,6 +26,7 @@ class JobControllerTest extends TestCase
             )",
             "CREATE TABLE jobs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lang TEXT DEFAULT 'zh-CN',
                 title TEXT, location TEXT, salary TEXT,
                 experience TEXT, education TEXT, work_type TEXT,
                 status INTEGER DEFAULT 1,
