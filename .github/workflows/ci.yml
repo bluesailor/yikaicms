@@ -43,13 +43,17 @@ jobs:
           fi
 
   # ─── PHPUnit: model + controller + admin suites. SQLite in-memory. ───
+  # Matrix starts at 8.2: the dev toolchain (psalm 6.x → symfony 7.4 /
+  # webmozart-assert) requires PHP >= 8.2, so `composer install` of the
+  # committed lock can't run on 8.0/8.1. Product runtime support for 8.0+
+  # is still verified by the Lint job (php -l on 8.0–8.4).
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.1', '8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4']
     steps:
       - uses: actions/checkout@v4
 
