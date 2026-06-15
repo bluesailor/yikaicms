@@ -21,8 +21,8 @@ $sidebarMenu = resolveAdminSidebar();
 // Compute which group should default-open by scanning every item's
 // active_keys (or item.key as a fallback) for a match against $currentMenu.
 $activeGroup = '';
-foreach ($sidebarMenu as $groupKey => $group) {
-    foreach (($group['items'] ?? []) as $item) {
+foreach ($sidebarMenu as $groupKey => $navGroup) {
+    foreach (($navGroup['items'] ?? []) as $item) {
         $candidates = $item['active_keys'] ?? [$item['key']];
         if (in_array($currentMenu, (array) $candidates, true)) {
             $activeGroup = $groupKey;
@@ -104,16 +104,16 @@ foreach ($sidebarMenu as $groupKey => $group) {
 
                 <?php
                 // ── 侧边栏菜单（数据驱动；通过 register_admin_menu() / 'admin_sidebar' filter 可扩展）──
-                foreach ($sidebarMenu as $groupKey => $group):
-                    if (!empty($group['super_only']) && !isSuperAdmin()) continue;
-                    if (empty($group['items'])) continue;
+                foreach ($sidebarMenu as $groupKey => $navGroup):
+                    if (!empty($navGroup['super_only']) && !isSuperAdmin()) continue;
+                    if (empty($navGroup['items'])) continue;
                 ?>
                 <div @click="toggle('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" class="sidebar-group px-4 pt-3 pb-1 text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between">
-                    <span><?= htmlspecialchars((string)$group['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <span><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
                     <svg class="w-3 h-3 transition-transform duration-200" :class="{'-rotate-90': !open.<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
                 <div x-show="open.<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>" x-collapse>
-                    <?php foreach ($group['items'] as $_item): ?>
+                    <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
                 </div>
