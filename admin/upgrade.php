@@ -783,7 +783,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     header('Content-Type: application/json; charset=utf-8');
     $currentVersion = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
     $updateServerUrl = 'https://update.yikaicms.com';
-    $apiUrl = $updateServerUrl . '/api/update/check.php?version=' . urlencode($currentVersion);
+    // 带上本站域名/站名/PHP：检查更新时顺便在 update 服务器登记安装（按域名）
+    $apiUrl = $updateServerUrl . '/api/update/check.php?version=' . urlencode($currentVersion)
+        . '&domain=' . urlencode($_SERVER['HTTP_HOST'] ?? '')
+        . '&site_name=' . urlencode((string) config('site_name', ''))
+        . '&php=' . urlencode(PHP_VERSION);
 
     $context = stream_context_create([
         'http' => [
