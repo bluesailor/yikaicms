@@ -921,6 +921,7 @@ foreach ($upgrades as $up) {
 }
 
 $tab = $_GET['tab'] ?? 'check';
+if ($tab === 'history') $tab = 'check';   // 升级历史已并入「数据库升级」标签
 $pageTitle = '升级管理';
 $currentMenu = $tab === 'online' ? 'online_upgrade' : 'upgrade';
 
@@ -931,12 +932,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/upgrade.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'check' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
-            升级检测
+            数据库升级
             <?php if (!empty($pendingUpgrades)): ?>
             <span class="ml-1.5 inline-block w-5 h-5 leading-5 text-center rounded-full bg-red-500 text-white text-xs"><?php echo count($pendingUpgrades); ?></span>
             <?php endif; ?>
         </a>
-        <a href="/admin/upgrade.php?tab=history" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('upgrade_history'); ?></a>
         <a href="/admin/upgrade.php?tab=online" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'online' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('upgrade_online'); ?></a>
     </div>
 </div>
@@ -978,6 +978,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
             执行升级
         </button>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($doneUpgrades)): ?>
+    <div class="mt-8">
+        <h3 class="text-sm font-semibold text-gray-500 mb-3">已完成（<?php echo count($doneUpgrades); ?>）</h3>
+        <div class="space-y-3">
+        <?php foreach (array_reverse($doneUpgrades) as $up): ?>
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-5 py-3.5 flex items-center gap-3">
+                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="font-medium flex-1 text-sm"><?php echo htmlspecialchars($up['title']); ?></span>
+                <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
+                <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('upgrade_completed'); ?></span>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        </div>
     </div>
     <?php endif; ?>
 </div>
@@ -1051,32 +1069,6 @@ async function runUpgrade() {
     btn.textContent = '<?php echo __('upgrade_execute'); ?>';
 }
 </script>
-<?php endif; ?>
-
-<?php if ($tab === 'history'): ?>
-<div class="max-w-3xl mx-auto">
-    <?php if (empty($doneUpgrades)): ?>
-    <div class="bg-white rounded-lg shadow p-12 text-center">
-        <p class="text-gray-400"><?php echo __('upgrade_no_history'); ?></p>
-    </div>
-    <?php else: ?>
-    <div class="space-y-4">
-    <?php foreach (array_reverse($doneUpgrades) as $up): ?>
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-5 py-4 border-b flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span class="font-semibold flex-1"><?php echo htmlspecialchars($up['title']); ?></span>
-            <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('upgrade_completed'); ?></span>
-        </div>
-        <div class="px-5 py-3 text-sm text-gray-500">
-            <?php echo htmlspecialchars($up['desc']); ?>
-        </div>
-    </div>
-    <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
-</div>
 <?php endif; ?>
 
 <?php if ($tab === 'online'): ?>
