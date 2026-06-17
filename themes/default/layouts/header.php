@@ -92,6 +92,8 @@ function getChannelUrl(array $channel): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php if ((int) config('expose_generator', 1) === 1): ?>    <meta name="generator" content="YikaiCMS">
+<?php endif; ?>
     <meta name="keywords" content="<?php echo e($pageKeywords ?? $siteKeywords); ?>">
     <meta name="description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
     <?php if ($baiduVerify = config('seo_baidu_verify')): ?>

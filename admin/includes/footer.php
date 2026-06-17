@@ -8,6 +8,10 @@
                 <?php else: ?>
                     &copy; <?php echo date('Y'); ?> <?php echo e(config('admin_title', 'Yikai CMS')); ?>
                 <?php endif; ?>
+                <div class="mt-1 text-xs text-gray-400">
+                    Powered by <a href="https://yikaicms.com" target="_blank" rel="noopener" class="hover:text-primary">YikaiCMS</a><?php
+                        if (defined('CMS_VERSION')) echo ' <span class="text-gray-300">v' . e(CMS_VERSION) . '</span>'; ?>
+                </div>
             </footer>
         </div>
     </div>
