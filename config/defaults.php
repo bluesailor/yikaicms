@@ -75,7 +75,13 @@ return [
         'contact_address'       => ['value' => '上海市浦东新区XX路XX号', 'type' => 'textarea', 'name' => '公司地址', 'tip' => '', 'sort_order' => 3],
         'contact_hours'         => ['value' => '周一至周五 9:00-18:00', 'type' => 'text', 'name' => '工作时间', 'tip' => '', 'sort_order' => 4],
         'contact_qrcode'        => ['value' => '', 'type' => 'image', 'name' => '二维码', 'tip' => '', 'sort_order' => 5],
-        'contact_map'           => ['value' => '', 'type' => 'image', 'name' => '地图图片', 'tip' => '', 'sort_order' => 5],
+        'contact_map'           => ['value' => '', 'type' => 'image', 'name' => '地图图片（兜底）', 'tip' => '未配置交互地图时显示此静态图', 'sort_order' => 5],
+        'map_zh_provider'       => ['value' => '', 'type' => 'text', 'name' => '中文版地图', 'tip' => '留空=用上方静态地图图片；amap=高德；baidu=百度（需填对应 Key）。日/英文版固定用 Google 地图（免 Key）', 'sort_order' => 6],
+        'map_lat'               => ['value' => '', 'type' => 'text', 'name' => '地图纬度 lat', 'tip' => '如 31.2304。在所选地图开放平台拾取坐标（高德/Google 与百度坐标系不同，会略偏）', 'sort_order' => 6],
+        'map_lng'               => ['value' => '', 'type' => 'text', 'name' => '地图经度 lng', 'tip' => '如 121.4737', 'sort_order' => 6],
+        'map_zoom'              => ['value' => '15', 'type' => 'text', 'name' => '地图缩放级别', 'tip' => '默认 15，数字越大越近', 'sort_order' => 7],
+        'map_amap_key'          => ['value' => '', 'type' => 'text', 'name' => '高德地图 JS Key', 'tip' => '中文版选 amap 时填，lbs.amap.com 申请「Web端(JS API)」Key', 'sort_order' => 8],
+        'map_baidu_ak'          => ['value' => '', 'type' => 'text', 'name' => '百度地图 ak', 'tip' => '中文版选 baidu 时填，lbsyun.baidu.com 申请「JavaScript API」ak', 'sort_order' => 8],
         'contact_form_title'    => ['value' => '在线留言', 'type' => 'text', 'name' => '表单标题', 'tip' => '', 'sort_order' => 10],
         'contact_form_desc'     => ['value' => '', 'type' => 'textarea', 'name' => '表单描述', 'tip' => '标题下方的说明文字', 'sort_order' => 11],
         'contact_form_fields'   => ['value' => '[{"key":"name","label":"您的姓名","type":"text","required":true,"enabled":true},{"key":"phone","label":"联系电话","type":"tel","required":true,"enabled":true},{"key":"email","label":"电子邮箱","type":"email","required":false,"enabled":true},{"key":"company","label":"公司名称","type":"text","required":false,"enabled":true},{"key":"content","label":"留言内容","type":"textarea","required":true,"enabled":true}]', 'type' => 'contact_form_fields', 'name' => '表单字段', 'tip' => '联系表单的字段配置', 'sort_order' => 12],
@@ -194,6 +200,12 @@ return [
         'cs_button_text' => ['value' => '在线客服', 'type' => 'text', 'name' => '按钮文字', 'tip' => '', 'sort_order' => 4],
         'cs_panel_title' => ['value' => '欢迎咨询，期待与您合作', 'type' => 'text', 'name' => '面板标题', 'tip' => '', 'sort_order' => 5],
         'cs_items'       => ['value' => '[]', 'type' => 'text', 'name' => '客服项目', 'tip' => '客服渠道列表(JSON)，在「在线客服」页面编辑', 'sort_order' => 6],
+    ],
+
+    // 系统内部项（不挂常规设置页，由 admin/license.php 等专用页维护）
+    'system' => [
+        'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
+        'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],
     ],
 
 ];

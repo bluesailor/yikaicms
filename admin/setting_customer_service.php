@@ -129,6 +129,7 @@ const CS_TYPES = [
     {value: 'qq',         label: 'QQ（点击聊天）',    valueHint: 'QQ 号，如 3460919689'},
     {value: 'wechat-id',  label: '微信号（点击复制）', valueHint: '微信号，如 farflow_wx'},
     {value: 'wechat-qr',  label: '微信二维码',        valueHint: '二维码图片 URL'},
+    {value: 'work-wechat',label: '企业微信二维码',     valueHint: '企业微信客服二维码图片 URL'},
     {value: 'phone',      label: '电话',             valueHint: '号码，如 021-58000360'},
     {value: 'mobile',     label: '手机',             valueHint: '号码，如 13601948733'},
     {value: 'email',      label: '邮箱',             valueHint: '邮箱地址'},
@@ -169,7 +170,7 @@ function csRender(){
             </select>
             <input type="text" placeholder="标签，如「售前 QQ」" value="${(it.label||'').replace(/"/g,'&quot;')}" oninput="csUpdate(${idx},'label',this.value)" class="border rounded px-3 py-1.5 text-sm flex-1 min-w-[120px]">
             <input type="text" placeholder="${(CS_TYPES.find(t=>t.value===it.type)||{}).valueHint||''}" value="${(it.value||'').replace(/"/g,'&quot;')}" oninput="csUpdate(${idx},'value',this.value)" class="border rounded px-3 py-1.5 text-sm flex-[2] min-w-[150px]">
-            ${(it.type==='wechat-qr') ? `<button type="button" onclick="csPickValueImage(${idx})" class="text-xs text-blue-600 hover:underline">选图</button>` : ''}
+            ${(it.type==='wechat-qr'||it.type==='work-wechat') ? `<button type="button" onclick="csPickValueImage(${idx})" class="text-xs text-blue-600 hover:underline">选图</button>` : ''}
             <label class="inline-flex items-center gap-1 text-xs">
                 <input type="checkbox" ${it.enabled?'checked':''} onchange="csUpdate(${idx},'enabled',this.checked)" class="w-3.5 h-3.5"> 启用
             </label>
@@ -191,7 +192,7 @@ function csUpdate(idx, field, val){
     csItems[idx][field] = val;
     // 类型切换时自动配对默认图标
     if (field==='type') {
-        const def = {qq:'qq','wechat-id':'wechat','wechat-qr':'wechat',phone:'phone',mobile:'mobile',email:'email',link:'message',text:'message'};
+        const def = {qq:'qq','wechat-id':'wechat','wechat-qr':'wechat','work-wechat':'work-wechat',phone:'phone',mobile:'mobile',email:'email',link:'message',text:'message'};
         if (CS_ICON_KEYS.includes(csItems[idx].icon) || !csItems[idx].icon) {
             csItems[idx].icon = def[val] || 'message';
         }

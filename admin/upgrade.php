@@ -764,6 +764,26 @@ $upgrades = [
         ],
     ],
 
+    [
+        'id'    => 'contact_map_settings',
+        'title' => '联系页交互地图设置项',
+        'desc'  => '新增 map_zh_provider / map_lat / map_lng / map_zoom / map_amap_key / map_baidu_ak —— 联系页按语言接入交互地图（中文 高德/百度，日英 Google 免 Key）。',
+        'check' => function () {
+            return (int)db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "settings WHERE `key` = 'map_lat'"
+            ) > 0;
+        },
+        'sqls' => [
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `sort_order`) VALUES
+                ('contact', 'map_zh_provider', '',   'text', '中文版地图',     '留空=用静态地图图片；amap=高德；baidu=百度（需填对应 Key）。日/英文版固定用 Google 地图（免 Key）', 6),
+                ('contact', 'map_lat',         '',   'text', '地图纬度 lat',   '如 31.2304，按所选地图平台拾取坐标（高德/Google 与百度坐标系略有偏移）', 6),
+                ('contact', 'map_lng',         '',   'text', '地图经度 lng',   '如 121.4737', 6),
+                ('contact', 'map_zoom',        '15', 'text', '地图缩放级别',   '默认 15，数字越大越近', 7),
+                ('contact', 'map_amap_key',    '',   'text', '高德地图 JS Key', '中文版选 amap 时填，lbs.amap.com 申请 Web端(JS API) Key', 8),
+                ('contact', 'map_baidu_ak',    '',   'text', '百度地图 ak',     '中文版选 baidu 时填，lbsyun.baidu.com 申请 JavaScript API ak', 8)",
+        ],
+    ],
+
     // --- 未来升级项追加到这里（建议直接放到 migrations/ 目录） ---
 
 ];

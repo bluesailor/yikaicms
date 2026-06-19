@@ -37,6 +37,7 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle ?? '后台管理'; ?> - <?php echo e(config('admin_title', 'Yikai CMS')); ?></title>
+    <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>

@@ -154,6 +154,24 @@ require theme_path('partials/page-hero.php');
                         </div>
                     </div>
 
+                    <!-- 图集 -->
+                    <?php
+                    $gallery = json_decode((string) ($article['images'] ?? ''), true);
+                    $gallery = is_array($gallery) ? array_values(array_filter($gallery, fn($u) => is_string($u) && $u !== '')) : [];
+                    ?>
+                    <?php if ($gallery): ?>
+                    <div class="px-6 md:px-8 pb-6 md:pb-8">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <?php foreach ($gallery as $img): ?>
+                            <a href="<?php echo e($img); ?>" target="_blank" rel="noopener" class="block overflow-hidden rounded-lg group">
+                                <img loading="lazy" src="<?php echo e(thumbnail($img, 'thumb')); ?>" alt="<?php echo e($article['title']); ?>"
+                                     class="w-full h-40 object-cover transition group-hover:scale-105">
+                            </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <!-- 标签 -->
                     <?php if ($article['tags']): ?>
                     <div class="px-6 md:px-8 py-4 border-t bg-gray-50">

@@ -71,6 +71,9 @@ $iconSvgs = [
 $infoSettings = [];
 $formSettings = [];
 foreach ($allSettings as $item) {
+    if (str_starts_with((string)$item['key'], 'map_')) {
+        continue; // 地图相关设置在独立「地图 API」tab 里显式渲染（带申请链接 + 教程）
+    }
     if ((int)$item['sort_order'] >= 10) {
         $formSettings[] = $item;
     } else {
@@ -92,6 +95,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
     <div class="flex border-b">
         <a href="/admin/setting_contact.php<?php echo $_lang['qs']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_info_title'); ?></a>
         <a href="/admin/setting_contact.php?tab=form<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_form_config'); ?></a>
+        <a href="/admin/setting_contact.php?tab=map<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'map' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">地图 API</a>
     </div>
 </div>
 
@@ -334,6 +338,124 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
             <?php endif; ?>
 
             <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($tab === 'map'): ?>
+    <!-- ============ 地图 API ============ -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b">
+            <h2 class="font-bold text-gray-800">地图 API 设置</h2>
+            <p class="text-sm text-gray-500 mt-1">联系页地图按访问语言自动切换：<b>中文版</b>用高德 / 百度，<b>日 / 英文版</b>用 Google 地图（免 Key）。三者都没配好时回退到「信息」tab 里的静态地图图片。</p>
+        </div>
+        <div class="p-6 space-y-6">
+
+            <!-- 坐标 -->
+            <div>
+                <label class="block font-medium text-gray-700 mb-2">店铺坐标（三家地图通用）</label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <span class="text-sm text-gray-500">纬度 lat</span>
+                        <input type="text" name="settings[map_lat]" value="<?php echo e(config('map_lat')); ?>" placeholder="31.2304" class="w-full border rounded px-4 py-2 mt-1">
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">经度 lng</span>
+                        <input type="text" name="settings[map_lng]" value="<?php echo e(config('map_lng')); ?>" placeholder="121.4737" class="w-full border rounded px-4 py-2 mt-1">
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">缩放级别 zoom</span>
+                        <input type="text" name="settings[map_zoom]" value="<?php echo e(config('map_zoom', '15')); ?>" placeholder="15" class="w-full border rounded px-4 py-2 mt-1">
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">⚠ 三家坐标系不同：高德用 GCJ-02、百度用 BD-09、Google 用 WGS-84，<b>同一经纬度在三家会略有偏移</b>。用哪家地图，就到哪家的「坐标拾取器」取坐标最准。</p>
+                <details class="mt-3 text-sm text-gray-600 leading-relaxed">
+                    <summary class="cursor-pointer text-gray-700 font-medium select-none">📍 怎么查经纬度（点击展开）</summary>
+                    <div class="mt-2 space-y-3 bg-gray-50 border rounded-lg p-4">
+                        <div>
+                            <b>① 高德坐标拾取器（中文版选高德时用，GCJ-02）</b>
+                            <ol class="list-decimal ml-5 mt-1 space-y-1">
+                                <li>打开 <a href="https://lbs.amap.com/tools/picker" target="_blank" rel="noopener" class="text-primary hover:underline">lbs.amap.com/tools/picker</a></li>
+                                <li>搜索框输入店铺地址，或直接在地图上点击你的店铺位置</li>
+                                <li>页面会显示「经度,纬度」一串数字（如 <code>121.4737,31.2304</code>）</li>
+                                <li>注意它是「经度在前、纬度在后」，填到本页时别填反：<b>lat = 纬度（小的那个，31.xx）、lng = 经度（大的那个，121.xx）</b></li>
+                            </ol>
+                        </div>
+                        <div>
+                            <b>② 百度坐标拾取器（中文版选百度时用，BD-09）</b>
+                            <ol class="list-decimal ml-5 mt-1 space-y-1">
+                                <li>打开 <a href="https://api.map.baidu.com/lbsapi/getpoint/index.html" target="_blank" rel="noopener" class="text-primary hover:underline">api.map.baidu.com/lbsapi/getpoint</a></li>
+                                <li>搜索或点击店铺位置，右上角显示坐标，同样是「经度,纬度」</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <b>③ Google 地图（日 / 英文版用，WGS-84）</b>
+                            <ol class="list-decimal ml-5 mt-1 space-y-1">
+                                <li>打开 <a href="https://www.google.com/maps" target="_blank" rel="noopener" class="text-primary hover:underline">google.com/maps</a>，找到店铺位置</li>
+                                <li>在该点上<b>右键 → 点击最上方那串数字</b>即可复制（格式为「纬度, 经度」，如 <code>31.2304, 121.4737</code>，与本页顺序一致）</li>
+                                <li>手机 App：长按地图放下红色图钉，顶部 / 底部即显示经纬度</li>
+                            </ol>
+                        </div>
+                        <p class="text-gray-500">小贴士：若三家都想精确，可分别在对应拾取器各取一次；嫌麻烦就以你主用语言对应的那家为准，另一家的轻微偏移肉眼基本看不出。</p>
+                    </div>
+                </details>
+            </div>
+
+            <!-- 中文版服务商 -->
+            <div>
+                <label class="block font-medium text-gray-700 mb-2">中文版地图服务商</label>
+                <?php $prov = (string) config('map_zh_provider'); ?>
+                <select name="settings[map_zh_provider]" class="w-full md:w-72 border rounded px-4 py-2">
+                    <option value="" <?php echo $prov === '' ? 'selected' : ''; ?>>不用交互地图（显示静态地图图片）</option>
+                    <option value="amap" <?php echo $prov === 'amap' ? 'selected' : ''; ?>>高德地图 Amap</option>
+                    <option value="baidu" <?php echo $prov === 'baidu' ? 'selected' : ''; ?>>百度地图 Baidu</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">日 / 英文版固定用 Google 地图，无需在此选择、无需 Key。</p>
+            </div>
+
+            <!-- 高德 -->
+            <div class="border rounded-lg p-4 bg-gray-50">
+                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <span class="font-medium text-gray-700">高德地图 JS API Key</span>
+                    <a href="https://console.amap.com/dev/key/app" target="_blank" rel="noopener" class="text-primary text-sm hover:underline">前往高德控制台申请 →</a>
+                </div>
+                <input type="text" name="settings[map_amap_key]" value="<?php echo e(config('map_amap_key')); ?>" placeholder="中文版选「高德」时填写" class="w-full border rounded px-4 py-2">
+                <details class="mt-2 text-sm text-gray-600 leading-relaxed">
+                    <summary class="cursor-pointer text-gray-700 font-medium select-none">📖 申请步骤（点击展开）</summary>
+                    <ol class="list-decimal ml-5 mt-2 space-y-1.5">
+                        <li>注册 / 登录高德开放平台 <a href="https://lbs.amap.com" target="_blank" rel="noopener" class="text-primary hover:underline">lbs.amap.com</a></li>
+                        <li>进入「控制台 → 应用管理 → 我的应用」，先「创建新应用」</li>
+                        <li>在应用下点「添加 Key」，服务平台务必选 <b>Web 端 (JS API)</b></li>
+                        <li>提交后把生成的 Key 粘贴到上方输入框</li>
+                        <li>若控制台要求「安全密钥 jscode」，可在 Key 设置里关闭白名单校验，或联系我加上 securityJsCode 支持</li>
+                    </ol>
+                </details>
+            </div>
+
+            <!-- 百度 -->
+            <div class="border rounded-lg p-4 bg-gray-50">
+                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <span class="font-medium text-gray-700">百度地图 ak</span>
+                    <a href="https://lbsyun.baidu.com/apiconsole/key" target="_blank" rel="noopener" class="text-primary text-sm hover:underline">前往百度控制台申请 →</a>
+                </div>
+                <input type="text" name="settings[map_baidu_ak]" value="<?php echo e(config('map_baidu_ak')); ?>" placeholder="中文版选「百度」时填写" class="w-full border rounded px-4 py-2">
+                <details class="mt-2 text-sm text-gray-600 leading-relaxed">
+                    <summary class="cursor-pointer text-gray-700 font-medium select-none">📖 申请步骤（点击展开）</summary>
+                    <ol class="list-decimal ml-5 mt-2 space-y-1.5">
+                        <li>注册 / 登录百度地图开放平台 <a href="https://lbsyun.baidu.com" target="_blank" rel="noopener" class="text-primary hover:underline">lbsyun.baidu.com</a>（需实名认证）</li>
+                        <li>进入「控制台 → 应用管理 → 我的应用 → 创建应用」</li>
+                        <li>应用类型选 <b>浏览器端</b>（即 JavaScript API）</li>
+                        <li>Referer 白名单可先填 <code>*</code> 测试，上线后改成你的域名</li>
+                        <li>提交后把生成的 ak（访问应用 AK）粘贴到上方输入框</li>
+                    </ol>
+                </details>
+            </div>
+
+            <!-- Google 说明 -->
+            <div class="border rounded-lg p-4 bg-blue-50">
+                <p class="text-sm text-gray-700"><b>日 / 英文版（Google 地图）</b>：使用 Google Maps 嵌入式地图，<b>无需 API Key、无需任何申请</b>——只要上面填了经纬度即自动显示，并按访问语言显示日文 / 英文界面。如将来需要更强的样式与交互，可再升级到 Google Maps JS API（需 Key 且要启用结算账号）。</p>
+            </div>
+
         </div>
     </div>
     <?php endif; ?>

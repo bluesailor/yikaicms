@@ -1,0 +1,12 @@
+{
+    "name": "网站统计接入",
+    "name_ja": "アクセス解析連携",
+    "name_en": "Web Analytics",
+    "version": "1.0.0",
+    "description": "友好接入百度统计 / 51la / CNZZ友盟 / Google Analytics 4，按服务商填站点 ID 自动注入代码，无需手写脚本。专业版（需授权）解锁后台 PV/UV 数据看板。",
+    "description_ja": "百度統計 / 51la / CNZZ / Google Analytics 4 をサイト ID の入力だけで連携。コードの手書き不要。Pro 版（ライセンス必要）で管理画面に PV/UV ダッシュボードを解放。",
+    "description_en": "Friendly integration of Baidu Tongji / 51la / CNZZ / Google Analytics 4 — just enter your site ID, no manual script. Pro tier (license required) unlocks a PV/UV dashboard in the admin.",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.7.0"
+}
