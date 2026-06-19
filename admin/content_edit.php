@@ -346,6 +346,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
+            <!-- 图集（多图） -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-gray-800 mb-1">图集（多图）</h3>
+                <p class="text-xs text-gray-400 mb-3">可选。除封面外的多张图片，前台文章页以图集展示，可拖动排序。</p>
+                <input type="hidden" name="images" id="imagesInput" value="<?php echo e(is_string($content['images'] ?? '') ? ($content['images'] ?? '') : ''); ?>">
+                <div id="galleryGrid" class="grid grid-cols-3 gap-2 mb-3"></div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="galleryUpload()"
+                            class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <?php echo __('admin_upload_image'); ?></button>
+                    <button type="button" onclick="galleryPick()"
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <?php echo __('admin_media_library'); ?></button>
+                </div>
+            </div>
+
             <!-- 其他信息 -->
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_other_info'); ?></h3>
@@ -379,6 +397,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 上传文件的隐藏表单 -->
 <input type="file" id="fileInput" class="hidden" accept="image/*">
 <input type="file" id="attachmentFileInput" class="hidden">
+<input type="file" id="galleryFileInput" class="hidden" accept="image/*" multiple>
 
 <script>
 var isLocked = <?php echo $lockedType ? 'true' : 'false'; ?>;
@@ -474,6 +493,63 @@ document.getElementById('attachmentFileInput').addEventListener('change', async 
 
     this.value = '';
 });
+
+// ===== 图集（多图）=====
+var galleryImages = (function () {
+    var raw = (document.getElementById('imagesInput').value || '').trim();
+    if (raw === '') return [];
+    try {
+        var v = JSON.parse(raw);
+        if (Array.isArray(v)) return v.filter(function (x) { return typeof x === 'string' && x; });
+    } catch (e) {}
+    return [raw]; // 兼容历史单值
+})();
+var _galDrag = null;
+
+function gallerySync() {
+    document.getElementById('imagesInput').value = JSON.stringify(galleryImages);
+    var g = document.getElementById('galleryGrid');
+    if (!galleryImages.length) { g.innerHTML = '<div class="col-span-3 text-xs text-gray-300 py-4 text-center border border-dashed rounded">暂无图片</div>'; return; }
+    g.innerHTML = galleryImages.map(function (url, i) {
+        return '<div class="relative group border rounded overflow-hidden cursor-move" draggable="true" data-i="' + i + '">'
+            + '<img src="' + url.replace(/"/g, '&quot;') + '" class="w-full h-24 object-cover pointer-events-none">'
+            + '<button type="button" data-rm="' + i + '" class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white w-5 h-5 rounded-full text-xs leading-5 text-center">&times;</button>'
+            + '</div>';
+    }).join('');
+    Array.prototype.forEach.call(g.children, function (el) {
+        var rm = el.querySelector('[data-rm]');
+        if (rm) rm.addEventListener('click', function () { galleryImages.splice(+this.getAttribute('data-rm'), 1); gallerySync(); });
+        el.addEventListener('dragstart', function () { _galDrag = +this.dataset.i; });
+        el.addEventListener('dragover', function (e) { e.preventDefault(); });
+        el.addEventListener('drop', function (e) {
+            e.preventDefault();
+            var to = +this.dataset.i;
+            if (_galDrag === null || _galDrag === to) return;
+            var m = galleryImages.splice(_galDrag, 1)[0];
+            galleryImages.splice(to, 0, m);
+            _galDrag = null;
+            gallerySync();
+        });
+    });
+}
+function galleryUpload() { document.getElementById('galleryFileInput').click(); }
+function galleryPick() { openMediaPicker(function (url) { if (url) { galleryImages.push(url); gallerySync(); } }); }
+document.getElementById('galleryFileInput').addEventListener('change', async function () {
+    for (var i = 0; i < this.files.length; i++) {
+        var fd = new FormData();
+        fd.append('file', this.files[i]);
+        fd.append('type', 'images');
+        try {
+            var resp = await fetch('/admin/upload.php', { method: 'POST', body: fd });
+            var data = await safeJson(resp);
+            if (data.code === 0) galleryImages.push(data.data.url);
+            else showMessage(data.msg, 'error');
+        } catch (err) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
+    }
+    gallerySync();
+    this.value = '';
+});
+gallerySync();
 </script>
 
 <?php

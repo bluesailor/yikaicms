@@ -8,10 +8,13 @@
                 <?php else: ?>
                     &copy; <?php echo date('Y'); ?> <?php echo e(config('admin_title', 'Yikai CMS')); ?>
                 <?php endif; ?>
+                <?php // 有有效授权的站点默认隐藏 Powered by 品牌；未授权（免费）则显示 ?>
+                <?php if (!function_exists('license_valid') || !license_valid()): ?>
                 <div class="mt-1 text-xs text-gray-400">
                     Powered by <a href="https://yikaicms.com" target="_blank" rel="noopener" class="hover:text-primary">YikaiCMS</a><?php
                         if (defined('CMS_VERSION')) echo ' <span class="text-gray-300">v' . e(CMS_VERSION) . '</span>'; ?>
                 </div>
+                <?php endif; ?>
             </footer>
         </div>
     </div>

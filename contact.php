@@ -105,9 +105,36 @@ require theme_path('partials/page-hero.php');
                 <?php echo renderFormTemplate('contact'); ?>
             </div>
 
-            <!-- 地图或二维码 -->
+            <!-- 地图 / 二维码：交互地图按语言切服务商（中文 高德/百度，日英 Google），未配置则回退静态图/二维码/占位 -->
             <div class="bg-white rounded-lg shadow overflow-hidden">
-                <?php if ($mapImage = config('contact_map')): ?>
+                <?php
+                $mLat  = trim((string) config('map_lat'));
+                $mLng  = trim((string) config('map_lng'));
+                $mZoom = (int) (config('map_zoom', '15') ?: 15);
+                $mLang = function_exists('siteLang') ? siteLang() : 'zh-CN';
+                $mapDone = false;
+                if ($mLat !== '' && $mLng !== '' && is_numeric($mLat) && is_numeric($mLng)):
+                    if ($mLang === 'zh-CN'):
+                        $prov = (string) config('map_zh_provider', '');
+                        if ($prov === 'amap' && ($amapKey = config('map_amap_key'))): $mapDone = true; ?>
+                <div id="contactMap" class="w-full" style="min-height:400px"></div>
+                <script src="https://webapi.amap.com/maps?v=2.0&key=<?php echo e($amapKey); ?>"></script>
+                <script>(function(){function i(){if(typeof AMap==='undefined'){return setTimeout(i,200);}var c=[<?php echo (float)$mLng; ?>,<?php echo (float)$mLat; ?>];var m=new AMap.Map('contactMap',{zoom:<?php echo $mZoom; ?>,center:c});new AMap.Marker({position:c,map:m});}i();})();</script>
+                        <?php elseif ($prov === 'baidu' && ($baiduAk = config('map_baidu_ak'))): $mapDone = true; ?>
+                <div id="contactMap" class="w-full" style="min-height:400px"></div>
+                <script>window._bmapInit=function(){var m=new BMap.Map('contactMap');var p=new BMap.Point(<?php echo (float)$mLng; ?>,<?php echo (float)$mLat; ?>);m.centerAndZoom(p,<?php echo $mZoom; ?>);m.addOverlay(new BMap.Marker(p));m.enableScrollWheelZoom(true);};</script>
+                <script src="https://api.map.baidu.com/api?v=3.0&ak=<?php echo e($baiduAk); ?>&callback=_bmapInit"></script>
+                        <?php endif;
+                    else: // 日 / 英文版 → Google 地图嵌入（无需 Key）
+                        $mapDone = true;
+                        $hl = $mLang === 'ja' ? 'ja' : 'en'; ?>
+                <iframe class="w-full" style="min-height:400px;border:0" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"
+                        src="https://www.google.com/maps?q=<?php echo (float)$mLat; ?>,<?php echo (float)$mLng; ?>&z=<?php echo $mZoom; ?>&hl=<?php echo $hl; ?>&output=embed"></iframe>
+                    <?php endif;
+                endif;
+
+                if (!$mapDone):
+                    if ($mapImage = config('contact_map')): ?>
                 <img loading="lazy" src="<?php echo e($mapImage); ?>" alt="地图" class="w-full h-full object-cover">
                 <?php elseif ($qrcode = config('contact_qrcode')): ?>
                 <div class="h-full flex flex-col items-center justify-center p-8">
@@ -124,7 +151,8 @@ require theme_path('partials/page-hero.php');
                         <p><?php echo __('contact_map_placeholder'); ?></p>
                     </div>
                 </div>
-                <?php endif; ?>
+                <?php endif;
+                endif; ?>
             </div>
         </div>
     </div>

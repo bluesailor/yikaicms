@@ -82,6 +82,10 @@ require_once ROOT_PATH . '/includes/abilities/cms_admin.php';
 require_once ROOT_PATH . '/includes/blocks/timeline.php';
 require_once ROOT_PATH . '/includes/customer_service.php';
 require_once ROOT_PATH . '/includes/plugin.php';
+// 授权客户端：授权客户专供，不进公开发布包；文件存在才加载（缺失即静默跳过）
+if (is_file(ROOT_PATH . '/includes/License.php')) {
+    require_once ROOT_PATH . '/includes/License.php';
+}
 
 // 定时发布：到点的定时内容（status=3）自动上线为已发布（status=1）。
 // 无需 cron，由访问触发；限流每 60 秒最多扫描一次。

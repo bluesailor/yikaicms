@@ -234,10 +234,17 @@ function getDefaults(string $group = ''): array
  */
 function generateSlug(string $title, int $maxChars = 6): string
 {
-    require_once ROOT_PATH . '/vendor/autoload.php';
     // 取前 N 个中文字符
     $short = mb_substr(trim($title), 0, $maxChars);
     if ($short === '') {
+        return '';
+    }
+    // 拼音依赖 overtrue/pinyin（随包附带的生产 vendor）；缺失则降级返回空、由调用方兜底，绝不致命
+    $autoload = ROOT_PATH . '/vendor/autoload.php';
+    if (is_file($autoload)) {
+        require_once $autoload;
+    }
+    if (!class_exists(\Overtrue\Pinyin\Pinyin::class)) {
         return '';
     }
     $pinyin = new \Overtrue\Pinyin\Pinyin();

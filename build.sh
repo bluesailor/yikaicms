@@ -69,6 +69,10 @@ EXCLUDES=(
     # 真实配置（包中只保留模板）
     "config/config.php"
 
+    # 授权客户端（授权客户专供，含与服务端共享的 HMAC 密钥，绝不进公开包）
+    "includes/License.php"
+    "admin/license.php"
+
     # 开发工具
     "build.sh"
     "build.bat"
@@ -87,8 +91,8 @@ EXCLUDES=(
     "tests"
     "tools"
 
-    # Composer 依赖（dev only，YikaiCMS 运行时零 composer 依赖）
-    "vendor"
+    # 注：vendor 不整体排除 —— 运行时需 overtrue/pinyin（生成中文 slug）。
+    #     dev 依赖（psalm/phpunit 等）在下方循环后单独剔除，只保留生产部分。
 
     # CSS 源码（编译产物 tailwind.css 已包含）
     "assets/css/src"
@@ -114,6 +118,14 @@ EXCLUDES=(
 for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
+
+# vendor：只保留生产依赖（autoload + composer 元数据 + overtrue/pinyin），剔除 psalm/phpunit 等 dev 包
+if [ -d "$PKG_DIR/vendor" ]; then
+    find "$PKG_DIR/vendor" -mindepth 1 -maxdepth 1 \
+        ! -name 'autoload.php' ! -name 'composer' ! -name 'overtrue' \
+        -exec rm -rf {} +
+    echo "  ✓ vendor 已精简为生产依赖（overtrue/pinyin）"
+fi
 
 # 清空 uploads 和 storage 内容，但保留目录
 rm -rf "$PKG_DIR/uploads/"*
