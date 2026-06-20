@@ -5,7 +5,11 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen.svg)](./tests)
 
-一款基于 PHP 8.0+ 的轻量级企业内容管理系统，无框架依赖，开箱即用。
+**简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持中文（简体/繁体）、English、日本語多语言网站建设。
+
+**English** · YikaiCMS is a lightweight, secure, and ready-to-use CMS for business websites. Built with PHP 8.0+, MySQL/SQLite, Tailwind CSS v4, Plugin Hooks, and AI Content Assistant. Supports multilingual websites in Chinese, English, and Japanese.
+
+**日本語** · YikaiCMS は、軽量・安全・すぐに使える企業向け CMS です。PHP 8.0+、MySQL/SQLite、Tailwind CSS v4、プラグイン Hooks、AI コンテンツアシスタントを搭載し、中国語・英語・日本語の多言語サイト構築に対応しています。
 
 官网：[https://www.yikaicms.com](https://www.yikaicms.com) · 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
 
