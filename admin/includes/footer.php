@@ -273,22 +273,51 @@
 
     /**
      * 兼容旧代码：initWangEditor 映射到 initTinyEditor
+     * 返回一个 wangEditor 兼容门面，调用方仍可用 editor.getHtml() / setHtml()
+     * （TinyMCE 异步初始化，门面在调用时再向 tinymce 取实例，故 init 顺序无关）。
      */
     function initWangEditor(toolbarSelector, editorSelector, options = {}) {
         // 将 wangEditor 容器转换为 textarea
         var container = document.querySelector(editorSelector);
+        var textarea = null;
         if (container && container.tagName !== 'TEXTAREA') {
-            var textarea = document.createElement('textarea');
+            textarea = document.createElement('textarea');
             textarea.name = container.getAttribute('data-name') || 'content';
             textarea.className = 'tinymce-auto';
+            // 赋予唯一 id，门面据此精确取回对应的 TinyMCE 实例（页面可能有多个编辑器）
+            textarea.id = (container.id || 'wecompat_' + Math.random().toString(36).slice(2)) + '_ta';
             textarea.innerHTML = options.html || container.innerHTML;
             container.parentNode.replaceChild(textarea, container);
 
             var toolbar = document.querySelector(toolbarSelector);
             if (toolbar) toolbar.remove();
 
-            initTinyEditor('.tinymce-auto', options);
+            initTinyEditor('#' + textarea.id, options);
+        } else if (container) {
+            textarea = container;
         }
+
+        function _ed() {
+            if (!window.tinymce) return null;
+            return (textarea && textarea.id ? tinymce.get(textarea.id) : null) || tinymce.activeEditor;
+        }
+
+        // wangEditor 兼容门面
+        return {
+            getHtml: function() {
+                var ed = _ed();
+                return ed ? ed.getContent() : (textarea ? textarea.value : '');
+            },
+            setHtml: function(html) {
+                var ed = _ed();
+                if (ed) ed.setContent(html || '');
+                else if (textarea) textarea.value = html || '';
+            },
+            getText: function() {
+                var ed = _ed();
+                return ed ? ed.getContent({ format: 'text' }) : '';
+            }
+        };
     }
     </script>
 
