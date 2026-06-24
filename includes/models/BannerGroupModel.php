@@ -43,9 +43,18 @@ class BannerGroupModel extends Model
 
     /**
      * 该分组下的轮播图数量
+     * @param string      $slug 分组标识
+     * @param string|null $lang 指定语言则只统计该语言（用于列表显示，与按语言筛选的列表一致）；
+     *                          为 null 时统计所有语言（用于删除前的占用检查）
      */
-    public function getBannerCount(string $slug): int
+    public function getBannerCount(string $slug, ?string $lang = null): int
     {
+        if ($lang !== null) {
+            return (int) db()->fetchColumn(
+                "SELECT COUNT(*) FROM " . DB_PREFIX . "banners WHERE position = ? AND lang = ?",
+                [$slug, $lang]
+            );
+        }
         return (int) db()->fetchColumn(
             "SELECT COUNT(*) FROM " . DB_PREFIX . "banners WHERE position = ?",
             [$slug]

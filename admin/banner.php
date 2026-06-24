@@ -105,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'slug'           => $slug,
             'height_pc'      => max(200, min(2000, postInt('height_pc', 500))),
             'height_mobile'  => max(100, min(1000, postInt('height_mobile', 250))),
+            'fullscreen'     => (isset($_POST['fullscreen']) && $_POST['fullscreen'] === '1') ? 1 : 0,
             'autoplay_delay' => max(0, min(30000, postInt('autoplay_delay', 5000))),
         ];
 
@@ -658,7 +659,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             </thead>
             <tbody class="divide-y">
                 <?php foreach ($groups as $g):
-                    $bannerCount = bannerGroupModel()->getBannerCount($g['slug']);
+                    $bannerCount = bannerGroupModel()->getBannerCount($g['slug'], $_viewLang);
                 ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium"><?php echo e($g['name']); ?></td>
@@ -690,9 +691,13 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick='openGroupModal(<?php echo json_encode($g, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
-                                class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
-                        <button onclick="deleteGroup(<?php echo $g['id']; ?>)"
-                                class="text-red-600 hover:underline text-sm"><?php echo __('admin_delete'); ?></button>
+                                class="text-primary hover:underline text-sm mr-3 inline-flex items-center gap-1 align-middle">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <?php echo __('admin_edit'); ?></button>
+                        <button onclick="deleteGroup(<?php echo $g['id']; ?>)" title="<?php echo __('admin_delete'); ?>"
+                                class="text-red-600 hover:text-red-700 inline-flex items-center align-middle">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -740,6 +745,14 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 </div>
             </div>
 
+            <div class="border rounded-lg p-3 bg-gray-50">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="fullscreen" value="1" id="groupFullscreen" class="w-4 h-4">
+                    <span class="font-medium text-gray-700">全屏大 Banner（PC 满屏高度 100vh）</span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1 ml-7">开启后该分组在 PC 端铺满整屏（视口高度 − 头部，svh 适配移动端地址栏），忽略上方「PC端高度」；移动端仍按「移动端高度」显示。</p>
+            </div>
+
             <div>
                 <label class="block text-gray-700 mb-1">自动播放间隔 (ms)</label>
                 <input type="number" name="autoplay_delay" id="groupAutoplay" value="5000" min="0" max="30000" step="500" class="w-full border rounded px-4 py-2">
@@ -766,8 +779,21 @@ function openGroupModal(item = null) {
     document.getElementById('groupHeightPc').value = item?.height_pc ?? 500;
     document.getElementById('groupHeightMobile').value = item?.height_mobile ?? 250;
     document.getElementById('groupAutoplay').value = item?.autoplay_delay ?? 5000;
+    document.getElementById('groupFullscreen').checked = !!(item && Number(item.fullscreen));
+    groupFsSync();
     document.getElementById('groupModal').classList.remove('hidden');
 }
+
+// 全屏开启时禁用「PC端高度」（PC 走满屏，此值不生效）
+function groupFsSync() {
+    var fs = document.getElementById('groupFullscreen');
+    var pc = document.getElementById('groupHeightPc');
+    if (!fs || !pc) return;
+    pc.disabled = fs.checked;
+    var wrap = pc.closest('div');
+    if (wrap) wrap.style.opacity = fs.checked ? '0.45' : '1';
+}
+document.getElementById('groupFullscreen')?.addEventListener('change', groupFsSync);
 
 function closeGroupModal() {
     document.getElementById('groupModal').classList.add('hidden');

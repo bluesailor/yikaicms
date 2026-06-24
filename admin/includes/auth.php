@@ -32,10 +32,7 @@ require_once ROOT_PATH . '/includes/Abilities.php';
 require_once ROOT_PATH . '/includes/abilities/cms_basics.php';
 require_once ROOT_PATH . '/includes/abilities/cms_admin.php';
 require_once ROOT_PATH . '/includes/plugin.php';
-// 授权客户端：授权客户专供，不进公开发布包；文件存在才加载（缺失即静默跳过）
-if (is_file(ROOT_PATH . '/includes/License.php')) {
-    require_once ROOT_PATH . '/includes/License.php';
-}
+require_once ROOT_PATH . '/includes/License.php';
 
 /**
  * 检查登录状态

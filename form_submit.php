@@ -22,6 +22,25 @@ if ($throttleRemain > 0) {
     exit;
 }
 
+// 反垃圾 1：蜜罐 —— 正常用户看不到 hp_url，机器人填了就丢弃（假装成功，不报错以免被探测）
+if (trim((string) post('hp_url', '')) !== '') {
+    echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
+    exit;
+}
+// 反垃圾 2：签名时间戳 —— 校验时间戳未被伪造，且非「秒提交」（机器人特征）
+$_fts  = (int) post('form_ts', 0);
+$_fsig = (string) post('form_sig', '');
+if ($_fts > 0 && $_fsig !== '' && defined('ENCRYPT_KEY')) {
+    $_exp = substr(hash_hmac('sha256', (string) $_fts, ENCRYPT_KEY), 0, 16);
+    if (hash_equals($_exp, $_fsig)) {
+        $_elapsed = time() - $_fts;
+        if ($_elapsed >= 0 && $_elapsed < 2) {
+            echo json_encode(['code' => 1, 'msg' => '提交过快，请稍后再试']);
+            exit;
+        }
+    }
+}
+
 $slug = trim(post('form_slug', ''));
 if (empty($slug)) {
     echo json_encode(['code' => 1, 'msg' => '无效表单']);
@@ -33,6 +52,17 @@ $template = formTemplateModel()->findBySlug($slug);
 if (!$template) {
     echo json_encode(['code' => 1, 'msg' => '表单不存在']);
     exit;
+}
+
+// 反垃圾 4：图形验证码（该表单模板「启用验证码」时才校验；与 captcha.php 共享 session，一次性）
+if (!empty($template['captcha'])) {
+    $_cap = strtolower(trim((string) post('captcha_code', '')));
+    $_sess = strtolower((string) ($_SESSION['form_captcha'] ?? ''));
+    unset($_SESSION['form_captcha']);
+    if ($_sess === '' || $_cap === '' || $_cap !== $_sess) {
+        echo json_encode(['code' => 1, 'msg' => __('form_captcha_error')]);
+        exit;
+    }
 }
 
 $fieldsRaw = $template['fields'] ?? '';
@@ -76,6 +106,13 @@ foreach ($fields as $field) {
         exit;
     }
     $formData[$key] = $value;
+}
+
+// 反垃圾 3：内容含过多链接 = 典型垃圾，丢弃（假装成功）
+$_content = (string) ($formData['content'] ?? '');
+if ($_content !== '' && preg_match_all('~https?://|www\.~i', $_content) > 3) {
+    echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
+    exit;
 }
 
 // 产品询盘关联

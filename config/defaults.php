@@ -27,9 +27,12 @@ return [
         'secondary_color'       => ['value' => '#1D4ED8', 'type' => 'color', 'name' => '辅助色', 'tip' => '十六进制颜色值', 'sort_order' => 8],
         'banner_height_pc'      => ['value' => '650', 'type' => 'number', 'name' => 'Banner高度(PC)', 'tip' => '像素', 'sort_order' => 9],
         'banner_height_mobile'  => ['value' => '300', 'type' => 'number', 'name' => 'Banner高度(移动端)', 'tip' => '像素', 'sort_order' => 10],
+        'banner_fullscreen'     => ['value' => '0', 'type' => 'select', 'name' => '全屏大Banner', 'tip' => '开启后 PC 端首页轮播图满屏高(100vh-头部)，忽略 PC 高度；移动端仍用移动端高度', 'options' => '{"0":"关闭","1":"开启"}', 'sort_order' => 11],
         'admin_title'           => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '后台名称', 'tip' => '后台左上角显示的名称', 'sort_order' => 15],
         'admin_copyright'       => ['value' => '', 'type' => 'text', 'name' => '后台版权', 'tip' => '后台底部版权信息，留空不显示', 'sort_order' => 16],
         'current_theme'         => ['value' => 'default', 'type' => 'text', 'name' => '当前主题', 'tip' => 'themes/ 目录下的主题文件夹名', 'sort_order' => 17],
+        'upload_max_width'      => ['value' => '1920', 'type' => 'select', 'name' => '上传图片最大宽度', 'tip' => '客户上传图片超过此宽度时自动等比压缩，节省空间与带宽；选「不压缩」保留原图', 'options' => '{"0":"不压缩","1280":"1280px","1600":"1600px","1920":"1920px (推荐)","2048":"2048px","2560":"2560px"}', 'sort_order' => 18],
+        'upload_jpeg_quality'   => ['value' => '85', 'type' => 'select', 'name' => '图片压缩质量', 'tip' => 'JPEG/WebP 重新编码质量，越高越清晰但文件越大', 'options' => '{"75":"75 (更小)","85":"85 (推荐)","92":"92 (更清晰)"}', 'sort_order' => 19],
     ],
 
     // ============================================================

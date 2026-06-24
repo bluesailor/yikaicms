@@ -235,9 +235,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $pass = $_POST['db_pass'] ?? '';
                 $createDb = isset($_POST['db_create']);
 
-                // 验证数据库名（仅允许字母数字下划线）
-                if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-                    throw new Exception('数据库名只允许字母、数字和下划线');
+                // 验证数据库名（允许字母数字下划线连字符；建库语句已反引号转义，DSN 亦支持连字符）
+                if (!preg_match('/^[a-zA-Z0-9_-]+$/', $name)) {
+                    throw new Exception('数据库名只允许字母、数字、下划线和连字符');
                 }
 
                 // 验证 host 和 port
@@ -315,8 +315,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // 验证输入
                 $host = preg_replace('/[^a-zA-Z0-9.\-:]/', '', $host);
                 $port = (string)(int)$port;
-                if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbName)) {
-                    throw new Exception('数据库名只允许字母、数字和下划线');
+                if (!preg_match('/^[a-zA-Z0-9_-]+$/', $dbName)) {
+                    throw new Exception('数据库名只允许字母、数字、下划线和连字符');
                 }
 
                 $dsn = "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4";
@@ -358,6 +358,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'site_url'");
                 $stmt->execute([rtrim($siteUrl, '/')]);
             }
+
+            // SEO 标题默认跟随站点名称；并清除演示数据里各语言的品牌标题
+            // （否则前台 <title> 会残留演示品牌，如英文站显示 "YikaiCMS - Professional Enterprise CMS"）
+            $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'seo_title'");
+            $stmt->execute([$siteName]);
+            $pdo->exec("DELETE FROM {$prefix}settings WHERE `key` LIKE 'seo\\_title\\_%'");
 
             // 前台/后台语言
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'site_lang'");

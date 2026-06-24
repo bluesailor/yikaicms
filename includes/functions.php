@@ -1582,6 +1582,23 @@ function uploadFile(array $file, string $type = 'images'): array
         }
     }
 
+    // 限制原图最大宽度：客户常传几千像素的大图，超过设定宽度则等比压缩（默认 1920px / 质量 85，可在 设置→基础设置 调整）
+    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp']) && $width > 0) {
+        $maxW = (int) config('upload_max_width', 1920);
+        if ($maxW > 0 && $width > $maxW) {
+            $quality = (int) config('upload_jpeg_quality', 85);
+            if (downscaleImage($filepath, $ext, $maxW, $quality)) {
+                clearstatcache(true, $filepath);
+                $newInfo = @getimagesize($filepath);
+                if ($newInfo) {
+                    $width = $newInfo[0];
+                    $height = $newInfo[1];
+                }
+                $file['size'] = @filesize($filepath) ?: $file['size'];
+            }
+        }
+    }
+
     // 生成缩略图
     $thumbs = [];
     if (in_array($ext, $imageExts)) {
@@ -1722,6 +1739,52 @@ function _saveImage($image, string $path, string $ext): void
         'gif'         => imagegif($image, $path),
         'webp'        => imagewebp($image, $path, 85),
     };
+}
+
+/**
+ * 将原图等比缩小到最大宽度 $maxW（仅当原图更宽时），直接覆盖原文件。
+ * 用于限制客户上传的超大图。$quality 用于 JPEG/WebP 重新编码（PNG 为无损，忽略）。
+ * 返回是否实际进行了压缩。GIF/SVG 不处理（动图/矢量）。
+ */
+function downscaleImage(string $filepath, string $ext, int $maxW, int $quality = 85): bool
+{
+    if (!function_exists('imagecreatetruecolor') || $maxW <= 0) {
+        return false;
+    }
+    $src = match ($ext) {
+        'jpg', 'jpeg' => @imagecreatefromjpeg($filepath),
+        'png'         => @imagecreatefrompng($filepath),
+        'webp'        => @imagecreatefromwebp($filepath),
+        default       => false,
+    };
+    if (!$src) {
+        return false;
+    }
+
+    $srcW = imagesx($src);
+    $srcH = imagesy($src);
+    if ($srcW <= $maxW) {            // 不需要缩
+        imagedestroy($src);
+        return false;
+    }
+
+    $newW = $maxW;
+    $newH = max(1, (int) round($srcH * ($maxW / $srcW)));
+    $dst  = imagecreatetruecolor($newW, $newH);
+    _preserveTransparency($dst, $ext);
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
+
+    $quality = max(1, min(100, $quality));
+    $ok = match ($ext) {
+        'jpg', 'jpeg' => imagejpeg($dst, $filepath, $quality),
+        'png'         => imagepng($dst, $filepath, 6),   // PNG 用压缩级别(0-9)，与质量无关
+        'webp'        => imagewebp($dst, $filepath, $quality),
+        default       => false,
+    };
+
+    imagedestroy($src);
+    imagedestroy($dst);
+    return (bool) $ok;
 }
 
 /**
@@ -2222,12 +2285,21 @@ function renderFormTemplate(string $slug): string
         $fieldsRaw
     );
 
-    // 替换 submit 标签
+    // 验证码（模板「启用验证码」时，插在提交按钮之前；内联样式，主题无关）
+    $captchaHtml = '';
+    if (!empty($template['captcha'])) {
+        $captchaHtml = '<div class="form-captcha" style="display:flex;gap:10px;align-items:center;margin:0 0 1rem">'
+            . '<input type="text" name="captcha_code" required autocomplete="off" maxlength="6" placeholder="' . e(__('form_captcha')) . '" style="flex:1;padding:.6rem .85rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:1rem;outline:none">'
+            . '<img src="/captcha.php" alt="captcha" title="' . e(__('form_captcha_refresh')) . '" onclick="this.src=\'/captcha.php?\'+Date.now()" style="cursor:pointer;height:42px;width:120px;border-radius:.5rem;border:1px solid #e5e7eb;flex:none">'
+            . '</div>';
+    }
+
+    // 替换 submit 标签（前面插入验证码）
     $renderedBody = preg_replace_callback(
         '/\[submit(?:\s+"([^"]*)")?\]/',
-        function ($m) {
+        function ($m) use ($captchaHtml) {
             $text = $m[1] ?? __('form_submit');
-            return renderFormTagHtml(['type' => 'submit', 'text' => $text]);
+            return $captchaHtml . renderFormTagHtml(['type' => 'submit', 'text' => $text]);
         },
         $renderedBody
     );
@@ -2236,6 +2308,12 @@ function renderFormTemplate(string $slug): string
     $html = '<div class="shortcode-form" id="' . e($formId) . '-wrap">';
     $html .= '<form id="' . e($formId) . '" onsubmit="return submitShortcodeForm(event, \'' . e($slug) . '\')">';
     $html .= '<input type="hidden" name="form_slug" value="' . e($slug) . '">';
+    // 反垃圾：蜜罐字段（正常用户不可见，机器人易填）+ 签名时间戳（防提交过快）
+    $html .= '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">';
+    $_fts = time();
+    $_fsig = substr(hash_hmac('sha256', (string) $_fts, defined('ENCRYPT_KEY') ? ENCRYPT_KEY : 'yk_fallback'), 0, 16);
+    $html .= '<input type="hidden" name="form_ts" value="' . $_fts . '">';
+    $html .= '<input type="hidden" name="form_sig" value="' . $_fsig . '">';
     $html .= $renderedBody;
     $html .= '</form>';
     $html .= '<div id="' . e($formId) . '-msg" class="hidden mt-4 p-4 rounded-lg text-sm"></div>';
@@ -2253,6 +2331,7 @@ function renderFormTemplate(string $slug): string
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
     $html .= 'else{msgEl.className+=" bg-red-50 text-red-600";msgEl.textContent=data.msg;}';
+    $html .= 'var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="/captcha.php?"+Date.now();';
     $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';';
     $html .= '}).catch(function(){btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';
     $html .= '}</script>';

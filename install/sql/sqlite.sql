@@ -113,6 +113,7 @@ CREATE TABLE "yikai_banner_groups" (
   "slug" TEXT NOT NULL,
   "height_pc" INTEGER NOT NULL DEFAULT '500',
   "height_mobile" INTEGER NOT NULL DEFAULT '250',
+  "fullscreen" INTEGER NOT NULL DEFAULT '0',
   "autoplay_delay" INTEGER NOT NULL DEFAULT '5000',
   "sort_order" INTEGER NOT NULL DEFAULT '0',
   "status" INTEGER NOT NULL DEFAULT '1',
@@ -243,7 +244,7 @@ INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id",
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (23,'zh-CN',23,13,'软件下载','software-download','download',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,1,1776654080,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (24,'zh-CN',24,13,'文档资料','document-download','download',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,2,1776654080,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (25,'zh-CN',25,13,'驱动程序','driver-download','download',0,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,0,3,1776654080,0);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (27,'en',1,0,'About','about-en','page',0,'','','Learn about our corporate culture and development history.',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (27,'en',1,0,'About Us','about-en','page',0,'','','Learn about our corporate culture and development history.',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (28,'en',2,27,'Company','company-en','page',0,'','','Company Overview',NULL,'','_self','auto','','','','',1,0,1,1,1,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (29,'en',3,27,'Culture','culture-en','page',0,'','','Corporate core values',NULL,'','_self','auto','','','','',1,0,1,1,2,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (30,'en',4,27,'History','history-en','page',0,'','','Corporate Development Milestones',NULL,'','_self','auto','','','','',1,0,1,1,3,1778434704,1778434704);
@@ -1483,6 +1484,7 @@ CREATE TABLE "yikai_form_templates" (
   "success_message_en" TEXT NOT NULL DEFAULT '',
   "success_message_ja" TEXT NOT NULL DEFAULT '',
   "status" INTEGER NOT NULL DEFAULT '1',
+  "captcha" INTEGER NOT NULL DEFAULT '0',
   "created_at" INTEGER NOT NULL DEFAULT '0'
 );
 CREATE UNIQUE INDEX "uk_slug_yikai_form_templates" ON "yikai_form_templates" ("slug");
@@ -2275,6 +2277,8 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 IP: {{ip}}
 受信日時: {{date}}
 — {{site_name}}','textarea','Inquiry body (JA)','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (218,'basic','upload_max_width','1920','select','上传图片最大宽度','客户上传图片超过此宽度时自动等比压缩，节省空间与带宽；选「不压缩」保留原图','{"0":"不压缩","1280":"1280px","1600":"1600px","1920":"1920px (推荐)","2048":"2048px","2560":"2560px"}',18);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (219,'basic','upload_jpeg_quality','85','select','图片压缩质量','JPEG/WebP 重新编码质量，越高越清晰但文件越大','{"75":"75 (更小)","85":"85 (推荐)","92":"92 (更清晰)"}',19);
 DROP TABLE IF EXISTS "yikai_timelines";
 CREATE TABLE "yikai_timelines" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -70,6 +70,3 @@ storage/backups/
 # PHPUnit cache
 .phpunit.cache/
 
-# 授权客户端（含与服务端共享的 HMAC 密钥，绝不进公开仓 / 发布包）
-includes/License.php
-admin/license.php

@@ -57,6 +57,14 @@ $aboutChannel = getChannelBySlug('about', true);
 // 轮播图高度配置
 $bannerHeightPC = (int)config('banner_height_pc', 650);
 $bannerHeightMobile = (int)config('banner_height_mobile', 300);
+$bannerFullscreen = config('banner_fullscreen', '0') === '1';
+// 首页 banner 优先采用「home 分组」自身的高度 / 全屏设置（后台 轮播图→分组管理→编辑 可配），回退到全局
+$homeBannerGroup = getBannerGroup('home');
+if ($homeBannerGroup) {
+    if (!empty($homeBannerGroup['height_pc']))     { $bannerHeightPC = (int)$homeBannerGroup['height_pc']; }
+    if (!empty($homeBannerGroup['height_mobile'])) { $bannerHeightMobile = (int)$homeBannerGroup['height_mobile']; }
+    if (isset($homeBannerGroup['fullscreen']))     { $bannerFullscreen = (int)$homeBannerGroup['fullscreen'] === 1; }
+}
 
 // 主题色
 $primaryColor = config('primary_color', '#3B82F6');
@@ -115,19 +123,34 @@ $blockTemplates = [
 ];
 
 // Swiper轮播图资源
+// banner 高度：全屏模式用 100svh-头部(JS 量)，否则用配置的像素高度
+$bannerHeightCss = $bannerFullscreen
+    ? '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
+@media (min-width: 768px) { .banner-swiper { height: calc(100vh - var(--hg-banner-offset, 70px)); height: calc(100svh - var(--hg-banner-offset, 70px)); } }'
+    : '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
+@media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }';
 $extraCss = '
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
 <style>
-.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
-@media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }
+' . $bannerHeightCss . '
 .banner-swiper .swiper-pagination-bullet-active { opacity: 1; background: ' . $primaryColor . '; width: 24px; border-radius: 6px; }
+/* fade 效果下所有 slide 叠放：非激活 slide 的按钮(.pointer-events-auto)会盖在上面截获点击 → 强制只让激活 slide 可点 */
+.banner-swiper .swiper-slide:not(.swiper-slide-active),
+.banner-swiper .swiper-slide:not(.swiper-slide-active) * { pointer-events: none !important; }
+.banner-swiper .swiper-slide-active .pointer-events-auto { pointer-events: auto !important; }
 </style>';
+if ($bannerFullscreen) {
+    // 满屏 banner：量出头部(通栏+导航)总高度写入 --hg-banner-offset；svh 适配移动端浏览器地址栏
+    $extraCss .= '
+<script>(function(){function s(){var b=document.querySelector(".banner-swiper");if(!b)return;var t=b.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);document.documentElement.style.setProperty("--hg-banner-offset",Math.round(t)+"px");}window.addEventListener("DOMContentLoaded",s);window.addEventListener("load",s);window.addEventListener("resize",s);s();})();</script>';
+}
 
 $extraJs = '
 <script src="/assets/swiper/swiper-bundle.min.js"></script>
 <script>
 new Swiper(".banner-swiper", {
-    loop: true,
+    loop: false,
+    rewind: true,
     autoplay: { delay: 5000, disableOnInteraction: false },
     effect: "fade",
     fadeEffect: { crossFade: true },

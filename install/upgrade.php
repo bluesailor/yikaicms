@@ -16,6 +16,53 @@ require_once ROOT_PATH . '/includes/functions.php';
 $upgrades = [
 
     [
+        'id'    => '20260622_upload_max_width',
+        'title' => '上传图片自动限宽压缩',
+        'desc'  => '新增「上传图片最大宽度」「图片压缩质量」两个设置项（设置 → 基础设置）。客户上传图片超过设定宽度时自动等比压缩，默认 1920px / 质量 85，可调整或选「不压缩」。即使不升级，新上传也会按默认 1920px 压缩。',
+        'check' => function () {
+            return (bool) db()->fetchOne('SELECT id FROM ' . DB_PREFIX . 'settings WHERE `key` = ?', ['upload_max_width']);
+        },
+        'sqls' => [
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES ('basic', 'upload_max_width', '1920', 'select', '上传图片最大宽度', '客户上传图片超过此宽度时自动等比压缩，节省空间与带宽；选「不压缩」保留原图', '{\"0\":\"不压缩\",\"1280\":\"1280px\",\"1600\":\"1600px\",\"1920\":\"1920px (推荐)\",\"2048\":\"2048px\",\"2560\":\"2560px\"}', 18)",
+            "INSERT IGNORE INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES ('basic', 'upload_jpeg_quality', '85', 'select', '图片压缩质量', 'JPEG/WebP 重新编码质量，越高越清晰但文件越大', '{\"75\":\"75 (更小)\",\"85\":\"85 (推荐)\",\"92\":\"92 (更清晰)\"}', 19)",
+        ],
+    ],
+
+    [
+        'id'    => '20260622_form_captcha',
+        'title' => '表单图形验证码',
+        'desc'  => '为表单模板表添加 captcha 字段，可在「表单 → 表单设计 → 编辑」中开启「启用图形验证码」（默认关闭，已有蜜罐 / 频率限制等无感防护）。',
+        'check' => function () {
+            try {
+                db()->fetchOne('SELECT captcha FROM ' . DB_PREFIX . 'form_templates LIMIT 1');
+                return true; // 已存在
+            } catch (\Throwable $e) {
+                return false;
+            }
+        },
+        'sqls' => [
+            "ALTER TABLE `" . DB_PREFIX . "form_templates` ADD COLUMN `captcha` tinyint(1) NOT NULL DEFAULT '0' COMMENT '启用图形验证码' AFTER `status`",
+        ],
+    ],
+
+    [
+        'id'    => '20260621_banner_group_fullscreen',
+        'title' => '轮播图分组全屏开关',
+        'desc'  => '为轮播图分组表添加 fullscreen 字段，可在「轮播图 → 分组管理 → 编辑」中开启「全屏大 Banner」（PC 满屏高度，移动端仍用移动端高度）。',
+        'check' => function () {
+            try {
+                db()->fetchOne('SELECT fullscreen FROM ' . DB_PREFIX . 'banner_groups LIMIT 1');
+                return true; // 已存在
+            } catch (\Throwable $e) {
+                return false;
+            }
+        },
+        'sqls' => [
+            "ALTER TABLE `" . DB_PREFIX . "banner_groups` ADD COLUMN `fullscreen` tinyint(1) NOT NULL DEFAULT '0' COMMENT '全屏大Banner（PC满屏高度）' AFTER `height_mobile`",
+        ],
+    ],
+
+    [
         'id'    => '20260215_redirect',
         'title' => '栏目跳转设置',
         'desc'  => '为栏目表添加 redirect_type 和 redirect_url 字段，支持自动跳转/不跳转/指定地址跳转三种模式。',

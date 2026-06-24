@@ -86,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'slug'            => $slug,
             'fields'          => $templateText,
             'success_message' => $successMessage ?: __('fd_default_success_msg'),
+            'captcha'         => (isset($_POST['captcha']) && $_POST['captcha'] === '1') ? 1 : 0,
         ];
 
         if ($id > 0) {
@@ -279,6 +280,7 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
                             'slug'            => $item['slug'],
                             'success_message' => $item['_view_msg'],
                             'template_text'   => $item['_view_template_text'],
+                            'captcha'         => (int) ($item['captcha'] ?? 0),
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2"><?php echo __('admin_edit'); ?></button>
                         <?php if ($_viewLang === $_defaultLang && $item['slug'] !== 'contact'): ?>
@@ -335,6 +337,14 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
                     <label class="block text-gray-700 mb-1 text-sm"><?php echo __('fd_label_success_msg'); ?></label>
                     <input type="text" name="success_message" id="editSuccessMsg" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo __('fd_default_success_msg'); ?>">
                 </div>
+            </div>
+
+            <div class="mt-3">
+                <label class="inline-flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="checkbox" name="captcha" value="1" id="editCaptcha" class="rounded">
+                    <span class="text-gray-700">启用图形验证码 / Enable captcha</span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1 ml-6">关闭时已有蜜罐+频率限制等无感防护;被刷时再开。验证码为模板全局设置(不分语言)。</p>
             </div>
 
             <!-- 标签生成器工具栏 -->
@@ -427,6 +437,7 @@ function openEditModal(item) {
     document.getElementById('editName').value = item ? item.name : '';
     document.getElementById('editSlug').value = item ? item.slug : '';
     document.getElementById('editSuccessMsg').value = item ? (item.success_message || '') : '';
+    document.getElementById('editCaptcha').checked = item ? (Number(item.captcha) === 1) : false;
     document.getElementById('templateEditor').value = item ? item.template_text : defaultTemplate;
     document.getElementById('editModal').classList.remove('hidden');
 }
