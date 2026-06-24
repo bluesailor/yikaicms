@@ -139,7 +139,7 @@ if ($action !== '') {
         $rootW = is_writable(ROOT_PATH);
         $checks[] = ['name' => 'Web 根目录可写', 'ok' => $rootW, 'hint' => $rootW ? '' : 'PHP 进程无写权限，需改用 FTP 手动升级'];
         $checks[] = ['name' => 'storage/ 可写', 'ok' => is_writable(ROOT_PATH . '/storage'), 'hint' => '存放下载包与备份'];
-        $df = @disk_free_space(ROOT_PATH);
+        $df = function_exists('disk_free_space') ? @disk_free_space(ROOT_PATH) : false;
         $checks[] = ['name' => '磁盘空间', 'ok' => $df === false || $df > 120 * 1024 * 1024, 'hint' => $df ? round($df / 1048576) . ' MB 可用' : '无法检测'];
         $allOk = !in_array(false, array_column($checks, 'ok'), true);
         uo_json(['code' => 0, 'all_ok' => $allOk, 'checks' => $checks]);
