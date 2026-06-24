@@ -256,8 +256,17 @@ if ($action !== '') {
 // 页面
 // ============================================================
 $pageTitle = '在线升级';
+$currentMenu = 'upgrade';   // 与「系统升级」共用菜单（升级页两个标签之一）
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+<!-- Tab 导航（与 upgrade.php 共用，本页为「在线更新」标签） -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="flex border-b">
+        <a href="/admin/upgrade.php" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">数据库升级</a>
+        <a href="/admin/upgrade_online.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('upgrade_online'); ?></a>
+    </div>
+</div>
+
 <div class="p-6 max-w-3xl mx-auto">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-cloud-arrow-down text-blue-500 mr-2"></i>在线升级</h1>
