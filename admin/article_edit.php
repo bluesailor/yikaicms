@@ -424,7 +424,11 @@ function pickCoverFromMedia() {
 </script>
 
 <?php
-$extraJs = <<<'JSEOF'
+// 注意：下面是 heredoc（双引号语义），仅 {$msgSaveSuccess} 会被插值。
+// 不要改回 nowdoc（单引号定界符），否则内嵌的 PHP 标签不会被执行、会原样输出到 JS。
+// 切勿在本注释里写 PHP 闭合标签，否则会提前结束 PHP 块、把后面的代码当文本输出。
+$msgSaveSuccess = json_encode(__('msg_save_success'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
+$extraJs = <<<JSEOF
 <script>
 initTinyEditor(".tinymce-editor");
 
@@ -437,7 +441,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage("<?php echo __('msg_save_success'); ?>");
+        showMessage({$msgSaveSuccess});
         setTimeout(function() { location.href = "/admin/article.php"; }, 1000);
     } else {
         showMessage(data.msg, "error");

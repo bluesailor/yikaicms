@@ -140,6 +140,9 @@ return [
     'contact_form_company' => '公司名称',
     'contact_form_content' => '留言内容',
     'contact_form_submit' => '提交留言',
+    'form_captcha' => '验证码',
+    'form_captcha_refresh' => '点击刷新',
+    'form_captcha_error' => '验证码错误',
     'contact_form_success' => '提交成功，我们会尽快与您联系！',
     'contact_form_required' => '请填写必填项',
 

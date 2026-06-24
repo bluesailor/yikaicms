@@ -36,7 +36,7 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle ?? '后台管理'; ?> - <?php echo e(config('admin_title', 'Yikai CMS')); ?></title>
+    <title><?php echo $pageTitle ?? '后台管理'; ?> - <?php echo e((config('admin_title') ?: config('site_name', 'YikaiCMS'))); ?></title>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
@@ -69,7 +69,7 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
                     <?php if ($adminLogo): ?>
                     <img src="<?php echo e($adminLogo); ?>" alt="" class="h-8">
                     <?php else: ?>
-                    <span class="text-xl font-bold text-white"><?php echo e(config('admin_title', 'Yikai CMS')); ?></span>
+                    <span class="text-xl font-bold text-white"><?php echo e((config('admin_title') ?: config('site_name', 'YikaiCMS'))); ?></span>
                     <?php endif; ?>
                 </a>
             </div>

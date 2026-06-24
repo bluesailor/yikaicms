@@ -160,6 +160,9 @@ return [
     'contact_form_company' => '会社名',
     'contact_form_content' => 'お問い合わせ内容',
     'contact_form_submit' => '送信する',
+    'form_captcha' => '認証コード',
+    'form_captcha_refresh' => 'クリックで更新',
+    'form_captcha_error' => '認証コードが正しくありません',
     'contact_form_success' => '送信が完了しました。担当者よりご連絡いたします。',
     'contact_form_required' => '必須項目を入力してください',
 

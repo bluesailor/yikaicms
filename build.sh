@@ -17,13 +17,13 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
 
-# 版本号：优先使用参数，否则从 config.sample.php 提取
+# 版本号：优先使用参数，否则从 config/version.php 提取（版本号单一可信来源）
 if [ -n "$1" ]; then
     VERSION="$1"
 else
-    VERSION=$(grep -oP "CMS_VERSION',\s*'\\K[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" config/config.sample.php 2>/dev/null || echo "")
+    VERSION=$(grep -oP "CMS_VERSION',\s*'\\K[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" config/version.php 2>/dev/null || echo "")
     if [ -z "$VERSION" ]; then
-        echo "Error: 无法从 config.sample.php 读取版本号，请手动指定: bash build.sh 1.2.0"
+        echo "Error: 无法从 config/version.php 读取版本号，请手动指定: bash build.sh 1.2.0"
         exit 1
     fi
 fi
@@ -68,10 +68,6 @@ EXCLUDES=(
 
     # 真实配置（包中只保留模板）
     "config/config.php"
-
-    # 授权客户端（授权客户专供，含与服务端共享的 HMAC 密钥，绝不进公开包）
-    "includes/License.php"
-    "admin/license.php"
 
     # 开发工具
     "build.sh"
