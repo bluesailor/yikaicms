@@ -293,13 +293,8 @@ return [
                 'label'       => __('admin_upgrade'),
                 'url'         => '/admin/upgrade.php',
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>',
-                'active_keys' => ['upgrade'],
-            ],
-            [
-                'key'   => 'online_upgrade',
-                'label' => '在线升级',
-                'url'   => '/admin/upgrade_online.php',
-                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>',
+                // 在线升级已并入本页「在线更新」标签；保留 online_upgrade 以兼容旧高亮逻辑
+                'active_keys' => ['upgrade', 'online_upgrade'],
             ],
             [
                 'key'   => 'license',
