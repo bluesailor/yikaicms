@@ -155,7 +155,7 @@ git clone https://github.com/bluesailor/yikaicms.git
 
 ## 许可证
 
-MIT License
+本项目基于 [MIT License](LICENSE) 开源，Copyright (c) 2026 Yikai。
 
 ## 相关链接
 
