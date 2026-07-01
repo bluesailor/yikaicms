@@ -11,11 +11,11 @@ declare(strict_types=1);
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
 
-// 读取 CMS 版本号（安装阶段 config.php 尚未生成，从模板 config.sample.php 提取）
+// 读取 CMS 版本号（单一可信来源：config/version.php）
 $cmsVersion = '1.0.0';
-$sampleConfig = ROOT_PATH . '/config/config.sample.php';
-if (is_file($sampleConfig)
-    && preg_match("/CMS_VERSION',\\s*'([^']+)'/", (string) file_get_contents($sampleConfig), $m)) {
+$versionFile = ROOT_PATH . '/config/version.php';
+if (is_file($versionFile)
+    && preg_match("/CMS_VERSION',\\s*'([^']+)'/", (string) file_get_contents($versionFile), $m)) {
     $cmsVersion = $m[1];
 }
 

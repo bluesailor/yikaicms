@@ -82,6 +82,13 @@ EXCLUDES=(
     # 开发文档（内部说明，不发布给用户）
     "docs"
     "AGENTS.md"
+    "CLAUDE.md"
+
+    # 跨站共享的前端 UI 参考库（dev 参考，非产品运行时代码）
+    "ui-library"
+
+    # 第三方导入工具（代码从不解压使用）
+    "admin/bigdump-2.29.zip"
 
     # 测试 / 工具脚本（dev only）
     "tests"
