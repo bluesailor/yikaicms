@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'description' => post('description'),
         'content' => $newContent,
         'image' => post('image'),
+        'show_sidebar' => isset($_POST['show_sidebar']) ? 1 : 0,
         'seo_title' => post('seo_title'),
         'seo_keywords' => post('seo_keywords'),
         'seo_description' => post('seo_description'),
@@ -140,10 +141,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         <?php echo __('admin_back'); ?>
     </a>
-    <a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
-        <?php echo __('page_switch_advance'); ?>
-    </a>
+    <div class="flex items-center gap-2">
+        <a href="<?php echo channelUrl($page); ?>" target="_blank" rel="noopener" class="border border-gray-300 text-gray-700 hover:border-primary hover:text-primary px-4 py-2 rounded text-sm inline-flex items-center gap-1 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            <?php echo __('page_preview'); ?>
+        </a>
+        <a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+            <?php echo __('page_switch_advance'); ?>
+        </a>
+    </div>
 </div>
 
 <?php if ($contentType === 'blocks'): ?>
@@ -212,12 +219,40 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <img src="<?php echo e($page['image']); ?>" id="imagePreview" class="h-24 mt-2 rounded">
                 <?php endif; ?>
             </div>
+
+            <div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="show_sidebar" value="1" <?php echo (int)($page['show_sidebar'] ?? 1) === 1 ? 'checked' : ''; ?>
+                           class="rounded border-gray-300 text-primary focus:ring-primary">
+                    <span class="text-sm text-gray-700"><?php echo __('page_show_sidebar'); ?></span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1"><?php echo __('page_show_sidebar_tip'); ?></p>
+            </div>
         </div>
     </div>
 
     <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('admin_content'); ?></h2>
+            <?php if (str_starts_with((string)($page['slug'] ?? ''), 'organization')): ?>
+            <div class="flex items-center gap-2">
+                <select id="orgStyleSel" onchange="applyOrgStyle(this.value)"
+                        class="border border-gray-300 rounded text-sm px-2 py-1.5 text-gray-700">
+                    <option value=""><?php echo __('page_org_style'); ?>…</option>
+                    <option value="default"><?php echo __('page_org_style_default'); ?></option>
+                    <option value="teal"><?php echo __('page_org_style_teal'); ?></option>
+                    <option value="dark"><?php echo __('page_org_style_dark'); ?></option>
+                    <option value="purple"><?php echo __('page_org_style_purple'); ?></option>
+                    <option value="amber"><?php echo __('page_org_style_amber'); ?></option>
+                    <option value="minimal"><?php echo __('page_org_style_minimal'); ?></option>
+                </select>
+                <button type="button" onclick="insertOrgDemo()"
+                        class="border border-gray-300 text-gray-700 hover:border-primary hover:text-primary px-3 py-1.5 rounded text-sm inline-flex items-center gap-1 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <?php echo __('page_insert_org_demo'); ?>
+                </button>
+            </div>
+            <?php endif; ?>
         </div>
         <div class="p-6">
             <div id="toolbar-container" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
@@ -303,6 +338,71 @@ function pickImageFromMedia() {
         }
         preview.src = url;
     });
+}
+
+<?php
+// 组织架构示例（仅结构，样式由前端 style.css 的 .org-chart 提供，TinyMCE 删不掉）
+$orgDemoHtml = <<<'HTML'
+<div class="org-chart">
+  <ul style="padding-top:0">
+    <li style="padding-top:0">
+      <div class="org-node org-ceo">张伟<span class="org-title">董事长 / CEO</span></div>
+      <ul>
+        <li>
+          <div class="org-node org-vp">李明<span class="org-title">副总裁 · 技术</span></div>
+          <ul>
+            <li><div class="org-node org-dept">研发部</div></li>
+            <li><div class="org-node org-dept">测试部</div></li>
+            <li><div class="org-node org-dept">运维部</div></li>
+          </ul>
+        </li>
+        <li>
+          <div class="org-node org-vp">王芳<span class="org-title">副总裁 · 营销</span></div>
+          <ul>
+            <li><div class="org-node org-dept">市场部</div></li>
+            <li><div class="org-node org-dept">销售部</div></li>
+            <li><div class="org-node org-dept">客服部</div></li>
+          </ul>
+        </li>
+        <li>
+          <div class="org-node org-vp">赵强<span class="org-title">副总裁 · 运营</span></div>
+          <ul>
+            <li><div class="org-node org-dept">财务部</div></li>
+            <li><div class="org-node org-dept">人力资源部</div></li>
+            <li><div class="org-node org-dept">行政部</div></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+<p style="margin-top:32px;padding:20px;background:#f8fafc;border-radius:8px;">公司设有<strong>技术中心</strong>、<strong>营销中心</strong>、<strong>运营中心</strong>三大业务板块，下辖 9 个职能部门。请按实际情况修改上方图中的姓名与部门。</p>
+HTML;
+?>
+const ORG_DEMO_HTML = <?php echo json_encode($orgDemoHtml, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+function insertOrgDemo() {
+    if (typeof editor === 'undefined' || !editor) return;
+    var cur = (editor.getHtml() || '').replace(/<[^>]*>/g, '').trim();
+    if (cur && !confirm('<?php echo __('page_insert_org_demo_confirm'); ?>')) return;
+    editor.setHtml(ORG_DEMO_HTML);
+    document.getElementById('contentInput').value = ORG_DEMO_HTML;
+    showMessage('<?php echo __('admin_success'); ?>');
+}
+
+// 切换组织架构图配色：已有图则只换修饰类（保留姓名/部门），无图则插入示例并套用
+function applyOrgStyle(style) {
+    var sel = document.getElementById('orgStyleSel');
+    if (!style) return;
+    if (typeof editor === 'undefined' || !editor) { if (sel) sel.value = ''; return; }
+    var cls = (style === 'default') ? 'org-chart' : 'org-chart org-style-' + style;
+    var re = /class\s*=\s*["']org-chart[^"']*["']/;
+    var html = editor.getHtml() || '';
+    html = re.test(html) ? html.replace(re, 'class="' + cls + '"')
+                         : ORG_DEMO_HTML.replace(re, 'class="' + cls + '"');
+    editor.setHtml(html);
+    document.getElementById('contentInput').value = html;
+    if (sel) sel.value = '';
+    showMessage('<?php echo __('admin_success'); ?>');
 }
 </script>
 

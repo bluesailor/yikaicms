@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
         <div class="px-6 py-4 border-b flex justify-between items-center">
             <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo __('link_add'); ?></h3>
-            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 text-xl leading-none w-8 h-8 rounded-full flex items-center justify-center transition-colors">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
             <input type="hidden" name="action" value="save">
@@ -198,8 +198,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <label class="block text-gray-700 mb-1"><?php echo __('link_logo'); ?></label>
                 <div class="flex gap-2">
                     <input type="text" name="logo" id="editLogo" class="flex-1 border rounded px-4 py-2">
-                    <button type="button" onclick="uploadLogo()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"><?php echo __('admin_choose_file'); ?></button>
-                    <button type="button" onclick="pickLogoFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
+                    <button type="button" onclick="uploadLogo()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded shrink-0 whitespace-nowrap"><?php echo __('admin_choose_file'); ?></button>
+                    <button type="button" onclick="pickLogoFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shrink-0 whitespace-nowrap"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <div id="logoPreview" class="mt-2"></div>
             </div>

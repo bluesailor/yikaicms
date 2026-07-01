@@ -205,6 +205,7 @@ CREATE TABLE "yikai_channels" (
   "seo_description" TEXT NOT NULL DEFAULT '',
   "is_nav" INTEGER NOT NULL DEFAULT '1',
   "is_home" INTEGER NOT NULL DEFAULT '0',
+  "show_sidebar" INTEGER NOT NULL DEFAULT '1',
   "status" INTEGER NOT NULL DEFAULT '1',
   "is_system" INTEGER NOT NULL DEFAULT '0',
   "sort_order" INTEGER NOT NULL DEFAULT '0',
@@ -347,6 +348,8 @@ INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id",
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (74,'ja',23,64,'ソフトウェア','software-download-ja','download',0,'','','',NULL,'','_self','auto','','ソフトウェア','','',1,0,1,0,1,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (75,'ja',24,64,'文書資料','document-download-ja','download',0,'','','',NULL,'','_self','auto','','文書資料','','',1,0,1,0,2,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (76,'ja',25,64,'ドライバー','driver-download-ja','download',0,'','','',NULL,'','_self','auto','','ドライバー','','',1,0,1,0,3,1778434704,1778434704);
+-- 组织架构页（内置栏目，含中/英/日）默认不显示侧边栏
+UPDATE "yikai_channels" SET "show_sidebar" = 0 WHERE "translation_group_id" = 19;
 DROP TABLE IF EXISTS "yikai_contents";
 CREATE TABLE "yikai_contents" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -109,6 +109,9 @@ final class HtmlCache
         // 仅缓存 GET 请求
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') return false;
 
+        // 静态生成器自爬请求：始终实时渲染，且不写入 TTL 缓存（与 StaticHtml 互不污染）
+        if (!empty($_SERVER['HTTP_X_STATIC_GEN'])) return false;
+
         // 管理员/会员登录态不缓存
         if (!empty($_SESSION['admin_id'])) return false;
         if (!empty($_SESSION['member_id'])) return false;

@@ -263,7 +263,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
             <div>
                 <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_parent'); ?></label>
                 <select id="createParent" class="w-full border rounded px-4 py-2">
-                    <option value="0"><?php echo __('admin_none'); ?></option>
+                    <option value="0"><?php echo __('admin_top_level'); ?></option>
                     <?php foreach ($pages as $p): ?>
                     <?php if (!$p['parent_id']): ?>
                     <option value="<?php echo $p['id']; ?>"><?php echo e($p['name']); ?></option>

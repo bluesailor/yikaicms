@@ -11,8 +11,8 @@
                 <?php // 有有效授权的站点默认隐藏 Powered by 品牌；未授权（免费）则显示 ?>
                 <?php if (!function_exists('license_valid') || !license_valid()): ?>
                 <div class="mt-1 text-xs text-gray-400">
-                    Powered by <a href="https://yikaicms.com" target="_blank" rel="noopener" class="hover:text-primary">YikaiCMS</a><?php
-                        if (defined('CMS_VERSION')) echo ' <span class="text-gray-300">v' . e(CMS_VERSION) . '</span>'; ?>
+                    Powered by YikaiCMS<?php
+                        if (defined('CMS_VERSION')) echo ' <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-gray-300 hover:text-primary">v' . e(CMS_VERSION) . '</a>'; ?>
                 </div>
                 <?php endif; ?>
             </footer>
@@ -46,6 +46,21 @@
                 }
             }
             return _fetch.call(this, url, options);
+        };
+
+        // 拦截 XMLHttpRequest，自动为 POST 的 FormData 附加 CSRF token
+        // （带进度条的上传用 XHR 而非 fetch，否则会被 verifyCsrf 拦成「非法请求」）
+        const _open = XMLHttpRequest.prototype.open;
+        const _send = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function(method, ...rest) {
+            this._csrfMethod = (method || '').toUpperCase();
+            return _open.call(this, method, ...rest);
+        };
+        XMLHttpRequest.prototype.send = function(body) {
+            if (this._csrfMethod === 'POST' && body instanceof FormData && !body.has('_token')) {
+                body.append('_token', csrfToken);
+            }
+            return _send.call(this, body);
         };
     })();
 
@@ -522,6 +537,7 @@ function switchAdminLang(lang) {
         .catch(function() { showMessage('Error', 'error'); });
 }
 </script>
+    <script src="/assets/js/screen-options.js?v=1"></script>
     <?php do_action('ik_admin_footer_scripts'); ?>
 </body>
 </html>

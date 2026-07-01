@@ -65,6 +65,7 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/system.php',           'title'=>'系统信息',     'keywords'=>'系统信息 服务器 PHP 数据库环境 system info',                              'group'=>'系统'],
             ['url'=>'/admin/system_log.php',       'title'=>'系统日志',     'keywords'=>'系统日志 操作记录 audit log',                                            'group'=>'系统'],
             ['url'=>'/admin/database.php',         'title'=>'数据库管理',   'keywords'=>'数据库 备份 恢复 database backup',                                       'group'=>'系统'],
+            ['url'=>'/admin/static_html.php',      'title'=>'静态HTML生成', 'keywords'=>'静态 静态化 生成html 纯静态 缓存 static html generate 性能 抗压',         'group'=>'系统'],
             ['url'=>'/admin/upgrade.php',          'title'=>'系统升级',     'keywords'=>'升级 更新 补丁 upgrade patch',                                           'group'=>'系统'],
         ];
     }

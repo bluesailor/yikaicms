@@ -20,6 +20,24 @@
     RewriteRule ^composer\.(json|lock)$ - [F,L]
     RewriteRule ^package(-lock)?\.json$ - [F,L]
 
+    # ===== 静态 HTML 直出 =====
+    # 若 html/ 目录下已生成对应静态文件（仅 GET + 空查询串），由 Web 服务器直接返回，不进 PHP。
+    # 未生成则全部规则失效、照常走下方动态路由。删除 html/ 目录即可彻底关闭。
+    # 防重写循环：已指向 html/ 的请求直接放行
+    RewriteRule ^html/ - [L]
+    # 普通页面：/about/company.html -> html/about/company.html
+    RewriteCond %{REQUEST_METHOD} =GET
+    RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{DOCUMENT_ROOT}/html%{REQUEST_URI} -f
+    RewriteRule ^ html%{REQUEST_URI} [L]
+    # 首页：/ -> html/index.html
+    RewriteCond %{REQUEST_METHOD} =GET
+    RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{REQUEST_URI} ^/$
+    RewriteCond %{DOCUMENT_ROOT}/html/index.html -f
+    RewriteRule ^$ html/index.html [L]
+    # ===== /静态 HTML 直出 =====
+
     # Sitemap
     RewriteRule ^sitemap\.xml$ /sitemap.php [L]
 

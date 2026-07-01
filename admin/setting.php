@@ -150,6 +150,9 @@ $hiddenKeys = [
     'sidebar_state',
     'timeline_layout',
     'admin_menu_order',
+    // 授权相关：由「授权管理」页(admin/license.php)维护，属 system 组系统内部项。
+    // 显式列入黑名单兜底——防止历史数据里 group 漂移成 basic 时泄漏到设置页。
+    'license_key', 'license_state',
     // 由"语言"tab 的 per-lang 复选框管理，不该在基本设置里以裸 key 输入框出现
     'nav_home_show', 'nav_home_text',
 ];
@@ -159,10 +162,25 @@ foreach ($_enabledList as $_lc) {
     if ($_lc !== $_defaultLang) $_langSuffixesForFilter[] = '_' . $_lc;
 }
 
-$items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuffixesForFilter): bool {
+// 约束：构建 key→规范分组 映射（来自 defaults.php），剔除"分组漂移"的内部项。
+// 历史数据可能把某些键的 group 写错（如老站把 system 组的 license_key 写成 basic），
+// 升级后 DB 行的 group 不会自动迁移，于是泄漏到设置页。规则：若某行 key 在 defaults
+// 里归属的规范分组 ≠ 当前 tab 分组，一律不渲染。这样所有 system/内部组的键都自动免疫，
+// 无需逐个往 $hiddenKeys 里补——加新内部键到 defaults 的非 tab 分组即可，永不泄漏。
+$_canonicalGroup = [];
+foreach (getDefaults() as $_g => $_groupItems) {
+    if (!is_array($_groupItems)) continue;
+    foreach ($_groupItems as $_k => $_def) {
+        $_canonicalGroup[$_k] = (string) $_g;
+    }
+}
+
+$items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuffixesForFilter, $_canonicalGroup, $group): bool {
     if (str_starts_with($item['key'], 'admin_menu_')) return false;
     if (str_starts_with($item['key'], 'ai_'))         return false;
     if (in_array($item['key'], $hiddenKeys, true))    return false;
+    // 分组漂移防护：defaults 声明它属于别的分组 → 这里不渲染（治本，自维护）
+    if (isset($_canonicalGroup[$item['key']]) && $_canonicalGroup[$item['key']] !== $group) return false;
     // 过滤 per-lang 后缀（footer_columns_en / footer_nav_ja 这种"per-lang 存储位"，
     // 不是独立设置项；它们的值通过 lang 切换器显示在 base 行里）
     foreach ($_langSuffixesForFilter as $suf) {
