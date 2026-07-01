@@ -79,7 +79,32 @@ class AiService
      */
     public static function getProviders(): array
     {
-        return self::PROVIDERS;
+        $providers = self::PROVIDERS;
+        // 叠加「同步」覆盖（来自 update.yikaicms 中心源，存 setting: ai_models_override）
+        $ov = json_decode((string) config('ai_models_override', ''), true);
+        if (is_array($ov)) {
+            foreach ($ov as $key => $p) {
+                if (!is_array($p)) continue;
+                $models = (!empty($p['models']) && is_array($p['models']))
+                    ? array_values(array_filter(array_map('strval', $p['models'])))
+                    : [];
+                if (isset($providers[$key])) {
+                    if ($models) $providers[$key]['models'] = $models;
+                    if (!empty($p['default']))  $providers[$key]['default'] = (string) $p['default'];
+                    if (!empty($p['name']))     $providers[$key]['name'] = (string) $p['name'];
+                    if (!empty($p['base_url'])) $providers[$key]['base_url'] = (string) $p['base_url'];
+                } elseif ($models && !empty($p['base_url'])) {
+                    $providers[$key] = [
+                        'name'     => (string) ($p['name'] ?? $key),
+                        'base_url' => (string) $p['base_url'],
+                        'models'   => $models,
+                        'default'  => (string) ($p['default'] ?? $models[0]),
+                        'format'   => in_array(($p['format'] ?? 'openai'), ['openai', 'anthropic'], true) ? $p['format'] : 'openai',
+                    ];
+                }
+            }
+        }
+        return $providers;
     }
 
     /**

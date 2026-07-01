@@ -26,8 +26,17 @@ tailwindcss
 tailwindcss.exe
 tailwindcss-windows-x64.exe
 
+# Static HTML generation output (generated on each site, not source)
+html/
+
 # Build output
 releases/
+
+# 第三方导入工具（代码从不解压使用，勿入库）
+admin/bigdump*.zip
+
+# 跨站共享的前端 UI 参考库（dev 参考，非产品运行时代码）
+ui-library/
 
 # Dependencies
 vendor/

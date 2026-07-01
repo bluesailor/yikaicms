@@ -38,6 +38,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if ($action === 'sync_models') {
+        $url = 'https://update.yikaicms.com/api/ai-models.php';
+        $json = '';
+        $errMsg = '';
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
+                CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_USERAGENT => 'YikaiCMS-AI-Sync',
+            ]);
+            $json = (string) curl_exec($ch);
+            $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $errMsg = curl_error($ch);
+            curl_close($ch);
+            if ($json === '' || $code >= 400) {
+                echo json_encode(['code' => 1, 'msg' => '拉取失败：' . ($errMsg ?: ('HTTP ' . $code))]);
+                exit;
+            }
+        } else {
+            $json = (string) @file_get_contents($url);
+            if ($json === '') { echo json_encode(['code' => 1, 'msg' => '拉取失败（服务器无 curl / allow_url_fopen）']); exit; }
+        }
+        $data = json_decode($json, true);
+        if (!is_array($data) || empty($data['providers']) || !is_array($data['providers'])) {
+            echo json_encode(['code' => 1, 'msg' => '中心源返回数据无效']);
+            exit;
+        }
+        settingModel()->set('ai_models_override', json_encode($data['providers'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        settingModel()->set('ai_models_synced_at', (string) time());
+        $cnt = count($data['providers']);
+        adminLog('setting', 'ai_sync', "同步AI模型：{$cnt} 个厂商");
+        echo json_encode(['code' => 0, 'msg' => "已同步 {$cnt} 个厂商的最新模型", 'updated_at' => $data['updated_at'] ?? '']);
+        exit;
+    }
+
     if ($action === 'test') {
         $testKey = $_POST['ai_api_key'] ?? '';
         if (!$testKey || strpos($testKey, '***') !== false) {
@@ -95,7 +131,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_model_label'); ?></label>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700"><?php echo __('ai_model_label'); ?></label>
+                        <div class="flex items-center gap-2">
+                            <?php $syncedAt = (int) config('ai_models_synced_at', 0); ?>
+                            <span class="text-xs text-gray-400"><?php echo $syncedAt ? ('上次同步 ' . date('Y-m-d H:i', $syncedAt)) : '尚未同步'; ?></span>
+                            <button type="button" onclick="syncModels(this)" class="text-xs border rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                同步最新模型
+                            </button>
+                        </div>
+                    </div>
                     <input type="hidden" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>">
                     <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
                 </div>
@@ -212,6 +258,22 @@ function testAiConn() {
         result.className = 'mt-4 px-4 py-3 rounded-lg text-sm ' + (d.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200');
         result.textContent = d.success ? '连接成功！回复：' + d.content : '失败：' + d.error;
     }).catch(function(){ result.textContent = '请求失败'; }).finally(function(){ btn.disabled = false; btn.textContent = '<?php echo __('ai_test_connection'); ?>'; });
+}
+
+// 从 update.yikaicms 同步最新模型清单
+function syncModels(btn) {
+    var old = btn.innerHTML;
+    btn.disabled = true; btn.textContent = '同步中…';
+    var fd = new FormData(); fd.append('action', 'sync_models');
+    fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.code === 0) {
+            showMessage(d.msg + (d.updated_at ? '（源 ' + d.updated_at + '）' : ''));
+            setTimeout(function(){ location.reload(); }, 800);
+        } else {
+            showMessage(d.msg || '同步失败', 'error');
+            btn.disabled = false; btn.innerHTML = old;
+        }
+    }).catch(function(){ showMessage('同步失败', 'error'); btn.disabled = false; btn.innerHTML = old; });
 }
 </script>
 

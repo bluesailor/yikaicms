@@ -134,11 +134,18 @@ function renderAdminMenuItem(array $item, string $currentMenu): string
         ? '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">' . $icon . '</svg>'
         : '';
 
+    // 红点徽标（如待更新数）：item['badge'] > 0 时在右侧显示
+    $badge = (int) ($item['badge'] ?? 0);
+    $badgeHtml = $badge > 0
+        ? '<span class="ml-auto inline-flex items-center justify-center bg-red-500 text-white text-xs font-medium rounded-full px-1.5" style="min-width:18px;height:18px;line-height:1">' . $badge . '</span>'
+        : '';
+
     return sprintf(
-        '<a href="%s" class="%s">%s%s</a>',
+        '<a href="%s" class="%s">%s%s%s</a>',
         htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($cls, ENT_QUOTES, 'UTF-8'),
         $svg,
-        htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+        htmlspecialchars($label, ENT_QUOTES, 'UTF-8'),
+        $badgeHtml
     );
 }

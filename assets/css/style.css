@@ -307,3 +307,46 @@ select {
 .nav-submenu a { display: block; padding: 0.5rem 1.25rem; color: #4b5563; white-space: nowrap; transition: all 0.2s; }
 .nav-submenu a:hover { background: #f3f4f6; color: var(--color-primary, #3B82F6); }
 .nav-sub-item:hover > .nav-submenu { opacity: 1; visibility: visible; margin-left: 0; }
+
+/* ============================================================
+   组织架构图 org-chart
+   说明：样式放在常驻 style.css，使内容(富文本)即使被 TinyMCE 删掉内联
+   <style> 也能正常显示。内容里只需 org-chart / org-node 等结构 class。
+   ============================================================ */
+.org-chart { text-align: center; overflow-x: auto; padding: 10px 0; }
+.org-chart ul { padding-top: 20px; position: relative; display: flex; justify-content: center; list-style: none; margin: 0; padding-left: 0; }
+.org-chart ul::before { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 20px; border-left: 2px solid #cbd5e1; }
+.org-chart li { position: relative; padding: 20px 5px 0; display: flex; flex-direction: column; align-items: center; }
+.org-chart li::before, .org-chart li::after { content: ""; position: absolute; top: 0; width: 50%; height: 20px; border-top: 2px solid #cbd5e1; }
+.org-chart li::before { left: 0; border-left: 2px solid #cbd5e1; }
+.org-chart li::after { right: 0; border-right: 2px solid #cbd5e1; }
+.org-chart li:first-child::before { display: none; }
+.org-chart li:last-child::after { display: none; }
+.org-chart li:only-child::before, .org-chart li:only-child::after { display: none; }
+.org-chart li:first-child::after { border-radius: 5px 0 0 0; }
+.org-chart li:last-child::before { border-radius: 0 5px 0 0; }
+.org-chart .org-node { display: inline-block; padding: 10px 20px; border-radius: 8px; text-align: center; min-width: 120px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.org-chart .org-ceo { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; font-size: 16px; font-weight: 700; padding: 14px 28px; }
+.org-chart .org-vp { background: linear-gradient(135deg, #0f766e, #14b8a6); color: #fff; font-weight: 600; }
+.org-chart .org-dept { background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; font-size: 14px; }
+.org-chart .org-title { display: block; font-size: 11px; opacity: 0.85; margin-top: 2px; font-weight: 400; }
+
+/* 预置配色：在 .org-chart 上加 org-style-* 修饰类即可切换（默认无修饰类=蓝色） */
+/* 青绿 */
+.org-chart.org-style-teal .org-ceo { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+.org-chart.org-style-teal .org-vp { background: linear-gradient(135deg, #0e7490, #06b6d4); }
+/* 深色商务 */
+.org-chart.org-style-dark .org-ceo { background: linear-gradient(135deg, #0f172a, #334155); }
+.org-chart.org-style-dark .org-vp { background: linear-gradient(135deg, #334155, #475569); }
+.org-chart.org-style-dark .org-dept { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+/* 紫色 */
+.org-chart.org-style-purple .org-ceo { background: linear-gradient(135deg, #6d28d9, #8b5cf6); }
+.org-chart.org-style-purple .org-vp { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+/* 橙暖 */
+.org-chart.org-style-amber .org-ceo { background: linear-gradient(135deg, #b45309, #f59e0b); }
+.org-chart.org-style-amber .org-vp { background: linear-gradient(135deg, #c2410c, #fb923c); }
+/* 简约灰（扁平、无渐变阴影） */
+.org-chart.org-style-minimal .org-ceo { background: #334155; }
+.org-chart.org-style-minimal .org-vp { background: #64748b; }
+.org-chart.org-style-minimal .org-dept { background: #fff; }
+.org-chart.org-style-minimal .org-node { box-shadow: none; }

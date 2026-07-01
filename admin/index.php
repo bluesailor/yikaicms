@@ -40,6 +40,16 @@ $currentMenu = 'dashboard';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php $ikUp = function_exists('ik_pending_updates_count') ? ik_pending_updates_count() : 0; ?>
+<?php if ($ikUp > 0): ?>
+<!-- 更新提示 -->
+<a href="/admin/upgrade.php" class="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-5 py-3 mb-6 hover:bg-amber-100 transition">
+    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"/></svg>
+    <span class="text-sm">有 <b><?php echo (int) $ikUp; ?></b> 项更新（数据库迁移）待应用，点此前往「系统升级」执行。</span>
+    <span class="ml-auto text-sm font-medium">去升级 →</span>
+</a>
+<?php endif; ?>
+
 <!-- クイックアクセス -->
 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
     <a href="/admin/setting.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">

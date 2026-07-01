@@ -268,6 +268,7 @@ CREATE TABLE `yikai_channels` (
   `seo_description` varchar(500) NOT NULL DEFAULT '' COMMENT 'SEO描述',
   `is_nav` tinyint(1) NOT NULL DEFAULT '1' COMMENT '显示在导航',
   `is_home` tinyint(1) NOT NULL DEFAULT '0' COMMENT '显示在首页',
+  `show_sidebar` tinyint(1) NOT NULL DEFAULT '1' COMMENT '前台显示侧边栏：1是 0否',
   `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态',
   `is_system` tinyint(1) NOT NULL DEFAULT '0' COMMENT '系统预设：1是 0否',
   `sort_order` int(11) NOT NULL DEFAULT '0' COMMENT '排序',
@@ -362,6 +363,8 @@ INSERT INTO `yikai_channels` (`id`, `lang`, `translation_group_id`, `parent_id`,
 INSERT INTO `yikai_channels` (`id`, `lang`, `translation_group_id`, `parent_id`, `name`, `slug`, `type`, `album_id`, `icon`, `image`, `description`, `content`, `link_url`, `link_target`, `redirect_type`, `redirect_url`, `seo_title`, `seo_keywords`, `seo_description`, `is_nav`, `is_home`, `status`, `is_system`, `sort_order`, `created_at`, `updated_at`) VALUES (76,'ja',25,64,'ドライバー','driver-download-ja','download',0,'','','',NULL,'','_self','auto','','ドライバー','','',1,0,1,0,3,1778434704,1778434704);
 /*!40000 ALTER TABLE `yikai_channels` ENABLE KEYS */;
 UNLOCK TABLES;
+-- 组织架构页（内置栏目，含中/英/日）默认不显示侧边栏：组织架构图较宽，全宽展示更佳
+UPDATE `yikai_channels` SET `show_sidebar` = 0 WHERE `translation_group_id` = 19;
 DROP TABLE IF EXISTS `yikai_contents`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;

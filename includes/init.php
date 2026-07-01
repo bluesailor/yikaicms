@@ -74,6 +74,7 @@ if (function_exists('add_action')) {
         }
     });
 }
+require_once ROOT_PATH . '/includes/StaticHtml.php';
 require_once ROOT_PATH . '/includes/HtmlPipeline.php';
 HtmlPipeline::bootstrap();
 require_once ROOT_PATH . '/includes/Abilities.php';
@@ -83,6 +84,7 @@ require_once ROOT_PATH . '/includes/blocks/timeline.php';
 require_once ROOT_PATH . '/includes/customer_service.php';
 require_once ROOT_PATH . '/includes/plugin.php';
 require_once ROOT_PATH . '/includes/License.php';
+require_once ROOT_PATH . '/includes/admin_bar.php';   // 前台管理工具条（登录管理员可见）
 
 // 定时发布：到点的定时内容（status=3）自动上线为已发布（status=1）。
 // 无需 cron，由访问触发；限流每 60 秒最多扫描一次。

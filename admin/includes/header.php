@@ -240,15 +240,27 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
                     }
                     ?>
                     <?php if (count($availableLangs) >= 2): ?>
-                    <div class="flex items-center gap-1 text-sm">
-                        <?php foreach ($availableLangs as $idx => $code): ?>
-                            <?php if ($idx > 0): ?><span class="text-gray-300">|</span><?php endif; ?>
-                            <button onclick="switchAdminLang('<?php echo $code; ?>')" class="px-2 py-1 rounded transition <?php echo $currentAdminLang === $code ? 'bg-primary text-white' : 'text-gray-400 hover:text-primary'; ?>"><?php echo $langLabels[$code]; ?></button>
-                        <?php endforeach; ?>
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"></path>
+                            </svg>
+                            <span class="hidden sm:inline"><?php echo $langLabels[$currentAdminLang] ?? $currentAdminLang; ?></span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div x-show="open" x-cloak @click.away="open = false"
+                             class="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg py-1 z-50">
+                            <?php foreach ($availableLangs as $code): ?>
+                            <button onclick="switchAdminLang('<?php echo $code; ?>')" class="block w-full text-left px-4 py-2 text-sm <?php echo $currentAdminLang === $code ? 'text-primary font-medium bg-blue-50' : 'text-gray-700 hover:bg-gray-100'; ?>"><?php echo $langLabels[$code]; ?></button>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                     <?php endif; ?>
 
-                    <a href="/" target="_blank" class="text-gray-500 hover:text-primary" title="<?php echo __('admin_visit_frontend'); ?>">
+                    <a href="/" target="_blank" class="flex items-center justify-center w-9 h-9 rounded-full text-white bg-primary hover:bg-secondary shadow-sm transition" title="<?php echo __('admin_visit_frontend'); ?>">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                         </svg>

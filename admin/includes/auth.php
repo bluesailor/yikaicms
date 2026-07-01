@@ -33,6 +33,8 @@ require_once ROOT_PATH . '/includes/abilities/cms_basics.php';
 require_once ROOT_PATH . '/includes/abilities/cms_admin.php';
 require_once ROOT_PATH . '/includes/plugin.php';
 require_once ROOT_PATH . '/includes/License.php';
+// 静态 HTML：让后台页可调用 StaticHtml 类，并注册内容变更后清空静态文件的失效钩子
+require_once ROOT_PATH . '/includes/StaticHtml.php';
 
 /**
  * 检查登录状态

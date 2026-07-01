@@ -182,6 +182,11 @@ if ($channel['parent_id'] > 0) {
     $sidebarChannels = getChannels($channelId, false);
 }
 
+// 后台单页开关：show_sidebar=0 时强制隐藏侧边栏，正文占满宽度（默认 1 显示，保持既有行为）
+if (isset($channel['show_sidebar']) && (int)$channel['show_sidebar'] === 0) {
+    $sidebarChannels = [];
+}
+
 // 获取导航
 $navChannels = getNavChannels();
 

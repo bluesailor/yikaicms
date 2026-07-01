@@ -1535,8 +1535,8 @@ function uploadFile(array $file, string $type = 'images'): array
         'ppt'  => ['application/vnd.ms-powerpoint'],
         'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
         'zip'  => ['application/zip', 'application/x-zip-compressed'],
-        'rar'  => ['application/x-rar-compressed', 'application/vnd.rar'],
-        '7z'   => ['application/x-7z-compressed'],
+        'rar'  => ['application/x-rar-compressed', 'application/vnd.rar', 'application/x-rar'],
+        '7z'   => ['application/x-7z-compressed', 'application/x-7z'],
     ];
     if (isset($mimeMap[$ext])) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
