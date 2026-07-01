@@ -43,11 +43,20 @@ rm -rf "$TMP_DIR"
 mkdir -p "$PKG_DIR"
 mkdir -p "$RELEASE_DIR"
 
-# ---- 复制全部文件 ----
-echo "[1/5] 复制项目文件..."
-cp -r "$ROOT_DIR"/* "$PKG_DIR/" 2>/dev/null || true
-# 复制隐藏文件（如 .htaccess）
-cp "$ROOT_DIR"/.htaccess "$PKG_DIR/" 2>/dev/null || true
+# ---- 复制文件（仅 git 跟踪的文件 + vendor 生产依赖）----
+# 用 git ls-files 取「已跟踪文件」的当前工作树内容打包：
+#   - 天然排除任何未跟踪 / 被 gitignore 的散落文件（测试 rar、截图、临时脚本等）
+#   - 仍是工作树内容，未提交的改动照样进包（与旧 cp -r 行为一致）
+echo "[1/5] 复制项目文件（git 跟踪 + vendor 生产依赖）..."
+if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "$ROOT_DIR" ls-files -z | tar --null -T - -cf - -C "$ROOT_DIR" | tar -xf - -C "$PKG_DIR"
+else
+    echo "  ⚠️ 非 git 仓库，回退到 cp -r（注意：可能打入根目录散落文件）"
+    cp -r "$ROOT_DIR"/* "$PKG_DIR/" 2>/dev/null || true
+    cp "$ROOT_DIR"/.htaccess "$PKG_DIR/" 2>/dev/null || true
+fi
+# vendor 被 gitignore 但运行时需要（overtrue/pinyin 生成中文 slug），单独复制，随后裁剪为生产依赖
+cp -r "$ROOT_DIR/vendor" "$PKG_DIR/" 2>/dev/null || true
 
 # ---- 排除文件 ----
 echo "[2/5] 排除不需要的文件..."
@@ -57,10 +66,12 @@ EXCLUDES=(
     # 打包产物自身
     "releases"
 
-    # 版本控制
+    # 版本控制 / CI / 开发工具配置
     ".git"
     ".gitignore"
     ".gitattributes"
+    ".github"
+    ".agents"
 
     # 安装锁（用户安装后才应生成）
     "installed.lock"
