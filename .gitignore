@@ -38,6 +38,10 @@ admin/bigdump*.zip
 # 跨站共享的前端 UI 参考库（dev 参考，非产品运行时代码）
 ui-library/
 
+# 内部开发/AI 笔记（本地保留，不进公开仓库）
+AGENTS.md
+CLAUDE.md
+
 # Dependencies
 vendor/
 node_modules/
