@@ -241,6 +241,14 @@ require_once theme_path('layouts/header.php');
                     </div>
                     <?php endif; ?>
 
+                    <?php if (!in_array($content['channel_type'], ['case', 'product'], true) && !empty($content['cover'])): ?>
+                    <!-- 文章封面图（case/product 已各自渲染，此处覆盖 news/article 等类型）-->
+                    <div class="px-6 md:px-8 pt-6">
+                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                             class="w-full rounded-lg">
+                    </div>
+                    <?php endif; ?>
+
                     <!-- 正文内容 -->
                     <div class="p-6 md:p-8 prose prose-lg max-w-none">
                         <?php echo apply_filters('content_output', parseShortcodes($content['content'] ?? ''), $content); ?>
