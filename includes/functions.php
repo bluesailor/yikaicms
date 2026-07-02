@@ -37,6 +37,13 @@ function currentTheme(): string
  */
 function theme_path(string $file): string
 {
+    // 站点覆盖层（最高优先级）：overrides/{相对路径} 存在则用它。
+    // 让各站在不改核心/主题文件的前提下覆盖任意模板，升级不冲突。见 overrides/README.md。
+    $override = ROOT_PATH . '/overrides/' . $file;
+    if (is_file($override)) {
+        return $override;
+    }
+
     $themePath = ROOT_PATH . '/themes/' . currentTheme() . '/' . $file;
     if (file_exists($themePath)) {
         return $themePath;
@@ -192,7 +199,26 @@ function error(string $msg = '操作失败', int $code = 1): never
  */
 function config(string $key, mixed $default = ''): mixed
 {
+    // 站点配置覆盖层（最高优先级）：config/overrides.php 里 pin 的键直接返回，
+    // 不落 DB、不被在线升级覆盖。用于各站固定某些设置。见 config/overrides.sample.php。
+    $ov = configOverrides();
+    if (array_key_exists($key, $ov)) {
+        return $ov[$key];
+    }
     return settingModel()->get($key, $default);
+}
+
+/**
+ * 站点配置覆盖数组（一次性加载并缓存；无覆盖文件时为空数组，零开销）。
+ */
+function configOverrides(): array
+{
+    static $ov = null;
+    if ($ov === null) {
+        $file = ROOT_PATH . '/config/overrides.php';
+        $ov = is_file($file) ? (array) (require $file) : [];
+    }
+    return $ov;
 }
 
 /**
@@ -368,6 +394,17 @@ function loadLangData(): array
     $langData = ($lang !== 'zh-CN' && file_exists($langFile)) ? require $langFile : [];
 
     $_LANG_DATA = array_merge($fallbackData, $langData);
+
+    // 站点语言覆盖层（最高优先级）：lang/overrides/all.php（全语言）+ lang/overrides/{lang}.php。
+    // 各站在不改核心 lang/*.php 的前提下改词/加词，升级不冲突。见 lang/overrides/README.md。
+    foreach ([ROOT_PATH . '/lang/overrides/all.php', ROOT_PATH . '/lang/overrides/' . $lang . '.php'] as $ovFile) {
+        if (is_file($ovFile)) {
+            $ov = require $ovFile;
+            if (is_array($ov) && $ov) {
+                $_LANG_DATA = array_merge($_LANG_DATA, $ov);
+            }
+        }
+    }
 
     return $_LANG_DATA;
 }
