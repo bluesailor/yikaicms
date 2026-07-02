@@ -98,5 +98,17 @@ try {
     // 安装未完成 / 表缺失时静默跳过
 }
 
+// 站点覆盖层逻辑入口：overrides/bootstrap.php（若存在）。
+// 在插件加载之后、init 之前载入，站点可在此 add_action/add_filter 挂载/覆盖逻辑，
+// 无需改核心/插件文件，升级不冲突。见 overrides/README.md。
+$__ovBootstrap = ROOT_PATH . '/overrides/bootstrap.php';
+if (is_file($__ovBootstrap)) {
+    try {
+        require_once $__ovBootstrap;
+    } catch (\Throwable $e) {
+        error_log('overrides/bootstrap.php error: ' . $e->getMessage());
+    }
+}
+
 // 前台启动完成，供插件挂载初始化逻辑
 do_action('init');

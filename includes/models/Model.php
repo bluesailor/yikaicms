@@ -157,8 +157,13 @@ class Model
      */
     public function create(array $data): int|string
     {
+        // 方法级钩子（站点覆盖层可挂载）：入库前可改数据，入库后可响应。
+        if (function_exists('apply_filters')) $data = apply_filters('model_before_create', $data, $this->table);
         $id = db()->insert($this->table, $data);
-        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        if (function_exists('do_action')) {
+            do_action('model_created', $this->table, $id, $data);
+            do_action('data_changed', $this->table, $id);
+        }
         return $id;
     }
 
@@ -167,8 +172,12 @@ class Model
      */
     public function updateById(int $id, array $data): int
     {
+        if (function_exists('apply_filters')) $data = apply_filters('model_before_update', $data, $this->table, $id);
         $r = db()->update($this->table, $data, "{$this->primaryKey} = ?", [$id]);
-        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        if (function_exists('do_action')) {
+            do_action('model_updated', $this->table, $id, $data);
+            do_action('data_changed', $this->table, $id);
+        }
         return $r;
     }
 
@@ -187,8 +196,12 @@ class Model
      */
     public function deleteById(int $id): int
     {
+        if (function_exists('do_action')) do_action('model_before_delete', $this->table, $id);
         $r = db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
-        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        if (function_exists('do_action')) {
+            do_action('model_deleted', $this->table, $id);
+            do_action('data_changed', $this->table, $id);
+        }
         return $r;
     }
 
