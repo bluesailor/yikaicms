@@ -38,6 +38,12 @@ admin/bigdump*.zip
 # 跨站共享的前端 UI 参考库（dev 参考，非产品运行时代码）
 ui-library/
 
+# 站点覆盖层（per-site 定制，不进核心仓库/发布包；仅保留 README 与 sample）
+/overrides/*
+!/overrides/README.md
+/config/overrides.php
+/lang/overrides/*.php
+
 # 内部开发/AI 笔记（本地保留，不进公开仓库）
 AGENTS.md
 CLAUDE.md
