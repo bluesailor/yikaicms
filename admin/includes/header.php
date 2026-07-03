@@ -30,13 +30,22 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
         }
     }
 }
+
+// 后台品牌文字（左上角 Logo / 页面标题）：默认「后台管理」按后台语言本地化，
+// 英文→Admin Panel、日语→管理画面；管理员自定义了 admin_title 则原样显示。
+$adminBrand = trim((string) config('admin_title', ''));
+if ($adminBrand === '后台管理') {
+    $adminBrand = __('admin_title_default');
+} elseif ($adminBrand === '') {
+    $adminBrand = config('site_name', 'YikaiCMS');
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle ?? '后台管理'; ?> - <?php echo e((config('admin_title') ?: config('site_name', 'YikaiCMS'))); ?></title>
+    <title><?php echo e($pageTitle ?? __('admin_title_default')); ?> - <?php echo e($adminBrand); ?></title>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <link rel="stylesheet" href="/assets/css/tailwind.css">
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
@@ -69,7 +78,7 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
                     <?php if ($adminLogo): ?>
                     <img src="<?php echo e($adminLogo); ?>" alt="" class="h-8">
                     <?php else: ?>
-                    <span class="text-xl font-bold text-white"><?php echo e((config('admin_title') ?: config('site_name', 'YikaiCMS'))); ?></span>
+                    <span class="text-xl font-bold text-white"><?php echo e($adminBrand); ?></span>
                     <?php endif; ?>
                 </a>
             </div>
