@@ -15,24 +15,26 @@ return [
     // 基本设置
     // ============================================================
     'basic' => [
-        'site_url'              => ['value' => '', 'type' => 'text', 'name' => '站点URL', 'tip' => '例: https://www.example.com（末尾不要加斜杠）', 'sort_order' => 0],
-        'site_name'             => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '站点名称', 'tip' => '', 'sort_order' => 1],
-        'site_keywords'         => ['value' => '企业网站,CMS,内容管理', 'type' => 'textarea', 'name' => 'SEO关键词', 'tip' => '多个关键词用逗号分隔', 'sort_order' => 2],
-        'site_description'      => ['value' => '专业的企业内容管理系统，助力企业数字化转型', 'type' => 'textarea', 'name' => 'SEO描述', 'tip' => '', 'sort_order' => 3],
-        'site_logo'             => ['value' => '', 'type' => 'image', 'name' => '站点Logo', 'tip' => '', 'sort_order' => 4],
-        'site_favicon'          => ['value' => '/favicon.ico', 'type' => 'image', 'name' => '站点图标', 'tip' => '浏览器标签页图标，支持 .ico/.png 格式', 'sort_order' => 5],
-        'site_icp'              => ['value' => '', 'type' => 'text', 'name' => 'ICP备案号', 'tip' => '', 'sort_order' => 6],
-        'site_police'           => ['value' => '', 'type' => 'text', 'name' => '公安备案号', 'tip' => '', 'sort_order' => 7],
-        'primary_color'         => ['value' => '#3B82F6', 'type' => 'color', 'name' => '主题色', 'tip' => '十六进制颜色值', 'sort_order' => 8],
-        'secondary_color'       => ['value' => '#1D4ED8', 'type' => 'color', 'name' => '辅助色', 'tip' => '十六进制颜色值', 'sort_order' => 8],
-        'banner_height_pc'      => ['value' => '650', 'type' => 'number', 'name' => 'Banner高度(PC)', 'tip' => '像素', 'sort_order' => 9],
-        'banner_height_mobile'  => ['value' => '300', 'type' => 'number', 'name' => 'Banner高度(移动端)', 'tip' => '像素', 'sort_order' => 10],
-        'banner_fullscreen'     => ['value' => '0', 'type' => 'select', 'name' => '全屏大Banner', 'tip' => '开启后 PC 端首页轮播图满屏高(100vh-头部)，忽略 PC 高度；移动端仍用移动端高度', 'options' => '{"0":"关闭","1":"开启"}', 'sort_order' => 11],
-        'admin_title'           => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '后台名称', 'tip' => '后台左上角显示的名称', 'sort_order' => 15],
-        'admin_copyright'       => ['value' => '', 'type' => 'text', 'name' => '后台版权', 'tip' => '后台底部版权信息，留空不显示', 'sort_order' => 16],
+        // section：本页分区名（setting.php 按此分区渲染 + 生成吸顶快速导航）
+        'site_url'              => ['value' => '', 'type' => 'text', 'name' => '站点URL', 'tip' => '例: https://www.example.com（末尾不要加斜杠）', 'section' => '站点信息', 'sort_order' => 0],
+        'site_name'             => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '站点名称', 'tip' => '', 'section' => '站点信息', 'sort_order' => 1],
+        'site_keywords'         => ['value' => '企业网站,CMS,内容管理', 'type' => 'textarea', 'name' => 'SEO关键词', 'tip' => '多个关键词用逗号分隔', 'section' => '站点信息', 'sort_order' => 2],
+        'site_description'      => ['value' => '专业的企业内容管理系统，助力企业数字化转型', 'type' => 'textarea', 'name' => 'SEO描述', 'tip' => '', 'section' => '站点信息', 'sort_order' => 3],
+        'site_logo'             => ['value' => '', 'type' => 'image', 'name' => '站点Logo', 'tip' => '', 'section' => '站点标识', 'sort_order' => 4],
+        'site_favicon'          => ['value' => '/favicon.ico', 'type' => 'image', 'name' => '站点图标', 'tip' => '浏览器标签页图标，支持 .ico/.png 格式', 'section' => '站点标识', 'sort_order' => 5],
+        'primary_color'         => ['value' => '#3B82F6', 'type' => 'color', 'name' => '主题色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],
+        'secondary_color'       => ['value' => '#1D4ED8', 'type' => 'color', 'name' => '辅助色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],
+        'banner_height_pc'      => ['value' => '650', 'type' => 'number', 'name' => 'Banner高度(PC)', 'tip' => '像素', 'section' => '主题外观', 'sort_order' => 9],
+        'banner_height_mobile'  => ['value' => '300', 'type' => 'number', 'name' => 'Banner高度(移动端)', 'tip' => '像素', 'section' => '主题外观', 'sort_order' => 10],
+        'banner_fullscreen'     => ['value' => '0', 'type' => 'select', 'name' => '全屏大Banner', 'tip' => '开启后 PC 端首页轮播图满屏高(100vh-头部)，忽略 PC 高度；移动端仍用移动端高度', 'options' => '{"0":"关闭","1":"开启"}', 'section' => '主题外观', 'sort_order' => 11],
+        'site_icp'              => ['value' => '', 'type' => 'text', 'name' => 'ICP备案号', 'tip' => '', 'section' => '备案信息', 'sort_order' => 6],
+        'site_police'           => ['value' => '', 'type' => 'text', 'name' => '公安备案号', 'tip' => '', 'section' => '备案信息', 'sort_order' => 7],
+        'upload_max_width'      => ['value' => '1920', 'type' => 'select', 'name' => '上传图片最大宽度', 'tip' => '客户上传图片超过此宽度时自动等比压缩，节省空间与带宽；选「不压缩」保留原图', 'options' => '{"0":"不压缩","1280":"1280px","1600":"1600px","1920":"1920px (推荐)","2048":"2048px","2560":"2560px"}', 'section' => '上传设置', 'sort_order' => 18],
+        'upload_jpeg_quality'   => ['value' => '85', 'type' => 'select', 'name' => '图片压缩质量', 'tip' => 'JPEG/WebP 重新编码质量，越高越清晰但文件越大', 'options' => '{"75":"75 (更小)","85":"85 (推荐)","92":"92 (更清晰)"}', 'section' => '上传设置', 'sort_order' => 19],
+        'admin_title'           => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '后台名称', 'tip' => '后台左上角显示的名称', 'section' => '后台品牌', 'sort_order' => 15],
+        'admin_copyright'       => ['value' => '', 'type' => 'text', 'name' => '后台版权', 'tip' => '后台底部版权信息，留空不显示', 'section' => '后台品牌', 'sort_order' => 16],
+        'admin_logo'            => ['value' => '', 'type' => 'image', 'name' => '后台Logo', 'tip' => '留空显示文字', 'section' => '后台品牌', 'sort_order' => 21],
         'current_theme'         => ['value' => 'default', 'type' => 'text', 'name' => '当前主题', 'tip' => 'themes/ 目录下的主题文件夹名', 'sort_order' => 17],
-        'upload_max_width'      => ['value' => '1920', 'type' => 'select', 'name' => '上传图片最大宽度', 'tip' => '客户上传图片超过此宽度时自动等比压缩，节省空间与带宽；选「不压缩」保留原图', 'options' => '{"0":"不压缩","1280":"1280px","1600":"1600px","1920":"1920px (推荐)","2048":"2048px","2560":"2560px"}', 'sort_order' => 18],
-        'upload_jpeg_quality'   => ['value' => '85', 'type' => 'select', 'name' => '图片压缩质量', 'tip' => 'JPEG/WebP 重新编码质量，越高越清晰但文件越大', 'options' => '{"75":"75 (更小)","85":"85 (推荐)","92":"92 (更清晰)"}', 'sort_order' => 19],
     ],
 
     // ============================================================
@@ -58,6 +60,7 @@ return [
         'footer_bg_image'       => ['value' => '', 'type' => 'image', 'name' => '背景图', 'tip' => '设置后覆盖背景色', 'sort_order' => 3],
         'footer_text_color'     => ['value' => '#9ca3af', 'type' => 'color', 'name' => '文字色', 'tip' => '', 'sort_order' => 4],
         'footer_nav'            => ['value' => '[]', 'type' => 'footer_nav', 'name' => '页脚导航', 'tip' => '版权上方的导航链接', 'sort_order' => 5],
+        'footer_copyright_text' => ['value' => '© {year} {site_name} 版权所有.', 'type' => 'text', 'name' => '版权文字', 'tip' => '{year}=年份 {site_name}=站点名', 'sort_order' => 6],
     ],
 
     // ============================================================

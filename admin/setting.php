@@ -179,8 +179,12 @@ $items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuf
     if (str_starts_with($item['key'], 'admin_menu_')) return false;
     if (str_starts_with($item['key'], 'ai_'))         return false;
     if (in_array($item['key'], $hiddenKeys, true))    return false;
-    // 分组漂移防护：defaults 声明它属于别的分组 → 这里不渲染（治本，自维护）
-    if (isset($_canonicalGroup[$item['key']]) && $_canonicalGroup[$item['key']] !== $group) return false;
+    // 白名单 / 默认拒绝：只渲染在 defaults.php 中「显式声明」且归属当前分组的键。
+    // 未声明的键（system/内部键、运行时 set() 写入的 static_html_* / timeline_layout
+    // 等）一律不渲染——彻底免疫泄漏。要新增显示项，必须在 defaults.php 声明它。
+    if (!isset($_canonicalGroup[$item['key']]) || $_canonicalGroup[$item['key']] !== $group) return false;
+    // ICP/公安备案为中国大陆特有：非中文后台不展示（英文/日语版没有「备案信息」）
+    if (in_array($item['key'], ['site_icp', 'site_police'], true) && getLang() !== 'zh-CN') return false;
     // 过滤 per-lang 后缀（footer_columns_en / footer_nav_ja 这种"per-lang 存储位"，
     // 不是独立设置项；它们的值通过 lang 切换器显示在 base 行里）
     foreach ($_langSuffixesForFilter as $suf) {
@@ -203,6 +207,47 @@ if ($_langAware && $_viewLang !== $_defaultLang) {
 
 $groupDefaults = getDefaults($group);
 
+// ============================================================
+// 分区（quick-nav）：按 defaults.php 里各字段的 'section' 把可见项分组，
+// 分区顺序 = 在 defaults.php 中首次出现的声明顺序。未声明 section 的字段
+// 归入末尾「其他」分区，绝不丢失。仅当存在 ≥2 个具名分区时才显示导航条。
+$sectionOrder = [];
+foreach (array_keys($groupDefaults) as $__k) {
+    $__s = trim((string) ($groupDefaults[$__k]['section'] ?? ''));
+    if ($__s !== '' && !in_array($__s, $sectionOrder, true)) $sectionOrder[] = $__s;
+}
+$OTHER_SECTION = '其他';
+$itemsBySection = [];
+foreach ($items as $__it) {
+    $__s = trim((string) ($groupDefaults[$__it['key']]['section'] ?? ''));
+    if ($__s === '') $__s = $OTHER_SECTION;
+    $itemsBySection[$__s][] = $__it;
+}
+$renderSections = [];
+foreach ($sectionOrder as $__s) {
+    if (!empty($itemsBySection[$__s])) $renderSections[] = $__s;
+}
+if (!empty($itemsBySection[$OTHER_SECTION])) $renderSections[] = $OTHER_SECTION;
+$hasSections = count($renderSections) >= 2;
+$sectionAnchor = [];
+foreach ($renderSections as $__i => $__s) $sectionAnchor[$__s] = 'setsec-' . $__i;
+
+// 分区名多语言：defaults.php 里存中文名，这里映射到 i18n key，按后台语言显示。
+$__sectionKeyMap = [
+    '站点信息' => 'site_info',
+    '站点标识' => 'site_identity',
+    '主题外观' => 'appearance',
+    '备案信息' => 'icp',
+    '上传设置' => 'upload',
+    '后台品牌' => 'admin_brand',
+    '其他'     => 'other',
+];
+$sectionLabel = function (string $sec) use ($__sectionKeyMap): string {
+    $k = 'setting_section_' . ($__sectionKeyMap[$sec] ?? 'other');
+    $t = __($k);
+    return $t !== $k ? $t : $sec; // 缺翻译时回退中文名
+};
+
 $pageTitle = __('setting_page_title');
 $currentMenu = 'setting';
 
@@ -218,6 +263,17 @@ if ($_langAware) {
     echo renderAdminLangSwitcher($_viewLang, $_hint);
 }
 ?>
+
+<style>
+/* 设置项输入框聚焦态：用主题色细边框替换浏览器默认的黑色 outline */
+#settingForm input:not([type="color"]):focus,
+#settingForm textarea:focus,
+#settingForm select:focus {
+    outline: none;
+    border-color: var(--color-primary, #3B82F6);
+    box-shadow: 0 0 0 1px var(--color-primary, #3B82F6);
+}
+</style>
 
 <!-- Tab 导航 -->
 <?php
@@ -403,8 +459,25 @@ async function saveAdminLanguages() {
                 <?php echo __('setting_restore_defaults'); ?>
             </button>
         </div>
-        <div class="p-6 space-y-4">
-            <?php foreach ($items as $item): ?>
+        <?php if ($hasSections): ?>
+        <!-- 快速导航：吸顶胶囊条（吸在顶栏下方）-->
+        <div class="sticky top-16 z-30 bg-white/95 backdrop-blur border-b px-4 py-2 flex flex-wrap gap-1.5">
+            <?php foreach ($renderSections as $__s): ?>
+            <a href="#<?php echo $sectionAnchor[$__s]; ?>" data-target="<?php echo $sectionAnchor[$__s]; ?>"
+               class="js-setpill px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer"><?php echo e($sectionLabel($__s)); ?></a>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <div class="p-6 space-y-8">
+            <?php foreach ($renderSections as $__sec): ?>
+            <?php if ($hasSections): ?>
+            <section id="<?php echo $sectionAnchor[$__sec]; ?>" class="scroll-mt-32">
+                <h3 class="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b flex items-center gap-2">
+                    <span class="w-1 h-4 bg-primary rounded"></span><?php echo e($sectionLabel($__sec)); ?>
+                </h3>
+                <div class="space-y-4">
+            <?php endif; ?>
+            <?php foreach ($itemsBySection[$__sec] as $item): ?>
 
             <?php if ($item['type'] === 'footer_columns'): ?>
             <!-- 页脚栏目编辑器 -->
@@ -477,9 +550,12 @@ async function saveAdminLanguages() {
             $defaultItem = $groupDefaults[$item['key']] ?? null;
             $defaultValue = $defaultItem['value'] ?? '';
             $isModified = $defaultItem !== null && (string)$item['value'] !== (string)$defaultValue;
+            // 整块文本域（代码注入等）改为「标签在上、输入框整行铺满」的堆叠布局，
+            // 避免窄标签列与右侧宽文本域之间留出大片空白。
+            $__stackedField = in_array($item['type'], ['code'], true);
             ?>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">
+            <div class="<?php echo $__stackedField ? '' : 'grid grid-cols-1 md:grid-cols-4 gap-4 items-start'; ?>">
+                <label class="text-gray-700 <?php echo $__stackedField ? 'block mb-2 font-medium' : 'pt-2'; ?>">
                     <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
                     <?php if ($item['tip']): ?>
                     <span class="text-gray-400 text-sm block"><?php $__tip = __('setting_' . $item['key'] . '_tip'); echo e($__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : $item['tip']); ?></span>
@@ -488,7 +564,7 @@ async function saveAdminLanguages() {
                     <span class="text-gray-300 text-xs block mt-1 truncate" title="<?php echo e($defaultValue); ?>"><?php echo __('setting_default'); ?>: <?php echo e(mb_strimwidth($defaultValue, 0, 30, '...')); ?></span>
                     <?php endif; ?>
                 </label>
-                <div class="md:col-span-3">
+                <div class="<?php echo $__stackedField ? '' : 'md:col-span-3'; ?>">
                     <?php if ($item['type'] === 'textarea'): ?>
                     <textarea name="settings[<?php echo e($item['key']); ?>]" rows="3"
                               class="w-full border rounded px-4 py-2"><?php echo e($item['value']); ?></textarea>
@@ -609,7 +685,12 @@ async function saveAdminLanguages() {
             </div>
             <?php endif; ?>
 
-            <?php endforeach; ?>
+            <?php endforeach; /* 分区内字段 */ ?>
+            <?php if ($hasSections): ?>
+                </div>
+            </section>
+            <?php endif; ?>
+            <?php endforeach; /* 分区 */ ?>
         </div>
     </div>
 
@@ -879,6 +960,39 @@ function collectFooterNav() {
 if (typeof _footerNavData !== 'undefined' && document.getElementById('footerNavEditor')) {
     renderFooterNav(_footerNavData);
 }
+
+// ========== 设置分区快速导航：平滑滚动 + 滚动高亮 ==========
+(function () {
+    var pills = Array.prototype.slice.call(document.querySelectorAll('.js-setpill'));
+    if (!pills.length) return;
+
+    function setActive(id) {
+        pills.forEach(function (p) {
+            var on = p.dataset.target === id;
+            p.classList.toggle('bg-primary', on);
+            p.classList.toggle('text-white', on);
+            p.classList.toggle('bg-gray-100', !on);
+            p.classList.toggle('text-gray-600', !on);
+        });
+    }
+
+    pills.forEach(function (p) {
+        p.addEventListener('click', function (e) {
+            e.preventDefault();
+            var el = document.getElementById(p.dataset.target);
+            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActive(p.dataset.target); }
+        });
+    });
+
+    var sections = pills.map(function (p) { return document.getElementById(p.dataset.target); }).filter(Boolean);
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) { if (en.isIntersecting) setActive(en.target.id); });
+        }, { rootMargin: '-140px 0px -70% 0px', threshold: 0 });
+        sections.forEach(function (s) { io.observe(s); });
+    }
+    if (sections[0]) setActive(sections[0].id);
+})();
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
