@@ -184,12 +184,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="flex border-b">
         <button type="button" @click="tab='events'" :class="tab==='events' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="px-6 py-3 border-b-2 font-medium text-sm transition inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+            <i class="ti ti-align-justified text-base"></i>
             事件管理
         </button>
         <button type="button" @click="tab='settings'" :class="tab==='settings' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="px-6 py-3 border-b-2 font-medium text-sm transition inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <i class="ti ti-settings text-base"></i>
             显示设置
         </button>
     </div>
@@ -205,11 +205,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <div class="flex gap-2">
             <a href="/history.php" target="_blank" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <i class="ti ti-eye text-base"></i>
                 预览
             </a>
             <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <i class="ti ti-plus text-base"></i>
                 添加事件
             </button>
         </div>
@@ -257,21 +257,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php echo e(cutStr($item['content'] ?? '', 50)); ?>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <?php
-                        $colorClass = match($item['color']) {
-                            'blue' => 'bg-blue-500',
-                            'green' => 'bg-green-500',
-                            'yellow' => 'bg-yellow-500',
-                            'red' => 'bg-red-500',
-                            'purple' => 'bg-purple-500',
-                            'cyan' => 'bg-cyan-500',
-                            'indigo' => 'bg-indigo-500',
-                            'pink' => 'bg-pink-500',
-                            'gray' => 'bg-gray-500',
-                            default => 'bg-primary',
-                        };
-                        ?>
-                        <span class="inline-block w-4 h-4 rounded-full <?php echo $colorClass; ?>"></span>
+                        <?php $_cp = timelineColorParts((string)($item['color'] ?? 'primary')); ?>
+                        <span class="inline-block w-4 h-4 rounded-full <?php echo $_cp['dotClass']; ?>" style="<?php echo $_cp['dotStyle']; ?>"></span>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
@@ -282,11 +269,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <i class="ti ti-pencil text-sm"></i>
                             <?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteItem(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <i class="ti ti-trash text-sm"></i>
                             <?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
@@ -325,7 +312,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <p class="text-sm text-gray-500 mb-4">选择时间线在 <code>/about/history.html</code> 的展示形态。<span class="text-green-600">点击卡片即自动保存</span>，无需点保存按钮。</p>
             </div>
             <button type="button" onclick="saveTimelineLayout(document.querySelector('input[name=&quot;timeline_layout&quot;]:checked')?.value || 'vertical')" class="cursor-pointer text-sm border px-3 py-1.5 rounded hover:bg-gray-50 inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4a1 1 0 00-1 1v14a1 1 0 001 1h14a1 1 0 001-1V8.414a1 1 0 00-.293-.707L16.293 4.293A1 1 0 0015.586 4H5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 4v5h7V4M8 13h8v7H8z"/></svg>
+                <i class="ti ti-device-floppy text-base"></i>
                 重新保存
             </button>
         </div>
@@ -416,11 +403,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <div class="flex gap-2">
                     <button type="button" onclick="refreshTimelinePreview()" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.65-4.94M20 15a9 9 0 01-14.65 4.94"/></svg>
+                        <i class="ti ti-refresh text-sm"></i>
                         刷新
                     </button>
                     <a href="/history.php" target="_blank" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        <i class="ti ti-external-link text-sm"></i>
                         前台完整页
                     </a>
                 </div>
@@ -503,7 +490,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex gap-2">
                     <input type="text" name="image" id="editImage" class="flex-1 border rounded px-4 py-2" placeholder="图片URL">
                     <button type="button" onclick="uploadImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                        <i class="ti ti-folder text-base"></i>
                         选择
                     </button>
                     <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
@@ -515,19 +502,36 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('timeline_icon'); ?></label>
-                    <select name="icon" id="editIcon" class="w-full border rounded px-4 py-2">
-                        <?php foreach ($iconOptions as $key => $label): ?>
-                        <option value="<?php echo $key; ?>"><?php echo $label; ?></option>
+                    <input type="hidden" name="icon" id="editIcon" value="">
+                    <div class="flex items-center flex-wrap gap-1.5">
+                        <?php foreach ($iconOptions as $key => $label):
+                            $emoji = $key === '' ? '' : getTimelineIcon($key);
+                        ?>
+                        <button type="button" data-icon="<?php echo e($key); ?>" title="<?php echo e($label); ?>"
+                                onclick="pickTimelineIcon('<?php echo e($key); ?>')"
+                                class="tl-icon w-9 h-9 flex items-center justify-center text-lg rounded-lg border border-gray-200 hover:border-primary cursor-pointer transition">
+                            <?php echo $key === '' ? '<span class="text-xs text-gray-400">无</span>' : $emoji; ?>
+                        </button>
                         <?php endforeach; ?>
-                    </select>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('timeline_color'); ?></label>
-                    <select name="color" id="editColor" class="w-full border rounded px-4 py-2">
+                    <input type="hidden" name="color" id="editColor" value="primary">
+                    <?php $colorHex = ['primary' => '#3b82f6', 'blue' => '#3b82f6', 'green' => '#22c55e', 'yellow' => '#eab308', 'red' => '#ef4444', 'purple' => '#a855f7', 'cyan' => '#06b6d4', 'indigo' => '#6366f1', 'pink' => '#ec4899', 'gray' => '#6b7280']; ?>
+                    <div class="flex items-center flex-wrap gap-2">
                         <?php foreach ($colorOptions as $key => $label): ?>
-                        <option value="<?php echo $key; ?>"><?php echo $label; ?></option>
+                        <button type="button" data-color="<?php echo $key; ?>" title="<?php echo e($label); ?>"
+                                onclick="pickTimelineColor('<?php echo $key; ?>')"
+                                class="tl-swatch w-7 h-7 rounded-full ring-offset-1 ring-primary border border-black/10 cursor-pointer transition"
+                                style="background:<?php echo $colorHex[$key] ?? '#3b82f6'; ?>"></button>
                         <?php endforeach; ?>
-                    </select>
+                        <label class="inline-flex items-center gap-1 text-xs text-gray-500 cursor-pointer ml-1" title="<?php echo __('timeline_color'); ?>">
+                            <span><?php echo __('admin_custom') ?: '自定义'; ?></span>
+                            <input type="color" id="editColorCustom" value="#3b82f6" onchange="pickTimelineColor(this.value)"
+                                   class="w-7 h-7 p-0 border rounded cursor-pointer bg-white">
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -550,7 +554,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex justify-end gap-2 pt-4">
                 <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __("btn_save"); ?>
                 </button>
             </div>
@@ -600,6 +604,34 @@ try {
     }
 } catch (e) { console.warn('Sortable init failed:', e); }
 
+// 选择时间线图标：val 为图标 key（''=无图标）
+function pickTimelineIcon(val) {
+    val = val || '';
+    document.getElementById('editIcon').value = val;
+    document.querySelectorAll('.tl-icon').forEach(function (b) {
+        var on = b.dataset.icon === val;
+        b.classList.toggle('border-primary', on);
+        b.classList.toggle('ring-2', on);
+        b.classList.toggle('ring-primary', on);
+        b.classList.toggle('bg-blue-50', on);
+    });
+}
+
+// 选择时间线颜色：val 为预设名（primary/blue…）或自定义十六进制（#rrggbb）
+function pickTimelineColor(val) {
+    val = val || 'primary';
+    document.getElementById('editColor').value = val;
+    var isHex = val.charAt(0) === '#';
+    document.querySelectorAll('.tl-swatch').forEach(function (b) {
+        var on = !isHex && b.dataset.color === val;
+        b.classList.toggle('ring-2', on);
+    });
+    if (isHex) {
+        var ci = document.getElementById('editColorCustom');
+        if (ci) ci.value = val;
+    }
+}
+
 function openEditModal(item = null) {
     document.getElementById('modalTitle').textContent = item ? '编辑事件' : '添加事件';
     document.getElementById('editId').value = item?.id || 0;
@@ -609,8 +641,8 @@ function openEditModal(item = null) {
     document.getElementById('editTitle').value = item?.title || '';
     document.getElementById('editContent').value = item?.content || '';
     document.getElementById('editImage').value = item?.image || '';
-    document.getElementById('editIcon').value = item?.icon || '';
-    document.getElementById('editColor').value = item?.color || 'primary';
+    pickTimelineIcon(item?.icon || '');
+    pickTimelineColor(item?.color || 'primary');
     document.getElementById('editSortOrder').value = item?.sort_order || 0;
     document.getElementById('editStatus').value = item?.status ?? 1;
 

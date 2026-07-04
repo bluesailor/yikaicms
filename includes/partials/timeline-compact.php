@@ -28,30 +28,9 @@ if (empty($groupedTimelines)) return;
     <!-- 该年事件列表 -->
     <ul class="relative pl-6 border-l-2 border-gray-200 space-y-5">
         <?php foreach ($events as $event):
-            $dotColor = match($event['color']) {
-                'blue'   => 'bg-blue-500',
-                'green'  => 'bg-green-500',
-                'yellow' => 'bg-yellow-500',
-                'red'    => 'bg-red-500',
-                'purple' => 'bg-purple-500',
-                'cyan'   => 'bg-cyan-500',
-                'indigo' => 'bg-indigo-500',
-                'pink'   => 'bg-pink-500',
-                'gray'   => 'bg-gray-500',
-                default  => 'bg-primary',
-            };
-            $textColor = match($event['color']) {
-                'blue'   => 'text-blue-600',
-                'green'  => 'text-green-600',
-                'yellow' => 'text-yellow-600',
-                'red'    => 'text-red-600',
-                'purple' => 'text-purple-600',
-                'cyan'   => 'text-cyan-600',
-                'indigo' => 'text-indigo-600',
-                'pink'   => 'text-pink-600',
-                'gray'   => 'text-gray-600',
-                default  => 'text-primary',
-            };
+            $_cp = timelineColorParts((string)($event['color'] ?? 'primary'));
+            $dotColor  = $_cp['dotClass'];  $dotStyle  = $_cp['dotStyle'];
+            $textColor = $_cp['textClass']; $textStyle = $_cp['textStyle'];
             $dateLabel = '';
             if ($event['month'] > 0) {
                 $dateLabel .= str_pad((string)$event['month'], 2, '0', STR_PAD_LEFT);
@@ -62,11 +41,11 @@ if (empty($groupedTimelines)) return;
         ?>
         <li class="relative" data-aos="fade-up">
             <!-- 圆点（覆盖在主线上） -->
-            <span class="absolute -left-[27px] top-1.5 w-3 h-3 <?php echo $dotColor; ?> rounded-full ring-4 ring-white shadow"></span>
+            <span class="absolute -left-[27px] top-1.5 w-3 h-3 <?php echo $dotColor; ?> rounded-full ring-4 ring-white shadow" style="<?php echo $dotStyle; ?>"></span>
 
             <div class="flex flex-col sm:flex-row sm:items-start gap-3">
                 <!-- 日期窄列 -->
-                <div class="sm:w-20 shrink-0 text-sm font-medium <?php echo $textColor; ?>">
+                <div class="sm:w-20 shrink-0 text-sm font-medium <?php echo $textColor; ?>" style="<?php echo $textStyle; ?>">
                     <?php echo $dateLabel !== '' ? $dateLabel : '&nbsp;'; ?>
                 </div>
 

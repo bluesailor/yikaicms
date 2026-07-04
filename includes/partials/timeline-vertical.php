@@ -32,44 +32,23 @@ if (empty($groupedTimelines)) return;
 
     <?php foreach ($events as $event):
         $isLeft = $index % 2 === 0;
-        $colorClass = match($event['color']) {
-            'blue'   => 'from-blue-500 to-blue-600',
-            'green'  => 'from-green-500 to-green-600',
-            'yellow' => 'from-yellow-500 to-yellow-600',
-            'red'    => 'from-red-500 to-red-600',
-            'purple' => 'from-purple-500 to-purple-600',
-            'cyan'   => 'from-cyan-500 to-cyan-600',
-            'indigo' => 'from-indigo-500 to-indigo-600',
-            'pink'   => 'from-pink-500 to-pink-600',
-            'gray'   => 'from-gray-500 to-gray-600',
-            default  => 'from-primary to-secondary',
-        };
-        $dotColor = match($event['color']) {
-            'blue'   => 'bg-blue-500',
-            'green'  => 'bg-green-500',
-            'yellow' => 'bg-yellow-500',
-            'red'    => 'bg-red-500',
-            'purple' => 'bg-purple-500',
-            'cyan'   => 'bg-cyan-500',
-            'indigo' => 'bg-indigo-500',
-            'pink'   => 'bg-pink-500',
-            'gray'   => 'bg-gray-500',
-            default  => 'bg-primary',
-        };
+        $_cp = timelineColorParts((string)($event['color'] ?? 'primary'));
+        $colorClass = $_cp['gradClass']; $colorStyle = $_cp['gradStyle'];
+        $dotColor   = $_cp['dotClass'];  $dotStyle   = $_cp['dotStyle'];
     ?>
     <div class="timeline-item relative flex items-center justify-center mb-8"
          data-aos="<?php echo $isLeft ? 'fade-right' : 'fade-left'; ?>"
          data-aos-delay="<?php echo ($index % 3) * 100; ?>">
 
         <!-- 中间的圆点 -->
-        <div class="hidden md:flex absolute left-1/2 -translate-x-1/2 w-5 h-5 <?php echo $dotColor; ?> rounded-full border-4 border-white shadow-lg z-10 items-center justify-center">
+        <div class="hidden md:flex absolute left-1/2 -translate-x-1/2 w-5 h-5 <?php echo $dotColor; ?> rounded-full border-4 border-white shadow-lg z-10 items-center justify-center" style="<?php echo $dotStyle; ?>">
             <div class="w-2 h-2 bg-white rounded-full animate-ping"></div>
         </div>
 
         <!-- 内容卡片 - 桌面端左右交替 -->
         <div class="relative z-10 w-full md:w-5/12 <?php echo $isLeft ? 'md:mr-auto md:pr-8' : 'md:ml-auto md:pl-8'; ?>">
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group">
-                <div class="h-2 bg-gradient-to-r <?php echo $colorClass; ?>"></div>
+                <div class="h-2 bg-gradient-to-r <?php echo $colorClass; ?>" style="<?php echo $colorStyle; ?>"></div>
 
                 <?php if ($event['image']): ?>
                 <div class="relative h-48 overflow-hidden">
@@ -91,7 +70,7 @@ if (empty($groupedTimelines)) return;
                 <div class="p-6">
                     <?php if (!$event['image']): ?>
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r <?php echo $colorClass; ?> text-white">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r <?php echo $colorClass; ?> text-white" style="<?php echo $colorStyle; ?>">
                             <?php
                             echo $event['year'];
                             if ($event['month'] > 0) echo '.' . str_pad((string)$event['month'], 2, '0', STR_PAD_LEFT);
