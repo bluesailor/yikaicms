@@ -2377,6 +2377,74 @@ function renderFormTemplate(string $slug): string
 }
 
 /**
+ * 时间线事件颜色解析（供后台列表 + 前台 3 个 timeline 分区模板统一使用）。
+ * 支持两种取值：
+ *   - 预设名：blue/green/yellow/red/purple/cyan/indigo/pink/gray/primary → 返回 Tailwind class
+ *   - 自定义十六进制：#rrggbb 或 #rgb → 返回内联 style（圆点纯色、渐变条自动生成深色收尾）
+ * 返回 ['dotClass','dotStyle','gradClass','gradStyle']，模板同时输出 class 与 style，二者只生效其一。
+ */
+function timelineColorParts(string $color): array
+{
+    $color = trim($color);
+    if ($color !== '' && $color[0] === '#' && preg_match('/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/', $color)) {
+        if (strlen($color) === 4) { // #rgb → #rrggbb
+            $color = '#' . $color[1] . $color[1] . $color[2] . $color[2] . $color[3] . $color[3];
+        }
+        $dark = shadeHex($color, -0.18);
+        return [
+            'dotClass'  => '',
+            'dotStyle'  => 'background-color:' . $color . ';',
+            'gradClass' => '',
+            'gradStyle' => 'background-image:linear-gradient(to right,' . $color . ',' . $dark . ');',
+            'textClass' => '',
+            'textStyle' => 'color:' . $color . ';',
+        ];
+    }
+    $grad = [
+        'blue' => 'from-blue-500 to-blue-600', 'green' => 'from-green-500 to-green-600',
+        'yellow' => 'from-yellow-500 to-yellow-600', 'red' => 'from-red-500 to-red-600',
+        'purple' => 'from-purple-500 to-purple-600', 'cyan' => 'from-cyan-500 to-cyan-600',
+        'indigo' => 'from-indigo-500 to-indigo-600', 'pink' => 'from-pink-500 to-pink-600',
+        'gray' => 'from-gray-500 to-gray-600',
+    ];
+    $dot = [
+        'blue' => 'bg-blue-500', 'green' => 'bg-green-500', 'yellow' => 'bg-yellow-500',
+        'red' => 'bg-red-500', 'purple' => 'bg-purple-500', 'cyan' => 'bg-cyan-500',
+        'indigo' => 'bg-indigo-500', 'pink' => 'bg-pink-500', 'gray' => 'bg-gray-500',
+    ];
+    $text = [
+        'blue' => 'text-blue-600', 'green' => 'text-green-600', 'yellow' => 'text-yellow-600',
+        'red' => 'text-red-600', 'purple' => 'text-purple-600', 'cyan' => 'text-cyan-600',
+        'indigo' => 'text-indigo-600', 'pink' => 'text-pink-600', 'gray' => 'text-gray-600',
+    ];
+    return [
+        'dotClass'  => $dot[$color] ?? 'bg-primary',
+        'dotStyle'  => '',
+        'gradClass' => $grad[$color] ?? 'from-primary to-secondary',
+        'gradStyle' => '',
+        'textClass' => $text[$color] ?? 'text-primary',
+        'textStyle' => '',
+    ];
+}
+
+/**
+ * 按百分比调亮/调暗十六进制颜色（$pct<0 变暗，>0 变亮），返回 #rrggbb。
+ */
+function shadeHex(string $hex, float $pct): string
+{
+    $hex = ltrim($hex, '#');
+    if (strlen($hex) !== 6) return '#' . $hex;
+    $r = hexdec(substr($hex, 0, 2));
+    $g = hexdec(substr($hex, 2, 2));
+    $b = hexdec(substr($hex, 4, 2));
+    $adj = static function (int $c) use ($pct): int {
+        $v = $pct < 0 ? $c * (1 + $pct) : $c + (255 - $c) * $pct;
+        return max(0, min(255, (int) round($v)));
+    };
+    return sprintf('#%02x%02x%02x', $adj($r), $adj($g), $adj($b));
+}
+
+/**
  * 将排版模式 JSON 数据渲染为 HTML
  */
 function renderBlocksToHtml(string $blocksJson): string
@@ -2442,8 +2510,13 @@ function renderBlocksToHtml(string $blocksJson): string
             $html .= '<div class="' . $gridClass . '">';
         }
 
+        $colCard = $colCount > 1 && !empty($settings['col_card']);
         foreach ($columns as $col) {
-            if ($colCount > 1) $html .= '<div>';
+            if ($colCount > 1) {
+                $html .= $colCard
+                    ? '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center">'
+                    : '<div>';
+            }
             foreach ($col['elements'] ?? [] as $el) {
                 $type = $el['type'] ?? '';
                 $data = $el['data'] ?? [];
@@ -2477,7 +2550,7 @@ function renderBlocksToHtml(string $blocksJson): string
                         $text = htmlspecialchars($data['text'] ?? '');
                         $url = htmlspecialchars($data['url'] ?? '#');
                         $target = !empty($data['new_tab']) ? ' target="_blank" rel="noopener"' : '';
-                        $html .= '<div class="mt-2"><a class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg transition" href="' . $url . '"' . $target . '>' . $text . '</a></div>';
+                        $html .= '<div class="mt-2"><a class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg transition no-underline" style="color:#fff;text-decoration:none" href="' . $url . '"' . $target . '>' . $text . '</a></div>';
                         break;
                     case 'icon':
                         $icon = htmlspecialchars($data['icon'] ?? 'star');
