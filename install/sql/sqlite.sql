@@ -1396,7 +1396,6 @@ INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id"
 <h2>Results</h2>
 <p>One year after launch: daily store sales up 12%, out-of-stock rate down from 8.2% to 2.1%, inventory turnover up 25%, member repurchase rate up 18%.</p>','html',NULL,'','','Retail,Platform,Replenishment,Membership','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (66,'ja',64,72,'case','小売チェーンのデジタル変革ソリューション','300店舗以上のための統合基盤・スマート補充・会員オムニチャネル','retail-chain-digitalization-ja','https://picsum.photos/seed/retail-chain/1200/600',NULL,'全国小売チェーン向けに POS／会員／在庫／クーポンを統合。スマート補充モデルにより、店舗日次売上を12%向上、欠品率を8.2%から2.1%に低減しました。','<h2>業界背景</h2>
--- @demo:end
 <p>全国に300店舗以上を展開する小売チェーンでは、各店舗のPOS・会員・在庫システムが分断されており、本部はリアルタイムの売上・在庫データを取得できず、販促活動の対応も遅れ、在庫回転率は業界平均を下回っていました。</p>
 <h2>ソリューション</h2>
 <ul>
@@ -1406,6 +1405,7 @@ INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id"
 </ul>
 <h2>導入効果</h2>
 <p>稼働1年後：店舗の日次売上12%向上、欠品率8.2%から2.1%へ低減、在庫回転率25%向上、会員リピート率18%向上。</p>','html',NULL,'','','小売,プラットフォーム,補充,会員','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
+-- @demo:end
 DROP TABLE IF EXISTS "yikai_download_categories";
 CREATE TABLE "yikai_download_categories" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1942,7 +1942,6 @@ INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id
 <li>豊富な I/O：4×RS485、2×CAN、4×DI、4×DO</li>
 </ul>',0.00,0.00,'EC-500',NULL,'','custom','','',0,0,0,0,4,1,5,1778457949,1778458636,0);
 INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id", "brand_id", "title", "subtitle", "slug", "cover", "images", "summary", "content", "price", "market_price", "model", "specs", "tags", "product_type", "material", "scene", "is_top", "is_recommend", "is_hot", "is_new", "views", "status", "sort_order", "created_at", "updated_at", "admin_id") VALUES (18,'ja',6,12,0,'スマートゲートウェイ GC-300','','gc-300-ja','https://picsum.photos/600/600?random=106',NULL,'Wi-Fi/Zigbee/LoRa/4G マルチプロトコル','<h2>製品概要</h2>
--- @demo:end
 <p>GC-300 スマートゲートウェイコントローラは、Wi-Fi / Zigbee / LoRa / 4G の 4 つのワイヤレスプロトコルを同時に動作させます。エッジコンピューティングモジュールを内蔵し、デバイスの統合管理を実現します。</p>
 <h3>主な特徴</h3>
 <ul>
@@ -1953,6 +1952,7 @@ INSERT INTO "yikai_products" ("id", "lang", "translation_group_id", "category_id
 </ul>
 <h3>適用シーン</h3>
 <p>スマートビル、スマートホーム、産業 IoT。</p>',0.00,0.00,'GC-300',NULL,'','custom','','',0,0,0,0,2,1,6,1778457949,1778458636,0);
+-- @demo:end
 DROP TABLE IF EXISTS "yikai_roles";
 CREATE TABLE "yikai_roles" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
