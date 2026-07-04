@@ -333,7 +333,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <input type="hidden" name="structure" value="1">
         <input type="hidden" name="data" value="1">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> 备份中...'">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            <i class="ti ti-database text-lg"></i>
             一键备份
         </button>
     </form>
@@ -341,7 +341,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php if ($restoredMsg): ?>
 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-2 text-sm text-blue-700">
-    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    <i class="ti ti-refresh text-lg flex-shrink-0"></i>
     <?php echo e($restoredMsg); ?>
 </div>
 <?php endif; ?>
@@ -349,7 +349,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php if ($savedFile): ?>
 <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between">
     <div class="flex items-center gap-2 text-sm text-green-700">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <i class="ti ti-circle-check text-lg"></i>
         备份成功：<?php echo e($savedFile); ?>
     </div>
     <form method="post" class="inline">
@@ -373,7 +373,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php foreach ($backupFiles as $bf): ?>
         <div class="px-6 py-3 flex items-center justify-between hover:bg-gray-50">
             <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <i class="ti ti-file-text text-lg text-gray-400 flex-shrink-0"></i>
                 <div>
                     <span class="text-sm font-mono"><?php echo e($bf['name']); ?></span>
                     <span class="text-xs text-gray-400 ml-3"><?php echo round($bf['size']/1024); ?> KB</span>
@@ -386,7 +386,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="hidden" name="action" value="download">
                     <input type="hidden" name="file" value="<?php echo e($bf['name']); ?>">
                     <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-secondary text-white text-xs rounded transition">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <i class="ti ti-download text-sm"></i>
                         下载
                     </button>
                 </form>
@@ -395,12 +395,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="hidden" name="action" value="restore">
                     <input type="hidden" name="file" value="<?php echo e($bf['name']); ?>">
                     <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-yellow-500 text-yellow-600 hover:bg-yellow-50 text-xs rounded transition">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <i class="ti ti-refresh text-sm"></i>
                         恢复
                     </button>
                 </form>
                 <button onclick="deleteBackup('<?php echo e($bf['name']); ?>')" class="p-1.5 text-gray-400 hover:text-red-500 transition" title="删除">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <i class="ti ti-trash text-base"></i>
                 </button>
             </div>
         </div>
@@ -452,7 +452,7 @@ async function deleteBackup(file) {
         </div>
         <div class="px-6 py-4 border-t flex items-center gap-3">
             <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded transition inline-flex items-center gap-2 text-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <i class="ti ti-file-download text-base"></i>
                 直接下载
             </button>
             <span class="text-xs text-gray-400">选择表后直接下载 SQL 文件（不保存到服务器）</span>
@@ -472,7 +472,7 @@ async function deleteBackup(file) {
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="import">
             <label class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4 block cursor-pointer hover:border-primary hover:bg-blue-50/30 transition">
-                <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                <i class="ti ti-cloud-upload text-5xl mx-auto text-gray-300 mb-3"></i>
                 <p class="text-sm text-gray-600 mb-2">点击选择 .sql 或 .sql.gz 文件</p>
                 <input type="file" name="sqlfile" accept=".sql,.gz" required class="text-sm" onchange="showFileInfo(this)">
                 <div id="fileInfo" class="mt-2 text-xs text-gray-500 hidden"></div>

@@ -73,7 +73,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div class="flex justify-end">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <i class="ti ti-check text-base"></i>
                 保存
             </button>
         </div>

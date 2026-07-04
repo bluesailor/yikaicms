@@ -72,19 +72,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex items-center gap-3">
                 <?php if ($valid): ?>
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <i class="ti ti-check text-base"></i>
                         授权有效
                     </span>
                 <?php else: ?>
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                        <i class="ti ti-alert-triangle text-base"></i>
                         <?php echo e($plan === 'free' ? '免费版' : '授权异常'); ?>
                     </span>
                 <?php endif; ?>
                 <span class="text-lg font-bold text-gray-800"><?php echo e($planLabels[$plan] ?? $plan); ?></span>
             </div>
             <button type="button" id="btnRefresh" class="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <i class="ti ti-refresh text-base"></i>
                 立即校验
             </button>
         </div>

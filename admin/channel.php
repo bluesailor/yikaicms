@@ -257,12 +257,11 @@ function renderEyeToggle(string $onclickJs, bool $isShown, string $viewLabel = '
     $title = $isShown
         ? '当前显示' . ($viewLabel ? '（' . $viewLabel . '）' : '') . '，点击隐藏'
         : '当前隐藏' . ($viewLabel ? '（' . $viewLabel . '）' : '') . '，点击显示';
-    $eyeOpen  = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
-    $eyeClose = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88"/></svg>';
+    $icon = $isShown ? 'ti-eye' : 'ti-eye-off';
     return '<button onclick="' . htmlspecialchars($onclickJs, ENT_QUOTES) . '" '
         . 'class="cursor-pointer p-1 rounded transition ' . $cls . '" '
         . 'title="' . htmlspecialchars($title, ENT_QUOTES) . '">'
-        . ($isShown ? $eyeOpen : $eyeClose)
+        . '<i class="ti ' . $icon . ' text-base"></i>'
         . '</button>';
 }
 
@@ -474,8 +473,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php echo __('admin_channel_unassigned'); ?><span class="ml-1 text-xs text-gray-400">(<?php echo count($undefinedChannels); ?>)</span>
                 </button>
                 <div class="flex-1"></div>
+                <a href="/admin/channel_batch.php" class="border border-gray-300 text-gray-600 hover:border-primary hover:text-primary px-4 py-2 rounded text-sm transition inline-flex items-center gap-1 mr-2" title="<?php echo e(__('chbatch_entry_hint')); ?>">
+                    <i class="ti ti-align-left text-base"></i>
+                    <?php echo e(__('chbatch_title')); ?>
+                </a>
                 <a href="?edit=0&tab=<?php echo e($activeTab); ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <i class="ti ti-plus text-base"></i>
                     <?php echo __('admin_channel_add'); ?>
                 </a>
             </div>
@@ -486,7 +489,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="px-4 pt-4">
                     <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
                         <span class="text-blue-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            <i class="ti ti-home text-lg"></i>
                         </span>
                         <span class="font-medium text-gray-800 flex-1"><?php echo e($_viewHomeText); ?></span>
                         <span class="text-xs text-gray-400"><?php echo __('admin_label_fixed'); ?></span>
@@ -502,7 +505,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="channel-item" data-id="<?php echo $ch['id']; ?>">
                             <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm group">
                                 <span class="drag-handle-root cursor-grab text-gray-300 hover:text-gray-500">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                    <i class="ti ti-menu-2 text-lg"></i>
                                 </span>
                                 <span class="font-medium text-gray-800 flex-1">
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
@@ -512,8 +515,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php if (in_array('/' . $_srcSlugOf($ch) . '.html', $footerNavUrls)): ?>
                                 <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600"><?php echo __('admin_footer_nav_badge'); ?></span>
                                 <?php endif; ?>
-                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
                                 <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
@@ -521,9 +523,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                 <?php endif; ?>
                                 <?php endif; ?>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($ch['children'])): ?>
@@ -532,7 +535,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <div class="channel-item" data-id="<?php echo $child['id']; ?>">
                                     <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border hover:shadow-sm group">
                                         <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                            <i class="ti ti-menu-2 text-base"></i>
                                         </span>
                                         <span class="text-gray-300 text-xs">└</span>
                                         <span class="text-gray-700 flex-1">
@@ -540,8 +543,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         </span>
                                         <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                         <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
-                                        <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                        <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                        <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                         <?php if (($child['type'] ?? '') === 'page'): ?>
                                         <?php if (($child['slug'] ?? '') === 'contact'): ?>
                                         <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
@@ -549,9 +551,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                         <?php endif; ?>
                                         <?php endif; ?>
+                                        <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                         <?php if (empty($child['is_system'])): ?>
                                         <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
-                                                class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                                class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -572,9 +575,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                      style="margin-left: <?php echo $level * 24; ?>px;">
                                     <span class="text-amber-300 text-xs">
                                         <?php if ($level === 0): ?>
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path></svg>
+                                        <i class="ti ti-tag text-base"></i>
                                         <?php else: ?>
-                                        <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"></path></svg>
+                                        <i class="ti ti-tag text-sm text-gray-300"></i>
                                         <?php endif; ?>
                                     </span>
                                     <span class="text-gray-300 text-xs">└</span>
@@ -616,10 +619,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="footer-nav-item" data-url="/">
                             <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
                                 <span class="drag-handle-footer cursor-grab text-blue-300 hover:text-blue-500">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                    <i class="ti ti-menu-2 text-lg"></i>
                                 </span>
                                 <span class="text-blue-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                                    <i class="ti ti-home text-lg"></i>
                                 </span>
                                 <span class="font-medium text-gray-800 flex-1"><?php echo e($fi['link']['name'] ?? __('admin_home')); ?></span>
                                 <span class="text-xs text-gray-400">/</span>
@@ -631,7 +634,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="footer-nav-item" data-url="<?php echo e($fi['link']['url']); ?>">
                             <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm">
                                 <span class="drag-handle-footer cursor-grab text-gray-300 hover:text-gray-500">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                    <i class="ti ti-menu-2 text-lg"></i>
                                 </span>
                                 <span class="font-medium text-gray-800 flex-1">
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
@@ -641,8 +644,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php if (!empty($ch['is_nav'])): ?>
                                 <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600"><?= __('admin_main_nav') ?></span>
                                 <?php endif; ?>
-                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
                                 <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
@@ -650,9 +652,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                 <?php endif; ?>
                                 <?php endif; ?>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -660,7 +663,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="footer-nav-item" data-url="<?php echo e($fi['link']['url']); ?>">
                             <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg border hover:shadow-sm">
                                 <span class="drag-handle-footer cursor-grab text-gray-300 hover:text-gray-500">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                    <i class="ti ti-menu-2 text-lg"></i>
                                 </span>
                                 <span class="font-medium text-gray-800 flex-1"><?php echo e($fi['link']['name'] ?? ''); ?></span>
                                 <span class="text-xs text-gray-400"><?php echo e($fi['link']['url'] ?? ''); ?></span>
@@ -692,8 +695,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </span>
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                 <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
-                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
                                 <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
@@ -701,9 +703,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                 <?php endif; ?>
                                 <?php endif; ?>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
                                 <?php endif; ?>
                             </div>
                             <?php if (!empty($ch['children'])): ?>
@@ -716,8 +719,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     </span>
                                     <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                     <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
-                                    <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                    <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                    <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                     <?php if (($child['type'] ?? '') === 'page'): ?>
                                     <?php if (($child['slug'] ?? '') === 'contact'): ?>
                                     <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
@@ -725,9 +727,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                     <?php endif; ?>
                                     <?php endif; ?>
+                                    <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
                                     <?php if (empty($child['is_system'])): ?>
                                     <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
-                                            class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                            class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
                                     <?php endif; ?>
                                 </div>
                                 <?php endforeach; ?>
@@ -840,7 +843,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            target="_blank"
                            class="inline-flex items-center gap-1 px-3 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded text-sm whitespace-nowrap transition <?php echo ((int)($editChannel['album_id'] ?? 0)) > 0 ? '' : 'hidden'; ?>"
                            title="管理该相册的图片">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <i class="ti ti-photo text-base"></i>
                             管理图片
                         </a>
                     </div>
@@ -904,13 +907,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if (($editChannel['slug'] ?? '') === 'contact'): ?>
                 <a href="/admin/setting_contact.php"
                    class="block w-full text-center bg-gray-700 hover:bg-gray-800 text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <i class="ti ti-settings text-base"></i>
                     <?php echo __('admin_setting_contact'); ?>
                 </a>
                 <?php else: ?>
                 <a href="/admin/page_edit.php?id=<?php echo $editChannel['id']; ?>"
                    class="block w-full text-center bg-gray-700 hover:bg-gray-800 text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <i class="ti ti-pencil text-base"></i>
                     <?php echo __('admin_content_edit'); ?>
                 </a>
                 <?php endif; ?>
@@ -918,12 +921,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                 <div class="flex gap-2">
                     <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <i class="ti ti-check text-base"></i>
                         <?php echo __('admin_save'); ?>
                     </button>
                     <?php if ($editChannel): ?>
                     <a href="?" class="px-4 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <i class="ti ti-x text-base"></i>
                         <?php echo __('admin_cancel'); ?></a>
                     <?php endif; ?>
                 </div>

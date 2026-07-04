@@ -156,12 +156,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                                 <div class="flex gap-1">
                                     <textarea class="card-value w-full border rounded px-3 py-1.5 text-sm" rows="2" placeholder="文字或图片地址"><?php echo e($card['value'] ?? ''); ?></textarea>
                                     <button type="button" class="card-upload text-gray-400 hover:text-primary flex-shrink-0 pt-1" title="<?php echo __('btn_upload_image'); ?>">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        <i class="ti ti-photo text-lg"></i>
                                     </button>
                                 </div>
                             </div>
                             <button type="button" class="card-clear text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="清空此行">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <i class="ti ti-x text-base"></i>
                             </button>
                         </div>
                         <?php
@@ -201,12 +201,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                                class="flex-1 border rounded px-4 py-2">
                         <button type="button" onclick="uploadImage('<?php echo e($item['key']); ?>')"
                                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            <i class="ti ti-upload text-base"></i>
                             上传
                         </button>
                         <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <i class="ti ti-photo text-base"></i>
                             <?php echo __("admin_media_library"); ?>
                         </button>
                     </div>
@@ -231,7 +231,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
     <!-- 表单短码提示 -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <i class="ti ti-info-circle text-lg text-blue-500 flex-shrink-0"></i>
             <div class="text-sm text-blue-800">
                 联系我们页面当前调用的表单短码：<code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono">[form-contact]</code>
                 <span class="text-blue-500 ml-1">— 可在「表单设计」中编辑模板和字段</span>
@@ -462,7 +462,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
 
     <div class="bg-white rounded-lg shadow p-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <i class="ti ti-check text-base"></i>
             <?php echo __('btn_save_settings'); ?>
         </button>
     </div>

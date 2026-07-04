@@ -202,7 +202,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="text" name="attachment" id="attachmentInput" value="<?php echo e($content['attachment'] ?? ''); ?>"
                                class="flex-1 border rounded px-4 py-2" placeholder="附件URL">
                         <button type="button" onclick="uploadAttachment()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                            <i class="ti ti-folder text-base"></i>
                             <?php echo __('admin_choose_file'); ?>
                         </button>
                     </div>
@@ -318,11 +318,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                 <div class="mt-6 flex gap-2">
                     <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <i class="ti ti-check text-base"></i>
                         <?php echo __('admin_save'); ?>
                     </button>
                     <a href="/admin/content.php" class="px-4 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        <i class="ti ti-arrow-left text-base"></i>
                         <?php echo __('admin_back'); ?></a>
                 </div>
             </div>
@@ -337,11 +337,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex gap-2">
                     <button type="button" onclick="uploadCover()"
                             class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <i class="ti ti-upload text-base"></i>
                         <?php echo __('admin_upload_image'); ?></button>
                     <button type="button" onclick="pickCoverFromMedia()"
                             class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <i class="ti ti-photo text-base"></i>
                         <?php echo __('admin_media_library'); ?></button>
                 </div>
             </div>
@@ -355,11 +355,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex gap-2">
                     <button type="button" onclick="galleryUpload()"
                             class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <i class="ti ti-upload text-base"></i>
                         <?php echo __('admin_upload_image'); ?></button>
                     <button type="button" onclick="galleryPick()"
                             class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <i class="ti ti-photo text-base"></i>
                         <?php echo __('admin_media_library'); ?></button>
                 </div>
             </div>

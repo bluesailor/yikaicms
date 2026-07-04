@@ -95,11 +95,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <div class="flex gap-2">
             <a href="/admin/download.php" class="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                <i class="ti ti-arrow-left text-base"></i>
                 <?php echo __('admin_back'); ?>
             </a>
             <button onclick="openModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <i class="ti ti-plus text-base"></i>
                 添加分类
             </button>
         </div>
@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h3 class="text-lg font-medium" id="modalTitle">添加分类</h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-lg"></i>
             </button>
         </div>
         <form id="editForm" onsubmit="saveItem(event)">

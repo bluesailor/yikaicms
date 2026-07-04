@@ -319,9 +319,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
             <div class="flex items-center gap-3 px-4 py-3">
                 <!-- 拖拽手柄 -->
                 <div class="block-drag-handle cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0" title="拖拽排序">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"></path>
-                    </svg>
+                    <i class="ti ti-grip-vertical text-lg"></i>
                 </div>
                 <!-- 图标 -->
                 <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,9 +334,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                 </label>
                 <!-- 展开/折叠 -->
                 <button type="button" class="text-gray-400 hover:text-gray-600 flex-shrink-0 p-1 transition" @click="expanded = !expanded">
-                    <svg class="w-5 h-5 transition-transform" :class="expanded && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
+                    <i class="ti ti-chevron-down text-lg transition-transform"></i>
                 </button>
             </div>
 
@@ -375,7 +371,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                     <input type="text" class="block-bg-image flex-1 border rounded px-2 py-1.5 text-xs"
                                            value="<?php echo e($block['bg_image'] ?? ''); ?>" placeholder="图片URL">
                                     <button type="button" class="block-bg-upload bg-gray-100 hover:bg-gray-200 text-gray-500 px-2 rounded" title="上传">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                                        <i class="ti ti-folder text-base"></i>
                                     </button>
                                 </div>
                             </div>
@@ -490,12 +486,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                        class="flex-1 border rounded px-3 py-2 text-sm">
                                 <button type="button" onclick="uploadImage('<?php echo e($item['key']); ?>')"
                                         class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                    <i class="ti ti-upload text-base"></i>
                                     上传
                                 </button>
                                 <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                         class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <i class="ti ti-photo text-base"></i>
                                     <?php echo __("admin_media_library"); ?>
                                 </button>
                             </div>
@@ -531,7 +527,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                         <div class="flex items-center gap-1">
                                             <input type="text" class="tm-avatar border rounded px-2 py-1.5 text-xs w-28" placeholder="图片URL" value="<?php echo e($tm['avatar'] ?? ''); ?>">
                                             <button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="上传头像">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                <i class="ti ti-photo text-base"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -548,7 +544,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                         <input type="text" class="tm-content w-full border rounded px-2 py-1.5 text-sm" value="<?php echo e($tm['content'] ?? ''); ?>">
                                     </div>
                                     <button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('admin_delete'); ?>">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        <i class="ti ti-x text-base"></i>
                                     </button>
                                 </div>
                             </div>
@@ -611,7 +607,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
 
     <div class="max-w-6xl mx-auto mt-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <i class="ti ti-check text-base"></i>
             <?php echo __('btn_save_settings'); ?>
         </button>
     </div>
@@ -696,7 +692,7 @@ function addTestimonial() {
         '<div class="flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">头像</label>' +
         '<div class="flex items-center gap-1"><input type="text" class="tm-avatar border rounded px-2 py-1.5 text-xs w-28" placeholder="图片URL">' +
         '<button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="上传头像">' +
-        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>' +
+        '<i class="ti ti-photo text-base"></i>' +
         '</button></div></div>' +
         '<div class="w-24 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_name'); ?></label>' +
         '<input type="text" class="tm-name w-full border rounded px-2 py-1.5 text-sm"></div>' +
@@ -705,7 +701,7 @@ function addTestimonial() {
         '<div class="flex-1"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_content'); ?></label>' +
         '<input type="text" class="tm-content w-full border rounded px-2 py-1.5 text-sm"></div>' +
         '<button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('admin_delete'); ?>">' +
-        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
+        '<i class="ti ti-x text-base"></i>' +
         '</button></div>';
     editor.appendChild(div);
 }

@@ -235,18 +235,18 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
             </select>
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <i class="ti ti-search text-base"></i>
                 <?php echo __('admin_filter'); ?>
             </button>
         </form>
 
         <div class="flex gap-2">
             <button onclick="openSettingsModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <i class="ti ti-settings text-base"></i>
                 轮播图设置
             </button>
             <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <i class="ti ti-plus text-base"></i>
                 <?php echo __('admin_add'); ?>
             </button>
         </div>
@@ -307,11 +307,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <i class="ti ti-pencil text-sm"></i>
                             <?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteBanner(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <i class="ti ti-trash text-sm"></i>
                             <?php echo __('admin_delete'); ?></button>
                     </td>
                 </tr>
@@ -420,7 +420,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
             <div class="flex justify-end gap-2 pt-4">
                 <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __('admin_save'); ?></button>
             </div>
         </form>
@@ -457,7 +457,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
             <div class="flex justify-end gap-2 pt-4">
                 <button type="button" onclick="closeSettingsModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __('admin_save'); ?>
                 </button>
             </div>
@@ -636,7 +636,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     <div class="p-4 flex justify-between items-center">
         <p class="text-sm text-gray-500">管理轮播图分组，每个分组可生成短码嵌入到页面内容中。</p>
         <button onclick="openGroupModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <i class="ti ti-plus text-base"></i>
             添加分组
         </button>
     </div>
@@ -670,7 +670,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                         <div class="flex items-center gap-2">
                             <code class="text-sm bg-blue-50 text-blue-700 px-2 py-1 rounded">[banner-<?php echo e($g['slug']); ?>]</code>
                             <button onclick="copyShortcode('<?php echo e($g['slug']); ?>')" class="text-gray-400 hover:text-primary" title="复制短码">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                <i class="ti ti-copy text-base"></i>
                             </button>
                         </div>
                     </td>
@@ -692,11 +692,11 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                     <td class="px-4 py-3 text-center">
                         <button onclick='openGroupModal(<?php echo json_encode($g, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-3 inline-flex items-center gap-1 align-middle">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <i class="ti ti-pencil text-sm"></i>
                             <?php echo __('admin_edit'); ?></button>
                         <button onclick="deleteGroup(<?php echo $g['id']; ?>)" title="<?php echo __('admin_delete'); ?>"
                                 class="text-red-600 hover:text-red-700 inline-flex items-center align-middle">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <i class="ti ti-trash text-base"></i>
                         </button>
                     </td>
                 </tr>
@@ -762,7 +762,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             <div class="flex justify-end gap-2 pt-4">
                 <button type="button" onclick="closeGroupModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __("btn_save"); ?>
                 </button>
             </div>

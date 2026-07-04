@@ -189,7 +189,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="mb-6">
     <div class="flex items-center gap-2 text-sm text-gray-500">
         <a href="/admin/album.php" class="hover:text-primary">相册管理</a>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        <i class="ti ti-chevron-right text-base"></i>
         <span class="text-gray-900"><?php echo e($album['name']); ?></span>
     </div>
 </div>
@@ -199,9 +199,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-6">
         <div id="uploadZone" class="upload-zone">
             <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
+            <i class="ti ti-photo text-base mx-auto mb-3 text-gray-300"></i>
             <p class="text-gray-600 mb-1">拖拽图片到此处，或 <span class="text-primary">点击上传</span></p>
             <p class="text-xs text-gray-400">支持 JPG、PNG、GIF、WEBP 格式，可多选</p>
         </div>
@@ -247,13 +245,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="overlay"></div>
             <div class="actions">
                 <button onclick="setCover(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="设为封面">
-                    <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <i class="ti ti-photo text-base text-gray-700"></i>
                 </button>
                 <button onclick="editPhoto(<?php echo $photo['id']; ?>, '<?php echo e(addslashes($photo['title'])); ?>', '<?php echo e(addslashes($photo['description'] ?? '')); ?>')" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo __('admin_edit'); ?>">
-                    <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <i class="ti ti-pencil text-base text-gray-700"></i>
                 </button>
                 <button onclick="deletePhoto(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white" title="<?php echo __('admin_delete'); ?>">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <i class="ti ti-trash text-base"></i>
                 </button>
             </div>
             <?php if (!$photo['status']): ?>
@@ -265,9 +263,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <?php if (empty($photos)): ?>
     <div class="text-center py-12 text-gray-500">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
+        <i class="ti ti-photo text-base mx-auto mb-4 text-gray-300"></i>
         <p>暂无图片，请上传</p>
     </div>
     <?php endif; ?>
@@ -279,7 +275,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h3 class="text-lg font-medium">编辑图片信息</h3>
             <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-lg"></i>
             </button>
         </div>
         <form id="editForm" onsubmit="savePhoto(event)">

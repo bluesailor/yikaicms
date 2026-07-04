@@ -121,9 +121,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if (!empty($album['cover'])): ?>
                         <img src="<?php echo e($album['cover']); ?>" class="w-full h-full object-cover">
                         <?php else: ?>
-                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
+                        <i class="ti ti-photo text-base text-gray-300"></i>
                         <?php endif; ?>
                     </div>
                     <div class="flex-1">
@@ -132,17 +130,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="flex flex-wrap gap-2">
                             <button type="button" onclick="document.getElementById('coverFile').click()"
                                     class="border px-4 py-2 rounded hover:bg-gray-50 inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                                </svg>
+                                <i class="ti ti-upload text-base"></i>
                                 上传封面
                             </button>
                             <?php if ($album && count($photos) > 0): ?>
                             <button type="button" onclick="openPhotoSelector()"
                                     class="border px-4 py-2 rounded hover:bg-gray-50 inline-flex items-center gap-2 text-primary border-primary">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
+                                <i class="ti ti-photo text-base"></i>
                                 从相册选择
                             </button>
                             <?php endif; ?>
@@ -185,16 +179,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex gap-3">
                 <?php if ($album): ?>
                 <a href="/admin/album_photos.php?id=<?php echo $id; ?>" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                    <i class="ti ti-photo text-base"></i>
                     <?php echo __('admin_manage'); ?>
                 </a>
                 <?php endif; ?>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __("btn_save"); ?>
                 </button>
             </div>
@@ -209,7 +199,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between flex-shrink-0">
             <h3 class="text-lg font-medium">选择封面图片</h3>
             <button onclick="closePhotoSelector()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-lg"></i>
             </button>
         </div>
         <div class="p-6 overflow-y-auto flex-1">
@@ -267,9 +257,7 @@ document.getElementById('coverFile').addEventListener('change', async function()
 function clearCover() {
     document.getElementById('coverInput').value = '';
     document.getElementById('coverPreview').innerHTML = `
-        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
+        <i class="ti ti-photo text-base text-gray-300"></i>
     `;
 }
 

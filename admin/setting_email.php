@@ -18,29 +18,29 @@ requirePermission('*');
 // Tab 定义（title 用 __() 后台跟随当前语言）
 $tabs = [
     'smtp' => [
-        'icon'  => 'fa-server',
+        'icon'  => 'ti-server',
         'title' => __('email_tab_smtp'),
     ],
     'register' => [
-        'icon'  => 'fa-user-plus',
+        'icon'  => 'ti-user-plus',
         'title' => __('email_tab_register'),
         'hint'  => '{{username}} {{email}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_register_subject', 'mail_tpl_register_body'],
     ],
     'forgot' => [
-        'icon'  => 'fa-key',
+        'icon'  => 'ti-key',
         'title' => __('email_tab_forgot'),
         'hint'  => '{{username}} {{email}} {{reset_link}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_forgot_subject', 'mail_tpl_forgot_body'],
     ],
     'reset' => [
-        'icon'  => 'fa-lock',
+        'icon'  => 'ti-lock',
         'title' => __('email_tab_reset'),
         'hint'  => '{{username}} {{email}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_reset_subject', 'mail_tpl_reset_body'],
     ],
     'inquiry' => [
-        'icon'  => 'fa-envelope-open-text',
+        'icon'  => 'ti-mail-opened',
         'title' => __('email_tab_inquiry'),
         'hint'  => '{{product_title}} {{name}} {{phone}} {{email}} {{company}} {{content}} {{ip}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_inquiry_subject', 'mail_tpl_inquiry_body'],
@@ -142,7 +142,7 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
         <?php $_tabHref = ($tabId === 'smtp') ? '?tab=smtp' : ('?tab=' . urlencode($tabId) . $_emailLangQS); ?>
         <a href="<?php echo e($_tabHref); ?>"
            class="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition <?php echo $activeTab === $tabId ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
-            <i class="fa-solid <?php echo e($tab['icon']); ?> mr-1.5"></i><?php echo e($tab['title']); ?>
+            <i class="ti <?php echo e($tab['icon']); ?> mr-1.5"></i><?php echo e($tab['title']); ?>
         </a>
         <?php endforeach; ?>
     </div>
@@ -270,7 +270,7 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
                 <?php echo __('admin_save'); ?>
             </button>
             <button type="button" onclick="testEmail()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-2 rounded transition">
-                <i class="fa-solid fa-paper-plane mr-1"></i><?php echo __('email_send_test_btn'); ?>
+                <i class="ti ti-send mr-1"></i><?php echo __('email_send_test_btn'); ?>
             </button>
         </div>
     </div>
@@ -338,7 +338,7 @@ async function sendTestEmail() {
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800">
-                <i class="fa-solid <?php echo e($tab['icon']); ?> mr-2 text-gray-400"></i><?php echo e($tab['title']); ?> <?php echo __('email_template_label'); ?>
+                <i class="ti <?php echo e($tab['icon']); ?> mr-2 text-gray-400"></i><?php echo e($tab['title']); ?> <?php echo __('email_template_label'); ?>
             </h2>
             <?php if (!empty($tab['hint'])): ?>
             <p class="text-xs text-gray-400 mt-1">

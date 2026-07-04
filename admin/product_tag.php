@@ -116,8 +116,8 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
                     <span><?php echo e($tag['name']); ?></span>
                     <span class="text-xs text-gray-400">(<?php echo $tag['product_count']; ?>)</span>
                     <div class="hidden group-hover:flex items-center gap-1 ml-1">
-                        <a href="?edit=<?php echo $tag['id']; ?>" class="text-blue-500 hover:text-blue-700"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></a>
-                        <button onclick="deleteTag(<?php echo $tag['id']; ?>)" class="text-red-500 hover:text-red-700"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                        <a href="?edit=<?php echo $tag['id']; ?>" class="text-blue-500 hover:text-blue-700"><i class="ti ti-pencil text-sm"></i></a>
+                        <button onclick="deleteTag(<?php echo $tag['id']; ?>)" class="text-red-500 hover:text-red-700"><i class="ti ti-x text-sm"></i></button>
                     </div>
                 </div>
                 <?php endforeach; ?>

@@ -163,12 +163,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
         </div>
         <div class="flex gap-2">
             <button onclick="openUploadModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <i class="ti ti-upload text-base"></i>
                 <?php echo __('admin_upload_image'); ?>
             </button>
             <?php if ($_lang['isSource']): ?>
             <a href="/admin/album_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <i class="ti ti-plus text-base"></i>
                 <?php echo __('admin_add'); ?>
             </a>
             <?php else: ?>
@@ -189,9 +189,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
             <?php else: ?>
             <div class="w-full h-full flex items-center justify-center text-gray-300">
-                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
+                <i class="ti ti-photo text-base"></i>
             </div>
             <?php endif; ?>
 
@@ -218,9 +216,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
             <div class="flex items-center justify-between pt-3 border-t">
                 <a href="/admin/album_photos.php?id=<?php echo $item['id']; ?>"
                    class="text-primary hover:underline text-sm inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                    <i class="ti ti-photo text-base"></i>
                     <?php echo __('admin_manage'); ?>
                 </a>
                 <div class="flex items-center gap-2">
@@ -229,15 +225,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
                         <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                     </button>
                     <a href="/admin/album_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-500 hover:text-primary" title="<?php echo __('admin_edit'); ?>">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
+                        <i class="ti ti-pencil text-base"></i>
                     </a>
                     <?php if ($_lang['isSource']): ?>
                     <button onclick="deleteAlbum(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')" class="text-gray-500 hover:text-red-600" title="<?php echo __('admin_delete'); ?>">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
+                        <i class="ti ti-trash text-base"></i>
                     </button>
                     <?php endif; ?>
                 </div>
@@ -249,12 +241,10 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
     <?php if (empty($albums)): ?>
     <div class="col-span-full">
         <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-            </svg>
+            <i class="ti ti-photo text-base mx-auto mb-4 text-gray-300"></i>
             <p class="mb-4">暂无相册</p>
             <a href="/admin/album_edit.php" class="inline-flex items-center gap-1 text-primary hover:underline">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <i class="ti ti-plus text-base"></i>
                 创建第一个相册
             </a>
         </div>
@@ -268,7 +258,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h3 class="text-lg font-medium">批量上传图片</h3>
             <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-lg"></i>
             </button>
         </div>
         <div class="p-6">
@@ -286,9 +276,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
             <!-- 上传区域 -->
             <div id="quickUploadZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-gray-50 transition">
                 <input type="file" id="quickFileInput" multiple accept="image/*" class="hidden">
-                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
+                <i class="ti ti-photo text-base mx-auto mb-3 text-gray-300"></i>
                 <p class="text-gray-600 mb-1">拖拽图片到此处，或 <span class="text-primary font-medium">点击选择</span></p>
                 <p class="text-xs text-gray-400">支持 JPG、PNG、GIF、WEBP，可多选</p>
             </div>

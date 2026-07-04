@@ -119,6 +119,7 @@ function getChannelUrl(array $channel): string {
     </script>
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="<?php echo theme_asset('css/style.css'); ?>">
     <style>:root { --color-primary: <?php echo config('primary_color', '#6366F1'); ?>; --color-secondary: <?php echo config('secondary_color', '#8B5CF6'); ?>; }</style>
     <?php if (!empty($extraCss)): ?>

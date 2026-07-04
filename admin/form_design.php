@@ -222,7 +222,7 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
         <p class="text-sm text-gray-500"><?php echo __('fd_intro'); ?></p>
         <?php if ($_viewLang === $_defaultLang): ?>
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <i class="ti ti-plus text-base"></i>
             <?php echo __('fd_btn_add'); ?>
         </button>
         <?php else: ?>
@@ -373,7 +373,7 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
             <div class="flex justify-end gap-2 pt-4 border-t">
                 <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100 text-sm"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1 text-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __("btn_save"); ?>
                 </button>
             </div>

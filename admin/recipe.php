@@ -105,7 +105,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="text-xs text-gray-400">v<?php echo e((string)($r['version'] ?? '1.0.0')); ?></span>
                                 <?php if ($appliedAt): ?>
                                 <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded inline-flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                    <i class="ti ti-circle-check text-sm"></i>
                                     <?php echo __('recipe_applied_at', ['date' => date('Y-m-d', (int)$appliedAt)]); ?>
                                 </span>
                                 <?php endif; ?>
@@ -156,7 +156,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <div class="flex justify-end mt-4">
                     <button type="submit" class="bg-gray-700 hover:bg-gray-800 text-white px-6 py-2 rounded inline-flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <i class="ti ti-download text-base"></i>
                         <?php echo __('recipe_export_button'); ?>
                     </button>
                 </div>

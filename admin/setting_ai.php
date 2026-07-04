@@ -137,7 +137,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php $syncedAt = (int) config('ai_models_synced_at', 0); ?>
                             <span class="text-xs text-gray-400"><?php echo $syncedAt ? ('上次同步 ' . date('Y-m-d H:i', $syncedAt)) : '尚未同步'; ?></span>
                             <button type="button" onclick="syncModels(this)" class="text-xs border rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <i class="ti ti-refresh text-sm"></i>
                                 同步最新模型
                             </button>
                         </div>

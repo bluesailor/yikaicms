@@ -965,9 +965,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="max-w-3xl mx-auto">
     <?php if (empty($pendingUpgrades)): ?>
     <div class="bg-white rounded-lg shadow p-12 text-center">
-        <svg class="w-16 h-16 mx-auto text-green-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
+        <i class="ti ti-circle-check text-base mx-auto text-green-300 mb-4"></i>
         <p class="text-green-600 font-medium text-lg mb-2"><?php echo __('upgrade_up_to_date'); ?></p>
         <p class="text-gray-400 text-sm"><?php echo __('upgrade_all_done'); ?></p>
     </div>
@@ -995,7 +993,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="mt-6">
         <button id="btnUpgrade" onclick="runUpgrade()" class="bg-primary hover:bg-secondary text-white px-8 py-2.5 rounded transition inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <i class="ti ti-refresh text-base"></i>
             执行升级
         </button>
     </div>
@@ -1008,7 +1006,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php foreach (array_reverse($doneUpgrades) as $up): ?>
         <div class="bg-white rounded-lg shadow">
             <div class="px-5 py-3.5 flex items-center gap-3">
-                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <i class="ti ti-circle-check text-lg text-green-500 flex-shrink-0"></i>
                 <span class="font-medium flex-1 text-sm"><?php echo htmlspecialchars($up['title']); ?></span>
                 <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
                 <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('upgrade_completed'); ?></span>
@@ -1108,9 +1106,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
         <div class="px-6 py-5">
             <div class="flex items-center gap-4 mb-4">
                 <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+                    <i class="ti ti-bolt text-xl text-primary"></i>
                 </div>
                 <div>
                     <p class="text-gray-800 font-medium">YikaiCMS</p>
@@ -1121,7 +1117,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
             <div id="updateResult" class="hidden"></div>
 
             <button id="btnCheckUpdate" onclick="checkUpdate()" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded transition inline-flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <i class="ti ti-refresh text-base"></i>
                 检测更新
             </button>
         </div>
@@ -1148,7 +1144,7 @@ async function checkUpdate() {
     var btn = document.getElementById('btnCheckUpdate');
     var result = document.getElementById('updateResult');
     btn.disabled = true;
-    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> 检测中...';
+    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i> 检测中...';
 
     try {
         var formData = new FormData();
@@ -1170,16 +1166,16 @@ async function checkUpdate() {
             var d = data.data;
             result.innerHTML = '<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">'
                 + '<div class="flex items-start gap-3">'
-                + '<svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+                + '<i class="ti ti-info-circle text-lg text-blue-500 mt-0.5 flex-shrink-0"></i>'
                 + '<div class="flex-1">'
                 + '<p class="font-medium text-blue-800 mb-1">发现新版本 <span class="font-mono">v' + escapeHtml(d.latest_version) + '</span></p>'
                 + (d.release_date ? '<p class="text-sm text-blue-600 mb-2">发布日期：' + escapeHtml(d.release_date) + '</p>' : '')
                 + (d.changelog ? '<div class="text-sm text-blue-700 mb-3 whitespace-pre-line">' + escapeHtml(d.changelog) + '</div>' : '')
-                + (d.download_url ? '<a href="' + escapeHtml(d.download_url) + '" target="_blank" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> 下载更新包</a>' : '')
+                + (d.download_url ? '<a href="' + escapeHtml(d.download_url) + '" target="_blank" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition"><i class="ti ti-download text-base"></i> 下载更新包</a>' : '')
                 + '</div></div></div>';
         } else if (data.code === 0) {
             result.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 flex items-center gap-3">'
-                + '<svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+                + '<i class="ti ti-circle-check text-lg text-green-500 flex-shrink-0"></i>'
                 + '<p class="text-green-700">当前已是最新版本 <span class="font-mono font-medium">v' + escapeHtml(currentVersion) + '</span></p>'
                 + '</div>';
         } else {
@@ -1188,13 +1184,13 @@ async function checkUpdate() {
     } catch (err) {
         result.classList.remove('hidden');
         result.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">'
-            + '<svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+            + '<i class="ti ti-alert-circle text-lg text-red-500 flex-shrink-0"></i>'
             + '<div><p class="text-red-700 font-medium">检测失败</p><p class="text-red-600 text-sm mt-0.5">' + escapeHtml(err.message) + '</p></div>'
             + '</div>';
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> 重新检测';
+    btn.innerHTML = '<i class="ti ti-refresh text-base"></i> 重新检测';
 }
 
 function escapeHtml(str) {

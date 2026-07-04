@@ -269,12 +269,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="p-6 max-w-3xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-cloud-arrow-down text-blue-500 mr-2"></i>在线升级</h1>
+        <h1 class="text-xl font-bold text-gray-800"><i class="ti ti-cloud-download text-blue-500 mr-2"></i>在线升级</h1>
         <span class="text-sm text-gray-500">当前版本 v<?= e(defined('CMS_VERSION') ? CMS_VERSION : '?') ?></span>
     </div>
 
     <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-4 mb-5">
-        <p class="font-medium mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>升级前请知悉</p>
+        <p class="font-medium mb-1"><i class="ti ti-alert-triangle mr-1"></i>升级前请知悉</p>
         <ul class="list-disc pl-5 space-y-0.5">
             <li>升级会覆盖程序文件，<b>不会触碰</b> config.php、storage、uploads、install。</li>
             <li>建议先在主机面板做一次整站/数据库备份；本工具仅自动备份 config.php。</li>
@@ -286,13 +286,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="mt-6 flex gap-3">
         <button id="uo-start" class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition">
-            <i class="fa-solid fa-magnifying-glass mr-1"></i>检查更新
+            <i class="ti ti-search mr-1"></i>检查更新
         </button>
         <button id="uo-upgrade" class="hidden px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition">
-            <i class="fa-solid fa-bolt mr-1"></i>一键升级到 <span id="uo-target"></span>
+            <i class="ti ti-bolt mr-1"></i>一键升级到 <span id="uo-target"></span>
         </button>
         <a href="upgrade.php" id="uo-migrate" class="hidden px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
-            <i class="fa-solid fa-database mr-1"></i>下一步：升级数据库 →
+            <i class="ti ti-database mr-1"></i>下一步：升级数据库 →
         </a>
     </div>
 
@@ -316,9 +316,9 @@ const UO = {
         return r.json();
     },
     row(label, state, detail = '') {
-        const icon = state === 'ok' ? '<i class="fa-solid fa-circle-check text-green-500"></i>'
-            : state === 'fail' ? '<i class="fa-solid fa-circle-xmark text-red-500"></i>'
-            : '<i class="fa-solid fa-spinner fa-spin text-blue-500"></i>';
+        const icon = state === 'ok' ? '<i class="ti ti-circle-check text-green-500"></i>'
+            : state === 'fail' ? '<i class="ti ti-circle-x text-red-500"></i>'
+            : '<i class="ti ti-loader-2 animate-spin text-blue-500"></i>';
         const d = document.createElement('div');
         d.className = 'flex items-start gap-2 bg-white border border-gray-200 rounded-lg p-3 text-sm';
         d.innerHTML = `<span class="mt-0.5">${icon}</span><div><div class="text-gray-800">${label}</div>${detail ? `<div class="text-gray-500 text-xs mt-0.5">${detail}</div>` : ''}</div>`;
@@ -326,7 +326,7 @@ const UO = {
         return d;
     },
     set(row, state, detail) {
-        const icon = state === 'ok' ? '<i class="fa-solid fa-circle-check text-green-500"></i>' : '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+        const icon = state === 'ok' ? '<i class="ti ti-circle-check text-green-500"></i>' : '<i class="ti ti-circle-x text-red-500"></i>';
         row.querySelector('span').innerHTML = icon;
         if (detail) row.querySelector('div div:last-child') ? row.querySelector('div').insertAdjacentHTML('beforeend', `<div class="text-gray-500 text-xs mt-0.5">${detail}</div>`) : null;
     }
