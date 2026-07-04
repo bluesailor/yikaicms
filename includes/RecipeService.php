@@ -82,6 +82,24 @@ class RecipeService
         if ($recipe === null) {
             throw new \RuntimeException("配方不存在或 manifest 无效: {$slug}");
         }
+        return $this->applyRecipe($recipe, $options);
+    }
+
+    /**
+     * 应用一个「即时 recipe 数组」（不从磁盘加载）。
+     * 供后台「批量添加常用栏目」等复用同一套幂等建栏目/内容/设置逻辑。
+     * $recipe 至少含 channels[]（extfields/contents/settings/lang 可选）。
+     */
+    public function applyRecipe(array $recipe, array $options = []): array
+    {
+        $recipe['slug']      = (string)($recipe['slug'] ?? 'adhoc');
+        $recipe['name']      = (string)($recipe['name'] ?? $recipe['slug']);
+        $recipe['lang']      = (string)($recipe['lang'] ?? siteLang());
+        $recipe['channels']  = $recipe['channels']  ?? [];
+        $recipe['extfields'] = $recipe['extfields'] ?? [];
+        $recipe['contents']  = $recipe['contents']  ?? [];
+        $recipe['settings']  = $recipe['settings']  ?? [];
+        $slug = $recipe['slug'];
 
         $updateExisting = !empty($options['update_existing']) || !empty($recipe['update_existing']);
         $lang = (string)$recipe['lang'];

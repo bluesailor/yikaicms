@@ -548,6 +548,73 @@ $envAllPass = checkAllPass($envChecks);
                     <?php endif; ?>
                 </div>
 
+                <?php if ($envAllPass && extension_loaded('pdo_sqlite')): ?>
+                <!-- 一键极速安装（SQLite，零配置） -->
+                <div class="mt-6 border-t pt-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                        <div class="text-2xl leading-none">⚡</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-gray-800 mb-1"><?php echo $L['quick_title']; ?></div>
+                            <p class="text-sm text-gray-600 mb-3"><?php echo $L['quick_desc']; ?></p>
+                            <button type="button" id="quickBtn" onclick="quickInstall()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium"><?php echo $L['quick_button']; ?></button>
+                            <div id="quickResult" class="hidden"></div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                var QL = <?php echo json_encode([
+                    'confirm'    => $L['quick_confirm'],
+                    'installing' => $L['quick_installing'],
+                    'button'     => $L['quick_button'],
+                    'done'       => $L['quick_done'],
+                    'account'    => $L['quick_account'],
+                    'password'   => $L['quick_password'],
+                    'warn'       => $L['quick_warn'],
+                    'goto'       => $L['goto_admin'],
+                    'fail'       => $L['install_fail'] ?? 'Install failed',
+                ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
+                async function quickInstall() {
+                    if (!confirm(QL.confirm)) return;
+                    var btn = document.getElementById('quickBtn');
+                    btn.disabled = true; btn.textContent = QL.installing;
+                    var pass = 'Yk' + Math.random().toString(36).slice(2, 8) + Math.floor(Math.random() * 90 + 10);
+                    var fd = new FormData();
+                    fd.append('action', 'install');
+                    fd.append('db_driver', 'sqlite');
+                    fd.append('db_prefix', 'yikai_');
+                    fd.append('admin_user', 'admin');
+                    fd.append('admin_pass', pass);
+                    fd.append('admin_email', '');
+                    fd.append('site_name', 'Yikai CMS');
+                    fd.append('install_demo', '1');
+                    fd.append('site_lang', '<?php echo $lang; ?>');
+                    fd.append('admin_lang', '<?php echo $lang; ?>');
+                    try {
+                        var resp = await fetch('', { method: 'POST', body: fd });
+                        var data = await resp.json();
+                        if (data.success) {
+                            var box = document.getElementById('quickResult');
+                            box.className = 'mt-4 bg-white border border-green-300 rounded-lg p-4';
+                            box.innerHTML =
+                                '<div class="text-green-700 font-bold mb-2">✓ ' + QL.done + '</div>' +
+                                '<div class="text-sm text-gray-700 mb-1">' + QL.account + '：<b>admin</b></div>' +
+                                '<div class="text-sm text-gray-700 mb-3">' + QL.password + '：<b style="color:#dc2626">' + pass + '</b></div>' +
+                                '<div class="text-xs text-amber-600 mb-3">' + QL.warn + '</div>' +
+                                '<a href="/admin/" class="inline-block bg-primary hover:bg-secondary text-white px-5 py-2 rounded text-sm font-medium">' + QL.goto + '</a>';
+                            box.classList.remove('hidden');
+                            btn.style.display = 'none';
+                        } else {
+                            alert(data.message || QL.fail);
+                            btn.disabled = false; btn.textContent = QL.button;
+                        }
+                    } catch (e) {
+                        alert(QL.fail + ': ' + e.message);
+                        btn.disabled = false; btn.textContent = QL.button;
+                    }
+                }
+                </script>
+                <?php endif; ?>
+
             <?php elseif ($step === 2): ?>
                 <!-- 步骤2：数据库配置 -->
                 <h2 class="text-xl font-bold mb-6"><?php echo $L['step2']; ?></h2>
@@ -885,6 +952,15 @@ $envAllPass = checkAllPass($envChecks);
                     </div>
                     <h2 class="text-2xl font-bold text-green-600 mb-4"><?php echo $L['install_complete']; ?></h2>
                     <p class="text-gray-600 mb-6"><?php echo $L['install_complete_desc']; ?></p>
+
+                    <!-- 主 CTA：直达后台 -->
+                    <div class="mb-8">
+                        <a href="/admin/" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white text-lg font-bold px-8 py-3 rounded-lg shadow transition">
+                            <?php echo $L['goto_admin']; ?>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </a>
+                        <p class="text-sm text-gray-500 mt-3"><?php echo $L['install_cta_hint']; ?></p>
+                    </div>
 
                     <div class="bg-yellow-50 text-yellow-700 p-4 rounded mb-6">
                         <?php echo $L['security_tip']; ?>
