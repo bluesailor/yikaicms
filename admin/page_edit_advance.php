@@ -918,14 +918,18 @@ $companyIntroTpl = [
             ]],
         ],
     ],
-    // 4) 行动号召
+    // 4) 行动号召（渐变横幅 CTA，颜色走内联样式避免被 .prose 覆盖）
     [
-        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'md'],
+        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'md', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
         'columns' => [[
             'id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '想进一步了解我们？', 'level' => 'h3']],
-                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">欢迎随时与我们联系，我们将竭诚为您服务。</p>']],
-                ['id' => 'e', 'type' => 'button', 'data' => ['text' => '联系我们', 'url' => '/contact.html', 'new_tab' => false]],
+                ['id' => 'e', 'type' => 'code', 'data' => ['html' =>
+                    '<div style="background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))" class="rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl">'
+                    . '<div style="color:#fff" class="text-2xl md:text-4xl font-bold mb-3">想进一步了解我们？</div>'
+                    . '<div style="color:rgba(255,255,255,.9)" class="text-base md:text-lg mb-8 max-w-2xl mx-auto">欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。</div>'
+                    . '<a href="/contact.html" style="background:#fff;color:var(--color-primary);text-decoration:none" class="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition">立即联系我们 <i class="ti ti-arrow-right text-lg"></i></a>'
+                    . '</div>',
+                ]],
             ],
         ]],
     ],
