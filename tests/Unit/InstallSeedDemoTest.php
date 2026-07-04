@@ -111,4 +111,38 @@ class InstallSeedDemoTest extends TestCase
         $this->assertStringNotContainsString("'seo_title','YikaiCMS", $sql, "首页SEO标题不应预填 YikaiCMS 默认 ({$driver})");
         $this->assertStringContainsString("'seo_title','',", $sql, "seo_title 应为空值 ({$driver})");
     }
+
+    /**
+     * SQLite 种子（含演示数据）能被 install/index.php 的 $pdo->exec($sql) 整体加载。
+     * 内存库执行，验证语法可用。
+     */
+    public function testSqliteSeedLoadsWithDemo(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite 未启用');
+        }
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite')); // 不抛异常即通过
+        $this->assertSame('1', (string) $pdo->query('SELECT 1')->fetchColumn());
+    }
+
+    /**
+     * 关键回归防线：SQLite 种子在「不安装演示数据」（剥离 @demo 区块）后仍是合法 SQL。
+     * 若 @demo 标记被误插进多行 INSERT 的字符串内容中间，剥离会切断语句，
+     * 整体 exec 会报 near "<" —— 本测试正是为拦截这类错位。
+     */
+    public function testSqliteSeedLoadsWhenDemoStripped(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite 未启用');
+        }
+        $stripped = $this->stripDemo($this->seed('sqlite'));
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($stripped); // @demo 标记须落在语句边界，否则此处抛异常
+        // 骨架保留、演示内容清空
+        $this->assertSame(0, (int) $pdo->query('SELECT COUNT(*) FROM yikai_products')->fetchColumn(), '剥离后不应有演示产品');
+        $this->assertGreaterThan(0, (int) $pdo->query('SELECT COUNT(*) FROM yikai_channels')->fetchColumn(), '栏目骨架应保留');
+    }
 }
