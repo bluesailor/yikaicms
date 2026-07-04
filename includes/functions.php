@@ -2553,14 +2553,23 @@ function renderBlocksToHtml(string $blocksJson): string
                         $html .= '<div class="mt-2"><a class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg transition no-underline" style="color:#fff;text-decoration:none" href="' . $url . '"' . $target . '>' . $text . '</a></div>';
                         break;
                     case 'icon':
-                        $icon = htmlspecialchars($data['icon'] ?? 'star');
-                        $iconSizeMap = ['sm' => '24', 'md' => '32', 'lg' => '48', 'xl' => '64'];
-                        $iconSize = $iconSizeMap[$data['size'] ?? 'md'] ?? '32';
+                        // 兼容旧的 feather 图标名 → Tabler
+                        $featherAlias = [
+                            'zap' => 'bolt', 'globe' => 'world', 'info' => 'info-circle', 'life-buoy' => 'lifebuoy',
+                            'mic' => 'microphone', 'monitor' => 'device-desktop', 'pen-tool' => 'pencil',
+                            'smile' => 'mood-smile', 'tv' => 'device-tv', 'thumbs-up' => 'thumb-up',
+                            'check-circle' => 'circle-check', 'box' => 'box', 'settings' => 'settings',
+                        ];
+                        $iconName = $data['icon'] ?? 'star';
+                        $iconName = $featherAlias[$iconName] ?? $iconName;
+                        $iconName = preg_replace('/[^a-z0-9-]/', '', (string) $iconName) ?: 'star';
+                        $iconSizeMap = ['sm' => '24px', 'md' => '32px', 'lg' => '48px', 'xl' => '64px'];
+                        $iconSize = $iconSizeMap[$data['size'] ?? 'md'] ?? '32px';
                         $iconColor = htmlspecialchars($data['color'] ?? '');
-                        $iconStyle = $iconColor ? ' style="color:' . $iconColor . '"' : '';
+                        $style = 'font-size:' . $iconSize . ';line-height:1;' . ($iconColor ? 'color:' . $iconColor . ';' : '');
                         $iconText = htmlspecialchars($data['text'] ?? '');
-                        $html .= '<div class="text-center my-2"' . $iconStyle . '>';
-                        $html .= '<svg width="' . $iconSize . '" height="' . $iconSize . '" class="inline-block" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="/assets/icons/feather-sprite.svg#' . $icon . '"></use></svg>';
+                        $html .= '<div class="text-center my-2">';
+                        $html .= '<i class="ti ti-' . $iconName . ' inline-block" style="' . $style . '"></i>';
                         if ($iconText) {
                             $html .= '<div class="mt-1 text-sm">' . $iconText . '</div>';
                         }

@@ -232,7 +232,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="p-4">
                             <div class="grid gap-4" :class="section.columns.length > 1 ? 'grid-cols-' + section.columns.length : ''">
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
-                                    <div class="border border-dashed border-gray-300 rounded-lg p-3 min-h-[100px]"
+                                    <div class="border rounded-lg p-3 min-h-[100px]"
+                                         :class="(section.settings && section.settings.col_card) ? 'border-gray-200 bg-white shadow-sm text-center' : 'border-dashed border-gray-300'"
                                          :data-section-index="si" :data-column-index="ci" data-sortable-elements>
                                         <!-- 元素列表 -->
                                         <template x-for="(el, ei) in col.elements" :key="el.id">
@@ -341,11 +342,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     <div>
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-2 inline-block">图标</span>
                                                         <div class="flex flex-wrap gap-1.5 mb-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
-                                                            <template x-for="ic in ['star','heart','check-circle','phone','mail','map-pin','clock','shield','zap','award','globe','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumbs-up','eye','download','upload','share','code','coffee','feather','flag','info','life-buoy','mic','monitor','music','package','pen-tool','printer','send','server','smile','sun','target','terminal','truck','tv','umbrella','wifi']">
+                                                            <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
                                                                 <button type="button" @click="el.data.icon = ic"
                                                                         class="w-8 h-8 flex items-center justify-center border rounded text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer"
                                                                         :class="el.data.icon === ic ? 'bg-primary text-white border-primary' : 'bg-white'">
-                                                                    <svg class="w-4 h-4"><use :href="'/assets/icons/feather-sprite.svg#' + ic"></use></svg>
+                                                                    <i class="ti text-base" :class="'ti-' + ic"></i>
                                                                 </button>
                                                             </template>
                                                         </div>
@@ -642,6 +643,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </select>
             </div>
             <div>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="settingColCard" class="rounded border-gray-300 text-primary focus:ring-primary">
+                    <span class="text-sm text-gray-700">每列显示为卡片（白底/边框/阴影，适合多列特性区）</span>
+                </label>
+            </div>
+            <div>
                 <label class="block text-sm text-gray-700 mb-1">背景颜色</label>
                 <div class="flex gap-2 items-center">
                     <input type="color" id="settingBgColor" value="#ffffff" class="w-10 h-10 rounded border cursor-pointer">
@@ -784,6 +791,7 @@ function saveSectionSettings() {
     section.settings.bg_opacity = parseInt(document.getElementById('settingBgOpacity').value);
     section.settings.bg_image = document.getElementById('settingBgImage').value.trim();
     section.settings.gap = document.getElementById('settingGap').value;
+    section.settings.col_card = document.getElementById('settingColCard').checked;
     var alignBtn = document.querySelector('.align-btn.bg-primary');
     section.settings.align_items = alignBtn ? alignBtn.dataset.val : 'stretch';
     var justifyBtn = document.querySelector('.justify-btn.bg-primary');
@@ -1006,6 +1014,7 @@ function pageBuilder() {
             document.getElementById("settingBgOpacity").value = opacity;
             document.getElementById("settingBgOpacityVal").textContent = opacity + "%";
             document.getElementById("settingGap").value = s.gap || "lg";
+            document.getElementById("settingColCard").checked = !!s.col_card;
             setAlignItems(s.align_items || "stretch");
             setJustifyItems(s.justify_items || "stretch");
             document.querySelectorAll(".col-btn").forEach(function(b) { b.classList.remove("bg-primary", "text-white"); });
