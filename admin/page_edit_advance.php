@@ -39,15 +39,9 @@ if (($page['slug'] ?? '') === 'history') {
     exit;
 }
 
-// 有子栏目的父页面跳转到第一个子页面
+// 父栏目有子页：不再硬跳转到第一个子页（那样父页无法编辑、且无视「不跳转」设置），
+// 改为在页面顶部显示醒目横幅（见 parent_page_notice.php），父页本身可直接编辑。
 $children = channelModel()->getByParent($id, true);
-if (!empty($children)) {
-    $firstChild = $children[0];
-    if ($firstChild['type'] === 'page') {
-        header('Location: /admin/page_edit_advance.php?id=' . $firstChild['id']);
-        exit;
-    }
-}
 
 // 从 contents 表获取内容
 $contentRecord = contentModel()->queryOne(
@@ -103,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         contentModel()->create([
             'channel_id' => $id,
+            'lang' => siteLang(),
             'title' => post('name'),
             'content' => $renderedHtml,
             'content_type' => 'blocks',
@@ -124,14 +119,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="mb-6 flex items-center justify-between">
     <a href="/admin/page.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        <i class="ti ti-chevron-left text-base"></i>
         <?php echo __('page_back_to_list'); ?>
     </a>
     <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        <i class="ti ti-pencil text-base"></i>
         <?php echo __('page_switch_simple'); ?>
     </a>
 </div>
+
+<?php $childEditBase = '/admin/page_edit_advance.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>
 
 <form id="editForm" class="space-y-6" x-data="pageBuilder()" x-init="init()">
     <div class="bg-white rounded-lg shadow">
@@ -162,11 +159,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex gap-2">
                     <button type="button" onclick="uploadImage()"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <i class="ti ti-upload text-base"></i>
                         <?php echo __('admin_upload_image'); ?></button>
                     <button type="button" onclick="pickImageFromMedia()"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <i class="ti ti-photo text-base"></i>
                         <?php echo __("admin_media_library"); ?></button>
                 </div>
                 <?php if ($page['image']): ?>
@@ -178,14 +175,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <!-- 排版编辑器 -->
     <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b flex items-center justify-between">
+        <div class="px-6 py-4 border-b flex items-center justify-between gap-3">
             <h2 class="font-bold text-gray-800"><?php echo __('label_layout_content'); ?></h2>
-            <span class="text-xs text-gray-400">拖拽区块排序 / 每个区块可设置列数、背景、间距</span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-gray-400 hidden md:inline">拖拽区块排序 / 每个区块可设置列数、背景、间距</span>
+                <button type="button" @click="insertTemplate('company_intro')"
+                        class="text-sm border border-primary text-primary hover:bg-primary hover:text-white px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap">
+                    <i class="ti ti-file-text text-base"></i>公司介绍模板
+                </button>
+            </div>
         </div>
         <div class="p-6">
             <template x-if="sections.length === 0">
                 <div class="text-center py-12 text-gray-400">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <i class="ti ti-lock text-5xl mx-auto mb-3 text-gray-300"></i>
                     <p>暂无区块，点击下方按钮添加</p>
                 </div>
             </template>
@@ -198,7 +201,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-t-lg border-b">
                             <div class="flex items-center gap-2">
                                 <span class="section-drag-handle cursor-grab text-gray-300 hover:text-gray-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                    <i class="ti ti-menu-2 text-base"></i>
                                 </span>
                                 <span class="text-sm font-medium text-gray-600" x-text="'区块 ' + (si + 1)"></span>
                                 <span class="text-xs text-gray-400" x-text="section.columns.length + ' 列'"></span>
@@ -209,19 +212,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <div class="flex items-center gap-1">
                                 <button type="button" @click="moveSection(si, -1)" :disabled="si === 0"
                                         class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="上移">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                    <i class="ti ti-chevron-up text-base"></i>
                                 </button>
                                 <button type="button" @click="moveSection(si, 1)" :disabled="si === sections.length - 1"
                                         class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="下移">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    <i class="ti ti-chevron-down text-base"></i>
                                 </button>
                                 <button type="button" @click="openSettings(si)"
                                         class="p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="设置">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <i class="ti ti-settings text-base"></i>
                                 </button>
                                 <button type="button" @click="removeSection(si)"
                                         class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo __('admin_delete'); ?>">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    <i class="ti ti-trash text-base"></i>
                                 </button>
                             </div>
                         </div>
@@ -237,19 +240,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 元素工具栏 -->
                                                 <div class="absolute -top-2 -right-2 flex gap-0.5 z-10 bg-white border rounded shadow-sm px-1 py-0.5">
                                                     <span class="element-drag-handle cursor-grab p-1 text-gray-400 hover:text-gray-600" title="拖拽排序">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                                        <i class="ti ti-menu-2 text-base"></i>
                                                     </span>
                                                     <button type="button" @click="moveElement(si,ci,ei,-1)" :disabled="ei===0"
                                                             class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="上移">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                                        <i class="ti ti-chevron-up text-base"></i>
                                                     </button>
                                                     <button type="button" @click="moveElement(si,ci,ei,1)" :disabled="ei===col.elements.length-1"
                                                             class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="下移">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                        <i class="ti ti-chevron-down text-base"></i>
                                                     </button>
                                                     <button type="button" @click="removeElement(si,ci,ei)"
                                                             class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo __('admin_delete'); ?>">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                        <i class="ti ti-x text-base"></i>
                                                     </button>
                                                 </div>
 
@@ -541,7 +544,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow p-6 flex items-center gap-4">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <i class="ti ti-check text-base"></i>
             <?php echo __("btn_save"); ?>
         </button>
         <span id="saveMsg" class="text-sm hidden"></span>
@@ -554,7 +557,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h3 class="font-bold text-gray-800">区块设置</h3>
             <button type="button" onclick="closeSectionSettings()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-xl"></i>
             </button>
         </div>
         <div class="p-6 space-y-4">
@@ -671,7 +674,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
             <h3 class="font-bold text-gray-800">编辑富文本内容</h3>
             <button type="button" onclick="closeTextEditor()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-xl"></i>
             </button>
         </div>
         <div class="flex-1 overflow-y-auto p-6">
@@ -860,7 +863,69 @@ if ($autoConvert && $htmlContent) {
     $initBlocks = json_encode($autoSection, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 }
 
+// 内置「公司介绍」单页模板：默认填好内容，供构建器一键插入（插入时前端会重生成各 id）。
+$companyIntroTpl = [
+    // 1) 简介 hero
+    [
+        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'lg'],
+        'columns' => [[
+            'id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '公司简介', 'level' => 'h2']],
+                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。</p>']],
+            ],
+        ]],
+    ],
+    // 2) 图文：左图右文
+    [
+        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'stretch', 'gap' => 'lg'],
+        'columns' => [
+            ['id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/uploads/images/case-demo.jpg', 'alt' => '公司环境 / 团队照片', 'click_action' => '', 'link_url' => '', 'link_new_tab' => false]],
+            ]],
+            ['id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '我们的故事', 'level' => 'h3']],
+                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p>多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。</p><p>未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。</p>']],
+                ['id' => 'e', 'type' => 'button', 'data' => ['text' => '了解更多', 'url' => '#', 'new_tab' => false]],
+            ]],
+        ],
+    ],
+    // 3) 核心优势：三栏图标
+    [
+        'id' => 's', 'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg', 'col_card' => true],
+        'columns' => [
+            ['id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'award', 'size' => 'lg', 'color' => '', 'text' => '']],
+                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '专业团队', 'level' => 'h4']],
+                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">经验丰富的专业团队，为您提供全流程的贴心支持。</p>']],
+            ]],
+            ['id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'shield', 'size' => 'lg', 'color' => '', 'text' => '']],
+                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '品质保证', 'level' => 'h4']],
+                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">严格的品质管理体系，确保每一个环节都值得信赖。</p>']],
+            ]],
+            ['id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'users', 'size' => 'lg', 'color' => '', 'text' => '']],
+                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '贴心服务', 'level' => 'h4']],
+                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">快速响应的售前售后服务，与您携手共创价值。</p>']],
+            ]],
+        ],
+    ],
+    // 4) 行动号召
+    [
+        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'md'],
+        'columns' => [[
+            'id' => 'c', 'elements' => [
+                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '想进一步了解我们？', 'level' => 'h3']],
+                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">欢迎随时与我们联系，我们将竭诚为您服务。</p>']],
+                ['id' => 'e', 'type' => 'button', 'data' => ['text' => '联系我们', 'url' => '/contact.html', 'new_tab' => false]],
+            ],
+        ]],
+    ],
+];
+$companyTplJson = json_encode($companyIntroTpl, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+
 $extraJs = '<script>
+var __pageTemplates = { company_intro: ' . $companyTplJson . ' };
 function pageBuilder() {
     return {
         sections: ' . $initBlocks . ',
@@ -886,6 +951,34 @@ function pageBuilder() {
                 columns: cols
             });
             var self = this;
+            this.$nextTick(function() { self.initSortable(); });
+        },
+
+        // 插入内置模板（重生成 section/column/element 的 id，避免与现有内容 key 冲突）
+        insertTemplate(key) {
+            var tpl = (typeof __pageTemplates !== "undefined") ? __pageTemplates[key] : null;
+            if (!tpl || !tpl.length) return;
+            var self = this;
+            var fresh = JSON.parse(JSON.stringify(tpl)).map(function(s) {
+                return {
+                    id: self.uid("s"),
+                    settings: s.settings,
+                    columns: (s.columns || []).map(function(c) {
+                        return {
+                            id: self.uid("c"),
+                            elements: (c.elements || []).map(function(e) {
+                                return { id: self.uid("e"), type: e.type, data: e.data };
+                            })
+                        };
+                    })
+                };
+            });
+            if (this.sections.length > 0) {
+                if (!confirm("将模板区块追加到当前内容末尾？")) return;
+                this.sections = this.sections.concat(fresh);
+            } else {
+                this.sections = fresh;
+            }
             this.$nextTick(function() { self.initSortable(); });
         },
 
