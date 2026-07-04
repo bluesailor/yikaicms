@@ -72,7 +72,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="mb-6">
     <a href="/admin/download.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        <i class="ti ti-chevron-left text-base"></i>
         <?php echo __('admin_back'); ?>
     </a>
 </div>
@@ -105,11 +105,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="flex gap-2">
                             <button type="button" onclick="uploadCover()"
                                     class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                <i class="ti ti-upload text-base"></i>
                                 <?php echo __('admin_upload_image'); ?></button>
                             <button type="button" onclick="pickCoverFromMedia()"
                                     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <i class="ti ti-photo text-base"></i>
                                 <?php echo __("admin_media_library"); ?></button>
                         </div>
                         <?php if (!empty($download['cover'])): ?>
@@ -142,9 +142,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div id="uploadArea" class="<?php echo !empty($download['is_external']) ? 'hidden' : ''; ?>">
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer"
                              onclick="document.getElementById('fileInput').click()">
-                            <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
+                            <i class="ti ti-cloud-upload text-5xl mx-auto text-gray-400 mb-4"></i>
                             <p class="text-gray-500 mb-2">点击或拖拽文件到此处上传</p>
                             <p class="text-xs text-gray-400">支持 ZIP, RAR, PDF, DOC, XLS, PPT 等格式，最大 50MB</p>
                         </div>
@@ -154,9 +152,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <!-- 已上传文件信息 -->
                         <div id="uploadedFile" class="mt-4 <?php echo empty($download['file_url']) || !empty($download['is_external']) ? 'hidden' : ''; ?>">
                             <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
+                                <i class="ti ti-circle-check text-2xl text-green-500"></i>
                                 <div class="flex-1">
                                     <div class="font-medium" id="uploadedFileName"><?php echo e($download['file_name'] ?? ''); ?></div>
                                     <div class="text-sm text-gray-500" id="uploadedFileSize">
@@ -164,9 +160,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     </div>
                                 </div>
                                 <button type="button" onclick="clearFile()" class="text-red-500 hover:text-red-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
+                                    <i class="ti ti-x text-lg"></i>
                                 </button>
                             </div>
                         </div>
@@ -275,7 +269,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div class="bg-white rounded-lg shadow p-6">
                 <button type="submit" class="w-full bg-primary hover:bg-secondary text-white px-8 py-3 rounded transition inline-flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-lg"></i>
                     <?php echo __("btn_save"); ?>
                 </button>
             </div>

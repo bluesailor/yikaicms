@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-6 space-y-4">
         <div class="flex flex-wrap gap-3">
             <button type="button" id="genBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm transition inline-flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <i class="ti ti-bolt text-base"></i>
                 <?php echo __('sh_generate'); ?>
             </button>
             <button type="button" id="clearBtn" class="border border-gray-300 text-gray-700 hover:border-gray-400 hover:text-red-600 px-6 py-2 rounded text-sm transition">

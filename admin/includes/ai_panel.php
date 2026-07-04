@@ -22,13 +22,13 @@ $GLOBALS['_ai_panel_loaded'] = true;
     <div class="px-5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition rounded-lg" onclick="toggleAiBox()">
         <div class="flex items-center gap-2.5">
             <div id="aiIcon" class="relative w-6 h-6 flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                <i class="ti ti-bulb text-lg text-blue-500"></i>
                 <span class="ai-spark"></span><span class="ai-spark"></span><span class="ai-spark"></span>
             </div>
             <span class="text-sm font-bold text-gray-700"><?php echo __('admin_ai_assistant'); ?></span>
             <span id="aiStatus" class="text-xs text-gray-400"></span>
         </div>
-        <svg id="aiBoxArrow" class="w-4 h-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        <i class="ti ti-chevron-down text-base text-gray-400 transition-transform"></i>
     </div>
 
     <!-- 展开内容 -->
@@ -95,7 +95,7 @@ $GLOBALS['_ai_panel_loaded'] = true;
                 </details>
 
                 <button type="button" id="aiPanelSubmit" onclick="submitAiPanel()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-1.5 rounded text-sm cursor-pointer inline-flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <i class="ti ti-bolt text-base"></i>
                     开始生成
                 </button>
             </div>

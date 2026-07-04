@@ -287,17 +287,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             $desc = $log['description'] ?? '';
                             if ($action === 'login'): ?>
                                 <span class="inline-flex items-center gap-1 text-green-600">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <i class="ti ti-check text-base"></i>
                                     登录成功
                                 </span>
                             <?php elseif ($action === 'logout'): ?>
                                 <span class="inline-flex items-center gap-1 text-gray-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    <i class="ti ti-logout text-base"></i>
                                     退出登录
                                 </span>
                             <?php elseif ($action === 'login_fail'): ?>
                                 <span class="inline-flex items-center gap-1 text-red-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    <i class="ti ti-x text-base"></i>
                                     登录失败
                                 </span>
                             <?php else: ?>

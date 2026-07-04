@@ -48,6 +48,7 @@ if ($adminBrand === '后台管理') {
     <title><?php echo e($pageTitle ?? __('admin_title_default')); ?> - <?php echo e($adminBrand); ?></title>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
     <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <meta name="csrf-token" content="<?php echo csrfToken(); ?>">
@@ -106,9 +107,7 @@ if ($adminBrand === '后台管理') {
             <nav class="mt-4 px-3" x-data="sidebarNav()">
                 <!-- 控制台 -->
                 <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                    </svg>
+                    <i class="ti ti-home text-lg mr-3"></i>
                     <?php echo __('admin_dashboard'); ?>
                 </a>
 
@@ -120,7 +119,7 @@ if ($adminBrand === '后台管理') {
                 ?>
                 <div @click="toggle('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" class="sidebar-group px-4 pt-3 pb-1 text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between">
                     <span><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <svg class="w-3 h-3 transition-transform duration-200" :class="{'-rotate-90': !open.<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <i class="ti ti-chevron-down text-sm transition-transform duration-200"></i>
                 </div>
                 <div x-show="open.<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>" x-collapse>
                     <?php foreach ($navGroup['items'] as $_item): ?>
@@ -132,7 +131,7 @@ if ($adminBrand === '后台管理') {
                 <?php do_action('admin_menu', $currentMenu); ?>
                 <div class="mt-6 mb-4 px-1">
                     <a href="/admin/logout.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <i class="ti ti-logout text-lg mr-3"></i>
                         <?php echo __('admin_safe_logout'); ?>
                     </a>
                 </div>
@@ -146,9 +145,7 @@ if ($adminBrand === '后台管理') {
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
                 <!-- 移动端菜单按钮 -->
                 <button @click="mobileMenu = !mobileMenu" class="lg:hidden text-gray-500 hover:text-gray-700">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
+                    <i class="ti ti-menu-2 text-xl"></i>
                 </button>
 
                 <div class="flex-1 lg:flex-none">
@@ -171,7 +168,7 @@ if ($adminBrand === '后台管理') {
                                    placeholder="<?php echo __('admin_quick_search_ph'); ?>"
                                    style="padding-left:36px; padding-right:42px; width:220px; height:34px; box-sizing:border-box;"
                                    class="text-sm border border-gray-200 rounded-full focus:border-primary focus:ring-1 focus:ring-primary outline-none">
-                            <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:14px; height:14px; pointer-events:none;" class="text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <i class="ti ti-search text-sm text-gray-400" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"></i>
                             <kbd style="position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:10px; padding:2px 4px; line-height:1;" class="font-mono text-gray-400 border border-gray-200 rounded bg-gray-50 hidden lg:inline-block" title="Ctrl/⌘+K">⌘K</kbd>
                         </div>
                         <div x-show="open && query.trim()" x-cloak
@@ -256,9 +253,7 @@ if ($adminBrand === '后台管理') {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"></path>
                             </svg>
                             <span class="hidden sm:inline"><?php echo $langLabels[$currentAdminLang] ?? $currentAdminLang; ?></span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
+                            <i class="ti ti-chevron-down text-base"></i>
                         </button>
                         <div x-show="open" x-cloak @click.away="open = false"
                              class="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg py-1 z-50">
@@ -270,16 +265,12 @@ if ($adminBrand === '后台管理') {
                     <?php endif; ?>
 
                     <a href="/" target="_blank" class="flex items-center justify-center w-9 h-9 rounded-full text-white bg-primary hover:bg-secondary shadow-sm transition" title="<?php echo __('admin_visit_frontend'); ?>">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                        </svg>
+                        <i class="ti ti-external-link text-lg"></i>
                     </a>
 
                     <!-- HTML 缓存设置 -->
                     <a href="/admin/setting_cache.php" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="HTML 缓存">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
-                        </svg>
+                        <i class="ti ti-database text-lg"></i>
                         <span class="hidden sm:inline">缓存</span>
                     </a>
 
@@ -287,9 +278,7 @@ if ($adminBrand === '后台管理') {
                     <?php if (class_exists('AiService') && aiService()->isConfigured() && $currentMenu !== 'ai_assistant'): ?>
                     <div class="relative" x-data="aiBubble()" x-init="init()">
                         <button @click="toggle()" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary relative px-2 py-1 rounded hover:bg-gray-50" title="<?php echo __('admin_ai_assistant'); ?>">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                            </svg>
+                            <i class="ti ti-message-dots text-lg"></i>
                             <span class="hidden sm:inline"><?php echo __('admin_ai_assistant'); ?></span>
                             <span x-show="busy" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
                         </button>
@@ -304,7 +293,7 @@ if ($adminBrand === '后台管理') {
                             <div class="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white rounded-t-xl flex-shrink-0">
                                 <div class="flex items-center gap-2">
                                     <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                        <i class="ti ti-message-dots text-sm"></i>
                                     </div>
                                     <div>
                                         <div class="text-sm font-bold text-gray-800"><?php echo __('admin_ai_assistant'); ?></div>
@@ -313,13 +302,13 @@ if ($adminBrand === '后台管理') {
                                 </div>
                                 <div class="flex items-center gap-0.5">
                                     <button type="button" @click="clearChat()" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="清空">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22"/></svg>
+                                        <i class="ti ti-trash text-base"></i>
                                     </button>
                                     <a href="/admin/ai_assistant.php" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="放大">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                                        <i class="ti ti-maximize text-base"></i>
                                     </a>
                                     <button type="button" @click="open = false" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="关闭">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        <i class="ti ti-x text-base"></i>
                                     </button>
                                 </div>
                             </div>
@@ -361,7 +350,7 @@ if ($adminBrand === '后台管理') {
                                        class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-full focus:border-primary focus:ring-1 focus:ring-primary outline-none disabled:bg-gray-50">
                                 <button type="submit" :disabled="busy || !prompt.trim()"
                                         class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center disabled:opacity-40 hover:opacity-90 cursor-pointer flex-shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                                    <i class="ti ti-send text-base"></i>
                                 </button>
                             </form>
                         </div>
@@ -428,13 +417,11 @@ if ($adminBrand === '后台管理') {
                             <img src="<?php echo e($adminAvatar); ?>" class="w-8 h-8 rounded-full object-cover">
                             <?php else: ?>
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                <i class="ti ti-user text-lg"></i>
                             </div>
                             <?php endif; ?>
                             <span class="hidden sm:inline"><?php echo e($adminInfo['nickname'] ?? ''); ?></span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
+                            <i class="ti ti-chevron-down text-base"></i>
                         </button>
 
                         <div x-show="open" x-cloak @click.away="open = false"

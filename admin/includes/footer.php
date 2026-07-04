@@ -353,7 +353,7 @@
                 <button onclick="_mpLoad(1)" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm">搜索</button>
                 <div class="flex-1"></div>
                 <button onclick="document.getElementById('mpFileInput').click()" class="bg-primary hover:bg-secondary text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <i class="ti ti-upload text-base"></i>
                     上传新文件
                 </button>
                 <input type="file" id="mpFileInput" class="hidden" accept="image/*" onchange="_mpUpload(this)">
@@ -436,7 +436,7 @@
                     // 选中遮罩 + 大勾
                     html += '<div class="mp-check absolute inset-0 bg-primary/20 flex items-center justify-center pointer-events-none' + (isSel ? '' : ' hidden') + '">'
                          + '<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg">'
-                         + '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>'
+                         + '<i class="ti ti-check text-xl text-white"></i>'
                          + '</div></div>';
                     html += '</div>';
                 }

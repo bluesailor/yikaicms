@@ -183,9 +183,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <button onclick="document.getElementById('uploadModal').classList.remove('hidden')"
                 class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
+            <i class="ti ti-cloud-upload text-base"></i>
             上传安装插件
         </button>
     </div>
@@ -193,9 +191,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if (empty($plugins)): ?>
     <!-- 空状态 -->
     <div class="bg-white rounded-lg shadow p-12 text-center">
-        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path>
-        </svg>
+        <i class="ti ti-clipboard text-base mx-auto text-gray-300 mb-4"></i>
         <p class="text-gray-500 text-lg mb-2">暂无插件</p>
         <p class="text-gray-400 text-sm">将插件文件夹放入 <code class="bg-gray-100 px-1 rounded">/plugins/</code> 目录，或点击上方按钮上传安装。</p>
     </div>
@@ -207,9 +203,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="px-6 py-5 flex items-start gap-4">
                 <!-- 插件图标 -->
                 <div class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center <?php echo $p['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path>
-                    </svg>
+                    <i class="ti ti-clipboard text-xl"></i>
                 </div>
                 <!-- 插件信息 -->
                 <div class="flex-1 min-w-0">
@@ -248,7 +242,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if (file_exists(ROOT_PATH . '/plugins/' . $slug . '/admin.php')): ?>
                     <a href="/admin/plugin_page.php?plugin=<?php echo e($slug); ?>"
                        class="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-secondary transition inline-flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <i class="ti ti-settings text-sm"></i>
                         设置
                     </a>
                     <?php endif; ?>
@@ -280,14 +274,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h3 class="font-bold text-gray-800">上传安装插件</h3>
             <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <i class="ti ti-x text-lg"></i>
             </button>
         </div>
         <form id="uploadForm" class="p-6">
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer" id="dropZone">
-                <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
+                <i class="ti ti-cloud-upload text-base mx-auto text-gray-300 mb-3"></i>
                 <p class="text-sm text-gray-500 mb-1">点击选择或拖拽上传</p>
                 <p class="text-xs text-gray-400">支持 .zip 格式，ZIP内需包含 插件目录/plugin.json</p>
                 <input type="file" id="pluginFile" name="plugin_zip" accept=".zip" class="hidden">
@@ -295,7 +287,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div id="selectedFile" class="hidden mt-3 p-3 bg-gray-50 rounded flex items-center justify-between">
                 <span id="fileName" class="text-sm text-gray-700 truncate"></span>
                 <button type="button" onclick="clearFile()" class="text-gray-400 hover:text-red-500">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <i class="ti ti-x text-base"></i>
                 </button>
             </div>
             <div class="mt-4 flex justify-end gap-3">

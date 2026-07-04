@@ -359,12 +359,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                    class="border rounded px-3 py-2">
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <i class="ti ti-search text-base"></i>
                 <?php echo __('admin_filter'); ?>
             </button>
 
             <button type="button" onclick="clearOldLogs()" class="border px-4 py-2 rounded hover:bg-gray-100 ml-auto inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <i class="ti ti-trash text-base"></i>
                 清除30天前日志
             </button>
         </form>
@@ -433,14 +433,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             ?>
             <?php if ($logPage > 1): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $logPage - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                <i class="ti ti-chevron-left text-base"></i>
                 <?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
             <span class="text-sm">第 <?php echo $logPage; ?>/<?php echo $totalPages; ?> 页</span>
             <?php if ($logPage < $totalPages): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $logPage + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <?php echo __('list_next_page'); ?>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <i class="ti ti-chevron-right text-base"></i>
             </a>
             <?php endif; ?>
         </div>

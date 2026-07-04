@@ -125,7 +125,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <i class="ti ti-plus text-base"></i>
             添加管理员
         </button>
     </div>
@@ -172,12 +172,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <i class="ti ti-pencil text-sm"></i>
                             <?php echo __('admin_edit'); ?></button>
                         <?php if ($item['id'] !== (int)$_SESSION['admin_id']): ?>
                         <button onclick="deleteUser(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            <i class="ti ti-trash text-sm"></i>
                             <?php echo __('admin_delete'); ?></button>
                         <?php endif; ?>
                     </td>
@@ -210,8 +210,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="relative pwd-toggle">
                     <input type="password" name="password" id="editPassword" class="w-full border rounded px-4 py-2 pr-10" minlength="6">
                     <button type="button" onclick="togglePassword(this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        <svg class="eye-open w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                        <svg class="eye-closed w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
+                        <i class="ti ti-eye text-lg eye-open hidden"></i>
+                        <i class="ti ti-eye-off text-lg eye-closed"></i>
                     </button>
                 </div>
                 <p class="text-xs text-gray-400 mt-1" id="pwdHint">至少6位</p>
@@ -248,7 +248,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex justify-end gap-2 pt-4">
                 <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <i class="ti ti-check text-base"></i>
                     <?php echo __('admin_save'); ?></button>
             </div>
         </form>

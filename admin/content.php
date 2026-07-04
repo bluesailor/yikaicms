@@ -169,13 +169,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                    class="border rounded px-3 py-2" placeholder="<?php echo __('admin_search'); ?>...">
 
             <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <i class="ti ti-search text-base"></i>
                 <?php echo __('admin_filter'); ?>
             </button>
         </form>
 
         <a href="/admin/content_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <i class="ti ti-plus text-base"></i>
             <?php echo __('admin_add'); ?>
         </a>
     </div>
@@ -214,7 +214,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <img src="<?php echo e($item['cover']); ?>" class="w-20 h-14 object-cover rounded flex-shrink-0">
                                 <?php else: ?>
                                 <div class="w-20 h-14 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center">
-                                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <i class="ti ti-photo text-xl text-gray-300"></i>
                                 </div>
                                 <?php endif; ?>
                                 <div>
@@ -269,10 +269,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center">
                             <a href="/admin/content_edit.php?id=<?php echo $item['id']; ?>" class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                <i class="ti ti-pencil text-sm"></i>
                                 <?php echo __('admin_edit'); ?></a>
                             <button onclick="deleteContent(<?php echo $item['id']; ?>)" class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <i class="ti ti-trash text-sm"></i>
                                 <?php echo __('admin_delete'); ?></button>
                         </td>
                     </tr>
@@ -290,7 +290,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-t flex flex-wrap gap-4 items-center justify-between">
             <div class="flex gap-2">
                 <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100 inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <i class="ti ti-trash text-base"></i>
                     <?php echo __('admin_batch_delete'); ?>
                 </button>
             </div>
@@ -310,14 +310,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 ?>
                 <?php if ($page > 1): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <i class="ti ti-chevron-left text-base"></i>
                     <?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
                 <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                     <?php echo __('list_next_page'); ?>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    <i class="ti ti-chevron-right text-base"></i>
                 </a>
                 <?php endif; ?>
             </div>

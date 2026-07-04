@@ -91,7 +91,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="settings[cs_items]" id="csItemsJson">
             <div id="csItemsList" class="space-y-3"></div>
             <button type="button" onclick="csAdd()" class="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <i class="ti ti-plus text-base"></i>
                 添加客服项
             </button>
         </fieldset>

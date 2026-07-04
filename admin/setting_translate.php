@@ -360,12 +360,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex items-center gap-2">
             <?php if ($sameAsSourceKeys > 0): ?>
             <button onclick="confirmSameAll()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1" title="把所有'同源'条目一次性确认为正常翻译">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <i class="ti ti-check text-base"></i>
                 批量确认存疑 (<?php echo $sameAsSourceKeys; ?>条)
             </button>
             <?php endif; ?>
             <button onclick="batchTranslate()" id="btnBatch" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+                <i class="ti ti-language text-base"></i>
                 API一键翻译 (<?php echo $untranslatedKeys; ?>条)
             </button>
             <button onclick="saveAll()" class="bg-primary hover:bg-secondary text-white px-4 py-1.5 rounded text-sm">
@@ -426,19 +426,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <div class="inline-flex items-center gap-2">
                                 <button type="button" onclick="saveOne('<?php echo e($key); ?>', this)"
                                         class="text-primary hover:text-secondary" title="保存这一行">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 4a1 1 0 00-1 1v14a1 1 0 001 1h14a1 1 0 001-1V8.414a1 1 0 00-.293-.707L16.293 4.293A1 1 0 0015.586 4H5z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 4v5h7V4M8 13h8v7H8z"/>
-                                    </svg>
+                                    <i class="ti ti-device-floppy text-base"></i>
                                 </button>
                                 <button type="button" onclick="translateOne(this, '<?php echo e(addslashes($value)); ?>', '<?php echo e($key); ?>')"
                                         class="text-blue-500 hover:text-blue-700" title="API翻译">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+                                    <i class="ti ti-language text-base"></i>
                                 </button>
                                 <?php if ($isSameAsSource): ?>
                                 <button type="button" onclick="confirmSame('<?php echo e($key); ?>', this)"
                                         class="text-amber-600 hover:text-amber-700" title="确认同源即正常翻译（如品牌名/技术词等）">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <i class="ti ti-check text-base"></i>
                                 </button>
                                 <?php endif; ?>
                             </div>
@@ -526,7 +523,7 @@ function showToast(msg, type) {
 }
 
 function translateOne(btn, text, key) {
-    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i>';
 
     var fd = new FormData();
     fd.append('_token', '<?php echo csrfToken(); ?>');
@@ -547,7 +544,7 @@ function translateOne(btn, text, key) {
         })
         .catch(() => showMessage('请求失败', 'error'))
         .finally(() => {
-            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>';
+            btn.innerHTML = '<i class="ti ti-language text-base"></i>';
         });
 }
 

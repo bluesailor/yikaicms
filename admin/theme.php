@@ -60,9 +60,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <?php if (empty($themes)): ?>
     <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
-        </svg>
+        <i class="ti ti-brush text-base mx-auto mb-4 text-gray-300"></i>
         <p><?php echo __('theme_none'); ?></p>
         <p class="text-xs mt-2"><?php echo __('theme_none_hint'); ?></p>
     </div>
@@ -84,9 +82,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <img src="<?php echo e($screenshot); ?>" alt="<?php echo e($theme['name']); ?>" class="w-full h-full object-cover">
                 <?php else: ?>
                 <div class="w-full h-full flex items-center justify-center text-gray-300">
-                    <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                    <i class="ti ti-photo text-base"></i>
                 </div>
                 <?php endif; ?>
                 <?php if ($isActive): ?>

@@ -60,7 +60,7 @@ function submitAiPanel() {
     var btn = document.getElementById('aiPanelSubmit');
     var status = document.getElementById('aiStatus');
     btn.disabled = true;
-    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> 生成中...';
+    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i> 生成中...';
     if (status) status.textContent = 'AI 生成中...';
 
     var fd = new FormData();
@@ -91,7 +91,7 @@ function submitAiPanel() {
     .catch(function(e) { showMessage('请求失败: ' + e.message, 'error'); })
     .finally(function() {
         btn.disabled = false;
-        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> 开始生成';
+        btn.innerHTML = '<i class="ti ti-bolt text-base"></i> 开始生成';
         if (status) status.textContent = '';
     });
 }

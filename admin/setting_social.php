@@ -91,7 +91,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <?php if (!empty($linkMap[$key])): ?>
                     <a href="<?php echo e($linkMap[$key]); ?>" target="_blank" class="text-gray-400 hover:text-primary flex-shrink-0" title="<?php echo __('admin_open'); ?>">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        <i class="ti ti-external-link text-base"></i>
                     </a>
                     <?php endif; ?>
                 </div>
@@ -102,7 +102,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div class="px-6 py-4 border-t bg-gray-50 rounded-b-lg">
             <button type="submit" class="bg-primary hover:opacity-90 text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <i class="ti ti-check text-base"></i>
                 <?php echo __('admin_save'); ?>
             </button>
         </div>
