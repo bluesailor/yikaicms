@@ -810,6 +810,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
 
+                <?php
+                // 「自动跳转」的实际目标 = 第一个子栏目（与前台 page.php 一致）
+                $autoChild = null;
+                if ($editChannel && !empty($editChannel['id'])) {
+                    $_kids = channelModel()->getByParent((int) $editChannel['id'], true);
+                    $autoChild = $_kids[0] ?? null;
+                }
+                ?>
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?php echo __('admin_page_redirect'); ?></label>
                     <select name="redirect_type" id="redirectType" class="w-full border rounded px-3 py-2">
@@ -818,6 +826,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <option value="url" <?php echo ($editChannel['redirect_type'] ?? 'auto') === 'url' ? 'selected' : ''; ?>><?php echo __('admin_redirect_url_option'); ?></option>
                     </select>
                     <p class="text-xs text-gray-400 mt-1"><?= __('admin_redirect_type') ?></p>
+                    <p id="autoRedirectHint" class="text-xs mt-1 hidden <?php echo $autoChild ? 'text-blue-600' : 'text-amber-600'; ?>">
+                        <?php echo $autoChild
+                            ? sprintf(__('admin_redirect_auto_target'), '<strong>' . e($autoChild['name']) . '</strong>')
+                            : __('admin_redirect_auto_none'); ?>
+                    </p>
                 </div>
 
                 <div id="redirectUrlField" class="hidden">
@@ -963,6 +976,8 @@ document.getElementById('channelType').dispatchEvent(new Event('change'));
 // 跳转类型联动
 document.getElementById('redirectType').addEventListener('change', function() {
     document.getElementById('redirectUrlField').classList.toggle('hidden', this.value !== 'url');
+    var hint = document.getElementById('autoRedirectHint');
+    if (hint) hint.classList.toggle('hidden', this.value !== 'auto');
 });
 document.getElementById('redirectType').dispatchEvent(new Event('change'));
 

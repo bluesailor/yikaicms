@@ -563,7 +563,9 @@ return [
     'admin_none' => '无',
     'admin_home_display' => '首页显示',
     'admin_redirect_type' => '跳转类型',
-    'admin_redirect_auto' => '自动跳转',
+    'admin_redirect_auto' => '自动跳转到第一个子栏目',
+    'admin_redirect_auto_target' => '当前将跳转到：%s',
+    'admin_redirect_auto_none' => '本栏目暂无子栏目，选「自动」时将直接显示本页内容',
     'admin_redirect_none' => '不跳转',
     'admin_redirect_url' => '指定URL',
 
