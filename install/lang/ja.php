@@ -91,6 +91,17 @@ return [
     'install_complete' => 'インストール完了',
     'install_complete_desc' => 'Yikai CMS のインストールが完了しました。管理者情報は大切に保管してください。',
     'goto_admin' => '管理画面へ',
+    // ワンクリック高速インストール（SQLite） + 完了ページ案内
+    'quick_title' => 'ワンクリック高速インストール（SQLite・設定不要）',
+    'quick_desc' => 'データベース情報の入力は不要。内蔵の SQLite（デモデータ含む）で数秒でインストールできます。お試しに最適です。',
+    'quick_button' => '⚡ 高速インストール',
+    'quick_confirm' => 'SQLite（デモデータ含む）で高速インストールします。管理者ユーザーは「admin」、パスワードは自動生成され完了後に表示されます。続行しますか？',
+    'quick_installing' => 'インストール中…',
+    'quick_done' => 'インストール完了！',
+    'quick_account' => '管理者ユーザー',
+    'quick_password' => 'パスワード',
+    'quick_warn' => 'すぐにログインしてパスワードを変更してください。パスワードは一度だけ表示されます。',
+    'install_cta_hint' => 'ログイン後、ダッシュボードの案内に従えば数秒でサイトのカテゴリを生成できます。',
     'goto_home' => 'サイトトップへ',
     'security_tip' => 'セキュリティのため、install ディレクトリを削除してください。',
 

@@ -91,6 +91,17 @@ return [
     'install_complete' => 'Installation Complete',
     'install_complete_desc' => 'Yikai CMS has been installed successfully. Please keep your administrator credentials safe.',
     'goto_admin' => 'Go to admin panel',
+    // One-click quick install (SQLite) + completion guide
+    'quick_title' => 'One-Click Quick Install (SQLite, zero-config)',
+    'quick_desc' => 'No database details needed. Installs with the built-in SQLite database (incl. demo data) in seconds — great for a quick trial.',
+    'quick_button' => '⚡ Quick Install',
+    'quick_confirm' => 'This will quick-install with SQLite (incl. demo data). Admin username is "admin"; a random password will be generated and shown when done. Continue?',
+    'quick_installing' => 'Installing…',
+    'quick_done' => 'Installation complete!',
+    'quick_account' => 'Admin username',
+    'quick_password' => 'Password',
+    'quick_warn' => 'Please log in and change the password immediately; it is shown only once.',
+    'install_cta_hint' => 'After logging in, follow the dashboard guide to generate your site channels in seconds.',
     'goto_home' => 'Go to homepage',
     'security_tip' => 'Security: please remove the install/ directory.',
 
