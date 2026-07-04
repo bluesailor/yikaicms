@@ -54,15 +54,11 @@ if (($page['slug'] ?? '') === 'history') {
 $redirectType = $page['redirect_type'] ?? 'auto';
 $redirectTarget = null;
 
-if ($redirectType === 'auto') {
-    $children = channelModel()->getByParent($id, true);
-    if (!empty($children)) {
-        // 父页有子级 → 直接跳到第一个子页（父页没有自己的 content，编辑无意义）。
-        // 想改父页的 name/slug/SEO 元数据请到 /admin/channel.php?edit=<id>。
-        header('Location: /admin/page_edit.php?id=' . (int) $children[0]['id']);
-        exit;
-    }
-} elseif ($redirectType === 'url' && !empty($page['redirect_url'])) {
+// 父页有子级：不再静默跳转到第一个子页（那样父页无法编辑、也违背「不跳转」设置），
+// 改为在页面顶部显示醒目横幅（见 parent_page_notice.php），父页本身可直接编辑。
+$children = channelModel()->getByParent($id, true);
+
+if ($redirectType === 'url' && !empty($page['redirect_url'])) {
     $redirectTarget = ['name' => $page['redirect_url'], '_is_url' => true];
 }
 
@@ -111,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         contentModel()->create([
             'channel_id' => $id,
+            'lang' => siteLang(),
             'title' => post('name'),
             'content' => $newContent,
             'content_type' => 'html',
@@ -138,24 +135,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="mb-6 flex items-center justify-between">
     <a href="/admin/page.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        <i class="ti ti-chevron-left text-base"></i>
         <?php echo __('admin_back'); ?>
     </a>
     <div class="flex items-center gap-2">
         <a href="<?php echo channelUrl($page); ?>" target="_blank" rel="noopener" class="border border-gray-300 text-gray-700 hover:border-primary hover:text-primary px-4 py-2 rounded text-sm inline-flex items-center gap-1 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            <i class="ti ti-eye text-base"></i>
             <?php echo __('page_preview'); ?>
         </a>
         <a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+            <i class="ti ti-layout-columns text-base"></i>
             <?php echo __('page_switch_advance'); ?>
         </a>
     </div>
 </div>
 
+<?php $childEditBase = '/admin/page_edit.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>
+
 <?php if ($contentType === 'blocks'): ?>
 <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-    <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <i class="ti ti-info-circle text-lg text-amber-500 mt-0.5 shrink-0"></i>
     <div class="text-sm text-amber-800">
         <p><?php echo __('pe_advance_warning'); ?></p>
         <p class="mt-1"><a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="text-primary hover:underline font-medium"><?php echo __('pe_go_advance'); ?></a></p>
@@ -165,7 +164,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php if ($redirectTarget): ?>
 <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-    <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <i class="ti ti-info-circle text-lg text-amber-500 mt-0.5 shrink-0"></i>
     <div class="text-sm text-amber-800">
         <?php if (!empty($redirectTarget['_is_url'])): ?>
         <p><?php echo __('pe_redirect_to'); ?><strong><?php echo e($redirectTarget['name']); ?></strong></p>
@@ -208,11 +207,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex gap-2">
                     <button type="button" onclick="uploadImage()"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <i class="ti ti-upload text-base"></i>
                         <?php echo __('admin_upload_image'); ?></button>
                     <button type="button" onclick="pickImageFromMedia()"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <i class="ti ti-photo text-base"></i>
                         <?php echo __('admin_media_library'); ?></button>
                 </div>
                 <?php if ($page['image']): ?>
@@ -248,7 +247,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </select>
                 <button type="button" onclick="insertOrgDemo()"
                         class="border border-gray-300 text-gray-700 hover:border-primary hover:text-primary px-3 py-1.5 rounded text-sm inline-flex items-center gap-1 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <i class="ti ti-file-text text-base"></i>
                     <?php echo __('page_insert_org_demo'); ?>
                 </button>
             </div>
@@ -285,7 +284,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow p-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <i class="ti ti-check text-base"></i>
             <?php echo __('admin_save'); ?>
         </button>
     </div>
