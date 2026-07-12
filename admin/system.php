@@ -186,7 +186,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_web_server'); ?></td>
-                        <td class="py-3 text-gray-800"><?php echo $_SERVER['SERVER_SOFTWARE'] ?? '-'; ?></td>
+                        <td class="py-3 text-gray-800"><?php echo e($_SERVER['SERVER_SOFTWARE'] ?? '-'); ?></td>
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_php_version'); ?></td>

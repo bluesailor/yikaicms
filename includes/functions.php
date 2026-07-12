@@ -1672,232 +1672,9 @@ function uploadFile(array $file, string $type = 'images'): array
 // 缩略图系统
 // ============================================================
 
-/**
- * 缩略图尺寸配置
- * thumb: 300x300 裁剪居中（用于列表卡片）
- * medium: 800x600 等比缩放（用于详情页侧栏）
- */
-define('THUMBNAIL_SIZES', [
-    'thumb'  => ['width' => 300, 'height' => 300, 'crop' => true],
-    'medium' => ['width' => 800, 'height' => 600, 'crop' => false],
-]);
-
-/**
- * 为上传的图片生成缩略图
- */
-function generateThumbnails(string $filepath, string $ext): array
-{
-    $supportedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    if (!in_array($ext, $supportedExts) || !function_exists('imagecreatetruecolor')) {
-        return [];
-    }
-
-    $srcImage = match ($ext) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($filepath),
-        'png'         => @imagecreatefrompng($filepath),
-        'gif'         => @imagecreatefromgif($filepath),
-        'webp'        => @imagecreatefromwebp($filepath),
-        default       => false,
-    };
-
-    if (!$srcImage) return [];
-
-    $srcW = imagesx($srcImage);
-    $srcH = imagesy($srcImage);
-    $thumbs = [];
-
-    foreach (THUMBNAIL_SIZES as $sizeName => $sizeConf) {
-        $maxW = $sizeConf['width'];
-        $maxH = $sizeConf['height'];
-        $crop = $sizeConf['crop'];
-
-        // 跳过比缩略图还小的原图
-        if ($srcW <= $maxW && $srcH <= $maxH) {
-            continue;
-        }
-
-        if ($crop) {
-            // 裁剪模式：从中心裁剪
-            $ratio = max($maxW / $srcW, $maxH / $srcH);
-            $resW = (int)ceil($srcW * $ratio);
-            $resH = (int)ceil($srcH * $ratio);
-            $offsetX = (int)(($resW - $maxW) / 2 / $ratio);
-            $offsetY = (int)(($resH - $maxH) / 2 / $ratio);
-            $cropW = (int)($maxW / $ratio);
-            $cropH = (int)($maxH / $ratio);
-
-            $dstImage = imagecreatetruecolor($maxW, $maxH);
-            _preserveTransparency($dstImage, $ext);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, $offsetX, $offsetY, $maxW, $maxH, $cropW, $cropH);
-        } else {
-            // 等比缩放
-            $ratio = min($maxW / $srcW, $maxH / $srcH);
-            $newW = (int)round($srcW * $ratio);
-            $newH = (int)round($srcH * $ratio);
-
-            $dstImage = imagecreatetruecolor($newW, $newH);
-            _preserveTransparency($dstImage, $ext);
-            imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
-        }
-
-        // 生成缩略图文件路径
-        $thumbPath = _thumbnailPath($filepath, $sizeName);
-        _saveImage($dstImage, $thumbPath, $ext);
-        imagedestroy($dstImage);
-
-        $thumbs[$sizeName] = $thumbPath;
-    }
-
-    imagedestroy($srcImage);
-    return $thumbs;
-}
-
-/**
- * 保持 PNG/GIF/WebP 透明度
- */
-function _preserveTransparency($image, string $ext): void
-{
-    if (in_array($ext, ['png', 'gif', 'webp'])) {
-        imagealphablending($image, false);
-        imagesavealpha($image, true);
-        $transparent = imagecolorallocatealpha($image, 0, 0, 0, 127);
-        imagefill($image, 0, 0, $transparent);
-    }
-}
-
-/**
- * 保存图片到文件
- */
-function _saveImage($image, string $path, string $ext): void
-{
-    match ($ext) {
-        'jpg', 'jpeg' => imagejpeg($image, $path, 85),
-        'png'         => imagepng($image, $path, 6),
-        'gif'         => imagegif($image, $path),
-        'webp'        => imagewebp($image, $path, 85),
-    };
-}
-
-/**
- * 将原图等比缩小到最大宽度 $maxW（仅当原图更宽时），直接覆盖原文件。
- * 用于限制客户上传的超大图。$quality 用于 JPEG/WebP 重新编码（PNG 为无损，忽略）。
- * 返回是否实际进行了压缩。GIF/SVG 不处理（动图/矢量）。
- */
-function downscaleImage(string $filepath, string $ext, int $maxW, int $quality = 85): bool
-{
-    if (!function_exists('imagecreatetruecolor') || $maxW <= 0) {
-        return false;
-    }
-    $src = match ($ext) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($filepath),
-        'png'         => @imagecreatefrompng($filepath),
-        'webp'        => @imagecreatefromwebp($filepath),
-        default       => false,
-    };
-    if (!$src) {
-        return false;
-    }
-
-    $srcW = imagesx($src);
-    $srcH = imagesy($src);
-    if ($srcW <= $maxW) {            // 不需要缩
-        imagedestroy($src);
-        return false;
-    }
-
-    $newW = $maxW;
-    $newH = max(1, (int) round($srcH * ($maxW / $srcW)));
-    $dst  = imagecreatetruecolor($newW, $newH);
-    _preserveTransparency($dst, $ext);
-    imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $srcW, $srcH);
-
-    $quality = max(1, min(100, $quality));
-    $ok = match ($ext) {
-        'jpg', 'jpeg' => imagejpeg($dst, $filepath, $quality),
-        'png'         => imagepng($dst, $filepath, 6),   // PNG 用压缩级别(0-9)，与质量无关
-        'webp'        => imagewebp($dst, $filepath, $quality),
-        default       => false,
-    };
-
-    imagedestroy($src);
-    imagedestroy($dst);
-    return (bool) $ok;
-}
-
-/**
- * 生成缩略图文件路径
- * 例: /uploads/images/202602/img_abc123.jpg → /uploads/images/202602/img_abc123_thumb.jpg
- */
-function _thumbnailPath(string $filepath, string $sizeName): string
-{
-    $info = pathinfo($filepath);
-    return $info['dirname'] . '/' . $info['filename'] . '_' . $sizeName . '.' . $info['extension'];
-}
-
-/**
- * 获取缩略图URL
- * 用法: thumbnail('/uploads/images/202602/img.jpg', 'thumb')
- * 若缩略图不存在则返回原图URL
- */
-function thumbnail(?string $url, string $size = 'thumb'): string
-{
-    if (empty($url)) return '';
-    if (!isset(THUMBNAIL_SIZES[$size])) return $url;
-
-    $info = pathinfo($url);
-    $thumbUrl = $info['dirname'] . '/' . $info['filename'] . '_' . $size . '.' . ($info['extension'] ?? 'jpg');
-
-    // 检查文件是否存在
-    $thumbPath = ROOT_PATH . $thumbUrl;
-    if (file_exists($thumbPath)) {
-        return $thumbUrl;
-    }
-
-    return $url;
-}
-
-/**
- * 将图片转换为 WebP 格式
- */
-function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $quality = 80): bool
-{
-    $srcImage = match ($srcExt) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($srcPath),
-        'png'         => @imagecreatefrompng($srcPath),
-        default       => false,
-    };
-
-    if (!$srcImage) return false;
-
-    if ($srcExt === 'png') {
-        imagepalettetotruecolor($srcImage);
-        imagealphablending($srcImage, true);
-        imagesavealpha($srcImage, true);
-    }
-
-    $result = imagewebp($srcImage, $dstPath, $quality);
-    imagedestroy($srcImage);
-    return $result;
-}
-
-/**
- * 获取图片的 WebP URL（如果存在）
- * 用法: webpUrl('/uploads/images/202602/img.jpg')
- */
-function webpUrl(?string $url): string
-{
-    if (empty($url)) return '';
-
-    $webp = preg_replace('/\.(jpe?g|png)$/i', '.webp', $url);
-    if ($webp === $url) return $url;
-
-    $webpPath = ROOT_PATH . $webp;
-    if (file_exists($webpPath)) {
-        return $webp;
-    }
-
-    return $url;
-}
+// 图像处理（缩略图 / 等比缩放 / WebP）已抽到 includes/image.php（P2-2 拆分上帝文件）。
+// 全局函数名不变（thumbnail/generateThumbnails/downscaleImage/convertToWebp/webpUrl 等），调用方无需改。
+require_once __DIR__ . '/image.php';
 
 // ============================================================
 // 短码系统
@@ -1963,6 +1740,35 @@ function renderNavMobileItems(array $items, int $level, string $textColor, strin
     return $html;
 }
 
+/**
+ * 静态资源 URL 加版本号（基于文件修改时间），避免浏览器缓存旧的 CSS/JS。
+ * 样式或脚本改动/重新生成后 mtime 变化，浏览器自动拉取新版。
+ *
+ * @param string $path 站内绝对路径，如 '/assets/css/tailwind.css'
+ * @return string 带 ?v=<mtime> 的路径；文件不存在时原样返回
+ */
+function assetVer(string $path): string
+{
+    $mtime = @filemtime(ROOT_PATH . $path);
+    return $mtime ? ($path . '?v=' . $mtime) : $path;
+}
+
+/**
+ * 吸顶头部「滚动时略微透明」效果（挂在 ik_footer_scripts 钩子，各主题通用）。
+ * 仅当 header_sticky=1 且 header_scroll_opacity<100 时输出；目标为 <header id="siteHeader">。
+ */
+function renderHeaderScrollFade(): void
+{
+    if ((string) config('header_sticky', '0') !== '1') return;
+    $op = (int) config('header_scroll_opacity', 100);
+    if ($op >= 100 || $op < 50) return; // 100=关闭
+    $opv = rtrim(rtrim(number_format($op / 100, 2), '0'), '.');
+    echo '<style>#siteHeader{transition:opacity .3s ease}#siteHeader.is-scrolled{opacity:' . $opv . '}</style>'
+       . '<script>(function(){var h=document.getElementById("siteHeader");if(!h)return;'
+       . 'function s(){h.classList.toggle("is-scrolled",window.scrollY>20);}'
+       . 'window.addEventListener("scroll",s,{passive:true});s();})();</script>' . "\n";
+}
+
 function parseShortcodes(string $content): string
 {
     // 表单短码
@@ -1988,7 +1794,101 @@ function parseShortcodes(string $content): string
         return function_exists('timelineBlock') ? timelineBlock($opts) : '';
     }, $content);
 
+    // 相册短码：[album-12] 在正文内内嵌一个相册网格 + 灯箱
+    $content = preg_replace_callback('/\[album-(\d+)\]/', function ($matches) {
+        return renderAlbumShortcode((int)$matches[1]);
+    }, $content);
+
     return $content;
+}
+
+/**
+ * 渲染相册短码为网格缩略图 + 自包含灯箱
+ * 用法：在任意页面正文中写 [album-<相册ID>]，即可内嵌该相册。
+ * 灯箱自包含（唯一实例 id），可用于 page 型页面，且同页多个相册互不干扰。
+ */
+function renderAlbumShortcode(int $albumId): string
+{
+    if ($albumId <= 0) {
+        return '';
+    }
+    $album = albumModel()->findWhere(['id' => $albumId, 'status' => 1]);
+    if (!$album) {
+        return '<!-- album not found: ' . $albumId . ' -->';
+    }
+    $photos = albumPhotoModel()->where(['album_id' => $albumId, 'status' => 1]);
+    if (empty($photos)) {
+        return '<!-- album empty: ' . $albumId . ' -->';
+    }
+
+    $uid = 'albsc' . $albumId . dechex(crc32(($album['name'] ?? '') . count($photos)));
+
+    $masonry = ($album['layout'] ?? 'grid') === 'masonry';
+
+    if ($masonry) {
+        // 流布局（瀑布流）：CSS columns，保留图片原始比例
+        $html = '<div class="not-prose gap-4 my-6" style="columns:2;column-gap:1rem" data-album-masonry>';
+        foreach ($photos as $photo) {
+            $full  = e($photo['image']);
+            $thumb = e(function_exists('thumbnail') ? thumbnail($photo['image'], 'medium') : $photo['image']);
+            $title = e($photo['title'] ?? '');
+            $html .= '<div class="group" style="break-inside:avoid;margin-bottom:1rem">';
+            $html .= '<a href="' . $full . '" data-lb="' . $uid . '" data-title="' . $title . '"'
+                   . ' class="block rounded-lg overflow-hidden bg-gray-100">';
+            $html .= '<img loading="lazy" src="' . $thumb . '" alt="' . $title . '"'
+                   . ' class="w-full h-auto group-hover:opacity-90 transition duration-300"></a>';
+            if ($title !== '') {
+                $html .= '<p class="text-center text-sm text-gray-600 mt-2">' . $title . '</p>';
+            }
+            $html .= '</div>';
+        }
+        $html .= '</div>';
+        // 响应式列数（窄屏 2 列，中屏 3 列，宽屏 4 列）
+        $html .= '<style>@media(min-width:768px){[data-album-masonry]{columns:3!important}}@media(min-width:1024px){[data-album-masonry]{columns:4!important}}</style>';
+    } else {
+        // 网格：等比方形缩略图
+        $html = '<div class="not-prose grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 my-6">';
+        foreach ($photos as $photo) {
+            $full  = e($photo['image']);
+            $thumb = e(function_exists('thumbnail') ? thumbnail($photo['image'], 'medium') : $photo['image']);
+            $title = e($photo['title'] ?? '');
+            $html .= '<div class="group">';
+            $html .= '<a href="' . $full . '" data-lb="' . $uid . '" data-title="' . $title . '"'
+                   . ' class="block aspect-square rounded-lg overflow-hidden bg-gray-100">';
+            $html .= '<img loading="lazy" src="' . $thumb . '" alt="' . $title . '"'
+                   . ' class="w-full h-full object-cover group-hover:scale-110 transition duration-300"></a>';
+            if ($title !== '') {
+                $html .= '<p class="text-center text-sm text-gray-600 mt-2">' . $title . '</p>';
+            }
+            $html .= '</div>';
+        }
+        $html .= '</div>';
+    }
+
+    $imgsJson = json_encode(array_map(function ($p) {
+        return ['src' => $p['image'], 'title' => $p['title'] ?? ''];
+    }, $photos), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+
+    $html .= '<div id="' . $uid . '-lb" class="lightbox-overlay" onclick="' . $uid . 'Close(event)">'
+           . '<div class="lightbox-content">'
+           . '<span class="lightbox-close" onclick="' . $uid . 'Close()">&times;</span>'
+           . '<span class="lightbox-nav lightbox-prev" onclick="' . $uid . 'Nav(event,-1)">&lsaquo;</span>'
+           . '<img id="' . $uid . '-img" src="" alt="">'
+           . '<span class="lightbox-nav lightbox-next" onclick="' . $uid . 'Nav(event,1)">&rsaquo;</span>'
+           . '<div class="lightbox-title" id="' . $uid . '-title"></div>'
+           . '</div></div>';
+    $html .= '<script>(function(){var imgs=' . $imgsJson . ',i=0,uid="' . $uid . '";'
+           . 'function show(){document.getElementById(uid+"-img").src=imgs[i].src;'
+           . 'document.getElementById(uid+"-title").textContent=imgs[i].title||"";}'
+           . 'window[uid+"Close"]=function(e){if(!e||e.target.id===uid+"-lb"){'
+           . 'document.getElementById(uid+"-lb").classList.remove("active");document.body.style.overflow="";}};'
+           . 'window[uid+"Nav"]=function(e,d){e.stopPropagation();i=(i+d+imgs.length)%imgs.length;show();};'
+           . 'document.querySelectorAll("[data-lb=\'"+uid+"\']").forEach(function(el,idx){'
+           . 'el.addEventListener("click",function(e){e.preventDefault();i=idx;show();'
+           . 'document.getElementById(uid+"-lb").classList.add("active");document.body.style.overflow="hidden";});});'
+           . '})();</script>';
+
+    return $html;
 }
 
 /**

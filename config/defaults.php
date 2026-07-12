@@ -41,12 +41,14 @@ return [
     // 页头设置
     // ============================================================
     'header' => [
+        'page_hero_default_bg'  => ['value' => '', 'type' => 'image', 'name' => '内页头部默认背景图', 'tip' => '除首页外，栏目未单独设头图时，页面顶部横幅（面包屑区）统一用此图；留空则显示暗色渐变（minimal 主题除外，其内页头部不使用背景图）', 'sort_order' => -1],
         'topbar_enabled'        => ['value' => '0', 'type' => 'select', 'name' => '顶部通栏', 'tip' => 'Logo上方的通栏', 'options' => '{"0":"隐藏","1":"显示"}', 'sort_order' => 0],
         'topbar_bg_color'       => ['value' => '#f3f4f6', 'type' => 'color', 'name' => '通栏背景色', 'tip' => '', 'sort_order' => 1],
         'topbar_left'           => ['value' => '', 'type' => 'code', 'name' => '通栏左侧内容', 'tip' => '支持HTML（电话、公告等）', 'sort_order' => 2],
         'show_member_entry'     => ['value' => '0', 'type' => 'select', 'name' => '会员入口', 'tip' => '开启通栏时在右侧，否则在导航栏内', 'options' => '{"0":"隐藏","1":"显示"}', 'sort_order' => 3],
         'header_nav_layout'     => ['value' => 'right', 'type' => 'select', 'name' => '导航布局', 'tip' => 'Logo右侧或Logo下方', 'options' => '{"right":"Logo右侧","below":"Logo下方通栏"}', 'sort_order' => 10],
         'header_sticky'         => ['value' => '0', 'type' => 'select', 'name' => '吸顶固定', 'tip' => '导航是否固定在页面顶部', 'options' => '{"1":"是","0":"否"}', 'sort_order' => 11],
+        'header_scroll_opacity' => ['value' => '100', 'type' => 'select', 'name' => '滚动时头部透明度', 'tip' => '开启吸顶后，向下滚动时头部略微透明（位置不变）。需先开启「吸顶固定」', 'options' => '{"100":"关闭（不透明）","97":"97%","94":"94%","90":"90%","85":"85%"}', 'sort_order' => 12],
         'header_bg_color'       => ['value' => '#ffffff', 'type' => 'color', 'name' => '背景色', 'tip' => '', 'sort_order' => 12],
         'header_text_color'     => ['value' => '#4b5563', 'type' => 'color', 'name' => '文字色', 'tip' => '', 'sort_order' => 13],
     ],

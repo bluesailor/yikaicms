@@ -74,11 +74,17 @@ function adminLangView(): array
  */
 function adminFilterLangSuffixes(array $rows, string $keyField = 'key'): array
 {
-    $lang = adminLangView();
-    if (empty($lang['suffixes'])) return $rows;
-    return array_values(array_filter($rows, function (array $row) use ($lang, $keyField): bool {
+    // 剥离所有「非默认语言」后缀的行——它们只是翻译存储（如 contact_phone_en），不应作为独立字段显示。
+    // 注意：按「所有支持语言」而非「已启用语言」生成后缀，否则禁用某语言后其历史种子行会漏网、泄漏到设置页。
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    $suffixes = [];
+    foreach (array_keys(availableLanguages()) as $lc) {
+        if ($lc !== $defaultLang) $suffixes[] = '_' . $lc;
+    }
+    if (empty($suffixes)) return $rows;
+    return array_values(array_filter($rows, function (array $row) use ($suffixes, $keyField): bool {
         $k = (string) ($row[$keyField] ?? '');
-        foreach ($lang['suffixes'] as $suf) {
+        foreach ($suffixes as $suf) {
             if (str_ends_with($k, $suf)) return false;
         }
         return true;

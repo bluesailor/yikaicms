@@ -363,6 +363,8 @@ return [
     'page_preview' => 'Preview',
     'page_show_sidebar' => 'Show Sidebar',
     'page_show_sidebar_tip' => 'When off, the content spans full width and the sibling-column sidebar is hidden (only affects pages that would otherwise show a sidebar).',
+    'page_show_cover' => 'Show cover image in content',
+    'page_show_cover_tip' => 'This image is always used as the page hero (breadcrumb area) background. When unchecked, it is not shown again at the top of the content — ideal for overview / landing pages.',
     'page_insert_org_demo' => 'Insert Org Chart Sample',
     'page_insert_org_demo_confirm' => 'This will replace the current content with a sample org chart. Continue?',
     'page_org_style' => 'Style',

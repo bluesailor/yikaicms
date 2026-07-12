@@ -7,8 +7,12 @@
  * @var array $breadcrumbItems - Breadcrumb items array
  */
 ?>
-<?php if ($channel['image']): ?>
-<section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($channel['image']); ?>')">
+<?php
+// 头部背景：栏目自带 image 优先；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
+$heroBg = ($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', '');
+?>
+<?php if ($heroBg): ?>
+<section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($heroBg); ?>')">
     <div class="absolute inset-0 bg-black/60"></div>
     <div class="container mx-auto px-4 relative">
         <!-- breadcrumb navigation -->

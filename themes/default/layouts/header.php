@@ -140,9 +140,9 @@ function getChannelUrl(array $channel): string {
     <?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
     </script>
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <style>:root { --color-primary: <?php echo config('primary_color', '#3B82F6'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>
     <?php if (!empty($extraCss)): ?>
     <?php echo $extraCss; ?>
@@ -180,7 +180,7 @@ function getChannelUrl(array $channel): string {
     <?php endif; ?>
 
     <!-- Top navigation -->
-    <header class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
+    <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
         <?php if ($headerNavLayout === 'below'): ?>
         <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">

@@ -73,6 +73,8 @@ if (function_exists('add_action')) {
             HtmlCache::invalidate();
         }
     });
+    // 吸顶头部滚动透明效果（前台 footer 输出，各主题通用；未启用时自动无输出）
+    add_action('ik_footer_scripts', 'renderHeaderScrollFade');
 }
 require_once ROOT_PATH . '/includes/StaticHtml.php';
 require_once ROOT_PATH . '/includes/HtmlPipeline.php';

@@ -12,6 +12,10 @@
     RewriteRule ^vendor/ - [F,L]
     RewriteRule ^includes/ - [F,L]
     RewriteRule ^install/sql/ - [F,L]
+    # 已安装后封禁整个 install/ 目录（防重装绕过 → config 写入 RCE）。
+    # 与 nginx.conf 的同款保护对齐；如需重装，删除根目录 installed.lock 即可临时重开。
+    RewriteCond %{DOCUMENT_ROOT}/installed.lock -f
+    RewriteRule ^install/ - [F,L]
     RewriteRule ^bin/ - [F,L]
     RewriteRule ^migrations/ - [F,L]
     RewriteRule ^recipes/ - [F,L]

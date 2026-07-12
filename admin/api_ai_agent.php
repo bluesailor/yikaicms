@@ -47,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// CSRF：本端点自建登录判断、未走 checkLogin 的自动校验，此处补上（前端 fetch 已由全局拦截器附带 _token）
+verifyCsrf();
+
 $prompt    = trim((string)($_POST['prompt'] ?? ''));
 $absRaw    = trim((string)($_POST['abilities'] ?? ''));
 $abilities = $absRaw !== '' ? array_filter(array_map('trim', explode(',', $absRaw))) : [];

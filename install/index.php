@@ -19,17 +19,22 @@ if (is_file($versionFile)
     $cmsVersion = $m[1];
 }
 
-// 检查是否已安装（允许step=4显示完成页面）
+// 检查是否已安装
+// 安全：POST 写操作在已安装时一律拒绝，不给 step 任何例外——否则 ?step=4 可绕过
+// 锁触达 action=install，把未转义输入写进 config.php 造成任意代码执行（重装 RCE）。
+// GET 仅允许 step=4 展示「安装完成」页，其余跳首页。
 $step = (int)($_GET['step'] ?? 1);
-if (file_exists(ROOT_PATH . '/installed.lock') && $step !== 4) {
-    // AJAX 请求返回 JSON 提示，而非重定向（防止空响应导致前端报错）
+if (file_exists(ROOT_PATH . '/installed.lock')) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // AJAX 写请求返回 JSON 提示，而非重定向（防止空响应导致前端报错）
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success' => false, 'message' => '系统已安装。如需重新安装，请先删除根目录下的 installed.lock 文件。']);
         exit;
     }
-    header('Location: /');
-    exit;
+    if ($step !== 4) {
+        header('Location: /');
+        exit;
+    }
 }
 
 // ─── 安装向导界面语言（zh / ja / en） ───────────────────────────
@@ -272,6 +277,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     if ($action === 'install') {
+        // 防御纵深：即使上游锁校验被绕过，install 动作在已安装时也拒绝执行。
+        if (file_exists(ROOT_PATH . '/installed.lock')) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => '系统已安装，禁止重复安装。']);
+            exit;
+        }
         try {
             $driver = $_POST['db_driver'] ?? 'mysql';
             $host = $_POST['db_host'] ?? 'localhost';
@@ -388,9 +399,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $configTemplate = file_get_contents($configFile);
             $sessionId = substr(md5(uniqid((string)mt_rand(), true)), 0, 8);
             $encryptKey = 'ik_' . bin2hex(random_bytes(16));
+            // 安全：所有用户输入都落进单引号 define('X','...') 字面量。占位符替换前必须转义，
+            // 否则 db_pass 传 `'); system($_GET[c]); //` 之类可闭合引号注入可执行 PHP（RCE）。
+            // 单引号 PHP 字符串只需转义 ' 与 \，addslashes 正好覆盖。driver 限枚举、port 限数字。
+            $driver = in_array($driver, ['mysql', 'sqlite'], true) ? $driver : 'mysql';
+            $port   = (string)(int)$port;
+            $esc = static fn ($v): string => addslashes((string)$v);
             $configContent = str_replace(
                 ['{{DB_DRIVER}}', '{{DB_HOST}}', '{{DB_PORT}}', '{{DB_NAME}}', '{{DB_USER}}', '{{DB_PASS}}', '{{SITE_NAME}}', '{{SITE_URL}}', '{{SESSION_ID}}', '{{ENCRYPT_KEY}}', "define('DB_PREFIX', 'yikai_')"],
-                [$driver, $host, $port, $dbName, $user, $pass, $siteName, $siteUrl, $sessionId, $encryptKey, "define('DB_PREFIX', '{$prefix}')"],
+                [$driver, $esc($host), $port, $esc($dbName), $esc($user), $esc($pass), $esc($siteName), $esc($siteUrl), $sessionId, $encryptKey, "define('DB_PREFIX', '" . $esc($prefix) . "')"],
                 $configTemplate
             );
 
@@ -754,7 +771,7 @@ $envAllPass = checkAllPass($envChecks);
                     </div>
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo $L['site_url']; ?></label>
-                        <input type="text" name="site_url" value="<?php echo 'http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . $_SERVER['HTTP_HOST']; ?>" class="w-full border rounded px-3 py-2" required>
+                        <input type="text" name="site_url" value="<?php echo htmlspecialchars('http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . ($_SERVER['HTTP_HOST'] ?? ''), ENT_QUOTES); ?>" class="w-full border rounded px-3 py-2" required>
                     </div>
                     <hr class="my-6">
                     <div>

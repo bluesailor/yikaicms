@@ -51,3 +51,11 @@ if (!function_exists('getProductCategoryBySlug')) {
         return db()->fetchOne('SELECT * FROM product_categories WHERE slug = ? AND status = 1', [$slug]);
     }
 }
+if (!function_exists('getProductCategory')) {
+    function getProductCategory(int $id): ?array {
+        return db()->fetchOne('SELECT * FROM product_categories WHERE id = ?', [$id]);
+    }
+}
+if (!function_exists('addProductViews')) {
+    function addProductViews(int $id): int { return productModel()->incrementViews($id); }
+}

@@ -417,6 +417,8 @@ return [
     'page_preview' => 'プレビュー',
     'page_show_sidebar' => 'サイドバーを表示',
     'page_show_sidebar_tip' => 'オフにすると本文が全幅になり、同階層メニューのサイドバーは非表示になります（サイドバーが表示されるページにのみ有効）。',
+    'page_show_cover' => '本文上部にカバー画像を表示',
+    'page_show_cover_tip' => 'この画像は常にページ上部バナー（パンくず部分）の背景として使用されます。チェックを外すと本文上部で再表示されません——概要・ランディングページに最適です。',
     'page_insert_org_demo' => '組織図サンプルを挿入',
     'page_insert_org_demo_confirm' => '現在の内容をサンプル組織図で置き換えます。よろしいですか？',
     'page_org_style' => 'スタイル',

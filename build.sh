@@ -83,7 +83,10 @@ EXCLUDES=(
     # 开发工具
     "build.sh"
     "build.bat"
+    "reset_test.sh"
+    "_tools"
     "psalm.xml"
+    "psalm-baseline.xml"
     "phpunit.xml"
     "composer.lock"
     "composer.phar"

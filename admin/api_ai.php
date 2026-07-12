@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// CSRF：本端点自建登录判断、未走 checkLogin 的自动校验，此处补上（防 CSRF 触发 AI 调用/费用滥用）
+verifyCsrf();
+
 $action = $_POST['action'] ?? '';
 $ai = aiService();
 

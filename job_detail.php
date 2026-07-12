@@ -18,23 +18,17 @@ if (!$id) {
     exit;
 }
 
-// 获取职位
-$job = jobModel()->find($id);
-
-if (!$job || (int)$job['status'] !== 1) {
+// 数据装配交给 JobDetailController：职位载入、浏览量自增、招聘栏目解析。
+// 与 detail.php / article.php 同款 controller 模式，逻辑由 JobDetailControllerTest 守护。
+require_once __DIR__ . '/controllers/detail/JobDetailController.php';
+$_vars = (new JobDetailController())->prepare($id);
+if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     exit(__('error_job_not_found'));
 }
-
-// 更新浏览量
-jobModel()->incrementViews($id);
-
-// 获取招聘栏目
-$channel = null;
-$channels = channelModel()->where(['type' => 'job', 'status' => 1]);
-if (!empty($channels)) {
-    $channel = $channels[0];
-}
+$job     = $_vars['job'];
+$channel = $_vars['channel'];
+unset($_vars);
 
 // 页面信息
 $pageTitle = $job['title'];

@@ -8,7 +8,7 @@
  */
 $_heroTitle = $pageTitle ?? ($channel['name'] ?? '');
 $_heroDesc = $channel['description'] ?? '';
-$_heroBg = $channel['hero_image'] ?? $channel['cover'] ?? '';
+$_heroBg = ($channel['hero_image'] ?? $channel['cover'] ?? '') ?: (string) config('page_hero_default_bg', '');
 ?>
 <section class="relative overflow-hidden border-b border-slate-800/60">
     <?php if ($_heroBg): ?>

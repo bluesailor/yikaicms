@@ -88,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'content' => $newContent,
         'image' => post('image'),
         'show_sidebar' => isset($_POST['show_sidebar']) ? 1 : 0,
+        'show_cover' => isset($_POST['show_cover']) ? 1 : 0,
         'seo_title' => post('seo_title'),
         'seo_keywords' => post('seo_keywords'),
         'seo_description' => post('seo_description'),
@@ -217,6 +218,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if ($page['image']): ?>
                 <img src="<?php echo e($page['image']); ?>" id="imagePreview" class="h-24 mt-2 rounded">
                 <?php endif; ?>
+                <label class="flex items-center gap-2 cursor-pointer mt-3">
+                    <input type="checkbox" name="show_cover" value="1" <?php echo (int)($page['show_cover'] ?? 1) === 1 ? 'checked' : ''; ?>
+                           class="rounded border-gray-300 text-primary focus:ring-primary">
+                    <span class="text-sm text-gray-700"><?php echo __('page_show_cover'); ?></span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1"><?php echo __('page_show_cover_tip'); ?></p>
             </div>
 
             <div>

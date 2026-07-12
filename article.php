@@ -11,37 +11,43 @@ require_once __DIR__ . '/includes/init.php';
 
 HtmlCache::start(600);
 
-$id = getInt('id');
-$slug = get('slug');
+$id   = getInt('id');
+$slug = trim((string) get('slug', ''));
 
-// 获取文章（从统一内容表，lang-aware：自动跳到当前 siteLang 翻译行）
-if ($slug) {
-    $article = contentModel()->findBySlugLang($slug);
-} elseif ($id > 0) {
-    $article = contentModel()->getPublished($id);
-} else {
-    $article = null;
+// slug → id（lang-aware：跳到当前 siteLang 翻译行），与 detail.php 同款解析
+if ($id <= 0 && $slug !== '') {
+    $row = contentModel()->findBySlugLang($slug);
+    if ($row) {
+        $id = (int) $row['id'];
+    }
 }
 
-if (!$article) {
+if ($id <= 0) {
     header('HTTP/1.1 404 Not Found');
     exit(__('error_article_not_found'));
 }
 
-// 更新浏览量
-contentModel()->incrementViews((int)$article['id']);
+// 数据装配交给 ContentDetailController：浏览量自增、栏目、上一篇/下一篇/相关。
+// 与 detail.php 复用同一套已测逻辑（tests/Controllers/ContentDetailControllerTest），
+// 替代早先本页内联的重复取数（incrementViews / getPrev / getNext / getRelated）。
+require_once __DIR__ . '/controllers/detail/ContentDetailController.php';
+$_vars = (new ContentDetailController())->prepare($id);
+if ($_vars === null) {
+    header('HTTP/1.1 404 Not Found');
+    exit(__('error_article_not_found'));
+}
+
+// 模板沿用 $article / $prevArticle / $nextArticle / $relatedArticles 命名
+$article         = $_vars['content'];
+$prevArticle     = $_vars['prevContent'];
+$nextArticle     = $_vars['nextContent'];
+$relatedArticles = $_vars['relatedContents'];
+unset($_vars);
 
 // 页面信息
 $pageTitle = $article['title'];
 $pageKeywords = $article['tags'] ?: configJsonLang('site_keywords');
 $pageDescription = $article['summary'] ?: cutStr(strip_tags($article['content']), 150);
-
-// 获取上一篇和下一篇
-$prevArticle = contentModel()->getPrev((int)$article['channel_id'], (int)$article['id']);
-$nextArticle = contentModel()->getNext((int)$article['channel_id'], (int)$article['id']);
-
-// 获取相关文章
-$relatedArticles = contentModel()->getRelated((int)$article['channel_id'], (int)$article['id']);
 
 // 当前菜单高亮
 $currentSlug = 'news';
