@@ -12,81 +12,36 @@ require_once __DIR__ . '/includes/init.php';
 HtmlCache::start(600);
 
 $productId = getInt('id');
-$slug = get('slug');
+$slug = trim((string) get('slug', ''));
 
-// 通过ID或slug获取产品（lang-aware：URL 用源 slug 也能跳到当前语言行）
-if ($slug) {
-    $product = productModel()->findBySlugLang($slug);
-} elseif ($productId > 0) {
-    $product = productModel()->getPublished($productId);
-} else {
-    $product = null;
+// slug → id（lang-aware：URL 用源 slug 也能跳到当前语言行），与 detail.php 同款解析
+if ($productId <= 0 && $slug !== '') {
+    $row = productModel()->findBySlugLang($slug);
+    if ($row) {
+        $productId = (int) $row['id'];
+    }
 }
 
-if (!$product) {
+if ($productId <= 0) {
     header('HTTP/1.1 404 Not Found');
     exit(__('error_product_not_found'));
 }
 
-// 增加浏览量
-addProductViews((int)$product['id']);
+// 数据装配交给 ProductDetailController：产品载入、浏览量自增、分类/相关/上下篇、
+// 图片组与规格解析。与 detail.php / article.php 同款、逻辑由 ProductDetailControllerTest 守护。
+require_once __DIR__ . '/controllers/detail/ProductDetailController.php';
+$_vars = (new ProductDetailController())->prepare($productId);
+if ($_vars === null) {
+    header('HTTP/1.1 404 Not Found');
+    exit(__('error_product_not_found'));
+}
+extract($_vars, EXTR_OVERWRITE);
+unset($_vars);
 
 // 页面信息
 $pageTitle = $product['title'];
 $pageKeywords = $product['tags'] ?: configJsonLang('site_keywords');
 $pageDescription = $product['summary'] ?: cutStr(strip_tags($product['content']), 150);
-
-// 获取产品分类
-$productCategory = null;
-if ($product['category_id'] > 0) {
-    $productCategory = getProductCategory((int)$product['category_id']);
-}
-
-// 获取相关产品
-$relatedProducts = [];
-if ($product['category_id'] > 0) {
-    $relatedProducts = productModel()->getRelated((int)$product['category_id'], (int)$product['id']);
-}
-
-// 获取上一个/下一个产品
-$prevProduct = productModel()->getPrev((int)$product['category_id'], (int)$product['id']);
-$nextProduct = productModel()->getNext((int)$product['category_id'], (int)$product['id']);
-
-// 解析产品图片组（兼容JSON数组和换行分隔两种格式）
-$productImages = [];
-if ($product['images']) {
-    $decoded = json_decode($product['images'], true);
-    if (is_array($decoded)) {
-        $productImages = $decoded;
-    } else {
-        // 换行分隔格式
-        $productImages = array_filter(array_map('trim', explode("\n", $product['images'])));
-    }
-}
-// 如果有封面图，添加到图片组开头
-if ($product['cover'] && !in_array($product['cover'], $productImages)) {
-    array_unshift($productImages, $product['cover']);
-}
-
-// 解析规格参数
-$specs = [];
-if ($product['specs']) {
-    // 尝试JSON解析
-    $specsData = json_decode($product['specs'], true);
-    if ($specsData) {
-        $specs = $specsData;
-    } else {
-        // 按行解析 key:value 格式
-        $lines = explode("\n", $product['specs']);
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (strpos($line, ':') !== false) {
-                list($key, $value) = explode(':', $line, 2);
-                $specs[] = ['name' => trim($key), 'value' => trim($value)];
-            }
-        }
-    }
-}
 
 // 获取导航
 $navChannels = getNavChannels();

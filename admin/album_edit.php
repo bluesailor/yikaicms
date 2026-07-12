@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'description' => post('description'),
         'sort_order' => postInt('sort_order'),
         'status' => postInt('status', 1),
+        'layout' => in_array(post('layout'), ['grid', 'masonry'], true) ? post('layout') : 'grid',
         'updated_at' => time(),
     ];
 
@@ -170,6 +171,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <option value="0" <?php echo ($album['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_hide'); ?></option>
                     </select>
                 </div>
+            </div>
+
+            <!-- 展示模式 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">展示模式</label>
+                <?php $__layout = $album['layout'] ?? 'grid'; ?>
+                <select name="layout" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <option value="grid" <?php echo $__layout === 'grid' ? 'selected' : ''; ?>>网格 —— 等比方形缩略图，整齐划一</option>
+                    <option value="masonry" <?php echo $__layout === 'masonry' ? 'selected' : ''; ?>>流布局 —— 瀑布流，保留图片原始比例</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">前台通过 <code>[album-<?php echo (int)($album['id'] ?? 0); ?>]</code> 短码或相册栏目调用时按此模式展示</p>
             </div>
         </div>
 

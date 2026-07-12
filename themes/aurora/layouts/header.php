@@ -118,7 +118,7 @@ function getChannelUrl(array $channel): string {
     <?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
     </script>
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="<?php echo theme_asset('css/style.css'); ?>">
     <style>:root { --color-primary: <?php echo config('primary_color', '#6366F1'); ?>; --color-secondary: <?php echo config('secondary_color', '#8B5CF6'); ?>; }</style>
@@ -146,7 +146,7 @@ function getChannelUrl(array $channel): string {
     <?php endif; ?>
 
     <!-- Header -->
-    <header class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-slate-950/70 backdrop-blur-xl border-b border-slate-800/60">
+    <header id="siteHeader" class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-slate-950/70 backdrop-blur-xl border-b border-slate-800/60">
         <div class="container mx-auto px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <!-- Logo -->

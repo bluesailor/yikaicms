@@ -5,7 +5,7 @@
  * @var array $item - title, cover, summary, published_at, channel_name
  */
 ?>
-<a href="<?php echo contentUrl($item); ?>"
+<a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>"
    class="group relative block rounded-xl overflow-hidden aurora-glass aurora-glass-hover transition">
     <div class="absolute -inset-px rounded-xl bg-gradient-to-r from-indigo-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-indigo-500/30 group-hover:to-purple-500/30 transition-all duration-500 opacity-0 group-hover:opacity-100 -z-10 blur-md"></div>
 

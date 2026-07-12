@@ -20,6 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = post('username');
     $password = post('password');
     $redirectUrl = post('redirect', '/member/profile.php');
+    // 防开放重定向：仅允许站内路径（以单个 / 开头，排除 // 与 /\ 协议相对/绝对 URL）
+    if (!str_starts_with($redirectUrl, '/') || str_starts_with($redirectUrl, '//') || str_starts_with($redirectUrl, '/\\')) {
+        $redirectUrl = '/member/profile.php';
+    }
 
     $captcha = strtolower(trim(post('captcha', '')));
     $sessionCaptcha = $_SESSION['member_captcha'] ?? '';

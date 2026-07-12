@@ -58,9 +58,9 @@ $isTransparentHeader = !empty($isHomePage);
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
     <meta property="og:description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
     <meta property="og:url" content="<?php echo e($canonicalUrl); ?>">
-    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <style>
     :root { --color-primary: <?php echo $primaryColor; ?>; --color-secondary: <?php echo config('secondary_color', '#2554d4'); ?>; }
     .nav-transparent { background: transparent; position: absolute; top: 0; left: 0; right: 0; z-index: 50; }
@@ -94,7 +94,7 @@ $isTransparentHeader = !empty($isHomePage);
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
     <!-- Navigation bar -->
-    <header class="<?php echo $isTransparentHeader ? 'nav-transparent' : 'nav-solid shadow-lg'; ?> transition-all duration-300">
+    <header id="siteHeader" class="<?php echo $isTransparentHeader ? 'nav-transparent' : 'nav-solid shadow-lg'; ?> transition-all duration-300">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16 md:h-20">
                 <!-- Logo -->

@@ -1,0 +1,12 @@
+{
+    "name": "网站公告",
+    "name_ja": "サイトお知らせ",
+    "name_en": "Site Announcement",
+    "version": "1.0.0",
+    "description": "全站或仅首页弹出公告弹窗（如严正声明、放假通知）。配置页可填标题与内容（支持 HTML），设置弹出频率（N 天一次）与显示范围。内容变更后自动对所有访客重新弹出一次。",
+    "description_ja": "サイト全体またはトップページのみでお知らせポップアップを表示（重要声明・休業案内など）。設定画面でタイトルと本文（HTML 可）、表示頻度（N 日に一度）、表示範囲を指定できます。内容を変更すると全訪問者に再表示されます。",
+    "description_en": "Show an announcement popup site-wide or on the homepage only (notices, statements, holiday hours). Configure title and HTML content, display frequency (once every N days), and scope. Editing the content re-shows the popup to all visitors once.",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.7.0"
+}

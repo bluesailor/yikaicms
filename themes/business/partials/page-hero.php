@@ -16,7 +16,11 @@
  * 跟下方标题白底有清晰分隔。
  */
 ?>
-<?php if (!empty($channel['image'])): ?>
+<?php
+// 头部背景：栏目自带 image 优先；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
+$heroBg = ($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', '');
+?>
+<?php if (!empty($heroBg)): ?>
 
 <!-- 有封面图时：breadcrumb 仍用浅色带（在图上方），标题压在图上 -->
 <div class="bg-slate-100 border-b border-slate-200">
@@ -24,7 +28,7 @@
         <?php $style = 'default'; require theme_path('partials/breadcrumb.php'); ?>
     </div>
 </div>
-<section class="relative py-20 bg-cover bg-center" style="background-image: url('<?php echo e($channel['image']); ?>')">
+<section class="relative py-20 bg-cover bg-center" style="background-image: url('<?php echo e($heroBg); ?>')">
     <div class="absolute inset-0 bg-slate-900/70"></div>
     <div aria-hidden class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary"></div>
 

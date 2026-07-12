@@ -411,6 +411,8 @@ return [
     'page_preview' => '预览',
     'page_show_sidebar' => '显示侧边栏',
     'page_show_sidebar_tip' => '关闭后该页正文占满宽度，不显示同级栏目侧边栏（仅对本身会出现侧边栏的页面有效）。',
+    'page_show_cover' => '在正文顶部显示头图',
+    'page_show_cover_tip' => '此图始终用作页面顶部横幅（面包屑区）背景。取消勾选后，正文顶部不再重复显示该图——适合总览/落地页。',
     'page_insert_org_demo' => '插入组织架构示例',
     'page_insert_org_demo_confirm' => '将用示例组织架构图替换当前内容，确定继续吗？',
     'page_org_style' => '样式',

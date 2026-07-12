@@ -47,12 +47,12 @@ if ($adminBrand === '后台管理') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e($pageTitle ?? __('admin_title_default')); ?> - <?php echo e($adminBrand); ?></title>
     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
-    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <meta name="csrf-token" content="<?php echo csrfToken(); ?>">
-    <link rel="stylesheet" href="/assets/css/admin.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/admin.css'); ?>">
     <?php do_action('ik_admin_head'); ?>
 </head>
 <body class="bg-gray-100" x-data="{ mobileMenu: false }">

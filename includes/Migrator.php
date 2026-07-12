@@ -72,26 +72,54 @@ if (!function_exists('_sqlToSqlite')) {
 class Migrator
 {
     /**
-     * 扫描 migrations/ 加载所有迁移定义。
+     * 加载所有迁移定义 —— 后台「数据库升级」与 CLI migrate 的唯一来源。
+     *
+     * 合并两处（与 admin/upgrade.php 历史语义一致）：
+     *   1. migrations/_inline_upgrades.php —— 遗留内联迁移包（return 一个迁移数组）；
+     *   2. migrations/*.php —— 每文件一条独立迁移。
+     * 同 id 时独立文件覆盖 inline 版（便于把 inline 条目逐步迁成文件而不改 id）。
+     * inline 保持其内部顺序在前，文件新增条目追加其后。
+     *
      * @return array<int, array>
      */
     public static function loadAll(): array
     {
         $dir = ROOT_PATH . '/migrations';
         if (!is_dir($dir)) return [];
+
+        $byId = [];
+
+        // 1. 遗留内联迁移包（整包 return 一个 list，不同于单条迁移文件）
+        $bundle = $dir . '/_inline_upgrades.php';
+        if (is_file($bundle)) {
+            $arr = require $bundle;
+            if (is_array($arr)) {
+                foreach ($arr as $m) {
+                    if (!is_array($m) || empty($m['id']) || empty($m['check'])) {
+                        error_log('[migrator] invalid entry in _inline_upgrades.php');
+                        continue;
+                    }
+                    $m['_file'] = '_inline_upgrades.php';
+                    $byId[$m['id']] = $m;
+                }
+            }
+        }
+
+        // 2. 独立迁移文件（每文件一条），同 id 覆盖 inline
         $files = glob($dir . '/*.php') ?: [];
         sort($files);
-        $list = [];
         foreach ($files as $f) {
+            if (basename($f) === '_inline_upgrades.php') continue;  // 已按整包处理
             $m = require $f;
             if (!is_array($m) || empty($m['id']) || empty($m['check'])) {
                 error_log("[migrator] missing required keys: $f");
                 continue;
             }
             $m['_file'] = basename($f);
-            $list[] = $m;
+            $byId[$m['id']] = $m;
         }
-        return $list;
+
+        return array_values($byId);
     }
 
     /**

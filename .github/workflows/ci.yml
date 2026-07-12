@@ -81,7 +81,9 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit --colors=never
 
-  # ─── Psalm static analysis. Non-blocking initially via continue-on-error. ───
+  # ─── Psalm static analysis. Blocking: existing legacy noise is frozen in
+  # ─── psalm-baseline.xml, so only NEW issues fail the build. Shrink the
+  # ─── baseline over time (findUnusedBaselineEntry flags fixed entries).
   psalm:
     name: Psalm static analysis
     runs-on: ubuntu-latest
@@ -109,9 +111,6 @@ jobs:
 
       - name: Run Psalm
         run: vendor/bin/psalm --no-progress --output-format=github
-        # Psalm currently surfaces noise in the legacy code; treat findings
-        # as informational until a baseline is established.
-        continue-on-error: true
 
   # ─── lang key consistency: every __('xxx') / configLang(_, 'xxx') key must
   # ─── be defined in every enabled lang file (zh-CN / en / ja). Blocks merges.

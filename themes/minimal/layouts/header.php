@@ -138,9 +138,9 @@ function getChannelUrl(array $channel): string {
     <?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
     </script>
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <link rel="stylesheet" href="<?php echo theme_asset('css/style.css'); ?>">
     <style>:root { --color-primary: <?php echo config('primary_color', '#3B82F6'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>
     <?php if (!empty($extraCss)): ?>
@@ -152,7 +152,7 @@ function getChannelUrl(array $channel): string {
 <body class="bg-white min-h-screen flex flex-col text-gray-800">
 
     <!-- Header -->
-    <header class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-white border-b border-gray-200">
+    <header id="siteHeader" class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-white border-b border-gray-200">
         <div class="container mx-auto px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <!-- Logo -->

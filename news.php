@@ -12,24 +12,14 @@ require_once __DIR__ . '/includes/init.php';
 
 HtmlCache::start(600);
 
-// 获取分类参数
-$categorySlug = get('cat', '');
-$categoryId = getInt('cat_id', 0);
-$category = null;
-
-// 获取 news 顶级栏目（lang-aware）
-$newsChannel = getChannelBySlug('news', true);
-$newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
-
-// 通过 slug 获取子栏目
-if ($categorySlug) {
-    $category = channelModel()->findWhere(['slug' => $categorySlug, 'status' => 1]);
-    if ($category) {
-        $categoryId = (int)$category['id'];
-    }
-} elseif ($categoryId > 0) {
-    $category = getChannel($categoryId);
-}
+// 数据装配交给 NewsListController（栏目/分类/分页/搜索），本页只渲染新闻模板。
+require_once __DIR__ . '/controllers/list/NewsListController.php';
+extract((new NewsListController())->prepare([
+    'cat'     => get('cat', ''),
+    'cat_id'  => getInt('cat_id', 0),
+    'page'    => getInt('page', 1),
+    'keyword' => get('keyword', ''),
+]), EXTR_OVERWRITE);
 
 // 页面信息
 $pageTitle = $category ? $category['name'] : __('news_title');
@@ -38,32 +28,6 @@ $pageDescription = ($category['seo_description'] ?? '') ?: config('site_descript
 
 // 当前菜单高亮
 $currentSlug = 'news';
-
-// 获取子栏目（用于分类导航）
-$categories = [];
-if ($newsChannelId > 0) {
-    $categories = channelModel()->where(['parent_id' => $newsChannelId, 'status' => 1]);
-}
-
-// 搜索关键词
-$keyword = trim(get('keyword', ''));
-
-// 分页
-$page = max(1, getInt('page', 1));
-$perPage = 10;
-$offset = ($page - 1) * $perPage;
-
-// 确定要查询的栏目 ID
-$queryChannelId = $categoryId > 0 ? $categoryId : $newsChannelId;
-$filters = ['include_children' => true];
-
-if ($keyword !== '') {
-    $filters['keyword'] = $keyword;
-}
-
-// 获取文章总数和列表
-$total = contentModel()->getCount($queryChannelId, $filters);
-$articles = contentModel()->getList($queryChannelId, $perPage, $offset, $filters);
 
 // 获取导航
 $navChannels = getNavChannels();
@@ -144,42 +108,8 @@ unset($_heroChannelBackup);
         <?php if (!empty($articles)): ?>
         <div class="space-y-6">
             <?php foreach ($articles as $item): ?>
-            <a href="/news/article/<?php echo $item['id']; ?>.html" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
-                <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden bg-gray-100">
-                    <?php if ($item['cover']): ?>
-                    <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
-                         class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
-                    <?php else: ?>
-                    <div class="w-full h-full flex items-center justify-center text-gray-300 min-h-[120px]">
-                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    </div>
-                    <?php endif; ?>
-                </div>
-                <div class="flex-1 py-4 pr-4">
-                    <h3 class="text-lg font-bold text-dark group-hover:text-primary transition line-clamp-2">
-                        <?php if ($item['is_top']): ?>
-                        <span class="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_top'); ?></span>
-                        <?php endif; ?>
-                        <?php if ($item['is_recommend']): ?>
-                        <span class="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_recommend'); ?></span>
-                        <?php endif; ?>
-                        <?php echo e($item['title']); ?>
-                    </h3>
-                    <p class="mt-2 text-gray-500 text-sm line-clamp-2">
-                        <?php echo e($item['summary'] ?: cutStr(strip_tags($item['content']), 120)); ?>
-                    </p>
-                    <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
-                        <?php if ($item['channel_name'] ?? ''): ?>
-                        <span class="text-primary"><?php echo e($item['channel_name']); ?></span>
-                        <?php endif; ?>
-                        <?php if ($item['author'] ?? ''): ?>
-                        <span><?php echo e($item['author']); ?></span>
-                        <?php endif; ?>
-                        <span><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span>
-                        <span><?php echo __('detail_views'); ?> <?php echo number_format((int)$item['views']); ?></span>
-                    </div>
-                </div>
-            </a>
+            <?php $item['url'] = '/news/article/' . $item['id'] . '.html'; // 新闻详情固定路由 ?>
+            <?php require theme_path('partials/article-card.php'); // 共用当前主题卡片模板，勿再内联 ?>
             <?php endforeach; ?>
         </div>
 

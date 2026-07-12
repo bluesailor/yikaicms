@@ -194,6 +194,39 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
+<!-- 页面调用短码 + 展示模式 -->
+<div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+    <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-600">页面调用短码：</span>
+        <code class="text-sm bg-white border text-primary px-2 py-1 rounded select-all font-mono">[album-<?php echo (int)$album['id']; ?>]</code>
+        <button type="button" onclick="ykCopyShortcode(this,'[album-<?php echo (int)$album['id']; ?>]')"
+                class="text-gray-400 hover:text-primary p-1" title="复制短码，粘贴到页面/文章正文即可调用本相册">
+            <i class="ti ti-copy text-base"></i>
+        </button>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-gray-600">
+        <span>展示模式：</span>
+        <span class="font-medium text-gray-800"><?php echo ($album['layout'] ?? 'grid') === 'masonry' ? '流布局（瀑布流）' : '网格'; ?></span>
+        <a href="/admin/album_edit.php?id=<?php echo (int)$album['id']; ?>" class="text-primary hover:underline">修改</a>
+    </div>
+    <p class="text-xs text-gray-400 w-full">把短码粘贴到任意页面或文章正文中，前台即以所选模式内嵌展示本相册（含点击放大灯箱）。</p>
+</div>
+<script>
+function ykCopyShortcode(btn, code) {
+    const done = () => { if (window.showMessage) showMessage('已复制短码 ' + code); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(() => ykFallbackCopy(code, done));
+    } else { ykFallbackCopy(code, done); }
+}
+function ykFallbackCopy(text, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); cb(); } catch (e) {}
+    document.body.removeChild(ta);
+}
+</script>
+
 <!-- 上传区域 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-6">

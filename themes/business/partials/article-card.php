@@ -8,7 +8,7 @@
  * 视觉语言：方角为主、贴边强调条、密集信息密度。
  */
 ?>
-<a href="<?php echo contentUrl($item); ?>"
+<a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>"
    class="group flex gap-0 bg-white border border-slate-200
           hover:border-primary hover:shadow-[0_8px_24px_-12px_rgba(59,108,245,0.45)]
           transition relative overflow-hidden">

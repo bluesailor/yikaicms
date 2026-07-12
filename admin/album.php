@@ -207,6 +207,15 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
         <div class="p-4">
             <h3 class="font-medium text-gray-900 mb-2"><?php echo e($item['name']); ?></h3>
 
+            <!-- 页面调用短码 -->
+            <div class="flex items-center gap-1 mb-2">
+                <code class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded select-all font-mono">[album-<?php echo (int)$item['id']; ?>]</code>
+                <button type="button" onclick="ykCopyShortcode(this,'[album-<?php echo (int)$item['id']; ?>]')"
+                        class="text-xs text-gray-400 hover:text-primary p-1" title="复制短码，粘贴到页面/文章正文即可调用本相册">
+                    <i class="ti ti-copy text-base"></i>
+                </button>
+            </div>
+
             <?php if ($_lang['isSource'] && $_albumsHasLang): ?>
             <!-- 翻译徽标（仅源语言视图显示） -->
             <div class="mb-2"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/album_edit.php'); ?></div>
@@ -299,6 +308,23 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
 </div>
 
 <script>
+// 复制相册短码到剪贴板
+function ykCopyShortcode(btn, code) {
+    const done = () => { showMessage('已复制短码 ' + code + '，粘贴到页面正文即可调用'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopy(code, done));
+    } else {
+        fallbackCopy(code, done);
+    }
+}
+function fallbackCopy(text, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); cb(); } catch (e) {}
+    document.body.removeChild(ta);
+}
+
 const uploadModal = document.getElementById('uploadModal');
 const quickUploadZone = document.getElementById('quickUploadZone');
 const quickFileInput = document.getElementById('quickFileInput');

@@ -6,7 +6,7 @@
  * @var array $item - Content data with title, cover, summary, content, author, publish_time, views, is_top
  */
 ?>
-<a href="<?php echo contentUrl($item); ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
+<a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
     <?php if ($item['cover']): ?>
     <div class="aspect-[16/10] overflow-hidden">
         <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
