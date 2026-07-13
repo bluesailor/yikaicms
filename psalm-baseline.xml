@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.4.0@04f312ac6ea48ba1c3e5db4d815bf6d74641c0ee">
   <file src="admin/ai_assistant.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_ai_assistant')]]></code>
       <code><![CDATA[__('admin_ai_assistant')]]></code>
@@ -20,6 +23,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/ai_usage.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_created_at')]]></code>
@@ -57,6 +63,13 @@
     </UnusedVariable>
   </file>
   <file src="admin/album.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[__('admin_add')]]></code>
       <code><![CDATA[__('admin_album')]]></code>
@@ -115,6 +128,13 @@
     </UnusedVariable>
   </file>
   <file src="admin/album_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[__("btn_save")]]></code>
       <code><![CDATA[__('admin_fail')]]></code>
@@ -168,6 +188,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/album_photos.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_cancel')]]></code>
       <code><![CDATA[__('admin_delete')]]></code>
@@ -227,6 +250,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/api_ai.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[config('site_description', '')]]></code>
       <code><![CDATA[config('site_name', 'YikaiCMS')]]></code>
@@ -234,12 +260,18 @@
     </UndefinedFunction>
   </file>
   <file src="admin/api_ai_agent.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[config('site_name', 'Yikai CMS')]]></code>
       <code><![CDATA[verifyCsrf()]]></code>
     </UndefinedFunction>
   </file>
   <file src="admin/api_search.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$q]]></code>
     </UnusedVariable>
@@ -250,6 +282,9 @@
       <code><![CDATA[$ids]]></code>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -340,6 +375,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/article_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_add')]]></code>
       <code><![CDATA[__('admin_back')]]></code>
@@ -431,6 +469,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/banner.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("banner_add")]]></code>
       <code><![CDATA[__("banner_add_group")]]></code>
@@ -590,6 +631,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add_case')]]></code>
@@ -664,6 +708,12 @@
     </UnusedVariable>
   </file>
   <file src="admin/channel.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[__('admin_add')]]></code>
       <code><![CDATA[__('admin_album')]]></code>
@@ -911,6 +961,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/channel_batch.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__($glk)]]></code>
       <code><![CDATA[__('chbatch_back')]]></code>
@@ -974,6 +1027,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -1055,6 +1111,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/content_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_fail")]]></code>
       <code><![CDATA[__("editor_placeholder")]]></code>
@@ -1164,6 +1223,12 @@
     <InvalidCast>
       <code><![CDATA[$v]]></code>
     </InvalidCast>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_NAME]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[__('btn_select_all')]]></code>
       <code><![CDATA[__('db_backup')]]></code>
@@ -1273,6 +1338,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -1341,6 +1409,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/download_category.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_back')]]></code>
@@ -1398,6 +1469,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/download_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__("btn_save")]]></code>
@@ -1469,6 +1543,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/extfield.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('extfield_content')]]></code>
       <code><![CDATA[__('extfield_empty')]]></code>
@@ -1529,6 +1606,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_batch_delete')]]></code>
@@ -1627,6 +1707,13 @@
       <code><![CDATA[str_replace("\n", "\\n", __("fd_taggen_options_ph_simple"))]]></code>
       <code><![CDATA[str_replace('\n', '&#10;', __('fd_taggen_options_ph_select'))]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[__("btn_save")]]></code>
       <code><![CDATA[__("fd_confirm_delete")]]></code>
@@ -2042,6 +2129,9 @@
     </UndefinedFunction>
   </file>
   <file src="admin/index.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_dashboard')]]></code>
       <code><![CDATA[__('chbatch_title')]]></code>
@@ -2101,6 +2191,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -2162,6 +2255,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/job_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__("btn_save")]]></code>
@@ -2230,6 +2326,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/license.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('license', 'refresh', '手动校验授权')]]></code>
       <code><![CDATA[adminLog('license', 'update', '更新授权码')]]></code>
@@ -2257,6 +2356,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/link.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -2331,6 +2433,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/login.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('login_empty_fields')]]></code>
       <code><![CDATA[availableLanguages()]]></code>
@@ -2348,6 +2453,9 @@
     </UnusedForeachValue>
   </file>
   <file src="admin/logout.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[doLogout()]]></code>
       <code><![CDATA[redirect('/admin/login.php')]]></code>
@@ -2357,6 +2465,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_batch_delete')]]></code>
       <code><![CDATA[__('admin_confirm_delete')]]></code>
@@ -2403,6 +2514,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/media_api.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[checkLogin()]]></code>
       <code><![CDATA[mediaModel()]]></code>
@@ -2412,6 +2526,9 @@
     </UndefinedFunction>
   </file>
   <file src="admin/member.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_cancel')]]></code>
@@ -2511,6 +2628,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/page.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -2595,6 +2715,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/page_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_back')]]></code>
       <code><![CDATA[__('admin_basic_info')]]></code>
@@ -2691,6 +2814,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/page_edit_advance.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__("btn_save")]]></code>
@@ -2764,6 +2890,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/plugin.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_cancel')]]></code>
       <code><![CDATA[__('admin_delete')]]></code>
@@ -2809,6 +2938,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/plugin_page.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[checkLogin()]]></code>
       <code><![CDATA[getPluginMeta($pluginSlug)]]></code>
@@ -2824,6 +2956,9 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_add')]]></code>
@@ -2919,6 +3054,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_brand.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_batch_delete')]]></code>
@@ -2988,6 +3126,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_category.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_cancel')]]></code>
@@ -3095,6 +3236,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_edit.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__("admin_no_specs")]]></code>
@@ -3212,6 +3356,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_setting.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_saved')]]></code>
       <code><![CDATA[__('product_tab_brand')]]></code>
@@ -3236,6 +3383,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_tag.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_confirm_delete')]]></code>
       <code><![CDATA[__('admin_disabled')]]></code>
@@ -3290,6 +3440,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/profile.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("btn_save")]]></code>
       <code><![CDATA[__('admin_basic_info')]]></code>
@@ -3324,6 +3477,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/recipe.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_recipe')]]></code>
       <code><![CDATA[__('btn_cancel')]]></code>
@@ -3394,6 +3550,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/role.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('role_admin_count')]]></code>
@@ -3448,6 +3607,9 @@
       <code><![CDATA[$homeShowMap[$lc]]]></code>
       <code><![CDATA[['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab]]]></code>
     </InvalidArrayOffset>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__($k)]]></code>
@@ -3623,6 +3785,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_ai.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('ai_api_key')]]></code>
       <code><![CDATA[__('ai_api_key_hint')]]></code>
@@ -3670,6 +3835,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_cache.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('cache', 'clear', "清空缓存：$count 个文件")]]></code>
       <code><![CDATA[adminLog('cache', 'config', "缓存设置: enabled=$enabled ttl=$ttl")]]></code>
@@ -3687,6 +3855,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_channel_translate.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('setting', 'channel_translate', "栏目翻译({$targetLang}): 创建{$created}, 更新{$updated}")]]></code>
       <code><![CDATA[availableLanguages()]]></code>
@@ -3745,6 +3916,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_contact.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__('admin_fail')]]></code>
@@ -3824,6 +3998,9 @@
     <InvalidArrayOffset>
       <code><![CDATA[$settings[$sw]]]></code>
     </InvalidArrayOffset>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('setting', 'update', '更新在线客服设置')]]></code>
       <code><![CDATA[checkLogin()]]></code>
@@ -3847,6 +4024,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_demo.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('setting', 'demo_mode', '演示模式 ' . ($newValue === '1' ? '开启' : '关闭'))]]></code>
       <code><![CDATA[checkLogin()]]></code>
@@ -3865,6 +4045,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_email.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_request_failed')]]></code>
       <code><![CDATA[__('admin_save')]]></code>
@@ -3990,6 +4173,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_home.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__("admin_media_library")]]></code>
       <code><![CDATA[__('admin_delete')]]></code>
@@ -4074,6 +4260,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_lang.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('setting', 'lang', '更新多语言设置')]]></code>
       <code><![CDATA[adminLog('setting', 'translate_channels', "批量翻译栏目到 {$targetLang}: 创建 {$created}, 跳过 {$skipped}")]]></code>
@@ -4126,6 +4315,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_member.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_copied')]]></code>
       <code><![CDATA[__('admin_copied')]]></code>
@@ -4171,6 +4363,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_product_cat_translate.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[adminLog('setting', 'product_cat_translate', "产品分类翻译({$targetLang}): 创建{$created}, 更新{$updated}")]]></code>
       <code><![CDATA[availableLanguages()]]></code>
@@ -4219,6 +4414,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_security.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_created_at')]]></code>
@@ -4313,6 +4511,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_seo.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_disabled')]]></code>
       <code><![CDATA[__('admin_enabled')]]></code>
@@ -4372,6 +4573,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_social.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_open')]]></code>
       <code><![CDATA[__('admin_save')]]></code>
@@ -4401,6 +4605,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_translate.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_save')]]></code>
@@ -4458,6 +4665,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/static_html.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_fail')]]></code>
       <code><![CDATA[__('admin_success')]]></code>
@@ -4502,6 +4712,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/system.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_created_at')]]></code>
       <code><![CDATA[__('admin_filter')]]></code>
@@ -4583,6 +4796,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/theme.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_theme')]]></code>
       <code><![CDATA[__('admin_theme')]]></code>
@@ -4624,6 +4840,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/timeline.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UnusedForeachValue>
       <code><![CDATA[$label]]></code>
       <code><![CDATA[$label]]></code>
@@ -4639,6 +4858,12 @@
     </UnusedVariable>
   </file>
   <file src="admin/upgrade.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[checkLogin()]]></code>
       <code><![CDATA[db()]]></code>
@@ -4654,6 +4879,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/upgrade_online.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedClass>
       <code><![CDATA[never]]></code>
     </UndefinedClass>
@@ -4667,6 +4895,9 @@
     </UnusedVariable>
   </file>
   <file src="admin/upload.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[checkLogin()]]></code>
       <code><![CDATA[error($result['error'])]]></code>
@@ -4684,6 +4915,9 @@
     </UndefinedFunction>
   </file>
   <file src="admin/user.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <UndefinedFunction>
       <code><![CDATA[__('admin_action')]]></code>
       <code><![CDATA[__('admin_cancel')]]></code>
@@ -4770,18 +5004,10 @@
       <code><![CDATA[$siteUrl]]></code>
     </UnusedVariable>
   </file>
-  <file src="config/config.php">
-    <ParadoxicalCondition>
-      <code><![CDATA[!defined('ROOT_PATH')]]></code>
-    </ParadoxicalCondition>
-  </file>
   <file src="config/database.php">
     <DuplicateArrayKey>
       <code><![CDATA[$whereParams]]></code>
     </DuplicateArrayKey>
-    <ParadoxicalCondition>
-      <code><![CDATA[!defined('ROOT_PATH')]]></code>
-    </ParadoxicalCondition>
     <PossiblyUnusedMethod>
       <code><![CDATA[beginTransaction]]></code>
       <code><![CDATA[commit]]></code>
@@ -6506,6 +6732,9 @@
     </UndefinedConstant>
   </file>
   <file src="includes/init.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
     <ParadoxicalCondition>
       <code><![CDATA[!file_exists(ROOT_PATH . '/installed.lock')]]></code>
     </ParadoxicalCondition>
@@ -7186,6 +7415,18 @@
     </UnusedVariable>
   </file>
   <file src="install/run_upgrade.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[db()]]></code>
     </UndefinedFunction>
@@ -7207,6 +7448,18 @@
       <code><![CDATA[$up['status']]]></code>
       <code><![CDATA[$up['status']]]></code>
     </InvalidArrayOffset>
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UndefinedConstant>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+      <code><![CDATA[DB_PREFIX]]></code>
+    </UndefinedConstant>
     <UndefinedFunction>
       <code><![CDATA[db()]]></code>
       <code><![CDATA[db()]]></code>
