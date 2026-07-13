@@ -38,6 +38,31 @@ echo " Yikai CMS 打包脚本"
 echo " 版本: v${VERSION}"
 echo "=========================================="
 
+# ---- 版本号一致性硬关卡 ----
+# config/version.php 是版本号唯一可信来源；下列文件含硬编码副本，必须与之一致。
+# 任一漂移即中止打包 —— 这一步不可跳过，杜绝「发版忘了同步 README/SQL 版本号」类错误。
+echo "[0/5] 校验版本号一致性 (v${VERSION})..."
+VER_ERRORS=0
+check_ver() {  # $1=说明  $2=实际值
+    if [ "$2" != "$VERSION" ]; then
+        echo "  ✗ 版本不一致: $1 = '${2:-未找到}' (期望 '$VERSION')"
+        VER_ERRORS=$((VER_ERRORS + 1))
+    fi
+}
+verpat='[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?'
+check_ver "README.md 第1行"                 "$(head -1 README.md 2>/dev/null | grep -oE "$verpat" | head -1)"
+check_ver "install/sql/mysql.sql  -- Version" "$(grep -E '^-- Version:' install/sql/mysql.sql 2>/dev/null | grep -oE "$verpat" | head -1)"
+check_ver "install/sql/mysql.sql  cms_version" "$(grep -E 'cms_version' install/sql/mysql.sql 2>/dev/null | grep -oE "$verpat" | head -1)"
+check_ver "install/sql/sqlite.sql -- Version" "$(grep -E '^-- Version:' install/sql/sqlite.sql 2>/dev/null | grep -oE "$verpat" | head -1)"
+check_ver "install/sql/sqlite.sql cms_version" "$(grep -E 'cms_version' install/sql/sqlite.sql 2>/dev/null | grep -oE "$verpat" | head -1)"
+if [ $VER_ERRORS -gt 0 ]; then
+    echo ""
+    echo "Error: 版本号一致性校验失败（${VER_ERRORS} 处）。"
+    echo "       请把上述文件同步到 v${VERSION}（以 config/version.php 为准）后重新打包。"
+    exit 1
+fi
+echo "  ✓ 版本号一致（README / install SQL 均为 v${VERSION}）"
+
 # ---- 清理临时目录 ----
 rm -rf "$TMP_DIR"
 mkdir -p "$PKG_DIR"
