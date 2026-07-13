@@ -133,7 +133,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
                         $sql = _sqlToSqlite($sql);
                         if ($sql === null) continue;
                     }
-                    db()->execute($sql);
+                    try {
+                        db()->execute($sql);
+                    } catch (\Throwable $e) {
+                        // 已存在的列/索引/表等幂等失败 → 忽略（与 Migrator::runOne 一致）：
+                        // 避免半程重跑或 opcache 导致的 "Duplicate column/already exists" 把升级误报为失败。
+                        if (preg_match('/Duplicate column|already exists|duplicate entry|duplicate key/i', $e->getMessage())) {
+                            continue;
+                        }
+                        throw $e;
+                    }
                 }
                 $results[$up['id']] = ['status' => 'success', 'message' => __('upgrade_success')];
             }
