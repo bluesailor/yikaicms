@@ -51,21 +51,21 @@ section() { echo; echo "${B}[$1]${X}"; }
 section "1. 版本号一致性"
 # ─────────────────────────────────────────────────────────────
 
-# config/config.sample.php
-v=$(grep -oE "CMS_VERSION', '[0-9.]+'" config/config.sample.php 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
+# config/version.php —— 版本号唯一可信来源
+v=$(grep -oE "CMS_VERSION',\s*'[0-9.]+'" config/version.php 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
 if [ "$v" = "$VERSION" ]; then
-    pass "config/config.sample.php  CMS_VERSION = '$v'"
+    pass "config/version.php  CMS_VERSION = '$v'（唯一可信来源）"
 else
-    fail "config/config.sample.php  CMS_VERSION = '${v:-未找到}'  (期望: '$VERSION')"
+    fail "config/version.php  CMS_VERSION = '${v:-未找到}'  (期望: '$VERSION')"
 fi
 
-# config/config.php.example
-v=$(grep -oE "CMS_VERSION', '[0-9.]+'" config/config.php.example 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
-if [ "$v" = "$VERSION" ]; then
-    pass "config/config.php.example  CMS_VERSION = '$v'"
-else
-    fail "config/config.php.example  CMS_VERSION = '${v:-未找到}'  (期望: '$VERSION')"
-fi
+# install SQL 内的版本号副本（-- Version 注释 + cms_version 种子），发版易漏，务必校验
+for sql in install/sql/mysql.sql install/sql/sqlite.sql; do
+    v=$(grep -E '^-- Version:' "$sql" 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
+    [ "$v" = "$VERSION" ] && pass "$sql  -- Version = '$v'" || fail "$sql  -- Version = '${v:-未找到}'  (期望: '$VERSION')"
+    v=$(grep -E 'cms_version' "$sql" 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
+    [ "$v" = "$VERSION" ] && pass "$sql  cms_version 种子 = '$v'" || fail "$sql  cms_version 种子 = '${v:-未找到}'  (期望: '$VERSION')"
+done
 
 # README.md 顶部
 v=$(head -1 README.md 2>/dev/null | grep -oE "v?[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1 | tr -d v)
