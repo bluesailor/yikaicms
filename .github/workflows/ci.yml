@@ -81,6 +81,51 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit --colors=never
 
+  # ─── 后台 CRUD 冒烟测试：起一个全新 SQLite 装机 + php 内置服务器，
+  # ─── 登录后逐类 POST「新建」（栏目/产品/内容/文章/下载/招聘），断言无
+  # ─── Fatal/undefined-function 且保存成功。专抓 job_edit 的 getAdminId()
+  # ─── 那类「控制器层 Fatal」回归——单元测试与 Psalm baseline 都漏掉的类型。
+  smoke:
+    name: Admin CRUD Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, curl, json, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache
+            vendor
+          key: composer-8.2-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-8.2-
+
+      - name: composer install
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare fresh SQLite install
+        run: php tests/smoke/setup.php
+
+      - name: Start PHP built-in server
+        run: |
+          php -S 127.0.0.1:8080 -t . > /tmp/php-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/admin/login.php > /dev/null && break
+            sleep 0.5
+          done
+
+      - name: Run admin CRUD smoke test
+        run: php tests/smoke/admin_crud.php
+
   # ─── Psalm static analysis. Blocking: existing legacy noise is frozen in
   # ─── psalm-baseline.xml, so only NEW issues fail the build. Shrink the
   # ─── baseline over time (findUnusedBaselineEntry flags fixed entries).
