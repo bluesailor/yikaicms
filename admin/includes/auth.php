@@ -249,6 +249,15 @@ function getAdminInfo(): ?array
 }
 
 /**
+ * 获取当前登录管理员 ID（未登录返回 0）
+ * job_edit.php / download_edit.php 发布新内容时用它写 admin_id。
+ */
+function getAdminId(): int
+{
+    return (int)($_SESSION['admin_id'] ?? 0);
+}
+
+/**
  * 检查是否超级管理员
  */
 function isSuperAdmin(): bool
