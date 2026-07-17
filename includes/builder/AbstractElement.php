@@ -66,4 +66,40 @@ abstract class AbstractElement
     {
         return false;
     }
+
+    /**
+     * 响应式三档解析（P2）：设置值可为标量（全断点统一）或 {d,t,m}（桌面/平板/手机分档）。
+     * mobile-first 输出：基类 ← m，md: ← t，lg: ← d（与预览设备档 手机390/平板768/桌面 对应）。
+     * 全档一致或标量时输出单个基类，与三档机制之前的输出逐字节一致（黄金对拍不破）。
+     *
+     * $map 每项 = [基类, md:类, lg:类]，三个断点的类名必须全量字面量写死——
+     * Tailwind 独立编译靠扫描 PHP 源码提取 class，动态拼接的类名扫不到。
+     */
+    public static function respClasses(mixed $value, array $map, string $fallback): string
+    {
+        if (is_array($value)) {
+            $d = isset($map[$value['d'] ?? '']) ? $value['d'] : $fallback;
+            $t = isset($map[$value['t'] ?? '']) ? $value['t'] : $d;
+            $m = isset($map[$value['m'] ?? '']) ? $value['m'] : $t;
+            if ($m === $t && $t === $d) {
+                return $map[$m][0];
+            }
+            $cls = $map[$m][0];
+            if ($t !== $m) {
+                $cls .= ' ' . $map[$t][1];
+            }
+            if ($d !== $t) {
+                $cls .= ' ' . $map[$d][2];
+            }
+            return $cls;
+        }
+        $key = is_string($value) && isset($map[$value]) ? $value : $fallback;
+        return $map[$key][0];
+    }
+
+    /** respClasses 的实例快捷方式，元素 render() 内用 */
+    protected function resp(mixed $value, array $map, string $fallback): string
+    {
+        return self::respClasses($value, $map, $fallback);
+    }
 }

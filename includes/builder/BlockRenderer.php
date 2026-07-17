@@ -12,9 +12,22 @@ declare(strict_types=1);
 
 final class BlockRenderer
 {
-    private const PADDING_MAP = ['none' => 'py-0', 'sm' => 'py-4', 'md' => 'py-8', 'lg' => 'py-12', 'xl' => 'py-16'];
+    /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
+    private const PADDING_MAP = [
+        'none' => ['py-0', 'md:py-0', 'lg:py-0'],
+        'sm'   => ['py-4', 'md:py-4', 'lg:py-4'],
+        'md'   => ['py-8', 'md:py-8', 'lg:py-8'],
+        'lg'   => ['py-12', 'md:py-12', 'lg:py-12'],
+        'xl'   => ['py-16', 'md:py-16', 'lg:py-16'],
+    ];
+    private const GAP_MAP = [
+        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0'],
+        'sm'   => ['gap-2', 'md:gap-2', 'lg:gap-2'],
+        'md'   => ['gap-4', 'md:gap-4', 'lg:gap-4'],
+        'lg'   => ['gap-8', 'md:gap-8', 'lg:gap-8'],
+        'xl'   => ['gap-12', 'md:gap-12', 'lg:gap-12'],
+    ];
     private const MAXWIDTH_MAP = ['default' => 'max-w-6xl', 'narrow' => 'max-w-4xl', 'wide' => 'max-w-7xl', 'full' => 'max-w-full'];
-    private const GAP_MAP = ['none' => 'gap-0', 'sm' => 'gap-2', 'md' => 'gap-4', 'lg' => 'gap-8', 'xl' => 'gap-12'];
     private const ALIGN_ITEMS_MAP = ['start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end'];
     private const JUSTIFY_ITEMS_MAP = ['start' => 'justify-items-start', 'center' => 'justify-items-center', 'end' => 'justify-items-end'];
 
@@ -28,7 +41,7 @@ final class BlockRenderer
         $html = '';
         foreach ($sections as $section) {
             $settings = $section['settings'] ?? [];
-            $padding = self::PADDING_MAP[$settings['padding'] ?? 'md'] ?? 'py-8';
+            $padding = AbstractElement::respClasses($settings['padding'] ?? 'md', self::PADDING_MAP, 'md');
             $maxWidth = self::MAXWIDTH_MAP[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';
 
             $style = '';
@@ -56,7 +69,7 @@ final class BlockRenderer
                 continue;
             }
 
-            $gap = self::GAP_MAP[$settings['gap'] ?? 'lg'] ?? 'gap-8';
+            $gap = AbstractElement::respClasses($settings['gap'] ?? 'lg', self::GAP_MAP, 'lg');
             $gridClass = '';
             if ($colCount > 1) {
                 $gridClass = 'grid grid-cols-1 md:grid-cols-' . $colCount . ' ' . $gap;

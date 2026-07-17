@@ -446,16 +446,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 间距 -->
+                                                <!-- 间距（支持响应式三档） -->
                                                 <template x-if="el.type === 'spacer'">
-                                                    <div class="flex items-center gap-2">
+                                                    <div class="flex items-center gap-2 flex-wrap">
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">间距</span>
-                                                        <select x-model="el.data.size" class="border rounded px-2 py-1 text-sm">
+                                                        <select x-effect="$el.value = respGet(el, 'size', 'md')"
+                                                                @change="respSet(el, 'size', $event.target.value, 'md')"
+                                                                class="border rounded px-2 py-1 text-sm">
                                                             <option value="sm">小 (16px)</option>
                                                             <option value="md">中 (32px)</option>
                                                             <option value="lg">大 (64px)</option>
                                                             <option value="xl">超大 (96px)</option>
                                                         </select>
+                                                        <div class="flex gap-0.5">
+                                                            <button type="button" @click="setRespDev(el, 'd')" title="桌面"
+                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+                                                                    :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
+                                                            <button type="button" @click="setRespDev(el, 't')" title="平板"
+                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+                                                                    :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
+                                                            <button type="button" @click="setRespDev(el, 'm')" title="手机"
+                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+                                                                    :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
+                                                        </div>
+                                                        <span x-show="respIsSplit(el, 'size')" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded">已分档</span>
                                                     </div>
                                                 </template>
 
@@ -524,10 +538,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 <template x-if="ctrl.type === 'number'">
                                                                     <input type="number" x-model="el.data[ctrl.key]" :min="ctrl.min" :max="ctrl.max" class="w-full border rounded px-2 py-1 text-sm">
                                                                 </template>
-                                                                <template x-if="ctrl.type === 'select'">
+                                                                <template x-if="ctrl.type === 'select' && !ctrl.responsive">
                                                                     <select x-model="el.data[ctrl.key]" class="w-full border rounded px-2 py-1 text-sm">
                                                                         <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" x-text="lbl"></option></template>
                                                                     </select>
+                                                                </template>
+                                                                <!-- responsive 控件：可按 桌面/平板/手机 分档存值（schema 加 'responsive'=>true 即启用） -->
+                                                                <template x-if="ctrl.type === 'select' && ctrl.responsive">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <select x-effect="$el.value = respGet(el, ctrl.key, ctrl.default || '')"
+                                                                                @change="respSet(el, ctrl.key, $event.target.value, ctrl.default || '')"
+                                                                                class="flex-1 border rounded px-2 py-1 text-sm">
+                                                                            <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" x-text="lbl"></option></template>
+                                                                        </select>
+                                                                        <div class="flex gap-0.5">
+                                                                            <button type="button" @click="setRespDev(el, 'd')" title="桌面"
+                                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+                                                                                    :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 't')" title="平板"
+                                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+                                                                                    :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 'm')" title="手机"
+                                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+                                                                                    :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
+                                                                        </div>
+                                                                        <span x-show="respIsSplit(el, ctrl.key)" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded">已分档</span>
+                                                                    </div>
                                                                 </template>
                                                                 <template x-if="ctrl.type === 'color'">
                                                                     <input type="color" x-model="el.data[ctrl.key]" class="border rounded h-8 w-16">
@@ -690,6 +726,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" onclick="setSectionCols(2)" data-cols="2" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">2 列</button>
                     <button type="button" onclick="setSectionCols(3)" data-cols="3" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">3 列</button>
                     <button type="button" onclick="setSectionCols(4)" data-cols="4" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">4 列</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+                <label class="text-sm text-gray-700">设备分档 <span class="text-xs text-gray-400">内边距/列间距可按设备分别设置</span></label>
+                <div class="flex gap-1">
+                    <button type="button" onclick="setSettingDevice('d')" data-dev="d" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-desktop"></i>桌面</button>
+                    <button type="button" onclick="setSettingDevice('t')" data-dev="t" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-tablet"></i>平板</button>
+                    <button type="button" onclick="setSettingDevice('m')" data-dev="m" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-mobile"></i>手机</button>
                 </div>
             </div>
             <div>
@@ -863,6 +907,38 @@ function pickImageFromMedia() {
 
 // ===== 区块设置弹窗 =====
 var _settingSi = -1;
+
+// 响应式三档：设置值标量=全设备统一，{d,t,m}=按 桌面/平板/手机 分档（渲染出 md:/lg: 前缀）
+var _settingDev = 'd';
+var _respVals = { padding: null, gap: null };
+function normResp(v, dflt) {
+    if (v && typeof v === 'object') {
+        var d = v.d || dflt;
+        return { d: d, t: v.t || d, m: v.m || v.t || d };
+    }
+    v = v || dflt;
+    return { d: v, t: v, m: v };
+}
+function collapseResp(v) {
+    return (v.d === v.t && v.t === v.m) ? v.d : v;
+}
+function _commitSettingDevice() {
+    if (!_respVals.padding) return;
+    _respVals.padding[_settingDev] = document.getElementById('settingPadding').value;
+    _respVals.gap[_settingDev] = document.getElementById('settingGap').value;
+}
+function setSettingDevice(dev, skipCommit) {
+    if (!skipCommit) _commitSettingDevice();
+    _settingDev = dev;
+    document.querySelectorAll('.dev-btn').forEach(function(b) {
+        var on = b.dataset.dev === dev;
+        b.classList.toggle('bg-primary', on);
+        b.classList.toggle('text-white', on);
+        b.classList.toggle('border-primary', on);
+    });
+    document.getElementById('settingPadding').value = _respVals.padding[dev];
+    document.getElementById('settingGap').value = _respVals.gap[dev];
+}
 function closeSectionSettings() {
     var m = document.getElementById('sectionSettingsModal');
     m.classList.add('hidden'); m.classList.remove('flex');
@@ -906,12 +982,13 @@ function saveSectionSettings() {
     var data = Alpine.$data(document.getElementById('editForm'));
     if (_settingSi < 0 || !data.sections[_settingSi]) return;
     var section = data.sections[_settingSi];
-    section.settings.padding = document.getElementById('settingPadding').value;
+    _commitSettingDevice();
+    section.settings.padding = collapseResp(_respVals.padding);
     section.settings.max_width = document.getElementById('settingMaxWidth').value;
     section.settings.bg_color = document.getElementById('settingBgColorText').value.trim();
     section.settings.bg_opacity = parseInt(document.getElementById('settingBgOpacity').value);
     section.settings.bg_image = document.getElementById('settingBgImage').value.trim();
-    section.settings.gap = document.getElementById('settingGap').value;
+    section.settings.gap = collapseResp(_respVals.gap);
     section.settings.col_card = document.getElementById('settingColCard').checked;
     var alignBtn = document.querySelector('.align-btn.bg-primary');
     section.settings.align_items = alignBtn ? alignBtn.dataset.val : 'stretch';
@@ -1098,10 +1175,10 @@ function pageBuilder() {
             var body = new URLSearchParams();
             body.set("action", "preview");
             body.set("blocks_data", JSON.stringify(this.sections));
+            // 传 URLSearchParams 实例（勿 toString）：footer 的 fetch 包装器只给实例自动附加 CSRF _token
             fetch(window.location.href, {
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: body.toString()
+                body: body
             }).then(function(r) { return r.text(); })
               .then(function(html) { frame.srcdoc = html; })
               .catch(function() {})
@@ -1128,6 +1205,25 @@ function pageBuilder() {
         hasCustomUI(type) { return BUILDER_CUSTOM_UI.indexOf(type) !== -1; },
         elementControls(type) { return (BUILDER_ELEMENTS[type] || {}).controls || []; },
         elementLabel(type) { return (BUILDER_ELEMENTS[type] || {}).label || type; },
+
+        // === 响应式三档（元素级）：值标量=全设备统一，{d,t,m}=分档；respDev 记录每个元素当前编辑档 ===
+        respDev: {},
+        respTab(el) { return this.respDev[el.id] || "d"; },
+        setRespDev(el, dev) { this.respDev[el.id] = dev; },
+        respIsSplit(el, key) { var v = el.data[key]; return !!v && typeof v === "object"; },
+        respGet(el, key, dflt) {
+            var v = el.data[key];
+            if (v && typeof v === "object") return v[this.respTab(el)] || v.d || dflt;
+            return v || dflt;
+        },
+        respSet(el, key, val, dflt) {
+            var v = el.data[key];
+            if (!v || typeof v !== "object") { v = { d: v || dflt, t: v || dflt, m: v || dflt }; }
+            else { v = { d: v.d || dflt, t: v.t || dflt, m: v.m || dflt }; }
+            v[this.respTab(el)] = val;
+            // 全档一致折叠回标量，保持旧数据形态与渲染输出
+            el.data[key] = (v.d === v.t && v.t === v.m) ? v.d : v;
+        },
 
         init() {
             var self = this;
@@ -1194,7 +1290,10 @@ function pageBuilder() {
         openSettings(si) {
             _settingSi = si;
             var s = this.sections[si].settings;
-            document.getElementById("settingPadding").value = s.padding || "md";
+            // 响应式三档：标量→全档同值展开；保存时全档一致会折叠回标量
+            _respVals.padding = normResp(s.padding, "md");
+            _respVals.gap = normResp(s.gap, "lg");
+            setSettingDevice("d", true);
             document.getElementById("settingMaxWidth").value = s.max_width || "default";
             document.getElementById("settingBgColorText").value = s.bg_color || "";
             document.getElementById("settingBgColor").value = s.bg_color || "#ffffff";
@@ -1202,7 +1301,6 @@ function pageBuilder() {
             var opacity = s.bg_opacity !== undefined ? s.bg_opacity : 100;
             document.getElementById("settingBgOpacity").value = opacity;
             document.getElementById("settingBgOpacityVal").textContent = opacity + "%";
-            document.getElementById("settingGap").value = s.gap || "lg";
             document.getElementById("settingColCard").checked = !!s.col_card;
             setAlignItems(s.align_items || "stretch");
             setJustifyItems(s.justify_items || "stretch");
