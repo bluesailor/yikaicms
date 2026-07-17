@@ -9,6 +9,15 @@ final class ButtonElement extends AbstractElement
     public function label(): string { return '按钮'; }
     public function icon(): string { return 'square-rounded'; }
 
+    public function controls(): array
+    {
+        return [
+            ['key' => 'text', 'type' => 'text', 'label' => '按钮文字', 'default' => '按钮'],
+            ['key' => 'url', 'type' => 'text', 'label' => '链接地址', 'default' => '', 'placeholder' => 'https:// 或 /path'],
+            ['key' => 'new_tab', 'type' => 'checkbox', 'label' => '新窗口打开', 'default' => false],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $text = htmlspecialchars($data['text'] ?? '');

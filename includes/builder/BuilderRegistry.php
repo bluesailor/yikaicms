@@ -32,6 +32,28 @@ final class BuilderRegistry
         return self::$elements;
     }
 
+    /**
+     * 元素元数据（label/category/icon/controls/defaults/dynamic），供后台构建器 JS 生成
+     * palette 与设置表单。加了元素类即自动出现在后台，无需手写 UI（简单控件）。
+     */
+    public static function meta(): array
+    {
+        self::boot();
+        $out = [];
+        foreach (self::$elements as $type => $el) {
+            $out[$type] = [
+                'type'     => $type,
+                'label'    => $el->label(),
+                'category' => $el->category(),
+                'icon'     => $el->icon(),
+                'controls' => $el->controls(),
+                'defaults' => $el->defaults(),
+                'dynamic'  => $el->isDynamic(),
+            ];
+        }
+        return $out;
+    }
+
     /** 注册内置元素（幂等），随后广播 builder_register_element 让插件扩展 */
     public static function boot(): void
     {

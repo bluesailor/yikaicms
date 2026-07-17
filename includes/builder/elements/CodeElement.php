@@ -10,6 +10,14 @@ final class CodeElement extends AbstractElement
     public function icon(): string { return 'code'; }
     public function category(): string { return 'advanced'; }
 
+    public function controls(): array
+    {
+        return [
+            ['key' => 'html', 'type' => 'textarea', 'label' => 'HTML/短码', 'default' => '',
+                'placeholder' => '输入 HTML、短码 [form-xxx]、iframe 等...', 'rows' => 4],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         return $data['html'] ?? '';

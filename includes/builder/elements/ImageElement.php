@@ -10,6 +10,19 @@ final class ImageElement extends AbstractElement
     public function icon(): string { return 'photo'; }
     public function category(): string { return 'media'; }
 
+    // image 由构建器选图/上传组件接管（hasCustomUI），此处仅供默认值 / 元数据
+    public function controls(): array
+    {
+        return [
+            ['key' => 'src', 'type' => 'image', 'label' => '图片', 'default' => ''],
+            ['key' => 'alt', 'type' => 'text', 'label' => '描述', 'default' => ''],
+            ['key' => 'click_action', 'type' => 'select', 'label' => '点击', 'default' => '',
+                'options' => ['' => '无动作', 'lightbox' => '弹出大图', 'link' => '跳转链接']],
+            ['key' => 'link_url', 'type' => 'text', 'label' => '链接', 'default' => ''],
+            ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => '新窗口', 'default' => false],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $src = htmlspecialchars($data['src'] ?? '');

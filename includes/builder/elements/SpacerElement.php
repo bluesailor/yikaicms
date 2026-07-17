@@ -12,6 +12,14 @@ final class SpacerElement extends AbstractElement
     public function icon(): string { return 'arrow-autofit-height'; }
     public function category(): string { return 'layout'; }
 
+    public function controls(): array
+    {
+        return [
+            ['key' => 'size', 'type' => 'select', 'label' => '高度', 'default' => 'md',
+                'options' => ['sm' => '小 (16px)', 'md' => '中 (32px)', 'lg' => '大 (64px)', 'xl' => '超大 (96px)']],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $size = self::SIZE_MAP[$data['size'] ?? 'md'] ?? 'h-8';

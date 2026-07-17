@@ -24,6 +24,20 @@ final class ListDynamicElement extends AbstractElement
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
 
+    public function controls(): array
+    {
+        return [
+            ['key' => 'source_type', 'type' => 'text', 'label' => '类型', 'default' => 'article', 'placeholder' => 'article/case/product/模型key'],
+            ['key' => 'cat', 'type' => 'text', 'label' => '栏目 slug/id', 'default' => '', 'placeholder' => '留空=全部'],
+            ['key' => 'limit', 'type' => 'number', 'label' => '数量', 'default' => 6, 'min' => 1, 'max' => 50],
+            ['key' => 'columns', 'type' => 'number', 'label' => '网格列数', 'default' => 3, 'min' => 1, 'max' => 4],
+            ['key' => 'show_image', 'type' => 'checkbox', 'label' => '封面', 'default' => true],
+            ['key' => 'show_title', 'type' => 'checkbox', 'label' => '标题', 'default' => true],
+            ['key' => 'show_summary', 'type' => 'checkbox', 'label' => '摘要', 'default' => true],
+            ['key' => 'show_date', 'type' => 'checkbox', 'label' => '日期', 'default' => false],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $markup = $this->buildMarkup($data);
