@@ -675,6 +675,7 @@ return [
     'admin_home' => 'ホーム',
     'admin_channel_unassigned' => '未割当',
     'admin_channel_hidden_tab' => '停止中',
+    'admin_channel_restore' => '復元',
     'admin_channel_hidden_empty' => '停止中のカテゴリはありません',
     'admin_channel_hidden_tip' => '停止中のカテゴリはサイトにも上のナビ一覧にも表示されません。目のアイコンでいつでも復元できます。',
     'admin_invalid_operation' => '不正な操作です',

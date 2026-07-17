@@ -624,6 +624,7 @@ return [
     'admin_home' => 'Home',
     'admin_channel_unassigned' => 'Unassigned',
     'admin_channel_hidden_tab' => 'Disabled',
+    'admin_channel_restore' => 'Restore',
     'admin_channel_hidden_empty' => 'No disabled columns',
     'admin_channel_hidden_tip' => 'Disabled columns are not shown on the site or in the navigation lists above; click the eye icon to restore anytime.',
     'admin_invalid_operation' => 'Invalid operation',
