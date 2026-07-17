@@ -166,6 +166,61 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center', $out);
     }
 
+    // ---- P2 响应式三档：{d,t,m} → 基类 + md:/lg: 前缀（mobile-first：m=基类 t=md d=lg） ----
+
+    public function testResponsivePaddingThreeTiers(): void
+    {
+        $full = $this->oneEl(
+            ['type' => 'heading', 'data' => ['text' => 'A']],
+            ['padding' => ['d' => 'xl', 't' => 'md', 'm' => 'sm']]
+        );
+        $this->assertStringStartsWith('<section class="py-4 md:py-8 lg:py-16">', $full);
+    }
+
+    public function testResponsiveUniformCollapsesToScalarOutput(): void
+    {
+        // 三档一致 → 输出与标量完全相同（无冗余前缀类）
+        $full = $this->oneEl(
+            ['type' => 'heading', 'data' => ['text' => 'A']],
+            ['padding' => ['d' => 'lg', 't' => 'lg', 'm' => 'lg']]
+        );
+        $this->assertStringStartsWith('<section class="py-12">', $full);
+    }
+
+    public function testResponsivePartialTiersInherit(): void
+    {
+        // 只分档 d：t/m 继承 d → 全档一致 → 单基类
+        $full = $this->oneEl(['type' => 'heading', 'data' => ['text' => 'A']], ['padding' => ['d' => 'xl']]);
+        $this->assertStringStartsWith('<section class="py-16">', $full);
+        // m 单独改：基类=m，md: 起恢复 t（=d）
+        $full2 = $this->oneEl(['type' => 'heading', 'data' => ['text' => 'A']], ['padding' => ['d' => 'md', 't' => 'md', 'm' => 'none']]);
+        $this->assertStringStartsWith('<section class="py-0 md:py-8">', $full2);
+    }
+
+    public function testResponsiveGapAndInvalidTierFallsBack(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => ['gap' => ['d' => 'xl', 't' => 'sm', 'm' => 'sm']],
+            'columns'  => [
+                ['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-12', $out);
+        // 非法档位值回退 fallback
+        $full = $this->oneEl(['type' => 'heading', 'data' => ['text' => 'A']], ['padding' => ['d' => 'bogus', 'm' => 'sm']]);
+        $this->assertStringStartsWith('<section class="py-4 md:py-8">', $full);
+    }
+
+    public function testResponsiveSpacer(): void
+    {
+        $s = $this->inner($this->oneEl(['type' => 'spacer', 'data' => ['size' => ['d' => 'xl', 't' => 'md', 'm' => 'sm']]]));
+        $this->assertSame('<div class="h-4 md:h-8 lg:h-24"></div>', $s);
+        // 标量不变
+        $s2 = $this->inner($this->oneEl(['type' => 'spacer', 'data' => ['size' => 'xl']]));
+        $this->assertSame('<div class="h-24"></div>', $s2);
+    }
+
     public function testRegistryHasBuiltins(): void
     {
         $types = array_keys(BuilderRegistry::all());
