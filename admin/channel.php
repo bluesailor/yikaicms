@@ -414,8 +414,22 @@ $undefinedChannels = [];
 $hiddenChannels = [];
 foreach ($channelTree as $ch) {
     if (empty($ch['status'])) {
+        // 父级停用：整个子树收进「已停用」
         $hiddenChannels[] = $ch;
         continue;
+    }
+    // 父级启用：摘出停用的子栏目，单独收进「已停用」（带上级名标注）
+    if (!empty($ch['children'])) {
+        $visibleKids = [];
+        foreach ($ch['children'] as $kid) {
+            if (empty($kid['status'])) {
+                $kid['_parent_name'] = $ch['name'];
+                $hiddenChannels[] = $kid;
+            } else {
+                $visibleKids[] = $kid;
+            }
+        }
+        $ch['children'] = $visibleKids;
     }
     $chUrl = '/' . $_srcSlugOf($ch) . '.html';
     if (!empty($ch['is_nav'])) {
@@ -779,6 +793,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="font-medium text-gray-400 flex-1">
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=hidden" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
+                                <?php if (!empty($ch['_parent_name'])): ?>
+                                <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400"><?php echo __('admin_parent_category'); ?>：<?php echo e($ch['_parent_name']); ?></span>
+                                <?php endif; ?>
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                 <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
