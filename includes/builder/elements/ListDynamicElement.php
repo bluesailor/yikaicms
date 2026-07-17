@@ -31,17 +31,11 @@ final class ListDynamicElement extends AbstractElement
         return class_exists('TagEngine') ? \TagEngine::render($markup) : $markup;
     }
 
-    /** 拼出 {yk:list ...}<子元素模板>{/yk:list}（纯字符串，便于单测；render 再交 TagEngine 解析） */
+    /** 拼出 {yk:list ...}<循环模板>{/yk:list}（纯字符串，便于单测；render 再交 TagEngine 解析）。
+     *  循环模板：优先用 template[] 子元素（高级）；否则用字段开关拼内置卡片（后台简单表单用）。 */
     public function buildMarkup(array $data): string
     {
-        // 内层子元素渲染成循环模板（子元素设置里的 {yk:field} 原样带出，循环时逐条解析）
-        $tpl = '';
-        foreach ($data['template'] ?? [] as $child) {
-            $el = BuilderRegistry::get((string) ($child['type'] ?? ''));
-            if ($el !== null) {
-                $tpl .= $el->render(is_array($child['data'] ?? null) ? $child['data'] : []);
-            }
-        }
+        $tpl = $this->loopTemplate($data);
 
         $attrs = 'type=' . self::attr($data['source_type'] ?? 'article');
         foreach (['cat', 'limit', 'offset', 'order', 'keyword'] as $k) {
@@ -58,7 +52,58 @@ final class ListDynamicElement extends AbstractElement
             $attrs .= ' empty=' . self::attr((string) $data['empty']);
         }
 
-        return '{yk:list ' . $attrs . '}' . $tpl . '{/yk:list}';
+        $list = '{yk:list ' . $attrs . '}' . $tpl . '{/yk:list}';
+
+        // 内置卡片模式：整个列表包一层响应式网格
+        if (empty($data['template'])) {
+            $cols = max(1, min(4, (int) ($data['columns'] ?? 3)));
+            $grid = $cols > 1 ? 'grid grid-cols-1 md:grid-cols-' . $cols . ' gap-6' : 'space-y-6';
+            return '<div class="' . $grid . '">' . $list . '</div>';
+        }
+        return $list;
+    }
+
+    /** 循环模板：template[] 子元素优先，否则按字段开关拼内置卡片 */
+    private function loopTemplate(array $data): string
+    {
+        if (!empty($data['template']) && is_array($data['template'])) {
+            $tpl = '';
+            foreach ($data['template'] as $child) {
+                $el = BuilderRegistry::get((string) ($child['type'] ?? ''));
+                if ($el !== null) {
+                    $tpl .= $el->render(is_array($child['data'] ?? null) ? $child['data'] : []);
+                }
+            }
+            return $tpl;
+        }
+
+        // 内置卡片：字段开关（默认显示 封面/标题/摘要，不显示日期），整卡可点进详情。
+        // (bool)(... ?? 默认)：未设走默认；显式 false/'0'/'' 关，true/'1' 开（兼容 Alpine 布尔与旧字符串）
+        $showImage = (bool) ($data['show_image'] ?? true);
+        $showTitle = (bool) ($data['show_title'] ?? true);
+        $showSummary = (bool) ($data['show_summary'] ?? true);
+        $showDate = (bool) ($data['show_date'] ?? false);
+        $sumLen = max(20, min(300, (int) ($data['summary_len'] ?? 80)));
+
+        $inner = '';
+        if ($showImage) {
+            $inner .= '<div class="aspect-video overflow-hidden bg-gray-100"><img src="{yk:field name=cover /}" alt="" loading="lazy" class="w-full h-full object-cover"></div>';
+        }
+        $body = '';
+        if ($showTitle) {
+            $body .= '<h3 class="text-lg font-semibold mb-2 group-hover:text-primary transition">{yk:field name=title /}</h3>';
+        }
+        if ($showDate) {
+            $body .= '<div class="text-xs text-gray-400 mb-2">{yk:field name=date dateformat="Y-m-d" /}</div>';
+        }
+        if ($showSummary) {
+            $body .= '<p class="text-sm text-gray-500">{yk:field name=summary len=' . $sumLen . ' /}</p>';
+        }
+        if ($body !== '') {
+            $inner .= '<div class="p-4">' . $body . '</div>';
+        }
+        // 整卡链接到详情
+        return '<a href="{yk:field name=url /}" class="group block bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden no-underline">' . $inner . '</a>';
     }
 
     /** 属性值：含空格用引号包，否则裸值（TagEngine parseAttrs 两者都认） */

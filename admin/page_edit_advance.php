@@ -436,6 +436,53 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                         </select>
                                                     </div>
                                                 </template>
+
+                                                <!-- 动态列表 -->
+                                                <template x-if="el.type === 'list-dynamic'">
+                                                    <div class="space-y-2">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded">动态列表</span>
+                                                            <span class="text-xs text-gray-400">发布后按栏目/模型拉实时数据</span>
+                                                        </div>
+                                                        <div class="grid grid-cols-2 gap-2">
+                                                            <label class="text-xs text-gray-500 block">类型
+                                                                <input x-model="el.data.source_type" placeholder="article/case/product/模型key" class="w-full border rounded px-2 py-1 text-sm">
+                                                            </label>
+                                                            <label class="text-xs text-gray-500 block">栏目 slug/id
+                                                                <input x-model="el.data.cat" placeholder="留空=全部" class="w-full border rounded px-2 py-1 text-sm">
+                                                            </label>
+                                                            <label class="text-xs text-gray-500 block">数量
+                                                                <input type="number" x-model="el.data.limit" class="w-full border rounded px-2 py-1 text-sm">
+                                                            </label>
+                                                            <label class="text-xs text-gray-500 block">网格列数 (1-4)
+                                                                <input type="number" min="1" max="4" x-model="el.data.columns" class="w-full border rounded px-2 py-1 text-sm">
+                                                            </label>
+                                                        </div>
+                                                        <div class="flex flex-wrap gap-3 text-xs text-gray-600 pt-1">
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_image"> 封面</label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_title"> 标题</label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_summary"> 摘要</label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_date"> 日期</label>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 轮播图 -->
+                                                <template x-if="el.type === 'banner'">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded">轮播图</span>
+                                                        <input x-model="el.data.group" placeholder="轮播分组标识 (banner group)" class="flex-1 border rounded px-2 py-1 text-sm">
+                                                    </div>
+                                                </template>
+
+                                                <!-- 导航菜单 -->
+                                                <template x-if="el.type === 'nav'">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded">导航</span>
+                                                        <input x-model="el.data.parent" placeholder="父栏目 slug/id，空=顶级" class="flex-1 border rounded px-2 py-1 text-sm">
+                                                        <label class="inline-flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" x-model="el.data.nav_only"> 仅导航栏目</label>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
 
@@ -461,6 +508,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                         class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">代码/HTML</button>
                                                 <button type="button" @click="addElement(si,ci,'spacer'); open=false"
                                                         class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">间距</button>
+                                                <div class="border-t my-1"></div>
+                                                <div class="px-3 py-1 text-[10px] text-gray-400 uppercase">动态</div>
+                                                <button type="button" @click="addElement(si,ci,'list-dynamic'); open=false"
+                                                        class="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-blue-50 cursor-pointer">动态列表</button>
+                                                <button type="button" @click="addElement(si,ci,'banner'); open=false"
+                                                        class="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-blue-50 cursor-pointer">轮播图</button>
+                                                <button type="button" @click="addElement(si,ci,'nav'); open=false"
+                                                        class="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-blue-50 cursor-pointer">导航菜单</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1038,7 +1093,10 @@ function pageBuilder() {
                 icon: { icon: "star", size: "md", color: "", text: "" },
                 divider: { style: "solid", width: "1", color: "#e5e7eb", spacing: "md" },
                 code: { html: "" },
-                spacer: { size: "md" }
+                spacer: { size: "md" },
+                "list-dynamic": { source_type: "article", cat: "", limit: 6, columns: 3, show_image: true, show_title: true, show_summary: true, show_date: false },
+                banner: { group: "" },
+                nav: { parent: "", nav_only: true }
             };
             this.sections[si].columns[ci].elements.push({
                 id: this.uid("e"),
