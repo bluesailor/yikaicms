@@ -67,6 +67,21 @@ if ($contentType === 'html' && $htmlContent && !$blocksData) {
     $autoConvert = true;
 }
 
+// 实时预览：渲染 blocks_data → 套主题 CSS 的独立 HTML，供构建器 iframe 展示（不落库）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
+    $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><html lang="' . htmlspecialchars(siteLang()) . '"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<link rel="stylesheet" href="/assets/css/tailwind.css">'
+        . '<link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">'
+        . '<base target="_blank">'
+        . '<style>body{margin:0;background:#fff}</style></head><body>'
+        . $body
+        . '</body></html>';
+    exit;
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = resolveSlug(post('slug'), post('name'), 'channels', $id);
@@ -181,6 +196,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h2 class="font-bold text-gray-800"><?php echo __('label_layout_content'); ?></h2>
             <div class="flex items-center gap-3">
                 <span class="text-xs text-gray-400 hidden md:inline">拖拽区块排序 / 每个区块可设置列数、背景、间距</span>
+                <button type="button" @click="togglePreview()"
+                        class="text-sm border px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap"
+                        :class="showPreview ? 'border-primary bg-primary text-white' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'">
+                    <i class="ti ti-eye text-base"></i>实时预览
+                </button>
                 <button type="button" @click="insertTemplate('company_intro')"
                         class="text-sm border border-primary text-primary hover:bg-primary hover:text-white px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap">
                     <i class="ti ti-file-text text-base"></i>公司介绍模板
@@ -595,6 +615,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 实时预览面板 -->
+    <div x-show="showPreview" x-cloak class="bg-white rounded-lg shadow">
+        <div class="px-6 py-3 border-b flex items-center justify-between gap-3">
+            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-eye"></i>实时预览</h2>
+            <div class="flex items-center gap-2">
+                <template x-for="d in previewDevices" :key="d.key">
+                    <button type="button" @click="previewDevice = d.key"
+                            class="text-xs px-2.5 py-1 rounded border cursor-pointer transition inline-flex items-center gap-1"
+                            :class="previewDevice === d.key ? 'border-primary text-primary' : 'border-gray-200 text-gray-400 hover:text-gray-600'">
+                        <i class="ti" :class="d.icon"></i><span x-text="d.label"></span>
+                    </button>
+                </template>
+                <span class="text-xs text-gray-300" x-show="previewLoading">刷新中…</span>
+            </div>
+        </div>
+        <div class="p-4 bg-gray-100 flex justify-center overflow-auto">
+            <iframe x-ref="previewFrame" class="bg-white shadow-sm border-0 transition-all duration-300"
+                    :style="'width:' + previewWidth() + ';height:70vh'"></iframe>
         </div>
     </div>
 
@@ -1026,6 +1067,47 @@ function pageBuilder() {
     return {
         sections: ' . $initBlocks . ',
 
+        // === 实时预览 ===
+        showPreview: false,
+        previewLoading: false,
+        previewDevice: "desktop",
+        previewDevices: [
+            { key: "desktop", label: "桌面", icon: "ti-device-desktop" },
+            { key: "tablet", label: "平板", icon: "ti-device-tablet" },
+            { key: "mobile", label: "手机", icon: "ti-device-mobile" }
+        ],
+        _previewTimer: null,
+        previewWidth() {
+            return ({ desktop: "100%", tablet: "768px", mobile: "390px" })[this.previewDevice] || "100%";
+        },
+        togglePreview() {
+            this.showPreview = !this.showPreview;
+            if (this.showPreview) { var self = this; this.$nextTick(function() { self.refreshPreview(); }); }
+        },
+        schedulePreview() {
+            if (!this.showPreview) return;
+            var self = this;
+            clearTimeout(this._previewTimer);
+            this._previewTimer = setTimeout(function() { self.refreshPreview(); }, 600);
+        },
+        refreshPreview() {
+            var frame = this.$refs.previewFrame;
+            if (!frame) return;
+            this.previewLoading = true;
+            var self = this;
+            var body = new URLSearchParams();
+            body.set("action", "preview");
+            body.set("blocks_data", JSON.stringify(this.sections));
+            fetch(window.location.href, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: body.toString()
+            }).then(function(r) { return r.text(); })
+              .then(function(html) { frame.srcdoc = html; })
+              .catch(function() {})
+              .finally(function() { self.previewLoading = false; });
+        },
+
         uid(prefix) {
             return prefix + "_" + Math.random().toString(36).substr(2, 9);
         },
@@ -1050,6 +1132,8 @@ function pageBuilder() {
         init() {
             var self = this;
             this.$nextTick(function() { self.initSortable(); });
+            // 区块变化 → 防抖刷新预览
+            this.$watch("sections", function() { self.schedulePreview(); });
         },
 
         // === 区块操作 ===

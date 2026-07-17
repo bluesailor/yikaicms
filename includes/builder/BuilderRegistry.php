@@ -72,6 +72,13 @@ final class BuilderRegistry
             new CodeElement(),
             new DividerElement(),
             new SpacerElement(),
+            // 扩充静态元素（schema 驱动，后台自动 UI）
+            new AlertElement(),
+            new CtaElement(),
+            new QuoteElement(),
+            new CardElement(),
+            new VideoElement(),
+            new IconBoxElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new BannerElement(),
