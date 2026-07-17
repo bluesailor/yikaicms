@@ -130,8 +130,10 @@
     RewriteRule . /index.php [L]
 </IfModule>
 
-# 禁止目录浏览
-Options -Indexes
+# 禁止目录浏览（包在 IfModule 里，避免共享主机禁用 Options 覆盖时 500）
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
 
 # 设置默认文档
 DirectoryIndex index.php index.html

@@ -5,6 +5,7 @@ class AlbumModel extends Model
 {
     protected string $table = 'albums';
     protected string $defaultOrder = 'sort_order DESC, id DESC';
+    protected bool $softDelete = true;
 
     /**
      * 获取前台有效相册

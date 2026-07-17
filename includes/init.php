@@ -66,6 +66,9 @@ require_once ROOT_PATH . '/includes/hooks.php';
 require_once ROOT_PATH . '/includes/Compatibility.php';
 Compatibility::bootstrap();
 require_once ROOT_PATH . '/includes/HtmlCache.php';
+require_once ROOT_PATH . '/includes/security.php';
+require_once ROOT_PATH . '/includes/TagEngine.php';
+require_once ROOT_PATH . '/includes/Cron.php';
 // 内容/产品/栏目/设置等数据变更时，自动清除前台 HTML 缓存（避免改完后台不生效）
 if (function_exists('add_action')) {
     add_action('data_changed', function () {

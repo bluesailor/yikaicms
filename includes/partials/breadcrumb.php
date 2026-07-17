@@ -8,6 +8,7 @@
  */
 $style = $style ?? 'default';
 $textColor = $style === 'light' ? 'text-gray-300' : 'text-gray-400';
+echo breadcrumbJsonLd($breadcrumbItems ?? []);
 ?>
 <div class="flex items-center gap-2 text-sm <?php echo $textColor; ?> mb-6">
     <a href="/" class="hover:text-white"><?php echo __('breadcrumb_home'); ?></a>

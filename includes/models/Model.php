@@ -21,17 +21,27 @@ class Model
     /** 默认排序 */
     protected string $defaultOrder = 'id DESC';
 
+    /**
+     * 软删除开关。子类设为 true 时（表需有 deleted_at 列）：
+     *   - deleteById / deleteByIds 改为写 deleted_at 时间戳（不物理删除）
+     *   - restore / forceDeleteById / getTrashed / trashedCount 可用
+     * 读方法的"排除已删"过滤由子类在各自查询里用 softDeleteGuard() 注入。
+     */
+    protected bool $softDelete = false;
+    protected string $deletedAtColumn = 'deleted_at';
+
     // ═══════════════════════════════════════════════
     // 读取
     // ═══════════════════════════════════════════════
 
     /**
-     * 按主键查单条
+     * 按主键查单条。软删除模型自动排除回收站中的行
+     *（详情页/编辑页据此对已删项返回 null；回收站的读取用 getTrashed，不走这里）。
      */
     public function find(int $id): ?array
     {
         return db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE {$this->primaryKey} = ?",
+            "SELECT * FROM {$this->tableName()} WHERE {$this->primaryKey} = ?" . $this->softDeleteGuard(),
             [$id]
         );
     }
@@ -56,7 +66,7 @@ class Model
     {
         [$whereSQL, $params] = $this->buildWhere($conditions);
         return db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE {$whereSQL}",
+            "SELECT * FROM {$this->tableName()} WHERE {$whereSQL}" . $this->softDeleteGuard(),
             $params
         );
     }
@@ -68,8 +78,10 @@ class Model
     {
         $order = $orderBy ?: $this->defaultOrder;
         $this->assertOrderBy($order);
+        $guard = $this->softDeleteGuard();
+        $where = $guard !== '' ? ' WHERE 1=1' . $guard : '';
         return db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} ORDER BY {$order}"
+            "SELECT * FROM {$this->tableName()}{$where} ORDER BY {$order}"
         );
     }
 
@@ -83,9 +95,12 @@ class Model
         $params = [];
 
         $sql = "SELECT * FROM {$this->tableName()}";
+        $guard = $this->softDeleteGuard();
         if ($conditions) {
             [$whereSQL, $params] = $this->buildWhere($conditions);
-            $sql .= " WHERE {$whereSQL}";
+            $sql .= " WHERE {$whereSQL}{$guard}";
+        } elseif ($guard !== '') {
+            $sql .= " WHERE 1=1{$guard}";
         }
         $sql .= " ORDER BY {$order}";
         if ($limit > 0) {
@@ -192,12 +207,16 @@ class Model
     }
 
     /**
-     * 按 ID 删除
+     * 按 ID 删除。软删除模型写 deleted_at（进回收站），否则物理删除。
      */
     public function deleteById(int $id): int
     {
         if (function_exists('do_action')) do_action('model_before_delete', $this->table, $id);
-        $r = db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
+        if ($this->softDelete) {
+            $r = db()->update($this->table, [$this->deletedAtColumn => time()], "{$this->primaryKey} = ?", [$id]);
+        } else {
+            $r = db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
+        }
         if (function_exists('do_action')) {
             do_action('model_deleted', $this->table, $id);
             do_action('data_changed', $this->table, $id);
@@ -206,7 +225,7 @@ class Model
     }
 
     /**
-     * 批量删除
+     * 批量删除。软删除模型写 deleted_at，否则物理删除。
      */
     public function deleteByIds(array $ids): int
     {
@@ -214,12 +233,78 @@ class Model
             return 0;
         }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $r = db()->execute(
-            "DELETE FROM {$this->tableName()} WHERE {$this->primaryKey} IN ({$placeholders})",
-            array_values($ids)
-        );
+        if ($this->softDelete) {
+            $params = array_merge([time()], array_values($ids));
+            $r = db()->execute(
+                "UPDATE {$this->tableName()} SET {$this->deletedAtColumn} = ? WHERE {$this->primaryKey} IN ({$placeholders})",
+                $params
+            );
+        } else {
+            $r = db()->execute(
+                "DELETE FROM {$this->tableName()} WHERE {$this->primaryKey} IN ({$placeholders})",
+                array_values($ids)
+            );
+        }
         if (function_exists('do_action')) do_action('data_changed', $this->table);
         return $r;
+    }
+
+    // ═══════════════════════════════════════════════
+    // 软删除 / 回收站（仅 $softDelete = true 的模型）
+    // ═══════════════════════════════════════════════
+
+    /** 读查询里排除已删行的 WHERE 片段；非软删模型返回空串。$alias 如 'c.' */
+    public function softDeleteGuard(string $alias = ''): string
+    {
+        return $this->softDelete ? " AND {$alias}{$this->deletedAtColumn} IS NULL" : '';
+    }
+
+    /** 从回收站恢复 */
+    public function restore(int $id): int
+    {
+        if (!$this->softDelete) return 0;
+        $r = db()->update($this->table, [$this->deletedAtColumn => null], "{$this->primaryKey} = ?", [$id]);
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return $r;
+    }
+
+    /** 彻底删除（物理），仅对已在回收站的行生效 */
+    public function forceDeleteById(int $id): int
+    {
+        $r = db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return $r;
+    }
+
+    /** 回收站列表（已删行，按删除时间倒序） */
+    public function getTrashed(int $limit = 50, int $offset = 0): array
+    {
+        if (!$this->softDelete) return [];
+        return db()->fetchAll(
+            "SELECT * FROM {$this->tableName()} WHERE {$this->deletedAtColumn} IS NOT NULL
+             ORDER BY {$this->deletedAtColumn} DESC LIMIT ? OFFSET ?",
+            [$limit, $offset]
+        );
+    }
+
+    /** 回收站条数 */
+    public function trashedCount(): int
+    {
+        if (!$this->softDelete) return 0;
+        return (int) db()->fetchColumn(
+            "SELECT COUNT(*) FROM {$this->tableName()} WHERE {$this->deletedAtColumn} IS NOT NULL"
+        );
+    }
+
+    /** 清空回收站中早于 $days 天的行（定时清理用），返回删除条数 */
+    public function purgeTrashedOlderThan(int $days): int
+    {
+        if (!$this->softDelete || $days < 0) return 0;
+        $cutoff = time() - $days * 86400;
+        return db()->execute(
+            "DELETE FROM {$this->tableName()} WHERE {$this->deletedAtColumn} IS NOT NULL AND {$this->deletedAtColumn} < ?",
+            [$cutoff]
+        );
     }
 
     /**

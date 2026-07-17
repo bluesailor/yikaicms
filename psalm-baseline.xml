@@ -166,6 +166,15 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
+  <file src="admin/cron.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
   <file src="admin/database.php">
     <InvalidCast>
       <code><![CDATA[$v]]></code>
@@ -479,6 +488,15 @@
     </UnusedVariable>
   </file>
   <file src="admin/recipe.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
+  <file src="admin/recycle.php">
     <MissingFile>
       <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
@@ -881,6 +899,13 @@
       <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
+  <file src="includes/commands/cron.php">
+    <UnusedClosureParam>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
+    </UnusedClosureParam>
+  </file>
   <file src="includes/commands/demo.php">
     <UnusedClosureParam>
       <code><![CDATA[$args]]></code>
@@ -1169,6 +1194,11 @@
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/Model.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[forceDeleteById]]></code>
+      <code><![CDATA[getTrashed]]></code>
+      <code><![CDATA[restore]]></code>
+    </PossiblyUnusedMethod>
     <PossiblyUnusedReturnValue>
       <code><![CDATA[int]]></code>
       <code><![CDATA[int]]></code>

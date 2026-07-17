@@ -33,7 +33,7 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 }
 
 // SEO 变量
-$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$siteUrl = siteBaseUrl();
 $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
 $ogType = $ogType ?? 'website';
 $ogImage = $ogImage ?? config('seo_og_image', '') ?: configRawLang('site_logo', '');

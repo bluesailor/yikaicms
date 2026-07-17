@@ -36,7 +36,8 @@ class DownloadControllerTest extends TestCase
                 title TEXT, description TEXT, file_url TEXT,
                 status INTEGER DEFAULT 1,
                 sort_order INTEGER DEFAULT 0,
-                created_at TEXT
+                created_at TEXT,
+                deleted_at INTEGER DEFAULT NULL
             )",
             "CREATE TABLE download_categories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

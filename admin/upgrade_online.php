@@ -214,6 +214,9 @@ if ($action !== '') {
         @mkdir($ex, 0755, true);
         $zip = new ZipArchive();
         if ($zip->open($pkg) !== true) uo_json(['code' => 1, 'msg' => '安装包打开失败']);
+        // zip-slip 防护：条目名越界则中止，防止覆盖包外文件
+        $unsafe = zipUnsafeEntry($zip);
+        if ($unsafe !== null) { $zip->close(); uo_json(['code' => 1, 'msg' => '安装包含非法路径条目，已中止：' . $unsafe]); }
         if (!$zip->extractTo($ex)) { $zip->close(); uo_json(['code' => 1, 'msg' => '解压失败，可能磁盘空间不足']); }
         $zip->close();
 

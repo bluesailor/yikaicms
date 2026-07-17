@@ -1,11 +1,11 @@
-# Yikai CMS v1.9.2
+# Yikai CMS v1.10.0
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen.svg)](./tests)
 
-**简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持中文（简体/繁体）、English、日本語多语言网站建设。
+**简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持简体中文、English、日本語多语言网站建设。
 
 **English** · YikaiCMS is a lightweight, secure, and ready-to-use CMS for business websites. Built with PHP 8.0+, MySQL/SQLite, Tailwind CSS v4, Plugin Hooks, and AI Content Assistant. Supports multilingual websites in Chinese, English, and Japanese.
 

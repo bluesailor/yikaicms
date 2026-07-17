@@ -5,6 +5,7 @@
  * @var array $breadcrumbs - [{name, url}]
  */
 if (empty($breadcrumbs)) return;
+echo breadcrumbJsonLd($breadcrumbs);
 ?>
 <nav aria-label="Breadcrumb" class="py-4 border-b border-slate-800/40">
     <div class="container mx-auto px-6 lg:px-8">

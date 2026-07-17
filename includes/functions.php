@@ -482,6 +482,25 @@ function configJsonLang(string $configKey): string
 }
 
 /**
+ * 站点绝对基础 URL（无尾斜杠）。
+ */
+function siteBaseUrl(): string
+{
+    // 统一收口：settingModel 对"已存在但为空"的 site_url 键返回空串（default 不生效），
+    // 各页早年 config('site_url', SITE_URL) 的写法在该情况下产出相对 URL（sitemap/JSON-LD 失效）。
+    // 优先级：后台设置 site_url → config.php 的 SITE_URL 常量 → 当前请求 scheme+host。
+    $base = rtrim((string) config('site_url', ''), '/');
+    if ($base === '' && defined('SITE_URL')) {
+        $base = rtrim((string) SITE_URL, '/');
+    }
+    if ($base === '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $base = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    }
+    return $base;
+}
+
+/**
  * 渲染 <link rel="alternate" hreflang> 标签 + x-default。
  *
  * 给搜索引擎告知本页存在哪些语言版本。逻辑是 URL 级（不查内容翻译表）：
@@ -500,11 +519,7 @@ function renderHreflangs(): string
     if (!is_array($enabled) || count($enabled) < 2) return '';
 
     $defaultLang = (string) config('site_lang', 'zh-CN');
-    $base = rtrim((string) config('site_url', ''), '/');
-    if ($base === '') {
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $base = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
-    }
+    $base = siteBaseUrl();
 
     // 当前请求 path（剥掉已有的 lang 前缀）
     $path = (string) ($_SERVER['REQUEST_URI'] ?? '/');
@@ -1012,6 +1027,50 @@ function getBreadcrumb(int $channelId): array
     return $breadcrumb;
 }
 
+/**
+ * BreadcrumbList JSON-LD（谷歌/百度富摘要用的结构化面包屑）。
+ *
+ * $items 与 partials/breadcrumb.php 的 $breadcrumbItems 同构：[['name'=>..., 'url'=>...], ...]。
+ * 首项自动补"首页"；末项为当前页、按规范省略 item URL；相对 URL 自动拼站点域名。
+ * 每请求最多输出一次（页面多处 require 面包屑部件时不会重复注入）。
+ */
+function breadcrumbJsonLd(array $items): string
+{
+    static $emitted = false;
+    if ($emitted || empty($items)) {
+        return '';
+    }
+    $emitted = true;
+
+    $siteUrl = siteBaseUrl();
+    $elements = [[
+        '@type'    => 'ListItem',
+        'position' => 1,
+        'name'     => __('breadcrumb_home'),
+        'item'     => $siteUrl . '/',
+    ]];
+    $last = count($items) - 1;
+    foreach (array_values($items) as $i => $item) {
+        $element = [
+            '@type'    => 'ListItem',
+            'position' => $i + 2,
+            'name'     => (string) ($item['name'] ?? ''),
+        ];
+        if ($i !== $last && !empty($item['url'])) {
+            $url = (string) $item['url'];
+            $element['item'] = preg_match('#^https?://#', $url) ? $url : $siteUrl . $url;
+        }
+        $elements[] = $element;
+    }
+
+    // JSON_HEX_TAG：转义 <>，防止 name 中出现 </script> 逃逸出脚本块
+    return '<script type="application/ld+json">' . json_encode([
+        '@context'        => 'https://schema.org',
+        '@type'           => 'BreadcrumbList',
+        'itemListElement' => $elements,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '</script>' . "\n";
+}
+
 // ============================================================
 // 分页
 // ============================================================
@@ -1120,6 +1179,11 @@ function friendlyTime(int $time): string
 function renderContent(?string $html): string
 {
     $sanitized = sanitizeHtml($html);
+    // 模板标签在 sanitize 之后解析：标签产出的是核心生成的可信 HTML，
+    // 且能一并享受 content_render filter（图片 lazy-load 等）
+    if (class_exists('TagEngine')) {
+        $sanitized = TagEngine::render($sanitized);
+    }
     return (string) apply_filters('content_render', $sanitized);
 }
 
@@ -1347,6 +1411,70 @@ function verifyCsrf(): bool
 function csrfField(): string
 {
     return '<input type="hidden" name="' . CSRF_TOKEN_NAME . '" value="' . csrfToken() . '">';
+}
+
+// ============================================================
+// 登录限流（按 IP + 作用域，文件锁计数）
+// ============================================================
+
+/**
+ * 通用登录限流。$scope 隔离不同入口（如 'member'），与后台的 admin 限流互不影响。
+ * 复用 login_max_attempts / login_lock_minutes 两个配置。
+ */
+function loginThrottleRemaining(string $scope): int
+{
+    $file = _scopedThrottleFile($scope);
+    if (!file_exists($file)) return 0;
+    $data = json_decode((string) file_get_contents($file), true);
+    if (!is_array($data)) return 0;
+
+    $maxAttempts = (int) config('login_max_attempts', 5);
+    $lockMinutes = (int) config('login_lock_minutes', 15);
+    if (($data['count'] ?? 0) >= $maxAttempts) {
+        $elapsed = time() - ($data['last'] ?? 0);
+        $lockSeconds = $lockMinutes * 60;
+        if ($elapsed < $lockSeconds) {
+            return (int) ceil(($lockSeconds - $elapsed) / 60);
+        }
+        @unlink($file);
+    }
+    return 0;
+}
+
+function loginThrottleRecordFailure(string $scope): void
+{
+    $file = _scopedThrottleFile($scope);
+    $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $handle = fopen($file, 'c+');
+    if (!$handle) return;
+    flock($handle, LOCK_EX);
+    $content = stream_get_contents($handle);
+    $data = $content ? (json_decode($content, true) ?: ['count' => 0, 'last' => 0]) : ['count' => 0, 'last' => 0];
+    if (time() - ($data['last'] ?? 0) > 900) {
+        $data = ['count' => 0, 'last' => 0];
+    }
+    $data['count'] = ($data['count'] ?? 0) + 1;
+    $data['last'] = time();
+    ftruncate($handle, 0);
+    rewind($handle);
+    fwrite($handle, json_encode($data));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+}
+
+function loginThrottleClear(string $scope): void
+{
+    $file = _scopedThrottleFile($scope);
+    if (file_exists($file)) @unlink($file);
+}
+
+function _scopedThrottleFile(string $scope): string
+{
+    $scope = preg_replace('/[^a-z0-9_\-]/i', '_', $scope) ?: 'x';
+    $ip = preg_replace('/[^a-zA-Z0-9._\-]/', '_', getClientIp());
+    return ROOT_PATH . '/storage/login_throttle/' . $scope . '_' . $ip . '.json';
 }
 
 // ============================================================
@@ -1608,6 +1736,14 @@ function uploadFile(array $file, string $type = 'images'): array
         return ['error' => '保存文件失败'];
     }
 
+    // SVG 净化：落盘后立即重写，剥掉 <script>/on* 事件/js: 协议等 XSS 载体
+    if ($ext === 'svg') {
+        $raw = @file_get_contents($filepath);
+        if ($raw !== false) {
+            file_put_contents($filepath, sanitizeSvg($raw));
+        }
+    }
+
     // 获取图片尺寸（已在上传前验证，此处仅取元数据）
     $width = 0;
     $height = 0;
@@ -1771,6 +1907,11 @@ function renderHeaderScrollFade(): void
 
 function parseShortcodes(string $content): string
 {
+    // 模板标签 {yk:...}（见 includes/TagEngine.php 与 docs/template-tags.md）
+    if (class_exists('TagEngine')) {
+        $content = TagEngine::render($content);
+    }
+
     // 表单短码
     $content = preg_replace_callback('/\[form-([a-zA-Z0-9_-]+)\]/', function ($matches) {
         return renderFormTemplate($matches[1]);

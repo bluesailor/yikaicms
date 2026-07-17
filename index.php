@@ -22,7 +22,7 @@ $banners = getBanners('home', 5);
 $navChannels = getNavChannels();
 
 // SEO: canonical
-$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$siteUrl = siteBaseUrl();
 $canonicalUrl = $siteUrl . (langPrefix() ?: '') . '/';
 
 // 获取首页展示的栏目（is_home=1）

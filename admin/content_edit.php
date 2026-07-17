@@ -172,6 +172,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="hidden" name="content" id="contentInput">
                         <div id="toolbar-container" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
                         <div id="editor-container" class="border rounded-b-lg" style="min-height: 400px;"></div>
+
+                        <!-- 模板标签速查 -->
+                        <details class="mt-3 text-sm border rounded-lg bg-gray-50">
+                            <summary class="px-4 py-2 cursor-pointer text-gray-600 select-none">
+                                <i class="ti ti-code"></i> <?php echo __('tagref_title'); ?>
+                            </summary>
+                            <div class="px-4 py-3 border-t space-y-2 text-gray-600">
+                                <p class="text-gray-500"><?php echo __('tagref_intro'); ?></p>
+                                <table class="w-full text-xs">
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr><td class="py-1.5 pr-3 font-mono text-primary whitespace-nowrap">{yk:list type=article cat=news limit=6}…{/yk:list}</td><td class="py-1.5 text-gray-500"><?php echo __('tagref_list'); ?></td></tr>
+                                        <tr><td class="py-1.5 pr-3 font-mono text-primary whitespace-nowrap">{yk:field name=title /}</td><td class="py-1.5 text-gray-500"><?php echo __('tagref_field'); ?></td></tr>
+                                        <tr><td class="py-1.5 pr-3 font-mono text-primary whitespace-nowrap">{yk:nav parent=product}…{/yk:nav}</td><td class="py-1.5 text-gray-500"><?php echo __('tagref_nav'); ?></td></tr>
+                                        <tr><td class="py-1.5 pr-3 font-mono text-primary whitespace-nowrap">{yk:channel slug=about field=url /}</td><td class="py-1.5 text-gray-500"><?php echo __('tagref_channel'); ?></td></tr>
+                                        <tr><td class="py-1.5 pr-3 font-mono text-primary whitespace-nowrap">{yk:banner group=home /}</td><td class="py-1.5 text-gray-500"><?php echo __('tagref_banner'); ?></td></tr>
+                                        <tr><td class="py-1.5 pr-3 font-mono text-primary whitespace-nowrap">{yk:config name=site_name /}</td><td class="py-1.5 text-gray-500"><?php echo __('tagref_config'); ?></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </div>

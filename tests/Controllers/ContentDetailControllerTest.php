@@ -39,7 +39,8 @@ class ContentDetailControllerTest extends TestCase
                 publish_time INTEGER DEFAULT 0,
                 views INTEGER DEFAULT 0, download_count INTEGER DEFAULT 0,
                 created_at TEXT, updated_at TEXT,
-                lang TEXT DEFAULT 'zh-CN'
+                lang TEXT DEFAULT 'zh-CN',
+                deleted_at INTEGER DEFAULT NULL
             )",
         ];
     }

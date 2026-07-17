@@ -5,13 +5,15 @@ class JobModel extends Model
 {
     protected string $table = 'jobs';
     protected string $defaultOrder = 'is_top DESC, sort_order DESC, id DESC';
+    protected bool $softDelete = true;
 
     /**
      * 获取招聘列表（分页+筛选）
      */
     public function getList(array $filters = [], int $limit = 20, int $offset = 0): array
     {
-        $where = [];
+        // 回收站的行不进任何列表（前台/后台通用）
+        $where = ['deleted_at IS NULL'];
         $params = [];
 
         if (isset($filters['status']) && $filters['status'] !== '') {

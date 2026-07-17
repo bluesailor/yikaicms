@@ -85,7 +85,11 @@ function doLogin(string $username, string $password): array
 
     $user = userModel()->findWhere(['username' => $username, 'status' => 1]);
 
-    if (!$user || !password_verify($password, $user['password'])) {
+    // 恒定时间：用户不存在时也跑一次 bcrypt 校验，避免用响应快慢枚举用户名。
+    // 占位 hash 是一条真实 bcrypt（cost 10），verify 永远失败但耗时与真校验一致。
+    $hash = $user['password'] ?? '$2y$10$CvKLPJwopxGfViQwogwiguMCWdL1haPC5o2trR8N8swtjmQcLQZI6';
+    $passOk = password_verify($password, $hash);
+    if (!$user || !$passOk) {
         recordLoginFailure();
         // 记录登录失败日志（不依赖 session）
         adminLogModel()->log([
@@ -107,8 +111,25 @@ function doLogin(string $username, string $password): array
     // 登录成功，清除失败记录
     clearLoginFailure();
 
+    // 两步验证：已绑定 TOTP 的账号先进入待验证态，验证码通过后才建立会话
+    if (!empty($user['totp_secret'])) {
+        session_regenerate_id(true);
+        $_SESSION['2fa_pending'] = ['user_id' => (int) $user['id'], 'expires' => time() + 300];
+        return ['success' => false, 'need_2fa' => true, 'message' => ''];
+    }
+
+    completeAdminLogin($user);
+    return ['success' => true, 'message' => __('login_success')];
+}
+
+/**
+ * 密码（及两步验证）全部通过后建立后台会话。
+ */
+function completeAdminLogin(array $user): void
+{
     // 防止 Session Fixation 攻击
     session_regenerate_id(true);
+    unset($_SESSION['2fa_pending']);
 
     // 更新登录信息
     userModel()->updateById($user['id'], [
@@ -130,7 +151,48 @@ function doLogin(string $username, string $password): array
 
     // 记录日志
     adminLog('auth', 'login', '登录成功');
+}
 
+/**
+ * 两步验证第二步：校验验证器 6 位码，通过则建立会话。
+ * 复用登录限流：连续输错验证码与输错密码共享同一锁定计数。
+ */
+function doTotpLogin(string $code): array
+{
+    $pending = $_SESSION['2fa_pending'] ?? null;
+    if (!$pending || ($pending['expires'] ?? 0) < time()) {
+        unset($_SESSION['2fa_pending']);
+        return ['success' => false, 'message' => __('login_2fa_expired'), 'expired' => true];
+    }
+
+    $lockout = checkLoginThrottle();
+    if ($lockout > 0) {
+        unset($_SESSION['2fa_pending']);
+        return ['success' => false, 'message' => __('login_throttle_locked', ['minutes' => $lockout]), 'expired' => true];
+    }
+
+    $user = userModel()->findWhere(['id' => (int) $pending['user_id'], 'status' => 1]);
+    require_once ROOT_PATH . '/includes/Totp.php';
+    if (!$user || empty($user['totp_secret']) || !Totp::verify((string) $user['totp_secret'], $code)) {
+        recordLoginFailure();
+        adminLogModel()->log([
+            'admin_id'     => 0,
+            'admin_name'   => (string) ($user['username'] ?? ''),
+            'module'       => 'auth',
+            'action'       => 'login_fail',
+            'description'  => '登录失败：两步验证码错误',
+            'url'          => $_SERVER['REQUEST_URI'] ?? '',
+            'method'       => 'POST',
+            'request_data' => '{}',
+            'ip'           => getClientIp(),
+            'user_agent'   => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'created_at'   => time(),
+        ]);
+        return ['success' => false, 'message' => __('login_2fa_invalid')];
+    }
+
+    clearLoginFailure();
+    completeAdminLogin($user);
     return ['success' => true, 'message' => __('login_success')];
 }
 

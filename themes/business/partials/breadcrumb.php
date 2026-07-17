@@ -9,6 +9,7 @@ $style = $style ?? 'default';
 $muted = $style === 'light' ? 'text-slate-300' : 'text-slate-400';
 $hover = 'hover:text-primary';
 $sep   = $style === 'light' ? 'text-slate-500' : 'text-slate-600';
+echo breadcrumbJsonLd($breadcrumbItems ?? []);
 ?>
 <nav aria-label="breadcrumb"
      class="flex items-center gap-1 text-xs <?php echo $muted; ?> font-medium tracking-wide">

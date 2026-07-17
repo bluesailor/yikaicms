@@ -5,6 +5,7 @@ class ContentModel extends Model
 {
     protected string $table = 'contents';
     protected string $defaultOrder = 'is_top DESC, publish_time DESC, id DESC';
+    protected bool $softDelete = true;
 
     /**
      * 获取内容列表（支持栏目和过滤条件）
@@ -49,7 +50,7 @@ class ContentModel extends Model
         }
 
         $orderBy = $this->getEffectiveOrder();
-        $whereSQL = implode(' AND ', $where);
+        $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard('c.');
         $sql = "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
                 FROM {$this->tableName()} c
                 LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
@@ -95,7 +96,7 @@ class ContentModel extends Model
             $params[] = '%' . $filters['keyword'] . '%';
         }
 
-        $whereSQL = implode(' AND ', $where);
+        $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard();
         return (int) db()->fetchColumn(
             "SELECT COUNT(*) FROM {$this->tableName()} WHERE {$whereSQL}",
             $params
@@ -125,7 +126,7 @@ class ContentModel extends Model
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.id = ? AND c.status = 1",
+             WHERE c.id = ? AND c.status = 1 AND c.deleted_at IS NULL",
             [$id]
         );
     }
@@ -139,7 +140,7 @@ class ContentModel extends Model
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.slug = ? AND c.status = 1",
+             WHERE c.slug = ? AND c.status = 1 AND c.deleted_at IS NULL",
             [$slug]
         );
     }
@@ -159,7 +160,7 @@ class ContentModel extends Model
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.slug = ? AND c.lang = ? AND c.status = 1
+             WHERE c.slug = ? AND c.lang = ? AND c.status = 1 AND c.deleted_at IS NULL
              LIMIT 1",
             [$slug, $lang]
         );
@@ -167,7 +168,7 @@ class ContentModel extends Model
 
         // 先找源行
         $src = db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1",
+            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1 AND deleted_at IS NULL",
             [$slug]
         );
         if (!$src) return null;
@@ -178,7 +179,7 @@ class ContentModel extends Model
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.translation_group_id = ? AND c.lang = ? AND c.status = 1
+             WHERE c.translation_group_id = ? AND c.lang = ? AND c.status = 1 AND c.deleted_at IS NULL
              LIMIT 1",
             [$groupId, $lang]
         );
@@ -197,7 +198,7 @@ class ContentModel extends Model
             "SELECT c.id, c.title, c.slug, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.channel_id = ? AND c.status = 1 AND c.id < ? ORDER BY c.id DESC LIMIT 1",
+             WHERE c.channel_id = ? AND c.status = 1 AND c.deleted_at IS NULL AND c.id < ? ORDER BY c.id DESC LIMIT 1",
             [$channelId, $currentId]
         );
     }
@@ -211,7 +212,7 @@ class ContentModel extends Model
             "SELECT c.id, c.title, c.slug, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.channel_id = ? AND c.status = 1 AND c.id > ? ORDER BY c.id ASC LIMIT 1",
+             WHERE c.channel_id = ? AND c.status = 1 AND c.deleted_at IS NULL AND c.id > ? ORDER BY c.id ASC LIMIT 1",
             [$channelId, $currentId]
         );
     }
@@ -225,7 +226,7 @@ class ContentModel extends Model
             "SELECT c.id, c.title, c.cover, c.slug, c.created_at, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.channel_id = ? AND c.status = 1 AND c.id != ? ORDER BY " . (db()->isSqlite() ? 'RANDOM()' : 'RAND()') . " LIMIT ?",
+             WHERE c.channel_id = ? AND c.status = 1 AND c.deleted_at IS NULL AND c.id != ? ORDER BY " . (db()->isSqlite() ? 'RANDOM()' : 'RAND()') . " LIMIT ?",
             [$channelId, $excludeId, $limit]
         );
     }
@@ -239,7 +240,7 @@ class ContentModel extends Model
         // 用 siteLang() 锁定，不串语言。
         $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
         return db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE channel_id = ? AND status = 1 AND lang = ? ORDER BY {$this->defaultOrder} LIMIT 1",
+            "SELECT * FROM {$this->tableName()} WHERE channel_id = ? AND status = 1 AND deleted_at IS NULL AND lang = ? ORDER BY {$this->defaultOrder} LIMIT 1",
             [$channelId, $lang]
         );
     }

@@ -14,7 +14,7 @@ if (empty($pageTitle) && !empty($seoTitle)) {
     $fullTitle = !empty($pageTitle) ? $pageTitle . ' - ' . $siteName : $siteName;
 }
 
-$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$siteUrl = siteBaseUrl();
 $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
 $ogImage = config('seo_og_image', '') ?: configRawLang('site_logo', '');
 if ($ogImage && !str_starts_with($ogImage, 'http')) $ogImage = $siteUrl . $ogImage;

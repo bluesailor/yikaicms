@@ -35,7 +35,8 @@ class ProductDetailControllerTest extends TestCase
                 is_recommend INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0,
                 views INTEGER DEFAULT 0,
                 publish_time INTEGER DEFAULT 0,
-                lang TEXT DEFAULT 'zh-CN'
+                lang TEXT DEFAULT 'zh-CN',
+                deleted_at INTEGER DEFAULT NULL
             )",
         ];
     }

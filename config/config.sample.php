@@ -91,10 +91,14 @@ date_default_timezone_set('Asia/Shanghai');
 // Session 配置
 // ============================================================
 if (session_status() === PHP_SESSION_NONE) {
+    // HTTPS 判定：直连（HTTPS 非 off）/ 443 端口 / 反代 X-Forwarded-Proto=https。
+    $_isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443)
+        || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
     session_name(SESSION_NAME);
     session_start([
         'cookie_httponly' => true,
-        'cookie_secure' => isset($_SERVER['HTTPS']),
+        'cookie_secure' => $_isHttps,
         'cookie_samesite' => 'Lax',
     ]);
 }
