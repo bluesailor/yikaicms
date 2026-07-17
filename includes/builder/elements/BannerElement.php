@@ -11,6 +11,13 @@ final class BannerElement extends AbstractElement
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
 
+    public function controls(): array
+    {
+        return [
+            ['key' => 'group', 'type' => 'text', 'label' => '轮播分组', 'default' => '', 'placeholder' => 'banner group 标识'],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $markup = $this->buildMarkup($data);

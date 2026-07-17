@@ -18,6 +18,31 @@ abstract class AbstractElement
     /** 渲染前台 HTML。$data = element['data']；$children = 子元素渲染结果（容器类用） */
     abstract public function render(array $data, string $children = ''): string;
 
+    /**
+     * 设置项 schema（后台构建器据此自动生成设置表单）。返回控件定义数组，每项：
+     *   ['key'=>字段名, 'type'=>控件类型, 'label'=>标签, 'default'=>默认值, ...]
+     * 控件类型：text/textarea/number/select/checkbox/color（通用，自动生成表单）；
+     *           richtext/image/icon（富控件，由构建器专用编辑器接管，见 hasCustomUI）。
+     * select 需 'options'=>['值'=>'显示', ...]；number 可 'min'/'max'；text 可 'placeholder'。
+     * 无控件的元素返回 []。
+     */
+    public function controls(): array
+    {
+        return [];
+    }
+
+    /** 由 controls() 推导默认 data（后台新增元素用） */
+    public function defaults(): array
+    {
+        $d = [];
+        foreach ($this->controls() as $c) {
+            if (isset($c['key'])) {
+                $d[$c['key']] = $c['default'] ?? '';
+            }
+        }
+        return $d;
+    }
+
     /** 后台显示名 */
     public function label(): string
     {

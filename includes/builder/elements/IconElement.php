@@ -17,6 +17,18 @@ final class IconElement extends AbstractElement
     public function label(): string { return '图标'; }
     public function icon(): string { return 'star'; }
 
+    // icon 由构建器图标选择器接管（hasCustomUI），此处仅供默认值 / 元数据
+    public function controls(): array
+    {
+        return [
+            ['key' => 'icon', 'type' => 'icon', 'label' => '图标', 'default' => 'star'],
+            ['key' => 'size', 'type' => 'select', 'label' => '大小', 'default' => 'md',
+                'options' => ['sm' => '小', 'md' => '中', 'lg' => '大', 'xl' => '超大']],
+            ['key' => 'color', 'type' => 'color', 'label' => '颜色', 'default' => ''],
+            ['key' => 'text', 'type' => 'text', 'label' => '文字', 'default' => ''],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $iconName = $data['icon'] ?? 'star';

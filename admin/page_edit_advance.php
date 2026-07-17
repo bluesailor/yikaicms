@@ -15,6 +15,8 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('content');
 
+require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
 $id = getInt('id');
 
 if (!$id) {
@@ -483,6 +485,40 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                         <label class="inline-flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" x-model="el.data.nav_only"> 仅导航栏目</label>
                                                     </div>
                                                 </template>
+
+                                                <!-- 通用 schema 表单：无手写 UI 的元素（新/插件元素）据 controls() 自动生成设置 -->
+                                                <template x-if="!hasCustomUI(el.type)">
+                                                    <div class="space-y-2">
+                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded inline-block" x-text="elementLabel(el.type)"></span>
+                                                        <template x-for="ctrl in elementControls(el.type)" :key="ctrl.key">
+                                                            <div>
+                                                                <template x-if="ctrl.type !== 'checkbox'">
+                                                                    <label class="text-xs text-gray-500 block mb-0.5" x-text="ctrl.label"></label>
+                                                                </template>
+                                                                <template x-if="ctrl.type === 'text'">
+                                                                    <input type="text" x-model="el.data[ctrl.key]" :placeholder="ctrl.placeholder||''" class="w-full border rounded px-2 py-1 text-sm">
+                                                                </template>
+                                                                <template x-if="ctrl.type === 'textarea'">
+                                                                    <textarea x-model="el.data[ctrl.key]" :placeholder="ctrl.placeholder||''" :rows="ctrl.rows||3" class="w-full border rounded px-2 py-1 text-sm"></textarea>
+                                                                </template>
+                                                                <template x-if="ctrl.type === 'number'">
+                                                                    <input type="number" x-model="el.data[ctrl.key]" :min="ctrl.min" :max="ctrl.max" class="w-full border rounded px-2 py-1 text-sm">
+                                                                </template>
+                                                                <template x-if="ctrl.type === 'select'">
+                                                                    <select x-model="el.data[ctrl.key]" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" x-text="lbl"></option></template>
+                                                                    </select>
+                                                                </template>
+                                                                <template x-if="ctrl.type === 'color'">
+                                                                    <input type="color" x-model="el.data[ctrl.key]" class="border rounded h-8 w-16">
+                                                                </template>
+                                                                <template x-if="ctrl.type === 'checkbox'">
+                                                                    <label class="inline-flex items-center gap-1 text-sm text-gray-600"><input type="checkbox" x-model="el.data[ctrl.key]"> <span x-text="ctrl.label"></span></label>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
 
@@ -492,30 +528,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     class="w-full border-2 border-dashed border-gray-300 rounded py-2 text-gray-400 hover:border-primary hover:text-primary transition text-sm cursor-pointer">
                                                 + 添加元素
                                             </button>
+                                            <!-- palette 由 BuilderRegistry 元数据生成，按分类分组；加元素类即自动出现 -->
                                             <div x-show="open" @click.away="open = false" x-cloak
-                                                 class="absolute z-10 mt-1 bg-white border rounded-lg shadow-lg py-1 w-36 left-1/2 -translate-x-1/2">
-                                                <button type="button" @click="addElement(si,ci,'heading'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">标题</button>
-                                                <button type="button" @click="addElement(si,ci,'text'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">富文本</button>
-                                                <button type="button" @click="addElement(si,ci,'image'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">图片</button>
-                                                <button type="button" @click="addElement(si,ci,'button'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">按钮</button>
-                                                <button type="button" @click="addElement(si,ci,'divider'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">分隔线</button>
-                                                <button type="button" @click="addElement(si,ci,'code'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">代码/HTML</button>
-                                                <button type="button" @click="addElement(si,ci,'spacer'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">间距</button>
-                                                <div class="border-t my-1"></div>
-                                                <div class="px-3 py-1 text-[10px] text-gray-400 uppercase">动态</div>
-                                                <button type="button" @click="addElement(si,ci,'list-dynamic'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-blue-50 cursor-pointer">动态列表</button>
-                                                <button type="button" @click="addElement(si,ci,'banner'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-blue-50 cursor-pointer">轮播图</button>
-                                                <button type="button" @click="addElement(si,ci,'nav'); open=false"
-                                                        class="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-blue-50 cursor-pointer">导航菜单</button>
+                                                 class="absolute z-10 mt-1 bg-white border rounded-lg shadow-lg py-1 w-40 left-1/2 -translate-x-1/2 max-h-80 overflow-y-auto">
+                                                <template x-for="(els, cat) in elementsByCategory()" :key="cat">
+                                                    <div>
+                                                        <div class="px-3 py-1 text-[10px] text-gray-400 uppercase" x-text="categoryLabel(cat)"></div>
+                                                        <template x-for="meta in els" :key="meta.type">
+                                                            <button type="button" @click="addElement(si,ci,meta.type); open=false"
+                                                                    :class="meta.dynamic ? 'text-primary hover:bg-blue-50' : 'hover:bg-gray-50'"
+                                                                    class="block w-full text-left px-3 py-2 text-sm cursor-pointer" x-text="meta.label"></button>
+                                                        </template>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </div>
                                     </div>
@@ -993,6 +1018,10 @@ $companyTplJson = json_encode($companyIntroTpl, JSON_UNESCAPED_UNICODE | JSON_HE
 
 $extraJs = '<script>
 var __pageTemplates = { company_intro: ' . $companyTplJson . ' };
+// 元素元数据（由 BuilderRegistry 生成）：palette + 新元素设置表单据此驱动，加元素即插即用
+var BUILDER_ELEMENTS = ' . json_encode(BuilderRegistry::meta(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ';
+// 已有手写设置 UI 的元素（保留其精细编辑器）；其余（新/插件元素）走通用 schema 表单
+var BUILDER_CUSTOM_UI = ["heading","text","image","button","icon","divider","code","spacer","list-dynamic","banner","nav"];
 function pageBuilder() {
     return {
         sections: ' . $initBlocks . ',
@@ -1000,6 +1029,23 @@ function pageBuilder() {
         uid(prefix) {
             return prefix + "_" + Math.random().toString(36).substr(2, 9);
         },
+
+        // === 元素元数据（schema 驱动） ===
+        elementTypes() { return Object.keys(BUILDER_ELEMENTS); },
+        elementsByCategory() {
+            var groups = {};
+            for (var t of Object.keys(BUILDER_ELEMENTS)) {
+                var c = BUILDER_ELEMENTS[t].category || "basic";
+                (groups[c] = groups[c] || []).push(BUILDER_ELEMENTS[t]);
+            }
+            return groups;
+        },
+        categoryLabel(c) {
+            return ({ basic: "基础", media: "媒体", layout: "布局", advanced: "高级", dynamic: "动态" })[c] || c;
+        },
+        hasCustomUI(type) { return BUILDER_CUSTOM_UI.indexOf(type) !== -1; },
+        elementControls(type) { return (BUILDER_ELEMENTS[type] || {}).controls || []; },
+        elementLabel(type) { return (BUILDER_ELEMENTS[type] || {}).label || type; },
 
         init() {
             var self = this;
@@ -1085,23 +1131,13 @@ function pageBuilder() {
 
         // === 元素操作 ===
         addElement(si, ci, type) {
-            var defaults = {
-                heading: { text: "", level: "h2" },
-                text: { html: "" },
-                image: { src: "", alt: "", click_action: "", link_url: "", link_new_tab: false },
-                button: { text: "按钮", url: "", new_tab: false },
-                icon: { icon: "star", size: "md", color: "", text: "" },
-                divider: { style: "solid", width: "1", color: "#e5e7eb", spacing: "md" },
-                code: { html: "" },
-                spacer: { size: "md" },
-                "list-dynamic": { source_type: "article", cat: "", limit: 6, columns: 3, show_image: true, show_title: true, show_summary: true, show_date: false },
-                banner: { group: "" },
-                nav: { parent: "", nav_only: true }
-            };
+            // 默认 data 来自元素 schema（BuilderRegistry），新增元素无需在此登记
+            var meta = BUILDER_ELEMENTS[type] || {};
+            var data = JSON.parse(JSON.stringify(meta.defaults || {}));
             this.sections[si].columns[ci].elements.push({
                 id: this.uid("e"),
                 type: type,
-                data: JSON.parse(JSON.stringify(defaults[type] || {}))
+                data: data
             });
             var self = this;
             this.$nextTick(function() { self.initSortable(); });

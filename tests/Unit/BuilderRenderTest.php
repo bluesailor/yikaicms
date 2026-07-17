@@ -134,6 +134,57 @@ final class BuilderRenderTest extends TestCase
         }
     }
 
+    // ---- schema：controls() / defaults() / meta()（后台 palette+表单据此驱动） ----
+
+    public function testControlsAndDefaults(): void
+    {
+        $h = BuilderRegistry::get('heading');
+        $keys = array_column($h->controls(), 'key');
+        $this->assertSame(['text', 'level'], $keys);
+        // defaults 从 controls 推导
+        $this->assertSame(['text' => '', 'level' => 'h2'], $h->defaults());
+    }
+
+    public function testMetaShape(): void
+    {
+        $meta = BuilderRegistry::meta();
+        // >=11：其它测试可能注册了临时元素（静态注册表跨测试持久），只断言内置齐全
+        $this->assertGreaterThanOrEqual(11, count($meta));
+        foreach (['heading', 'text', 'image', 'button', 'icon', 'code', 'divider', 'spacer', 'list-dynamic', 'banner', 'nav'] as $t) {
+            $this->assertArrayHasKey($t, $meta);
+        }
+        $this->assertArrayHasKey('list-dynamic', $meta);
+        $ld = $meta['list-dynamic'];
+        $this->assertSame('动态列表', $ld['label']);
+        $this->assertSame('dynamic', $ld['category']);
+        $this->assertTrue($ld['dynamic']);
+        $this->assertNotEmpty($ld['controls']);
+        // 每个控件都有 key/type
+        foreach ($ld['controls'] as $c) {
+            $this->assertArrayHasKey('key', $c);
+            $this->assertArrayHasKey('type', $c);
+        }
+    }
+
+    public function testPluginElementAutoRegisters(): void
+    {
+        // 模拟插件注册一个只声明 controls 的新元素 → 无需手写 UI，defaults/meta 自动可用
+        $el = new class extends \AbstractElement {
+            public function type(): string { return 'test-plugin-el'; }
+            public function controls(): array
+            {
+                return [['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => 'x']];
+            }
+            public function render(array $data, string $children = ''): string
+            {
+                return '<div>' . htmlspecialchars($data['title'] ?? '') . '</div>';
+            }
+        };
+        BuilderRegistry::register($el);
+        $this->assertSame(['title' => 'x'], BuilderRegistry::get('test-plugin-el')->defaults());
+        $this->assertSame('<div>hi</div>', $this->inner($this->oneEl(['type' => 'test-plugin-el', 'data' => ['title' => 'hi']])));
+    }
+
     // ---- 动态元素：测 buildMarkup() 拼出的 {yk:} 标签（纯字符串，不经 TagEngine/DB） ----
 
     public function testListDynamicBuildsTagMarkup(): void

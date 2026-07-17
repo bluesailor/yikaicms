@@ -15,6 +15,14 @@ final class NavElement extends AbstractElement
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
 
+    public function controls(): array
+    {
+        return [
+            ['key' => 'parent', 'type' => 'text', 'label' => '父栏目 slug/id', 'default' => '', 'placeholder' => '留空=顶级'],
+            ['key' => 'nav_only', 'type' => 'checkbox', 'label' => '仅导航栏目', 'default' => true],
+        ];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $markup = $this->buildMarkup($data);
