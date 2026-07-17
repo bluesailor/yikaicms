@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
             }
             unset($libSection['library_name']);
             $now = time();
-            $libId = db()->insert(DB_PREFIX . 'blocks_library', [
+            $libId = db()->insert('blocks_library', [
                 'name' => mb_substr($libName, 0, 100),
                 'data' => json_encode($libSection, JSON_UNESCAPED_UNICODE),
                 'created_at' => $now,
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
         }
         if ($libAction === 'lib_delete') {
             $libId = (int) ($_POST['lib_id'] ?? 0);
-            db()->delete(DB_PREFIX . 'blocks_library', 'id = ?', [$libId]);
+            db()->delete('blocks_library', 'id = ?', [$libId]);
             adminLog('page', 'delete', '删除可复用块 #' . $libId);
             success();
         }
