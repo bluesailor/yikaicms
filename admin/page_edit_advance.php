@@ -866,15 +866,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <!-- 区块设置弹窗 -->
 <div id="sectionSettingsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div class="px-6 py-4 border-b flex items-center justify-between">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[88vh] flex flex-col">
+        <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
             <h3 class="font-bold text-gray-800">区块设置</h3>
             <button type="button" onclick="closeSectionSettings()" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-xl"></i>
             </button>
         </div>
-        <div class="p-6 space-y-4">
-            <div>
+        <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <div class="md:col-span-2">
                 <label class="block text-sm text-gray-700 mb-1">列数</label>
                 <div class="flex gap-2">
                     <button type="button" onclick="setSectionCols(1)" data-cols="1" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">1 列</button>
@@ -883,7 +883,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" onclick="setSectionCols(4)" data-cols="4" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">4 列</button>
                 </div>
             </div>
-            <div class="flex items-center justify-between gap-2">
+            <div class="md:col-span-2 flex items-center justify-between gap-2">
                 <label class="text-sm text-gray-700">设备分档 <span class="text-xs text-gray-400">内边距/列间距可按设备分别设置</span></label>
                 <div class="flex gap-1">
                     <button type="button" onclick="setSettingDevice('d')" data-dev="d" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-desktop"></i>桌面</button>
@@ -990,7 +990,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <input type="file" id="sectionBgFileInput" class="hidden" accept="image/*">
             </div>
-            <button type="button" onclick="saveSectionSettings()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded transition cursor-pointer">确定</button>
+            <button type="button" onclick="saveSectionSettings()" class="md:col-span-2 w-full bg-primary hover:bg-secondary text-white py-2 rounded transition cursor-pointer">确定</button>
         </div>
     </div>
 </div>
