@@ -895,6 +895,19 @@
       <code><![CDATA[$aboutChannel]]></code>
     </UndefinedGlobalVariable>
   </file>
+  <file src="includes/builder/AbstractElement.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[category]]></code>
+      <code><![CDATA[icon]]></code>
+      <code><![CDATA[isDynamic]]></code>
+      <code><![CDATA[label]]></code>
+    </PossiblyUnusedMethod>
+  </file>
+  <file src="includes/builder/BuilderRegistry.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[all]]></code>
+    </PossiblyUnusedMethod>
+  </file>
   <file src="includes/blocks/timeline.php">
     <UnusedVariable>
       <code><![CDATA[$groupedTimelines]]></code>
