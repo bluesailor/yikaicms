@@ -567,6 +567,25 @@ UNLOCK TABLES;
 DROP TABLE IF EXISTS `yikai_extfields`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;
+CREATE TABLE `yikai_content_models` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `model_key` varchar(32) NOT NULL COMMENT '唯一标识，标签与 owner_type 用它',
+  `name` varchar(100) NOT NULL COMMENT '显示名',
+  `name_en` varchar(100) NOT NULL DEFAULT '',
+  `name_ja` varchar(100) NOT NULL DEFAULT '',
+  `icon` varchar(255) NOT NULL DEFAULT '',
+  `url_prefix` varchar(32) NOT NULL DEFAULT '',
+  `list_template` varchar(64) NOT NULL DEFAULT '',
+  `detail_template` varchar(64) NOT NULL DEFAULT '',
+  `has_detail` tinyint(1) NOT NULL DEFAULT '1',
+  `sort_order` int(11) NOT NULL DEFAULT '0',
+  `status` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_model_key` (`model_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='自定义内容模型定义表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 CREATE TABLE `yikai_extfields` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `owner_type` varchar(30) NOT NULL,

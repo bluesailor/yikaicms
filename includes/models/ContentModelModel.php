@@ -17,9 +17,25 @@ class ContentModelModel extends Model
     /** 内置内容类型 key（不可作自定义模型 key，避免与栏目内置类型冲突） */
     public const RESERVED_KEYS = ['list', 'page', 'product', 'case', 'download', 'job', 'album', 'link', 'article', 'content'];
 
+    /**
+     * 表是否就绪。老站升级前 / 全新安装尚未跑迁移时 content_models 可能不存在，
+     * 读方法必须容错返回空，绝不因缺表让栏目/内容页 500。
+     */
+    private function ready(): bool
+    {
+        try {
+            return db()->tableExists('content_models');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     /** 按 key 取模型 */
     public function getByKey(string $key): ?array
     {
+        if (!$this->ready()) {
+            return null;
+        }
         return db()->fetchOne(
             "SELECT * FROM {$this->tableName()} WHERE model_key = ?",
             [$key]
@@ -29,6 +45,9 @@ class ContentModelModel extends Model
     /** 全部启用模型（后台下拉 / 类型白名单用） */
     public function allActive(): array
     {
+        if (!$this->ready()) {
+            return [];
+        }
         return db()->fetchAll(
             "SELECT * FROM {$this->tableName()} WHERE status = 1 ORDER BY {$this->defaultOrder}"
         );
@@ -37,6 +56,9 @@ class ContentModelModel extends Model
     /** 已注册的启用模型 key 列表（供 owner_type / 栏目类型动态白名单） */
     public function keys(): array
     {
+        if (!$this->ready()) {
+            return [];
+        }
         $rows = db()->fetchAll("SELECT model_key FROM {$this->tableName()} WHERE status = 1");
         return array_column($rows, 'model_key');
     }
@@ -50,8 +72,10 @@ class ContentModelModel extends Model
         static $map = null;
         if ($map === null) {
             $map = [];
-            foreach (db()->fetchAll("SELECT model_key, url_prefix FROM {$this->tableName()} WHERE status = 1") as $r) {
-                $map[$r['model_key']] = ($r['url_prefix'] !== '' ? $r['url_prefix'] : $r['model_key']);
+            if ($this->ready()) {
+                foreach (db()->fetchAll("SELECT model_key, url_prefix FROM {$this->tableName()} WHERE status = 1") as $r) {
+                    $map[$r['model_key']] = ($r['url_prefix'] !== '' ? $r['url_prefix'] : $r['model_key']);
+                }
             }
         }
         return $map;
@@ -60,6 +84,9 @@ class ContentModelModel extends Model
     /** 按 URL 前缀反查模型（先匹配 url_prefix，再回退 model_key） */
     public function getByUrlPrefix(string $prefix): ?array
     {
+        if (!$this->ready()) {
+            return null;
+        }
         $row = db()->fetchOne("SELECT * FROM {$this->tableName()} WHERE url_prefix = ? AND status = 1", [$prefix]);
         return $row ?: $this->getByKey($prefix);
     }
