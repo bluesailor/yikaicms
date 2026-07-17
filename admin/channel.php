@@ -392,7 +392,10 @@ foreach ($footerNavData as $group) {
             $matched = false;
             foreach ($channelTree as $ch) {
                 if ('/' . $_srcSlugOf($ch) . '.html' === $url) {
-                    $footerNavItems[] = ['type' => 'channel', 'channel' => $ch, 'link' => $link];
+                    // 已停用的栏目不占页脚列表（footer_nav JSON 保留，恢复显示即回来）
+                    if (!empty($ch['status'])) {
+                        $footerNavItems[] = ['type' => 'channel', 'channel' => $ch, 'link' => $link];
+                    }
                     $matched = true;
                     break;
                 }
@@ -404,10 +407,16 @@ foreach ($footerNavData as $group) {
     }
 }
 
-// 三分法：主导航 / 页脚导航(由footerNavItems控制) / 未定义
+// 四分法：主导航 / 页脚导航(由footerNavItems控制) / 未定义 / 已停用
+// 已停用（status=0）的顶级栏目单独收进「已停用」页签，不再占用前三个导航列表
 $mainNavChannels = [];
 $undefinedChannels = [];
+$hiddenChannels = [];
 foreach ($channelTree as $ch) {
+    if (empty($ch['status'])) {
+        $hiddenChannels[] = $ch;
+        continue;
+    }
     $chUrl = '/' . $_srcSlugOf($ch) . '.html';
     if (!empty($ch['is_nav'])) {
         $mainNavChannels[] = $ch;
@@ -417,6 +426,9 @@ foreach ($channelTree as $ch) {
 }
 
 $activeTab = $_GET['tab'] ?? 'main';
+if ($activeTab === 'hidden' && empty($hiddenChannels)) {
+    $activeTab = 'main';
+}
 
 $editId = getInt('edit');
 $editChannel = $editId > 0 ? channelModel()->find($editId) : null;
@@ -476,6 +488,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         class="px-3 py-2 text-sm font-medium border-b-2 transition cursor-pointer">
                     <?php echo __('admin_channel_unassigned'); ?><span class="ml-1 text-xs text-gray-400">(<?php echo count($undefinedChannels); ?>)</span>
                 </button>
+                <?php if (!empty($hiddenChannels)): ?>
+                <button @click="tab='hidden'" :class="tab==='hidden' ? 'text-primary border-primary' : 'text-gray-400 border-transparent hover:text-gray-600'"
+                        class="px-3 py-2 text-sm font-medium border-b-2 transition cursor-pointer inline-flex items-center gap-1">
+                    <i class="ti ti-eye-off text-base"></i><?php echo __('admin_channel_hidden_tab'); ?><span class="ml-1 text-xs text-gray-400">(<?php echo count($hiddenChannels); ?>)</span>
+                </button>
+                <?php endif; ?>
                 <div class="flex-1"></div>
                 <a href="/admin/channel_batch.php" class="border border-gray-300 text-gray-600 hover:border-primary hover:text-primary px-4 py-2 rounded text-sm transition inline-flex items-center gap-1 mr-2" title="<?php echo e(__('chbatch_entry_hint')); ?>">
                     <i class="ti ti-align-left text-base"></i>
@@ -748,6 +766,57 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="px-6 py-8 text-center text-gray-400 text-sm"><?= __('admin_all_placed') ?></div>
                 <?php endif; ?>
             </div>
+
+            <!-- Tab 4: 已停用栏目（status=0 的顶级栏目，不占前三个导航列表） -->
+            <?php if (!empty($hiddenChannels)): ?>
+            <div x-show="tab==='hidden'" x-cloak>
+                <div class="p-4">
+                    <div class="space-y-2">
+                        <?php foreach ($hiddenChannels as $ch): ?>
+                        <div>
+                            <div class="flex items-center gap-3 px-4 py-3 bg-gray-50/70 rounded-lg border border-dashed hover:shadow-sm">
+                                <span class="text-gray-300"><i class="ti ti-eye-off text-base"></i></span>
+                                <span class="font-medium text-gray-400 flex-1">
+                                    <a href="?edit=<?php echo $ch['id']; ?>&tab=hidden" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
+                                </span>
+                                <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
+                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <a href="?edit=<?php echo $ch['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
+                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', 1)", false, $_langLabels[$_viewLang] ?? $_viewLang); ?>
+                                <?php if (empty($ch['is_system'])): ?>
+                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
+                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (!empty($ch['children'])): ?>
+                            <div class="ml-8 mt-2 space-y-2">
+                                <?php foreach ($ch['children'] as $child): ?>
+                                <div class="flex items-center gap-3 px-4 py-2.5 bg-white rounded-lg border border-dashed hover:shadow-sm">
+                                    <span class="text-gray-300 text-xs">└</span>
+                                    <span class="text-gray-400 flex-1">
+                                        <a href="?edit=<?php echo $child['id']; ?>&tab=hidden" class="hover:text-primary"><?php echo e($child['name']); ?></a>
+                                    </span>
+                                    <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
+                                    <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
+                                    <a href="?edit=<?php echo $child['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
+                                    <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
+                                    <?php if (empty($child['is_system'])): ?>
+                                    <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
+                                            class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="px-4 pb-3">
+                    <p class="text-xs text-gray-400"><?php echo __('admin_channel_hidden_tip'); ?></p>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
