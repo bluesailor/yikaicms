@@ -90,6 +90,10 @@ $pages = channelModel()->query(
     [$_viewLang]
 );
 
+// 已停用（status=0）的单页收进下方独立区块，不占主列表（同栏目管理「已停用」页签）
+$hiddenPages = array_values(array_filter($pages, fn($p) => empty($p['status'])));
+$pages = array_values(array_filter($pages, fn($p) => !empty($p['status'])));
+
 // 获取页脚导航URL列表
 $footerNavUrls = [];
 $footerNavData = json_decode(config('footer_nav') ?: '[]', true) ?: [];
@@ -238,13 +242,57 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                 <?php endforeach; ?>
                 <?php if (empty($pages)): ?>
                 <tr>
-                    <td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
+                    <td colspan="9" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
+
+<?php if (!empty($hiddenPages)): ?>
+<!-- 已停用单页：不占主列表，可恢复；非系统页可删除 -->
+<div class="bg-white rounded-lg shadow mt-6">
+    <div class="px-4 py-3 border-b flex items-center gap-2">
+        <i class="ti ti-eye-off text-gray-400"></i>
+        <h3 class="font-medium text-gray-600"><?php echo __('admin_channel_hidden_tab'); ?>
+            <span class="text-xs text-gray-400">(<?php echo count($hiddenPages); ?>)</span></h3>
+        <span class="text-xs text-gray-400 ml-2"><?php echo __('admin_channel_hidden_tip'); ?></span>
+    </div>
+    <div class="p-4 space-y-2">
+        <?php foreach ($hiddenPages as $item): ?>
+        <div class="flex items-center gap-3 px-4 py-2.5 bg-gray-50/70 rounded-lg border border-dashed hover:shadow-sm">
+            <span class="text-gray-300"><i class="ti ti-eye-off text-base"></i></span>
+            <span class="text-gray-400 font-medium"><?php echo e($item['name']); ?></span>
+            <?php if (($item['type'] ?? '') === 'album'): ?>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 whitespace-nowrap"><?php echo __('admin_album'); ?></span>
+            <?php endif; ?>
+            <?php if ($item['parent_name']): ?>
+            <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400"><?php echo __('page_parent'); ?>：<?php echo e($item['parent_name']); ?></span>
+            <?php endif; ?>
+            <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-400">/<?php echo e($item['slug']); ?>.html</code>
+            <span class="flex-1"></span>
+            <?php if (($item['type'] ?? '') !== 'album'): ?>
+            <a href="/admin/page_edit.php?id=<?php echo $item['id']; ?>"
+               class="text-primary hover:underline text-sm inline-flex items-center gap-1">
+                <i class="ti ti-pencil text-sm"></i><?php echo __('admin_content_edit'); ?>
+            </a>
+            <?php endif; ?>
+            <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
+                    class="text-sm px-3 py-1 rounded border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition cursor-pointer inline-flex items-center gap-1 whitespace-nowrap">
+                <i class="ti ti-eye text-base"></i><?php echo __('admin_channel_restore'); ?>
+            </button>
+            <?php if (empty($item['is_system']) && ($item['type'] ?? '') !== 'album'): ?>
+            <button onclick="deletePage(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')"
+                    class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1">
+                <i class="ti ti-trash text-base"></i><?php echo __('admin_delete'); ?>
+            </button>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- 添加单页弹窗 -->
 <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
@@ -330,14 +378,9 @@ async function toggleStatus(id, btn) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        if (data.data.status) {
-            btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '<?php echo __('admin_show'); ?>';
-        } else {
-            btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '<?php echo __('admin_hide'); ?>';
-        }
+        // 刷新让行在「主列表 ↔ 已停用」间移动
         showMessage('状态已更新');
+        setTimeout(function() { location.reload(); }, 400);
     }
 }
 </script>
