@@ -5,6 +5,7 @@ class ProductModel extends Model
 {
     protected string $table = 'products';
     protected string $defaultOrder = 'is_top DESC, sort_order ASC, id DESC';
+    protected bool $softDelete = true;
 
     /**
      * 获取产品列表
@@ -48,7 +49,7 @@ class ProductModel extends Model
         }
 
         $orderBy = $this->resolveSortOrder($filters['sort'] ?? '');
-        $whereSQL = implode(' AND ', $where);
+        $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard('p.');
         $sql = "SELECT p.*, pc.name as category_name, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
@@ -91,7 +92,7 @@ class ProductModel extends Model
             $params[] = $kw;
         }
 
-        $whereSQL = implode(' AND ', $where);
+        $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard();
         return (int) db()->fetchColumn(
             "SELECT COUNT(*) FROM {$this->tableName()} WHERE {$whereSQL}",
             $params
@@ -103,7 +104,8 @@ class ProductModel extends Model
      */
     public function getAdminList(array $filters, int $limit, int $offset): array
     {
-        $where = [];
+        // 回收站的行不出现在后台产品列表
+        $where = ['p.deleted_at IS NULL'];
         $params = [];
 
         // admin 上下文：filters['lang'] 显式传入时无条件按 lang 过滤
@@ -168,7 +170,7 @@ class ProductModel extends Model
             "SELECT p.*, pc.name as category_name, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.id = ? AND p.status = 1",
+             WHERE p.id = ? AND p.status = 1 AND p.deleted_at IS NULL",
             [$id]
         );
     }
@@ -182,7 +184,7 @@ class ProductModel extends Model
             "SELECT p.*, pc.name as category_name, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.slug = ? AND p.status = 1",
+             WHERE p.slug = ? AND p.status = 1 AND p.deleted_at IS NULL",
             [$slug]
         );
     }
@@ -200,14 +202,14 @@ class ProductModel extends Model
             "SELECT p.*, pc.name as category_name, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.slug = ? AND p.lang = ? AND p.status = 1
+             WHERE p.slug = ? AND p.lang = ? AND p.status = 1 AND p.deleted_at IS NULL
              LIMIT 1",
             [$slug, $lang]
         );
         if ($direct) return $direct;
 
         $src = db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1",
+            "SELECT * FROM {$this->tableName()} WHERE slug = ? AND status = 1 AND deleted_at IS NULL",
             [$slug]
         );
         if (!$src) return null;
@@ -217,7 +219,7 @@ class ProductModel extends Model
             "SELECT p.*, pc.name as category_name, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.translation_group_id = ? AND p.lang = ? AND p.status = 1
+             WHERE p.translation_group_id = ? AND p.lang = ? AND p.status = 1 AND p.deleted_at IS NULL
              LIMIT 1",
             [$groupId, $lang]
         );
@@ -233,7 +235,7 @@ class ProductModel extends Model
             "SELECT p.id, p.title, p.slug, p.cover, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.category_id = ? AND p.status = 1 AND p.id < ? ORDER BY p.id DESC LIMIT 1",
+             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id < ? ORDER BY p.id DESC LIMIT 1",
             [$categoryId, $currentId]
         );
     }
@@ -247,7 +249,7 @@ class ProductModel extends Model
             "SELECT p.id, p.title, p.slug, p.cover, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.category_id = ? AND p.status = 1 AND p.id > ? ORDER BY p.id ASC LIMIT 1",
+             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id > ? ORDER BY p.id ASC LIMIT 1",
             [$categoryId, $currentId]
         );
     }
@@ -263,7 +265,7 @@ class ProductModel extends Model
             "SELECT p.*, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.category_id = ? AND p.status = 1 AND p.id != ? AND p.lang = ?
+             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id != ? AND p.lang = ?
              ORDER BY p.is_recommend DESC, p.sort_order ASC, p.id DESC LIMIT ?",
             [$categoryId, $excludeId, $lang, $limit]
         );

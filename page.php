@@ -191,7 +191,7 @@ if (isset($channel['show_sidebar']) && (int)$channel['show_sidebar'] === 0) {
 $navChannels = getNavChannels();
 
 // SEO: OpenGraph & canonical
-$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$siteUrl = siteBaseUrl();
 $canonicalUrl = $siteUrl . channelUrl($channel);
 if (!empty($channel['image'])) {
     $ogImage = $channel['image'];

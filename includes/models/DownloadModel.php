@@ -5,13 +5,15 @@ class DownloadModel extends Model
 {
     protected string $table = 'downloads';
     protected string $defaultOrder = 'sort_order DESC, id DESC';
+    protected bool $softDelete = true;
 
     /**
      * 获取下载列表（分页+筛选，JOIN 分类）
      */
     public function getList(int $categoryId = 0, array $filters = [], int $limit = 20, int $offset = 0): array
     {
-        $where = [];
+        // 回收站的行不进任何列表（前台/后台通用）
+        $where = ['d.deleted_at IS NULL'];
         $params = [];
 
         if ($categoryId > 0) {

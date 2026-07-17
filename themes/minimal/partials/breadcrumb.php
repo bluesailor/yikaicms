@@ -8,6 +8,7 @@
 $style = $style ?? 'default';
 $muted = $style === 'light' ? 'text-gray-300' : 'text-gray-400';
 $cur   = $style === 'light' ? 'text-white' : 'text-gray-900';
+echo breadcrumbJsonLd($breadcrumbItems ?? []);
 ?>
 <nav aria-label="breadcrumb" class="text-xs <?php echo $muted; ?> tracking-wide mb-6">
     <a href="/" class="hover:<?php echo $cur; ?> transition"><?php echo __('breadcrumb_home'); ?></a>

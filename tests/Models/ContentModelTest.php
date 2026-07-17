@@ -49,7 +49,8 @@ class ContentModelTest extends TestCase
                 views INTEGER DEFAULT 0,
                 download_count INTEGER DEFAULT 0,
                 created_at TEXT,
-                lang TEXT DEFAULT 'zh-CN'
+                lang TEXT DEFAULT 'zh-CN',
+                deleted_at INTEGER DEFAULT NULL
             )",
         ];
     }

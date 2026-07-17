@@ -32,7 +32,8 @@ class JobControllerTest extends TestCase
                 status INTEGER DEFAULT 1,
                 is_top INTEGER DEFAULT 0,
                 sort_order INTEGER DEFAULT 0,
-                publish_time INTEGER DEFAULT 0
+                publish_time INTEGER DEFAULT 0,
+                deleted_at INTEGER DEFAULT NULL
             )",
         ];
     }

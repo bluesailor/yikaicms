@@ -130,6 +130,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 exit;
             }
 
+            // zip-slip 防护：任一条目会逃出目录则拒绝，绝不 extractTo
+            $unsafe = zipUnsafeEntry($zip);
+            if ($unsafe !== null) {
+                $zip->close();
+                echo json_encode(['code' => 1, 'msg' => 'ZIP 含非法路径条目，已拒绝：' . $unsafe]);
+                exit;
+            }
+
             // 解压到 plugins 目录
             $pluginsDir = ROOT_PATH . '/plugins';
             if (!is_dir($pluginsDir)) {

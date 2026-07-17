@@ -28,7 +28,7 @@ if ($cached !== null) {
     exit;
 }
 
-$siteUrl = rtrim(config('site_url', SITE_URL), '/');
+$siteUrl = siteBaseUrl();
 
 $urls = [];
 

@@ -7,9 +7,11 @@ storage/database.sqlite
 storage/logs/*.log
 storage/cache/*
 storage/login_throttle/*
+storage/cron/*
 !storage/logs/.gitkeep
 !storage/cache/.gitkeep
 !storage/login_throttle/.gitkeep
+!storage/cron/.gitkeep
 
 # Uploads (user content)
 uploads/images/*

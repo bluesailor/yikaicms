@@ -33,7 +33,8 @@ class JobDetailControllerTest extends TestCase
                 location TEXT, salary TEXT,
                 status INTEGER DEFAULT 1,
                 views INTEGER DEFAULT 0,
-                publish_time INTEGER DEFAULT 0
+                publish_time INTEGER DEFAULT 0,
+                deleted_at INTEGER DEFAULT NULL
             )",
         ];
     }

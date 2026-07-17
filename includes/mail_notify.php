@@ -14,7 +14,7 @@ function renderMailTemplate(string $template, array $vars): string
 {
     // 公共变量
     $vars['site_name'] = $vars['site_name'] ?? configRawLang('site_name', 'Yikai CMS');
-    $vars['site_url']  = $vars['site_url'] ?? rtrim(config('site_url', ''), '/');
+    $vars['site_url']  = $vars['site_url'] ?? siteBaseUrl();
     $vars['date']      = $vars['date'] ?? date('Y-m-d H:i:s');
 
     foreach ($vars as $key => $value) {

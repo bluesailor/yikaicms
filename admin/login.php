@@ -55,22 +55,43 @@ if (empty($_SESSION['login_lang'])) {
 
 $error = '';
 
+// 两步验证待验证态（密码已过，等验证器 6 位码）
+$awaiting2fa = !empty($_SESSION['2fa_pending']) && ($_SESSION['2fa_pending']['expires'] ?? 0) >= time();
+if (!empty($_SESSION['2fa_pending']) && !$awaiting2fa) {
+    unset($_SESSION['2fa_pending']); // 过期清理
+}
+
 // 处理登录
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
 
-    $username = post('username');
-    $password = post('password');
-
-    if (empty($username) || empty($password)) {
-        $error = __('login_empty_fields');
-    } else {
-        $result = doLogin($username, $password);
+    if (post('action') === 'totp') {
+        // 第二步：验证器验证码
+        $result = doTotpLogin(post('totp_code'));
         if ($result['success']) {
-            unset($_SESSION['login_lang']); // 登录成功 -> 交回 admin_lang 设置
+            unset($_SESSION['login_lang']);
             redirect('/admin/');
+        }
+        $error = $result['message'];
+        if (!empty($result['expired'])) {
+            $awaiting2fa = false; // 会话过期/锁定 → 回到账号密码步
+        }
+    } else {
+        $username = post('username');
+        $password = post('password');
+
+        if (empty($username) || empty($password)) {
+            $error = __('login_empty_fields');
         } else {
-            $error = $result['message'];
+            $result = doLogin($username, $password);
+            if ($result['success']) {
+                unset($_SESSION['login_lang']); // 登录成功 -> 交回 admin_lang 设置
+                redirect('/admin/');
+            } elseif (!empty($result['need_2fa'])) {
+                $awaiting2fa = true; // 进入第二步
+            } else {
+                $error = $result['message'];
+            }
         }
     }
 }
@@ -127,6 +148,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <?php endif; ?>
 
+            <?php if ($awaiting2fa): ?>
+            <!-- 第二步：两步验证码 -->
+            <form method="post" class="space-y-6">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="totp">
+                <div>
+                    <label class="block text-gray-700 mb-2"><?php echo __('login_2fa_code'); ?></label>
+                    <input type="text" name="totp_code" required autofocus
+                           inputmode="numeric" autocomplete="one-time-code" maxlength="7"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="000000">
+                    <p class="text-gray-400 text-sm mt-2"><?php echo __('login_2fa_hint'); ?></p>
+                </div>
+                <button type="submit"
+                        class="w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-lg transition cursor-pointer">
+                    <?php echo __('login_2fa_button'); ?>
+                </button>
+            </form>
+            <?php else: ?>
             <form method="post" class="space-y-6">
                 <?php echo csrfField(); ?>
                 <div>
@@ -154,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php echo __('login_button'); ?>
                 </button>
             </form>
+            <?php endif; ?>
         </div>
 
         <div class="text-center mt-6 text-gray-500 text-sm">

@@ -46,7 +46,8 @@ class ProductControllerTest extends TestCase
                 views INTEGER DEFAULT 0,
                 tags TEXT,
                 created_at TEXT, updated_at TEXT,
-                lang TEXT DEFAULT 'zh-CN'
+                lang TEXT DEFAULT 'zh-CN',
+                deleted_at INTEGER DEFAULT NULL
             )",
         ];
     }

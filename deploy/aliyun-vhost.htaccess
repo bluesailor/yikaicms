@@ -1,0 +1,209 @@
+# ============================================================
+# YikaiCMS — 阿里云虚拟主机 / 万网等共享 Apache 主机 专用 .htaccess
+#
+# 用法：把本文件重命名为  .htaccess  放到网站根目录（覆盖或即为默认）。
+# 本文件与项目根目录的 .htaccess 内容一致，已针对共享主机做过防 500 处理
+#（Options 包在 IfModule 内）。绝大多数情况下直接用根目录 .htaccess 即可，
+# 本文件是为「根 .htaccess 被面板覆盖 / 需要单独一份」的场景准备的备份。
+#
+# 若上传后仍 500：多半是主机不允许 php_value（把文件末尾 <IfModule mod_php.c>
+# 那段整段删掉，PHP 配置改在主机控制面板里设）。
+# ============================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 禁止访问隐藏文件
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^\.env - [F,L]
+
+    # 禁止访问敏感目录
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^storage/ - [F,L]
+    RewriteRule ^vendor/ - [F,L]
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule ^install/sql/ - [F,L]
+    # 已安装后封禁整个 install/ 目录（防重装绕过 → config 写入 RCE）。
+    # 与 nginx.conf 的同款保护对齐；如需重装，删除根目录 installed.lock 即可临时重开。
+    RewriteCond %{DOCUMENT_ROOT}/installed.lock -f
+    RewriteRule ^install/ - [F,L]
+    RewriteRule ^bin/ - [F,L]
+    RewriteRule ^migrations/ - [F,L]
+    RewriteRule ^recipes/ - [F,L]
+
+    # 禁止访问敏感文件
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^package(-lock)?\.json$ - [F,L]
+
+    # ===== 静态 HTML 直出 =====
+    # 若 html/ 目录下已生成对应静态文件（仅 GET + 空查询串），由 Web 服务器直接返回，不进 PHP。
+    # 未生成则全部规则失效、照常走下方动态路由。删除 html/ 目录即可彻底关闭。
+    # 防重写循环：已指向 html/ 的请求直接放行
+    RewriteRule ^html/ - [L]
+    # 普通页面：/about/company.html -> html/about/company.html
+    RewriteCond %{REQUEST_METHOD} =GET
+    RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{DOCUMENT_ROOT}/html%{REQUEST_URI} -f
+    RewriteRule ^ html%{REQUEST_URI} [L]
+    # 首页：/ -> html/index.html
+    RewriteCond %{REQUEST_METHOD} =GET
+    RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{REQUEST_URI} ^/$
+    RewriteCond %{DOCUMENT_ROOT}/html/index.html -f
+    RewriteRule ^$ html/index.html [L]
+    # ===== /静态 HTML 直出 =====
+
+    # Sitemap
+    RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+
+    # 搜索
+    RewriteRule ^search\.html$ /search.php [L,QSA]
+
+    # 多语言 URL 前缀：/ja/... /en/... /zh-CN/... → 剥离前缀，设 lang 参数
+    RewriteRule ^(ja|en|zh-CN)/(.*)$ /$2?_lang=$1 [QSA,L,DPI]
+
+    # 伪静态规则
+
+    # 新闻文章系统
+    # /news.html -> /news.php
+    # /news/page/2.html -> /news.php?page=2
+    # /news/company-news.html -> /news.php?cat=company-news
+    # /news/company-news/page/2.html -> /news.php?cat=company-news&page=2
+    # /news/article/1.html -> /article.php?id=1
+    RewriteRule ^news\.html$ /news.php [L,QSA]
+    RewriteRule ^news/page/(\d+)\.html$ /news.php?page=$1 [L,QSA]
+    RewriteRule ^news/article/(\d+)\.html$ /article.php?id=$1 [L,QSA]
+    # /news/article/my-slug.html -> /article.php?slug=my-slug
+    RewriteRule ^news/article/([a-z0-9_-]+)\.html$ /article.php?slug=$1 [L,QSA]
+    RewriteRule ^news/([a-z0-9_-]+)/page/(\d+)\.html$ /news.php?cat=$1&page=$2 [L,QSA]
+    RewriteRule ^news/([a-z0-9_-]+)\.html$ /news.php?cat=$1 [L,QSA]
+
+    # 栏目列表页 (支持ID和slug)
+    # /list/1.html -> /list.php?id=1
+    # /list/1/page/2.html -> /list.php?id=1&page=2
+    # /news.html -> /list.php?slug=news
+    # /news/page/2.html -> /list.php?slug=news&page=2
+    RewriteRule ^list/(\d+)\.html$ /list.php?id=$1 [L,QSA]
+    RewriteRule ^list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=$1&page=$2 [L,QSA]
+
+    # 案例详情页
+    # /case/1.html -> /detail.php?id=1
+    # /case/my-slug.html -> /detail.php?slug=my-slug
+    RewriteRule ^case/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+    RewriteRule ^case/([a-z0-9_-]+)\.html$ /detail.php?slug=$1 [L,QSA]
+
+    # 招聘详情页
+    # /job/1.html -> /job_detail.php?id=1
+    RewriteRule ^job/(\d+)\.html$ /job_detail.php?id=$1 [L,QSA]
+
+    # 下载详情页
+    # /download/detail/1.html -> /detail.php?id=1
+    RewriteRule ^download/detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+
+    # 详情页 (支持ID格式)
+    # /detail/1.html -> /detail.php?id=1
+    RewriteRule ^detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+
+    # 产品详情页 (数字ID优先匹配)
+    # /product/1.html -> /product.php?id=1
+    RewriteRule ^product/(\d+)\.html$ /product.php?id=$1 [L,QSA]
+
+    # 产品详情页 (分类slug + 产品slug)
+    # /product/smart-device/iot-gateway.html -> /product.php?slug=iot-gateway
+    RewriteRule ^product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /product.php?slug=$2 [L,QSA]
+
+    # 产品分类页 (带分页)
+    # /product/category-slug/page/2.html -> /list.php?slug=product&cat=category-slug&page=2
+    RewriteRule ^product/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=product&cat=$1&page=$2 [L,QSA]
+
+    # 产品分类页
+    # /product/category-slug.html -> /list.php?slug=product&cat=category-slug
+    RewriteRule ^product/([a-z0-9_-]+)\.html$ /list.php?slug=product&cat=$1 [L,QSA]
+
+    # 特殊页面（独立PHP文件，优先于通用规则）
+    # /about/history.html -> /history.php
+    RewriteRule ^about/history\.html$ /history.php [L]
+    # /contact.html -> /contact.php
+    RewriteRule ^contact\.html$ /contact.php [L]
+
+    # 单页 (支持多级slug)
+    # /page/1.html -> /page.php?id=1
+    # /about.html -> /page.php?slug=about
+    # /about/company.html -> /page.php?slug=company (子页面)
+    RewriteRule ^page/(\d+)\.html$ /page.php?id=$1 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /page.php?parent=$1&slug=$2 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)\.html$ /page.php?slug=$1 [L,QSA]
+
+    # 如果请求的文件或目录不存在
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+</IfModule>
+
+# 禁止目录浏览（包在 IfModule 里，避免共享主机禁用 Options 覆盖时 500）
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# 设置默认文档
+DirectoryIndex index.php index.html
+
+# 设置PHP配置
+<IfModule mod_php.c>
+    php_value upload_max_filesize 20M
+    php_value post_max_size 25M
+    php_value max_execution_time 300
+</IfModule>
+
+# 缓存静态文件
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+</IfModule>
+
+# Cache-Control 头
+<IfModule mod_headers.c>
+    # 图片：1年强缓存
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # CSS/JS：1个月
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+    # 字体：1年
+    <FilesMatch "\.(woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # HTML/PHP：不缓存
+    <FilesMatch "\.(html|php)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# ETag
+FileETag MTime Size
+
+# GZIP压缩
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE font/woff font/woff2
+    AddOutputFilterByType DEFLATE application/font-woff application/font-woff2
+</IfModule>
+
+# WebP 内容类型
+AddType image/webp .webp

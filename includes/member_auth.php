@@ -45,14 +45,26 @@ function doMemberLogin(string $username, string $password): array
         return ['success' => false, 'message' => '请输入用户名和密码'];
     }
 
+    // 暴力破解防护：与后台登录共用限流实现，作用域隔离
+    $lockout = loginThrottleRemaining('member');
+    if ($lockout > 0) {
+        return ['success' => false, 'message' => "登录失败次数过多，请于 {$lockout} 分钟后重试"];
+    }
+
     $member = memberModel()->findByUsername($username);
-    if (!$member || !password_verify($password, $member['password'])) {
+    // 恒定时间：账号不存在也跑一次 bcrypt，避免用响应快慢枚举会员账号
+    $hash = $member['password'] ?? '$2y$10$CvKLPJwopxGfViQwogwiguMCWdL1haPC5o2trR8N8swtjmQcLQZI6';
+    if (!password_verify($password, $hash) || !$member) {
+        loginThrottleRecordFailure('member');
         return ['success' => false, 'message' => '用户名或密码错误'];
     }
 
     if (!$member['status']) {
         return ['success' => false, 'message' => '账号已被禁用，请联系管理员'];
     }
+
+    // 登录成功，清除失败计数
+    loginThrottleClear('member');
 
     // 防止 Session Fixation
     session_regenerate_id(true);
