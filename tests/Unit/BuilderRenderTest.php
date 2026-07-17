@@ -101,6 +101,47 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame('<div class="h-24"></div>', $s);
     }
 
+    // ---- P2 扩充元素 ----
+
+    public function testAlertLevels(): void
+    {
+        $out = $this->inner($this->oneEl(['type' => 'alert', 'data' => ['text' => '注意 <x>', 'level' => 'warning']]));
+        $this->assertStringContainsString('bg-yellow-50', $out);
+        $this->assertStringContainsString('注意 &lt;x&gt;', $out);
+    }
+
+    public function testCtaAndQuoteAndIconBox(): void
+    {
+        $cta = $this->inner($this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'btn_text' => 'Go', 'btn_url' => '/x']]));
+        $this->assertStringContainsString('>T</h3>', $cta);
+        $this->assertStringContainsString('href="/x"', $cta);
+        $q = $this->inner($this->oneEl(['type' => 'quote', 'data' => ['text' => 'Q', 'author' => 'A']]));
+        $this->assertStringContainsString('<blockquote', $q);
+        $this->assertStringContainsString('— A', $q);
+        $ib = $this->inner($this->oneEl(['type' => 'icon-box', 'data' => ['icon' => 'shield', 'title' => 'IB']]));
+        $this->assertStringContainsString('ti ti-shield', $ib);
+    }
+
+    public function testVideoEmbedConversion(): void
+    {
+        $yt = $this->inner($this->oneEl(['type' => 'video', 'data' => ['url' => 'https://youtu.be/abc123']]));
+        $this->assertStringContainsString('youtube.com/embed/abc123', $yt);
+        $this->assertStringContainsString('padding-bottom:56.25%', $yt); // 16:9
+        // 直链 → video 标签
+        $mp4 = $this->inner($this->oneEl(['type' => 'video', 'data' => ['url' => 'https://x.com/a.mp4']]));
+        $this->assertStringContainsString('<video src="https://x.com/a.mp4"', $mp4);
+        // 空 → 空
+        $this->assertSame('', $this->inner($this->oneEl(['type' => 'video', 'data' => []])));
+    }
+
+    public function testCardWithAndWithoutLink(): void
+    {
+        $linked = $this->inner($this->oneEl(['type' => 'card', 'data' => ['title' => 'C', 'link' => '/go']]));
+        $this->assertStringContainsString('<a href="/go"', $linked);
+        $plain = $this->inner($this->oneEl(['type' => 'card', 'data' => ['title' => 'C']]));
+        $this->assertStringStartsWith('<div class="block bg-white', $plain);
+    }
+
     public function testUnknownTypeSkipped(): void
     {
         $this->assertSame('', $this->inner($this->oneEl(['type' => 'no_such', 'data' => []])));
