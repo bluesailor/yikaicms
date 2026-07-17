@@ -151,6 +151,21 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringEndsWith('{/yk:list}', $out);
     }
 
+    public function testListDynamicCardModeGridAndToggles(): void
+    {
+        // 无 template → 内置卡片模式 + 网格
+        $out = (new \ListDynamicElement())->buildMarkup([
+            'source_type' => 'article', 'cat' => 'news', 'limit' => 6, 'columns' => 3,
+            'show_image' => false, 'show_date' => true,
+        ]);
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-3 gap-6', $out); // 网格
+        $this->assertStringContainsString('href="{yk:field name=url /}"', $out);          // 整卡链接
+        $this->assertStringContainsString('{yk:field name=title /}', $out);               // 标题默认开
+        $this->assertStringNotContainsString('<img src="{yk:field name=cover', $out);     // 封面关
+        $this->assertStringContainsString('dateformat="Y-m-d"', $out);                    // 日期开
+        $this->assertStringContainsString('{yk:field name=summary len=80 /}', $out);       // 摘要默认开
+    }
+
     public function testListDynamicQuotesValuesWithSpaces(): void
     {
         $out = (new \ListDynamicElement())->buildMarkup([
