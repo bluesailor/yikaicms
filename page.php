@@ -323,7 +323,7 @@ require theme_path('partials/page-hero.php');
                     <?php endif; ?>
 
                     <div class="prose prose-lg max-w-none">
-                        <?php echo parseShortcodes($content['content']); ?>
+                        <?php echo renderContentBody($content); ?>
                     </div>
 
                     <!-- 图片相册 -->

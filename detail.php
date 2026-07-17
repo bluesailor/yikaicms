@@ -249,9 +249,9 @@ require_once theme_path('layouts/header.php');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 正文内容 -->
+                    <!-- 正文内容（blocks 页浏览时渲染，动态数据实时；其它走短码） -->
                     <div class="p-6 md:p-8 prose prose-lg max-w-none">
-                        <?php echo apply_filters('content_output', parseShortcodes($content['content'] ?? ''), $content); ?>
+                        <?php echo apply_filters('content_output', renderContentBody($content), $content); ?>
                     </div>
 
                     <!-- 扩展字段（自定义模型字段：职位/邮箱/规格… 有值才显示）-->

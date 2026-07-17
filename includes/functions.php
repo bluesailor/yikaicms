@@ -2543,6 +2543,21 @@ function renderBlocksToHtml(string $blocksJson): string
     return BlockRenderer::render($blocksJson);
 }
 
+/**
+ * 前台内容正文渲染：
+ *   - 构建器页（content_type='blocks' 且有 blocks_data）→ **浏览时**用 BlockRenderer 从 blocks_data
+ *     渲染，动态元素（{yk:list} 等）实时拉数据；缓存由页面级 HtmlCache + data_changed 失效兜底。
+ *   - 其它 → 走短码解析（保持原行为）。
+ * 用于 page.php / detail.php 正文位。
+ */
+function renderContentBody(array $content): string
+{
+    if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
+        return renderBlocksToHtml((string) $content['blocks_data']);
+    }
+    return parseShortcodes($content['content'] ?? '');
+}
+
 // ============================================================
 // 通用元数据辅助函数（基于 yikai_metas 表）
 // ============================================================
