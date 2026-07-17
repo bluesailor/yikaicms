@@ -49,6 +49,19 @@ if (!function_exists('renderBannerShortcode')) {
         return '<div class="banner-stub">' . $slug . '</div>';
     }
 }
+// 扩展字段回退：owner 直接用内容 type（自定义模型 key），值从 $GLOBALS['_tag_meta'] 取
+if (!function_exists('resolveExtFieldOwner')) {
+    function resolveExtFieldOwner(string $type): string
+    {
+        return $type === '' ? 'content' : $type;
+    }
+}
+if (!function_exists('getMeta')) {
+    function getMeta(string $ownerType, int $ownerId, string $key, mixed $default = null): mixed
+    {
+        return $GLOBALS['_tag_meta'][$ownerType][$ownerId][$key] ?? $default;
+    }
+}
 
 require_once ROOT_PATH . '/includes/TagEngine.php';
 
@@ -305,6 +318,36 @@ final class TagEngineTest extends TestCase
         $this->insertRow('channels', ['name' => 'X', 'slug' => 'x', 'is_nav' => 1]);
         $out = TagEngine::render('{yk:nav parent=no-such empty="无"}{yk:field name=name /}{/yk:nav}');
         $this->assertSame('无', $out);
+    }
+
+    // ---- 自定义模型：{yk:list type=<key>} 过滤 + {yk:field} meta 回退 ----
+
+    public function testListFiltersByCustomModelType(): void
+    {
+        $this->insertRow('channels', ['name' => '团队', 'slug' => 'team', 'type' => 'team']);
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Alice', 'type' => 'team']);
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Draft', 'type' => 'article']); // 同栏目但非 team
+        $out = TagEngine::render('{yk:list type=team cat=team}[{yk:field name=title /}]{/yk:list}');
+        $this->assertSame('[Alice]', $out); // 只出 type=team 的
+    }
+
+    public function testFieldMetaFallbackForCustomField(): void
+    {
+        $this->insertRow('channels', ['name' => '团队', 'slug' => 'team', 'type' => 'team']);
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Alice', 'type' => 'team']);
+        // 自定义字段 role 不是 contents 原生列 → 回退查 meta（owner=team, id=1）
+        $GLOBALS['_tag_meta'] = ['team' => [1 => ['role' => 'CTO']]];
+        $out = TagEngine::render('{yk:list type=team cat=team}{yk:field name=title /}-{yk:field name=role /}{/yk:list}');
+        $this->assertSame('Alice-CTO', $out);
+        unset($GLOBALS['_tag_meta']);
+    }
+
+    public function testFieldMetaFallbackDefaultWhenMissing(): void
+    {
+        $this->insertRow('channels', ['name' => '团队', 'slug' => 'team', 'type' => 'team']);
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Bob', 'type' => 'team']);
+        $out = TagEngine::render('{yk:list type=team cat=team}{yk:field name=role default="员工" /}{/yk:list}');
+        $this->assertSame('员工', $out); // meta 无值 → default
     }
 }
 

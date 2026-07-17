@@ -461,10 +461,17 @@ $horizRootChannel = $channel;
         <?php endif; ?>
 
         <?php else: ?>
-        <!-- 文章：图文列表 -->
+        <!-- 文章 / 自定义模型：图文列表。自定义模型可指定列表卡片模板，解析不到回退文章卡片 -->
+        <?php
+        $cardTpl = 'partials/article-card.php';
+        $_listModel = contentModelModel()->getByKey($channel['type']);
+        if ($_listModel && !empty($_listModel['list_template']) && theme_path_optional($_listModel['list_template'])) {
+            $cardTpl = $_listModel['list_template'];
+        }
+        ?>
         <div class="space-y-6">
             <?php foreach ($contents as $item): ?>
-            <?php require theme_path('partials/article-card.php'); ?>
+            <?php require theme_path($cardTpl); ?>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
