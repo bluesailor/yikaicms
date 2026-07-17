@@ -39,6 +39,17 @@ if ($slug) {
                 exit;
             }
         }
+
+        // parentSlug 是自定义模型的 URL 前缀（/team/<slug>.html）→ 按 slug + 模型类型找内容
+        $modelByPrefix = contentModelModel()->getByUrlPrefix($parentSlug);
+        if ($modelByPrefix) {
+            $mc = contentModel()->findWhere(['slug' => $slug, 'type' => $modelByPrefix['model_key'], 'status' => 1]);
+            if ($mc) {
+                $_GET['id'] = $mc['id'];
+                include __DIR__ . '/detail.php';
+                exit;
+            }
+        }
     }
 
     $channelId = $channel ? (int)$channel['id'] : 0;

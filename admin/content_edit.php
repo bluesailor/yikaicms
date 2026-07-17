@@ -86,6 +86,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         adminLog('content', 'create', '创建内容：' . $data['title']);
     }
 
+    // 扩展字段值存入 metas（owner_type：自定义模型用 model_key，内置内容类型用 'content'）
+    $extOwner = resolveExtFieldOwner((string) $data['type']);
+    foreach ((array) ($_POST['ext_fields'] ?? []) as $fieldKey => $fieldVal) {
+        if (!is_string($fieldKey)) continue;
+        setMeta($extOwner, $id, $fieldKey, is_array($fieldVal) ? implode(',', $fieldVal) : (string) $fieldVal);
+    }
+
     success(['id' => $id]);
 }
 
@@ -228,6 +235,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
             </div>
+
+            <!-- 扩展字段（内置 content 字段 + 自定义模型字段；渲染 ext_fields[<key>]，随表单一起提交保存到 metas）-->
+            <?php
+            $extFieldOwnerType = resolveExtFieldOwner((string) $lockedType);
+            $extFieldOwnerId   = (int) $id;
+            require ROOT_PATH . '/admin/includes/extfield_render.php';
+            ?>
 
             <!-- SEO 设置 -->
             <div class="bg-white rounded-lg shadow p-6">

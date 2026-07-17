@@ -19,7 +19,7 @@ checkLogin();
 requirePermission('content');
 
 $ownerType = get('owner_type', 'content');
-if (!in_array($ownerType, ['content', 'product'], true)) {
+if (!in_array($ownerType, extFieldOwnerTypes(), true)) {
     $ownerType = 'content';
 }
 
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status'      => postInt('status', 1),
         ];
 
-        if (!in_array($data['owner_type'], ['content', 'product'], true)) {
+        if (!in_array($data['owner_type'], extFieldOwnerTypes(), true)) {
             error('非法的 owner_type');
         }
         if (!preg_match('/^[a-z][a-z0-9_]{1,63}$/', $data['field_key'])) {

@@ -254,6 +254,9 @@ require_once theme_path('layouts/header.php');
                         <?php echo apply_filters('content_output', parseShortcodes($content['content'] ?? ''), $content); ?>
                     </div>
 
+                    <!-- 扩展字段（自定义模型字段：职位/邮箱/规格… 有值才显示）-->
+                    <?php require theme_path('partials/content-fields.php'); ?>
+
                     <!-- 图片画廊（lightbox）-->
                     <?php
                     $galleryImages = [];

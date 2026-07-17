@@ -121,3 +121,7 @@ function metaModel(): MetaModel {
 function extFieldModel(): ExtFieldModel {
     static $i; return $i ??= new ExtFieldModel();
 }
+
+function contentModelModel(): ContentModelModel {
+    static $i; return $i ??= new ContentModelModel();
+}

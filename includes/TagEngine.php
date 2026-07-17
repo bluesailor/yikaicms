@@ -195,7 +195,9 @@ final class TagEngine
             $items = $categoryId >= 0 ? getProducts($categoryId, $limit, $offset, $where) : [];
             $ctxType = 'product';
         } else {
-            // article / case / news 等内容类型统一走 contents
+            // article / case / 自定义模型 等内容类型统一走 contents。
+            // 按 type 过滤，支持跨栏目按类型/模型 key 聚合（{yk:list type=team}）。
+            $where['type'] = $type;
             $channelId = 0;
             if ($cat !== '') {
                 if (ctype_digit($cat)) {
@@ -314,7 +316,14 @@ final class TagEngine
             return e(self::formatDate($rawTime, (string) ($attrs['dateformat'] ?? 'Y-m-d')));
         }
 
-        $value = $ctx[$name] ?? $default;
+        // 原生列优先；不是原生列时回退查扩展字段（metas），支持自定义模型字段
+        $value = $ctx[$name] ?? null;
+        if ($value === null) {
+            $value = self::metaFallback($ctx, $name);
+        }
+        if ($value === null) {
+            $value = $default;
+        }
         if (!is_scalar($value)) {
             return '';
         }
@@ -406,5 +415,26 @@ final class TagEngine
             return '';
         }
         return date($format, $ts);
+    }
+
+    /**
+     * {yk:field} 取不到原生列时，回退查扩展字段值（metas）。
+     * owner_type 与保存端一致（product / 自定义模型 key / content）；
+     * getMeta / resolveExtFieldOwner 缺失（如纯单测环境）时安全跳过。
+     */
+    private static function metaFallback(array $ctx, string $name): mixed
+    {
+        $ctxType = (string) ($ctx['_type'] ?? '');
+        if ($ctxType === 'channel' || empty($ctx['id']) || !function_exists('getMeta')) {
+            return null;
+        }
+        if ($ctxType === 'product') {
+            $owner = 'product';
+        } elseif (function_exists('resolveExtFieldOwner')) {
+            $owner = resolveExtFieldOwner((string) ($ctx['type'] ?? ''));
+        } else {
+            $owner = 'content';
+        }
+        return getMeta($owner, (int) $ctx['id'], $name, null);
     }
 }

@@ -35,6 +35,10 @@ $channelTypes = [
     'album' => __('admin_album') ?: '相册',
     'link' => __('admin_link') ?: '链接',
 ];
+// 追加已注册的自定义内容模型（type = model_key，内容进 contents 表）
+foreach (contentModelModel()->allActive() as $_m) {
+    $channelTypes[$_m['model_key']] = $_m['name'];
+}
 
 // 获取相册列表（用于相册类型栏目）
 $albums = albumModel()->query("SELECT id, name FROM " . albumModel()->tableName() . " ORDER BY sort_order DESC, id ASC");

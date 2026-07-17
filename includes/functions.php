@@ -58,6 +58,44 @@ function theme_path(string $file): string
 }
 
 /**
+ * theme_path 但带存在性校验：解析不到真实文件时返回 null（供可选模板回退）。
+ */
+function theme_path_optional(string $file): ?string
+{
+    if ($file === '') {
+        return null;
+    }
+    $p = theme_path($file);
+    return is_file($p) ? $p : null;
+}
+
+/**
+ * 列出可用的列表卡片模板（供自定义模型列表模板下拉）。
+ * 扫 overrides/partials + 当前主题 partials + includes/partials 里的 *-card.php，去重。
+ * 返回 ['partials/xxx-card.php' => 'xxx'] 形式（值作展示名）。
+ */
+function availableCardTemplates(): array
+{
+    $dirs = [
+        ROOT_PATH . '/overrides/partials',
+        ROOT_PATH . '/themes/' . currentTheme() . '/partials',
+        INCLUDES_PATH . 'partials',
+    ];
+    $out = [];
+    foreach ($dirs as $dir) {
+        foreach (glob($dir . '/*-card.php') ?: [] as $f) {
+            $base = basename($f);
+            $key = 'partials/' . $base;
+            if (!isset($out[$key])) {
+                $out[$key] = preg_replace('/-card\.php$/', '', $base) ?: $base;
+            }
+        }
+    }
+    ksort($out);
+    return $out;
+}
+
+/**
  * 获取主题静态资源 URL
  *
  * @param string $file 相对路径，如 'css/style.css', 'js/theme.js'
@@ -782,6 +820,15 @@ function contentUrl(array $content): string
             return $prefix . '/case/' . $slug . '.html';
         }
         return $prefix . '/case/' . $content['id'] . '.html';
+    }
+
+    // 自定义模型：/<url_prefix>/<slug>.html（url_prefix 空则用 model_key），
+    // 跨栏目统一干净 URL；prefixMap 进程内缓存，不重复查库。
+    if ($channelType !== '' && !empty($slug)) {
+        $pmap = contentModelModel()->prefixMap();
+        if (isset($pmap[$channelType])) {
+            return $prefix . '/' . $pmap[$channelType] . '/' . $slug . '.html';
+        }
     }
 
     // 如果内容和栏目都有slug，使用友好URL
@@ -2648,6 +2695,47 @@ function renderBlocksToHtml(string $blocksJson): string
 // ============================================================
 // 通用元数据辅助函数（基于 yikai_metas 表）
 // ============================================================
+
+/**
+ * 由内容 type 解析扩展字段 owner_type：
+ *   - 已注册的自定义模型 key → 用它本身（字段/值按 model_key 隔离）
+ *   - 内置内容类型（article/case/download/job…）→ 归到 'content'（共享一组字段）
+ * 内容编辑保存与 {yk:field} 取值共用，保证「存/取」owner_type 一致。
+ */
+function resolveExtFieldOwner(string $type): string
+{
+    if ($type === '') {
+        return 'content';
+    }
+    if ($type === 'product') {
+        return 'product';
+    }
+    try {
+        if (db()->tableExists('content_models') && in_array($type, contentModelModel()->keys(), true)) {
+            return $type;
+        }
+    } catch (\Throwable $e) {
+        // 表未建：按内置处理
+    }
+    return 'content';
+}
+
+/**
+ * 合法的扩展字段 owner_type：内置 content/product + 已注册的自定义内容模型 key。
+ * 供 admin/extfield.php、extfield_render.php、内容编辑保存共用，避免各处写死白名单。
+ */
+function extFieldOwnerTypes(): array
+{
+    $types = ['content', 'product'];
+    try {
+        if (db()->tableExists('content_models')) {
+            $types = array_merge($types, contentModelModel()->keys());
+        }
+    } catch (\Throwable $e) {
+        // 表未建/未安装：只用内置
+    }
+    return $types;
+}
 
 /**
  * 读取单个 meta；未找到返回 $default

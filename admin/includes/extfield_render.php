@@ -17,7 +17,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
 $extFieldOwnerType = $extFieldOwnerType ?? '';
 $extFieldOwnerId   = (int)($extFieldOwnerId ?? 0);
 
-if (!in_array($extFieldOwnerType, ['content', 'product'], true)) {
+if (!in_array($extFieldOwnerType, extFieldOwnerTypes(), true)) {
     return;
 }
 
