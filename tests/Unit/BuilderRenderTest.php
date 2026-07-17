@@ -221,6 +221,78 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame('<div class="h-24"></div>', $s2);
     }
 
+    // ---- P2 可复用块：{library_id} 渲染时经 BlocksLibrary 展开 ----
+
+    public function testLibraryRefExpandsAtRenderTime(): void
+    {
+        \BlocksLibrary::$resolver = function (int $id): ?array {
+            if ($id !== 7) {
+                return null;
+            }
+            return [
+                'settings' => ['padding' => 'sm'],
+                'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'LibBlock']]]]],
+            ];
+        };
+        try {
+            // 引用块：settings/columns 以库内容为准（页面里存的空壳被替换）
+            $out = BlockRenderer::render(json_encode([
+                ['library_id' => 7, 'library_name' => 'x', 'settings' => [], 'columns' => []],
+            ]));
+            $this->assertStringStartsWith('<section class="py-4">', $out);
+            $this->assertStringContainsString('LibBlock', $out);
+
+            // 库块不存在（已删/表缺失）→ 该区块静默跳过
+            $gone = BlockRenderer::render(json_encode([
+                ['library_id' => 999, 'settings' => [], 'columns' => []],
+            ]));
+            $this->assertSame('', $gone);
+
+            // 库数据里再带 library_id 不递归展开（防循环），按普通 section 渲染
+            \BlocksLibrary::$resolver = function (int $id): ?array {
+                return [
+                    'library_id' => 7, // 恶意/脏数据：应被忽略
+                    'settings' => [],
+                    'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'NoLoop']]]]],
+                ];
+            };
+            $noLoop = BlockRenderer::render(json_encode([['library_id' => 5]]));
+            $this->assertStringContainsString('NoLoop', $noLoop);
+        } finally {
+            \BlocksLibrary::$resolver = null;
+        }
+    }
+
+    // ---- P2 预设库：形状 + 每个预设都能经真实渲染管线出 HTML（防 schema 漂移） ----
+
+    public function testPresetsShapeAndAllRenderable(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/presets.php';
+        $presets = builderPresets();
+        $this->assertNotEmpty($presets['sections']);
+        $this->assertNotEmpty($presets['pages']);
+        $keys = array_column($presets['sections'], 'key');
+        foreach (['hero', 'features', 'cta', 'team', 'gallery', 'stats', 'testimonial'] as $k) {
+            $this->assertContains($k, $keys, "缺少区块预设 $k");
+        }
+        $this->assertContains('company_intro', array_column($presets['pages'], 'key'));
+
+        foreach (array_merge($presets['sections'], $presets['pages']) as $preset) {
+            $this->assertNotEmpty($preset['label']);
+            $this->assertNotEmpty($preset['sections'], "预设 {$preset['key']} 无 sections");
+            $html = BlockRenderer::render(json_encode($preset['sections']));
+            $this->assertNotSame('', $html, "预设 {$preset['key']} 渲染为空——元素 type 或数据键可能写错");
+            // 预设里的元素 type 必须全部已注册（渲染器对未知 type 静默跳过，这里显式兜住）
+            foreach ($preset['sections'] as $sec) {
+                foreach ($sec['columns'] ?? [] as $col) {
+                    foreach ($col['elements'] ?? [] as $el) {
+                        $this->assertNotNull(BuilderRegistry::get($el['type']), "预设 {$preset['key']} 引用未注册元素 {$el['type']}");
+                    }
+                }
+            }
+        }
+    }
+
     public function testRegistryHasBuiltins(): void
     {
         $types = array_keys(BuilderRegistry::all());

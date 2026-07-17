@@ -16,6 +16,7 @@ checkLogin();
 requirePermission('content');
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+require_once ROOT_PATH . '/includes/builder/presets.php';
 
 $id = getInt('id');
 
@@ -80,6 +81,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'previ
         . $body
         . '</body></html>';
     exit;
+}
+
+// 可复用块库（P2）：保存/列表/取块/删除。表缺失（未跑升级）时容错提示。
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['action'] ?? ''), 'lib_')) {
+    $libAction = $_POST['action'];
+    try {
+        if ($libAction === 'lib_save') {
+            $libName = trim(post('lib_name'));
+            $libSection = json_decode($_POST['section_data'] ?? '', true);
+            if ($libName === '' || !is_array($libSection)) {
+                error('参数不完整');
+            }
+            if (!empty($libSection['library_id'])) {
+                error('引用块请先转为副本再存入块库');
+            }
+            unset($libSection['library_name']);
+            $now = time();
+            $libId = db()->insert(DB_PREFIX . 'blocks_library', [
+                'name' => mb_substr($libName, 0, 100),
+                'data' => json_encode($libSection, JSON_UNESCAPED_UNICODE),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            adminLog('page', 'edit', '保存可复用块：' . $libName);
+            success(['id' => (int) $libId]);
+        }
+        if ($libAction === 'lib_list') {
+            $rows = db()->fetchAll(
+                'SELECT id, name, updated_at FROM ' . DB_PREFIX . 'blocks_library ORDER BY id DESC'
+            );
+            success(['items' => $rows]);
+        }
+        if ($libAction === 'lib_get') {
+            $row = db()->fetchOne(
+                'SELECT id, name, data FROM ' . DB_PREFIX . 'blocks_library WHERE id = ?',
+                [(int) ($_POST['lib_id'] ?? 0)]
+            );
+            if (!$row) {
+                error('块不存在（可能已被删除）');
+            }
+            success(['item' => $row]);
+        }
+        if ($libAction === 'lib_delete') {
+            $libId = (int) ($_POST['lib_id'] ?? 0);
+            db()->delete(DB_PREFIX . 'blocks_library', 'id = ?', [$libId]);
+            adminLog('page', 'delete', '删除可复用块 #' . $libId);
+            success();
+        }
+    } catch (\Throwable $e) {
+        error('块库不可用，请先在「系统 → 数据库升级」执行升级');
+    }
+    error('未知操作');
 }
 
 // 处理保存
@@ -201,9 +254,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         :class="showPreview ? 'border-primary bg-primary text-white' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'">
                     <i class="ti ti-eye text-base"></i>实时预览
                 </button>
-                <button type="button" @click="insertTemplate('company_intro')"
+                <button type="button" @click="showPresets = true"
                         class="text-sm border border-primary text-primary hover:bg-primary hover:text-white px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap">
-                    <i class="ti ti-file-text text-base"></i>公司介绍模板
+                    <i class="ti ti-layout-collage text-base"></i>预设库
                 </button>
             </div>
         </div>
@@ -226,7 +279,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <i class="ti ti-menu-2 text-base"></i>
                                 </span>
                                 <span class="text-sm font-medium text-gray-600" x-text="'区块 ' + (si + 1)"></span>
-                                <span class="text-xs text-gray-400" x-text="section.columns.length + ' 列'"></span>
+                                <span class="text-xs text-gray-400" x-show="!section.library_id" x-text="section.columns.length + ' 列'"></span>
+                                <template x-if="section.library_id">
+                                    <span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                                        <i class="ti ti-link"></i><span x-text="'引用：' + (section.library_name || ('#' + section.library_id))"></span>
+                                    </span>
+                                </template>
                                 <template x-if="section.settings.bg_color">
                                     <span class="inline-block w-3 h-3 rounded-full border" :style="'background:' + section.settings.bg_color"></span>
                                 </template>
@@ -240,18 +298,42 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="下移">
                                     <i class="ti ti-chevron-down text-base"></i>
                                 </button>
-                                <button type="button" @click="openSettings(si)"
-                                        class="p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="设置">
-                                    <i class="ti ti-settings text-base"></i>
-                                </button>
+                                <template x-if="!section.library_id">
+                                    <button type="button" @click="saveToLibrary(si)"
+                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="存为可复用块">
+                                        <i class="ti ti-bookmark-plus text-base"></i>
+                                    </button>
+                                </template>
+                                <template x-if="section.library_id">
+                                    <button type="button" @click="detachLibRef(si)"
+                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="转为独立副本（不再跟随块库更新）">
+                                        <i class="ti ti-unlink text-base"></i>
+                                    </button>
+                                </template>
+                                <template x-if="!section.library_id">
+                                    <button type="button" @click="openSettings(si)"
+                                            class="p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="设置">
+                                        <i class="ti ti-settings text-base"></i>
+                                    </button>
+                                </template>
                                 <button type="button" @click="removeSection(si)"
                                         class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo __('admin_delete'); ?>">
                                     <i class="ti ti-trash text-base"></i>
                                 </button>
                             </div>
                         </div>
+                        <!-- 引用块：内容在块库中维护，此处只显示占位 -->
+                        <template x-if="section.library_id">
+                            <div class="p-4">
+                                <div class="text-center py-6 text-sm text-purple-500 bg-purple-50/50 rounded border border-dashed border-purple-200">
+                                    <i class="ti ti-library text-2xl block mb-1"></i>
+                                    引用块内容在块库中统一维护，修改后所有引用页面同步生效
+                                    <div class="text-xs text-purple-400 mt-1">如需单独编辑此页版本，点右上 <i class="ti ti-unlink"></i> 转为独立副本</div>
+                                </div>
+                            </div>
+                        </template>
                         <!-- 列内容 -->
-                        <div class="p-4">
+                        <div class="p-4" x-show="!section.library_id">
                             <div class="grid gap-4" :class="section.columns.length > 1 ? 'grid-cols-' + section.columns.length : ''">
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
                                     <div class="border rounded-lg p-3 min-h-[100px]"
@@ -609,7 +691,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 添加区块 -->
             <div x-data="{ showPicker: false }" class="mt-4">
-                <button type="button" @click="showPicker = !showPicker"
+                <button type="button" @click="showPicker = !showPicker; showPicker && libRefresh()"
                         class="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-400 hover:border-primary hover:text-primary transition text-sm cursor-pointer">
                     + 添加区块
                 </button>
@@ -649,6 +731,29 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span class="text-xs mt-1 text-gray-600">4 列</span>
                         </button>
                     </div>
+                    <!-- 从块库插入（P2 可复用块）：引用=改库全站生效；副本=独立编辑 -->
+                    <div class="mt-4 border-t pt-3">
+                        <p class="text-sm text-gray-600 mb-2">或从块库插入 <span class="text-xs text-gray-400">引用块随块库更新全站生效；副本插入后独立编辑</span></p>
+                        <template x-if="libItems.length === 0">
+                            <p class="text-xs text-gray-400">块库为空——在任意区块工具栏点 <i class="ti ti-bookmark-plus"></i> 可把该区块存入块库</p>
+                        </template>
+                        <div class="space-y-1">
+                            <template x-for="item in libItems" :key="item.id">
+                                <div class="flex items-center gap-2 bg-white border rounded px-3 py-1.5">
+                                    <i class="ti ti-library text-purple-400"></i>
+                                    <span class="text-sm text-gray-700 flex-1" x-text="item.name"></span>
+                                    <button type="button" @click="insertLibRef(item); showPicker = false"
+                                            class="text-xs text-purple-600 hover:underline cursor-pointer">引用插入</button>
+                                    <button type="button" @click="insertLibCopy(item); showPicker = false"
+                                            class="text-xs text-primary hover:underline cursor-pointer">副本插入</button>
+                                    <button type="button" @click="libDelete(item)"
+                                            class="text-xs text-red-400 hover:text-red-600 cursor-pointer" title="从块库删除">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -672,6 +777,47 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-4 bg-gray-100 flex justify-center overflow-auto">
             <iframe x-ref="previewFrame" class="bg-white shadow-sm border-0 transition-all duration-300"
                     :style="'width:' + previewWidth() + ';height:70vh'"></iframe>
+        </div>
+    </div>
+
+    <!-- 预设库弹窗（P2）：区块预设 + 整页模板一键插入；插件可用 builder_presets 过滤器扩展 -->
+    <div x-show="showPresets" x-cloak @click.self="showPresets = false" @keydown.escape.window="showPresets = false"
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+            <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
+                <h3 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-layout-collage"></i>预设库</h3>
+                <button type="button" @click="showPresets = false" class="text-gray-400 hover:text-gray-600 cursor-pointer">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">区块预设 · 插入单个区块</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <template x-for="p in presetSections()" :key="p.key">
+                            <button type="button" @click="insertPreset(p)"
+                                    class="border rounded-lg p-3 text-left hover:border-primary hover:bg-blue-50/40 transition cursor-pointer">
+                                <i class="ti text-xl text-primary" :class="'ti-' + (p.icon || 'square')"></i>
+                                <div class="text-sm font-medium text-gray-700 mt-1" x-text="p.label"></div>
+                                <div class="text-xs text-gray-400 mt-0.5" x-text="p.desc || ''"></div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">整页模板 · 插入整套区块</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <template x-for="p in presetPages()" :key="p.key">
+                            <button type="button" @click="insertPreset(p)"
+                                    class="border rounded-lg p-3 text-left hover:border-primary hover:bg-blue-50/40 transition cursor-pointer">
+                                <i class="ti text-xl text-primary" :class="'ti-' + (p.icon || 'file')"></i>
+                                <div class="text-sm font-medium text-gray-700 mt-1" x-text="p.label"></div>
+                                <div class="text-xs text-gray-400 mt-0.5" x-text="p.desc || ''"></div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1069,73 +1215,9 @@ if ($autoConvert && $htmlContent) {
     $initBlocks = json_encode($autoSection, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 }
 
-// 内置「公司介绍」单页模板：默认填好内容，供构建器一键插入（插入时前端会重生成各 id）。
-$companyIntroTpl = [
-    // 1) 简介 hero
-    [
-        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'lg'],
-        'columns' => [[
-            'id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '公司简介', 'level' => 'h2']],
-                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。</p>']],
-            ],
-        ]],
-    ],
-    // 2) 图文：左图右文
-    [
-        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'stretch', 'gap' => 'lg'],
-        'columns' => [
-            ['id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/uploads/images/case-demo.jpg', 'alt' => '公司环境 / 团队照片', 'click_action' => '', 'link_url' => '', 'link_new_tab' => false]],
-            ]],
-            ['id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '我们的故事', 'level' => 'h3']],
-                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p>多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。</p><p>未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。</p>']],
-                ['id' => 'e', 'type' => 'button', 'data' => ['text' => '了解更多', 'url' => '#', 'new_tab' => false]],
-            ]],
-        ],
-    ],
-    // 3) 核心优势：三栏图标
-    [
-        'id' => 's', 'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg', 'col_card' => true],
-        'columns' => [
-            ['id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'award', 'size' => 'lg', 'color' => '', 'text' => '']],
-                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '专业团队', 'level' => 'h4']],
-                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">经验丰富的专业团队，为您提供全流程的贴心支持。</p>']],
-            ]],
-            ['id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'shield', 'size' => 'lg', 'color' => '', 'text' => '']],
-                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '品质保证', 'level' => 'h4']],
-                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">严格的品质管理体系，确保每一个环节都值得信赖。</p>']],
-            ]],
-            ['id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'users', 'size' => 'lg', 'color' => '', 'text' => '']],
-                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '贴心服务', 'level' => 'h4']],
-                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">快速响应的售前售后服务，与您携手共创价值。</p>']],
-            ]],
-        ],
-    ],
-    // 4) 行动号召（渐变横幅 CTA，颜色走内联样式避免被 .prose 覆盖）
-    [
-        'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'md', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
-        'columns' => [[
-            'id' => 'c', 'elements' => [
-                ['id' => 'e', 'type' => 'code', 'data' => ['html' =>
-                    '<div style="background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))" class="rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl">'
-                    . '<div style="color:#fff" class="text-2xl md:text-4xl font-bold mb-3">想进一步了解我们？</div>'
-                    . '<div style="color:rgba(255,255,255,.9)" class="text-base md:text-lg mb-8 max-w-2xl mx-auto">欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。</div>'
-                    . '<a href="/contact.html" style="background:#fff;color:var(--color-primary);text-decoration:none" class="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition">立即联系我们 <i class="ti ti-arrow-right text-lg"></i></a>'
-                    . '</div>',
-                ]],
-            ],
-        ]],
-    ],
-];
-$companyTplJson = json_encode($companyIntroTpl, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
-
 $extraJs = '<script>
-var __pageTemplates = { company_intro: ' . $companyTplJson . ' };
+// 预设库（区块预设 + 整页模板，见 includes/builder/presets.php；插件可用 builder_presets 过滤器扩展）
+var BUILDER_PRESETS = ' . json_encode(builderPresets(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
 // 元素元数据（由 BuilderRegistry 生成）：palette + 新元素设置表单据此驱动，加元素即插即用
 var BUILDER_ELEMENTS = ' . json_encode(BuilderRegistry::meta(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ';
 // 已有手写设置 UI 的元素（保留其精细编辑器）；其余（新/插件元素）走通用 schema 表单
@@ -1225,6 +1307,83 @@ function pageBuilder() {
             el.data[key] = (v.d === v.t && v.t === v.m) ? v.d : v;
         },
 
+        // === 可复用块库（P2）：引用块 {library_id} 渲染时展开，改库一处全站生效 ===
+        libItems: [],
+        libPost(params) {
+            var body = new URLSearchParams();
+            for (var k in params) body.set(k, params[k]);
+            return fetch(window.location.href, { method: "POST", body: body })
+                .then(function(r) { return safeJson(r); });
+        },
+        libRefresh() {
+            var self = this;
+            this.libPost({ action: "lib_list" }).then(function(res) {
+                if (res.code === 0) self.libItems = (res.data && res.data.items) || [];
+            }).catch(function() {});
+        },
+        saveToLibrary(si) {
+            var name = prompt("块名称（存入块库后可在其他页面复用）：");
+            if (!name) return;
+            var self = this;
+            this.libPost({
+                action: "lib_save",
+                lib_name: name,
+                section_data: JSON.stringify(this.sections[si])
+            }).then(function(res) {
+                if (res.code === 0) { showMessage("已存入块库"); self.libRefresh(); }
+                else showMessage(res.msg, "error");
+            }).catch(function() { showMessage("请求失败", "error"); });
+        },
+        insertLibRef(item) {
+            this.sections.push({ id: this.uid("s"), library_id: item.id, library_name: item.name, settings: {}, columns: [] });
+        },
+        insertLibCopy(item) {
+            var self = this;
+            this.libPost({ action: "lib_get", lib_id: item.id }).then(function(res) {
+                if (res.code !== 0) { showMessage(res.msg, "error"); return; }
+                var sec = JSON.parse(res.data.item.data);
+                self.sections.push(self.freshSection(sec));
+                self.$nextTick(function() { self.initSortable(); });
+            }).catch(function() { showMessage("请求失败", "error"); });
+        },
+        detachLibRef(si) {
+            var s = this.sections[si];
+            if (!s.library_id) return;
+            var self = this;
+            this.libPost({ action: "lib_get", lib_id: s.library_id }).then(function(res) {
+                if (res.code !== 0) { showMessage(res.msg, "error"); return; }
+                var sec = JSON.parse(res.data.item.data);
+                self.sections.splice(si, 1, self.freshSection(sec));
+                self.$nextTick(function() { self.initSortable(); });
+            }).catch(function() { showMessage("请求失败", "error"); });
+        },
+        libDelete(item) {
+            if (!confirm("从块库删除「" + item.name + "」？已引用它的页面该区块将不再显示")) return;
+            var self = this;
+            this.libPost({ action: "lib_delete", lib_id: item.id }).then(function(res) {
+                if (res.code === 0) { showMessage("已删除"); self.libRefresh(); }
+                else showMessage(res.msg, "error");
+            }).catch(function() { showMessage("请求失败", "error"); });
+        },
+
+        // 深拷贝 section 并重生成各级 id（块库副本/模板插入共用）
+        freshSection(s) {
+            var self = this;
+            s = JSON.parse(JSON.stringify(s));
+            return {
+                id: self.uid("s"),
+                settings: s.settings || {},
+                columns: (s.columns || []).map(function(c) {
+                    return {
+                        id: self.uid("c"),
+                        elements: (c.elements || []).map(function(e) {
+                            return { id: self.uid("e"), type: e.type, data: e.data };
+                        })
+                    };
+                })
+            };
+        },
+
         init() {
             var self = this;
             this.$nextTick(function() { self.initSortable(); });
@@ -1247,31 +1406,20 @@ function pageBuilder() {
             this.$nextTick(function() { self.initSortable(); });
         },
 
-        // 插入内置模板（重生成 section/column/element 的 id，避免与现有内容 key 冲突）
-        insertTemplate(key) {
-            var tpl = (typeof __pageTemplates !== "undefined") ? __pageTemplates[key] : null;
+        // === 预设库：区块预设/整页模板一键插入（重生成各级 id，避免与现有内容 key 冲突） ===
+        showPresets: false,
+        presetSections() { return BUILDER_PRESETS.sections || []; },
+        presetPages() { return BUILDER_PRESETS.pages || []; },
+        insertPreset(p) {
+            var tpl = p && p.sections;
             if (!tpl || !tpl.length) return;
             var self = this;
-            var fresh = JSON.parse(JSON.stringify(tpl)).map(function(s) {
-                return {
-                    id: self.uid("s"),
-                    settings: s.settings,
-                    columns: (s.columns || []).map(function(c) {
-                        return {
-                            id: self.uid("c"),
-                            elements: (c.elements || []).map(function(e) {
-                                return { id: self.uid("e"), type: e.type, data: e.data };
-                            })
-                        };
-                    })
-                };
-            });
-            if (this.sections.length > 0) {
-                if (!confirm("将模板区块追加到当前内容末尾？")) return;
-                this.sections = this.sections.concat(fresh);
-            } else {
-                this.sections = fresh;
+            var fresh = tpl.map(function(s) { return self.freshSection(s); });
+            if (this.sections.length > 0 && fresh.length > 1) {
+                if (!confirm("将整页模板追加到当前内容末尾？")) return;
             }
+            this.sections = this.sections.concat(fresh);
+            this.showPresets = false;
             this.$nextTick(function() { self.initSortable(); });
         },
 
