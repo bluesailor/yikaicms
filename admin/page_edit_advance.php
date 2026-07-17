@@ -441,13 +441,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 图标 -->
+                                                <!-- 图标（选择网格默认收起，选完自动收回） -->
                                                 <template x-if="el.type === 'icon'">
-                                                    <div>
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-2 inline-block">图标</span>
-                                                        <div class="flex flex-wrap gap-1.5 mb-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
+                                                    <div x-data="{ pick: false }">
+                                                        <div class="flex items-center gap-2 mb-2">
+                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">图标</span>
+                                                            <span class="w-9 h-9 border rounded flex items-center justify-center bg-gray-50"
+                                                                  :style="el.data.color ? 'color:' + el.data.color : ''">
+                                                                <i class="ti text-xl" :class="'ti-' + (el.data.icon || 'star')"></i>
+                                                            </span>
+                                                            <button type="button" @click="pick = !pick"
+                                                                    class="text-xs text-primary hover:underline cursor-pointer"
+                                                                    x-text="pick ? '收起' : '更换图标'"></button>
+                                                        </div>
+                                                        <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mb-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
                                                             <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
-                                                                <button type="button" @click="el.data.icon = ic"
+                                                                <button type="button" @click="el.data.icon = ic; pick = false"
                                                                         class="w-8 h-8 flex items-center justify-center border rounded text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer"
                                                                         :class="el.data.icon === ic ? 'bg-primary text-white border-primary' : 'bg-white'">
                                                                     <i class="ti text-base" :class="'ti-' + ic"></i>
