@@ -128,8 +128,55 @@ final class BuilderRenderTest extends TestCase
     public function testRegistryHasBuiltins(): void
     {
         $types = array_keys(BuilderRegistry::all());
-        foreach (['heading', 'text', 'image', 'button', 'icon', 'code', 'divider', 'spacer'] as $t) {
+        foreach (['heading', 'text', 'image', 'button', 'icon', 'code', 'divider', 'spacer',
+                  'list-dynamic', 'banner', 'nav'] as $t) {
             $this->assertContains($t, $types);
         }
+    }
+
+    // ---- 动态元素：测 buildMarkup() 拼出的 {yk:} 标签（纯字符串，不经 TagEngine/DB） ----
+
+    public function testListDynamicBuildsTagMarkup(): void
+    {
+        $out = (new \ListDynamicElement())->buildMarkup([
+            'source_type' => 'team', 'cat' => 'members', 'limit' => 4, 'recommend' => 1,
+            'empty' => '暂无',
+            'template' => [
+                ['type' => 'heading', 'data' => ['level' => 'h3', 'text' => '{yk:field name=title /}']],
+            ],
+        ]);
+        $this->assertStringStartsWith('{yk:list type=team cat=members limit=4 recommend=1 empty=暂无}', $out);
+        // 子元素模板里 {yk:field} 原样带出（循环时逐条解析）
+        $this->assertStringContainsString('<h3 class="text-xl font-bold mb-4">{yk:field name=title /}</h3>', $out);
+        $this->assertStringEndsWith('{/yk:list}', $out);
+    }
+
+    public function testListDynamicQuotesValuesWithSpaces(): void
+    {
+        $out = (new \ListDynamicElement())->buildMarkup([
+            'source_type' => 'article', 'empty' => '暂无 内容',
+            'template' => [['type' => 'text', 'data' => ['html' => 'x']]],
+        ]);
+        $this->assertStringContainsString('empty="暂无 内容"', $out);
+    }
+
+    public function testBannerAndNavMarkup(): void
+    {
+        $this->assertSame('{yk:banner group=home /}', (new \BannerElement())->buildMarkup(['group' => 'home']));
+        $this->assertSame('', (new \BannerElement())->buildMarkup([])); // 空 group
+
+        $n = (new \NavElement())->buildMarkup(['parent' => 'about']);
+        $this->assertStringContainsString('{yk:nav parent=about}', $n);
+        $this->assertStringContainsString('{yk:field name=url /}', $n); // 默认模板
+    }
+
+    public function testDynamicElementsMarkedDynamic(): void
+    {
+        foreach (['list-dynamic', 'banner', 'nav'] as $t) {
+            $el = BuilderRegistry::get($t);
+            $this->assertNotNull($el);
+            $this->assertTrue($el->isDynamic(), "$t 应为动态元素");
+        }
+        $this->assertFalse(BuilderRegistry::get('heading')->isDynamic());
     }
 }

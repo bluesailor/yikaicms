@@ -41,6 +41,7 @@ final class BuilderRegistry
         self::$booted = true;
 
         foreach ([
+            // 静态元素
             new HeadingElement(),
             new TextElement(),
             new ImageElement(),
@@ -49,6 +50,10 @@ final class BuilderRegistry
             new CodeElement(),
             new DividerElement(),
             new SpacerElement(),
+            // 动态元素（接 {yk:} 引擎 + 自定义模型）
+            new ListDynamicElement(),
+            new BannerElement(),
+            new NavElement(),
         ] as $el) {
             self::register($el);
         }
