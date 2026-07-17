@@ -17,6 +17,11 @@ $slug = get('slug');
 // 通过slug或id获取栏目（lang-aware：当前是非源语言时自动跳到翻译行）
 if ($slug) {
     $channel = getChannelBySlug($slug, true);
+    // 固定前缀路由兜底：/product/{分类}.html 重写固定携带 slug=product（见 .htaccess）。
+    // 站点若把产品栏目别名改成了别的值（如 products），按栏目类型回退定位，避免产品分类页整线 404。
+    if (!$channel && $slug === 'product') {
+        $channel = channelModel()->findWhere(['type' => 'product', 'lang' => siteLang(), 'status' => 1]) ?: null;
+    }
     $channelId = $channel ? (int)$channel['id'] : 0;
 } elseif ($channelId > 0) {
     $channel = getChannel($channelId);

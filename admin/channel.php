@@ -444,6 +444,15 @@ if ($activeTab === 'hidden' && empty($hiddenChannels)) {
     $activeTab = 'main';
 }
 
+// 产品栏目 slug 约定检查：产品分类页固定走 /product/{分类别名}.html（.htaccess 按 slug=product 路由）。
+// 前台已有按类型回退的兜底，但别名不一致会导致栏目页与分类页 URL 前缀不统一，这里给出提醒。
+$productSlugWarning = false;
+if ($_viewLang === $_defaultLang) {
+    $_prodChs = array_filter($channels, fn($c) => ($c['type'] ?? '') === 'product');
+    $productSlugWarning = !empty($_prodChs)
+        && empty(array_filter($_prodChs, fn($c) => ($c['slug'] ?? '') === 'product'));
+}
+
 $editId = getInt('edit');
 $editChannel = $editId > 0 ? channelModel()->find($editId) : null;
 
@@ -481,6 +490,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if ($_viewLang !== $_defaultLang): ?>
     <span class="ml-auto text-xs text-amber-600">提示：源语言（<?php echo e($_langLabels[$_defaultLang] ?? $_defaultLang); ?>）才能新增/删除栏目；当前是翻译版本，编辑用于本地化文字</span>
     <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php if ($productSlugWarning): ?>
+<div class="bg-amber-50 border border-amber-200 rounded-lg px-5 py-3 mb-4 flex items-start gap-2 text-sm text-amber-700">
+    <i class="ti ti-alert-triangle text-base mt-0.5"></i>
+    <span><?php echo __('admin_product_slug_warning'); ?></span>
 </div>
 <?php endif; ?>
 

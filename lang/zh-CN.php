@@ -690,6 +690,7 @@ return [
     'admin_channel_unassigned' => '未分配',
     'admin_channel_hidden_tab' => '已停用',
     'admin_channel_restore' => '恢复',
+    'admin_product_slug_warning' => '提示：产品栏目的 URL 别名建议设为「product」。产品分类页固定使用 /product/分类别名.html 链接，别名不一致时前台会按栏目类型自动兜底，但栏目页与分类页的 URL 前缀将不统一。',
     'admin_channel_hidden_empty' => '没有停用的栏目',
     'admin_channel_hidden_tip' => '停用的栏目不在前台显示，也不出现在上面的导航列表；点眼睛图标可随时恢复。',
     'admin_invalid_operation' => '非法操作',

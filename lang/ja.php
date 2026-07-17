@@ -676,6 +676,7 @@ return [
     'admin_channel_unassigned' => '未割当',
     'admin_channel_hidden_tab' => '停止中',
     'admin_channel_restore' => '復元',
+    'admin_product_slug_warning' => 'ヒント：製品カテゴリの URL エイリアスは「product」を推奨します。製品分類ページは常に /product/分類エイリアス.html でリンクされ、別のエイリアスでもタイプによる自動フォールバックで動作しますが、カテゴリページと分類ページの URL プレフィックスが不一致になります。',
     'admin_channel_hidden_empty' => '停止中のカテゴリはありません',
     'admin_channel_hidden_tip' => '停止中のカテゴリはサイトにも上のナビ一覧にも表示されません。目のアイコンでいつでも復元できます。',
     'admin_invalid_operation' => '不正な操作です',
