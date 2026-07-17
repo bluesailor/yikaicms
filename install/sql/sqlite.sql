@@ -1454,6 +1454,24 @@ INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_i
 INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (7,0,'ja',1,'製品マニュアル V2.0','最新版ユーザーマニュアル','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
 INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (8,0,'ja',2,'クライアントソフトウェア V3.5.1','Windows 用クライアント','','','',0,'exe',0,0,0,0,1,1778457949,1778457949,0);
 INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (9,0,'ja',3,'API ドキュメント','完全な API リファレンス','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
+DROP TABLE IF EXISTS "yikai_content_models";
+CREATE TABLE "yikai_content_models" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "model_key" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "name_en" TEXT NOT NULL DEFAULT '',
+  "name_ja" TEXT NOT NULL DEFAULT '',
+  "icon" TEXT NOT NULL DEFAULT '',
+  "url_prefix" TEXT NOT NULL DEFAULT '',
+  "list_template" TEXT NOT NULL DEFAULT '',
+  "detail_template" TEXT NOT NULL DEFAULT '',
+  "has_detail" INTEGER NOT NULL DEFAULT '1',
+  "sort_order" INTEGER NOT NULL DEFAULT '0',
+  "status" INTEGER NOT NULL DEFAULT '1',
+  "created_at" INTEGER NOT NULL DEFAULT '0'
+);
+CREATE UNIQUE INDEX "uk_model_key_yikai_content_models" ON "yikai_content_models" ("model_key");
+
 DROP TABLE IF EXISTS "yikai_extfields";
 CREATE TABLE "yikai_extfields" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
