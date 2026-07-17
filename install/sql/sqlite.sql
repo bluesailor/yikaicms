@@ -166,6 +166,15 @@ INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (8,'home','ja',2,'プロフェッショナルな技術チーム','経験豊富な専門家、フルスタック対応、安心の納品実績','会社案内','','サービス','','https://picsum.photos/1920/600?random=2','','','_self',0,0,1,2,1778464860);
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (9,'home','ja',3,'イノベーションで未来を切り開く','テクノロジーが未来を照らす — 共に歩みましょう','お問合せ','','事例を見る','','https://picsum.photos/1920/600?random=3','','','_self',0,0,1,3,1778464860);
 -- @demo:end
+DROP TABLE IF EXISTS "yikai_blocks_library";
+CREATE TABLE "yikai_blocks_library" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" varchar(100) NOT NULL,
+  "data" longtext,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+
 DROP TABLE IF EXISTS "yikai_brands";
 CREATE TABLE "yikai_brands" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

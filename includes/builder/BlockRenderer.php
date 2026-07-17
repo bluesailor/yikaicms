@@ -40,6 +40,16 @@ final class BlockRenderer
 
         $html = '';
         foreach ($sections as $section) {
+            // 可复用块引用：{library_id: N} → 渲染时从块库展开（改库一处全站生效）。
+            // 库块被删/表缺失 → 静默跳过；展开结果里再出现 library_id 一律忽略（防嵌套循环）。
+            if (!empty($section['library_id'])) {
+                $lib = BlocksLibrary::get((int) $section['library_id']);
+                if ($lib === null) {
+                    continue;
+                }
+                unset($lib['library_id']);
+                $section = $lib;
+            }
             $settings = $section['settings'] ?? [];
             $padding = AbstractElement::respClasses($settings['padding'] ?? 'md', self::PADDING_MAP, 'md');
             $maxWidth = self::MAXWIDTH_MAP[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';

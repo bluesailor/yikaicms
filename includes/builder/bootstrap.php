@@ -13,4 +13,5 @@ foreach (glob(__DIR__ . '/elements/*.php') ?: [] as $__elFile) {
 }
 
 require_once __DIR__ . '/BuilderRegistry.php';
+require_once __DIR__ . '/BlocksLibrary.php';
 require_once __DIR__ . '/BlockRenderer.php';

@@ -220,6 +220,19 @@ INSERT INTO `yikai_banners` (`id`, `position`, `lang`, `translation_group_id`, `
 -- @demo:end
 /*!40000 ALTER TABLE `yikai_banners` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `yikai_blocks_library`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `yikai_blocks_library` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '块名称（后台块库列表显示）',
+  `data` longtext COMMENT '单个 section 的 JSON（settings+columns）',
+  `created_at` int(11) unsigned NOT NULL DEFAULT 0,
+  `updated_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 DROP TABLE IF EXISTS `yikai_brands`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;
