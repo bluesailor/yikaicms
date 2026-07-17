@@ -799,7 +799,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                 <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
-                                <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', 1)", false, $_langLabels[$_viewLang] ?? $_viewLang); ?>
+                                <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', 1)"
+                                        class="text-sm px-3 py-1 rounded border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition cursor-pointer inline-flex items-center gap-1 whitespace-nowrap">
+                                    <i class="ti ti-eye text-base"></i><?php echo __('admin_channel_restore'); ?>
+                                </button>
                                 <?php if (empty($ch['is_system'])): ?>
                                 <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
                                         class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
@@ -816,7 +819,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
                                     <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
                                     <a href="?edit=<?php echo $child['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
-                                    <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
+                                    <?php if (empty($child['status'])): ?>
+                                    <button onclick="toggleField(<?php echo $child['id']; ?>, 'status', 1)"
+                                            class="text-sm px-3 py-1 rounded border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition cursor-pointer inline-flex items-center gap-1 whitespace-nowrap">
+                                        <i class="ti ti-eye text-base"></i><?php echo __('admin_channel_restore'); ?>
+                                    </button>
+                                    <?php else: ?>
+                                    <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', 0)", true, $_langLabels[$_viewLang] ?? $_viewLang); ?>
+                                    <?php endif; ?>
                                     <?php if (empty($child['is_system'])): ?>
                                     <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
                                             class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>

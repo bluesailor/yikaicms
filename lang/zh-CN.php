@@ -689,6 +689,7 @@ return [
     'admin_home' => '首页',
     'admin_channel_unassigned' => '未分配',
     'admin_channel_hidden_tab' => '已停用',
+    'admin_channel_restore' => '恢复',
     'admin_channel_hidden_empty' => '没有停用的栏目',
     'admin_channel_hidden_tip' => '停用的栏目不在前台显示，也不出现在上面的导航列表；点眼睛图标可随时恢复。',
     'admin_invalid_operation' => '非法操作',
