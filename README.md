@@ -1,9 +1,9 @@
-# Yikai CMS v1.10.0
+# Yikai CMS v1.11.0
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-276%20passing-brightgreen.svg)](./tests)
 
 **简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持简体中文、English、日本語多语言网站建设。
 
@@ -30,8 +30,21 @@
 - **案例展示** — 行业方案与成功案例
 - **招聘管理** — 职位发布，薪资/学历/经验/工作性质筛选
 - **下载中心** — 文件分类管理，本地上传与外链，下载计数
-- **单页管理** — 企业简介、服务流程等静态页面，支持排版编辑器
+- **单页管理** — 企业简介、服务流程等静态页面，富文本 / 排版编辑器双模式；停用页收纳不占列表
 - **发展历程时间线 v1.7** — 3 种布局可切换：竖向双边 / 横向 Swiper 滑块 / 紧凑列表，`[timeline]` 短码可在任意页面嵌入
+
+### 页面构建器 v1.11
+- **可视化区块编辑** — 区块(1-4列) → 列 → 元素三层结构，拖拽排序，17 种内置元素（标题/富文本/图片/按钮/图标/视频/CTA/卡片/提示条/引用/图标框/动态列表/轮播/导航…）
+- **实时预览** — 编辑防抖刷新 iframe 预览，桌面/平板/手机三档视口
+- **响应式三档** — 内边距/列间距/间距高度可按 桌面/平板/手机 分档设置，渲染 Tailwind 断点前缀
+- **可复用块** — 区块存入块库，页面引用插入，改一处全站生效；也可副本插入独立编辑
+- **预设库** — Hero/特性/CTA/团队/画廊/数据/评价 7 种区块预设 + 整页模板一键插入
+- **动态元素** — 按栏目/自定义模型拉实时内容（view-time 渲染），插件可注册自定义元素
+
+### 自定义内容模型 v1.11
+- **模型即建即用** — 后台定义内容类型（团队/解决方案/FAQ…），自动获得增删改查、栏目绑定、前台列表/详情
+- **字段复用** — 复用扩展字段体系定义模型字段，预置方案一键套用
+- **标签打通** — `{yk:list type=模型key}` 标签与构建器动态列表直接消费模型内容
 
 ### 主题系统
 - **3 套内置主题** — Default（标准）、Minimal（极简）、Business（深色商务风）
@@ -127,7 +140,7 @@ git clone https://github.com/bluesailor/yikaicms.git
 ├── admin/          # 后台管理
 ├── assets/         # 静态资源（CSS、JS、字体）
 ├── config/         # 配置文件
-├── includes/       # 核心代码（模型、函数、钩子、AI）
+├── includes/       # 核心代码（模型、函数、钩子、AI、构建器引擎）
 ├── install/        # 安装向导 + SQL 脚本（MySQL / SQLite）
 ├── lang/           # 语言包
 ├── plugins/        # 插件目录
