@@ -285,7 +285,7 @@ $currentMenu = 'plugin';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-4xl mx-auto" x-data="pluginMarket()">
+<div x-data="pluginMarket()">
     <!-- 页签 + 操作栏 -->
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-1">
@@ -334,7 +334,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm">没有匹配的插件</div>
         </template>
 
-        <div class="grid md:grid-cols-2 gap-4" x-show="!loading && !error">
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="!loading && !error">
             <template x-for="p in items" :key="p.slug">
                 <div class="bg-white rounded-lg shadow px-5 py-4 flex flex-col gap-2">
                     <div class="flex items-center gap-3">
