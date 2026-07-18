@@ -264,8 +264,9 @@ if ($adminBrand === '后台管理') {
                     </div>
                     <?php endif; ?>
 
-                    <a href="/" target="_blank" class="flex items-center justify-center w-9 h-9 rounded-full text-white bg-primary hover:bg-secondary shadow-sm transition" title="<?php echo __('admin_visit_frontend'); ?>">
-                        <i class="ti ti-external-link text-lg"></i>
+                    <a href="/" target="_blank" class="flex items-center gap-1.5 text-sm text-white bg-primary hover:bg-secondary px-3 py-1.5 rounded-full shadow-sm transition whitespace-nowrap" title="<?php echo __('admin_visit_frontend'); ?>">
+                        <i class="ti ti-external-link text-base"></i>
+                        <span class="hidden sm:inline"><?php echo __('admin_visit_frontend'); ?></span>
                     </a>
 
                     <!-- HTML 缓存设置 -->

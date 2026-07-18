@@ -70,7 +70,7 @@ function renderAdminBar(): void
       <a href="/admin/setting_cache.php">清缓存</a>
       <span class="ik-ab-right">
         <a href="/admin/profile.php">👤 <?php echo e($name); ?></a>
-        <a href="/admin/logout.php">退出</a>
+        <a href="/admin/logout.php">🚪 退出</a>
       </span>
     </div>
     <?php
