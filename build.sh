@@ -146,6 +146,14 @@ EXCLUDES=(
     "tailwind.config.js"
     "postcss.config.js"
 
+    # 插件：包内只预装核心体验两件（back-to-top 返回顶部、cookie-consent Cookie 同意），
+    # 其余走插件市场按需安装（update.yikaicms.com/api/plugins/）。源码保留在仓库供开发与市场打包。
+    "plugins/_example"
+    "plugins/announcement"
+    "plugins/menu-sort"
+    "plugins/search-replace"
+    "plugins/stats"
+
     # 临时测试文件（如本地 dev 时手写的）
     "recipe_test.php"
     "_i18n_test.php"
