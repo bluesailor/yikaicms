@@ -56,7 +56,7 @@ function renderFrontEdit(): void
 
       function hide() { box.style.display = 'none'; current = null; }
 
-      // 按元素上的标记算编辑链接：构建器区块 data-yk-sec / 首页区块 data-yk-home
+      // 按元素上的标记算编辑链接：构建器区块 data-yk-sec / 首页区块 data-yk-home / 导航 data-yk-nav
       function editUrl(el) {
         if (el.hasAttribute('data-yk-sec')) {
           return '/admin/page_edit_advance.php?id=' + cid + '&focus=' + el.getAttribute('data-yk-sec');
@@ -64,7 +64,13 @@ function renderFrontEdit(): void
         if (el.hasAttribute('data-yk-home')) {
           return '/admin/setting_home.php?focus=' + encodeURIComponent(el.getAttribute('data-yk-home'));
         }
+        if (el.hasAttribute('data-yk-nav')) {
+          return '/admin/channel.php';
+        }
         return '#';
+      }
+      function editLabel(el) {
+        return el.hasAttribute('data-yk-nav') ? '✎ 编辑导航' : '✎ 编辑此区块';
       }
 
       function place(sec) {
@@ -75,13 +81,14 @@ function renderFrontEdit(): void
         box.style.width  = r.width + 'px';
         box.style.height = r.height + 'px';
         btn.href = editUrl(sec);
+        btn.textContent = editLabel(sec);
       }
 
       function attach(sec) {
         sec.addEventListener('mouseenter', function () { clearTimeout(hideTimer); current = sec; place(sec); });
         sec.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
       }
-      document.querySelectorAll('[data-yk-sec],[data-yk-home]').forEach(attach);
+      document.querySelectorAll('[data-yk-sec],[data-yk-home],[data-yk-nav]').forEach(attach);
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
       btn.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
