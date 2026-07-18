@@ -271,7 +271,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 区块列表 -->
             <div x-ref="sectionsContainer">
                 <template x-for="(section, si) in sections" :key="section.id">
-                    <div class="border border-gray-200 rounded-lg mb-4 group/section hover:border-blue-300 transition">
+                    <div class="border border-gray-200 rounded-lg mb-4 group/section hover:border-blue-300 transition" :data-si="si">
                         <!-- 区块工具栏 -->
                         <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-t-lg border-b">
                             <div class="flex items-center gap-2">
@@ -1398,6 +1398,21 @@ function pageBuilder() {
             this.$nextTick(function() { self.initSortable(); });
             // 区块变化 → 防抖刷新预览
             this.$watch("sections", function() { self.schedulePreview(); });
+            // 前台就地编辑深链：?focus=N → 滚动到并高亮第 N 个区块
+            this.$nextTick(function() { self.focusSection(); });
+        },
+
+        // 定位 URL ?focus=N 指定的区块（前台悬停编辑跳转而来）
+        focusSection() {
+            var m = new URLSearchParams(location.search).get("focus");
+            if (m === null || m === "") return;
+            var el = document.querySelector("[data-si=\"" + parseInt(m, 10) + "\"]");
+            if (!el) return;
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.style.transition = "box-shadow .3s, border-color .3s";
+            el.style.boxShadow = "0 0 0 4px rgba(37,99,235,.35)";
+            el.style.borderColor = "#2563eb";
+            setTimeout(function() { el.style.boxShadow = ""; el.style.borderColor = ""; }, 2200);
         },
 
         // === 区块操作 ===

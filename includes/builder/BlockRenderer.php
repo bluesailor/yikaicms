@@ -31,6 +31,12 @@ final class BlockRenderer
     private const ALIGN_ITEMS_MAP = ['start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end'];
     private const JUSTIFY_ITEMS_MAP = ['start' => 'justify-items-start', 'center' => 'justify-items-center', 'end' => 'justify-items-end'];
 
+    /**
+     * 前台就地编辑上下文（P1）：>0 时给每个 section 输出 data-yk-sec 索引，供管理员悬停编辑覆盖层定位。
+     * 仅由前台页面渲染在「管理员浏览」时设置（见 page.php）；保存快照/预览/黄金对拍均不设置 → 无标记。
+     */
+    public static int $editChannelId = 0;
+
     public static function render(string $blocksJson): string
     {
         $sections = json_decode($blocksJson, true);
@@ -38,8 +44,11 @@ final class BlockRenderer
             return '';
         }
 
+        // 仅当显式开启编辑上下文且当前是登录管理员时，才输出定位标记（不污染公开 HTML/缓存）
+        $editMode = self::$editChannelId > 0 && !empty($_SESSION['admin_id']);
+
         $html = '';
-        foreach ($sections as $section) {
+        foreach ($sections as $secIndex => $section) {
             // 可复用块引用：{library_id: N} → 渲染时从块库展开（改库一处全站生效）。
             // 库块被删/表缺失 → 静默跳过；展开结果里再出现 library_id 一律忽略（防嵌套循环）。
             if (!empty($section['library_id'])) {
@@ -91,7 +100,8 @@ final class BlockRenderer
                 }
             }
 
-            $html .= '<section class="' . $padding . '"' . $styleAttr . '>';
+            $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
+            $html .= '<section class="' . $padding . '"' . $styleAttr . $editAttr . '>';
             $html .= '<div class="' . $maxWidth . ' mx-auto px-4">';
             if ($gridClass) {
                 $html .= '<div class="' . $gridClass . '">';
