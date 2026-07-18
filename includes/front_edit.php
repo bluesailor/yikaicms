@@ -16,7 +16,8 @@ function renderFrontEdit(): void
     if (empty($_SESSION['admin_id'])) return;
     $cid  = (int) ($GLOBALS['ik_front_edit_cid'] ?? 0);   // 构建器页面 channel id
     $home = !empty($GLOBALS['ik_front_edit_home']);        // 首页
-    if ($cid <= 0 && !$home) return;
+    $csrf = function_exists('csrfToken') ? csrfToken() : '';
+    // 覆盖层对任何登录管理员都渲染（区块悬停按标记生效；Logo 就地编辑全站可用）
     ?>
     <style>
       #yk-edit-outline { position: absolute; z-index: 99990; pointer-events: none;
@@ -28,7 +29,17 @@ function renderFrontEdit(): void
         font-family: system-ui,-apple-system,"Microsoft YaHei",sans-serif; cursor: pointer;
         box-shadow: 0 2px 8px rgba(0,0,0,.2); }
       #yk-edit-btn:hover { background: #1d4ed8; }
-      @media print { #yk-edit-outline { display: none !important; } }
+      /* Logo 就地编辑 */
+      [data-yk-logo] { position: relative; }
+      [data-yk-logo]::after { content: ""; position: absolute; inset: -6px; border: 2px dashed transparent;
+        border-radius: 6px; pointer-events: none; transition: border-color .15s; }
+      [data-yk-logo]:hover::after { border-color: #2563eb; }
+      .yk-logo-btn { position: absolute; top: -10px; right: -10px; z-index: 99991;
+        background: #2563eb; color: #fff; font-size: 11px; line-height: 1; font-weight: 600;
+        padding: 4px 8px; border-radius: 999px; white-space: nowrap; cursor: pointer; display: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,.25); font-family: system-ui,-apple-system,"Microsoft YaHei",sans-serif; }
+      [data-yk-logo]:hover .yk-logo-btn, .yk-logo-btn:hover { display: block; }
+      @media print { #yk-edit-outline, .yk-logo-btn { display: none !important; } }
     </style>
     <script>
     (function () {
@@ -77,6 +88,61 @@ function renderFrontEdit(): void
 
       window.addEventListener('scroll', function () { if (current) place(current); }, { passive: true });
       window.addEventListener('resize', function () { if (current) place(current); });
+
+      // ===== Logo 就地编辑：悬停显示「换Logo」，选图后上传 + 保存 + 实时替换 =====
+      var csrf = <?php echo json_encode($csrf); ?>;
+      var fileInput = document.createElement('input');
+      fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
+      document.body.appendChild(fileInput);
+
+      document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
+        var b = document.createElement('span');
+        b.className = 'yk-logo-btn';
+        b.textContent = '✎ 换Logo';
+        logo.appendChild(b);
+        b.addEventListener('click', function (e) {
+          e.preventDefault(); e.stopPropagation();
+          fileInput.onchange = function () {
+            if (!fileInput.files[0]) return;
+            uploadAndSaveLogo(fileInput.files[0]);
+            fileInput.value = '';
+          };
+          fileInput.click();
+        });
+      });
+
+      function toast(msg, ok) {
+        var t = document.createElement('div');
+        t.textContent = msg;
+        t.style.cssText = 'position:fixed;left:50%;top:50px;transform:translateX(-50%);z-index:100000;'
+          + 'background:' + (ok ? '#16a34a' : '#dc2626') + ';color:#fff;padding:8px 16px;border-radius:8px;'
+          + 'font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+        document.body.appendChild(t);
+        setTimeout(function () { t.remove(); }, 2200);
+      }
+
+      function uploadAndSaveLogo(file) {
+        var fd = new FormData(); fd.append('file', file); fd.append('type', 'images'); fd.append('_token', csrf);
+        toast('上传中…', true);
+        fetch('/admin/upload.php', { method: 'POST', body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d.code !== 0) { toast(d.msg || '上传失败', false); return; }
+            var url = d.data.url;
+            var sd = new FormData();
+            sd.append('key', 'site_logo'); sd.append('value', url); sd.append('_token', csrf);
+            return fetch('/admin/front_edit_api.php', { method: 'POST', body: sd })
+              .then(function (r) { return r.json(); })
+              .then(function (s) {
+                if (s.code !== 0) { toast(s.msg || '保存失败', false); return; }
+                // 实时替换所有 Logo 图；原来是文字站名的则刷新以显示新图
+                var imgs = document.querySelectorAll('[data-yk-logo] img');
+                if (imgs.length) { imgs.forEach(function (im) { im.src = url; }); toast('Logo 已更新', true); }
+                else { toast('Logo 已保存，刷新中…', true); setTimeout(function () { location.reload(); }, 700); }
+              });
+          })
+          .catch(function (err) { toast('网络错误：' + err.message, false); });
+      }
     })();
     </script>
     <?php

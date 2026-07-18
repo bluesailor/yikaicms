@@ -185,7 +185,7 @@ function getChannelUrl(array $channel): string {
         <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center gap-2">
+                <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-10">
                     <?php else: ?>
@@ -258,7 +258,7 @@ function getChannelUrl(array $channel): string {
         <!-- Layout: Logo left + Navigation right (default) -->
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center gap-2">
+                <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-10">
                     <?php else: ?>
