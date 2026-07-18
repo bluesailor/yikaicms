@@ -14,8 +14,9 @@ if (!defined('ROOT_PATH')) exit;
 function renderFrontEdit(): void
 {
     if (empty($_SESSION['admin_id'])) return;
-    $cid = (int) ($GLOBALS['ik_front_edit_cid'] ?? 0);
-    if ($cid <= 0) return;
+    $cid  = (int) ($GLOBALS['ik_front_edit_cid'] ?? 0);   // 构建器页面 channel id
+    $home = !empty($GLOBALS['ik_front_edit_home']);        // 首页
+    if ($cid <= 0 && !$home) return;
     ?>
     <style>
       #yk-edit-outline { position: absolute; z-index: 99990; pointer-events: none;
@@ -44,6 +45,17 @@ function renderFrontEdit(): void
 
       function hide() { box.style.display = 'none'; current = null; }
 
+      // 按元素上的标记算编辑链接：构建器区块 data-yk-sec / 首页区块 data-yk-home
+      function editUrl(el) {
+        if (el.hasAttribute('data-yk-sec')) {
+          return '/admin/page_edit_advance.php?id=' + cid + '&focus=' + el.getAttribute('data-yk-sec');
+        }
+        if (el.hasAttribute('data-yk-home')) {
+          return '/admin/setting_home.php?focus=' + encodeURIComponent(el.getAttribute('data-yk-home'));
+        }
+        return '#';
+      }
+
       function place(sec) {
         var r = sec.getBoundingClientRect();
         box.style.display = 'block';
@@ -51,14 +63,14 @@ function renderFrontEdit(): void
         box.style.left   = (r.left + window.scrollX) + 'px';
         box.style.width  = r.width + 'px';
         box.style.height = r.height + 'px';
-        btn.href = '/admin/page_edit_advance.php?id=' + cid + '&focus=' + sec.getAttribute('data-yk-sec');
+        btn.href = editUrl(sec);
       }
 
       function attach(sec) {
         sec.addEventListener('mouseenter', function () { clearTimeout(hideTimer); current = sec; place(sec); });
         sec.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
       }
-      document.querySelectorAll('[data-yk-sec]').forEach(attach);
+      document.querySelectorAll('[data-yk-sec],[data-yk-home]').forEach(attach);
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
       btn.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });

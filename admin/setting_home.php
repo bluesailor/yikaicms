@@ -845,6 +845,23 @@ document.getElementById('settingForm').addEventListener('submit', function (e) {
     collectTestimonials();
     adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
 });
+
+// 前台就地编辑深链：?focus=type → 展开、滚动并高亮对应区块卡片
+(function () {
+    var focus = new URLSearchParams(location.search).get('focus');
+    if (!focus) return;
+    setTimeout(function () {
+        var card = document.querySelector('.block-card[data-type="' + focus.replace(/"/g, '') + '"]');
+        if (!card) return;
+        // 展开该卡片（点击折叠按钮）
+        var toggle = card.querySelector('button[type="button"] .ti-chevron-down');
+        if (toggle && !card.classList.contains('yk-expanded')) { toggle.closest('button').click(); }
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.transition = 'box-shadow .3s';
+        card.style.boxShadow = '0 0 0 4px rgba(37,99,235,.35)';
+        setTimeout(function () { card.style.boxShadow = ''; }, 2400);
+    }, 300);
+})();
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

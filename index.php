@@ -198,10 +198,20 @@ new Swiper(".banner-swiper", {
 // 引入头部
 require_once theme_path('layouts/header.php');
 
+// 前台就地编辑（P1）：登录管理员浏览首页时，给每个区块打编辑标记 + 开启悬停编辑覆盖层
+$ykHomeEdit = !empty($_SESSION['admin_id']);
+if ($ykHomeEdit) {
+    $GLOBALS['ik_front_edit_home'] = true;
+    $GLOBALS['ik_edit_url'] = '/admin/setting_home.php';
+}
+
 // 动态渲染首页区块
 foreach ($blocksConfig as $block) {
     if (empty($block['enabled'])) continue;
     $type = $block['type'] ?? '';
+
+    // 缓冲每个区块输出，管理员浏览时把 data-yk-home 注入首个标签（无额外包裹，不破版式）
+    if ($ykHomeEdit) ob_start();
 
     if (str_starts_with($type, 'channel:')) {
         // 独立栏目区块
@@ -212,6 +222,14 @@ foreach ($blocksConfig as $block) {
         }
     } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
         require $blockTemplates[$type];
+    }
+
+    if ($ykHomeEdit) {
+        $blockHtml = ob_get_clean();
+        if ($blockHtml !== '') {
+            $blockHtml = preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $blockHtml, 1);
+        }
+        echo $blockHtml;
     }
 }
 
