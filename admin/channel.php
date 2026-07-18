@@ -576,10 +576,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                <?php if (empty($ch['is_system'])): ?>
-                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
-                                <?php endif; ?>
                             </div>
                             <?php if (!empty($ch['children'])): ?>
                             <div class="sortable-children ml-8 mt-2 space-y-2" data-parent="<?php echo $ch['id']; ?>">
@@ -604,10 +600,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <?php endif; ?>
                                         <?php endif; ?>
                                         <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                        <?php if (empty($child['is_system'])): ?>
-                                        <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
-                                                class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <?php endforeach; ?>
@@ -705,10 +697,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                <?php if (empty($ch['is_system'])): ?>
-                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
-                                <?php endif; ?>
                             </div>
                         </div>
                         <?php else: ?>
@@ -756,10 +744,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                <?php if (empty($ch['is_system'])): ?>
-                                <button onclick="deleteChannel(<?php echo $ch['id']; ?>, '<?php echo e($ch['name']); ?>')"
-                                        class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
-                                <?php endif; ?>
                             </div>
                             <?php if (!empty($ch['children'])): ?>
                             <div class="ml-8 mt-2 space-y-2">
@@ -780,10 +764,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <?php endif; ?>
                                     <?php endif; ?>
                                     <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
-                                    <?php if (empty($child['is_system'])): ?>
-                                    <button onclick="deleteChannel(<?php echo $child['id']; ?>, '<?php echo e($child['name']); ?>')"
-                                            class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
-                                    <?php endif; ?>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
