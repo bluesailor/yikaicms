@@ -322,6 +322,16 @@ require theme_path('partials/page-hero.php');
                     </div>
                     <?php endif; ?>
 
+                    <?php
+                    // 前台就地编辑（P1）：登录管理员浏览 blocks 页时，开启区块定位标记 + 编辑深链。
+                    // 非管理员/非 blocks 页不触发；管理员浏览不走 HtmlCache（见 HtmlCache::isCacheable），
+                    // 故标记不会写入公开缓存。
+                    if (!empty($_SESSION['admin_id']) && ($content['content_type'] ?? '') === 'blocks') {
+                        BlockRenderer::$editChannelId = (int) $channel['id'];
+                        $GLOBALS['ik_front_edit_cid'] = (int) $channel['id'];
+                        $GLOBALS['ik_edit_url'] = '/admin/page_edit_advance.php?id=' . (int) $channel['id'];
+                    }
+                    ?>
                     <div class="prose prose-lg max-w-none">
                         <?php echo renderContentBody($content); ?>
                     </div>
