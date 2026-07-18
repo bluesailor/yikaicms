@@ -368,12 +368,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1"><?php echo __('home_bg_image'); ?></label>
                                 <div class="flex gap-1">
-                                    <input type="text" class="block-bg-image flex-1 border rounded px-2 py-1.5 text-xs"
+                                    <input type="text" class="block-bg-image flex-1 min-w-0 border rounded px-2 py-1.5 text-xs"
                                            value="<?php echo e($block['bg_image'] ?? ''); ?>" placeholder="图片URL">
-                                    <button type="button" class="block-bg-media bg-blue-50 hover:bg-blue-100 text-blue-500 px-2 rounded" title="<?php echo __('admin_media_library'); ?>">
+                                    <button type="button" class="block-bg-media shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-500 px-1.5 rounded" title="<?php echo __('admin_media_library'); ?>">
                                         <i class="ti ti-photo text-base"></i>
                                     </button>
-                                    <button type="button" class="block-bg-upload bg-gray-100 hover:bg-gray-200 text-gray-500 px-2 rounded" title="上传">
+                                    <button type="button" class="block-bg-upload shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-500 px-1.5 rounded" title="上传">
                                         <i class="ti ti-upload text-base"></i>
                                     </button>
                                 </div>
