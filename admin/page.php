@@ -230,13 +230,6 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                             <i class="ti ti-external-link text-sm"></i>
                             <?php echo __('admin_preview'); ?>
                         </a>
-                        <?php if (empty($item['is_system']) && ($item['type'] ?? '') !== 'album'): ?>
-                        <button onclick="deletePage(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')"
-                                class="text-red-500 hover:underline text-sm inline-flex items-center gap-1 ml-1">
-                            <i class="ti ti-trash text-sm"></i>
-                            <?php echo __('admin_delete'); ?>
-                        </button>
-                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
