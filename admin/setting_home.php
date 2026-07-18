@@ -264,7 +264,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
 
 <form id="settingForm">
     <!-- 导航首页文字 -->
-    <div class="bg-white rounded-lg shadow mb-6 max-w-6xl mx-auto">
+    <div class="bg-white rounded-lg shadow mb-6">
         <div class="p-5 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <label class="text-gray-700 text-sm">
@@ -307,7 +307,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 
-    <div id="blocksContainer" class="space-y-3 max-w-6xl mx-auto">
+    <div id="blocksContainer" class="space-y-3">
         <?php foreach ($blocksConfig as $block):
             $type = $block['type'] ?? '';
             $meta = $blockMeta[$type] ?? null;
@@ -364,7 +364,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     ?>
                     <div class="bg-gray-50 rounded-lg p-4">
                         <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">版块样式</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1"><?php echo __('home_bg_image'); ?></label>
                                 <div class="flex gap-1">
@@ -378,7 +378,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                     </button>
                                 </div>
                             </div>
-                            <div x-data="{ bgMode: '<?php echo $bgMode; ?>' }" class="md:col-span-2">
+                            <div x-data="{ bgMode: '<?php echo $bgMode; ?>' }" class="sm:col-span-2">
                                 <input type="hidden" class="block-bg-mode" :value="bgMode">
                                 <div class="flex items-center gap-2 mb-1">
                                     <label class="text-xs text-gray-500">背景色</label>
@@ -391,11 +391,32 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                                 class="text-[10px] leading-none px-1.5 py-1 rounded transition">渐变</button>
                                     </div>
                                 </div>
+                                <!-- 预置背景（含放射渐变）：点击直接套用，写入背景色原始 CSS 值 -->
+                                <div class="flex flex-wrap gap-1.5 mb-2">
+                                    <?php
+                                    $bgPresets = [
+                                        '#ffffff', '#f8fafc', '#f1f5f9', '#0f172a',
+                                        'linear-gradient(135deg,#3B82F6,#8B5CF6)',
+                                        'linear-gradient(135deg,#06b6d4,#10b981)',
+                                        'linear-gradient(135deg,#f59e0b,#ef4444)',
+                                        'linear-gradient(135deg,#ec4899,#8b5cf6)',
+                                        'radial-gradient(circle at 30% 30%,#60a5fa,#1e3a8a)',
+                                        'radial-gradient(circle,#a78bfa,#4c1d95)',
+                                        'radial-gradient(circle at 70% 20%,#fda4af,#7f1d1d)',
+                                    ];
+                                    foreach ($bgPresets as $preset):
+                                    ?>
+                                    <button type="button" title="<?php echo e($preset); ?>"
+                                            @click="bgMode='solid'; applyBgPreset($el, '<?php echo e($preset); ?>')"
+                                            class="w-6 h-6 rounded border border-gray-200 hover:ring-2 hover:ring-primary/50 transition"
+                                            style="background:<?php echo $preset; ?>"></button>
+                                    <?php endforeach; ?>
+                                </div>
                                 <div class="flex gap-1" x-show="bgMode==='solid'">
                                     <input type="color" class="block-bg-picker w-8 h-[30px] border rounded cursor-pointer p-0.5"
                                            value="<?php echo e($bgPickerVal); ?>">
-                                    <input type="text" class="block-bg-color flex-1 border rounded px-2 py-1.5 text-xs"
-                                           value="<?php echo e($isGradient ? '' : $blockBgColor); ?>" placeholder="<?php echo $bgDefault ? '默认: ' . e($bgDefault) : '#hex'; ?>">
+                                    <input type="text" class="block-bg-color flex-1 min-w-0 border rounded px-2 py-1.5 text-xs"
+                                           value="<?php echo e($isGradient ? '' : $blockBgColor); ?>" placeholder="<?php echo $bgDefault ? '默认: ' . e($bgDefault) : '#hex 或渐变'; ?>">
                                 </div>
                                 <div x-show="bgMode==='gradient'">
                                     <div class="flex gap-1 items-center">
@@ -568,7 +589,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     foreach ($displayKeys as $dk) { if (isset($settingsMap[$dk])) { $hasDisplayItems = true; break; } }
     ?>
     <?php if ($hasDisplayItems): ?>
-    <div class="max-w-6xl mx-auto mt-6">
+    <div class="mt-6">
         <div class="bg-white rounded-lg shadow">
             <div class="px-5 py-3 border-b">
                 <h3 class="text-sm font-medium text-gray-600">合作伙伴</h3>
@@ -608,7 +629,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     </div>
     <?php endif; ?>
 
-    <div class="max-w-6xl mx-auto mt-6">
+    <div class="mt-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
             <i class="ti ti-check text-base"></i>
             <?php echo __('btn_save_settings'); ?>
@@ -763,6 +784,16 @@ var currentImageKey = '';
 function uploadImage(key) {
     currentImageKey = key;
     document.getElementById('imageFileInput').click();
+}
+
+// 套用预置背景（把原始 CSS 值写入背景色输入，单色模式下按原值渲染，支持放射渐变）
+function applyBgPreset(btnEl, css) {
+    var card = btnEl.closest('.block-card');
+    var input = card && card.querySelector('.block-bg-color');
+    if (input) {
+        input.value = css;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 }
 
 // 区块背景图上传 / 从媒体库选择（事件委托）
