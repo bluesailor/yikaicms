@@ -394,15 +394,29 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 <!-- 预置背景（含放射渐变）：点击直接套用，写入背景色原始 CSS 值 -->
                                 <div class="flex flex-wrap gap-1.5 mb-2">
                                     <?php
+                                    // 精选预置：Tailwind 单色 + uiGradients/GradientCraft 风格渐变 + 放射渐变
                                     $bgPresets = [
-                                        '#ffffff', '#f8fafc', '#f1f5f9', '#0f172a',
-                                        'linear-gradient(135deg,#3B82F6,#8B5CF6)',
-                                        'linear-gradient(135deg,#06b6d4,#10b981)',
+                                        // 单色（Tailwind）
+                                        '#ffffff', '#f8fafc', '#f1f5f9', '#0f172a', '#111827',
+                                        // 线性渐变（Tailwind 配色）
+                                        'linear-gradient(135deg,#6366f1,#a855f7)',
+                                        'linear-gradient(135deg,#3b82f6,#06b6d4)',
+                                        'linear-gradient(135deg,#0ea5e9,#6dd5fa)',
+                                        'linear-gradient(135deg,#10b981,#14b8a6)',
+                                        'linear-gradient(135deg,#f43f5e,#f97316)',
                                         'linear-gradient(135deg,#f59e0b,#ef4444)',
                                         'linear-gradient(135deg,#ec4899,#8b5cf6)',
+                                        // 线性渐变（uiGradients 经典）
+                                        'linear-gradient(135deg,#cc2b5e,#753a88)',
+                                        'linear-gradient(135deg,#1a2980,#26d0ce)',
+                                        'linear-gradient(135deg,#4ca1af,#2c3e50)',
+                                        'linear-gradient(135deg,#0f2027,#2c5364)',
+                                        'linear-gradient(135deg,#f09819,#edde5d)',
+                                        // 放射渐变
                                         'radial-gradient(circle at 30% 30%,#60a5fa,#1e3a8a)',
                                         'radial-gradient(circle,#a78bfa,#4c1d95)',
                                         'radial-gradient(circle at 70% 20%,#fda4af,#7f1d1d)',
+                                        'radial-gradient(circle at 50% 0%,#34d399,#065f46)',
                                     ];
                                     foreach ($bgPresets as $preset):
                                     ?>
