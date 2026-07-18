@@ -370,8 +370,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 <div class="flex gap-1">
                                     <input type="text" class="block-bg-image flex-1 border rounded px-2 py-1.5 text-xs"
                                            value="<?php echo e($block['bg_image'] ?? ''); ?>" placeholder="图片URL">
+                                    <button type="button" class="block-bg-media bg-blue-50 hover:bg-blue-100 text-blue-500 px-2 rounded" title="<?php echo __('admin_media_library'); ?>">
+                                        <i class="ti ti-photo text-base"></i>
+                                    </button>
                                     <button type="button" class="block-bg-upload bg-gray-100 hover:bg-gray-200 text-gray-500 px-2 rounded" title="上传">
-                                        <i class="ti ti-folder text-base"></i>
+                                        <i class="ti ti-upload text-base"></i>
                                     </button>
                                 </div>
                             </div>
@@ -762,14 +765,23 @@ function uploadImage(key) {
     document.getElementById('imageFileInput').click();
 }
 
-// 区块背景图上传（事件委托）
+// 区块背景图上传 / 从媒体库选择（事件委托）
 var blockBgUploadTarget = null;
 document.getElementById('blocksContainer').addEventListener('click', function(e) {
-    var btn = e.target.closest('.block-bg-upload');
-    if (btn) {
-        blockBgUploadTarget = btn.closest('.block-card').querySelector('.block-bg-image');
+    var upBtn = e.target.closest('.block-bg-upload');
+    if (upBtn) {
+        blockBgUploadTarget = upBtn.closest('.block-card').querySelector('.block-bg-image');
         currentImageKey = '__block_bg__';
         document.getElementById('imageFileInput').click();
+        return;
+    }
+    var mediaBtn = e.target.closest('.block-bg-media');
+    if (mediaBtn) {
+        var target = mediaBtn.closest('.block-card').querySelector('.block-bg-image');
+        openMediaPicker(function(url) {
+            target.value = url;
+            target.dispatchEvent(new Event('input', { bubbles: true }));  // 触发预览/配置收集
+        });
     }
 });
 
