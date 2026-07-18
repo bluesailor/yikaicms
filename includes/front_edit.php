@@ -23,11 +23,11 @@ function renderFrontEdit(): void
       #yk-edit-outline { position: absolute; z-index: 99990; pointer-events: none;
         border: 2px solid #2563eb; border-radius: 6px; box-shadow: 0 0 0 4px rgba(37,99,235,.12);
         display: none; transition: opacity .1s; }
-      #yk-edit-btn { position: absolute; top: -1px; right: -1px; pointer-events: auto;
-        background: #2563eb; color: #fff; font-size: 12px; line-height: 1; font-weight: 600;
-        padding: 6px 10px; border-radius: 0 4px 0 8px; text-decoration: none; white-space: nowrap;
+      #yk-edit-btn { position: absolute; top: 0; right: 0; pointer-events: auto;
+        background: #2563eb; color: #fff; font-size: 16px; line-height: 1.1; font-weight: 700;
+        padding: 10px 18px; border-radius: 0 6px 0 12px; text-decoration: none; white-space: nowrap;
         font-family: system-ui,-apple-system,"Microsoft YaHei",sans-serif; cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+        box-shadow: 0 3px 12px rgba(0,0,0,.28); letter-spacing: .5px; }
       #yk-edit-btn:hover { background: #1d4ed8; }
       /* Logo 就地编辑 */
       [data-yk-logo] { position: relative; }
