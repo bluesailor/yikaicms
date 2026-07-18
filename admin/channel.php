@@ -974,8 +974,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <label class="block text-gray-700 text-sm mb-1"><?php echo __('admin_status'); ?></label>
                         <select name="status" class="w-full border rounded px-3 py-2">
                             <option value="1" <?php echo ($editChannel['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_show'); ?></option>
-                            <option value="0" <?php echo ($editChannel['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_hide'); ?></option>
+                            <option value="0" <?php echo ($editChannel['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_hide'); ?>（停用）</option>
                         </select>
+                        <p class="text-xs text-gray-400 mt-1">选「<?php echo __('admin_hide'); ?>」即停用：前台不显示，并收进列表的「<?php echo __('admin_channel_hidden_tab'); ?>」页签，可随时恢复。</p>
                     </div>
                 </div>
 

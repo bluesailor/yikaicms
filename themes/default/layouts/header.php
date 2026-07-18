@@ -216,7 +216,7 @@ function getChannelUrl(array $channel): string {
                 </button>
             </div>
         </div>
-        <nav class="hidden md:block border-t" style="border-color: rgba(0,0,0,0.06)">
+        <nav class="hidden md:block border-t" style="border-color: rgba(0,0,0,0.06)"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
             <div class="container mx-auto px-4">
                 <div class="flex items-center gap-1">
                     <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
@@ -265,7 +265,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <nav class="hidden md:flex items-center gap-1">
+                <nav class="hidden md:flex items-center gap-1"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
                     <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
                     <a href="/" class="px-4 py-2 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
                         <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
