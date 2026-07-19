@@ -7,6 +7,11 @@ $aboutLayout = config('home_about_layout', 'text_left');
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
 $aboutTagTitle = configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', '');
 $aboutTagDesc = configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', '');
+// 版块标题：后台可自定义（home_about_title）；留空回退到「关于」+ 站点名称
+$aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
+if ($aboutTitle === '') {
+    $aboutTitle = __('home_about_title') . configRawLang('site_name', '');
+}
 $bg = getBlockBg($block ?? [], '@auto');
 ?>
 <section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
@@ -29,10 +34,7 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <?php endif; ?>
             </div>
             <div data-animate="fade-left">
-                <h2 class="blk-title mb-2"><?php
-                    $__aboutSplit = config('home_title_style', 'underline') === 'split';
-                    echo ($__aboutSplit ? '<span class="text-primary">' : '') . __('home_about_title') . ($__aboutSplit ? '</span>' : '') . e(configRawLang('site_name', ''));
-                ?></h2>
+                <h2 class="blk-title mb-2"><?php echo homeTitleInner($aboutTitle); ?></h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
@@ -46,10 +48,7 @@ $bg = getBlockBg($block ?? [], '@auto');
             <?php else: ?>
             <!-- Text on the left, image on the right (default) -->
             <div data-animate="fade-right">
-                <h2 class="blk-title mb-2"><?php
-                    $__aboutSplit = config('home_title_style', 'underline') === 'split';
-                    echo ($__aboutSplit ? '<span class="text-primary">' : '') . __('home_about_title') . ($__aboutSplit ? '</span>' : '') . e(configRawLang('site_name', ''));
-                ?></h2>
+                <h2 class="blk-title mb-2"><?php echo homeTitleInner($aboutTitle); ?></h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>

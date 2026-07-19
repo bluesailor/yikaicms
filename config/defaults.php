@@ -123,6 +123,7 @@ return [
     // 首页设置
     // ============================================================
     'home' => [
+        'home_about_title'          => ['value' => '', 'type' => 'text', 'name' => '关于版块标题', 'tip' => '首页"关于我们"区块大标题；留空 = 「关于」+ 站点名称', 'sort_order' => 0],
         'home_about_content'        => ['value' => '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。', 'type' => 'textarea', 'name' => '关于我们简介', 'tip' => '首页关于我们区块的描述文字', 'sort_order' => 1],
         'home_about_image'          => ['value' => 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80', 'type' => 'image', 'name' => '关于我们图片', 'tip' => '', 'sort_order' => 2],
         'home_about_tag_title'      => ['value' => '专业服务', 'type' => 'text', 'name' => '角标标题', 'tip' => '图片左下角标标题', 'sort_order' => 3],

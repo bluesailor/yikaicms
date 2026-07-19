@@ -5,6 +5,8 @@
  */
 $aboutLayout = config('home_about_layout', 'text_left');
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80');
+$aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
+if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('site_name', ''); }
 ?>
 <section class="py-24 relative">
     <div class="container mx-auto px-6 lg:px-8 relative">
@@ -20,7 +22,7 @@ $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1551
                     ABOUT
                 </div>
                 <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
-                    <?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?>
+                    <?php echo e($aboutTitle); ?>
                 </h2>
                 <p class="text-slate-400 leading-relaxed mt-6 text-base">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
@@ -39,7 +41,7 @@ $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1551
                     ABOUT
                 </div>
                 <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
-                    <?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?>
+                    <?php echo e($aboutTitle); ?>
                 </h2>
                 <p class="text-slate-400 leading-relaxed mt-6 text-base">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>

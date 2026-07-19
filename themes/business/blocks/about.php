@@ -4,11 +4,13 @@
  */
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
 $aboutContent = config('home_about_content', '') ?: __('home_about_default');
+$aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
+if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('site_name', ''); }
 ?>
 <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold text-dark mb-4"><?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?></h2>
+            <h2 class="text-3xl font-bold text-dark mb-4"><?php echo e($aboutTitle); ?></h2>
             <img src="/themes/business/images/divide.png" alt="" class="mx-auto">
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
