@@ -153,7 +153,7 @@ return [
         'home_adv_4_desc'           => ['value' => '与客户建立长期合作关系，实现互利共赢', 'type' => 'text', 'name' => '优势4描述', 'tip' => '', 'sort_order' => 21],
         'home_cta_title'            => ['value' => '准备好开始合作了吗？', 'type' => 'text', 'name' => 'CTA标题', 'tip' => '', 'sort_order' => 22],
         'home_cta_desc'             => ['value' => '联系我们，获取专业的解决方案', 'type' => 'text', 'name' => 'CTA描述', 'tip' => '', 'sort_order' => 23],
-        'home_show_links'           => ['value' => '1', 'type' => 'select', 'name' => '显示合作伙伴', 'tip' => '页脚是否显示合作伙伴', 'sort_order' => 24],
+        'home_show_links'           => ['value' => '0', 'type' => 'select', 'name' => '显示合作伙伴', 'tip' => '页脚是否显示合作伙伴', 'sort_order' => 24],
         'home_links_title'          => ['value' => '合作伙伴', 'type' => 'text', 'name' => '链接区块标题', 'tip' => '', 'sort_order' => 25],
         'home_testimonials'         => ['value' => '[{"avatar":"","name":"张先生","company":"某科技有限公司","content":"非常专业的服务团队，合作非常愉快！产品质量令人满意。"},{"avatar":"","name":"李女士","company":"某贸易公司","content":"产品质量优秀，售后服务及时，值得信赖的合作伙伴。"},{"avatar":"","name":"王总","company":"某集团公司","content":"多年合作，一直保持高品质的服务水准，强烈推荐！"}]', 'type' => 'home_testimonials', 'name' => '客户评价', 'tip' => '首页客户评价数据', 'sort_order' => 26],
         'home_testimonials_title'   => ['value' => '客户评价', 'type' => 'text', 'name' => '评价标题', 'tip' => '', 'sort_order' => 27],
