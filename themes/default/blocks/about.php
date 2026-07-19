@@ -7,7 +7,7 @@ $aboutLayout = config('home_about_layout', 'text_left');
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
 $aboutTagTitle = configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', '');
 $aboutTagDesc = configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', '');
-$bg = getBlockBg($block ?? [], 'bg-white');
+$bg = getBlockBg($block ?? [], '@auto');
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>

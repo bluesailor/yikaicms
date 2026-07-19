@@ -6,8 +6,9 @@
 if (config('home_show_links', '0') !== '1') return;
 $links = linkModel()->getActive();
 if (empty($links)) return;
+$bg = getBlockBg([], '@auto'); // 独立区段（不继承首页循环里遗留的 $block）
 ?>
-<section class="py-12 bg-gray-50"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-partners'; ?>>
+<section class="py-12 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?><?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-partners'; ?>><?php echo $bg['overlay']; ?>
     <div class="container mx-auto px-4">
         <div class="text-center mb-8" data-animate="fade-up">
             <h2 class="text-2xl md:text-3xl font-bold text-dark mb-2"><?php echo configLang('home_links_title', 'footer_partners'); ?></h2>
