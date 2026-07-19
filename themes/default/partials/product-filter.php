@@ -57,10 +57,10 @@ $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
 ?>
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <div class="flex items-center justify-between bg-primary text-white px-4 py-3 font-bold">
-        <span><?php echo __('filter_title', '筛选'); ?></span>
+        <span><?php echo __('filter_title'); ?></span>
         <?php if (!empty($filterActive)): ?>
         <a href="<?php echo e($buildUrl($clearParams)); ?>" class="text-xs font-normal text-white/80 hover:text-white">
-            <?php echo __('filter_clear', '清空'); ?>
+            <?php echo __('filter_clear'); ?>
         </a>
         <?php endif; ?>
     </div>
@@ -84,7 +84,7 @@ $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
         <?php // ---- 品牌 ---- ?>
         <?php if (!empty($facetBrands)): ?>
         <div class="px-4 py-3">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><?php echo __('filter_brand', '品牌'); ?></div>
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><?php echo __('filter_brand'); ?></div>
             <div class="flex flex-wrap gap-2">
                 <?php foreach ($facetBrands as $b): $on = in_array((int) $b['id'], $selBrandIds, true); ?>
                 <a href="<?php echo e($toggleUrl('brand', (int) $b['id'])); ?>"
@@ -99,7 +99,7 @@ $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
         <?php // ---- 价格区间 ---- ?>
         <?php if (($facetPrice['max'] ?? 0) > 0): ?>
         <div class="px-4 py-3">
-            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><?php echo __('filter_price', '价格'); ?></div>
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><?php echo __('filter_price'); ?></div>
             <form method="get" action="<?php echo e($fbase); ?>" class="flex items-center gap-1.5">
                 <?php foreach (array_diff_key($curFilters, ['pmin' => 1, 'pmax' => 1]) as $hk => $hv): ?>
                 <input type="hidden" name="<?php echo e($hk); ?>" value="<?php echo e($hv); ?>">
@@ -112,7 +112,7 @@ $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
                        placeholder="<?php echo (int) ceil($facetPrice['max']); ?>"
                        class="w-full min-w-0 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
                 <button type="submit" class="shrink-0 bg-primary text-white text-sm px-3 py-1 rounded hover:bg-secondary transition">
-                    <?php echo __('filter_go', '确定'); ?>
+                    <?php echo __('filter_go'); ?>
                 </button>
             </form>
         </div>
