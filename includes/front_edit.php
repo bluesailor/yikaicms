@@ -70,11 +70,15 @@ function renderFrontEdit(): void
         if (el.hasAttribute('data-yk-footer')) {
           return '/admin/setting.php?tab=footer';
         }
+        if (el.hasAttribute('data-yk-partners')) {
+          return '/admin/link.php';
+        }
         return '#';
       }
       function editLabel(el) {
-        if (el.hasAttribute('data-yk-nav'))    return '✎ 编辑导航';
-        if (el.hasAttribute('data-yk-footer')) return '✎ 编辑页脚';
+        if (el.hasAttribute('data-yk-nav'))      return '✎ 编辑导航';
+        if (el.hasAttribute('data-yk-footer'))   return '✎ 编辑页脚';
+        if (el.hasAttribute('data-yk-partners')) return '✎ 编辑合作伙伴';
         return '✎ 编辑此区块';
       }
 
@@ -100,7 +104,7 @@ function renderFrontEdit(): void
         else document.addEventListener('DOMContentLoaded', fn);
       }
       onReady(function () {
-        document.querySelectorAll('[data-yk-sec],[data-yk-home],[data-yk-nav],[data-yk-footer]').forEach(attach);
+        document.querySelectorAll('[data-yk-sec],[data-yk-home],[data-yk-nav],[data-yk-footer],[data-yk-partners]').forEach(attach);
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });

@@ -257,6 +257,12 @@ foreach ($blocksConfig as $block) {
     }
 }
 
+// 合作伙伴 / 友情链接：独立区段，置于页脚之上（从页脚上移出来）
+$__partnersBlock = theme_path('blocks/partners.php');
+if (is_file($__partnersBlock)) {
+    require $__partnersBlock;
+}
+
 require_once theme_path('layouts/footer.php');
 HtmlCache::end();
 ?>
