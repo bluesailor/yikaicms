@@ -118,7 +118,7 @@ if ($footerBgImage) {
     <?php do_action('ik_footer_before'); ?>
 
     <!-- footer -->
-    <footer class="mt-auto" style="<?php echo $footerBgStyle; ?> color: <?php echo e($footerTextColor); ?>">
+    <footer class="mt-auto" style="<?php echo $footerBgStyle; ?> color: <?php echo e($footerTextColor); ?>"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-footer'; ?>>
         <div class="container mx-auto px-4 py-12">
             <?php if (!empty($footerColumns)): ?>
             <div class="grid grid-cols-1 md:grid-cols-<?php echo $totalCols; ?> gap-8">
