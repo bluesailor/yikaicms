@@ -9,7 +9,7 @@ $channelType = $hChannel['type'];
 $contents = $hChannel['contents'];
 // 无内容的栏目不在首页渲染（避免输出只有标题/骨架占位的空区块）
 if (empty($contents)) return;
-$bg = getBlockBg($block ?? [], 'bg-gray-50');
+$bg = getBlockBg($block ?? [], '@auto');
 // 每行个数 → 响应式网格类（字面量写全供 Tailwind 扫描）
 $perRow = (int)($hChannel['per_row'] ?? 4);
 $perRowGrid = [

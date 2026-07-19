@@ -1011,6 +1011,17 @@ function getBlockBg(array $block, string $defaultClass = ''): array
     $layout = $block['layout'] ?? 'container';
     $container = $layout === 'full' ? 'w-full px-4 md:px-8' : 'container mx-auto px-4';
 
+    // '@auto'：内容区块未显式配背景时，按渲染顺序在 白 / 浅灰 间斑马交替，
+    // 保证相邻内容区块背景色不同、有清晰间隔（强色区块 banner/advantage/cta 不参与）。
+    if ($defaultClass === '@auto') {
+        if ($bgImage === '' && $bgColor === '') {
+            static $autoSlot = 0;
+            $defaultClass = ($autoSlot++ % 2 === 0) ? 'bg-white' : 'bg-gray-50';
+        } else {
+            $defaultClass = '';
+        }
+    }
+
     if (!$bgImage && !$bgColor) {
         return ['class' => $defaultClass, 'style' => '', 'overlay' => '', 'content' => '', 'container' => $container];
     }
