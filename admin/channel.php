@@ -972,11 +972,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <div>
                         <label class="block text-gray-700 text-sm mb-1"><?php echo __('admin_status'); ?></label>
-                        <select name="status" class="w-full border rounded px-3 py-2">
-                            <option value="1" <?php echo ($editChannel['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_show'); ?></option>
-                            <option value="0" <?php echo ($editChannel['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_hide'); ?>（停用）</option>
-                        </select>
-                        <p class="text-xs text-gray-400 mt-1">选「<?php echo __('admin_hide'); ?>」即停用：前台不显示，并收进列表的「<?php echo __('admin_channel_hidden_tab'); ?>」页签，可随时恢复。</p>
+                        <?php $chStatus = (int)($editChannel['status'] ?? 1); ?>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="status" value="1" class="peer sr-only" <?php echo $chStatus === 1 ? 'checked' : ''; ?>>
+                                <div class="flex items-center justify-center gap-1.5 py-2 rounded-lg border text-sm text-gray-600 hover:bg-gray-50 transition peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500">
+                                    <i class="ti ti-eye text-base"></i><?php echo __('admin_show'); ?>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="status" value="0" class="peer sr-only" <?php echo $chStatus === 0 ? 'checked' : ''; ?>>
+                                <div class="flex items-center justify-center gap-1.5 py-2 rounded-lg border text-sm text-gray-600 hover:bg-gray-50 transition peer-checked:bg-gray-600 peer-checked:text-white peer-checked:border-gray-600">
+                                    <i class="ti ti-eye-off text-base"></i>停用
+                                </div>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">「停用」= 前台不显示，收进列表「<?php echo __('admin_channel_hidden_tab'); ?>」页签，可随时恢复。</p>
                     </div>
                 </div>
 
