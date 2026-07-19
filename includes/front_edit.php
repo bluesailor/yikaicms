@@ -93,7 +93,15 @@ function renderFrontEdit(): void
         sec.addEventListener('mouseenter', function () { clearTimeout(hideTimer); current = sec; place(sec); });
         sec.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
       }
-      document.querySelectorAll('[data-yk-sec],[data-yk-home],[data-yk-nav],[data-yk-footer]').forEach(attach);
+      // 本脚本在 ik_footer_before 处执行，页脚等位于其后的元素此刻尚未入 DOM，
+      // 故延到 DOMContentLoaded 再扫描绑定（Logo/导航/首页区块在前，也一并延后无碍）。
+      function onReady(fn) {
+        if (document.readyState !== 'loading') fn();
+        else document.addEventListener('DOMContentLoaded', fn);
+      }
+      onReady(function () {
+        document.querySelectorAll('[data-yk-sec],[data-yk-home],[data-yk-nav],[data-yk-footer]').forEach(attach);
+      });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
       btn.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
@@ -107,19 +115,21 @@ function renderFrontEdit(): void
       fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
       document.body.appendChild(fileInput);
 
-      document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
-        var b = document.createElement('span');
-        b.className = 'yk-logo-btn';
-        b.textContent = '✎ 换Logo';
-        logo.appendChild(b);
-        b.addEventListener('click', function (e) {
-          e.preventDefault(); e.stopPropagation();
-          fileInput.onchange = function () {
-            if (!fileInput.files[0]) return;
-            uploadAndSaveLogo(fileInput.files[0]);
-            fileInput.value = '';
-          };
-          fileInput.click();
+      onReady(function () {
+        document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
+          var b = document.createElement('span');
+          b.className = 'yk-logo-btn';
+          b.textContent = '✎ 换Logo';
+          logo.appendChild(b);
+          b.addEventListener('click', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            fileInput.onchange = function () {
+              if (!fileInput.files[0]) return;
+              uploadAndSaveLogo(fileInput.files[0]);
+              fileInput.value = '';
+            };
+            fileInput.click();
+          });
         });
       });
 
