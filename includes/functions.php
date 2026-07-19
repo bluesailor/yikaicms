@@ -2563,6 +2563,10 @@ function renderBlocksToHtml(string $blocksJson): string
  */
 function renderContentBody(array $content): string
 {
+    // 让 {yk:field}/{yk:if}/{yk:list related} 在正文里能取到「本篇」字段
+    if (class_exists('TagEngine')) {
+        TagEngine::setItem($content, 'content');
+    }
     if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
         return renderBlocksToHtml((string) $content['blocks_data']);
     }
