@@ -1771,7 +1771,7 @@ function uploadFile(array $file, string $type = 'images'): array
     $allowedTypes = match ($type) {
         'images' => UPLOAD_IMAGE_TYPES,
         'files' => UPLOAD_FILE_TYPES,
-        default => [...UPLOAD_IMAGE_TYPES, ...UPLOAD_FILE_TYPES]
+        default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES)
     };
 
     if (!in_array($ext, $allowedTypes)) {
