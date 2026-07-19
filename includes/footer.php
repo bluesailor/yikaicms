@@ -100,7 +100,7 @@ if ($footerBgImage) {
 
             <!-- 合作伙伴 -->
             <?php
-            $showLinks = config('home_show_links', '1') === '1';
+            $showLinks = config('home_show_links', '0') === '1';
             $links = $showLinks ? linkModel()->getActive() : [];
             if (!empty($links)):
             ?>

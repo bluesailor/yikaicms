@@ -3,7 +3,7 @@
  * 首页区块：合作伙伴 / 友情链接（独立区段，置于页脚之上）
  * 由 index.php 在页脚之前渲染。有 Logo 显示 Logo，否则显示名称。
  */
-if (config('home_show_links', '1') !== '1') return;
+if (config('home_show_links', '0') !== '1') return;
 $links = linkModel()->getActive();
 if (empty($links)) return;
 ?>
