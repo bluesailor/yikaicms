@@ -21,6 +21,15 @@ $pageDescription = ($channel && $channel['seo_description']) ? $channel['seo_des
 // 获取导航
 $navChannels = getNavChannels();
 
+// 前台就地编辑：各可编辑区域标记 + 管理浮条「编辑此页」
+$__ykEdit = static function (string $url, string $label): string {
+    return empty($_SESSION['admin_id']) ? ''
+        : ' data-yk-edit="' . e($url) . '" data-yk-edit-label="' . e($label) . '"';
+};
+if (!empty($_SESSION['admin_id'])) {
+    $GLOBALS['ik_edit_url'] = '/admin/setting_contact.php';
+}
+
 // 图标SVG路径映射
 $iconPaths = [
     'phone'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>',
@@ -66,7 +75,7 @@ require theme_path('partials/page-hero.php');
     <div class="container mx-auto px-4">
         <!-- 联系信息卡片 -->
         <?php if (!empty($contactCards)): ?>
-        <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6 mb-12">
+        <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6 mb-12"<?php echo $__ykEdit('/admin/setting_contact.php', '✎ 编辑联系信息'); ?>>
             <?php foreach ($contactCards as $card): ?>
             <div class="bg-white rounded-lg shadow p-6 text-center">
                 <?php
@@ -93,7 +102,7 @@ require theme_path('partials/page-hero.php');
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- 留言表单 -->
-            <div class="bg-white rounded-lg shadow p-6 md:p-8">
+            <div class="bg-white rounded-lg shadow p-6 md:p-8"<?php echo $__ykEdit('/admin/form_design.php', '✎ 编辑留言表单'); ?>>
                 <?php $formTitle = configLang('contact_form_title', 'contact_form_title'); ?>
                 <h2 class="text-xl font-bold text-dark mb-2"><?php echo e($formTitle); ?></h2>
                 <?php if ($formDesc = configRawLang('contact_form_desc')): ?>
@@ -106,7 +115,7 @@ require theme_path('partials/page-hero.php');
             </div>
 
             <!-- 地图 / 二维码：交互地图按语言切服务商（中文 高德/百度，日英 Google），未配置则回退静态图/二维码/占位 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-white rounded-lg shadow overflow-hidden"<?php echo $__ykEdit('/admin/setting_contact.php#map', '✎ 编辑地图'); ?>>
                 <?php
                 $mLat  = trim((string) config('map_lat'));
                 $mLng  = trim((string) config('map_lng'));
