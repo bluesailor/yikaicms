@@ -47,7 +47,21 @@ class ProductControllerTest extends TestCase
                 tags TEXT,
                 created_at TEXT, updated_at TEXT,
                 lang TEXT DEFAULT 'zh-CN',
-                deleted_at INTEGER DEFAULT NULL
+                deleted_at INTEGER DEFAULT NULL,
+                brand_id INTEGER DEFAULT 0
+            )",
+            "CREATE TABLE brands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT, status INTEGER DEFAULT 1, sort_order INTEGER DEFAULT 0
+            )",
+            "CREATE TABLE product_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT, group_name TEXT DEFAULT '',
+                status INTEGER DEFAULT 1, sort_order INTEGER DEFAULT 0
+            )",
+            "CREATE TABLE product_tag_map (
+                product_id INTEGER NOT NULL, tag_id INTEGER NOT NULL,
+                PRIMARY KEY (product_id, tag_id)
             )",
         ];
     }
@@ -133,6 +147,89 @@ class ProductControllerTest extends TestCase
                   'currentSort','enabledSorts','whereConditions','contents','total'] as $k) {
             $this->assertArrayHasKey($k, $vars, "missing var: {$k}");
         }
+    }
+
+    // ---- 多条件筛选（facet）----
+
+    private function seedFacets(): void
+    {
+        $this->seedFixture(); // P-A1=1, P-A2=2 (cat1); P-B1=3 (cat2); Draft=4 (status0)
+        $pdo = db()->getPdo();
+        $pdo->exec('UPDATE products SET brand_id=1, price=100 WHERE id=1');
+        $pdo->exec('UPDATE products SET brand_id=2, price=300 WHERE id=2');
+        $pdo->exec('UPDATE products SET brand_id=1, price=500 WHERE id=3');
+        $this->insertRow('brands', ['name'=>'Acme']);    // 1
+        $this->insertRow('brands', ['name'=>'Globex']);  // 2
+        $this->insertRow('product_tags', ['name'=>'Steel',   'group_name'=>'Material']); // 1
+        $this->insertRow('product_tags', ['name'=>'Plastic', 'group_name'=>'Material']); // 2
+        $this->insertRow('product_tags', ['name'=>'Red',     'group_name'=>'Color']);    // 3
+        foreach ([[1,1],[1,3],[2,2],[3,1]] as [$pid,$tid]) {
+            $this->insertRow('product_tag_map', ['product_id'=>$pid, 'tag_id'=>$tid]);
+        }
+    }
+
+    private function prepareTop(): array
+    {
+        return (new \ProductController())->prepare(
+            ['id'=>1, 'type'=>'product', 'parent_id'=>0],
+            $this->req()
+        );
+    }
+
+    public function testFacetBrandFilterNarrowsResults(): void
+    {
+        $this->seedFacets();
+        $_GET['brand'] = '1';                    // Acme → 商品 1 与 3
+        $vars = $this->prepareTop();
+        $this->assertSame(2, $vars['total']);
+        $this->assertSame([1], $vars['selBrandIds']);
+    }
+
+    public function testFacetTagsAcrossGroupsAreAnded(): void
+    {
+        $this->seedFacets();
+        $_GET['tag'] = '1,3';                     // Steel(Material) + Red(Color) → 组间 AND → 仅商品1
+        $this->assertSame(1, $this->prepareTop()['total']);
+    }
+
+    public function testFacetTagsWithinGroupAreOred(): void
+    {
+        $this->seedFacets();
+        $_GET['tag'] = '1,2';                     // Steel+Plastic 同为 Material → 组内 OR → 商品1,2,3
+        $this->assertSame(3, $this->prepareTop()['total']);
+    }
+
+    public function testFacetPriceRangeFilter(): void
+    {
+        $this->seedFacets();
+        $_GET['pmin'] = '200'; $_GET['pmax'] = '400';  // 仅 price=300 的商品2
+        $this->assertSame(1, $this->prepareTop()['total']);
+    }
+
+    public function testFacetCombinedBrandAndTag(): void
+    {
+        $this->seedFacets();
+        $_GET['brand'] = '1'; $_GET['tag'] = '3'; // brand Acme{1,3} ∩ Red{1} → 商品1
+        $this->assertSame(1, $this->prepareTop()['total']);
+    }
+
+    public function testFacetDataExposedToView(): void
+    {
+        $this->seedFacets();
+        $vars = $this->prepareTop();
+        foreach (['facetBrands','facetTagGroups','facetPrice','filterActive'] as $k) {
+            $this->assertArrayHasKey($k, $vars, "missing facet var: {$k}");
+        }
+        $this->assertArrayHasKey('Material', $vars['facetTagGroups']);
+        $this->assertArrayHasKey('Color', $vars['facetTagGroups']);
+        $this->assertFalse($vars['filterActive']);           // 无筛选参数
+        $this->assertCount(2, $vars['facetBrands']);          // Acme + Globex（均有在售品）
+    }
+
+    protected function tearDown(): void
+    {
+        $_GET = [];   // facet 参数经 $_GET 传入，清理避免泄漏到其它测试
+        parent::tearDown();
     }
 
     /** @return array<string,mixed> */

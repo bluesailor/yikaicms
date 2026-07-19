@@ -48,6 +48,8 @@ class ProductModel extends Model
             $where[] = 'p.is_top = 1';
         }
 
+        $this->applyFacetFilters($filters, 'p.', $where, $params);
+
         $orderBy = $this->resolveSortOrder($filters['sort'] ?? '');
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard('p.');
         $sql = "SELECT p.*, pc.name as category_name, pc.slug as category_slug
@@ -92,11 +94,141 @@ class ProductModel extends Model
             $params[] = $kw;
         }
 
+        $this->applyFacetFilters($filters, '', $where, $params);
+
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard();
         return (int) db()->fetchColumn(
             "SELECT COUNT(*) FROM {$this->tableName()} WHERE {$whereSQL}",
             $params
         );
+    }
+
+    /**
+     * 多条件筛选：品牌（可多选 OR）/ 价格区间 / 标签组（组间 AND、组内 OR）。
+     * 追加进 $where/$params。$alias 为列前缀：getList 用 'p.'，getCount 无别名用 ''。
+     * 对标 PbootCMS「多条件筛选」——但只走已索引的真实列 / product_tag_map，不碰 EAV。
+     *
+     * @param array<string,mixed> $filters
+     * @param list<string>        $where
+     * @param list<mixed>         $params
+     */
+    private function applyFacetFilters(array $filters, string $alias, array &$where, array &$params): void
+    {
+        // 品牌：可多选，OR
+        if (!empty($filters['brand_ids'])) {
+            $ids = array_values(array_unique(array_filter(array_map('intval', (array) $filters['brand_ids']))));
+            if ($ids) {
+                $ph = implode(',', array_fill(0, count($ids), '?'));
+                $where[] = "{$alias}brand_id IN ({$ph})";
+                array_push($params, ...$ids);
+            }
+        }
+
+        // 价格区间
+        if (isset($filters['price_min']) && $filters['price_min'] !== '' && is_numeric($filters['price_min'])) {
+            $where[] = "{$alias}price >= ?";
+            $params[] = (float) $filters['price_min'];
+        }
+        if (isset($filters['price_max']) && $filters['price_max'] !== '' && is_numeric($filters['price_max'])) {
+            $where[] = "{$alias}price <= ?";
+            $params[] = (float) $filters['price_max'];
+        }
+
+        // 标签组：每组一个 EXISTS 子查询 → 组间 AND；组内 tag_id IN(...) → OR
+        if (!empty($filters['tag_groups']) && is_array($filters['tag_groups'])) {
+            $map = DB_PREFIX . 'product_tag_map';
+            foreach ($filters['tag_groups'] as $tagIds) {
+                $ids = array_values(array_unique(array_filter(array_map('intval', (array) $tagIds))));
+                if (!$ids) {
+                    continue;
+                }
+                $ph = implode(',', array_fill(0, count($ids), '?'));
+                $where[] = "EXISTS (SELECT 1 FROM {$map} m WHERE m.product_id = {$alias}id AND m.tag_id IN ({$ph}))";
+                array_push($params, ...$ids);
+            }
+        }
+    }
+
+    /**
+     * 筛选面板数据：当前分类下「有在售产品」的品牌 + 各自命中数。
+     * @return list<array{id:int,name:string,cnt:int}>
+     */
+    public function facetBrands(int $categoryId = 0): array
+    {
+        [$catSql, $params] = $this->facetCategoryClause($categoryId);
+        if ($this->facetLangEnabled()) {
+            $catSql .= ' AND p.lang = ?';
+            $params[] = siteLang();
+        }
+        return db()->fetchAll(
+            "SELECT b.id, b.name, COUNT(p.id) AS cnt
+               FROM " . DB_PREFIX . "brands b
+               JOIN {$this->tableName()} p ON p.brand_id = b.id
+              WHERE b.status = 1 AND p.status = 1 AND p.deleted_at IS NULL{$catSql}
+              GROUP BY b.id, b.name
+              ORDER BY b.sort_order ASC, b.id ASC",
+            $params
+        );
+    }
+
+    /**
+     * 筛选面板数据：当前分类下产品用到的标签，按 group_name 分组。
+     * @return array<string, list<array{id:int,name:string,cnt:int}>>
+     */
+    public function facetTagGroups(int $categoryId = 0): array
+    {
+        [$catSql, $params] = $this->facetCategoryClause($categoryId);
+        if ($this->facetLangEnabled()) {
+            $catSql .= ' AND p.lang = ?';
+            $params[] = siteLang();
+        }
+        $rows = db()->fetchAll(
+            "SELECT t.id, t.name, t.group_name, COUNT(DISTINCT p.id) AS cnt
+               FROM " . DB_PREFIX . "product_tags t
+               JOIN " . DB_PREFIX . "product_tag_map m ON m.tag_id = t.id
+               JOIN {$this->tableName()} p ON p.id = m.product_id
+              WHERE t.status = 1 AND t.group_name <> '' AND p.status = 1 AND p.deleted_at IS NULL{$catSql}
+              GROUP BY t.id, t.name, t.group_name
+              ORDER BY t.group_name ASC, t.sort_order ASC, t.id ASC",
+            $params
+        );
+        $groups = [];
+        foreach ($rows as $r) {
+            $groups[$r['group_name']][] = ['id' => (int) $r['id'], 'name' => $r['name'], 'cnt' => (int) $r['cnt']];
+        }
+        return $groups;
+    }
+
+    /** 当前分类下在售产品的价格区间 [min,max]（无价格时返回 [0,0]）。 */
+    public function facetPriceRange(int $categoryId = 0): array
+    {
+        [$catSql, $params] = $this->facetCategoryClause($categoryId);
+        $row = db()->fetchOne(
+            "SELECT MIN(p.price) AS lo, MAX(p.price) AS hi
+               FROM {$this->tableName()} p
+              WHERE p.status = 1 AND p.deleted_at IS NULL AND p.price > 0{$catSql}",
+            $params
+        );
+        return ['min' => (float) ($row['lo'] ?? 0), 'max' => (float) ($row['hi'] ?? 0)];
+    }
+
+    /** 拼「限定当前分类（含子类）」的 SQL 片段 + 参数。 */
+    private function facetCategoryClause(int $categoryId): array
+    {
+        if ($categoryId <= 0) {
+            return ['', []];
+        }
+        $catIds = productCategoryModel()->getChildIds($categoryId);
+        if (!$catIds) {
+            return ['', []];
+        }
+        $ph = implode(',', array_fill(0, count($catIds), '?'));
+        return [" AND p.category_id IN ({$ph})", $catIds];
+    }
+
+    private function facetLangEnabled(): bool
+    {
+        return function_exists('isMultiLangEnabled') && isMultiLangEnabled('products');
     }
 
     /**
