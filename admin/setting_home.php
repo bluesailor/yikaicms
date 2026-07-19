@@ -24,7 +24,7 @@ $_enabledList = $_lang['enabled'];
 // 哪些 key 走 per-lang（文案 + 客户评价 JSON）；剩下（区块顺序/开关/样式/图片/数字/图标/颜色）全局共享
 $LANG_KEYS = [
     'nav_home_text',
-    'home_about_content', 'home_about_tag_title', 'home_about_tag_desc',
+    'home_about_title', 'home_about_content', 'home_about_tag_title', 'home_about_tag_desc',
     'home_stat_1_text', 'home_stat_2_text', 'home_stat_3_text', 'home_stat_4_text',
     'home_testimonials_title', 'home_testimonials_desc', 'home_testimonials',
     'home_advantage_title', 'home_advantage_desc',
@@ -207,7 +207,7 @@ $blockMeta = [
         'title' => '关于我们',
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
         'bg_default' => '#ffffff',
-        'keys'  => ['home_about_layout', 'home_about_content', 'home_about_image', 'home_about_tag_title', 'home_about_tag_desc'],
+        'keys'  => ['home_about_title', 'home_about_layout', 'home_about_content', 'home_about_image', 'home_about_tag_title', 'home_about_tag_desc'],
     ],
     'stats' => [
         'title' => '数据统计',

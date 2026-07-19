@@ -7,6 +7,11 @@ $aboutLayout = config('home_about_layout', 'text_left');
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
+// 版块标题：后台可自定义（home_about_title）；留空回退到「关于」+ 站点名称
+$aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
+if ($aboutTitle === '') {
+    $aboutTitle = __('home_about_title') . configRawLang('site_name', '');
+}
 $bg = getBlockBg($block ?? [], 'bg-white');
 ?>
 <section class="py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
@@ -19,7 +24,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="w-full">
             </div>
             <div>
-                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?></h2>
+                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
                 <div class="w-12 h-px bg-gray-900 mt-4"></div>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
@@ -33,7 +38,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <?php else: ?>
             <!-- Text Left (default) -->
             <div>
-                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_about_title'); ?><?php echo e(configRawLang('site_name', '')); ?></h2>
+                <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
                 <div class="w-12 h-px bg-gray-900 mt-4"></div>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
