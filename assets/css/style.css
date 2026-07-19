@@ -41,15 +41,25 @@ select {
     height: 3px;
     border-radius: 9999px;
     margin: 1rem auto 0;
-    background: var(--color-primary, #3B82F6);
-    background: linear-gradient(90deg,
-        var(--color-primary, #3B82F6),
-        color-mix(in srgb, var(--color-primary, #3B82F6) 25%, transparent));
+    background: var(--color-primary, #3B82F6); /* 实心，不用渐变 */
 }
 .section-title-bar-light {
-    background: rgba(255,255,255,0.9);
-    background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.25));
+    background: rgba(255, 255, 255, 0.7);
 }
+/* 圆点装饰（home_title_style=dot） */
+.section-title-dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    margin: 1rem auto 0;
+    background: var(--color-primary, #3B82F6);
+}
+.section-title-dot.section-title-bar-light {
+    background: rgba(255, 255, 255, 0.8);
+}
+/* 左对齐装饰（关于我们等左对齐标题用） */
+.st-left { margin-left: 0; margin-right: auto; }
 
 /* ============================================================
    首页 / 通用视觉组件（艺术化刷新，集中管理美术方向）

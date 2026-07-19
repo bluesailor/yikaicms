@@ -1057,6 +1057,42 @@ function getBlockBg(array $block, string $defaultClass = ''): array
     ];
 }
 
+/**
+ * 首页版块标题文字：按 home_title_style 决定配色。
+ * split → 前两字（中文）/首词（英文）主题色、其余同色；其它样式 → 整体同色。
+ */
+function homeTitleInner(string $title): string
+{
+    if (config('home_title_style', 'underline') !== 'split') {
+        return e($title);
+    }
+    if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $title)) {
+        return '<span class="text-primary">' . e(mb_substr($title, 0, 2)) . '</span>' . e(mb_substr($title, 2));
+    }
+    $words = explode(' ', $title, 2);
+    return '<span class="text-primary">' . e($words[0]) . '</span>'
+        . (isset($words[1]) ? ' ' . e($words[1]) : '');
+}
+
+/**
+ * 首页版块标题下方装饰，按 home_title_style：
+ *   underline / split → 实心短线；dot → 圆点；plain → 无。
+ * $light=true 用于深色底（advantage / cta）。
+ */
+function homeTitleDeco(bool $light = false, string $extra = ''): string
+{
+    $style = config('home_title_style', 'underline');
+    if ($style === 'plain') {
+        return '';
+    }
+    $lc = $light ? ' section-title-bar-light' : '';
+    $ex = $extra !== '' ? ' ' . $extra : '';
+    if ($style === 'dot') {
+        return '<span class="section-title-dot' . $lc . $ex . '"></span>';
+    }
+    return '<span class="section-title-bar' . $lc . $ex . '"></span>';
+}
+
 // ============================================================
 // 导航和面包屑
 // ============================================================

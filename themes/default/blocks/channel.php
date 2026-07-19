@@ -27,18 +27,8 @@ $perRowGrid = [
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="blk-title mb-2">
-                <?php
-                $chName = $hChannel['name'];
-                if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $chName)) {
-                    echo '<span class="text-primary">' . e(mb_substr($chName, 0, 2)) . '</span>' . e(mb_substr($chName, 2));
-                } else {
-                    $words = explode(' ', $chName, 2);
-                    echo '<span class="text-primary">' . e($words[0]) . '</span>' . (isset($words[1]) ? ' ' . e($words[1]) : '');
-                }
-                ?>
-            </h2>
-            <span class="section-title-bar"></span>
+            <h2 class="blk-title mb-2"><?php echo homeTitleInner($hChannel['name']); ?></h2>
+            <?php echo homeTitleDeco(); ?>
             <?php if ($hChannel['description']): ?>
             <p class="blk-sub"><?php echo e($hChannel['description']); ?></p>
             <?php endif; ?>
