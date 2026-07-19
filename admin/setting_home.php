@@ -505,6 +505,29 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     </div>
                     <?php endif; ?>
 
+                    <?php // 数据统计：4 项图标（Tabler 图标名，留空/none 则不显示）
+                    if ($type === 'stats'):
+                        $statIconDefaults = ['award', 'users', 'briefcase', 'thumb-up'];
+                    ?>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">统计图标</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <?php for ($si = 1; $si <= 4; $si++):
+                                $sIcon = config('home_stat_' . $si . '_icon', $statIconDefaults[$si - 1]);
+                            ?>
+                            <div class="flex items-center gap-2" x-data="{ ic: '<?php echo e($sIcon); ?>' }">
+                                <span class="w-9 h-9 shrink-0 border rounded flex items-center justify-center bg-white text-gray-600">
+                                    <i class="ti text-xl" :class="'ti-' + (ic || 'point')"></i>
+                                </span>
+                                <input type="text" name="settings[home_stat_<?php echo $si; ?>_icon]" x-model="ic"
+                                       placeholder="如 award" class="flex-1 min-w-0 border rounded px-2 py-1.5 text-xs">
+                            </div>
+                            <?php endfor; ?>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">Tabler 图标名（<a href="https://tabler.io/icons" target="_blank" class="text-primary hover:underline">tabler.io/icons</a>），留空则该项不显示图标。</p>
+                    </div>
+                    <?php endif; ?>
+
                     <?php // 渲染普通设置项 ?>
                     <?php foreach ($meta['keys'] as $settingKey):
                         $item = $settingsMap[$settingKey] ?? null;
