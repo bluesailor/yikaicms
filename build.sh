@@ -74,7 +74,7 @@ mkdir -p "$RELEASE_DIR"
 #   - 仍是工作树内容，未提交的改动照样进包（与旧 cp -r 行为一致）
 echo "[1/5] 复制项目文件（git 跟踪 + vendor 生产依赖）..."
 if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    git -C "$ROOT_DIR" ls-files -z | tar --null -T - -cf - -C "$ROOT_DIR" | tar -xf - -C "$PKG_DIR"
+    git -C "$ROOT_DIR" ls-files -z | tar -C "$ROOT_DIR" --null -T - -cf - | tar -xf - -C "$PKG_DIR"
 else
     echo "  ⚠️ 非 git 仓库，回退到 cp -r（注意：可能打入根目录散落文件）"
     cp -r "$ROOT_DIR"/* "$PKG_DIR/" 2>/dev/null || true
