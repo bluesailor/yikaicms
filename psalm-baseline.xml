@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.4.0@04f312ac6ea48ba1c3e5db4d815bf6d74641c0ee">
   <file src="admin/ai_assistant.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/ai_usage.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -25,18 +19,12 @@
     <InvalidArrayAccess>
       <code><![CDATA[$files['error'][$i]]]></code>
     </InvalidArrayAccess>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/album_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
     </UnusedVariable>
@@ -48,28 +36,10 @@
     <InvalidArrayAccess>
       <code><![CDATA[$files['error'][$i]]]></code>
     </InvalidArrayAccess>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
-  </file>
-  <file src="admin/api_ai.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
-  <file src="admin/api_ai_agent.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
-  <file src="admin/api_search.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
   </file>
   <file src="admin/article.php">
     <InvalidArgument>
@@ -77,18 +47,12 @@
       <code><![CDATA[$ids]]></code>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/article_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$extraJs]]></code>
@@ -98,9 +62,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/banner.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -111,18 +72,12 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/channel.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$homeInFooterNav]]></code>
@@ -133,9 +88,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/channel_batch.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -146,18 +98,12 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/content_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$contentHtml]]></code>
       <code><![CDATA[$currentMenu]]></code>
@@ -169,18 +115,12 @@
     </UnusedVariable>
   </file>
   <file src="admin/content_model.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/cron.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -190,9 +130,6 @@
     <InvalidCast>
       <code><![CDATA[$v]]></code>
     </InvalidCast>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -203,36 +140,24 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/download_category.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/download_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/extfield.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -242,18 +167,12 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/form_design.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UndefinedMethod>
       <code><![CDATA[findById]]></code>
       <code><![CDATA[findById]]></code>
@@ -284,9 +203,6 @@
     </InvalidArrayOffset>
   </file>
   <file src="admin/index.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -296,18 +212,12 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/job_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$contentHtml]]></code>
       <code><![CDATA[$currentMenu]]></code>
@@ -316,73 +226,40 @@
     </UnusedVariable>
   </file>
   <file src="admin/license.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/link.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
       <code><![CDATA[$transStatus]]></code>
     </UnusedVariable>
   </file>
-  <file src="admin/login.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
-  <file src="admin/logout.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
   <file src="admin/media.php">
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
-  <file src="admin/media_api.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
   <file src="admin/member.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/page.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/page_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$childEditBase]]></code>
       <code><![CDATA[$children]]></code>
@@ -394,15 +271,11 @@
     </UnusedVariable>
   </file>
   <file src="admin/page_edit_advance.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$blocksDataJson]]></code>
       <code><![CDATA[$blocksDataJson]]></code>
       <code><![CDATA[$childEditBase]]></code>
       <code><![CDATA[$children]]></code>
-      <code><![CDATA[$companyTplJson]]></code>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$extraJs]]></code>
       <code><![CDATA[$initBlocks]]></code>
@@ -411,18 +284,12 @@
     </UnusedVariable>
   </file>
   <file src="admin/plugin.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/plugin_page.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -432,27 +299,18 @@
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
     </InvalidArgument>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_brand.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_category.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$langSwitcher]]></code>
@@ -460,9 +318,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_edit.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$extraJs]]></code>
@@ -472,54 +327,36 @@
     </UnusedVariable>
   </file>
   <file src="admin/product_setting.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_tag.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/profile.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/recipe.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/recycle.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/role.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -529,9 +366,6 @@
     <InvalidArrayOffset>
       <code><![CDATA[['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab]]]></code>
     </InvalidArrayOffset>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$FOOTER_LANG_KEYS]]></code>
       <code><![CDATA[$currentMenu]]></code>
@@ -540,9 +374,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_ai.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$errMsg]]></code>
@@ -550,19 +381,19 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
+  <file src="admin/setting_api.php">
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
   <file src="admin/setting_cache.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_channel_translate.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnevaluatedCode>
       <code><![CDATA[exit;]]></code>
     </UnevaluatedCode>
@@ -575,9 +406,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_contact.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -587,63 +415,42 @@
     <InvalidArrayOffset>
       <code><![CDATA[$settings[$sw]]]></code>
     </InvalidArrayOffset>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_demo.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_email.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_home.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_lang.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_member.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_product_cat_translate.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnevaluatedCode>
       <code><![CDATA[exit;]]></code>
     </UnevaluatedCode>
@@ -653,54 +460,36 @@
     </UnusedVariable>
   </file>
   <file src="admin/setting_security.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_seo.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_social.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_translate.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/static_html.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/system.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$count]]></code>
       <code><![CDATA[$currentMenu]]></code>
@@ -708,18 +497,12 @@
     </UnusedVariable>
   </file>
   <file src="admin/theme.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/timeline.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -727,9 +510,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/upgrade.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -737,9 +517,6 @@
     </UnusedVariable>
   </file>
   <file src="admin/upgrade_online.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UndefinedClass>
       <code><![CDATA[never]]></code>
     </UndefinedClass>
@@ -748,15 +525,7 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
-  <file src="admin/upload.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
   <file src="admin/user.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>
@@ -777,6 +546,11 @@
       <code><![CDATA[$pageTitle]]></code>
       <code><![CDATA[$siteUrl]]></code>
     </UnusedVariable>
+  </file>
+  <file src="config/config.php">
+    <ParadoxicalCondition>
+      <code><![CDATA[!defined('ROOT_PATH')]]></code>
+    </ParadoxicalCondition>
   </file>
   <file src="config/database.php">
     <DuplicateArrayKey>
@@ -895,25 +669,17 @@
       <code><![CDATA[$aboutChannel]]></code>
     </UndefinedGlobalVariable>
   </file>
-  <file src="includes/builder/AbstractElement.php">
-    <PossiblyUnusedMethod>
-      <code><![CDATA[category]]></code>
-      <code><![CDATA[icon]]></code>
-      <code><![CDATA[isDynamic]]></code>
-      <code><![CDATA[label]]></code>
-    </PossiblyUnusedMethod>
-  </file>
-  <file src="includes/builder/BuilderRegistry.php">
-    <PossiblyUnusedMethod>
-      <code><![CDATA[all]]></code>
-    </PossiblyUnusedMethod>
-  </file>
   <file src="includes/blocks/timeline.php">
     <UnusedVariable>
       <code><![CDATA[$groupedTimelines]]></code>
       <code><![CDATA[$timelineSort]]></code>
       <code><![CDATA[$timelines]]></code>
     </UnusedVariable>
+  </file>
+  <file src="includes/builder/BuilderRegistry.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[all]]></code>
+    </PossiblyUnusedMethod>
   </file>
   <file src="includes/commands/cache.php">
     <UnusedClosureParam>
@@ -925,7 +691,6 @@
   </file>
   <file src="includes/commands/cron.php">
     <UnusedClosureParam>
-      <code><![CDATA[$args]]></code>
       <code><![CDATA[$args]]></code>
       <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
@@ -982,11 +747,12 @@
       <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
+  <file src="includes/front_edit.php">
+    <ParadoxicalCondition>
+      <code><![CDATA[!defined('ROOT_PATH')]]></code>
+    </ParadoxicalCondition>
+  </file>
   <file src="includes/functions.php">
-    <DuplicateArrayKey>
-      <code><![CDATA[UPLOAD_FILE_TYPES]]></code>
-      <code><![CDATA[UPLOAD_IMAGE_TYPES]]></code>
-    </DuplicateArrayKey>
     <InvalidNullableReturnType>
       <code><![CDATA[string]]></code>
       <code><![CDATA[string]]></code>
@@ -1147,9 +913,6 @@
     </NullableReturnStatement>
   </file>
   <file src="includes/init.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <ParadoxicalCondition>
       <code><![CDATA[!file_exists(ROOT_PATH . '/installed.lock')]]></code>
     </ParadoxicalCondition>
@@ -1175,11 +938,6 @@
       <code><![CDATA[getAllAsMap]]></code>
       <code><![CDATA[updateSort]]></code>
     </PossiblyUnusedMethod>
-  </file>
-  <file src="includes/models/ContentModel.php">
-    <PossiblyUnusedReturnValue>
-      <code><![CDATA[int]]></code>
-    </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/models/DownloadCategoryModel.php">
     <PossiblyUnusedMethod>
@@ -1264,6 +1022,12 @@
       <code><![CDATA[$style]]></code>
     </UnusedVariable>
   </file>
+  <file src="includes/partials/product-filter.php">
+    <UndefinedGlobalVariable>
+      <code><![CDATA[$channel]]></code>
+      <code><![CDATA[$channel]]></code>
+    </UndefinedGlobalVariable>
+  </file>
   <file src="includes/partials/right_sidebar.php">
     <UndefinedGlobalVariable>
       <code><![CDATA[$channelId]]></code>
@@ -1307,11 +1071,6 @@
       <code><![CDATA[$key]]></code>
     </UnusedVariable>
   </file>
-  <file src="install/run_upgrade.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
   <file src="install/seed_channel_translations.php">
     <UndefinedFunction>
       <code><![CDATA[seed_fallback_map()]]></code>
@@ -1329,9 +1088,6 @@
       <code><![CDATA[$up['status']]]></code>
       <code><![CDATA[$up['status']]]></code>
     </InvalidArrayOffset>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <UnusedVariable>
       <code><![CDATA[$results]]></code>
     </UnusedVariable>

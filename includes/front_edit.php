@@ -15,7 +15,6 @@ function renderFrontEdit(): void
 {
     if (empty($_SESSION['admin_id'])) return;
     $cid  = (int) ($GLOBALS['ik_front_edit_cid'] ?? 0);   // 构建器页面 channel id
-    $home = !empty($GLOBALS['ik_front_edit_home']);        // 首页
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
     // 覆盖层对任何登录管理员都渲染（区块悬停按标记生效；Logo 就地编辑全站可用）
     ?>
