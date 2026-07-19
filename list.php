@@ -124,6 +124,16 @@ if ($channel['type'] === 'download') {
     }
 }
 
+// 前台就地编辑：列表页 → 对应类型的后台内容管理（管理浮条「编辑此页」）
+if (!empty($_SESSION['admin_id'])) {
+    $__listAdmin = [
+        'list' => '/admin/article.php', 'case' => '/admin/case.php',
+        'product' => '/admin/product.php', 'download' => '/admin/download.php',
+        'job' => '/admin/job.php', 'album' => '/admin/album.php',
+    ][$channel['type']] ?? ('/admin/content.php?type=' . urlencode((string) $channel['type']));
+    $GLOBALS['ik_edit_url'] = $__listAdmin;
+}
+
 // 对于产品/案例类型，获取完整的分类树用于侧边栏
 $rootChannel = $channel;
 $rootProductCategory = null;

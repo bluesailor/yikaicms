@@ -2558,6 +2558,39 @@ function renderContentBody(array $content): string
     return parseShortcodes($content['content'] ?? '');
 }
 
+/**
+ * 前台就地编辑：内容/产品详情 → 对应后台编辑器 URL（按栏目类型）。空 = 无编辑入口。
+ * 供 detail.php / product.php / page.php 给内容区打 data-yk-edit 标记用。
+ */
+function frontEditUrl(array $content, array $channel): string
+{
+    $id = (int) ($content['id'] ?? 0);
+    if ($id <= 0) {
+        return '';
+    }
+    switch ($channel['type'] ?? '') {
+        case 'product':  return '/admin/product_edit.php?id=' . $id;
+        case 'download': return '/admin/download_edit.php?id=' . $id;
+        case 'job':      return '/admin/job_edit.php?id=' . $id;
+        case 'list':     return '/admin/article_edit.php?id=' . $id;
+        case 'page':     return '/admin/page_edit.php?id=' . (int) ($channel['id'] ?? $id);
+        default:         return '/admin/content_edit.php?id=' . $id; // case + 自定义模型
+    }
+}
+
+/** 前台内容区的 data-yk-edit 属性串（仅登录管理员输出），供模板内联使用 */
+function frontEditAttr(array $content, array $channel, string $label = '✎ 编辑内容'): string
+{
+    if (empty($_SESSION['admin_id'])) {
+        return '';
+    }
+    $url = frontEditUrl($content, $channel);
+    if ($url === '') {
+        return '';
+    }
+    return ' data-yk-edit="' . e($url) . '" data-yk-edit-label="' . e($label) . '"';
+}
+
 // ============================================================
 // 通用元数据辅助函数（基于 yikai_metas 表）
 // ============================================================
