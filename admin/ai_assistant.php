@@ -30,7 +30,7 @@ $supported = $cfg && $cfg['format'] === 'openai';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="p-6 max-w-7xl mx-auto">
+<div class="p-6">
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-800"><?php echo __('admin_ai_assistant'); ?></h1>

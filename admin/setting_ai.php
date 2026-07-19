@@ -95,7 +95,7 @@ $currentBaseUrl = config('ai_base_url', '');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-3xl mx-auto">
+<div>
     <form id="aiForm">
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b flex items-center justify-between">
