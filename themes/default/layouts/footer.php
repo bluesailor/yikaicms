@@ -162,26 +162,7 @@ if ($footerBgImage) {
             </div>
             <?php endif; ?>
 
-            <!-- Partner（仅首页显示——配置键 home_show_links 已暗示这一意图，
-                        以前忘了限定 $isHomePage 导致内页 footer 也露出） -->
-            <?php
-            $showLinks = (isset($isHomePage) && $isHomePage)
-                && config('home_show_links', '1') === '1';
-            $links = $showLinks ? linkModel()->getActive() : [];
-            if (!empty($links)):
-            ?>
-            <div class="border-t border-gray-700 mt-8 pt-8">
-                <h4 class="text-white font-medium mb-4"><?php echo configLang('home_links_title', 'footer_partners'); ?></h4>
-                <div class="flex flex-wrap gap-4">
-                    <?php foreach ($links as $link): ?>
-                    <a href="<?php echo e($link['url']); ?>" target="_blank" rel="nofollow"
-                       class="text-sm hover:text-white transition">
-                        <?php echo e($link['name']); ?>
-                    </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
+            <!-- 合作伙伴/友情链接已移到页脚之上的独立区段（themes/default/blocks/partners.php，由 index.php 渲染） -->
         </div>
 
         <!-- footer navigation -->
