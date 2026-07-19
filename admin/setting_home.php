@@ -485,20 +485,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">展示设置</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">每行个数</label>
-                                <select class="block-perrow w-full border rounded px-2 py-1.5 text-xs bg-white">
-                                    <?php foreach ([2,3,4,6] as $n): ?>
-                                    <option value="<?php echo $n; ?>" <?php echo $cPerRow === $n ? 'selected' : ''; ?>><?php echo $n; ?> 个/行</option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <label class="text-xs text-gray-500 block mb-1">每行个数 <span class="text-gray-300">(1-8)</span></label>
+                                <input type="number" min="1" max="8" class="block-perrow w-full border rounded px-2 py-1.5 text-xs"
+                                       value="<?php echo $cPerRow; ?>">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1">显示数量</label>
-                                <select class="block-limit w-full border rounded px-2 py-1.5 text-xs bg-white">
-                                    <?php foreach ([4,8,12,16,20,24] as $n): ?>
-                                    <option value="<?php echo $n; ?>" <?php echo $cLimit === $n ? 'selected' : ''; ?>><?php echo $n; ?> 个</option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <input type="number" min="1" max="100" class="block-limit w-full border rounded px-2 py-1.5 text-xs"
+                                       value="<?php echo $cLimit; ?>">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1">排序</label>
