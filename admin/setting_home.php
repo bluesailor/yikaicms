@@ -620,6 +620,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         </div>
                     </div>
                     <?php endif; ?>
+
+                    <div class="pt-1 flex justify-end">
+                        <button type="button" class="block-save-btn bg-primary hover:bg-secondary text-white text-sm px-4 py-1.5 rounded inline-flex items-center gap-1 transition">
+                            <i class="ti ti-check text-base"></i>保存设置
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -933,11 +939,18 @@ function pickFromMedia(key) {
 }
 
 // 表单提交
-document.getElementById('settingForm').addEventListener('submit', function (e) {
-    e.preventDefault();
+function saveHomeSettings() {
     collectBlocksConfig();
     collectTestimonials();
-    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(document.getElementById('settingForm'), { successMsg: '<?php echo __('admin_saved'); ?>' });
+}
+document.getElementById('settingForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    saveHomeSettings();
+});
+// 各区块内的「保存」按钮：与底部保存等效（提交整份配置），方便就地保存不必滚到底部
+document.getElementById('blocksContainer').addEventListener('click', function (e) {
+    if (e.target.closest('.block-save-btn')) { e.preventDefault(); saveHomeSettings(); }
 });
 
 // 前台就地编辑深链：?focus=type → 展开、滚动并高亮对应区块卡片
