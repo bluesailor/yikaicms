@@ -806,7 +806,7 @@ function collectTestimonials() {
 function addTestimonial() {
     var editor = document.getElementById('testimonialsEditor');
     var rows = editor.querySelectorAll('.tm-row');
-    if (rows.length >= 6) { showMessage('最多添加6条评价', 'error'); return; }
+    if (rows.length >= 10) { showMessage('最多添加10条评价', 'error'); return; }
 
     var idx = rows.length + 1;
     var div = document.createElement('div');
