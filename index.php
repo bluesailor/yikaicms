@@ -31,23 +31,47 @@ $homeChannels = channelModel()->getHomeChannels();
 // 获取产品分类（用于首页产品区块）
 $productCategories = productCategoryModel()->getTopLevel(6);
 
+// 各栏目区块的展示设置（每行个数 / 显示数量 / 排序）从 home_blocks_config 读取
+$_hbc = json_decode(config('home_blocks_config', ''), true) ?: [];
+$channelBlockCfg = [];
+foreach ($_hbc as $_b) {
+    if (isset($_b['type']) && str_starts_with($_b['type'], 'channel:')) {
+        $channelBlockCfg[(int) substr($_b['type'], 8)] = $_b;
+    }
+}
+
 // 为每个栏目获取内容，并构建 ID => channel 映射
 $homeChannelsMap = [];
 foreach ($homeChannels as &$hChannel) {
+    $cfg    = $channelBlockCfg[(int) $hChannel['id']] ?? [];
+    $limit  = (int) ($cfg['limit'] ?? ($hChannel['type'] === 'product' ? 8 : 6));
+    if ($limit < 1) { $limit = 8; }
+    $sort   = ($cfg['sort'] ?? 'recommend') === 'latest' ? 'latest' : 'recommend';
+    $hChannel['per_row'] = (int) ($cfg['per_row'] ?? 4);
+
     if ($hChannel['type'] === 'product') {
-        // 产品类型：优先推荐产品，没有则显示最新
-        $hChannel['contents'] = getProducts(0, 8, 0, ['is_recommend' => true]);
-        if (empty($hChannel['contents'])) {
-            $hChannel['contents'] = getProducts(0, 8, 0);
+        if ($sort === 'recommend') {
+            $hChannel['contents'] = getProducts(0, $limit, 0, ['is_recommend' => true]);
+            if (empty($hChannel['contents'])) {
+                $hChannel['contents'] = getProducts(0, $limit, 0);
+            }
+        } else {
+            $hChannel['contents'] = getProducts(0, $limit, 0);
         }
         $hChannel['is_product'] = true;
         $hChannel['categories'] = $productCategories;
     } else {
-        // 其他类型：从内容表获取
-        $hChannel['contents'] = getContents((int)$hChannel['id'], 6, 0, ['include_children' => true]);
+        if ($sort === 'recommend') {
+            $hChannel['contents'] = getContents((int) $hChannel['id'], $limit, 0, ['include_children' => true, 'is_recommend' => true]);
+            if (empty($hChannel['contents'])) {
+                $hChannel['contents'] = getContents((int) $hChannel['id'], $limit, 0, ['include_children' => true]);
+            }
+        } else {
+            $hChannel['contents'] = getContents((int) $hChannel['id'], $limit, 0, ['include_children' => true]);
+        }
         $hChannel['is_product'] = false;
     }
-    $homeChannelsMap[(int)$hChannel['id']] = $hChannel;
+    $homeChannelsMap[(int) $hChannel['id']] = $hChannel;
 }
 unset($hChannel);
 
