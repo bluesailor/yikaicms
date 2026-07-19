@@ -44,7 +44,7 @@ foreach ($_hbc as $_b) {
 $homeChannelsMap = [];
 foreach ($homeChannels as &$hChannel) {
     $cfg    = $channelBlockCfg[(int) $hChannel['id']] ?? [];
-    $limit  = (int) ($cfg['limit'] ?? ($hChannel['type'] === 'product' ? 8 : 6));
+    $limit  = (int) ($cfg['limit'] ?? 8);
     if ($limit < 1) { $limit = 8; }
     $sort   = ($cfg['sort'] ?? 'recommend') === 'latest' ? 'latest' : 'recommend';
     $hChannel['per_row'] = (int) ($cfg['per_row'] ?? 4);
