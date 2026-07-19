@@ -84,7 +84,7 @@ if (is_dir($cacheDir)) {
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="p-6 max-w-4xl mx-auto">
+<div class="p-6">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800">HTML 缓存设置</h1>
         <p class="text-sm text-gray-500 mt-1">命中缓存的页面跳过 PHP 业务逻辑，直接 readfile 输出，QPS 容量翻数倍。</p>

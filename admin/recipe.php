@@ -78,7 +78,7 @@ $currentMenu = 'recipe';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-5xl mx-auto space-y-6">
+<div class="space-y-6">
     <!-- 说明卡 -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
         <div class="font-bold mb-1">💡 <?php echo __('recipe_intro_title'); ?></div>

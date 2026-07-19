@@ -149,7 +149,7 @@ $currentMenu = 'setting_product_cat_translate';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-4xl mx-auto">
+<div>
     <div class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <span class="text-sm text-gray-500">翻译到：</span>

@@ -270,7 +270,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<div class="p-6 max-w-3xl mx-auto">
+<div class="p-6">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold text-gray-800"><i class="ti ti-cloud-download text-blue-500 mr-2"></i>在线升级</h1>
         <span class="text-sm text-gray-500">当前版本 v<?= e(defined('CMS_VERSION') ? CMS_VERSION : '?') ?></span>

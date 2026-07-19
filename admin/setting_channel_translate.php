@@ -215,7 +215,7 @@ $currentMenu = 'setting_channel_translate';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-4xl mx-auto">
+<div>
     <!-- 语言选择 -->
     <div class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
