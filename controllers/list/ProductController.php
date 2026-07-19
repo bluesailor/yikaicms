@@ -51,11 +51,57 @@ final class ProductController extends ListController
         }
         $where['sort'] = $currentSort;
 
+        // 多条件筛选参数（?brand=1,3  ?tag=5,8  ?pmin=  ?pmax=）——对标 PbootCMS 多条件筛选。
+        // 直接读 $_GET（与筛选面板 partial 一致，且不依赖 functions.php 的 get() 便于单测）。
+        $brandIds  = array_values(array_filter(array_map('intval', explode(',', (string) ($_GET['brand'] ?? '')))));
+        $selTagIds = array_values(array_filter(array_map('intval', explode(',', (string) ($_GET['tag'] ?? '')))));
+        $priceMin  = trim((string) ($_GET['pmin'] ?? ''));
+        $priceMax  = trim((string) ($_GET['pmax'] ?? ''));
+
+        if ($brandIds) {
+            $where['brand_ids'] = $brandIds;
+        }
+        if ($priceMin !== '' && is_numeric($priceMin)) {
+            $where['price_min'] = $priceMin;
+        }
+        if ($priceMax !== '' && is_numeric($priceMax)) {
+            $where['price_max'] = $priceMax;
+        }
+        // 选中的标签按 group_name 分组（组间 AND、组内 OR）
+        $tagGroups = [];
+        if ($selTagIds) {
+            $ph   = implode(',', array_fill(0, count($selTagIds), '?'));
+            $rows = db()->fetchAll('SELECT id, group_name FROM ' . DB_PREFIX . "product_tags WHERE id IN ({$ph})", $selTagIds);
+            $byGroup = [];
+            foreach ($rows as $r) {
+                $byGroup[$r['group_name']][] = (int) $r['id'];
+            }
+            $tagGroups = array_values($byGroup);
+            if ($tagGroups) {
+                $where['tag_groups'] = $tagGroups;
+            }
+        }
+
+        // 筛选面板数据（限当前分类，避免出现零结果的筛选项）
+        $model          = productModel();
+        $facetBrands    = $model->facetBrands($productCategoryId);
+        $facetTagGroups = $model->facetTagGroups($productCategoryId);
+        $facetPrice     = $model->facetPriceRange($productCategoryId);
+        $filterActive   = (bool) ($brandIds || $selTagIds || $priceMin !== '' || $priceMax !== '');
+
         // Sort options enabled in the admin settings, used by the view.
         $sortOptionsJson = (string) config('product_sort_options', '["default","newest","views"]');
         $enabledSorts    = json_decode($sortOptionsJson, true) ?: ['default', 'newest', 'views'];
 
         return [
+            'facetBrands'     => $facetBrands,
+            'facetTagGroups'  => $facetTagGroups,
+            'facetPrice'      => $facetPrice,
+            'filterActive'    => $filterActive,
+            'selBrandIds'     => $brandIds,
+            'selTagIds'       => $selTagIds,
+            'filterPriceMin'  => $priceMin,
+            'filterPriceMax'  => $priceMax,
             'channel'           => $channel,
             'channelId'         => $channelId,
             'page'              => $page,

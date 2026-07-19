@@ -760,6 +760,11 @@ return [
     'empty_no_data' => 'データなし',
     'empty_no_image' => '画像なし',
 
+    'filter_title' => '絞り込み',
+    'filter_clear' => 'クリア',
+    'filter_brand' => 'ブランド',
+    'filter_price' => '価格',
+    'filter_go' => '適用',
     'filter_all_categories' => 'すべてのカテゴリ',
     'filter_all_channels' => 'すべてのカテゴリ',
     'filter_all_groups' => 'すべてのグループ',

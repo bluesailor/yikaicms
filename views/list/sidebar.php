@@ -138,6 +138,10 @@
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php // 多条件筛选面板（仅产品类型）
+                if ($isProductType) {
+                    require theme_path('partials/product-filter.php');
+                } ?>
             </div>
 
             <!-- 右侧产品列表 -->
@@ -190,6 +194,11 @@
                     $extraParams = '';
                     if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
                     if ($isProductType && isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
+                    // 多条件筛选参数随分页带上，翻页不丢筛选
+                    foreach (['brand', 'tag', 'pmin', 'pmax'] as $fk) {
+                        $fv = trim((string) ($_GET[$fk] ?? ''));
+                        if ($fv !== '') $extraParams .= '&' . $fk . '=' . urlencode($fv);
+                    }
                     $queryStr = $extraParams !== '' ? '?' . ltrim($extraParams, '&') : '';
 
                     if ($isProductType && $productCategory) {

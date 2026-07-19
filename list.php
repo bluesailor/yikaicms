@@ -84,7 +84,9 @@ $_vars = ListRouter::dispatch($channel['type'])->prepare($channel, $_request);
 // 但 'contents' / 'total' / 'downloads' / 'jobs' / 产品相关变量由 controller 决定。
 foreach (['contents', 'total', 'downloads', 'jobs', 'dlCatId',
           'productCategory', 'productCategoryId', 'currentSort',
-          'enabledSorts', 'whereConditions'] as $_k) {
+          'enabledSorts', 'whereConditions',
+          'facetBrands', 'facetTagGroups', 'facetPrice', 'filterActive',
+          'selBrandIds', 'selTagIds', 'filterPriceMin', 'filterPriceMax'] as $_k) {
     if (array_key_exists($_k, $_vars)) {
         $$_k = $_vars[$_k];
     }
