@@ -68,7 +68,6 @@ final class ProductController extends ListController
             $where['price_max'] = $priceMax;
         }
         // 选中的标签按 group_name 分组（组间 AND、组内 OR）
-        $tagGroups = [];
         if ($selTagIds) {
             $ph   = implode(',', array_fill(0, count($selTagIds), '?'));
             $rows = db()->fetchAll('SELECT id, group_name FROM ' . DB_PREFIX . "product_tags WHERE id IN ({$ph})", $selTagIds);
