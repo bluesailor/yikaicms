@@ -35,6 +35,9 @@ final class TagEngine
     /** @var array<int, array<string, mixed>> {yk:list} 循环时的当前条目上下文栈 */
     private static array $contextStack = [];
 
+    /** @var array<string,mixed>|null 当前页面主条目（详情/单页），contextStack 为空时的兜底 */
+    private static ?array $item = null;
+
     private static bool $booted = false;
     private static int $depth = 0;
 
@@ -129,7 +132,22 @@ final class TagEngine
 
     public static function currentContext(): ?array
     {
-        return self::$contextStack !== [] ? self::$contextStack[count(self::$contextStack) - 1] : null;
+        if (self::$contextStack !== []) {
+            return self::$contextStack[count(self::$contextStack) - 1];
+        }
+        return self::$item; // 兜底：详情/单页的当前条目，使 {yk:field}/{yk:if} 在正文里可用
+    }
+
+    /**
+     * 设置当前页面主条目（详情/单页正文渲染前调用），使 {yk:field}/{yk:if}/{yk:list related}
+     * 在没有 {yk:list} 循环时也能取到「本篇」的字段。$type 决定 url 生成器（content/product）。
+     */
+    public static function setItem(?array $item, string $type = 'content'): void
+    {
+        if ($item !== null && !isset($item['_type'])) {
+            $item['_type'] = $type;
+        }
+        self::$item = $item;
     }
 
     /** 注册内置标签（幂等）；随后广播 tag_engine_register 让插件扩展。 */
@@ -142,6 +160,7 @@ final class TagEngine
 
         self::register('list', [self::class, 'tagList'], true);
         self::register('nav', [self::class, 'tagNav'], true);
+        self::register('if', [self::class, 'tagIf'], true);
         self::register('field', [self::class, 'tagField']);
         self::register('channel', [self::class, 'tagChannel']);
         self::register('banner', [self::class, 'tagBanner']);
@@ -178,7 +197,44 @@ final class TagEngine
             }
         }
 
-        if ($type === 'product') {
+        $isProduct = ($type === 'product');
+        $ctxType = $isProduct ? 'product' : 'content';
+        if ($isProduct && !empty($attrs['order']) && class_exists('ProductModel')
+            && isset(ProductModel::SORT_MAP[(string) $attrs['order']])) {
+            $where['sort'] = (string) $attrs['order'];
+        }
+
+        $idsAttr = trim((string) ($attrs['id'] ?? ''));
+        if ($idsAttr !== '') {
+            // 指定 id 列表：{yk:list id=3,7,9}（按给定顺序逐条取已发布条目）
+            $items = [];
+            foreach (array_filter(array_map('intval', explode(',', $idsAttr))) as $id) {
+                $it = $isProduct
+                    ? (function_exists('getProduct') ? getProduct($id) : null)
+                    : (function_exists('getContent') ? getContent($id) : null);
+                if ($it) {
+                    $items[] = $it;
+                }
+            }
+        } elseif (!empty($attrs['related'])) {
+            // 相关内容：{yk:list type=product related=1}（同分类/栏目、排除本篇，需当前条目上下文）
+            $cur = self::currentContext();
+            $items = [];
+            if ($cur !== null) {
+                $curId = (int) ($cur['id'] ?? 0);
+                if ($isProduct) {
+                    $rows = getProducts((int) ($cur['category_id'] ?? 0), $limit + 1, 0, $where);
+                } else {
+                    $where['type'] = $type;
+                    $rows = getContents((int) ($cur['channel_id'] ?? 0), $limit + 1, 0, $where);
+                }
+                $items = array_slice(
+                    array_values(array_filter($rows, fn($r) => (int) ($r['id'] ?? 0) !== $curId)),
+                    0,
+                    $limit
+                );
+            }
+        } elseif ($isProduct) {
             $categoryId = 0;
             if ($cat !== '') {
                 if (ctype_digit($cat)) {
@@ -188,15 +244,9 @@ final class TagEngine
                     $categoryId = $pc ? (int) $pc['id'] : -1; // 分类不存在 → 空结果
                 }
             }
-            if (!empty($attrs['order']) && class_exists('ProductModel')
-                && isset(ProductModel::SORT_MAP[(string) $attrs['order']])) {
-                $where['sort'] = (string) $attrs['order'];
-            }
             $items = $categoryId >= 0 ? getProducts($categoryId, $limit, $offset, $where) : [];
-            $ctxType = 'product';
         } else {
-            // article / case / 自定义模型 等内容类型统一走 contents。
-            // 按 type 过滤，支持跨栏目按类型/模型 key 聚合（{yk:list type=team}）。
+            // article / case / 自定义模型 等内容类型统一走 contents（按 type 聚合，如 {yk:list type=team}）
             $where['type'] = $type;
             $channelId = 0;
             if ($cat !== '') {
@@ -208,7 +258,6 @@ final class TagEngine
                 }
             }
             $items = $channelId >= 0 ? getContents($channelId, $limit, $offset, $where) : [];
-            $ctxType = 'content';
         }
 
         if ($items === []) {
@@ -282,6 +331,55 @@ final class TagEngine
             }
         }
         return $out;
+    }
+
+    /**
+     * {yk:if field=is_hot op=eq value=1}...{yk:else/}...{/yk:if}
+     * 条件渲染。左值：field=当前条目字段（含虚拟/扩展字段）或 config=设置项。
+     * op：eq/ne/gt/gte/lt/lte/contains/in/empty/notempty；缺省 op = 给了 value 用 eq，否则 notempty。
+     * {yk:else/} 可选，分隔真/假分支。同名不可自嵌套（与其它块标签一致）。
+     * @psalm-suppress PossiblyUnusedReturnValue （handler 经 callable 动态调用）
+     */
+    public static function tagIf(array $attrs, ?string $inner): string
+    {
+        $inner = (string) $inner;
+        $parts = preg_split('~\{yk:else\s*/?\}~i', $inner, 2) ?: [$inner];
+        $branch = self::evalCondition($attrs) ? ($parts[0] ?? '') : ($parts[1] ?? '');
+        return self::render($branch); // 递归渲染选中分支内的其它标签
+    }
+
+    /** 计算 {yk:if} 条件。 */
+    private static function evalCondition(array $attrs): bool
+    {
+        if (isset($attrs['config'])) {
+            $actual = function_exists('config') ? config((string) $attrs['config'], '') : '';
+        } else {
+            $name = strtolower(trim((string) ($attrs['field'] ?? '')));
+            $ctx = self::currentContext();
+            $actual = ($name !== '' && $ctx !== null)
+                ? ($ctx[$name] ?? self::metaFallback($ctx, $name))
+                : null;
+        }
+        $op = isset($attrs['op'])
+            ? strtolower((string) $attrs['op'])
+            : (array_key_exists('value', $attrs) ? 'eq' : 'notempty');
+        $expected = (string) ($attrs['value'] ?? '');
+        $a = is_scalar($actual) ? (string) $actual : '';
+        $blank = ($actual === null || $a === '' || $a === '0');
+
+        return match ($op) {
+            'empty'    => $blank,
+            'notempty' => !$blank,
+            'eq'       => $a === $expected,
+            'ne'       => $a !== $expected,
+            'gt'       => is_numeric($a) && (float) $a >  (float) $expected,
+            'gte'      => is_numeric($a) && (float) $a >= (float) $expected,
+            'lt'       => is_numeric($a) && (float) $a <  (float) $expected,
+            'lte'      => is_numeric($a) && (float) $a <= (float) $expected,
+            'contains' => $expected !== '' && mb_strpos($a, $expected) !== false,
+            'in'       => in_array($a, array_map('trim', explode(',', $expected)), true),
+            default    => false,
+        };
     }
 
     /**

@@ -25,6 +25,18 @@ if (!function_exists('getContents')) {
         return contentModel()->getList($channelId, $limit, $offset, $where + ['_skip_lang' => 1]);
     }
 }
+if (!function_exists('getContent')) {
+    function getContent(int $id): ?array
+    {
+        return db()->fetchOne('SELECT * FROM contents WHERE id = ? AND status = 1', [$id]) ?: null;
+    }
+}
+if (!function_exists('getProduct')) {
+    function getProduct(int $id): ?array
+    {
+        return db()->fetchOne('SELECT * FROM products WHERE id = ? AND status = 1', [$id]) ?: null;
+    }
+}
 if (!function_exists('contentUrl')) {
     function contentUrl(array $content): string
     {
@@ -117,6 +129,7 @@ final class TagEngineTest extends TestCase
     {
         parent::setUp();
         $GLOBALS['_test_config'] = [];
+        TagEngine::setItem(null); // 清掉上个测试遗留的「当前条目」，避免泄漏
     }
 
     private function seedNews(): void
@@ -348,6 +361,80 @@ final class TagEngineTest extends TestCase
         $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Bob', 'type' => 'team']);
         $out = TagEngine::render('{yk:list type=team cat=team}{yk:field name=role default="员工" /}{/yk:list}');
         $this->assertSame('员工', $out); // meta 无值 → default
+    }
+
+    // ---- {yk:if} / {yk:else} ----
+
+    public function testIfNotemptyDefault(): void
+    {
+        TagEngine::setItem(['id' => 1, 'is_hot' => 1, 'sub' => '']);
+        $this->assertSame('HOT', TagEngine::render('{yk:if field=is_hot}HOT{/yk:if}'));
+        $this->assertSame('', TagEngine::render('{yk:if field=sub}X{/yk:if}'));       // 空 → 不渲染
+        $this->assertSame('', TagEngine::render('{yk:if field=missing}X{/yk:if}'));   // 缺字段 → 不渲染
+    }
+
+    public function testIfElseBranch(): void
+    {
+        $tpl = '{yk:if field=price op=lte value=0}免费{yk:else/}收费{/yk:if}';
+        TagEngine::setItem(['id' => 1, 'price' => '0']);
+        $this->assertSame('免费', TagEngine::render($tpl));
+        TagEngine::setItem(['id' => 1, 'price' => '100']);
+        $this->assertSame('收费', TagEngine::render($tpl));
+    }
+
+    public function testIfComparisonOps(): void
+    {
+        TagEngine::setItem(['id' => 1, 'views' => '50', 'title' => 'Hello World']);
+        $this->assertSame('Y', TagEngine::render('{yk:if field=views op=gt value=10}Y{yk:else/}N{/yk:if}'));
+        $this->assertSame('N', TagEngine::render('{yk:if field=views op=lt value=10}Y{yk:else/}N{/yk:if}'));
+        $this->assertSame('Y', TagEngine::render('{yk:if field=views op=eq value=50}Y{/yk:if}'));
+        $this->assertSame('Y', TagEngine::render('{yk:if field=title op=contains value=World}Y{/yk:if}'));
+        $this->assertSame('Y', TagEngine::render('{yk:if field=views op=in value="10,50,99"}Y{/yk:if}'));
+    }
+
+    public function testIfConfigCondition(): void
+    {
+        $GLOBALS['_test_config'] = ['show_price' => '1'];
+        $this->assertSame('P', TagEngine::render('{yk:if config=show_price value=1}P{/yk:if}'));
+        $this->assertSame('', TagEngine::render('{yk:if config=show_price value=0}P{/yk:if}'));
+    }
+
+    public function testIfInsideListPerRow(): void
+    {
+        $this->seedNews(); // First(pt200), Second(pt100)
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Star', 'is_hot' => 1, 'publish_time' => 50]);
+        $out = TagEngine::render('{yk:list type=article cat=news}{yk:field name=title /}{yk:if field=is_hot}★{/yk:if} {/yk:list}');
+        $this->assertSame('First Second Star★ ', $out);
+    }
+
+    // ---- 当前条目上下文（setItem）：正文里可直接用 {yk:field}/{yk:if} ----
+
+    public function testFieldUsesCurrentItemOutsideList(): void
+    {
+        TagEngine::setItem(['id' => 7, 'title' => '本篇', '_type' => 'content']);
+        $this->assertSame('本篇', TagEngine::render('{yk:field name=title /}'));
+        $this->assertSame('/news/article/7.html', TagEngine::render('{yk:field name=url /}'));
+    }
+
+    // ---- {yk:list id=} 指定条目 ----
+
+    public function testListByExplicitIdsInGivenOrder(): void
+    {
+        $this->seedNews(); // 1=First, 2=Second
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Third']); // id 3
+        $out = TagEngine::render('{yk:list type=article id="3,1"}[{yk:field name=title /}]{/yk:list}');
+        $this->assertSame('[Third][First]', $out);
+    }
+
+    // ---- {yk:list related=} 相关内容（同栏目、排除本篇）----
+
+    public function testListRelatedExcludesCurrentItem(): void
+    {
+        $this->seedNews(); // ch1: First(id1,pt200), Second(id2,pt100)
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Third', 'publish_time' => 90]); // id3
+        TagEngine::setItem(['id' => 1, 'channel_id' => 1, 'type' => 'article', '_type' => 'content']);
+        $out = TagEngine::render('{yk:list type=article related=1}[{yk:field name=title /}]{/yk:list}');
+        $this->assertSame('[Second][Third]', $out); // 排除本篇 id1，按 publish_time DESC
     }
 }
 

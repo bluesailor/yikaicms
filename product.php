@@ -274,6 +274,7 @@ require_once theme_path('layouts/header.php');
                 <!-- Tab 内容 -->
                 <?php if ($hasContent): ?>
                 <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail"<?php echo (!empty($_SESSION['admin_id']) && !empty($product['id'])) ? ' data-yk-edit="/admin/product_edit.php?id=' . (int) $product['id'] . '" data-yk-edit-label="✎ 编辑产品"' : ''; ?>>
+                    <?php if (class_exists('TagEngine')) TagEngine::setItem($product, 'product'); ?>
                     <?php echo renderContent($product['content']); ?>
                 </div>
                 <?php endif; ?>
