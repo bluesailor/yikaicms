@@ -16,17 +16,13 @@ $bg = getBlockBg($block ?? [], '@auto');
             <?php echo homeTitleDeco(); ?>
             <p class="blk-sub"><?php echo e($tmDesc); ?></p>
         </div>
-        <?php
-        // 3 条内用网格居中；超过 3 条改水平滚动（可放到 10 条），移动端亦滑动
-        $tmScroll  = count($testimonials) > 3;
-        $tmWrapCls = $tmScroll
-            ? 'flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 tm-scroll'
-            : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8';
-        $tmCardCls = $tmScroll ? ' snap-start shrink-0 w-[86%] sm:w-[380px]' : '';
-        ?>
-        <div class="<?php echo $tmWrapCls; ?>" data-stagger>
+        <?php // 超过 3 条用 Swiper 轮播（复用 banner 已全站加载的 swiper-bundle）；≤3 条用网格
+        $tmSlider = count($testimonials) > 3; ?>
+        <div class="<?php echo $tmSlider ? 'testimonials-swiper swiper' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'; ?>" data-stagger>
+            <?php if ($tmSlider): ?><div class="swiper-wrapper"><?php endif; ?>
             <?php foreach ($testimonials as $tm): ?>
-            <div class="u-card p-6 relative<?php echo $tmCardCls; ?>">
+            <?php if ($tmSlider): ?><div class="swiper-slide"><?php endif; ?>
+            <div class="u-card p-6 relative<?php echo $tmSlider ? ' h-full' : ''; ?>">
                 <div class="absolute top-4 right-4 text-primary opacity-10">
                     <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z"></path>
@@ -47,7 +43,27 @@ $bg = getBlockBg($block ?? [], '@auto');
                     </div>
                 </div>
             </div>
+            <?php if ($tmSlider): ?></div><?php endif; ?>
             <?php endforeach; ?>
+            <?php if ($tmSlider): ?></div>
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+            <?php endif; ?>
         </div>
+        <?php if ($tmSlider): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Swiper === 'undefined') return;
+            new Swiper('.testimonials-swiper', {
+                slidesPerView: 1, spaceBetween: 24, loop: true,
+                autoplay: { delay: 4500, disableOnInteraction: false },
+                pagination: { el: '.testimonials-swiper .swiper-pagination', clickable: true },
+                navigation: { nextEl: '.testimonials-swiper .swiper-button-next', prevEl: '.testimonials-swiper .swiper-button-prev' },
+                breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } }
+            });
+        });
+        </script>
+        <?php endif; ?>
     </div>
 </section>

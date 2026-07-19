@@ -18,9 +18,12 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
             <span class="section-title-bar"></span>
             <p class="text-gray-500 mt-4"><?php echo e($tmDesc); ?></p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" data-stagger>
+        <?php $tmSlider = count($testimonials) > 3; ?>
+        <div class="<?php echo $tmSlider ? 'testimonials-swiper swiper' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'; ?>" data-stagger>
+            <?php if ($tmSlider): ?><div class="swiper-wrapper"><?php endif; ?>
             <?php foreach ($testimonials as $tm): ?>
-            <div class="bg-white rounded-lg shadow-md p-6 relative">
+            <?php if ($tmSlider): ?><div class="swiper-slide"><?php endif; ?>
+            <div class="bg-white rounded-lg shadow-md p-6 relative<?php echo $tmSlider ? ' h-full' : ''; ?>">
                 <div class="absolute top-4 right-4 text-primary opacity-10">
                     <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z"></path>
@@ -41,7 +44,21 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
                     </div>
                 </div>
             </div>
+            <?php if ($tmSlider): ?></div><?php endif; ?>
             <?php endforeach; ?>
+            <?php if ($tmSlider): ?></div>
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+            <?php endif; ?>
         </div>
+        <?php if ($tmSlider): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Swiper === 'undefined') return;
+            new Swiper('.testimonials-swiper', { slidesPerView: 1, spaceBetween: 24, loop: true, autoplay: { delay: 4500, disableOnInteraction: false }, pagination: { el: '.testimonials-swiper .swiper-pagination', clickable: true }, navigation: { nextEl: '.testimonials-swiper .swiper-button-next', prevEl: '.testimonials-swiper .swiper-button-prev' }, breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } } });
+        });
+        </script>
+        <?php endif; ?>
     </div>
 </section>
