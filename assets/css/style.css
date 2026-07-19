@@ -61,6 +61,13 @@ select {
 /* 左对齐装饰（关于我们等左对齐标题用） */
 .st-left { margin-left: 0; margin-right: auto; }
 
+/* 客户评价水平滚动：细滚动条 */
+.tm-scroll { scrollbar-width: thin; scrollbar-color: rgba(0, 0, 0, .2) transparent; }
+.tm-scroll::-webkit-scrollbar { height: 6px; }
+.tm-scroll::-webkit-scrollbar-track { background: transparent; }
+.tm-scroll::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .15); border-radius: 9999px; }
+.tm-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, .28); }
+
 /* ============================================================
    首页 / 通用视觉组件（艺术化刷新，集中管理美术方向）
    —— 组件类置于 tailwind.css 之后加载，同元素上覆盖冲突的工具类
