@@ -475,6 +475,42 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     </div>
                     <?php endif; ?>
 
+                    <?php // 栏目区块（产品/文章/案例等）：每行个数 / 显示数量 / 排序
+                    if (str_starts_with($type, 'channel:')):
+                        $cPerRow = (int)($block['per_row'] ?? 4);
+                        $cLimit  = (int)($block['limit'] ?? 8);
+                        $cSort   = $block['sort'] ?? 'recommend';
+                    ?>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">展示设置</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">每行个数</label>
+                                <select class="block-perrow w-full border rounded px-2 py-1.5 text-xs bg-white">
+                                    <?php foreach ([2,3,4,6] as $n): ?>
+                                    <option value="<?php echo $n; ?>" <?php echo $cPerRow === $n ? 'selected' : ''; ?>><?php echo $n; ?> 个/行</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">显示数量</label>
+                                <select class="block-limit w-full border rounded px-2 py-1.5 text-xs bg-white">
+                                    <?php foreach ([4,8,12,16,20,24] as $n): ?>
+                                    <option value="<?php echo $n; ?>" <?php echo $cLimit === $n ? 'selected' : ''; ?>><?php echo $n; ?> 个</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">排序</label>
+                                <select class="block-sort w-full border rounded px-2 py-1.5 text-xs bg-white">
+                                    <option value="recommend" <?php echo $cSort === 'recommend' ? 'selected' : ''; ?>>推荐优先</option>
+                                    <option value="latest" <?php echo $cSort === 'latest' ? 'selected' : ''; ?>>最新优先</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php // 渲染普通设置项 ?>
                     <?php foreach ($meta['keys'] as $settingKey):
                         $item = $settingsMap[$settingKey] ?? null;
@@ -693,6 +729,13 @@ function collectBlocksConfig() {
         if (textLight) item.text_light = textLight.checked;
         var layout = card.querySelector('.block-layout');
         if (layout) item.layout = layout.value;
+        // 栏目区块展示设置：每行个数 / 显示数量 / 排序
+        var perRow = card.querySelector('.block-perrow');
+        var limit  = card.querySelector('.block-limit');
+        var sort   = card.querySelector('.block-sort');
+        if (perRow) item.per_row = parseInt(perRow.value);
+        if (limit)  item.limit   = parseInt(limit.value);
+        if (sort)   item.sort    = sort.value;
         config.push(item);
     });
     document.getElementById('blocksConfigJson').value = JSON.stringify(config);

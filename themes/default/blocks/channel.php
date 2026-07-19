@@ -10,6 +10,14 @@ $contents = $hChannel['contents'];
 // 无内容的栏目不在首页渲染（避免输出只有标题/骨架占位的空区块）
 if (empty($contents)) return;
 $bg = getBlockBg($block ?? [], 'bg-gray-50');
+// 每行个数 → 响应式网格类（字面量写全供 Tailwind 扫描）
+$perRow = (int)($hChannel['per_row'] ?? 4);
+$perRowGrid = [
+    2 => 'grid-cols-1 sm:grid-cols-2',
+    3 => 'grid-cols-2 md:grid-cols-3',
+    4 => 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
+    6 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6',
+][$perRow] ?? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -50,7 +58,7 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
         </div>
         <?php endif; ?>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productGrid">
+        <div class="grid <?php echo $perRowGrid; ?> gap-6" id="productGrid">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="product-item block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
                 <div class="relative overflow-hidden aspect-[4/3]">
