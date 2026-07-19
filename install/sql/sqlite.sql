@@ -83,6 +83,8 @@ INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "
 DROP TABLE IF EXISTS "yikai_albums";
 CREATE TABLE "yikai_albums" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "layout" TEXT NOT NULL DEFAULT 'grid',
+  "deleted_at" INTEGER DEFAULT NULL,
   "category_id" INTEGER DEFAULT '0',
   "name" TEXT NOT NULL,
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
@@ -194,6 +196,7 @@ CREATE TABLE "yikai_brands" (
 DROP TABLE IF EXISTS "yikai_channels";
 CREATE TABLE "yikai_channels" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "show_cover" INTEGER NOT NULL DEFAULT 1,
   "lang" TEXT NOT NULL DEFAULT 'ja',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "parent_id" INTEGER NOT NULL DEFAULT '0',
@@ -362,6 +365,7 @@ UPDATE "yikai_channels" SET "show_sidebar" = 0 WHERE "translation_group_id" = 19
 DROP TABLE IF EXISTS "yikai_contents";
 CREATE TABLE "yikai_contents" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "deleted_at" INTEGER DEFAULT NULL,
   "lang" TEXT NOT NULL DEFAULT 'ja',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "channel_id" INTEGER NOT NULL DEFAULT '0',
@@ -1429,6 +1433,7 @@ CREATE TABLE "yikai_download_categories" (
 DROP TABLE IF EXISTS "yikai_downloads";
 CREATE TABLE "yikai_downloads" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "deleted_at" INTEGER DEFAULT NULL,
   "category_id" INTEGER DEFAULT '0',
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
@@ -1552,6 +1557,7 @@ CREATE INDEX "idx_source_yikai_forms" ON "yikai_forms" ("source");
 DROP TABLE IF EXISTS "yikai_jobs";
 CREATE TABLE "yikai_jobs" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "deleted_at" INTEGER DEFAULT NULL,
   "title" TEXT NOT NULL,
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
@@ -1753,6 +1759,7 @@ CREATE INDEX "idx_group_yikai_product_tags" ON "yikai_product_tags" ("group_name
 DROP TABLE IF EXISTS "yikai_products";
 CREATE TABLE "yikai_products" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "deleted_at" INTEGER DEFAULT NULL,
   "lang" TEXT NOT NULL DEFAULT 'ja',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "category_id" INTEGER NOT NULL DEFAULT '0',
@@ -2358,6 +2365,7 @@ INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "mo
 DROP TABLE IF EXISTS "yikai_users";
 CREATE TABLE "yikai_users" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "totp_secret" TEXT NOT NULL DEFAULT '',
   "username" TEXT NOT NULL,
   "password" TEXT NOT NULL,
   "nickname" TEXT NOT NULL DEFAULT '',
@@ -2386,3 +2394,19 @@ PRAGMA foreign_keys = ON;
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (67,'zh-CN',67,1,'page','关于我们','','about','',NULL,'了解我们的企业文化与发展历程','<section class="py-12"><div class="max-w-6xl mx-auto px-4"><h2 class="text-2xl font-bold mb-4">公司简介</h2><div class="prose prose-lg max-w-none"><p style="text-align:center">我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。</p></div></div></section><section class="py-12"><div class="max-w-6xl mx-auto px-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center"><div><img class="w-full rounded-lg" src="https://picsum.photos/800/533?random=210" alt="公司环境 / 团队照片" loading="lazy"></div><div><h3 class="text-xl font-bold mb-4">我们的故事</h3><div class="prose prose-lg max-w-none"><p>多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。</p><p>未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。</p></div><div class="mt-2"><a class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg transition no-underline" style="color:#fff;text-decoration:none" href="#">了解更多</a></div></div></div></div></section><section class="py-12" style="background-color:#f8fafc;"><div class="max-w-6xl mx-auto px-4"><div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center"><div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center"><div class="text-center my-2"><i class="ti ti-award inline-block" style="font-size:48px;line-height:1;"></i></div><h4 class="text-lg font-bold mb-4">专业团队</h4><div class="prose prose-lg max-w-none"><p style="text-align:center">经验丰富的专业团队，为您提供全流程的贴心支持。</p></div></div><div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center"><div class="text-center my-2"><i class="ti ti-shield inline-block" style="font-size:48px;line-height:1;"></i></div><h4 class="text-lg font-bold mb-4">品质保证</h4><div class="prose prose-lg max-w-none"><p style="text-align:center">严格的品质管理体系，确保每一个环节都值得信赖。</p></div></div><div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center"><div class="text-center my-2"><i class="ti ti-users inline-block" style="font-size:48px;line-height:1;"></i></div><h4 class="text-lg font-bold mb-4">贴心服务</h4><div class="prose prose-lg max-w-none"><p style="text-align:center">快速响应的售前售后服务，与您携手共创价值。</p></div></div></div></div></section><section class="py-8"><div class="max-w-6xl mx-auto px-4"><div style="background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))" class="rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl"><div style="color:#fff" class="text-2xl md:text-4xl font-bold mb-3">想进一步了解我们？</div><div style="color:rgba(255,255,255,.9)" class="text-base md:text-lg mb-8 max-w-2xl mx-auto">欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。</div><a href="/contact.html" style="background:#fff;color:var(--color-primary);text-decoration:none" class="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition">立即联系我们 <i class="ti ti-arrow-right text-lg"></i></a></div></div></section>','blocks','[{"id":"s","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"center","justify_items":"center","gap":"lg"},"columns":[{"id":"c","elements":[{"id":"e","type":"heading","data":{"text":"公司简介","level":"h2"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。\u003C\/p\u003E"}}]}]},{"id":"s","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"center","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c","elements":[{"id":"e","type":"image","data":{"src":"https:\/\/picsum.photos\/800\/533?random=210","alt":"公司环境 \/ 团队照片","click_action":"","link_url":"","link_new_tab":false}}]},{"id":"c","elements":[{"id":"e","type":"heading","data":{"text":"我们的故事","level":"h3"}},{"id":"e","type":"text","data":{"html":"\u003Cp\u003E多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。\u003C\/p\u003E\u003Cp\u003E未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。\u003C\/p\u003E"}},{"id":"e","type":"button","data":{"text":"了解更多","url":"#","new_tab":false}}]}]},{"id":"s","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"center","gap":"lg","col_card":true},"columns":[{"id":"c","elements":[{"id":"e","type":"icon","data":{"icon":"award","size":"lg","color":"","text":""}},{"id":"e","type":"heading","data":{"text":"专业团队","level":"h4"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E经验丰富的专业团队，为您提供全流程的贴心支持。\u003C\/p\u003E"}}]},{"id":"c","elements":[{"id":"e","type":"icon","data":{"icon":"shield","size":"lg","color":"","text":""}},{"id":"e","type":"heading","data":{"text":"品质保证","level":"h4"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E严格的品质管理体系，确保每一个环节都值得信赖。\u003C\/p\u003E"}}]},{"id":"c","elements":[{"id":"e","type":"icon","data":{"icon":"users","size":"lg","color":"","text":""}},{"id":"e","type":"heading","data":{"text":"贴心服务","level":"h4"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E快速响应的售前售后服务，与您携手共创价值。\u003C\/p\u003E"}}]}]},{"id":"s","settings":{"bg_color":"","bg_image":"","padding":"md","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"md"},"columns":[{"id":"c","elements":[{"id":"e","type":"code","data":{"html":"\u003Cdiv style=\"background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))\" class=\"rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl\"\u003E\u003Cdiv style=\"color:#fff\" class=\"text-2xl md:text-4xl font-bold mb-3\"\u003E想进一步了解我们？\u003C\/div\u003E\u003Cdiv style=\"color:rgba(255,255,255,.9)\" class=\"text-base md:text-lg mb-8 max-w-2xl mx-auto\"\u003E欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。\u003C\/div\u003E\u003Ca href=\"\/contact.html\" style=\"background:#fff;color:var(--color-primary);text-decoration:none\" class=\"inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition\"\u003E立即联系我们 \u003Ci class=\"ti ti-arrow-right text-lg\"\u003E\u003C\/i\u003E\u003C\/a\u003E\u003C\/div\u003E"}}]}]}]','','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'关于我们','公司简介,企业文化,核心优势','了解我们的企业文化、发展历程与核心优势。',1,0,1776652898,1776652898,1776652898,1,'','','','');
 UPDATE "yikai_channels" SET "redirect_type"='none', "show_sidebar"=0 WHERE "id"=1;
 -- @demo:end
+
+-- 回收站软删除索引（补装）
+CREATE INDEX "idx_contents_deleted" ON "yikai_contents" ("deleted_at");
+CREATE INDEX "idx_products_deleted" ON "yikai_products" ("deleted_at");
+CREATE INDEX "idx_downloads_deleted" ON "yikai_downloads" ("deleted_at");
+CREATE INDEX "idx_jobs_deleted" ON "yikai_jobs" ("deleted_at");
+CREATE INDEX "idx_albums_deleted" ON "yikai_albums" ("deleted_at");
+
+-- contact_map_settings（补装）
+INSERT OR IGNORE INTO "yikai_settings" ("group", "key", "value", "type", "name", "tip", "sort_order") VALUES
+('contact', 'map_zh_provider', '',   'text', '中文版地图',     '留空=用静态地图图片；amap=高德；baidu=百度（需填对应 Key）。日/英文版固定用 Google 地图（免 Key）', 6),
+('contact', 'map_lat',         '',   'text', '地图纬度 lat',   '如 31.2304，按所选地图平台拾取坐标（高德/Google 与百度坐标系略有偏移）', 6),
+('contact', 'map_lng',         '',   'text', '地图经度 lng',   '如 121.4737', 6),
+('contact', 'map_zoom',        '15', 'text', '地图缩放级别',   '默认 15，数字越大越近', 7),
+('contact', 'map_amap_key',    '',   'text', '高德地图 JS Key', '中文版选 amap 时填，lbs.amap.com 申请 Web端(JS API) Key', 8),
+('contact', 'map_baidu_ak',    '',   'text', '百度地图 ak',     '中文版选 baidu 时填，lbsyun.baidu.com 申请 JavaScript API ak', 8);
