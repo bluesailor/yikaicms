@@ -814,12 +814,16 @@ function contentUrl(array $content): string
         return $prefix . '/download/detail/' . $content['id'] . '.html';
     }
 
-    // 案例类型使用 /case/{slug}.html 或 /case/{id}.html
+    // 案例类型使用 /cases/{slug}.html 或 /cases/{id}.html
     if ($channelType === 'case') {
+        
+    //fix url error - duke
+        $casePrefix = $channelSlug ?: 'cases';
+
         if (!empty($slug)) {
-            return $prefix . '/case/' . $slug . '.html';
+            return $prefix . '/' . $casePrefix .'/' . $slug . '.html';
         }
-        return $prefix . '/case/' . $content['id'] . '.html';
+        return $prefix . '/' . $casePrefix .'/' . $content['id'] . '.html';
     }
 
     // 自定义模型：/<url_prefix>/<slug>.html（url_prefix 空则用 model_key），
