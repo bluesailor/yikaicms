@@ -37,14 +37,93 @@ select {
    ============================================================ */
 .section-title-bar {
     display: block;
-    width: 50px;
-    height: 4px;
-    background: var(--color-primary, #3B82F6);
+    width: 56px;
+    height: 3px;
     border-radius: 9999px;
-    margin: 0.75rem auto 0;
+    margin: 1rem auto 0;
+    background: var(--color-primary, #3B82F6);
+    background: linear-gradient(90deg,
+        var(--color-primary, #3B82F6),
+        color-mix(in srgb, var(--color-primary, #3B82F6) 25%, transparent));
 }
 .section-title-bar-light {
-    background: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.9);
+    background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.25));
+}
+
+/* ============================================================
+   首页 / 通用视觉组件（艺术化刷新，集中管理美术方向）
+   —— 组件类置于 tailwind.css 之后加载，同元素上覆盖冲突的工具类
+   ============================================================ */
+
+/* 区块纵向留白：比 py-16 更舒展 */
+.blk { padding-top: 4rem; padding-bottom: 4rem; }
+@media (min-width: 768px) { .blk { padding-top: 5.5rem; padding-bottom: 5.5rem; } }
+
+/* 居中标题：更大、更紧、字重更足 */
+.blk-title {
+    font-size: clamp(1.75rem, 2.2vw + 1rem, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.18;
+    color: var(--color-dark, #1f2937);
+}
+/* 深色/主题色底上的标题：保持字号字重，改用白色 */
+.blk-title--light { color: #fff; }
+
+/* 副标题：限宽居中、行距舒展 */
+.blk-sub {
+    max-width: 40rem;
+    margin: 1.25rem auto 0;
+    color: #6b7280;
+    line-height: 1.85;
+    font-size: 1.0625rem;
+}
+
+/* 卡片：大圆角 + 细描边 + 柔和分层阴影 + 平滑上浮 */
+.u-card {
+    background: #fff;
+    border-radius: 1rem;
+    border: 1px solid rgba(17, 24, 39, 0.06);
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
+    overflow: hidden;
+    transition: transform .4s cubic-bezier(.2, .7, .2, 1), box-shadow .4s ease, border-color .4s ease;
+}
+.u-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(17, 24, 39, 0.10);
+    box-shadow: 0 26px 50px -18px rgba(17, 24, 39, 0.24);
+}
+
+/* 圆角配图：与卡片一致的圆角与投影 */
+.u-img {
+    border-radius: 1rem;
+    box-shadow: 0 24px 48px -20px rgba(17, 24, 39, 0.35);
+}
+
+/* 特性项（深色底上的优势格）：悬停浮起 + 极淡玻璃底 */
+.u-feature {
+    border-radius: 1rem;
+    padding: 2rem 1.5rem;
+    transition: background-color .35s ease, transform .35s ease;
+}
+.u-feature:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-4px);
+}
+/* 图标徽章发光 */
+.u-icon-badge {
+    box-shadow: 0 14px 30px -8px color-mix(in srgb, var(--color-primary, #3B82F6) 60%, transparent);
+}
+
+/* 主按钮：主题色柔影 + 悬停微升 */
+.u-btn-primary {
+    box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--color-primary, #3B82F6) 45%, transparent);
+    transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease;
+}
+.u-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px -10px color-mix(in srgb, var(--color-primary, #3B82F6) 55%, transparent);
 }
 
 /* ============================================================

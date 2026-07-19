@@ -23,11 +23,11 @@ $perRowGrid = [
     8 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8',
 ][$perRow] ?? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
 ?>
-<section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold text-dark mb-2">
+            <h2 class="blk-title mb-2">
                 <?php
                 $chName = $hChannel['name'];
                 if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $chName)) {
@@ -40,7 +40,7 @@ $perRowGrid = [
             </h2>
             <span class="section-title-bar"></span>
             <?php if ($hChannel['description']): ?>
-            <p class="text-gray-500"><?php echo e($hChannel['description']); ?></p>
+            <p class="blk-sub"><?php echo e($hChannel['description']); ?></p>
             <?php endif; ?>
         </div>
 
@@ -64,7 +64,7 @@ $perRowGrid = [
 
         <div class="grid <?php echo $perRowGrid; ?> gap-6" id="productGrid">
             <?php foreach ($contents as $item): ?>
-            <a href="<?php echo productUrl($item); ?>" class="product-item block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
+            <a href="<?php echo productUrl($item); ?>" class="product-item block u-card group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
                 <div class="relative overflow-hidden aspect-[4/3]">
                     <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
@@ -97,7 +97,7 @@ $perRowGrid = [
         <!-- Example: Card Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <?php foreach ($contents as $item): ?>
-            <a href="<?php echo contentUrl($item); ?>" class="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition group">
+            <a href="<?php echo contentUrl($item); ?>" class="block u-card group">
                 <div class="relative overflow-hidden aspect-[4/3]">
                     <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
@@ -132,7 +132,7 @@ $perRowGrid = [
                 $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
             ?>
-            <a href="<?php echo $itemUrl; ?>" class="block bg-white rounded-lg overflow-hidden hover:shadow-lg transition group">
+            <a href="<?php echo $itemUrl; ?>" class="block u-card group">
                 <div class="overflow-hidden h-40">
                 <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
@@ -159,7 +159,7 @@ $perRowGrid = [
         <!-- The content appears to be empty or without meaningful substance. -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <?php for ($i = 0; $i < 3; $i++): ?>
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="u-card">
                 <div class="h-48 bg-gray-200 flex items-center justify-center text-gray-400">
                     <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>

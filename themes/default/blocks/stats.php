@@ -2,7 +2,7 @@
 /**
  * 首页区块：数据统计横栏
  */
-$bg = getBlockBg($block ?? [], '@auto');
+$bg = getBlockBg($block ?? [], ''); // 数据统计自带深色大图底，不参与斑马交替
 if (!$bg['style'] && !$bg['overlay']) {
     $statBgUrl = config('home_stat_bg', 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80');
     $bg = [

@@ -9,14 +9,14 @@ $aboutTagTitle = configJsonLang('home_about_tag_title') ?: config('home_about_ta
 $aboutTagDesc = configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', '');
 $bg = getBlockBg($block ?? [], '@auto');
 ?>
-<section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <?php if ($aboutLayout === 'image_left'): ?>
             <!-- Left image, right text. -->
             <div class="relative" data-animate="fade-right">
-                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="u-img w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>
@@ -29,15 +29,15 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <?php endif; ?>
             </div>
             <div data-animate="fade-left">
-                <h2 class="text-3xl font-bold text-dark mb-2">
+                <h2 class="blk-title mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
                 </h2>
                 <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
-                <p class="text-gray-600 leading-relaxed mb-6 mt-6">
+                <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
+                <a href="<?php echo channelUrl($aboutChannel); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
                     <?php echo __('home_learn_more'); ?> &raquo;
                 </a>
                 <?php endif; ?>
@@ -45,21 +45,21 @@ $bg = getBlockBg($block ?? [], '@auto');
             <?php else: ?>
             <!-- Text on the left, image on the right (default) -->
             <div data-animate="fade-right">
-                <h2 class="text-3xl font-bold text-dark mb-2">
+                <h2 class="blk-title mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
                 </h2>
                 <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
-                <p class="text-gray-600 leading-relaxed mb-6 mt-6">
+                <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
+                <a href="<?php echo channelUrl($aboutChannel); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
                     <?php echo __('home_learn_more'); ?> &raquo;
                 </a>
                 <?php endif; ?>
             </div>
             <div class="relative" data-animate="fade-left">
-                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="u-img w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>
