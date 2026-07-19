@@ -307,6 +307,26 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 
+    <!-- 全局：版块标题样式 -->
+    <div class="bg-white rounded-lg shadow p-5 mb-3">
+        <div class="flex items-center gap-3 flex-wrap">
+            <label class="font-medium text-gray-800 whitespace-nowrap">版块标题样式</label>
+            <select name="settings[home_title_style]" class="border rounded px-3 py-1.5 text-sm bg-white">
+                <?php
+                $__ts = config('home_title_style', 'underline');
+                foreach ([
+                    'underline' => '整体同色 + 下方短线（默认）',
+                    'split'     => '前两字主题色 + 下方短线',
+                    'dot'       => '整体同色 + 主题色圆点',
+                    'plain'     => '整体同色，无装饰',
+                ] as $k => $label): ?>
+                <option value="<?php echo $k; ?>" <?php echo $__ts === $k ? 'selected' : ''; ?>><?php echo $label; ?></option>
+                <?php endforeach; ?>
+            </select>
+            <span class="text-xs text-gray-400">应用于 关于 / 产品 / 案例 / 新闻 / 评价 / 优势 / CTA 等版块标题</span>
+        </div>
+    </div>
+
     <div id="blocksContainer" class="space-y-3">
         <?php foreach ($blocksConfig as $block):
             $type = $block['type'] ?? '';

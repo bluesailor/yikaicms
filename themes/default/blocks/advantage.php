@@ -16,7 +16,7 @@ $advLangKeys = [
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="blk-title blk-title--light mb-2"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
-            <span class="section-title-bar section-title-bar-light"></span>
+            <?php echo homeTitleDeco(true); ?>
             <p class="text-gray-400 mt-4"><?php echo e(configLang('home_advantage_desc', 'home_advantage_desc')); ?></p>
         </div>
 

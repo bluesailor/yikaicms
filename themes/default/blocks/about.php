@@ -29,10 +29,11 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <?php endif; ?>
             </div>
             <div data-animate="fade-left">
-                <h2 class="blk-title mb-2">
-                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
-                </h2>
-                <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
+                <h2 class="blk-title mb-2"><?php
+                    $__aboutSplit = config('home_title_style', 'underline') === 'split';
+                    echo ($__aboutSplit ? '<span class="text-primary">' : '') . __('home_about_title') . ($__aboutSplit ? '</span>' : '') . e(configRawLang('site_name', ''));
+                ?></h2>
+                <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
@@ -45,10 +46,11 @@ $bg = getBlockBg($block ?? [], '@auto');
             <?php else: ?>
             <!-- Text on the left, image on the right (default) -->
             <div data-animate="fade-right">
-                <h2 class="blk-title mb-2">
-                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
-                </h2>
-                <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
+                <h2 class="blk-title mb-2"><?php
+                    $__aboutSplit = config('home_title_style', 'underline') === 'split';
+                    echo ($__aboutSplit ? '<span class="text-primary">' : '') . __('home_about_title') . ($__aboutSplit ? '</span>' : '') . e(configRawLang('site_name', ''));
+                ?></h2>
+                <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>

@@ -12,17 +12,8 @@ $bg = getBlockBg($block ?? [], '@auto');
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="blk-title mb-2">
-                <?php
-                if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $tmTitle)) {
-                    echo '<span class="text-primary">' . e(mb_substr($tmTitle, 0, 2)) . '</span>' . e(mb_substr($tmTitle, 2));
-                } else {
-                    $words = explode(' ', $tmTitle, 2);
-                    echo '<span class="text-primary">' . e($words[0]) . '</span>' . (isset($words[1]) ? ' ' . e($words[1]) : '');
-                }
-                ?>
-            </h2>
-            <span class="section-title-bar"></span>
+            <h2 class="blk-title mb-2"><?php echo homeTitleInner($tmTitle); ?></h2>
+            <?php echo homeTitleDeco(); ?>
             <p class="blk-sub"><?php echo e($tmDesc); ?></p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" data-stagger>
