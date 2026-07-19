@@ -68,7 +68,7 @@ $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
 
 // 构建查询
-$where = ['c.type = ?', 'c.lang = ?'];
+$where = ['c.type = ?', 'c.lang = ?', 'c.deleted_at IS NULL']; //将删除的案例从显示 - duke
 $params = [$contentType, $_viewLang];
 
 if ($channelId > 0) {
