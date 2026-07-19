@@ -62,6 +62,7 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/user.php',             'title'=>'后台用户',     'keywords'=>'后台账号 管理员 admin user 后台用户',                                    'group'=>'系统'],
             ['url'=>'/admin/role.php',             'title'=>'角色权限',     'keywords'=>'角色 权限 RBAC permission role',                                         'group'=>'系统'],
             ['url'=>'/admin/setting_security.php', 'title'=>'安全设置',     'keywords'=>'安全 登录限流 密码策略 security',                                         'group'=>'系统'],
+            ['url'=>'/admin/setting_api.php',      'title'=>'开放接口',     'keywords'=>'API 开放接口 公开接口 json 小程序 headless api key 接口',                 'group'=>'系统'],
             ['url'=>'/admin/system.php',           'title'=>'系统信息',     'keywords'=>'系统信息 服务器 PHP 数据库环境 system info',                              'group'=>'系统'],
             ['url'=>'/admin/system_log.php',       'title'=>'系统日志',     'keywords'=>'系统日志 操作记录 audit log',                                            'group'=>'系统'],
             ['url'=>'/admin/database.php',         'title'=>'数据库管理',   'keywords'=>'数据库 备份 恢复 database backup',                                       'group'=>'系统'],

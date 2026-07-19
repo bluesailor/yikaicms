@@ -18,6 +18,9 @@
     RewriteRule ^install/ - [F,L]
     RewriteRule ^bin/ - [F,L]
     RewriteRule ^migrations/ - [F,L]
+
+    # 开放接口伪静态：/api/v1/<resource> → 分发器（?resource=<resource> 形式始终可用，无需此规则）
+    RewriteRule ^api/v1/([a-z_]+)/?$ api/v1/index.php?resource=$1 [QSA,L]
     RewriteRule ^recipes/ - [F,L]
 
     # 禁止访问敏感文件
