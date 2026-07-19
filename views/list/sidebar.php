@@ -138,9 +138,9 @@
                         <?php endif; ?>
                     </div>
                 </div>
-                <?php // 多条件筛选面板（仅产品类型）
-                if ($isProductType) {
-                    require theme_path('partials/product-filter.php');
+                <?php // 多条件筛选面板（仅产品类型）；theme_path_optional 防主题缺该 partial 时 require 致命
+                if ($isProductType && ($__pfPath = theme_path_optional('partials/product-filter.php'))) {
+                    require $__pfPath;
                 } ?>
             </div>
 
