@@ -307,6 +307,7 @@ return [
     'admin_setting_lang' => '多言語設定',
     'admin_setting_ai' => 'AI 設定',
     'admin_setting_security' => 'セキュリティ',
+    'admin_setting_api' => 'API公開',
     'admin_translate' => '多言語翻訳',
     'admin_theme' => 'テーマ',
     'admin_plugin' => 'プラグイン',

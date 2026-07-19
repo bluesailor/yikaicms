@@ -263,6 +263,7 @@ return [
     'admin_setting_lang' => 'Languages',
     'admin_setting_ai' => 'AI Settings',
     'admin_setting_security' => 'Security',
+    'admin_setting_api' => 'Open API',
     'admin_translate' => 'Translation',
     'admin_theme' => 'Themes',
     'admin_plugin' => 'Plugins',

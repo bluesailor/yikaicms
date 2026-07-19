@@ -301,6 +301,7 @@ return [
     'admin_setting_lang' => '多语言设置',
     'admin_setting_ai' => 'AI 设置',
     'admin_setting_security' => '安全设置',
+    'admin_setting_api' => '开放接口',
     'admin_translate' => '多语言翻译',
     'admin_theme' => '主题管理',
     'admin_plugin' => '插件管理',
