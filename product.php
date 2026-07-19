@@ -59,6 +59,10 @@ $canonicalUrl = $siteUrl . productUrl($product);
 if (!empty($product['cover'])) {
     $ogImage = $product['cover'];
 }
+// 前台就地编辑：管理浮条「编辑此页」指向产品编辑器
+if (!empty($_SESSION['admin_id']) && !empty($product['id'])) {
+    $GLOBALS['ik_edit_url'] = '/admin/product_edit.php?id=' . (int) $product['id'];
+}
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'Product',
@@ -269,7 +273,7 @@ require_once theme_path('layouts/header.php');
 
                 <!-- Tab 内容 -->
                 <?php if ($hasContent): ?>
-                <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail">
+                <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail"<?php echo (!empty($_SESSION['admin_id']) && !empty($product['id'])) ? ' data-yk-edit="/admin/product_edit.php?id=' . (int) $product['id'] . '" data-yk-edit-label="✎ 编辑产品"' : ''; ?>>
                     <?php echo renderContent($product['content']); ?>
                 </div>
                 <?php endif; ?>

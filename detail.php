@@ -40,6 +40,11 @@ if ($_vars === null) {
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
+// 前台就地编辑：管理浮条「编辑此页」指向内容编辑器
+if (!empty($_SESSION['admin_id']) && ($__eu = frontEditUrl($content, $channel)) !== '') {
+    $GLOBALS['ik_edit_url'] = $__eu;
+}
+
 // 页面信息
 $pageTitle = $content['title'];
 $pageKeywords = $content['tags'] ?: ($channel['seo_keywords'] ?? '');
@@ -250,7 +255,7 @@ require_once theme_path('layouts/header.php');
                     <?php endif; ?>
 
                     <!-- 正文内容（blocks 页浏览时渲染，动态数据实时；其它走短码） -->
-                    <div class="p-6 md:p-8 prose prose-lg max-w-none">
+                    <div class="p-6 md:p-8 prose prose-lg max-w-none"<?php echo frontEditAttr($content, $channel); ?>>
                         <?php echo apply_filters('content_output', renderContentBody($content), $content); ?>
                     </div>
 
