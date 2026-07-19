@@ -20,14 +20,18 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
             <?php endif; ?>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12" data-stagger>
+        <?php // >3 条用 Swiper 轮播；≤3 条网格
+        $tmSlider = count($testimonials) > 3; ?>
+        <div class="<?php echo $tmSlider ? 'testimonials-swiper swiper' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12'; ?>" data-stagger>
+            <?php if ($tmSlider): ?><div class="swiper-wrapper"><?php endif; ?>
             <?php foreach ($testimonials as $tm):
                 $name    = $tm['name']    ?? '';
                 $company = $tm['company'] ?? '';
                 $content = $tm['content'] ?? '';
                 $initial = mb_substr($name, 0, 1);
             ?>
-            <figure class="border-t border-gray-300 pt-8">
+            <?php if ($tmSlider): ?><div class="swiper-slide"><?php endif; ?>
+            <figure class="border-t border-gray-300 pt-8<?php echo $tmSlider ? ' h-full' : ''; ?>">
                 <!-- 大引号字符替代图标 -->
                 <div class="text-5xl font-serif text-gray-300 leading-none mb-4">&ldquo;</div>
                 <blockquote class="text-gray-700 text-base leading-relaxed font-light">
@@ -45,7 +49,21 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
                     </div>
                 </figcaption>
             </figure>
+            <?php if ($tmSlider): ?></div><?php endif; ?>
             <?php endforeach; ?>
+            <?php if ($tmSlider): ?></div>
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+            <?php endif; ?>
         </div>
+        <?php if ($tmSlider): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Swiper === 'undefined') return;
+            new Swiper('.testimonials-swiper', { slidesPerView: 1, spaceBetween: 24, loop: true, autoplay: { delay: 4500, disableOnInteraction: false }, pagination: { el: '.testimonials-swiper .swiper-pagination', clickable: true }, navigation: { nextEl: '.testimonials-swiper .swiper-button-next', prevEl: '.testimonials-swiper .swiper-button-prev' }, breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } } });
+        });
+        </script>
+        <?php endif; ?>
     </div>
 </section>
