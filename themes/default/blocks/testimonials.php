@@ -8,11 +8,11 @@ $tmTitle = configLang('home_testimonials_title', 'home_testimonials_title');
 $tmDesc = configLang('home_testimonials_desc', 'home_testimonials_desc');
 $bg = getBlockBg($block ?? [], '@auto');
 ?>
-<section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold text-dark mb-2">
+            <h2 class="blk-title mb-2">
                 <?php
                 if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $tmTitle)) {
                     echo '<span class="text-primary">' . e(mb_substr($tmTitle, 0, 2)) . '</span>' . e(mb_substr($tmTitle, 2));
@@ -23,11 +23,11 @@ $bg = getBlockBg($block ?? [], '@auto');
                 ?>
             </h2>
             <span class="section-title-bar"></span>
-            <p class="text-gray-500 mt-4"><?php echo e($tmDesc); ?></p>
+            <p class="blk-sub"><?php echo e($tmDesc); ?></p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" data-stagger>
             <?php foreach ($testimonials as $tm): ?>
-            <div class="bg-white rounded-lg shadow-md p-6 relative">
+            <div class="u-card p-6 relative">
                 <div class="absolute top-4 right-4 text-primary opacity-10">
                     <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z"></path>

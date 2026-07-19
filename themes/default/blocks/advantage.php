@@ -11,11 +11,11 @@ $advLangKeys = [
     ['icon' => 'users',        'title' => 'home_adv_4_title', 'desc' => 'home_adv_4_desc'],
 ];
 ?>
-<section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold mb-2"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
+            <h2 class="blk-title blk-title--light mb-2"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
             <span class="section-title-bar section-title-bar-light"></span>
             <p class="text-gray-400 mt-4"><?php echo e(configLang('home_advantage_desc', 'home_advantage_desc')); ?></p>
         </div>
@@ -26,8 +26,8 @@ $advLangKeys = [
                 $iconKey = config("home_adv_{$n}_icon", $advLangKeys[$i]['icon']);
                 $iconSvg = $advIcons[$iconKey]['svg'] ?? $advIcons['check-circle']['svg'];
             ?>
-            <div class="text-center p-6">
-                <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <div class="u-feature text-center">
+                <div class="u-icon-badge w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-5">
                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><?php echo $iconSvg; ?></svg>
                 </div>
                 <h3 class="text-xl font-bold mb-2"><?php echo e(configLang("home_adv_{$n}_title", $advLangKeys[$i]['title'])); ?></h3>
