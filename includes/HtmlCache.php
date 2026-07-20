@@ -69,23 +69,54 @@ final class HtmlCache
     }
 
     /**
-     * 关闭缓冲并写入缓存
-     */
+    * 关闭缓冲并写入缓存。
+    *
+    * 仅缓存成功的 2xx 响应，避免把 404、403、500 等错误页面
+    * 写入 HTML 缓存。否则下次命中缓存时会丢失原来的错误状态码，
+    * 并被 PHP 默认作为 200 响应返回。
+    */
     public static function end(): void
     {
-        if (!self::$buffering) return;
+        if (!self::$buffering) {
+            return;
+        }
 
         $html = ob_get_clean();
         self::$buffering = false;
-        echo $html;
+        
+        // 先输出本次生成的内容。
+        // 即使是 404、500 等错误响应，也需要正常交给 OpenResty 处理。
+        if ($html !== false) {
+            echo $html;
+        }
 
-        if (self::$currentKey === '' || $html === '' || $html === false) return;
+        // 没有有效的缓存键或页面内容时，不写入缓存。
+        if (
+            self::$currentKey === ''
+            || $html === ''
+            || $html === false
+        ) {
+            return;
+        }
+
+        // 只缓存成功响应。
+        // 404、403、500 等错误响应不能写入 HTML 缓存，
+        // 否则下次命中缓存时会丢失原状态码并变成 200。
+        $statusCode = http_response_code();
+        
+        if ($statusCode < 200 || $statusCode >= 300) {
+            return;
+        }
 
         $dir = self::dir();
+
+        // 缓存目录不存在时自动创建。
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
         }
         $file = self::pathForKey(self::$currentKey);
+
+        // 使用文件锁，避免多个请求同时写入造成缓存文件不完整。
         @file_put_contents($file, (string)$html, LOCK_EX);
     }
 
