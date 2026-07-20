@@ -43,7 +43,7 @@ foreach (contentModelModel()->allActive() as $_m) {
 // 获取相册列表（用于相册类型栏目）
 $albums = albumModel()->query("SELECT id, name FROM " . albumModel()->tableName() . " ORDER BY sort_order DESC, id ASC");
 
-// 新建栏目并序明确保存站点源语言， 不能使用数据库默认语言
+// 新建栏目并明确保存站点源语言， 不能使用数据库默认语言
 $sourceLang = (string) config('site_lang', 'zh-CN');
 
 // 处理 AJAX 请求
