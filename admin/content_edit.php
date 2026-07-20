@@ -82,22 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
-        
-        //修复案例内容点击删除之后还显示在案例中 - duke
-        $_reqLang = (string) get('lang', adminLangView()['view']);
-        $_allowedLangs = array_keys(availableLanguages());
-
-        $data['lang'] = in_array($_reqLang, $_allowedLangs, true)
-            ? $_reqLang
-            : (string) config('site_lang', 'zh-CN');
-        
-        $_reqLang = (string) get('lang', adminLangView()['view']);
-        $_allowedLangs = array_keys(availableLanguages());
-
-        $data['lang'] = in_array($_reqLang, $_allowedLangs, true)
-            ? $_reqLang
-            : (string) config('site_lang', 'zh-CN');
-    
         $id = contentModel()->create($data);
         adminLog('content', 'create', '创建内容：' . $data['title']);
     }
