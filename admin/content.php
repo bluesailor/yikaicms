@@ -75,7 +75,7 @@ $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
 
-$where = ['c.lang = ?'];
+$where = ['c.lang = ?', 'c.deleted_at IS NULL']; // 软删除的内容不再显示（回收站）
 $params = [$_viewLang];
 
 if ($channelId > 0) {
