@@ -947,6 +947,20 @@ function productCategoryUrl(array $category): string
     return $prefix . '/product.html?cat=' . $category['id'];
 }
 
+/**
+ * 下载分类 URL（伪静态 /download/{slug}.html；无 slug 回退 ?cat=id）。
+ * 与 productCategoryUrl 同模式。硬编码 download 前缀，需下载栏目 slug 保持 'download'。
+ */
+function downloadCategoryUrl(array $category): string
+{
+    $prefix = langPrefix();
+    $slug = $category['slug'] ?? '';
+    if (!empty($slug)) {
+        return $prefix . '/download/' . $slug . '.html';
+    }
+    return $prefix . '/download.html?cat=' . ($category['id'] ?? 0);
+}
+
 // ============================================================
 // 轮播图和链接
 // ============================================================

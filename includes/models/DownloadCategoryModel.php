@@ -14,6 +14,31 @@ class DownloadCategoryModel extends Model
         return $this->where(['status' => 1], 'sort_order ASC, id ASC');
     }
 
+    /** 按 slug 查分类（伪静态路由用） */
+    public function findBySlug(string $slug): ?array
+    {
+        if ($slug === '') return null;
+        return db()->fetchOne(
+            "SELECT * FROM {$this->tableName()} WHERE slug = ? LIMIT 1",
+            [$slug]
+        ) ?: null;
+    }
+
+    /**
+     * 把前端 cat 参数解析成分类 id：
+     *   - 纯数字 → 直接当 id（兼容旧 ?cat=1）
+     *   - 其它   → 当 slug 查（伪静态 /download/{slug}.html）
+     * 解析不到返回 0（= 全部）。
+     */
+    public function resolveId(string $cat): int
+    {
+        $cat = trim($cat);
+        if ($cat === '') return 0;
+        if (ctype_digit($cat)) return (int) $cat;
+        $row = $this->findBySlug($cat);
+        return $row ? (int) $row['id'] : 0;
+    }
+
     /**
      * 获取分类列表（含文件数量统计）
      */

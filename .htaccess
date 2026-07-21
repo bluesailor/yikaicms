@@ -93,6 +93,12 @@
     # /download/detail/1.html -> /detail.php?id=1
     RewriteRule ^download/detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
 
+    # 下载分类页（伪静态，需在通用两段 page 规则之前）
+    # /download/software.html -> /list.php?slug=download&cat=software
+    # /download/software/page/2.html -> ...&page=2
+    RewriteRule ^download/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=download&cat=$1&page=$2 [L,QSA]
+    RewriteRule ^download/([a-z0-9_-]+)\.html$ /list.php?slug=download&cat=$1 [L,QSA]
+
     # 详情页 (支持ID格式)
     # /detail/1.html -> /detail.php?id=1
     RewriteRule ^detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]

@@ -172,6 +172,8 @@ return [
     'admin_article' => 'Articles',
     'admin_product' => 'Products',
     'admin_case' => 'Cases',
+    'case_tab_list' => 'Case List',
+    'case_tab_category' => 'Categories',
     'admin_job' => 'Jobs',
     'admin_download' => 'Downloads',
     'admin_album' => 'Gallery',
