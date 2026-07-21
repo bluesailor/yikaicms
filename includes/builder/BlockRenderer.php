@@ -110,9 +110,15 @@ final class BlockRenderer
             $colCard = $colCount > 1 && !empty($settings['col_card']);
             foreach ($columns as $col) {
                 if ($colCount > 1) {
-                    $html .= $colCard
-                        ? '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center">'
-                        : '<div>';
+                    if ($colCard) {
+                        // 列级背景色（card_bg）：用于高亮某一列（如价格表「推荐」档），有则加重阴影
+                        $cbg = isset($col['card_bg']) && (string) $col['card_bg'] !== '' ? (string) $col['card_bg'] : '';
+                        $html .= $cbg !== ''
+                            ? '<div class="rounded-xl border border-gray-100 shadow-md p-6 h-full text-center" style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
+                            : '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center">';
+                    } else {
+                        $html .= '<div>';
+                    }
                 }
                 foreach ($col['elements'] ?? [] as $el) {
                     $type = $el['type'] ?? '';

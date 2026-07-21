@@ -51,6 +51,38 @@ function builderPresets(): array
                 ]],
             ],
             [
+                'key' => 'pricing', 'label' => '价格表三栏', 'icon' => 'currency-yen',
+                'desc' => '总标题 + 3 档定价卡片（加宽）',
+                'sections' => [
+                    ['id' => 's', 'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default'], 'columns' => [['id' => 'c', 'elements' => [
+                        ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div class="text-center"><h2 class="blk-title mb-2">价格方案</h2><span class="section-title-bar"></span><p class="blk-sub">选择最适合你的套餐，随时可升级</p></div>']],
+                    ]]]],
+                    ['id' => 's',
+                    'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'gap' => 'md', 'col_card' => true],
+                    'columns' => [
+                        ['id' => 'c', 'elements' => [
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '基础版', 'level' => 'h3']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥99</span> <span style="color:#888">/ 月</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>核心功能</li><li>5 个项目</li><li>邮件支持</li></ul>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '选择基础版', 'url' => '/contact.html', 'new_tab' => false]],
+                        ]],
+                        ['id' => 'c', 'card_bg' => '#fffbeb', 'elements' => [
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div style="text-align:center;margin-bottom:6px"><span style="display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px">★ 推荐</span></div>']],
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '专业版', 'level' => 'h3']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700;color:#4f46e5">¥299</span> <span style="color:#888">/ 月</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>全部基础功能</li><li>无限项目</li><li>优先支持</li><li>数据分析</li></ul>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '选择专业版', 'url' => '/contact.html', 'new_tab' => false]],
+                        ]],
+                        ['id' => 'c', 'elements' => [
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '旗舰版', 'level' => 'h3']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥999</span> <span style="color:#888">/ 月</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>全部专业功能</li><li>专属客户经理</li><li>定制开发</li><li>SLA 保障</li></ul>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '联系销售', 'url' => '/contact.html', 'new_tab' => false]],
+                        ]],
+                    ],
+                ]],
+            ],
+            [
                 'key' => 'cta', 'label' => '行动号召', 'icon' => 'speakerphone',
                 'desc' => 'CTA 横幅 + 按钮',
                 'sections' => [[

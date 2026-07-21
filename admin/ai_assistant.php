@@ -55,8 +55,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div id="chatArea" class="flex-1 p-4 overflow-y-auto space-y-3" style="max-height: 540px;">
                 <div class="text-center text-gray-400 text-sm py-12">
                     输入指令开始对话。例如：<br>
-                    <span class="inline-block mt-2 text-gray-500">"列出最近 5 篇草稿，挑标题最长的发布上线"</span><br>
-                    <span class="inline-block mt-1 text-gray-500">"给文章 #12 生成 SEO 摘要并自动打标签"</span>
+                    <span class="inline-block mt-2 text-gray-500">"把 ICP 备案号填上：京ICP备2024099999号"</span><br>
+                    <span class="inline-block mt-1 text-gray-500">"列出最近 5 篇草稿，挑标题最长的发布上线"</span><br>
+                    <span class="inline-block mt-1 text-gray-500">"给文章 #12 生成 SEO 摘要并自动打标签"</span><br>
+                    <span class="inline-block mt-2 text-xs text-amber-600">修改类操作会先给出「待确认的改动」，点确认才生效，可一键撤销</span>
                 </div>
             </div>
 
@@ -151,6 +153,82 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         chatArea.scrollTop = chatArea.scrollHeight;
     }
 
+    // 待确认的写操作提案卡片
+    function stagedProposalsFromToolCalls(toolCalls) {
+        const staged = (toolCalls || []).filter(call => call.result && call.result.staged && call.result.proposal_id);
+        if (!staged.length) return null;
+        const setId = staged[0].result.proposal_set_id || '';
+        return {
+            setId,
+            proposals: staged.map(call => ({
+                id: call.result.proposal_id,
+                ability: call.name,
+                label: call.name,
+                summary: call.result.summary || call.name
+            }))
+        };
+    }
+    function addProposals(proposals, setId) {
+        if (chatArea.querySelector('.text-gray-400')) chatArea.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.className = 'border border-amber-200 bg-amber-50 rounded-lg px-3 py-3';
+        const list = proposals.map(p =>
+            `<div class="flex items-start gap-2 py-0.5"><span class="text-amber-600 mt-0.5">✎</span>` +
+            `<div class="text-sm text-gray-800">${escapeHtml(p.summary || p.label)}</div></div>`).join('');
+        wrap.innerHTML =
+            `<div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1">待确认的改动 (${proposals.length})</div>` +
+            list +
+            `<div class="mt-2 flex gap-2">` +
+            `<button class="btn-apply px-3 py-1.5 bg-primary text-white text-sm rounded-lg cursor-pointer">确认应用</button>` +
+            `<button class="btn-ignore px-3 py-1.5 border border-gray-300 text-gray-500 text-sm rounded-lg cursor-pointer">忽略</button>` +
+            `</div>`;
+        chatArea.appendChild(wrap);
+        chatArea.scrollTop = chatArea.scrollHeight;
+
+        wrap.querySelector('.btn-ignore').addEventListener('click', () => wrap.remove());
+        const applyBtn = wrap.querySelector('.btn-apply');
+        applyBtn.addEventListener('click', async () => {
+            applyBtn.disabled = true; applyBtn.textContent = '应用中…';
+            try {
+                const fd = new FormData(); fd.append('set_id', setId);
+                const res = await fetch('/admin/api_ai_apply.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if ((data.applied && data.applied.length) || data.success) {
+                    renderApplied(wrap, data.applied || [], data.errors || []);
+                } else {
+                    applyBtn.disabled = false; applyBtn.textContent = '确认应用';
+                    addMsg('error', data.error || (data.errors || []).join('；') || '应用失败');
+                }
+            } catch (e) {
+                applyBtn.disabled = false; applyBtn.textContent = '确认应用';
+                addMsg('error', '网络错误：' + e.message);
+            }
+        });
+    }
+
+    function renderApplied(wrap, applied, errors) {
+        wrap.className = 'border border-green-200 bg-green-50 rounded-lg px-3 py-3';
+        let html = `<div class="text-[11px] uppercase tracking-wide text-green-700 mb-1">已应用 ✓</div>`;
+        html += applied.map(a =>
+            `<div class="flex items-center justify-between gap-2 py-0.5">` +
+            `<div class="text-sm text-gray-800">${escapeHtml(a.summary)}</div>` +
+            `<button class="btn-undo text-xs text-gray-500 underline cursor-pointer" data-log="${a.log_id}">撤销</button></div>`).join('');
+        if (errors && errors.length) {
+            html += `<div class="text-xs text-red-600 mt-1">${errors.map(escapeHtml).join('<br>')}</div>`;
+        }
+        wrap.innerHTML = html;
+        wrap.querySelectorAll('.btn-undo').forEach(b => b.addEventListener('click', async () => {
+            b.disabled = true; b.textContent = '撤销中…';
+            try {
+                const fd = new FormData(); fd.append('id', b.dataset.log);
+                const res = await fetch('/admin/api_ai_undo.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.success) { b.textContent = '已撤销'; b.classList.remove('text-gray-500'); b.classList.add('text-green-600'); }
+                else { b.disabled = false; b.textContent = '撤销'; addMsg('error', data.error || '撤销失败'); }
+            } catch (e) { b.disabled = false; b.textContent = '撤销'; addMsg('error', '网络错误：' + e.message); }
+        }));
+    }
+
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
         const prompt = input.value.trim();
@@ -180,6 +258,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 addMsg('ai', data.content || '(无回复内容)');
             } else {
                 addMsg('error', data.error || '未知错误');
+            }
+
+            // 待确认的写操作提案
+            const stagedFallback = stagedProposalsFromToolCalls(data.tool_calls);
+            const proposals = (data.proposals && data.proposals.length) ? data.proposals : (stagedFallback ? stagedFallback.proposals : []);
+            const proposalSetId = data.proposal_set_id || (stagedFallback ? stagedFallback.setId : '');
+            if (proposals.length) {
+                if (proposalSetId) {
+                    addProposals(proposals, proposalSetId);
+                } else {
+                    addMsg('error', 'AI 已生成待确认改动，但服务端没有返回提案集 ID，请重新发起本次操作。');
+                }
+            } else if (data.content && /暂存|待确认|确认/.test(data.content)) {
+                addMsg('error', 'AI 回复提到了待确认改动，但本次没有生成可应用的服务端提案。请重新发送指令，或换一种更明确的说法。');
             }
         } catch (err) {
             placeholder.remove();

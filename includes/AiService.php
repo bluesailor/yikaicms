@@ -156,8 +156,13 @@ class AiService
      * @param int    $maxIter       最大工具循环次数
      * @return array ['success', 'content', 'tool_calls' => [...], 'error']
      */
-    public function chatWithTools(string $prompt, array $abilityNames = [], string $system = '', float $temperature = 0.7, int $maxIter = 5): array
+    public function chatWithTools(string $prompt, array $abilityNames = [], string $system = '', float $temperature = 0.7, int $maxIter = 5, bool $stageMutations = false): array
     {
+        if ($stageMutations && !class_exists('AiStaging')) {
+            require_once __DIR__ . '/AiStaging.php';
+        }
+        $proposals   = [];   // 暂存的写操作提案（stageMutations 时）
+        $stageSetId  = null;
         if (!$this->isConfigured()) {
             return ['success' => false, 'content' => '', 'tool_calls' => [], 'error' => 'AI 未配置'];
         }
@@ -198,13 +203,27 @@ class AiService
                 ['Authorization: Bearer ' . $this->apiKey, 'Content-Type: application/json']
             );
             if (!$resp['success']) {
-                return ['success' => false, 'content' => '', 'tool_calls' => $callsLog, 'error' => $resp['error']];
+                return [
+                    'success'         => false,
+                    'content'         => '',
+                    'tool_calls'      => $callsLog,
+                    'proposals'       => $proposals,
+                    'proposal_set_id' => $stageSetId,
+                    'error'           => $resp['error'],
+                ];
             }
 
             $data = json_decode($resp['body'], true);
             $msg  = $data['choices'][0]['message'] ?? null;
             if (!$msg) {
-                return ['success' => false, 'content' => '', 'tool_calls' => $callsLog, 'error' => 'Empty AI response'];
+                return [
+                    'success'         => false,
+                    'content'         => '',
+                    'tool_calls'      => $callsLog,
+                    'proposals'       => $proposals,
+                    'proposal_set_id' => $stageSetId,
+                    'error'           => 'Empty AI response',
+                ];
             }
 
             $toolCalls = $msg['tool_calls'] ?? [];
@@ -218,10 +237,12 @@ class AiService
                     'total_tokens' => (int)($usage['total_tokens'] ?? 0),
                 ]);
                 return [
-                    'success'    => true,
-                    'content'    => trim((string)($msg['content'] ?? '')),
-                    'tool_calls' => $callsLog,
-                    'error'      => '',
+                    'success'          => true,
+                    'content'          => trim((string)($msg['content'] ?? '')),
+                    'tool_calls'       => $callsLog,
+                    'proposals'        => $proposals,
+                    'proposal_set_id'  => $stageSetId,
+                    'error'            => '',
                 ];
             }
 
@@ -235,7 +256,36 @@ class AiService
                 $args   = json_decode($argRaw, true);
                 if (!is_array($args)) $args = [];
 
-                $exec = Abilities::execute($fnName, $args);
+                if ($stageMutations && Abilities::isMutating($fnName)) {
+                    // 写操作：不执行，转为「提案」暂存，待用户确认
+                    $prev = Abilities::previewChange($fnName, $args);
+                    if ($prev['success']) {
+                        $stageSetId ??= AiStaging::newSet();
+                        $pv  = $prev['preview'];
+                        $pid = AiStaging::add($stageSetId, $fnName, $args, $pv);
+                        $ab  = Abilities::get($fnName);
+                        $proposals[] = [
+                            'id'      => $pid,
+                            'ability' => $fnName,
+                            'label'   => (string) ($ab['label'] ?? $fnName),
+                            'summary' => (string) ($pv['summary'] ?? ''),
+                            'before'  => $pv['before'] ?? null,
+                            'after'   => $pv['after'] ?? null,
+                        ];
+                        $exec = [
+                            'success' => true,
+                            'staged' => true,
+                            'proposal_id' => $pid,
+                            'proposal_set_id' => $stageSetId,
+                            'note' => '已暂存，待用户在界面确认后才会真正应用',
+                            'summary' => (string) ($pv['summary'] ?? ''),
+                        ];
+                    } else {
+                        $exec = ['success' => false, 'error' => $prev['error'] ?? '提案失败'];
+                    }
+                } else {
+                    $exec = Abilities::execute($fnName, $args);
+                }
                 $callsLog[] = ['name' => $fnName, 'args' => $args, 'result' => $exec];
 
                 $messages[] = [
@@ -247,10 +297,12 @@ class AiService
         }
 
         return [
-            'success'    => false,
-            'content'    => '',
-            'tool_calls' => $callsLog,
-            'error'      => "Reached max iterations ({$maxIter}) without final answer",
+            'success'         => false,
+            'content'         => '',
+            'tool_calls'      => $callsLog,
+            'proposals'       => $proposals,
+            'proposal_set_id' => $stageSetId,
+            'error'           => "Reached max iterations ({$maxIter}) without final answer",
         ];
     }
 

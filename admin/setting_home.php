@@ -36,8 +36,78 @@ $LANG_KEYS = [
     'home_links_title',
 ];
 
+// 自定义版块：从预设复制一份 section 并重生成各级唯一 id（对齐构建器 freshSection）
+function homeFreshSection(array $s): array
+{
+    return [
+        'id'       => uniqid('s_'),
+        'settings' => is_array($s['settings'] ?? null) ? $s['settings'] : [],
+        'columns'  => array_map(function ($c) {
+            $col = [
+                'id'       => uniqid('c_'),
+                'elements' => array_map(
+                    fn($e) => ['id' => uniqid('e_'), 'type' => (string) ($e['type'] ?? 'text'), 'data' => is_array($e['data'] ?? null) ? $e['data'] : []],
+                    is_array($c['elements'] ?? null) ? $c['elements'] : []
+                ),
+            ];
+            if (isset($c['card_bg']) && (string) $c['card_bg'] !== '') $col['card_bg'] = (string) $c['card_bg'];
+            return $col;
+        }, is_array($s['columns'] ?? null) ? $s['columns'] : []),
+    ];
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // ── 新建自定义版块（从预设库或空白）──
+    if (($_POST['action'] ?? '') === 'add_custom') {
+        require_once ROOT_PATH . '/includes/builder/presets.php';
+        $presetKey = (string) ($_POST['preset'] ?? '');
+        $blocks = null;
+        $cTitle = '自定义版块';
+        if ($presetKey === 'blank') {
+            $blocks = [homeFreshSection([
+                'settings' => ['padding' => 'lg', 'max_width' => 'default', 'gap' => 'lg', 'justify_items' => 'center'],
+                'columns'  => [['elements' => [
+                    ['type' => 'heading', 'data' => ['text' => '新版块标题', 'level' => 'h2']],
+                    ['type' => 'text', 'data' => ['html' => '<p style="text-align:center">在此编辑内容。</p>']],
+                ]]],
+            ])];
+        } else {
+            foreach ((builderPresets()['sections'] ?? []) as $p) {
+                if (($p['key'] ?? '') === $presetKey && !empty($p['sections'])) {
+                    $blocks = array_map('homeFreshSection', $p['sections']);
+                    $cTitle = (string) ($p['label'] ?? $cTitle);
+                    break;
+                }
+            }
+        }
+        if ($blocks) {
+            $cfg = json_decode((string) config('home_blocks_config', ''), true) ?: [];
+            $maxN = 0;
+            foreach ($cfg as $b) {
+                if (str_starts_with((string) ($b['type'] ?? ''), 'custom:')) $maxN = max($maxN, (int) substr((string) $b['type'], 7));
+            }
+            $N = $maxN + 1;
+            settingModel()->set('home_custom_' . $N, json_encode(['title' => $cTitle, 'blocks' => $blocks], JSON_UNESCAPED_UNICODE));
+            $cfg[] = ['type' => 'custom:' . $N, 'enabled' => true];
+            settingModel()->set('home_blocks_config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+        }
+        redirect('/admin/setting_home.php');
+    }
+
+    // ── 删除自定义版块 ──
+    if (($_POST['action'] ?? '') === 'del_custom') {
+        $N = (int) ($_POST['n'] ?? 0);
+        if ($N > 0) {
+            $cfg = json_decode((string) config('home_blocks_config', ''), true) ?: [];
+            $cfg = array_values(array_filter($cfg, fn($b) => (string) ($b['type'] ?? '') !== 'custom:' . $N));
+            settingModel()->set('home_blocks_config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+            settingModel()->set('home_custom_' . $N, '');
+        }
+        redirect('/admin/setting_home.php');
+    }
+
     $settings = $_POST['settings'] ?? [];
 
     // 按视图 lang 把 lang-able key 重定向到 <key>_<lang>
@@ -182,6 +252,17 @@ foreach ($homeChannelRows as $hcRow) {
 }
 $blocksConfig = $migratedConfig;
 
+// 合作伙伴接入区块系统：缺失则追加（启用状态沿用旧的 home_show_links）
+$__hasPartners = false;
+foreach ($blocksConfig as $b) { if (($b['type'] ?? '') === 'partners') { $__hasPartners = true; break; } }
+if (!$__hasPartners) {
+    $blocksConfig[] = ['type' => 'partners', 'enabled' => (string) config('home_show_links', '0') === '1'];
+}
+// 禁用（隐藏）的区块统一沉到列表底部，各自保持相对顺序
+$__enBlocks = []; $__disBlocks = [];
+foreach ($blocksConfig as $b) { if (!empty($b['enabled'])) $__enBlocks[] = $b; else $__disBlocks[] = $b; }
+$blocksConfig = array_merge($__enBlocks, $__disBlocks);
+
 // 客户评价数据（lang-able JSON：home_testimonials_<lang> 优先）
 $testimonialsRaw = '';
 if ($_viewLang !== $_defaultLang) {
@@ -236,6 +317,13 @@ $blockMeta = [
         'text_light' => true,
         'keys'  => ['home_cta_title', 'home_cta_desc'],
     ],
+    'partners' => [
+        'title' => '合作伙伴',
+        'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"></path>',
+        'bg_default' => '#f9fafb',
+        'tip'   => '合作伙伴 Logo / 友情链接在 <a href="/admin/link.php" class="text-primary hover:underline">链接管理</a> 中编辑；此版块可拖拽排序、开关显隐（原「显示合作伙伴」开关已并入本版块）',
+        'keys'  => ['home_links_title'],
+    ],
 ];
 
 // 动态添加各栏目区块的元数据（key 用 translation_group_id，跨语言对齐）
@@ -247,6 +335,49 @@ foreach ($homeChannelRows as $hcRow) {
         'tip'   => '在 <a href="/admin/channel.php?action=edit&id=' . (int)$hcRow['id'] . '" class="text-primary hover:underline">栏目管理</a> 中编辑此栏目内容',
         'keys'  => [],
     ];
+}
+
+// 自定义版块元数据（title 取自 home_custom_<N>.title；section 供轻量编辑器渲染字段）
+foreach ($blocksConfig as $__cb) {
+    $__ct = (string) ($__cb['type'] ?? '');
+    if (!str_starts_with($__ct, 'custom:')) continue;
+    $__cn = substr($__ct, 7);
+    $__cd = json_decode((string) config('home_custom_' . $__cn, ''), true);
+    $blockMeta[$__ct] = [
+        'title'    => (string) ($__cd['title'] ?? ('自定义版块 ' . $__cn)),
+        'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>',
+        'bg_default' => '#ffffff',
+        'editor'   => 'custom',
+        'custom_n' => $__cn,
+        'sections' => is_array($__cd['blocks'] ?? null) ? $__cd['blocks'] : [],
+        'keys'     => [],
+    ];
+}
+
+// Banner 版块提示：动态列出所有轮播图分组 + 各自短码 + 张数（首页用 home 组）
+try {
+    $__bGroups = bannerGroupModel()->all();
+} catch (\Throwable $e) {
+    $__bGroups = [];
+}
+if ($__bGroups) {
+    $__bTip = '轮播图内容在 <a href="/admin/banner.php" class="text-primary hover:underline">轮播图管理</a> 中编辑。'
+            . '<div class="mt-2 text-xs text-gray-500">各分组短码（可嵌到任意页面/正文）：</div>'
+            . '<div class="mt-1.5 space-y-1">';
+    foreach ($__bGroups as $__bg) {
+        $__slug = (string) ($__bg['slug'] ?? '');
+        if ($__slug === '') continue;
+        try { $__cnt = bannerGroupModel()->getBannerCount($__slug); } catch (\Throwable $e) { $__cnt = 0; }
+        $__isHome = ($__slug === 'home');
+        $__bTip .= '<div class="flex items-center flex-wrap gap-2 text-xs">'
+                 . '<code class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-primary select-all cursor-text">[banner-' . e($__slug) . ']</code>'
+                 . '<span class="text-gray-700">' . e((string) ($__bg['name'] ?? $__slug)) . '</span>'
+                 . '<span class="text-gray-400">· ' . (int) $__cnt . ' 张</span>'
+                 . ($__isHome ? '<span class="px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">首页使用</span>' : '')
+                 . '</div>';
+    }
+    $__bTip .= '</div>';
+    $blockMeta['banner']['tip'] = $__bTip;
 }
 
 $pageTitle = '首页设置';
@@ -324,6 +455,37 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                 <?php endforeach; ?>
             </select>
             <span class="text-xs text-gray-400">应用于 关于 / 产品 / 案例 / 新闻 / 评价 / 优势 / CTA 等版块标题</span>
+        </div>
+    </div>
+
+    <!-- 添加自定义版块（从预设库） -->
+    <?php require_once ROOT_PATH . '/includes/builder/presets.php'; $__presets = builderPresets()['sections'] ?? []; ?>
+    <div class="mb-3" x-data="{ openAdd: false }">
+        <button type="button" @click="openAdd = true"
+                class="inline-flex items-center gap-1.5 px-4 py-2 border border-dashed border-primary/50 text-primary rounded-lg text-sm hover:bg-primary/5 cursor-pointer">
+            <i class="ti ti-plus text-base"></i> 添加版块
+        </button>
+        <div x-show="openAdd" x-cloak class="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" @click.self="openAdd = false">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[82vh] overflow-y-auto">
+                <div class="flex items-center justify-between px-5 py-3 border-b sticky top-0 bg-white">
+                    <h3 class="font-semibold text-gray-800">从预设库添加版块</h3>
+                    <button type="button" @click="openAdd = false" class="text-gray-400 hover:text-gray-600"><i class="ti ti-x text-lg"></i></button>
+                </div>
+                <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <?php foreach ($__presets as $p): ?>
+                    <button type="button" @click="addCustom('<?php echo e($p['key']); ?>')"
+                            class="text-left border border-gray-200 rounded-lg p-3 hover:border-primary hover:shadow-sm transition cursor-pointer">
+                        <div class="font-medium text-gray-800 text-sm"><?php echo e($p['label']); ?></div>
+                        <div class="text-xs text-gray-500 mt-0.5"><?php echo e($p['desc'] ?? ''); ?></div>
+                    </button>
+                    <?php endforeach; ?>
+                    <button type="button" @click="addCustom('blank')"
+                            class="text-left border border-dashed border-gray-300 rounded-lg p-3 hover:border-primary transition cursor-pointer">
+                        <div class="font-medium text-gray-800 text-sm">空白版块</div>
+                        <div class="text-xs text-gray-500 mt-0.5">从零开始（标题 + 文本）</div>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -620,6 +782,85 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     <?php endforeach; ?>
 
                     <?php // 客户评价编辑器 ?>
+                    <?php if (($meta['editor'] ?? '') === 'custom'):
+                        $__cn   = $meta['custom_n'] ?? '';
+                        $__secs = is_array($meta['sections'] ?? null) ? $meta['sections'] : [];
+                        $__hasEl = false; foreach ($__secs as $__s) { if (!empty($__s['columns'])) { $__hasEl = true; break; } }
+                    ?>
+                    <div class="border-t pt-4 mt-2" data-custom-editor="<?php echo e((string)$__cn); ?>">
+                        <div class="mb-3">
+                            <label class="text-xs text-gray-400 block mb-1">版块名称（后台标识）</label>
+                            <input type="text" class="cb-title w-full border rounded px-3 py-2 text-sm" value="<?php echo e($meta['title']); ?>">
+                        </div>
+                        <?php if ($__hasEl): ?>
+                        <div class="space-y-2">
+                            <?php foreach ($__secs as $si => $__sec): foreach (($__sec['columns'] ?? []) as $ci => $col): foreach (($col['elements'] ?? []) as $ei => $el):
+                                $eType = (string)($el['type'] ?? ''); $d = is_array($el['data'] ?? null) ? $el['data'] : [];
+                            ?>
+                            <div class="cb-el p-3 border rounded-lg bg-gray-50" data-sec="<?php echo (int)$si; ?>" data-col="<?php echo (int)$ci; ?>" data-el="<?php echo (int)$ei; ?>">
+                                <div class="text-[11px] uppercase tracking-wide text-gray-400 mb-2"><?php echo e($eType); ?></div>
+                                <?php if ($eType === 'heading'): ?>
+                                    <div class="flex gap-2">
+                                        <input type="text" class="cb-field flex-1 border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="标题文字">
+                                        <select class="cb-field border rounded px-2 py-1.5 text-sm bg-white" data-field="align" title="对齐">
+                                            <?php $__al = $d['align'] ?? 'left'; foreach (['left' => '左', 'center' => '居中', 'right' => '右'] as $__av => $__aln): ?>
+                                            <option value="<?php echo $__av; ?>" <?php echo $__al === $__av ? 'selected' : ''; ?>><?php echo $__aln; ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                <?php elseif ($eType === 'text'): ?>
+                                    <textarea class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="html" rows="3" placeholder="内容（可含 HTML）"><?php echo e($d['html'] ?? ''); ?></textarea>
+                                <?php elseif ($eType === 'button'): ?>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="按钮文字">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="url" value="<?php echo e($d['url'] ?? ''); ?>" placeholder="链接 URL">
+                                    </div>
+                                <?php elseif ($eType === 'icon-box'): ?>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="icon" value="<?php echo e($d['icon'] ?? ''); ?>" placeholder="图标名">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="标题">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="描述">
+                                    </div>
+                                <?php elseif ($eType === 'card'): ?>
+                                    <div class="space-y-2">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="image" value="<?php echo e($d['image'] ?? ''); ?>" placeholder="图片 URL">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="标题">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="link" value="<?php echo e($d['link'] ?? ''); ?>" placeholder="链接(可空)">
+                                        </div>
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="描述">
+                                    </div>
+                                <?php elseif ($eType === 'image'): ?>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="src" value="<?php echo e($d['src'] ?? ''); ?>" placeholder="图片 URL">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="alt" value="<?php echo e($d['alt'] ?? ''); ?>" placeholder="alt 文字">
+                                    </div>
+                                <?php elseif ($eType === 'cta'): ?>
+                                    <div class="space-y-2">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="标题">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="描述">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_text" value="<?php echo e($d['btn_text'] ?? ''); ?>" placeholder="按钮文字">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_url" value="<?php echo e($d['btn_url'] ?? ''); ?>" placeholder="按钮链接">
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <p class="text-xs text-gray-400">「<?php echo e($eType); ?>」元素请到构建器编辑</p>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; endforeach; endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <p class="text-sm text-gray-400">此版块暂无可编辑内容。</p>
+                        <?php endif; ?>
+                        <input type="hidden" class="cb-json" value="<?php echo e(json_encode($__secs, JSON_UNESCAPED_UNICODE)); ?>">
+                        <input type="hidden" name="settings[home_custom_<?php echo e((string)$__cn); ?>]" class="cb-output">
+                        <div class="mt-3 text-right">
+                            <button type="button" onclick="delCustom(<?php echo (int)$__cn; ?>)" class="text-xs text-red-400 hover:text-red-600">删除此版块</button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if (($meta['editor'] ?? '') === 'testimonials'): ?>
                     <div class="border-t pt-4 mt-2">
                         <div class="flex items-center justify-between mb-3">
@@ -675,53 +916,6 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
         <?php endforeach; ?>
     </div>
 
-    <!-- 显示设置（合作伙伴 — 独立于区块系统） -->
-    <?php
-    $displayKeys = ['home_show_links', 'home_links_title'];
-    $hasDisplayItems = false;
-    foreach ($displayKeys as $dk) { if (isset($settingsMap[$dk])) { $hasDisplayItems = true; break; } }
-    ?>
-    <?php if ($hasDisplayItems): ?>
-    <div class="mt-6">
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-5 py-3 border-b">
-                <h3 class="text-sm font-medium text-gray-600">合作伙伴</h3>
-            </div>
-            <div class="p-5 space-y-4">
-                <?php foreach ($displayKeys as $dk):
-                    $item = $settingsMap[$dk] ?? null;
-                    if (!$item) continue;
-                ?>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                    <label class="text-gray-700 text-sm pt-2">
-                        <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
-                        <?php if ($item['tip']): ?>
-                        <span class="text-gray-400 text-xs block"><?php echo e($item['tip']); ?></span>
-                        <?php endif; ?>
-                    </label>
-                    <div class="md:col-span-3">
-                        <?php if ($item['type'] === 'select'): ?>
-                        <label class="inline-flex items-center cursor-pointer">
-                            <input type="hidden" name="settings[<?php echo e($item['key']); ?>]" value="0">
-                            <input type="checkbox" name="settings[<?php echo e($item['key']); ?>]" value="1"
-                                   <?php echo $item['value'] === '1' ? 'checked' : ''; ?>
-                                   class="sr-only peer">
-                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                            <span class="ml-3 text-sm text-gray-600"><?php echo $item['value'] === '1' ? '显示' : '隐藏'; ?></span>
-                        </label>
-                        <?php else: ?>
-                        <input type="text" name="settings[<?php echo e($item['key']); ?>]"
-                               value="<?php echo e($item['value']); ?>"
-                               class="w-full border rounded px-3 py-2 text-sm">
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
-
     <div class="mt-6">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1">
             <i class="ti ti-check text-base"></i>
@@ -740,6 +934,15 @@ new Sortable(document.getElementById('blocksContainer'), {
     animation: 200,
     ghostClass: 'opacity-30',
     chosenClass: 'shadow-lg'
+});
+
+// 关闭某版块时，卡片实时沉到列表底部（保存时也会统一把禁用项排到末尾）
+document.getElementById('blocksContainer').addEventListener('change', function (e) {
+    if (!e.target.classList.contains('block-toggle')) return;
+    if (!e.target.checked) {
+        var card = e.target.closest('.block-card');
+        if (card) this.appendChild(card);
+    }
 });
 
 // 收集区块配置
@@ -781,7 +984,10 @@ function collectBlocksConfig() {
         if (sort)   item.sort    = sort.value;
         config.push(item);
     });
-    document.getElementById('blocksConfigJson').value = JSON.stringify(config);
+    // 禁用（隐藏）的区块统一沉到底部，各自保持相对顺序
+    var enabledCfg = config.filter(function (c) { return c.enabled; });
+    var disabledCfg = config.filter(function (c) { return !c.enabled; });
+    document.getElementById('blocksConfigJson').value = JSON.stringify(enabledCfg.concat(disabledCfg));
 }
 
 // 收集客户评价数据
@@ -985,7 +1191,51 @@ function pickFromMedia(key) {
 function saveHomeSettings() {
     collectBlocksConfig();
     collectTestimonials();
+    collectCustomBlocks();
     adminSave(document.getElementById('settingForm'), { successMsg: '<?php echo __('admin_saved'); ?>' });
+}
+
+// 自定义版块：把轻量编辑器里的字段回填进各自的 section JSON
+function collectCustomBlocks() {
+    document.querySelectorAll('[data-custom-editor]').forEach(function (box) {
+        var raw = box.querySelector('.cb-json');
+        if (!raw) return;
+        var blocks;
+        try { blocks = JSON.parse(raw.value); } catch (e) { return; }
+        if (!Array.isArray(blocks)) return;
+        box.querySelectorAll('.cb-el').forEach(function (elBox) {
+            var si = parseInt(elBox.dataset.sec, 10), ci = parseInt(elBox.dataset.col, 10), ei = parseInt(elBox.dataset.el, 10);
+            var sec = blocks[si];
+            if (!sec || !sec.columns || !sec.columns[ci] || !sec.columns[ci].elements || !sec.columns[ci].elements[ei]) return;
+            var el = sec.columns[ci].elements[ei];
+            el.data = el.data || {};
+            elBox.querySelectorAll('.cb-field').forEach(function (f) {
+                el.data[f.dataset.field] = (f.type === 'checkbox') ? f.checked : f.value;
+            });
+        });
+        var titleEl = box.querySelector('.cb-title');
+        var out = box.querySelector('.cb-output');
+        if (out) out.value = JSON.stringify({ title: titleEl ? titleEl.value : '', blocks: blocks });
+    });
+}
+
+// 从预设库添加自定义版块（服务端新建后刷新）
+async function addCustom(preset) {
+    var body = new URLSearchParams();
+    body.set('action', 'add_custom');
+    body.set('preset', preset);
+    try { await fetch('/admin/setting_home.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }); } catch (e) {}
+    location.reload();
+}
+
+// 删除自定义版块
+async function delCustom(n) {
+    if (!confirm('删除此自定义版块？此操作不可撤销。')) return;
+    var body = new URLSearchParams();
+    body.set('action', 'del_custom');
+    body.set('n', n);
+    try { await fetch('/admin/setting_home.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }); } catch (e) {}
+    location.reload();
 }
 document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();

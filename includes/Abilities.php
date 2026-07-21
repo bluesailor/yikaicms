@@ -49,10 +49,72 @@ class Abilities
         if (isset($config['permission']) && !is_callable($config['permission'])) {
             throw new \InvalidArgumentException("Ability {$name} 'permission' must be callable");
         }
+        if (isset($config['preview']) && !is_callable($config['preview'])) {
+            throw new \InvalidArgumentException("Ability {$name} 'preview' must be callable");
+        }
+        if (isset($config['revert']) && !is_callable($config['revert'])) {
+            throw new \InvalidArgumentException("Ability {$name} 'revert' must be callable");
+        }
         self::$registry[$name] = $config + [
             'output_schema' => null,
             'permission'    => null,
+            'mutating'      => false,   // 写操作：true 时 agent 走「提案→确认→应用」而非直接执行
+            'preview'       => null,    // fn($input) => ['summary','before','after']（只算不改）
+            'revert'        => null,    // fn($before, $input) => void（撤销）
         ];
+    }
+
+    /** 是否为写操作（需走确认机制） */
+    public static function isMutating(string $name): bool
+    {
+        $a = self::get($name);
+        return $a ? (bool) ($a['mutating'] ?? false) : false;
+    }
+
+    /** 权限校验（供 apply/undo 复用） */
+    public static function permitted(string $name): bool
+    {
+        $a = self::get($name);
+        if (!$a) return false;
+        if ($a['permission'] !== null) return (bool) call_user_func($a['permission']);
+        return true;
+    }
+
+    /**
+     * 只算不改：权限 → 校验 → preview。
+     * @return array{success:bool, preview?:array{summary:string,before:mixed,after:mixed}, error?:string}
+     */
+    public static function previewChange(string $name, array $input): array
+    {
+        $a = self::get($name);
+        if (!$a) return ['success' => false, 'error' => "Unknown ability: {$name}"];
+        if (!self::permitted($name)) return ['success' => false, 'error' => 'Permission denied'];
+        $errors = self::validateAgainstSchema($input, $a['input_schema']);
+        if ($errors !== []) return ['success' => false, 'error' => 'Input invalid: ' . implode('; ', $errors)];
+        try {
+            $preview = $a['preview'] !== null
+                ? (array) call_user_func($a['preview'], $input)
+                : ['summary' => (string) ($a['label'] ?? $name), 'before' => null, 'after' => null];
+            $preview += ['summary' => (string) ($a['label'] ?? $name), 'before' => null, 'after' => null];
+            return ['success' => true, 'preview' => $preview];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /** 撤销：调 revert(before, input) */
+    public static function revertChange(string $name, mixed $before, array $input): array
+    {
+        $a = self::get($name);
+        if (!$a) return ['success' => false, 'error' => "Unknown ability: {$name}"];
+        if ($a['revert'] === null) return ['success' => false, 'error' => '该操作不支持撤销'];
+        if (!self::permitted($name)) return ['success' => false, 'error' => 'Permission denied'];
+        try {
+            call_user_func($a['revert'], $before, $input);
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
     public static function has(string $name): bool
@@ -106,6 +168,25 @@ class Abilities
      * 转成 OpenAI / DeepSeek / Qwen / Zhipu 通用 tools 格式。
      * Anthropic Claude 用 asAnthropicTools()。
      */
+    /**
+     * 规范化 JSON Schema 供大模型 tools API 使用：
+     * 确保是 object，且空 properties 编码为 {} 而非 []（否则 DeepSeek/OpenAI 报
+     * "[] is not of type object"）。
+     */
+    public static function normalizeSchema(mixed $schema): array
+    {
+        if (!is_array($schema) || $schema === []) {
+            return ['type' => 'object', 'properties' => new \stdClass()];
+        }
+        if (!isset($schema['type'])) {
+            $schema['type'] = 'object';
+        }
+        if (!array_key_exists('properties', $schema) || $schema['properties'] === [] || $schema['properties'] === null) {
+            $schema['properties'] = new \stdClass();
+        }
+        return $schema;
+    }
+
     public static function asOpenAITools(?array $names = null): array
     {
         $tools = [];
@@ -118,7 +199,7 @@ class Abilities
                 'function' => [
                     'name'        => $n,
                     'description' => (string)$a['description'],
-                    'parameters'  => $a['input_schema'],
+                    'parameters'  => self::normalizeSchema($a['input_schema']),
                 ],
             ];
         }
@@ -138,7 +219,7 @@ class Abilities
             $tools[] = [
                 'name'         => $n,
                 'description'  => (string)$a['description'],
-                'input_schema' => $a['input_schema'],
+                'input_schema' => self::normalizeSchema($a['input_schema']),
             ];
         }
         return $tools;

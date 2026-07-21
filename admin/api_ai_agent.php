@@ -63,10 +63,17 @@ if ($prompt === '') {
 
 if ($system === '') {
     $siteName = config('site_name', 'Yikai CMS');
-    $system = "你是 {$siteName} 后台的 AI 助手。当用户的请求需要查询或操作 CMS 数据时，使用提供的工具（function calling）来完成；不要凭空编造数据。完成后用简洁的中文给出最终回复。";
+    $system =
+        "你是 {$siteName} 后台的 AI 助手，能通过工具（function calling）查询和修改本站。\n\n" .
+        "严格遵守：\n" .
+        "1. 任何查询或修改，都【必须】实际调用对应的工具函数来完成。严禁只用文字描述你「将要做」或「已经做」的操作，严禁编造数据、结果或提案编号——不调用工具就等于什么都没做。\n" .
+        "2. 修改站点的工具（写操作）调用后会返回 staged=true，表示改动已【暂存】、尚未生效，需用户在界面点「确认」才应用。这是正常流程：你只管调用工具，然后据实告诉用户你准备了哪些改动、请其确认，不要声称已改好。\n" .
+        "3. 不确定设置项键名时，先调用 cms_list_common_settings 查询（例：ICP 备案号=site_icp，公安备案号=site_police）。\n" .
+        "4. 完成后用简洁中文回复。";
 }
 
 AiService::$action = 'agent';
-$result = aiService()->chatWithTools($prompt, $abilities, $system, 0.5, $maxIter);
+// stageMutations=true：写类能力转为提案暂存，读类照常执行
+$result = aiService()->chatWithTools($prompt, $abilities, $system, 0.5, $maxIter, true);
 
 echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

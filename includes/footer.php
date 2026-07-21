@@ -98,24 +98,6 @@ if ($footerBgImage) {
             </div>
             <?php endif; ?>
 
-            <!-- 合作伙伴 -->
-            <?php
-            $showLinks = config('home_show_links', '0') === '1';
-            $links = $showLinks ? linkModel()->getActive() : [];
-            if (!empty($links)):
-            ?>
-            <div class="border-t border-gray-700 mt-8 pt-8">
-                <h4 class="text-white font-medium mb-4"><?php echo config('home_links_title', '合作伙伴'); ?></h4>
-                <div class="flex flex-wrap gap-4">
-                    <?php foreach ($links as $link): ?>
-                    <a href="<?php echo e($link['url']); ?>" target="_blank" rel="nofollow"
-                       class="text-sm hover:text-white transition">
-                        <?php echo e($link['name']); ?>
-                    </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
         </div>
 
         <!-- 页脚导航 -->

@@ -110,6 +110,26 @@ function uo_copy_tree(string $src, string $dst, string $baseRel = ''): array
     return [$copied, $errors];
 }
 
+/** 递归收集 $src 下所有文件的相对路径（套用 UO_EXCLUDES，与 uo_copy_tree 同规则），供分批覆盖用。 */
+function uo_flatten(string $src, string $baseRel = ''): array
+{
+    $out = [];
+    foreach (array_diff(scandir($src) ?: [], ['.', '..']) as $it) {
+        $rel = $baseRel === '' ? $it : "$baseRel/$it";
+        if (in_array($rel, UO_EXCLUDES, true)) continue;
+        $p = "$src/$it";
+        if (is_dir($p)) {
+            $out = array_merge($out, uo_flatten($p, $rel));
+        } else {
+            $out[] = $rel;
+        }
+    }
+    return $out;
+}
+
+/** 分批覆盖的进度状态文件路径 */
+function uo_state_file(): string { return uo_dir() . '/apply_state.json'; }
+
 /** 兼容旧 config.php：把硬编码的 CMS_VERSION 定义换成 require version.php。 */
 function uo_patch_config_version(): string
 {
@@ -195,8 +215,9 @@ if ($action !== '') {
         uo_json(['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => $sig !== '']);
     }
 
-    // ---- 4) 备份 + 解压覆盖 + 补丁 ----
-    if ($action === 'apply') {
+    // ---- 4a) 准备：备份 config + 解压 + 校验结构 + 建文件清单（写状态文件）----
+    //   分批覆盖：把「覆盖 800 文件」拆到多个短请求里，避免共享主机代理硬超时。
+    if ($action === 'apply_prepare') {
         $pkg = uo_dir() . '/package.zip';
         if (!is_file($pkg)) uo_json(['code' => 1, 'msg' => '未找到已下载的安装包，请先执行下载']);
         if (!class_exists('ZipArchive')) uo_json(['code' => 1, 'msg' => '缺少 ZipArchive 扩展']);
@@ -220,22 +241,92 @@ if ($action !== '') {
         if (!$zip->extractTo($ex)) { $zip->close(); uo_json(['code' => 1, 'msg' => '解压失败，可能磁盘空间不足']); }
         $zip->close();
 
-        // 包内通常是单层 yikaicms-vX.Y.Z/ 目录
-        $dirs = glob($ex . '/*', GLOB_ONLYDIR) ?: [];
-        $srcRoot = (count($dirs) === 1 && !is_file($ex . '/index.php')) ? $dirs[0] : $ex;
-        if (!is_file($srcRoot . '/index.php') || !is_dir($srcRoot . '/includes')) {
-            uo_json(['code' => 1, 'msg' => '安装包结构异常（缺 index.php / includes），已中止，未改动任何文件']);
+        // 判定增量 / 全量，定位 srcRoot
+        $deleted = []; $from = ''; $to = '';
+        if (is_file($ex . '/.delta-manifest.json')) {
+            $manifest = json_decode((string) @file_get_contents($ex . '/.delta-manifest.json'), true);
+            $srcRoot  = $ex . '/payload';
+            if (!is_array($manifest) || !is_dir($srcRoot)) {
+                uo_json(['code' => 1, 'msg' => '增量包结构异常（缺 payload/manifest），已中止，未改动任何文件']);
+            }
+            $mode = 'delta';
+            $deleted = (array) ($manifest['deleted'] ?? []);
+            $from = (string) ($manifest['from'] ?? '');
+            $to   = (string) ($manifest['to'] ?? '');
+        } else {
+            // 全量包通常是单层 yikaicms-vX.Y.Z/ 目录
+            $dirs = glob($ex . '/*', GLOB_ONLYDIR) ?: [];
+            $srcRoot = (count($dirs) === 1 && !is_file($ex . '/index.php')) ? $dirs[0] : $ex;
+            if (!is_file($srcRoot . '/index.php') || !is_dir($srcRoot . '/includes')) {
+                uo_json(['code' => 1, 'msg' => '安装包结构异常（缺 index.php / includes），已中止，未改动任何文件']);
+            }
+            $mode = 'full';
         }
 
-        // 覆盖复制（排除 config.php/storage/uploads/install）
-        [$copied, $errors] = uo_copy_tree($srcRoot, ROOT_PATH);
-        // 兼容旧 config.php 的版本行
-        $patch = uo_patch_config_version();
-        // 清理临时
-        uo_rrmdir($ex);
-        @unlink($pkg);
+        // 收集全部待覆盖文件（相对路径），写入状态文件供分批消费
+        $files = uo_flatten($srcRoot);
+        $state = [
+            'mode' => $mode, 'src' => $srcRoot, 'files' => $files, 'deleted' => $deleted,
+            'backup' => basename($bakDir), 'total' => count($files), 'done' => 0,
+            'errors' => [], 'from' => $from, 'to' => $to,
+        ];
+        @file_put_contents(uo_state_file(), json_encode($state, JSON_UNESCAPED_UNICODE));
+        uo_json(['code' => 0, 'mode' => $mode, 'total' => count($files), 'backup' => basename($bakDir)]);
+    }
 
-        try { adminLog('upgrade', 'online_apply', "在线升级覆盖文件: $copied 个，config补丁:$patch"); } catch (\Throwable $e) {}
+    // ---- 4b) 分批覆盖：从 offset 起覆盖一批文件，返回下一个 offset ----
+    if ($action === 'apply_batch') {
+        $sf = uo_state_file();
+        if (!is_file($sf)) uo_json(['code' => 1, 'msg' => '升级状态丢失，请重新开始']);
+        $state = json_decode((string) @file_get_contents($sf), true);
+        if (!is_array($state) || !isset($state['files'], $state['src'])) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
+        $src = (string) $state['src'];
+        $files = $state['files'];
+        $total = count($files);
+        $offset = max(0, (int) ($_POST['offset'] ?? 0));
+        $batch = 150;                          // 每批文件数；共享主机上单请求足够快
+        $end = min($total, $offset + $batch);
+        $copied = 0; $errors = [];
+        for ($i = $offset; $i < $end; $i++) {
+            $rel = (string) $files[$i];
+            $d = ROOT_PATH . '/' . $rel;
+            $dir = dirname($d);
+            if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
+            if (@copy($src . '/' . $rel, $d)) $copied++; else $errors[] = "复制失败: $rel";
+        }
+        $state['done'] = (int) ($state['done'] ?? 0) + $copied;
+        $state['errors'] = array_slice(array_merge($state['errors'] ?? [], $errors), 0, 50);
+        @file_put_contents($sf, json_encode($state, JSON_UNESCAPED_UNICODE));
+        uo_json(['code' => 0, 'copied' => $copied, 'next' => $end, 'total' => $total, 'errors' => $errors]);
+    }
+
+    // ---- 4c) 收尾：删除废弃文件（delta）+ 补 config 版本行 + 清理临时 ----
+    if ($action === 'apply_finalize') {
+        $sf = uo_state_file();
+        if (!is_file($sf)) uo_json(['code' => 1, 'msg' => '升级状态丢失，请重新开始']);
+        $state = json_decode((string) @file_get_contents($sf), true);
+        if (!is_array($state)) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
+
+        // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护根，仅删普通文件
+        $deletedCount = 0;
+        foreach ((array) ($state['deleted'] ?? []) as $rel) {
+            $rel = (string) $rel;
+            if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
+            $top = explode('/', $rel)[0];
+            if (in_array($rel, UO_EXCLUDES, true) || in_array($top, UO_EXCLUDES, true)) continue;
+            if (is_file(ROOT_PATH . '/' . $rel) && @unlink(ROOT_PATH . '/' . $rel)) $deletedCount++;
+        }
+        $patch = uo_patch_config_version();
+
+        // 清理临时
+        uo_rrmdir(uo_dir() . '/extracted');
+        @unlink(uo_dir() . '/package.zip');
+        @unlink($sf);
+
+        $errors = $state['errors'] ?? [];
+        $copied = (int) ($state['done'] ?? $state['total'] ?? 0);
+        $mode   = $state['mode'] ?? 'full';
+        try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 $copied / 删 $deletedCount，config补丁:$patch"); } catch (\Throwable $e) {}
 
         $newVer = '';
         $vf = @file_get_contents(ROOT_PATH . '/config/version.php');
@@ -243,12 +334,14 @@ if ($action !== '') {
 
         uo_json([
             'code'    => empty($errors) ? 0 : 2,
-            'msg'     => empty($errors) ? "文件更新完成，共覆盖 $copied 个文件" : "部分文件未能覆盖（$copied 成功，" . count($errors) . " 失败）",
+            'msg'     => (empty($errors) ? "文件更新完成，共覆盖 $copied 个文件" : "部分文件未能覆盖（$copied 成功，" . count($errors) . " 失败）") . ($deletedCount ? "，删除 $deletedCount 个" : ''),
+            'mode'    => $mode,
             'copied'  => $copied,
+            'deleted' => $deletedCount,
             'errors'  => array_slice($errors, 0, 20),
             'patch'   => $patch,
             'new_version' => $newVer,
-            'backup'  => basename($bakDir),
+            'backup'  => $state['backup'] ?? '',
         ]);
     }
 
@@ -365,17 +458,41 @@ document.getElementById('uo-upgrade').onclick = async () => {
     const btn = document.getElementById('uo-upgrade');
     btn.disabled = true; btn.classList.add('opacity-50');
     const d = UO.target;
+    // 优先增量包：当前版本正好匹配某 delta 的 from 时，check 会返回 d.delta
+    const useDelta = !!(d.delta && d.delta.download_url && d.delta.hash);
+    const dlUrl  = useDelta ? d.delta.download_url : d.download_url;
+    const dlHash = useDelta ? d.delta.hash : (d.hash || '');
+    const dlSig  = useDelta ? '' : (d.sig || '');   // 增量包只校验 SHA256（RSA 签名仅全量包）
     // 下载校验
-    let r = UO.row(`下载并校验 v${d.latest_version}…`, 'run');
-    const dl = await UO.post('download', { download_url: d.download_url, hash: d.hash || '', version: d.latest_version, sig: d.sig || '' });
+    let r = UO.row(`下载并校验 v${d.latest_version}${useDelta ? '（增量包，仅传变化文件）' : ''}…`, 'run');
+    const dl = await UO.post('download', { download_url: dlUrl, hash: dlHash, version: d.latest_version, sig: dlSig });
     if (dl.code !== 0) { UO.set(r, 'fail', dl.msg); btn.disabled = false; btn.classList.remove('opacity-50'); return; }
-    UO.set(r, 'ok', `校验通过（${(dl.size / 1048576).toFixed(1)} MB${dl.signed ? '，已验 RSA 签名' : ''}）`);
-    // 应用
-    r = UO.row('备份并覆盖程序文件…', 'run');
-    const ap = await UO.post('apply');
-    if (ap.code === 1) { UO.set(r, 'fail', ap.msg); btn.disabled = false; btn.classList.remove('opacity-50'); return; }
-    UO.set(ap.code === 0 ? r : r, ap.code === 0 ? 'ok' : 'fail', `${ap.msg}（备份: ${ap.backup}）`);
-    UO.row(`程序文件已更新到 v${ap.new_version || d.latest_version}。`, 'ok', '最后一步：运行数据库迁移。');
+    UO.set(r, 'ok', `校验通过（${(dl.size / 1048576).toFixed(2)} MB${dl.signed ? '，已验 RSA 签名' : ''}${useDelta ? '，增量' : ''}）`);
+    // 应用：准备（备份+解压+建清单）
+    const fail = (row, msg) => { UO.set(row, 'fail', msg); btn.disabled = false; btn.classList.remove('opacity-50'); };
+    r = UO.row('备份并解压安装包…', 'run');
+    const pre = await UO.post('apply_prepare');
+    if (pre.code !== 0) return fail(r, pre.msg);
+    UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}）`);
+    // 分批覆盖（每批 150 文件，避免共享主机单请求超时）
+    const total = pre.total;
+    const rr = UO.row(`覆盖程序文件… 0/${total}`, 'run');
+    const label = rr.querySelector('.text-gray-800');
+    let offset = 0, errCount = 0;
+    while (offset < total) {
+        const bt = await UO.post('apply_batch', { offset: offset });
+        if (bt.code !== 0) return fail(rr, bt.msg || '覆盖失败');
+        offset = bt.next;
+        errCount += (bt.errors ? bt.errors.length : 0);
+        if (label) label.textContent = `覆盖程序文件… ${Math.min(offset, total)}/${total}`;
+    }
+    UO.set(rr, errCount ? 'fail' : 'ok', `覆盖完成（${total} 个文件${errCount ? '，' + errCount + ' 个失败' : ''}）`);
+    // 收尾（删除废弃文件 / 补版本号 / 清理）
+    const rf = UO.row('收尾…', 'run');
+    const fin = await UO.post('apply_finalize');
+    if (fin.code === 1) return fail(rf, fin.msg);
+    UO.set(rf, fin.code === 0 ? 'ok' : 'fail', fin.msg);
+    UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。`, 'ok', '最后一步：运行数据库迁移。');
     document.getElementById('uo-migrate').classList.remove('hidden');
     btn.classList.add('hidden');
 };

@@ -93,34 +93,67 @@ register_ability('cms_get_setting', [
 // ─────────────────────────────────────────────────────────
 // 12) 修改设置（仅超管，受白名单前缀保护）
 // ─────────────────────────────────────────────────────────
+// 设置键可改性守卫（preview / execute / revert 共用）
+if (!function_exists('cms_setting_key_guard')) {
+    function cms_setting_key_guard(string $key): void
+    {
+        $blocked = ['ai_api_key', 'smtp_pass', 'license_key', 'encrypt_key'];
+        if (in_array($key, $blocked, true) || str_starts_with($key, '_')) {
+            throw new \RuntimeException("Setting key '{$key}' is restricted");
+        }
+        $allowedPrefixes = ['site_', 'admin_', 'contact_', 'social_', 'footer_', 'mail_', 'banner_', 'primary_', 'secondary_', 'show_', 'product_', 'download_', 'allow_', 'html_cache_', 'cache_'];
+        foreach ($allowedPrefixes as $p) {
+            if (str_starts_with($key, $p)) return;
+        }
+        throw new \RuntimeException("Setting key '{$key}' is not in the AI-modifiable allowlist");
+    }
+}
+/** 设置键的中文友好名（用于提案摘要） */
+if (!function_exists('cms_setting_key_label')) {
+    function cms_setting_key_label(string $key): string
+    {
+        $names = [
+            'site_icp' => 'ICP备案号', 'site_police' => '公安备案号',
+            'site_name' => '网站名称', 'site_title' => '网站标题',
+            'site_logo' => '网站LOGO', 'contact_phone' => '联系电话', 'contact_email' => '联系邮箱',
+        ];
+        return $names[$key] ?? $key;
+    }
+}
+
 register_ability('cms_update_setting', [
     'label'        => '修改站点设置',
-    'description'  => '更新一项站点设置（如修改 LOGO URL / 联系电话 / 邮箱 / 网站标题）。仅超管可调用，敏感字段已屏蔽。',
+    'description'  => '更新一项站点设置（如修改 ICP备案号=site_icp / LOGO URL / 联系电话 / 邮箱 / 网站标题）。仅超管可调用，敏感字段已屏蔽。此为写操作，会先生成提案待用户确认。',
     'input_schema' => [
         'type'       => 'object',
         'properties' => [
-            'key'   => ['type' => 'string', 'description' => '设置键名'],
+            'key'   => ['type' => 'string', 'description' => '设置键名，如 site_icp（备案号）'],
             'value' => ['type' => 'string', 'description' => '新值（任意字符串）'],
         ],
         'required' => ['key', 'value'],
     ],
     'permission'   => fn() => function_exists('isSuperAdmin') && isSuperAdmin(),
+    'mutating'     => true,
+    'preview'      => function (array $input): array {
+        $key = trim((string)$input['key']);
+        cms_setting_key_guard($key);
+        $old   = (string) (config($key, '') ?? '');
+        $label = cms_setting_key_label($key);
+        return [
+            'summary' => "设置「{$label}」：" . ($old === '' ? '（空）' : "“{$old}”") . " → “{$input['value']}”",
+            'before'  => $old,
+            'after'   => (string) $input['value'],
+        ];
+    },
+    'revert'       => function ($before, array $input): void {
+        $key = trim((string)$input['key']);
+        cms_setting_key_guard($key);
+        settingModel()->set($key, (string) $before);
+        if (function_exists('adminLog')) adminLog('setting', 'ai_undo', "撤销 AI 修改 {$key}");
+    },
     'execute'      => function (array $input): array {
         $key = trim((string)$input['key']);
-        // 黑名单
-        $blocked = ['ai_api_key', 'smtp_pass', 'license_key', 'encrypt_key'];
-        if (in_array($key, $blocked, true) || str_starts_with($key, '_')) {
-            throw new \RuntimeException("Setting key '{$key}' is restricted");
-        }
-        // 白名单前缀（防止意外改到不该改的）
-        $allowedPrefixes = ['site_', 'admin_', 'contact_', 'social_', 'footer_', 'mail_', 'banner_', 'primary_', 'secondary_', 'show_', 'product_', 'download_', 'allow_', 'html_cache_', 'cache_'];
-        $prefixOk = false;
-        foreach ($allowedPrefixes as $p) {
-            if (str_starts_with($key, $p)) { $prefixOk = true; break; }
-        }
-        if (!$prefixOk) {
-            throw new \RuntimeException("Setting key '{$key}' is not in the AI-modifiable allowlist");
-        }
+        cms_setting_key_guard($key);
         $oldValue = config($key, null);
         settingModel()->set($key, $input['value']);
         if (function_exists('adminLog')) {

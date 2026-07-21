@@ -3,10 +3,10 @@
  * 首页区块：合作伙伴 / 友情链接（独立区段，置于页脚之上）
  * 由 index.php 在页脚之前渲染。有 Logo 显示 Logo，否则显示名称。
  */
-if (config('home_show_links', '0') !== '1') return;
+// 显隐由首页「区块系统」的 enabled 开关控制（见 home_blocks_config）；此处只在无数据时跳过
 $links = linkModel()->getActive();
 if (empty($links)) return;
-$bg = getBlockBg([], '@auto'); // 独立区段（不继承首页循环里遗留的 $block）
+$bg = getBlockBg($block ?? [], '@auto');
 ?>
 <section class="py-12 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?><?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-partners'; ?>><?php echo $bg['overlay']; ?>
     <div class="container mx-auto px-4">
