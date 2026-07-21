@@ -111,7 +111,8 @@ $rightSidebarTitle = '';
 $rightSidebarActiveId = null; // null = 使用 $channelId
 if ($channel['type'] === 'download') {
     $dlCategories = downloadCategoryModel()->getActive();
-    $dlCatId = getInt('cat');
+    // cat 支持 slug（伪静态 /download/{slug}.html）或数字 id（兼容旧 ?cat=1）
+    $dlCatId = downloadCategoryModel()->resolveId((string) get('cat', ''));
     // 右侧导航：用 download_categories（与后台编辑/筛选同一套），不用子栏目
     if (!empty($dlCategories)) {
         $rightSidebarTitle = __('label_category');
@@ -123,7 +124,7 @@ if ($channel['type'] === 'download') {
         foreach ($dlCategories as $dcat) {
             $rightSidebarItems[] = [
                 'label'  => $dcat['name'],
-                'url'    => channelUrl($channel) . '?cat=' . (int) $dcat['id'],
+                'url'    => downloadCategoryUrl($dcat),
                 'active' => $dlCatId === (int) $dcat['id'],
             ];
         }

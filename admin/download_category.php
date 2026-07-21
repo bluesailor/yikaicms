@@ -32,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error('分类名称不能为空');
         }
 
+        // slug：留空按名称自动生成；用于伪静态 /download/{slug}.html
+        $data['slug'] = resolveSlug((string) post('slug'), $data['name'], 'download_categories', $id);
+
         if ($id > 0) {
             downloadCategoryModel()->updateById($id, $data);
             adminLog('download_category', 'update', '更新分类：' . $data['name']);
@@ -127,6 +130,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-sm text-gray-500"><?php echo $item['id']; ?></td>
                     <td class="px-4 py-3">
                         <span class="font-medium"><?php echo e($item['name']); ?></span>
+                        <?php if (!empty($item['slug'])): ?>
+                        <code class="text-xs bg-gray-100 px-2 py-1 rounded ml-2"><?php echo e($item['slug']); ?></code>
+                        <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-500">
                         <?php echo e($item['description'] ?: '-'); ?>
@@ -179,6 +185,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">URL 别名 (Slug)</label>
+                    <input type="text" name="slug" id="formSlug"
+                           class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                           placeholder="留空自动生成，如 software">
+                    <p class="text-xs text-gray-400 mt-1">前端伪静态地址：/download/<span class="font-mono">{slug}</span>.html</p>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo __('admin_description'); ?></label>
                     <input type="text" name="description" id="formDescription"
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
@@ -215,6 +228,7 @@ function openModal() {
     document.getElementById('modalTitle').textContent = '添加分类';
     document.getElementById('formId').value = 0;
     document.getElementById('formName').value = '';
+    document.getElementById('formSlug').value = '';
     document.getElementById('formDescription').value = '';
     document.getElementById('formSortOrder').value = 0;
     document.getElementById('formStatus').value = 1;
@@ -240,6 +254,7 @@ async function editItem(id) {
         document.getElementById('modalTitle').textContent = '编辑分类';
         document.getElementById('formId').value = item.id;
         document.getElementById('formName').value = item.name;
+        document.getElementById('formSlug').value = item.slug || '';
         document.getElementById('formDescription').value = item.description || '';
         document.getElementById('formSortOrder').value = item.sort_order;
         document.getElementById('formStatus').value = item.status;

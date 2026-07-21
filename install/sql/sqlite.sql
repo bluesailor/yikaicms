@@ -1,6 +1,6 @@
 -- ============================================================
 -- Yikai CMS Install SQL (MySQL)
--- Version: 1.12.3
+-- Version: 1.12.4
 -- Generated: 2026-05-16 20:03:01
 -- ============================================================
 PRAGMA foreign_keys = OFF;
@@ -1414,14 +1414,15 @@ DROP TABLE IF EXISTS "yikai_download_categories";
 CREATE TABLE "yikai_download_categories" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "name" TEXT NOT NULL,
+  "slug" TEXT DEFAULT '',
   "description" TEXT DEFAULT '',
   "sort_order" INTEGER DEFAULT '0',
   "status" INTEGER DEFAULT '1',
   "created_at" INTEGER DEFAULT '0'
 );
-INSERT INTO "yikai_download_categories" ("id", "name", "description", "sort_order", "status", "created_at") VALUES (1,'软件下载','',1,1,1776654080);
-INSERT INTO "yikai_download_categories" ("id", "name", "description", "sort_order", "status", "created_at") VALUES (2,'文档资料','',2,1,1776654080);
-INSERT INTO "yikai_download_categories" ("id", "name", "description", "sort_order", "status", "created_at") VALUES (3,'驱动程序','',3,1,1776654080);
+INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES (1,'软件下载','software','',1,1,1776654080);
+INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES (2,'文档资料','document','',2,1,1776654080);
+INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES (3,'驱动程序','driver','',3,1,1776654080);
 
 
 DROP TABLE IF EXISTS "yikai_downloads";
@@ -2138,7 +2139,7 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (105,'member','download_require_login','0','switch','下载需要登录','',NULL,2);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (106,'social','social_links','[]','social_links','社交媒体链接','',NULL,1);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (107,'system','current_theme','default','text','当前主题','',NULL,0);
-INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (108,'system','cms_version','1.12.3','text','CMS版本号','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (108,'system','cms_version','1.12.4','text','CMS版本号','',NULL,1);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (109,'system','site_lang','zh-CN','text','站点语言','',NULL,2);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (110,'system','admin_lang','zh-CN','text','后台语言','',NULL,3);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (111,'basic','html_cache_enabled','1','select','HTML缓存','','{"0":"关闭","1":"开启"}',15);

@@ -21,7 +21,8 @@ final class DownloadController extends ListController
         $perPage   = (int) $request['perPage'];
         $offset    = ($page - 1) * $perPage;
         $keyword   = (string) $request['keyword'];
-        $dlCatId   = (int) ($request['cat'] !== '' ? $request['cat'] : 0);
+        // cat 支持 slug（伪静态 /download/{slug}.html）或数字 id（兼容旧 ?cat=1）
+        $dlCatId   = downloadCategoryModel()->resolveId((string) ($request['cat'] ?? ''));
 
         // 按当前前台语言过滤，避免下载列表串语言
         $filters = [

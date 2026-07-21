@@ -99,9 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success(['id' => $id]);
 }
 
-// 获取栏目列表
+// 获取栏目列表（按当前编辑语言过滤，避免多语言站把其它语言的栏目——如日语——混进分类下拉）
+$editLang = (is_array($content) && !empty($content['lang']))
+    ? (string) $content['lang']
+    : (string) get('lang', (string) config('site_lang', 'zh-CN'));
 $channels = channelModel()->query(
-    'SELECT id, parent_id, name, type FROM ' . channelModel()->tableName() . ' WHERE type != "link" ORDER BY sort_order DESC'
+    'SELECT id, parent_id, name, type FROM ' . channelModel()->tableName() . ' WHERE type != "link" AND lang = ? ORDER BY sort_order DESC',
+    [$editLang]
 );
 
 // URL传入的类型参数（如 ?type=job）

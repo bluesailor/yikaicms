@@ -198,6 +198,8 @@ return [
     'admin_article' => '文章管理',
     'admin_product' => '产品管理',
     'admin_case' => '案例管理',
+    'case_tab_list' => '案例列表',
+    'case_tab_category' => '案例分类',
     'admin_job' => '招聘管理',
     'admin_download' => '下载管理',
     'admin_album' => '图库相册',

@@ -114,6 +114,14 @@ $transStatus = loadTransStatus('contents');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<!-- Tab 导航 -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="flex border-b">
+        <a href="/admin/case.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('case_tab_list'); ?></a>
+        <a href="/admin/case_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('case_tab_category'); ?></a>
+    </div>
+</div>
+
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- 工具栏 -->

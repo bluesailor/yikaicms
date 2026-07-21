@@ -211,6 +211,8 @@ return [
     'admin_article' => '記事管理',
     'admin_product' => '製品管理',
     'admin_case' => '事例管理',
+    'case_tab_list' => '事例一覧',
+    'case_tab_category' => 'カテゴリー',
     'admin_job' => '採用管理',
     'admin_download' => 'ダウンロード管理',
     'admin_album' => 'フォトギャラリー',

@@ -110,19 +110,24 @@ function uo_copy_tree(string $src, string $dst, string $baseRel = ''): array
     return [$copied, $errors];
 }
 
-/** 递归收集 $src 下所有文件的相对路径（套用 UO_EXCLUDES，与 uo_copy_tree 同规则），供分批覆盖用。 */
-function uo_flatten(string $src, string $baseRel = ''): array
+/**
+ * 列出 zip 内 $prefix 下的所有「文件」条目，返回 [['name'=>zip内条目名, 'rel'=>目标相对路径], ...]。
+ * 套用 UO_EXCLUDES；跳过目录条目与越界路径。不解压——供逐条流式写入用（规避共享主机上 extractTo 失败/挂起）。
+ */
+function uo_zip_entries(ZipArchive $zip, string $prefix): array
 {
     $out = [];
-    foreach (array_diff(scandir($src) ?: [], ['.', '..']) as $it) {
-        $rel = $baseRel === '' ? $it : "$baseRel/$it";
-        if (in_array($rel, UO_EXCLUDES, true)) continue;
-        $p = "$src/$it";
-        if (is_dir($p)) {
-            $out = array_merge($out, uo_flatten($p, $rel));
-        } else {
-            $out[] = $rel;
-        }
+    $plen = strlen($prefix);
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $name = $zip->getNameIndex($i);
+        if ($name === false) continue;
+        if ($prefix !== '' && strncmp($name, $prefix, $plen) !== 0) continue;
+        $rel = $prefix === '' ? $name : substr($name, $plen);
+        if ($rel === '' || substr($rel, -1) === '/') continue;              // 目录条目
+        if ($rel[0] === '/' || strpos($rel, '..') !== false) continue;      // 越界防护
+        $top = explode('/', $rel)[0];
+        if (in_array($rel, UO_EXCLUDES, true) || in_array($top, UO_EXCLUDES, true)) continue;
+        $out[] = ['name' => $name, 'rel' => $rel];
     }
     return $out;
 }
@@ -149,6 +154,17 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 if ($action !== '') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') verifyCsrf();
     @set_time_limit(600);
+    // 关键：绝不让 PHP 警告/通知打印进响应体（否则污染 JSON → 前端解析失败静默卡住）。
+    @ini_set('display_errors', '0');
+    @ini_set('log_errors', '1');
+    // 致命错误兜底：转成 JSON 返回，让前端看到原因而不是无限转圈。
+    register_shutdown_function(function () {
+        $e = error_get_last();
+        if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+            if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
+            echo "\n" . json_encode(['code' => 1, 'msg' => '服务器致命错误：' . $e['message']], JSON_UNESCAPED_UNICODE);
+        }
+    });
 
     // ---- 1) 环境预检 ----
     if ($action === 'precheck') {
@@ -215,8 +231,8 @@ if ($action !== '') {
         uo_json(['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => $sig !== '']);
     }
 
-    // ---- 4a) 准备：备份 config + 解压 + 校验结构 + 建文件清单（写状态文件）----
-    //   分批覆盖：把「覆盖 800 文件」拆到多个短请求里，避免共享主机代理硬超时。
+    // ---- 4a) 准备：备份 config + 校验结构 + 建 zip 条目清单（不解压，写状态文件）----
+    //   不用 extractTo（共享主机上常失败/挂起）；后续 batch 从 zip 逐条流式写入目标。
     if ($action === 'apply_prepare') {
         $pkg = uo_dir() . '/package.zip';
         if (!is_file($pkg)) uo_json(['code' => 1, 'msg' => '未找到已下载的安装包，请先执行下载']);
@@ -229,71 +245,75 @@ if ($action !== '') {
         @copy(ROOT_PATH . '/config/config.php', $bakDir . '/config.php');
         @file_put_contents($bakDir . '/INFO.txt', "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n");
 
-        // 解压到临时目录
-        $ex = uo_dir() . '/extracted';
-        uo_rrmdir($ex);
-        @mkdir($ex, 0755, true);
         $zip = new ZipArchive();
         if ($zip->open($pkg) !== true) uo_json(['code' => 1, 'msg' => '安装包打开失败']);
-        // zip-slip 防护：条目名越界则中止，防止覆盖包外文件
+        // zip-slip 防护：条目名越界则中止
         $unsafe = zipUnsafeEntry($zip);
         if ($unsafe !== null) { $zip->close(); uo_json(['code' => 1, 'msg' => '安装包含非法路径条目，已中止：' . $unsafe]); }
-        if (!$zip->extractTo($ex)) { $zip->close(); uo_json(['code' => 1, 'msg' => '解压失败，可能磁盘空间不足']); }
-        $zip->close();
 
-        // 判定增量 / 全量，定位 srcRoot
+        // 判定增量 / 全量 + 定位包内前缀（不解压，只读条目名/manifest）
         $deleted = []; $from = ''; $to = '';
-        if (is_file($ex . '/.delta-manifest.json')) {
-            $manifest = json_decode((string) @file_get_contents($ex . '/.delta-manifest.json'), true);
-            $srcRoot  = $ex . '/payload';
-            if (!is_array($manifest) || !is_dir($srcRoot)) {
-                uo_json(['code' => 1, 'msg' => '增量包结构异常（缺 payload/manifest），已中止，未改动任何文件']);
-            }
-            $mode = 'delta';
+        $manifestRaw = $zip->getFromName('.delta-manifest.json');
+        if ($manifestRaw !== false) {
+            $manifest = json_decode((string) $manifestRaw, true);
+            if (!is_array($manifest)) { $zip->close(); uo_json(['code' => 1, 'msg' => '增量包 manifest 解析失败，已中止，未改动任何文件']); }
+            $mode = 'delta'; $prefix = 'payload/';
             $deleted = (array) ($manifest['deleted'] ?? []);
             $from = (string) ($manifest['from'] ?? '');
             $to   = (string) ($manifest['to'] ?? '');
         } else {
-            // 全量包通常是单层 yikaicms-vX.Y.Z/ 目录
-            $dirs = glob($ex . '/*', GLOB_ONLYDIR) ?: [];
-            $srcRoot = (count($dirs) === 1 && !is_file($ex . '/index.php')) ? $dirs[0] : $ex;
-            if (!is_file($srcRoot . '/index.php') || !is_dir($srcRoot . '/includes')) {
+            // 全量包通常是单层 yikaicms-vX.Y.Z/ 目录；找含 index.php 的那层作前缀
+            $prefix = '';
+            if ($zip->locateName('index.php') === false) {
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $n = $zip->getNameIndex($i);
+                    if ($n !== false && preg_match('#^([^/]+)/index\.php$#', $n, $mm)) { $prefix = $mm[1] . '/'; break; }
+                }
+            }
+            if ($zip->locateName($prefix . 'index.php') === false || $zip->locateName($prefix . 'includes/functions.php') === false) {
+                $zip->close();
                 uo_json(['code' => 1, 'msg' => '安装包结构异常（缺 index.php / includes），已中止，未改动任何文件']);
             }
             $mode = 'full';
         }
 
-        // 收集全部待覆盖文件（相对路径），写入状态文件供分批消费
-        $files = uo_flatten($srcRoot);
+        $entries = uo_zip_entries($zip, $prefix);
+        $zip->close();
+        if (empty($entries)) uo_json(['code' => 1, 'msg' => '安装包内无可覆盖文件，已中止']);
         $state = [
-            'mode' => $mode, 'src' => $srcRoot, 'files' => $files, 'deleted' => $deleted,
-            'backup' => basename($bakDir), 'total' => count($files), 'done' => 0,
+            'mode' => $mode, 'pkg' => $pkg, 'prefix' => $prefix, 'entries' => $entries, 'deleted' => $deleted,
+            'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0,
             'errors' => [], 'from' => $from, 'to' => $to,
         ];
         @file_put_contents(uo_state_file(), json_encode($state, JSON_UNESCAPED_UNICODE));
-        uo_json(['code' => 0, 'mode' => $mode, 'total' => count($files), 'backup' => basename($bakDir)]);
+        uo_json(['code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => basename($bakDir)]);
     }
 
-    // ---- 4b) 分批覆盖：从 offset 起覆盖一批文件，返回下一个 offset ----
+    // ---- 4b) 分批覆盖：从 offset 起，从 zip 逐条读出并直接写入目标，返回下一个 offset ----
     if ($action === 'apply_batch') {
         $sf = uo_state_file();
         if (!is_file($sf)) uo_json(['code' => 1, 'msg' => '升级状态丢失，请重新开始']);
         $state = json_decode((string) @file_get_contents($sf), true);
-        if (!is_array($state) || !isset($state['files'], $state['src'])) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
-        $src = (string) $state['src'];
-        $files = $state['files'];
-        $total = count($files);
+        if (!is_array($state) || !isset($state['entries'], $state['pkg'])) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
+        $entries = $state['entries'];
+        $total = count($entries);
         $offset = max(0, (int) ($_POST['offset'] ?? 0));
-        $batch = 150;                          // 每批文件数；共享主机上单请求足够快
+        $batch = 80;                           // 每批条目数；从 zip 读+写，单请求足够快
         $end = min($total, $offset + $batch);
+        $zip = new ZipArchive();
+        if ($zip->open((string) $state['pkg']) !== true) uo_json(['code' => 1, 'msg' => '安装包打开失败']);
         $copied = 0; $errors = [];
         for ($i = $offset; $i < $end; $i++) {
-            $rel = (string) $files[$i];
+            $rel  = (string) $entries[$i]['rel'];
+            $name = (string) $entries[$i]['name'];
+            $data = $zip->getFromName($name);
+            if ($data === false) { $errors[] = "读取失败: $rel"; continue; }
             $d = ROOT_PATH . '/' . $rel;
             $dir = dirname($d);
             if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
-            if (@copy($src . '/' . $rel, $d)) $copied++; else $errors[] = "复制失败: $rel";
+            if (@file_put_contents($d, $data) !== false) $copied++; else $errors[] = "写入失败: $rel";
         }
+        $zip->close();
         $state['done'] = (int) ($state['done'] ?? 0) + $copied;
         $state['errors'] = array_slice(array_merge($state['errors'] ?? [], $errors), 0, 50);
         @file_put_contents($sf, json_encode($state, JSON_UNESCAPED_UNICODE));
@@ -318,7 +338,7 @@ if ($action !== '') {
         }
         $patch = uo_patch_config_version();
 
-        // 清理临时
+        // 清理临时（本版本不再产生 extracted/ 目录；顺手清理旧版本可能残留的）
         uo_rrmdir(uo_dir() . '/extracted');
         @unlink(uo_dir() . '/package.zip');
         @unlink($sf);
@@ -408,8 +428,23 @@ const UO = {
         fd.append('action', action);
         fd.append('_token', this.token);
         for (const k in data) fd.append(k, data[k]);
-        const r = await fetch('upgrade_online.php', { method: 'POST', body: fd });
-        return r.json();
+        // 兜底超时 + 非 JSON 响应显式报错 —— 绝不让界面无限转圈（旧版 r.json() 抛错即静默卡住）
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 150000);
+        let r;
+        try {
+            r = await fetch('upgrade_online.php', { method: 'POST', body: fd, signal: ctrl.signal });
+        } catch (e) {
+            clearTimeout(timer);
+            return { code: 1, msg: '请求失败（' + (e && e.name === 'AbortError' ? '服务器长时间无响应，已超时' : (e && e.message || '网络错误')) + '）' };
+        }
+        clearTimeout(timer);
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            return { code: 1, msg: '服务器返回异常（HTTP ' + r.status + '）：' + text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300) };
+        }
     },
     row(label, state, detail = '') {
         const icon = state === 'ok' ? '<i class="ti ti-circle-check text-green-500"></i>'
