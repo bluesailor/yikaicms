@@ -9,27 +9,12 @@
  * Scope is shared with the parent (no isolation), matching how Yikai
  * already mounts theme partials via `require theme_path(...)`.
  */
+$hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
 ?>
-<!-- 下载：表格 + 右侧导航（数据来自 yikai_downloads 表） -->
+<!-- 下载：表格 + 右侧分类导航（数据来自 yikai_downloads 表；分类来自 download_categories） -->
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
-            <div class="w-full <?php echo !empty($rightSidebarChannels) ? 'lg:flex-1' : ''; ?>">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-                    <?php if (!empty($dlCategories)): ?>
-                    <div class="flex flex-wrap gap-3">
-                        <a href="<?php echo channelUrl($channel); ?>"
-                           class="px-4 py-2 rounded-full text-sm <?php echo $dlCatId === 0 && $keyword === '' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
-                            <?php echo __('all'); ?>
-                        </a>
-                        <?php foreach ($dlCategories as $dcat): ?>
-                        <a href="<?php echo channelUrl($channel); ?>?cat=<?php echo $dcat['id']; ?>"
-                           class="px-4 py-2 rounded-full text-sm <?php echo $dlCatId === (int)$dcat['id'] ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
-                            <?php echo e($dcat['name']); ?>
-                        </a>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php else: ?>
-                    <div></div>
-                    <?php endif; ?>
+            <div class="w-full <?php echo $hasDlSidebar ? 'lg:flex-1' : ''; ?>">
+                <div class="flex flex-wrap items-center justify-end gap-3 mb-6">
                     <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
                         <?php if ($dlCatId > 0): ?>
                         <input type="hidden" name="cat" value="<?php echo $dlCatId; ?>">
@@ -129,7 +114,7 @@
                 <?php endif; ?>
             </div>
 
-            <?php if (!empty($rightSidebarChannels)): ?>
+            <?php if ($hasDlSidebar): ?>
             <?php require theme_path('partials/right_sidebar.php'); ?>
             <?php endif; ?>
         </div>

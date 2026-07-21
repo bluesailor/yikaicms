@@ -562,10 +562,10 @@ function renderHreflangs(): string
     // 当前请求 path（剥掉已有的 lang 前缀）
     $path = (string) ($_SERVER['REQUEST_URI'] ?? '/');
     if (($q = strpos($path, '?')) !== false) $path = substr($path, 0, $q);
-    $path = preg_replace('#^/(zh-CN|en|ja)(?=/|$)#', '', $path) ?? $path;
+    $path = preg_replace('#^/(zh-CN|zh-TW|en|ja)(?=/|$)#', '', $path) ?? $path;
     if ($path === '') $path = '/';
 
-    $hreflangMap = ['zh-CN' => 'zh-CN', 'en' => 'en', 'ja' => 'ja'];
+    $hreflangMap = ['zh-CN' => 'zh-CN', 'zh-TW' => 'zh-Hant', 'en' => 'en', 'ja' => 'ja'];
     $out = '';
     foreach ($enabled as $code) {
         if (!isset($hreflangMap[$code])) continue;
@@ -2792,7 +2792,7 @@ function availableLanguages(): array
 {
     static $langs = null;
     if ($langs !== null) return $langs;
-    $labels = ['zh-CN' => '中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
+    $labels = ['zh-CN' => '中文', 'zh-TW' => '繁體中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
     $langs = [];
     $files = glob(ROOT_PATH . '/lang/*.php') ?: [];
     foreach ($files as $f) {

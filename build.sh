@@ -154,6 +154,10 @@ EXCLUDES=(
     "plugins/search-replace"
     "plugins/stats"
 
+    # 主题：核心内置 default / business / aurora 三套，
+    #   minimal 走模板市场按需安装（update.yikaicms.com/api/themes/）。源码保留在仓库供开发与市场打包。
+    "themes/minimal"
+
     # 临时测试文件（如本地 dev 时手写的）
     "recipe_test.php"
     "_i18n_test.php"
@@ -266,6 +270,104 @@ echo "[5/5] 生成 SHA256 校验和..."
 
 SHA_FILE="$RELEASE_DIR/${PACKAGE_NAME}.sha256"
 sha256sum "$ZIP_FILE" > "$SHA_FILE"
+
+# ============================================================
+# 生成增量升级包（delta）
+#   目的：从最近 N 个历史版本各生成一个「只含变化文件」的小包，
+#         让在线升级下载几 KB、只覆盖几个文件 —— 根治共享主机上
+#         「解压 22MB + 逐个覆盖 800 文件」的代理超时（升级卡住）。
+#   结构：delta-<from>-to-<VERSION>.zip = .delta-manifest.json + payload/ 镜像树
+#   安全：两版本间若触碰 composer 依赖则跳过（vendor 不在 git，delta 带不了其变化），
+#         客户端只在「当前版本 == delta.from」时用，否则回退全量包。
+# ============================================================
+echo "[+] 生成增量升级包（delta）..."
+DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境变量覆盖）
+DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：不为更老版本生成增量（含 vendor 结构差异大，走全量更稳）
+DELTA_JSON_ITEMS=()                    # 收集 releases.json 用的片段
+if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    # 取所有 vX.Y.Z 标签，版本升序；current 版通常尚未打标签，故全部即「< 本版本」，取最后 N 个
+    mapfile -t PREV_BASES < <(git -C "$ROOT_DIR" tag -l 'v*' | sed 's/^v//' \
+        | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V \
+        | awk -v v="$VERSION" 'v==$0{exit} {print}' | tail -n "$DELTA_COUNT")
+
+    if [ ${#PREV_BASES[@]} -eq 0 ]; then
+        echo "  （无历史标签，跳过 delta 生成）"
+    fi
+    for base in "${PREV_BASES[@]}"; do
+        # 下限护栏：base < DELTA_FLOOR 则跳过（这些老版本一律走全量包）
+        if [ "$(printf '%s\n%s\n' "$DELTA_FLOOR" "$base" | sort -V | head -1)" != "$DELTA_FLOOR" ]; then
+            echo "  （$base < 下限 $DELTA_FLOOR，跳过 delta）"
+            continue
+        fi
+        tag="v$base"
+        # 依赖变化护栏：composer.* 一动就跳过，强制该基线走全量
+        if git -C "$ROOT_DIR" diff --name-only "$tag" -- composer.json composer.lock 2>/dev/null | grep -q .; then
+            echo "  ⚠ 跳过 $base → $VERSION：composer 依赖有变化，需走全量包"
+            continue
+        fi
+        DELTA_DIR="$TMP_DIR/delta-$base"
+        PAYLOAD="$DELTA_DIR/payload"
+        mkdir -p "$PAYLOAD"
+        DELETED=()
+        ADDED=0
+        # name-status：A/M/C 复制新内容；D 记删除；R 旧路径删、新路径复制
+        while IFS=$'\t' read -r status path newpath; do
+            [ -z "$status" ] && continue
+            case "$status" in
+                D)
+                    case "$path" in config/config.php|storage/*|uploads/*|install/*) continue;; esac
+                    DELETED+=("$path")
+                    ;;
+                R*)
+                    if [ -f "$PKG_DIR/$newpath" ]; then
+                        ( cd "$PKG_DIR" && cp --parents "$newpath" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
+                    fi
+                    case "$path" in config/config.php|storage/*|uploads/*|install/*) ;; *) DELETED+=("$path");; esac
+                    ;;
+                *)  # A / M / C：仅当该文件确实进了包（未被打包排除）才纳入
+                    if [ -f "$PKG_DIR/$path" ]; then
+                        ( cd "$PKG_DIR" && cp --parents "$path" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
+                    fi
+                    ;;
+            esac
+        done < <(git -C "$ROOT_DIR" diff --name-status "$tag" -- . 2>/dev/null)
+
+        if [ "$ADDED" -eq 0 ] && [ ${#DELETED[@]} -eq 0 ]; then
+            echo "  （$base → $VERSION 无打包内变化，跳过）"
+            continue
+        fi
+
+        # 写包内 manifest（deleted 清单随包被 SHA256 覆盖，防篡改）
+        del_json=""
+        for d in "${DELETED[@]}"; do del_json="$del_json\"$d\","; done
+        del_json="${del_json%,}"
+        printf '{"from":"%s","to":"%s","deleted":[%s]}\n' "$base" "$VERSION" "$del_json" > "$DELTA_DIR/.delta-manifest.json"
+
+        DELTA_ZIP="$RELEASE_DIR/delta-${base}-to-${VERSION}.zip"
+        rm -f "$DELTA_ZIP"
+        if command -v zip &>/dev/null; then
+            ( cd "$DELTA_DIR" && zip -r -q "$DELTA_ZIP" .delta-manifest.json payload )
+        else
+            WIN_SRC=$(wslpath -w "$DELTA_DIR"); WIN_DZ=$(wslpath -w "$DELTA_ZIP")
+            powershell.exe -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory('$WIN_SRC', '$WIN_DZ')"
+        fi
+        sha256sum "$DELTA_ZIP" > "${DELTA_ZIP%.zip}.sha256"
+        DHASH=$(cut -d' ' -f1 "${DELTA_ZIP%.zip}.sha256")
+        DSIZE=$(stat -c%s "$DELTA_ZIP" 2>/dev/null || wc -c < "$DELTA_ZIP")
+        DKB=$(( (DSIZE + 1023) / 1024 ))
+        echo "  ✓ delta $base → $VERSION：$ADDED 个文件 / 删 ${#DELETED[@]} / ${DKB}KB  $(basename "$DELTA_ZIP")"
+        DELTA_JSON_ITEMS+=("$(printf '{ "from": "%s", "package": "delta-%s-to-%s.zip", "hash": "sha256:%s", "size": "%sKB" }' "$base" "$base" "$VERSION" "$DHASH" "$DKB")")
+    done
+
+    # 输出可直接粘进 releases.json 对应版本条目的 deltas 片段
+    if [ ${#DELTA_JSON_ITEMS[@]} -gt 0 ]; then
+        DELTA_META_FILE="$RELEASE_DIR/deltas-v${VERSION}.json"
+        { echo '"deltas": ['; printf '  %s,\n' "${DELTA_JSON_ITEMS[@]}" | sed '$ s/,$//'; echo ']'; } > "$DELTA_META_FILE"
+        echo "  → deltas 元数据已写入 $(basename "$DELTA_META_FILE")（粘进 releases.json 对应版本条目）"
+    fi
+else
+    echo "  （非 git 仓库，跳过 delta 生成）"
+fi
 
 # ---- 清理 ----
 rm -rf "$TMP_DIR"

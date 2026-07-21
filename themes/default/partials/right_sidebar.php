@@ -4,8 +4,11 @@
  *
  * 需要变量: $rightSidebarTitle, $rightSidebarChannels, $channelId
  * 可选变量: $rightSidebarActiveId (覆盖高亮ID，用于下载子分类等场景)
+ *          $rightSidebarItems  预构建链接 [{label,url,active}]，用于下载分类等
+ *                              非 channel 场景；设置后优先于 $rightSidebarChannels
  */
 $activeId = $rightSidebarActiveId ?? $channelId;
+$sidebarItems = $rightSidebarItems ?? null;
 ?>
 <div class="w-full lg:w-64">
     <div class="bg-white rounded-lg shadow">
@@ -13,12 +16,21 @@ $activeId = $rightSidebarActiveId ?? $channelId;
             <?php echo e($rightSidebarTitle); ?>
         </div>
         <div class="divide-y">
-            <?php foreach ($rightSidebarChannels as $sub): ?>
-            <a href="<?php echo channelUrl($sub); ?>"
-               class="block px-4 py-3 hover:bg-gray-50 transition <?php echo (int)$sub['id'] === $activeId ? 'text-primary bg-blue-50 font-medium' : 'text-gray-700 hover:text-primary'; ?>">
-                <?php echo e($sub['name']); ?>
-            </a>
-            <?php endforeach; ?>
+            <?php if (is_array($sidebarItems)): ?>
+                <?php foreach ($sidebarItems as $it): ?>
+                <a href="<?php echo e($it['url']); ?>"
+                   class="block px-4 py-3 hover:bg-gray-50 transition <?php echo !empty($it['active']) ? 'text-primary bg-blue-50 font-medium' : 'text-gray-700 hover:text-primary'; ?>">
+                    <?php echo e($it['label']); ?>
+                </a>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <?php foreach ($rightSidebarChannels as $sub): ?>
+                <a href="<?php echo channelUrl($sub); ?>"
+                   class="block px-4 py-3 hover:bg-gray-50 transition <?php echo (int)$sub['id'] === $activeId ? 'text-primary bg-blue-50 font-medium' : 'text-gray-700 hover:text-primary'; ?>">
+                    <?php echo e($sub['name']); ?>
+                </a>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 

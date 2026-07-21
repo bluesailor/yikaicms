@@ -136,6 +136,13 @@ foreach ($homeChannels as $hc) {
 }
 $blocksConfig = $migratedConfig;
 
+// 合作伙伴接入区块系统（原先固定在页脚之上）：缺失则追加，启用状态沿用旧的 home_show_links
+$__hasPartners = false;
+foreach ($blocksConfig as $b) { if (($b['type'] ?? '') === 'partners') { $__hasPartners = true; break; } }
+if (!$__hasPartners) {
+    $blocksConfig[] = ['type' => 'partners', 'enabled' => (string) config('home_show_links', '0') === '1'];
+}
+
 // 区块模板映射
 $blockTemplates = [
     'banner'       => theme_path('blocks/banner.php'),
@@ -144,6 +151,7 @@ $blockTemplates = [
     'testimonials' => theme_path('blocks/testimonials.php'),
     'advantage'    => theme_path('blocks/advantage.php'),
     'cta'          => theme_path('blocks/cta.php'),
+    'partners'     => theme_path('blocks/partners.php'),
 ];
 
 // Swiper轮播图资源
@@ -244,6 +252,12 @@ foreach ($blocksConfig as $block) {
         if ($currentChannel) {
             require theme_path('blocks/channel.php');
         }
+    } elseif (str_starts_with($type, 'custom:')) {
+        // 自定义版块（构建器 JSON，来自预设库）：home_custom_<N> = {"title","blocks":[section]}
+        $__cData = json_decode((string) config('home_custom_' . substr($type, 7), ''), true);
+        if (!empty($__cData['blocks']) && function_exists('renderBlocksToHtml')) {
+            echo renderBlocksToHtml(json_encode($__cData['blocks'], JSON_UNESCAPED_UNICODE));
+        }
     } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
         require $blockTemplates[$type];
     }
@@ -257,11 +271,7 @@ foreach ($blocksConfig as $block) {
     }
 }
 
-// 合作伙伴 / 友情链接：独立区段，置于页脚之上（从页脚上移出来）
-$__partnersBlock = theme_path('blocks/partners.php');
-if (is_file($__partnersBlock)) {
-    require $__partnersBlock;
-}
+// 合作伙伴 / 友情链接现由上方「区块系统」按 home_blocks_config 的位置渲染（可拖拽排序）。
 
 require_once theme_path('layouts/footer.php');
 HtmlCache::end();

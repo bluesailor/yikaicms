@@ -163,7 +163,7 @@ register_ability('cms_create_article_draft', [
         $sql = 'INSERT INTO ' . DB_PREFIX . 'contents (' . implode(',', $cols) . ') VALUES (' .
                implode(',', array_fill(0, count($cols), '?')) . ')';
         db()->execute($sql, array_values($row));
-        $newId = (int)db()->lastInsertId();
+        $newId = (int)db()->getPdo()->lastInsertId();
         return ['id' => $newId, 'title' => $row['title'], 'status' => 'draft'];
     },
 ]);

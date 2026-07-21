@@ -2,8 +2,10 @@
     "name": "Minimal",
     "description": "极简风格主题，大留白、无装饰、注重内容呈现，适合设计公司和创意工作室",
     "version": "1.0.0",
-    "author": "Yikai",
-    "screenshot": "assets\/images\/screenshot.png",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "category": "creative",
+    "screenshot": "assets/images/screenshot.png",
     "supports": [
         "banner",
         "about",
@@ -14,5 +16,7 @@
         "channel"
     ],
     "name_en": "Minimal",
-    "description_en": "Minimalist theme with whitespace, no ornaments, content-first — fit for design agencies and creative studios"
+    "name_ja": "Minimal ミニマル",
+    "description_en": "Minimalist theme with generous whitespace, no ornaments and content-first layout — ideal for design agencies and creative studios",
+    "description_ja": "余白を活かした装飾のないミニマルテーマ。コンテンツ重視で、デザイン会社やクリエイティブスタジオに最適"
 }

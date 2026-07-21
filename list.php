@@ -102,19 +102,31 @@ if ($channel['parent_id'] > 0) {
     $parentChannel = getChannel((int)$channel['parent_id']);
 }
 
-// 下载类型：使用 download_categories 做水平分类导航
+// 下载类型：分类统一用 download_categories（下载记录只有 category_id，无 channel_id）
 $dlCategories = [];
 $dlCatId = 0;
 $rightSidebarChannels = [];
+$rightSidebarItems = null;    // 预构建的分类链接，供 right_sidebar.php 渲染
 $rightSidebarTitle = '';
 $rightSidebarActiveId = null; // null = 使用 $channelId
 if ($channel['type'] === 'download') {
     $dlCategories = downloadCategoryModel()->getActive();
     $dlCatId = getInt('cat');
-    // 右侧导航：使用父级栏目的子菜单
-    if ($parentChannel) {
-        $rightSidebarTitle = $parentChannel['name'];
-        $rightSidebarChannels = getChannels((int)$parentChannel['id'], false);
+    // 右侧导航：用 download_categories（与后台编辑/筛选同一套），不用子栏目
+    if (!empty($dlCategories)) {
+        $rightSidebarTitle = __('label_category');
+        $rightSidebarItems = [[
+            'label'  => __('all'),
+            'url'    => channelUrl($channel),
+            'active' => $dlCatId === 0,
+        ]];
+        foreach ($dlCategories as $dcat) {
+            $rightSidebarItems[] = [
+                'label'  => $dcat['name'],
+                'url'    => channelUrl($channel) . '?cat=' . (int) $dcat['id'],
+                'active' => $dlCatId === (int) $dcat['id'],
+            ];
+        }
     }
 } elseif ($channel['parent_id'] > 0 && !in_array($channel['type'], ['product'])) {
     // 其他子栏目（如FAQ、招聘子栏目等）：右侧显示同级导航

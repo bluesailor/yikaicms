@@ -54,6 +54,59 @@ $currentMenu = 'dashboard';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
+<?php if (hasPermission('*')): ?>
+<!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器） -->
+<div id="uoBar" class="bg-white rounded-lg shadow px-5 py-3 mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-2 text-sm text-gray-600">
+        <i class="ti ti-versions text-gray-400"></i>
+        <span><?php echo __('dashboard_version'); ?>：<b class="text-gray-800">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '?'); ?></b></span>
+        <span id="uoStatus" class="text-gray-400 flex items-center gap-1">
+            <i class="ti ti-loader-2 animate-spin text-xs"></i><?php echo __('dashboard_update_check'); ?>
+        </span>
+    </div>
+    <a id="uoGo" href="/admin/upgrade_online.php" class="hidden items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm font-medium transition">
+        <i class="ti ti-cloud-download text-base"></i><span><?php echo __('dashboard_update_go'); ?></span>
+    </a>
+</div>
+<script>
+(function () {
+    var cur = <?php echo json_encode(defined('CMS_VERSION') ? CMS_VERSION : ''); ?>;
+    var statusEl = document.getElementById('uoStatus');
+    var goEl = document.getElementById('uoGo');
+    var T = {
+        uptodate: <?php echo json_encode(__('dashboard_update_uptodate')); ?>,
+        available: <?php echo json_encode(__('dashboard_update_available')); ?>
+    };
+    function render(d) {
+        if (d && d.has_update) {
+            statusEl.className = 'text-amber-600 font-medium';
+            statusEl.textContent = T.available + ' v' + d.latest_version;
+            goEl.classList.remove('hidden');
+            goEl.classList.add('inline-flex');
+        } else {
+            statusEl.className = 'text-green-600 flex items-center gap-1';
+            statusEl.innerHTML = '<i class="ti ti-circle-check"></i>' + T.uptodate;
+        }
+    }
+    // 本地缓存（按当前版本键控，6 小时内不重复请求）
+    var key = 'yk_upd_' + cur, TTL = 6 * 3600 * 1000;
+    try {
+        var c = JSON.parse(localStorage.getItem(key) || 'null');
+        if (c && (Date.now() - c.t) < TTL) { render(c.d); return; }
+    } catch (e) {}
+    fetch('/admin/upgrade_online.php?action=check', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+            if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
+            var d = res.data || {};
+            render(d);
+            try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version } })); } catch (e) {}
+        })
+        .catch(function () { statusEl.textContent = ''; });
+})();
+</script>
+<?php endif; ?>
+
 <?php if ($showOnboard): ?>
 <!-- 新站栏目引导卡 -->
 <div id="onbCard" class="relative bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6 flex items-start gap-4">

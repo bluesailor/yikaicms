@@ -58,6 +58,13 @@ if (!defined('SITE_LANG')) {
     define('SITE_LANG', $detected);
 }
 
+// 繁体中文（zh-TW）：作为简体的「渲染视图」——底层复用 zh-CN 内容与 UI 文案，
+// 出页面前用 OpenCC 词库整页简→繁(台湾用词)。开销仅在 zh-TW 请求，接口(/api/)不转。
+if (SITE_LANG === 'zh-TW' && strpos((string) ($_SERVER['REQUEST_URI'] ?? ''), '/api/') === false) {
+    require_once ROOT_PATH . '/includes/i18n/S2T.php';
+    ob_start(['S2T', 'convertOutput']);
+}
+
 // 加载前台会员认证
 require_once ROOT_PATH . '/includes/member_auth.php';
 

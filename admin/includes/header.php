@@ -333,10 +333,42 @@ if ($adminBrand === '后台管理') {
                                                 <pre class="mt-1 text-[10px] text-amber-900 whitespace-pre-wrap break-all" x-text="m.body"></pre>
                                             </details>
                                         </template>
-                                        <template x-if="m.role !== 'tool'">
+                                        <template x-if="m.role !== 'tool' && m.role !== 'proposal'">
                                             <div :class="m.role === 'user' ? 'bg-primary text-white' : (m.role === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white border border-gray-200 text-gray-800')"
                                                  class="rounded-2xl px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap break-words"
                                                  x-html="m.role === 'user' ? escape(m.text) : linkify(m.text)">
+                                            </div>
+                                        </template>
+                                        <!-- 待确认的写操作提案 -->
+                                        <template x-if="m.role === 'proposal'">
+                                            <div class="rounded-lg px-3 py-2 w-full max-w-[95%] border"
+                                                 :class="m.applied ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'">
+                                                <template x-if="!m.applied">
+                                                    <div>
+                                                        <div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1" x-text="'待确认的改动 (' + m.proposals.length + ')'"></div>
+                                                        <template x-for="(p, pi) in m.proposals" :key="pi">
+                                                            <div class="flex items-start gap-1.5 py-0.5 text-sm text-gray-800"><span class="text-amber-600">✎</span><span x-text="p.summary || p.label"></span></div>
+                                                        </template>
+                                                        <div class="mt-2 flex gap-2">
+                                                            <button type="button" @click="applyProposals(i)" :disabled="m.applying" class="px-3 py-1 bg-primary text-white text-xs rounded-lg cursor-pointer disabled:opacity-50" x-text="m.applying ? '应用中…' : '确认应用'"></button>
+                                                            <button type="button" @click="messages.splice(i,1)" class="px-3 py-1 border border-gray-300 text-gray-500 text-xs rounded-lg cursor-pointer">忽略</button>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template x-if="m.applied">
+                                                    <div>
+                                                        <div class="text-[11px] uppercase tracking-wide text-green-700 mb-1">已应用 ✓</div>
+                                                        <template x-for="(a, ai) in m.appliedItems" :key="ai">
+                                                            <div class="flex items-center justify-between gap-2 py-0.5 text-sm text-gray-800">
+                                                                <span x-text="a.summary"></span>
+                                                                <button type="button" @click="undoChange(a.log_id, i, ai)" :disabled="a.undone" class="text-xs underline cursor-pointer" :class="a.undone ? 'text-green-600' : 'text-gray-500'" x-text="a.undone ? '已撤销' : '撤销'"></button>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="m.errors && m.errors.length">
+                                                            <div class="text-xs text-red-600 mt-1"><template x-for="(er, ei) in m.errors" :key="ei"><div x-text="er"></div></template></div>
+                                                        </template>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
                                     </div>
@@ -399,10 +431,44 @@ if ($adminBrand === '后台管理') {
                                     }
                                     if (data.success) this.messages.push({ role: 'ai', text: data.content || '(无回复内容)' });
                                     else this.messages.push({ role: 'error', text: data.error || '未知错误' });
+                                    // 待确认的写操作提案
+                                    if (data.proposals && data.proposals.length && data.proposal_set_id) {
+                                        this.messages.push({ role: 'proposal', proposals: data.proposals, setId: data.proposal_set_id, applied: false, applying: false, appliedItems: [], errors: [] });
+                                    }
                                 } catch (e) {
                                     this.messages.push({ role: 'error', text: '网络错误：' + e.message });
                                 } finally {
                                     this.busy = false;
+                                }
+                            },
+                            async applyProposals(idx) {
+                                const m = this.messages[idx];
+                                if (!m || m.applying) return;
+                                m.applying = true;
+                                try {
+                                    const fd = new FormData(); fd.append('set_id', m.setId);
+                                    const r = await fetch('/admin/api_ai_apply.php', { method: 'POST', body: fd });
+                                    const data = await r.json();
+                                    if ((data.applied && data.applied.length) || data.success) {
+                                        m.appliedItems = (data.applied || []).map(a => ({ summary: a.summary, log_id: a.log_id, undone: false }));
+                                        m.errors = data.errors || [];
+                                        m.applied = true;
+                                    } else {
+                                        this.messages.push({ role: 'error', text: data.error || (data.errors || []).join('；') || '应用失败' });
+                                    }
+                                } catch (e) {
+                                    this.messages.push({ role: 'error', text: '网络错误：' + e.message });
+                                } finally { m.applying = false; }
+                            },
+                            async undoChange(logId, mi, ai) {
+                                try {
+                                    const fd = new FormData(); fd.append('id', logId);
+                                    const r = await fetch('/admin/api_ai_undo.php', { method: 'POST', body: fd });
+                                    const data = await r.json();
+                                    if (data.success) { this.messages[mi].appliedItems[ai].undone = true; }
+                                    else { this.messages.push({ role: 'error', text: data.error || '撤销失败' }); }
+                                } catch (e) {
+                                    this.messages.push({ role: 'error', text: '网络错误：' + e.message });
                                 }
                             },
                         };
