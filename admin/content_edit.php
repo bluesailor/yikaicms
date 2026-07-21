@@ -82,6 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
+        // 显式写入语言：取当前编辑视图语言（?lang= 或站点默认），不依赖数据库列默认
+        // （老库列默认可能残留 'ja'，导致新案例/文章语言错乱、后台按 zh-CN 过滤时不显示）
+        $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));
         $id = contentModel()->create($data);
         adminLog('content', 'create', '创建内容：' . $data['title']);
     }

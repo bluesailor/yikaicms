@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $data['created_at'] = time();
         $data['admin_id'] = getAdminId();
+        $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));  // 显式语言，不依赖列默认
         $id = jobModel()->create($data);
         adminLog('job', 'add', '发布职位：' . $data['title']);
     }
