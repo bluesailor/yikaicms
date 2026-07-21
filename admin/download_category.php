@@ -33,7 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // slug：留空按名称自动生成；用于伪静态 /download/{slug}.html
-        $data['slug'] = resolveSlug((string) post('slug'), $data['name'], 'download_categories', $id);
+        // 容错：slug 列未建（未跑数据库升级）时跳过写入，避免报错（前端回退 ?cat=id）
+        $hasSlugCol = true;
+        try { db()->fetchOne("SELECT slug FROM " . downloadCategoryModel()->tableName() . " LIMIT 1"); }
+        catch (\Throwable $e) { $hasSlugCol = false; }
+        if ($hasSlugCol) {
+            $data['slug'] = resolveSlug((string) post('slug'), $data['name'], 'download_categories', $id);
+        }
 
         if ($id > 0) {
             downloadCategoryModel()->updateById($id, $data);

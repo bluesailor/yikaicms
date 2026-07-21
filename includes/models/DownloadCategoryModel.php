@@ -14,14 +14,18 @@ class DownloadCategoryModel extends Model
         return $this->where(['status' => 1], 'sort_order ASC, id ASC');
     }
 
-    /** 按 slug 查分类（伪静态路由用） */
+    /** 按 slug 查分类（伪静态路由用）。slug 列未建（未跑迁移）时容错返回 null。 */
     public function findBySlug(string $slug): ?array
     {
         if ($slug === '') return null;
-        return db()->fetchOne(
-            "SELECT * FROM {$this->tableName()} WHERE slug = ? LIMIT 1",
-            [$slug]
-        ) ?: null;
+        try {
+            return db()->fetchOne(
+                "SELECT * FROM {$this->tableName()} WHERE slug = ? LIMIT 1",
+                [$slug]
+            ) ?: null;
+        } catch (\Throwable $e) {
+            return null;   // slug 列不存在 → 当作查不到，前端回退 ?cat=id
+        }
     }
 
     /**
