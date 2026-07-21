@@ -20,6 +20,9 @@ return [
         "ALTER TABLE `" . DB_PREFIX . "download_categories` ADD COLUMN `slug` varchar(150) DEFAULT ''",
     ],
     'php' => function (): string {
+        // 兜底加列（幂等）：兼容旧版 upgrade.php「有 php 回调则跳过 sqls」的行为，确保 slug 列一定存在。
+        try { db()->execute("ALTER TABLE `" . DB_PREFIX . "download_categories` ADD COLUMN `slug` varchar(150) DEFAULT ''"); }
+        catch (\Throwable $e) { /* 列已存在 → 忽略 */ }
         $rows = db()->fetchAll("SELECT id, name, slug FROM " . DB_PREFIX . "download_categories");
         $n = 0;
         foreach ($rows as $r) {

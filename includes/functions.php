@@ -303,10 +303,19 @@ function generateSlug(string $title, int $maxChars = 6): string
     if ($short === '') {
         return '';
     }
-    // 拼音依赖 overtrue/pinyin（随包附带的生产 vendor）；缺失则降级返回空、由调用方兜底，绝不致命
-    $autoload = ROOT_PATH . '/vendor/autoload.php';
-    if (is_file($autoload)) {
-        require_once $autoload;
+    // 只【定向】加载 overtrue/pinyin（PSR-4，自包含、仅依赖 php），绝不 require 全量 composer autoload——
+    // 后者的 files 段会 require 被打包裁掉的 dev 依赖（如 amphp）而致命；此处只注册 pinyin 命名空间的加载器。
+    // 缺失则降级返回空、由调用方兜底，绝不致命。
+    if (!class_exists(\Overtrue\Pinyin\Pinyin::class, false)) {
+        $pinyinSrc = ROOT_PATH . '/vendor/overtrue/pinyin/src/';
+        if (is_dir($pinyinSrc)) {
+            spl_autoload_register(static function (string $class) use ($pinyinSrc): void {
+                $prefix = 'Overtrue\\Pinyin\\';
+                if (strncmp($class, $prefix, strlen($prefix)) !== 0) return;
+                $file = $pinyinSrc . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
+                if (is_file($file)) require $file;
+            });
+        }
     }
     if (!class_exists(\Overtrue\Pinyin\Pinyin::class)) {
         return '';

@@ -123,29 +123,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             continue;
         }
         try {
-            // 支持 PHP 回调迁移
+            // 先跑 sqls（若有），再跑 php 回调（若有）—— 与 Migrator::runOne 一致。
+            // 修复：旧逻辑是 if(php){只跑php} else {跑sqls}，导致「既有 sqls 又有 php」的迁移
+            //       只执行 php、漏掉建表/加列 → php 回调里 SELECT 新列即 "Unknown column"。
+            foreach (($up['sqls'] ?? []) as $sql) {
+                if (db()->isSqlite()) {
+                    $sql = _sqlToSqlite($sql);
+                    if ($sql === null) continue;
+                }
+                try {
+                    db()->execute($sql);
+                } catch (\Throwable $e) {
+                    // 已存在的列/索引/表等幂等失败 → 忽略（与 Migrator::runOne 一致）：
+                    // 避免半程重跑或 opcache 导致的 "Duplicate column/already exists" 把升级误报为失败。
+                    if (preg_match('/Duplicate column|already exists|duplicate entry|duplicate key/i', $e->getMessage())) {
+                        continue;
+                    }
+                    throw $e;
+                }
+            }
+            $msg = '';
             if (!empty($up['php']) && is_callable($up['php'])) {
                 $msg = ($up['php'])();
-                $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: __('upgrade_success')];
-            } else {
-                foreach ($up['sqls'] as $sql) {
-                    if (db()->isSqlite()) {
-                        $sql = _sqlToSqlite($sql);
-                        if ($sql === null) continue;
-                    }
-                    try {
-                        db()->execute($sql);
-                    } catch (\Throwable $e) {
-                        // 已存在的列/索引/表等幂等失败 → 忽略（与 Migrator::runOne 一致）：
-                        // 避免半程重跑或 opcache 导致的 "Duplicate column/already exists" 把升级误报为失败。
-                        if (preg_match('/Duplicate column|already exists|duplicate entry|duplicate key/i', $e->getMessage())) {
-                            continue;
-                        }
-                        throw $e;
-                    }
-                }
-                $results[$up['id']] = ['status' => 'success', 'message' => __('upgrade_success')];
             }
+            $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: __('upgrade_success')];
             // adminLog 失败不影响升级响应
             try { adminLog('upgrade', 'execute', '执行升级: ' . $up['title']); } catch (\Throwable $e) {}
         } catch (\Throwable $e) {
