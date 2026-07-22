@@ -26,6 +26,8 @@
     # 禁止访问敏感文件
     RewriteRule ^composer\.(json|lock)$ - [F,L]
     RewriteRule ^package(-lock)?\.json$ - [F,L]
+    # 部署样例 / 模板 / 文档等（防被当静态文件下载、泄露结构；nginx.conf/config.php.example 等）
+    RewriteRule \.(md|sql|bak|example|dist|conf|lock|yml|yaml)$ - [F,L]
 
     # ===== 静态 HTML 直出 =====
     # 若 html/ 目录下已生成对应静态文件（仅 GET + 空查询串），由 Web 服务器直接返回，不进 PHP。

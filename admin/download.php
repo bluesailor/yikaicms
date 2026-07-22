@@ -235,7 +235,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <a href="/admin/download_edit.php?id=<?php echo $item['id']; ?>"
                                class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1 mr-2" title="<?php echo __('admin_edit'); ?>"><i class="ti ti-pencil text-base"></i> <?php echo __('admin_edit'); ?></a>
                             <button onclick="deleteItem(<?php echo $item['id']; ?>)"
-                                    class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i></button>
+                                    class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i> <?php echo __('admin_delete'); ?></button>
                         </td>
                     </tr>
                     <?php endforeach; ?>

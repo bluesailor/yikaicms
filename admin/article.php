@@ -128,7 +128,9 @@ if ($channelId > 0) {
     $params[] = $channelId;
 } elseif (!empty($newsChildIds)) {
     $placeholders = implode(',', array_fill(0, count($newsChildIds), '?'));
-    $where[] = "a.channel_id IN ({$placeholders})";
+    // 同时纳入「未分类」文章(channel_id=0 的 article)：分类未选中时文章会存成 0，
+    // 若不显示就会在后台彻底消失、连修改/删除的入口都没有。列出来才能找回并归类。
+    $where[] = "(a.channel_id IN ({$placeholders}) OR (a.channel_id = 0 AND a.type = 'article'))";
     $params = array_merge($params, $newsChildIds);
 }
 
@@ -272,8 +274,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <i class="ti ti-pencil text-base"></i>
                                 <?php echo __('admin_edit'); ?>
                             </a>
-                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-700" title="<?php echo __('admin_delete'); ?>">
+                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_delete'); ?>">
                                 <i class="ti ti-trash text-base"></i>
+                                <?php echo __('admin_delete'); ?>
                             </button>
                         </div>
                     </td>

@@ -20,7 +20,9 @@ final class ContentController extends ListController
         $offset    = ($page - 1) * $perPage;
         $keyword   = (string) $request['keyword'];
 
-        $filters = [];
+        // 父栏目聚合所有子分类的内容：例如"全部案例"页应含各子分类(如 icafeshop)下的案例，
+        // "全部新闻"含各新闻子栏目的文章。否则只查直接挂在本栏目下的内容，父栏目页会空。
+        $filters = ['include_children' => true];
         if ($keyword !== '') {
             $filters['keyword'] = $keyword;
         }
