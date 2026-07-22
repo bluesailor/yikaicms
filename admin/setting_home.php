@@ -337,6 +337,29 @@ foreach ($homeChannelRows as $hcRow) {
     ];
 }
 
+// 健壮性：home_blocks_config 里已挂的 channel 块，即使栏目 is_home=0（"首页显示"被关）也补上元数据，
+// 让它仍显示在首页设置里可管理，避免"配置里有、却因 is_home=0 而凭空消失"的幽灵块。
+foreach ($blocksConfig as $__cb) {
+    $__t = (string) ($__cb['type'] ?? '');
+    if (!str_starts_with($__t, 'channel:') || isset($blockMeta[$__t])) continue;
+    $__gid = (int) substr($__t, 8);
+    // 按视图语言取该翻译组的栏目（源记录 group_id == 自身 id）
+    $__rows = channelModel()->query(
+        "SELECT id, name FROM " . channelModel()->tableName() .
+        " WHERE (translation_group_id = ? OR id = ?) AND lang = ? ORDER BY (id = ?) DESC LIMIT 1",
+        [$__gid, $__gid, $_viewLang, $__gid]
+    );
+    $__ch = $__rows[0] ?? null;
+    if (!$__ch) continue;
+    $blockMeta[$__t] = [
+        'title' => $__ch['name'] . '（未开启首页显示）',
+        'icon'  => $channelIconPath,
+        'bg_default' => '#f9fafb',
+        'tip'   => '此栏目未开启「首页显示」，去 <a href="/admin/channel.php?action=edit&id=' . (int)$__ch['id'] . '" class="text-primary hover:underline">栏目管理</a> 勾选后即正常展示；也可在此禁用或移除本版块。',
+        'keys'  => [],
+    ];
+}
+
 // 自定义版块元数据（title 取自 home_custom_<N>.title；section 供轻量编辑器渲染字段）
 foreach ($blocksConfig as $__cb) {
     $__ct = (string) ($__cb['type'] ?? '');

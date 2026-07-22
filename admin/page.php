@@ -230,6 +230,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                             <i class="ti ti-external-link text-sm"></i>
                             <?php echo __('admin_preview'); ?>
                         </a>
+                        <?php if (($item['type'] ?? '') !== 'album'): ?>
+                        <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
+                                class="ml-2 text-sm inline-flex items-center gap-1 <?php echo $item['status'] ? 'text-amber-600 hover:text-amber-700' : 'text-green-600 hover:text-green-700'; ?>"
+                                title="<?php echo $item['status'] ? '停用后可在「已停用」区删除' : ''; ?>">
+                            <i class="ti <?php echo $item['status'] ? 'ti-eye-off' : 'ti-eye'; ?> text-sm"></i>
+                            <?php echo $item['status'] ? '停用' : '启用'; ?>
+                        </button>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>

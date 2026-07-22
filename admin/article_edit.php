@@ -58,6 +58,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error('请输入文章标题');
     }
 
+    // 未选分类 → 默认归到「新闻资讯」根栏目（WP 式兜底：文章至少有一个分类，不会变成
+    // channel_id=0 的孤儿而在前后台"消失"）。按文章所属语言取对应语言的 news 栏目。
+    if ($data['channel_id'] <= 0) {
+        if ($id > 0) {
+            $artLang = (string) ($article['lang'] ?? config('site_lang', 'zh-CN'));
+        } else {
+            $rl = (string) get('lang', config('site_lang', 'zh-CN'));
+            $artLang = in_array($rl, array_keys(availableLanguages()), true) ? $rl : (string) config('site_lang', 'zh-CN');
+        }
+        $news = getChannelBySlug('news');
+        if ($news) {
+            $data['channel_id'] = (($news['lang'] ?? '') === $artLang)
+                ? (int) $news['id']
+                : (findTranslatedChannelId((int) $news['id'], $artLang) ?: (int) $news['id']);
+        }
+    }
+
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'contents', $id);
 
     // 发布时间
