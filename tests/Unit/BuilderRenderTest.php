@@ -308,9 +308,9 @@ final class BuilderRenderTest extends TestCase
     {
         $h = BuilderRegistry::get('heading');
         $keys = array_column($h->controls(), 'key');
-        $this->assertSame(['text', 'level'], $keys);
+        $this->assertSame(['text', 'level', 'align'], $keys);
         // defaults 从 controls 推导
-        $this->assertSame(['text' => '', 'level' => 'h2'], $h->defaults());
+        $this->assertSame(['text' => '', 'level' => 'h2', 'align' => 'left'], $h->defaults());
     }
 
     public function testMetaShape(): void

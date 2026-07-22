@@ -1,1458 +1,1484 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.4.0@04f312ac6ea48ba1c3e5db4d815bf6d74641c0ee">
   <file src="admin/ai_assistant.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/ai_usage.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/album.php">
     <InvalidArgument>
-      <code>$files['name']</code>
+      <code><![CDATA[$files['name']]]></code>
     </InvalidArgument>
     <InvalidArrayAccess>
-      <code>$files['error'][$i]</code>
+      <code><![CDATA[$files['error'][$i]]]></code>
     </InvalidArrayAccess>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/album_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
+      <code><![CDATA[$currentMenu]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/album_photos.php">
     <InvalidArgument>
-      <code>$files['name']</code>
+      <code><![CDATA[$files['name']]]></code>
     </InvalidArgument>
     <InvalidArrayAccess>
-      <code>$files['error'][$i]</code>
+      <code><![CDATA[$files['error'][$i]]]></code>
     </InvalidArrayAccess>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/api_ai.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/api_ai_agent.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+  </file>
+  <file src="admin/api_ai_apply.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+  </file>
+  <file src="admin/api_ai_undo.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/api_search.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/article.php">
     <InvalidArgument>
-      <code>$ids</code>
-      <code>$ids</code>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
+      <code><![CDATA[$ids]]></code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/article_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$extraJs</code>
-      <code>$langSwitcher</code>
-      <code>$msgSaveSuccess</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$langSwitcher]]></code>
+      <code><![CDATA[$msgSaveSuccess]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/banner.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$total</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$total]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/case.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
+  <file src="admin/case_category.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/channel.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$homeInFooterNav</code>
-      <code>$langSwitcher</code>
-      <code>$pageTitle</code>
-      <code>$parentId</code>
-      <code>$productChannelIds</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$homeInFooterNav]]></code>
+      <code><![CDATA[$langSwitcher]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$parentId]]></code>
+      <code><![CDATA[$productChannelIds]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/channel_batch.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$pk</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$pk]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/content.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/content_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$contentHtml</code>
-      <code>$currentMenu</code>
-      <code>$extFieldOwnerId</code>
-      <code>$extFieldOwnerType</code>
-      <code>$extraJs</code>
-      <code>$langSwitcher</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$contentHtml]]></code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$extFieldOwnerId]]></code>
+      <code><![CDATA[$extFieldOwnerType]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$langSwitcher]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/content_model.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/cron.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/database.php">
     <InvalidCast>
-      <code>$v</code>
+      <code><![CDATA[$v]]></code>
     </InvalidCast>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$totalLines</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$totalLines]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/download.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/download_category.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/download_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/extfield.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/form.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/form_design.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UndefinedMethod>
-      <code>findById</code>
-      <code>findById</code>
+      <code><![CDATA[findById]]></code>
+      <code><![CDATA[findById]]></code>
     </UndefinedMethod>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$slug</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$slug]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/front_edit_api.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/includes/lang_switcher_edit.php">
     <InvalidArrayOffset>
-      <code>$langSwitcher['edit_param']</code>
-      <code>$langSwitcher['type']</code>
-      <code>$langSwitcher['type']</code>
+      <code><![CDATA[$langSwitcher['edit_param']]]></code>
+      <code><![CDATA[$langSwitcher['type']]]></code>
+      <code><![CDATA[$langSwitcher['type']]]></code>
     </InvalidArrayOffset>
   </file>
   <file src="admin/includes/parent_page_notice.php">
     <UndefinedGlobalVariable>
-      <code>$id</code>
-      <code>$page</code>
+      <code><![CDATA[$id]]></code>
+      <code><![CDATA[$page]]></code>
     </UndefinedGlobalVariable>
   </file>
   <file src="admin/includes/translate_action.php">
     <InvalidArrayOffset>
-      <code>$langSwitcher['summary_field']</code>
-      <code>$langSwitcher['title_field']</code>
+      <code><![CDATA[$langSwitcher['summary_field']]]></code>
+      <code><![CDATA[$langSwitcher['title_field']]]></code>
     </InvalidArrayOffset>
   </file>
   <file src="admin/index.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/job.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/job_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$contentHtml</code>
-      <code>$currentMenu</code>
-      <code>$extraJs</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$contentHtml]]></code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/license.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/link.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$transStatus</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$transStatus]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/login.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/logout.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/media.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/media_api.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/member.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/page.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/page_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$childEditBase</code>
-      <code>$children</code>
-      <code>$currentMenu</code>
-      <code>$extraJs</code>
-      <code>$langSwitcher</code>
-      <code>$pageContent</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$childEditBase]]></code>
+      <code><![CDATA[$children]]></code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$langSwitcher]]></code>
+      <code><![CDATA[$pageContent]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/page_edit_advance.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$blocksDataJson</code>
-      <code>$blocksDataJson</code>
-      <code>$childEditBase</code>
-      <code>$children</code>
-      <code>$currentMenu</code>
-      <code>$extraJs</code>
-      <code>$initBlocks</code>
-      <code>$initBlocks</code>
-      <code>$pageTitle</code>
-    <code>$companyTplJson</code></UnusedVariable>
+      <code><![CDATA[$blocksDataJson]]></code>
+      <code><![CDATA[$blocksDataJson]]></code>
+      <code><![CDATA[$childEditBase]]></code>
+      <code><![CDATA[$children]]></code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$initBlocks]]></code>
+      <code><![CDATA[$initBlocks]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
   </file>
   <file src="admin/plugin.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/plugin_page.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product.php">
     <InvalidArgument>
-      <code>$ids</code>
+      <code><![CDATA[$ids]]></code>
     </InvalidArgument>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_brand.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_category.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$langSwitcher</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$langSwitcher]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_edit.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$extraJs</code>
-      <code>$langSwitcher</code>
-      <code>$pageTitle</code>
-      <code>$productContent</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$langSwitcher]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$productContent]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_setting.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/product_tag.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/profile.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/recipe.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/recycle.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/role.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting.php">
     <InvalidArrayOffset>
-      <code>['basic'=&gt;__('setting_tab_basic'),'header'=&gt;__('setting_tab_header'),'footer'=&gt;__('setting_tab_footer'),'code'=&gt;__('setting_tab_code')][$tab]</code>
+      <code><![CDATA[['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab]]]></code>
     </InvalidArrayOffset>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$FOOTER_LANG_KEYS</code>
-      <code>$currentMenu</code>
-      <code>$currentSecondary</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$FOOTER_LANG_KEYS]]></code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$currentSecondary]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_ai.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$errMsg</code>
-      <code>$json</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$errMsg]]></code>
+      <code><![CDATA[$json]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_api.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_cache.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_channel_translate.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnevaluatedCode>
-      <code>exit;</code>
+      <code><![CDATA[exit;]]></code>
     </UnevaluatedCode>
     <UnusedForeachValue>
-      <code>$ll</code>
+      <code><![CDATA[$ll]]></code>
     </UnusedForeachValue>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_contact.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_customer_service.php">
     <InvalidArrayOffset>
-      <code>$settings[$sw]</code>
+      <code><![CDATA[$settings[$sw]]]></code>
     </InvalidArrayOffset>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_demo.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_email.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_home.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_lang.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_member.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_product_cat_translate.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnevaluatedCode>
-      <code>exit;</code>
+      <code><![CDATA[exit;]]></code>
     </UnevaluatedCode>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_security.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_seo.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_social.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/setting_translate.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/static_html.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/system.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$count</code>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$count]]></code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/theme.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/timeline.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$transStatus</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$transStatus]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/upgrade.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
-      <code>$updateCheckApi</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$updateCheckApi]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/upgrade_online.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UndefinedClass>
-      <code>never</code>
+      <code><![CDATA[never]]></code>
     </UndefinedClass>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="admin/upload.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="admin/user.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$currentMenu</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="article.php">
     <UnusedVariable>
-      <code>$breadcrumbItems</code>
-      <code>$canonicalUrl</code>
-      <code>$channel</code>
-      <code>$currentSlug</code>
-      <code>$jsonLd</code>
-      <code>$navChannels</code>
-      <code>$ogImage</code>
-      <code>$ogType</code>
-      <code>$pageDescription</code>
-      <code>$pageKeywords</code>
-      <code>$pageTitle</code>
-      <code>$siteUrl</code>
+      <code><![CDATA[$breadcrumbItems]]></code>
+      <code><![CDATA[$canonicalUrl]]></code>
+      <code><![CDATA[$channel]]></code>
+      <code><![CDATA[$currentSlug]]></code>
+      <code><![CDATA[$jsonLd]]></code>
+      <code><![CDATA[$navChannels]]></code>
+      <code><![CDATA[$ogImage]]></code>
+      <code><![CDATA[$ogType]]></code>
+      <code><![CDATA[$pageDescription]]></code>
+      <code><![CDATA[$pageKeywords]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$siteUrl]]></code>
     </UnusedVariable>
   </file>
   <file src="config/database.php">
     <DuplicateArrayKey>
-      <code>$whereParams</code>
+      <code><![CDATA[$whereParams]]></code>
     </DuplicateArrayKey>
     <PossiblyUnusedMethod>
-      <code>executeMultiple</code>
-      <code>getDriver</code>
-      <code>insertBatch</code>
-      <code>isMysql</code>
+      <code><![CDATA[executeMultiple]]></code>
+      <code><![CDATA[getDriver]]></code>
+      <code><![CDATA[insertBatch]]></code>
+      <code><![CDATA[isMysql]]></code>
     </PossiblyUnusedMethod>
     <PossiblyUnusedReturnValue>
-      <code>bool</code>
-      <code>bool</code>
-      <code>bool</code>
+      <code><![CDATA[bool]]></code>
+      <code><![CDATA[bool]]></code>
+      <code><![CDATA[bool]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="contact.php">
     <UnusedVariable>
-      <code>$breadcrumbItems</code>
-      <code>$channel</code>
-      <code>$currentChannelId</code>
-      <code>$navChannels</code>
-      <code>$pageDescription</code>
-      <code>$pageKeywords</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$breadcrumbItems]]></code>
+      <code><![CDATA[$channel]]></code>
+      <code><![CDATA[$currentChannelId]]></code>
+      <code><![CDATA[$navChannels]]></code>
+      <code><![CDATA[$pageDescription]]></code>
+      <code><![CDATA[$pageKeywords]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="history.php">
     <UnusedVariable>
-      <code>$breadcrumbItems</code>
-      <code>$channel</code>
-      <code>$isHistoryPage</code>
-      <code>$pageDescription</code>
-      <code>$pageTitle</code>
+      <code><![CDATA[$breadcrumbItems]]></code>
+      <code><![CDATA[$channel]]></code>
+      <code><![CDATA[$isHistoryPage]]></code>
+      <code><![CDATA[$pageDescription]]></code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="includes/Abilities.php">
     <PossiblyUnusedMethod>
-      <code>asAnthropicTools</code>
-      <code>has</code>
+      <code><![CDATA[asAnthropicTools]]></code>
+      <code><![CDATA[has]]></code>
+    </PossiblyUnusedMethod>
+  </file>
+  <file src="includes/AiChangeLog.php">
+    <PossiblyUnusedMethod>
+      <code><![CDATA[recent]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/Backup.php">
     <InvalidCast>
-      <code>$v</code>
+      <code><![CDATA[$v]]></code>
     </InvalidCast>
   </file>
   <file src="includes/CLI.php">
     <PossiblyUnusedMethod>
-      <code>dispatch</code>
+      <code><![CDATA[dispatch]]></code>
     </PossiblyUnusedMethod>
     <UnusedVariable>
-      <code>$g</code>
+      <code><![CDATA[$g]]></code>
     </UnusedVariable>
   </file>
   <file src="includes/Compatibility.php">
     <PossiblyUnusedMethod>
-      <code>blockWriteIfDemo</code>
-      <code>diagnostics</code>
-      <code>flushBeforeJson</code>
+      <code><![CDATA[blockWriteIfDemo]]></code>
+      <code><![CDATA[diagnostics]]></code>
+      <code><![CDATA[flushBeforeJson]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/HtmlCache.php">
     <ParadoxicalCondition>
-      <code>!defined('ROOT_PATH')</code>
+      <code><![CDATA[!defined('ROOT_PATH')]]></code>
     </ParadoxicalCondition>
     <UnusedClosureParam>
-      <code>$id</code>
+      <code><![CDATA[$id]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/HtmlPipeline.php">
     <PossiblyUnusedMethod>
-      <code>addClassToTag</code>
+      <code><![CDATA[addClassToTag]]></code>
     </PossiblyUnusedMethod>
     <PossiblyUnusedReturnValue>
-      <code>string</code>
-      <code>string</code>
-      <code>string</code>
-      <code>string</code>
+      <code><![CDATA[string]]></code>
+      <code><![CDATA[string]]></code>
+      <code><![CDATA[string]]></code>
+      <code><![CDATA[string]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/Router.php">
     <PossiblyUnusedMethod>
-      <code>has</code>
-      <code>listRoutes</code>
-      <code>reset</code>
+      <code><![CDATA[has]]></code>
+      <code><![CDATA[listRoutes]]></code>
+      <code><![CDATA[reset]]></code>
     </PossiblyUnusedMethod>
     <UnusedClosureParam>
-      <code>$p</code>
-      <code>$p</code>
-      <code>$p</code>
+      <code><![CDATA[$p]]></code>
+      <code><![CDATA[$p]]></code>
+      <code><![CDATA[$p]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/StaticHtml.php">
     <UnusedClosureParam>
-      <code>$id</code>
+      <code><![CDATA[$id]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/abilities/cms_basics.php">
-    <UndefinedMethod>
-      <code>lastInsertId</code>
-    </UndefinedMethod>
     <UnusedVariable>
-      <code>$raw</code>
+      <code><![CDATA[$raw]]></code>
     </UnusedVariable>
   </file>
   <file src="includes/admin_bar.php">
     <ParadoxicalCondition>
-      <code>!defined('ROOT_PATH')</code>
+      <code><![CDATA[!defined('ROOT_PATH')]]></code>
     </ParadoxicalCondition>
   </file>
   <file src="includes/blocks/about.php">
     <UndefinedGlobalVariable>
-      <code>$aboutChannel</code>
-      <code>$aboutChannel</code>
+      <code><![CDATA[$aboutChannel]]></code>
+      <code><![CDATA[$aboutChannel]]></code>
     </UndefinedGlobalVariable>
   </file>
   <file src="includes/blocks/timeline.php">
     <UnusedVariable>
-      <code>$groupedTimelines</code>
-      <code>$timelineSort</code>
-      <code>$timelines</code>
+      <code><![CDATA[$groupedTimelines]]></code>
+      <code><![CDATA[$timelineSort]]></code>
+      <code><![CDATA[$timelines]]></code>
     </UnusedVariable>
   </file>
-  <file src="includes/builder/AbstractElement.php"><PossiblyUnusedMethod><code>category</code><code>icon</code><code>isDynamic</code><code>label</code></PossiblyUnusedMethod></file><file src="includes/builder/BuilderRegistry.php">
+  <file src="includes/builder/BuilderRegistry.php">
     <PossiblyUnusedMethod>
-      <code>all</code>
+      <code><![CDATA[all]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/commands/cache.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$args</code>
-      <code>$opts</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/cron.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/demo.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$args</code>
-      <code>$args</code>
-      <code>$opts</code>
-      <code>$opts</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/info.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/lang.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$args</code>
-      <code>$args</code>
-      <code>$opts</code>
-      <code>$opts</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/migrate.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/plugin.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$opts</code>
-      <code>$opts</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/recipe.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/commands/user.php">
     <UnusedClosureParam>
-      <code>$args</code>
-      <code>$opts</code>
+      <code><![CDATA[$args]]></code>
+      <code><![CDATA[$opts]]></code>
     </UnusedClosureParam>
   </file>
   <file src="includes/front_edit.php">
     <ParadoxicalCondition>
-      <code>!defined('ROOT_PATH')</code>
+      <code><![CDATA[!defined('ROOT_PATH')]]></code>
     </ParadoxicalCondition>
   </file>
   <file src="includes/functions.php">
     <InvalidNullableReturnType>
-      <code>string</code>
-      <code>string</code>
+      <code><![CDATA[string]]></code>
+      <code><![CDATA[string]]></code>
     </InvalidNullableReturnType>
     <NullableReturnStatement>
-      <code>$content</code>
-      <code>$html</code>
+      <code><![CDATA[$content]]></code>
+      <code><![CDATA[$html]]></code>
     </NullableReturnStatement>
     <UndefinedClass>
-      <code>never</code>
-      <code>never</code>
-      <code>never</code>
-      <code>never</code>
+      <code><![CDATA[never]]></code>
+      <code><![CDATA[never]]></code>
+      <code><![CDATA[never]]></code>
+      <code><![CDATA[never]]></code>
     </UndefinedClass>
     <UnusedParam>
-      <code>$attachments</code>
-      <code>$formSlug</code>
+      <code><![CDATA[$attachments]]></code>
+      <code><![CDATA[$formSlug]]></code>
     </UnusedParam>
     <UnusedVariable>
-      <code>$boundary</code>
-      <code>$group</code>
-      <code>$response</code>
-      <code>$response</code>
-      <code>$response</code>
-      <code>$response</code>
+      <code><![CDATA[$boundary]]></code>
+      <code><![CDATA[$group]]></code>
+      <code><![CDATA[$response]]></code>
+      <code><![CDATA[$response]]></code>
+      <code><![CDATA[$response]]></code>
+      <code><![CDATA[$response]]></code>
     </UnusedVariable>
-  <DuplicateArrayKey><code>UPLOAD_FILE_TYPES</code><code>UPLOAD_IMAGE_TYPES</code></DuplicateArrayKey></file>
+  </file>
   <file src="includes/hooks.php">
     <DuplicateArrayKey>
-      <code>$args</code>
+      <code><![CDATA[$args]]></code>
     </DuplicateArrayKey>
     <EmptyArrayAccess>
-      <code>$ik_actions[$hook]</code>
-      <code>$ik_filters[$hook]</code>
+      <code><![CDATA[$ik_actions[$hook]]]></code>
+      <code><![CDATA[$ik_filters[$hook]]]></code>
     </EmptyArrayAccess>
     <InvalidGlobal>
-      <code>global $ik_actions, $ik_filters;</code>
+      <code><![CDATA[global $ik_actions, $ik_filters;]]></code>
     </InvalidGlobal>
   </file>
   <file src="includes/html-api/class-wp-html-attribute-token.php">
     <PossiblyUnusedProperty>
-      <code>$name</code>
+      <code><![CDATA[$name]]></code>
     </PossiblyUnusedProperty>
   </file>
   <file src="includes/html-api/class-wp-html-decoder.php">
     <NullableReturnStatement>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
-      <code>null</code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
+      <code><![CDATA[null]]></code>
     </NullableReturnStatement>
     <PossiblyUnusedMethod>
-      <code>attribute_starts_with</code>
+      <code><![CDATA[attribute_starts_with]]></code>
     </PossiblyUnusedMethod>
     <UndefinedDocblockClass>
-      <code>$html5_named_character_references</code>
-      <code>$html5_named_character_references</code>
-      <code>global $html5_named_character_references;</code>
+      <code><![CDATA[$html5_named_character_references]]></code>
+      <code><![CDATA[$html5_named_character_references]]></code>
+      <code><![CDATA[global $html5_named_character_references;]]></code>
     </UndefinedDocblockClass>
   </file>
   <file src="includes/html-api/class-wp-html-doctype-info.php">
     <PossiblyUnusedProperty>
-      <code>$indicated_compatibility_mode</code>
-      <code>$name</code>
-      <code>$public_identifier</code>
-      <code>$system_identifier</code>
+      <code><![CDATA[$indicated_compatibility_mode]]></code>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$public_identifier]]></code>
+      <code><![CDATA[$system_identifier]]></code>
     </PossiblyUnusedProperty>
     <UnevaluatedCode>
-      <code>$at += $identifier_length;</code>
-      <code>$at += $identifier_length;</code>
-      <code>$at += strspn( $doctype_html, " \t\n\f\r", $at, $end - $at );</code>
-      <code>$closer_quote = $doctype_html[ $at ];</code>
-      <code>$closer_quote = $doctype_html[ $at ];</code>
-      <code>$doctype_public_id = str_replace( "\0", "\u{FFFD}", substr( $doctype_html, $at, $identifier_length ) );</code>
-      <code>$doctype_system_id = str_replace( "\0", "\u{FFFD}", substr( $doctype_html, $at, $identifier_length ) );</code>
-      <code>$identifier_length = strcspn( $doctype_html, $closer_quote, $at, $end - $at );</code>
-      <code>$identifier_length = strcspn( $doctype_html, $closer_quote, $at, $end - $at );</code>
-      <code>++$at;</code>
-      <code>++$at;</code>
-      <code>++$at;</code>
-      <code>if ( $at &gt;= $end ) {
+      <code><![CDATA[$at += $identifier_length;]]></code>
+      <code><![CDATA[$at += $identifier_length;]]></code>
+      <code><![CDATA[$at += strspn( $doctype_html, " \t\n\f\r", $at, $end - $at );]]></code>
+      <code><![CDATA[$closer_quote = $doctype_html[ $at ];]]></code>
+      <code><![CDATA[$closer_quote = $doctype_html[ $at ];]]></code>
+      <code><![CDATA[$doctype_public_id = str_replace( "\0", "\u{FFFD}", substr( $doctype_html, $at, $identifier_length ) );]]></code>
+      <code><![CDATA[$doctype_system_id = str_replace( "\0", "\u{FFFD}", substr( $doctype_html, $at, $identifier_length ) );]]></code>
+      <code><![CDATA[$identifier_length = strcspn( $doctype_html, $closer_quote, $at, $end - $at );]]></code>
+      <code><![CDATA[$identifier_length = strcspn( $doctype_html, $closer_quote, $at, $end - $at );]]></code>
+      <code><![CDATA[++$at;]]></code>
+      <code><![CDATA[++$at;]]></code>
+      <code><![CDATA[++$at;]]></code>
+      <code><![CDATA[if ( $at >= $end ) {
 			return new self( $doctype_name, $doctype_public_id, $doctype_system_id, false );
-		}</code>
-      <code>if ( $at &gt;= $end || $closer_quote !== $doctype_html[ $at ] ) {
+		}]]></code>
+      <code><![CDATA[if ( $at >= $end || $closer_quote !== $doctype_html[ $at ] ) {
 			return new self( $doctype_name, $doctype_public_id, $doctype_system_id, true );
-		}</code>
-      <code>if ( $at &gt;= $end || $closer_quote !== $doctype_html[ $at ] ) {
+		}]]></code>
+      <code><![CDATA[if ( $at >= $end || $closer_quote !== $doctype_html[ $at ] ) {
 			return new self( $doctype_name, $doctype_public_id, $doctype_system_id, true );
-		}</code>
-      <code>if ( '"' !== $closer_quote &amp;&amp; "'" !== $closer_quote ) {
+		}]]></code>
+      <code><![CDATA[if ( '"' !== $closer_quote && "'" !== $closer_quote ) {
 			return new self( $doctype_name, $doctype_public_id, $doctype_system_id, true );
-		}</code>
-      <code>if ( '"' !== $closer_quote &amp;&amp; "'" !== $closer_quote ) {
+		}]]></code>
+      <code><![CDATA[if ( '"' !== $closer_quote && "'" !== $closer_quote ) {
 			return new self( $doctype_name, $doctype_public_id, $doctype_system_id, true );
-		}</code>
-      <code>parse_doctype_public_identifier:</code>
-      <code>parse_doctype_system_identifier:</code>
-      <code>return new self( $doctype_name, $doctype_public_id, $doctype_system_id, false );</code>
+		}]]></code>
+      <code><![CDATA[parse_doctype_public_identifier:]]></code>
+      <code><![CDATA[parse_doctype_system_identifier:]]></code>
+      <code><![CDATA[return new self( $doctype_name, $doctype_public_id, $doctype_system_id, false );]]></code>
     </UnevaluatedCode>
   </file>
   <file src="includes/html-api/class-wp-html-tag-processor.php">
     <InvalidArgument>
-      <code>array( self::class, 'sort_start_ascending' )</code>
+      <code><![CDATA[array( self::class, 'sort_start_ascending' )]]></code>
     </InvalidArgument>
     <PossiblyUnusedMethod>
-      <code>change_parsing_namespace</code>
-      <code>get_attribute_names_with_prefix</code>
-      <code>get_doctype_info</code>
-      <code>get_full_comment_text</code>
-      <code>get_qualified_attribute_name</code>
-      <code>get_qualified_tag_name</code>
-      <code>get_token_type</code>
-      <code>has_bookmark</code>
-      <code>has_self_closing_flag</code>
-      <code>is_tag_closer</code>
-      <code>paused_at_incomplete_token</code>
-      <code>remove_class</code>
-      <code>seek</code>
-      <code>set_bookmark</code>
-      <code>set_modifiable_text</code>
-      <code>subdivide_text_appropriately</code>
+      <code><![CDATA[change_parsing_namespace]]></code>
+      <code><![CDATA[get_attribute_names_with_prefix]]></code>
+      <code><![CDATA[get_doctype_info]]></code>
+      <code><![CDATA[get_full_comment_text]]></code>
+      <code><![CDATA[get_qualified_attribute_name]]></code>
+      <code><![CDATA[get_qualified_tag_name]]></code>
+      <code><![CDATA[get_token_type]]></code>
+      <code><![CDATA[has_bookmark]]></code>
+      <code><![CDATA[has_self_closing_flag]]></code>
+      <code><![CDATA[is_tag_closer]]></code>
+      <code><![CDATA[paused_at_incomplete_token]]></code>
+      <code><![CDATA[remove_class]]></code>
+      <code><![CDATA[seek]]></code>
+      <code><![CDATA[set_bookmark]]></code>
+      <code><![CDATA[set_modifiable_text]]></code>
+      <code><![CDATA[subdivide_text_appropriately]]></code>
     </PossiblyUnusedMethod>
     <PossiblyUnusedProperty>
-      <code>$text_node_classification</code>
+      <code><![CDATA[$text_node_classification]]></code>
     </PossiblyUnusedProperty>
     <PossiblyUnusedReturnValue>
-      <code>bool</code>
-      <code>bool</code>
-      <code>bool</code>
+      <code><![CDATA[bool]]></code>
+      <code><![CDATA[bool]]></code>
+      <code><![CDATA[bool]]></code>
     </PossiblyUnusedReturnValue>
     <UndefinedFunction>
-      <code>esc_url( $value )</code>
+      <code><![CDATA[esc_url( $value )]]></code>
     </UndefinedFunction>
     <UnusedForeachValue>
-      <code>$action</code>
-      <code>$action</code>
+      <code><![CDATA[$action]]></code>
+      <code><![CDATA[$action]]></code>
     </UnusedForeachValue>
     <UnusedReturnValue>
-      <code>int</code>
+      <code><![CDATA[int]]></code>
     </UnusedReturnValue>
   </file>
   <file src="includes/html-api/wp-shims.php">
     <UnusedParam>
-      <code>$function</code>
-      <code>$message</code>
-      <code>$version</code>
+      <code><![CDATA[$function]]></code>
+      <code><![CDATA[$message]]></code>
+      <code><![CDATA[$version]]></code>
     </UnusedParam>
+  </file>
+  <file src="includes/i18n/S2T.php">
+    <UnusedClass>
+      <code><![CDATA[S2T]]></code>
+    </UnusedClass>
   </file>
   <file src="includes/image.php">
     <InvalidNullableReturnType>
-      <code>string</code>
+      <code><![CDATA[string]]></code>
     </InvalidNullableReturnType>
     <NullableReturnStatement>
-      <code>$webp</code>
+      <code><![CDATA[$webp]]></code>
     </NullableReturnStatement>
   </file>
   <file src="includes/init.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <ParadoxicalCondition>
-      <code>!file_exists(ROOT_PATH . '/installed.lock')</code>
+      <code><![CDATA[!file_exists(ROOT_PATH . '/installed.lock')]]></code>
     </ParadoxicalCondition>
   </file>
   <file src="includes/models/AlbumModel.php">
     <PossiblyUnusedMethod>
-      <code>getActive</code>
+      <code><![CDATA[getActive]]></code>
     </PossiblyUnusedMethod>
     <PossiblyUnusedReturnValue>
-      <code>int</code>
+      <code><![CDATA[int]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/models/AlbumPhotoModel.php">
     <PossiblyUnusedReturnValue>
-      <code>int</code>
-      <code>int</code>
-      <code>int</code>
+      <code><![CDATA[int]]></code>
+      <code><![CDATA[int]]></code>
+      <code><![CDATA[int]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/models/BannerGroupModel.php">
     <PossiblyUnusedMethod>
-      <code>getActive</code>
-      <code>getAllAsMap</code>
-      <code>updateSort</code>
+      <code><![CDATA[getActive]]></code>
+      <code><![CDATA[getAllAsMap]]></code>
+      <code><![CDATA[updateSort]]></code>
     </PossiblyUnusedMethod>
   </file>
-  <file src="includes/models/ContentModel.php"><PossiblyUnusedReturnValue><code>int</code></PossiblyUnusedReturnValue></file><file src="includes/models/DownloadCategoryModel.php">
+  <file src="includes/models/DownloadCategoryModel.php">
     <PossiblyUnusedMethod>
-      <code>hasFiles</code>
+      <code><![CDATA[hasFiles]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/DownloadModel.php">
     <PossiblyUnusedMethod>
-      <code>incrementDownloads</code>
+      <code><![CDATA[incrementDownloads]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/FormModel.php">
     <PossiblyUnusedMethod>
-      <code>updateFollow</code>
+      <code><![CDATA[updateFollow]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/FormTemplateModel.php">
     <PossiblyUnusedMethod>
-      <code>getActive</code>
+      <code><![CDATA[getActive]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/JobModel.php">
     <PossiblyUnusedMethod>
-      <code>incrementViews</code>
+      <code><![CDATA[incrementViews]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/MemberModel.php">
     <PossiblyUnusedMethod>
-      <code>findByEmail</code>
+      <code><![CDATA[findByEmail]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/MetaModel.php">
     <PossiblyUnusedMethod>
-      <code>getAllByOwnerIds</code>
-      <code>setBatch</code>
+      <code><![CDATA[getAllByOwnerIds]]></code>
+      <code><![CDATA[setBatch]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/Model.php">
     <PossiblyUnusedMethod>
-      <code>forceDeleteById</code>
-      <code>getTrashed</code>
-      <code>restore</code>
+      <code><![CDATA[forceDeleteById]]></code>
+      <code><![CDATA[getTrashed]]></code>
+      <code><![CDATA[restore]]></code>
     </PossiblyUnusedMethod>
     <PossiblyUnusedReturnValue>
-      <code>int</code>
-      <code>int</code>
-      <code>int</code>
+      <code><![CDATA[int]]></code>
+      <code><![CDATA[int]]></code>
+      <code><![CDATA[int]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/models/PluginModel.php">
     <PossiblyUnusedMethod>
-      <code>deleteBySlug</code>
-      <code>register</code>
+      <code><![CDATA[deleteBySlug]]></code>
+      <code><![CDATA[register]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/ProductCategoryModel.php">
     <PossiblyUnusedMethod>
-      <code>getTree</code>
+      <code><![CDATA[getTree]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/ProductModel.php">
     <PossiblyUnusedMethod>
-      <code>getDetail</code>
+      <code><![CDATA[getDetail]]></code>
     </PossiblyUnusedMethod>
   </file>
   <file src="includes/models/SettingModel.php">
     <PossiblyUnusedReturnValue>
-      <code>int</code>
+      <code><![CDATA[int]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/models/UserModel.php">
     <PossiblyUnusedMethod>
-      <code>updateLastLogin</code>
+      <code><![CDATA[updateLastLogin]]></code>
     </PossiblyUnusedMethod>
     <PossiblyUnusedReturnValue>
-      <code>int</code>
+      <code><![CDATA[int]]></code>
     </PossiblyUnusedReturnValue>
   </file>
   <file src="includes/partials/page-hero.php">
     <UnusedVariable>
-      <code>$style</code>
-      <code>$style</code>
+      <code><![CDATA[$style]]></code>
+      <code><![CDATA[$style]]></code>
     </UnusedVariable>
   </file>
   <file src="includes/partials/product-filter.php">
     <UndefinedGlobalVariable>
-      <code>$channel</code>
-      <code>$channel</code>
+      <code><![CDATA[$channel]]></code>
+      <code><![CDATA[$channel]]></code>
     </UndefinedGlobalVariable>
   </file>
   <file src="includes/partials/right_sidebar.php">
     <UndefinedGlobalVariable>
-      <code>$channelId</code>
-      <code>$rightSidebarChannels</code>
-      <code>$rightSidebarTitle</code>
+      <code><![CDATA[$channelId]]></code>
+      <code><![CDATA[$rightSidebarChannels]]></code>
+      <code><![CDATA[$rightSidebarTitle]]></code>
     </UndefinedGlobalVariable>
   </file>
   <file src="includes/partials/timeline-horizontal.php">
     <UnusedVariable>
-      <code>$i</code>
+      <code><![CDATA[$i]]></code>
     </UnusedVariable>
   </file>
   <file src="index.php">
     <UnusedVariable>
-      <code>$aboutChannel</code>
-      <code>$bannerHeightCss</code>
-      <code>$bannerHeightMobile</code>
-      <code>$bannerHeightMobile</code>
-      <code>$bannerHeightPC</code>
-      <code>$bannerHeightPC</code>
-      <code>$banners</code>
-      <code>$canonicalUrl</code>
-      <code>$extraCss</code>
-      <code>$extraCss</code>
-      <code>$extraJs</code>
-      <code>$isHomePage</code>
-      <code>$navChannels</code>
-      <code>$pageDescription</code>
-      <code>$pageKeywords</code>
-      <code>$pageTitle</code>
-      <code>$primaryColor</code>
-      <code>$siteUrl</code>
-      <code>$testimonials</code>
+      <code><![CDATA[$aboutChannel]]></code>
+      <code><![CDATA[$bannerHeightCss]]></code>
+      <code><![CDATA[$bannerHeightMobile]]></code>
+      <code><![CDATA[$bannerHeightMobile]]></code>
+      <code><![CDATA[$bannerHeightPC]]></code>
+      <code><![CDATA[$bannerHeightPC]]></code>
+      <code><![CDATA[$banners]]></code>
+      <code><![CDATA[$canonicalUrl]]></code>
+      <code><![CDATA[$extraCss]]></code>
+      <code><![CDATA[$extraCss]]></code>
+      <code><![CDATA[$extraJs]]></code>
+      <code><![CDATA[$isHomePage]]></code>
+      <code><![CDATA[$navChannels]]></code>
+      <code><![CDATA[$pageDescription]]></code>
+      <code><![CDATA[$pageKeywords]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$primaryColor]]></code>
+      <code><![CDATA[$siteUrl]]></code>
+      <code><![CDATA[$testimonials]]></code>
     </UnusedVariable>
   </file>
   <file src="install/index.php">
     <UndefinedFunction>
-      <code>seedChannelTranslations($pdo, $prefix)</code>
+      <code><![CDATA[seedChannelTranslations($pdo, $prefix)]]></code>
     </UndefinedFunction>
     <UnusedVariable>
-      <code>$key</code>
+      <code><![CDATA[$key]]></code>
     </UnusedVariable>
   </file>
   <file src="install/run_upgrade.php">
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
   </file>
   <file src="install/seed_channel_translations.php">
     <UndefinedFunction>
-      <code>seed_fallback_map()</code>
-      <code>seed_load_external()</code>
-      <code>seed_mirror_contents($pdo, $prefix, $external, $channelIdMap)</code>
+      <code><![CDATA[seed_fallback_map()]]></code>
+      <code><![CDATA[seed_load_external()]]></code>
+      <code><![CDATA[seed_mirror_contents($pdo, $prefix, $external, $channelIdMap)]]></code>
     </UndefinedFunction>
   </file>
   <file src="install/upgrade.php">
     <InvalidArrayOffset>
-      <code>$up['message']</code>
-      <code>$up['message']</code>
-      <code>$up['result']</code>
-      <code>$up['result']</code>
-      <code>$up['result']</code>
-      <code>$up['status']</code>
-      <code>$up['status']</code>
+      <code><![CDATA[$up['message']]]></code>
+      <code><![CDATA[$up['message']]]></code>
+      <code><![CDATA[$up['result']]]></code>
+      <code><![CDATA[$up['result']]]></code>
+      <code><![CDATA[$up['result']]]></code>
+      <code><![CDATA[$up['status']]]></code>
+      <code><![CDATA[$up['status']]]></code>
     </InvalidArrayOffset>
     <MissingFile>
-      <code>require_once ROOT_PATH . '/config/config.php'</code>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
     <UnusedVariable>
-      <code>$results</code>
+      <code><![CDATA[$results]]></code>
     </UnusedVariable>
   </file>
   <file src="lang/en.php">
     <DuplicateArrayKey>
-      <code>"admin_database" =&gt; "Database"</code>
-      <code>"admin_extfield" =&gt; "Custom Fields"</code>
-      <code>"admin_member" =&gt; "Members"</code>
-      <code>"admin_plugin" =&gt; "Plugins"</code>
-      <code>"admin_setting_ai" =&gt; "AI Settings"</code>
-      <code>"admin_setting_contact" =&gt; "Contact"</code>
-      <code>"admin_setting_security" =&gt; "Security"</code>
-      <code>"admin_setting_seo" =&gt; "SEO Settings"</code>
-      <code>"admin_setting_social" =&gt; "Social Media"</code>
-      <code>"admin_system_info" =&gt; "System Info"</code>
-      <code>"admin_theme" =&gt; "Themes"</code>
-      <code>"admin_upgrade" =&gt; "System Upgrade"</code>
-      <code>"contact_map_placeholder" =&gt; "Set a map image in admin"</code>
-      <code>"home_cta_desc"            =&gt; "Contact us for a tailored solution"</code>
-      <code>"home_cta_title"           =&gt; "Ready to get started?"</code>
+      <code><![CDATA["admin_database" => "Database"]]></code>
+      <code><![CDATA["admin_extfield" => "Custom Fields"]]></code>
+      <code><![CDATA["admin_member" => "Members"]]></code>
+      <code><![CDATA["admin_plugin" => "Plugins"]]></code>
+      <code><![CDATA["admin_setting_ai" => "AI Settings"]]></code>
+      <code><![CDATA["admin_setting_contact" => "Contact"]]></code>
+      <code><![CDATA["admin_setting_security" => "Security"]]></code>
+      <code><![CDATA["admin_setting_seo" => "SEO Settings"]]></code>
+      <code><![CDATA["admin_setting_social" => "Social Media"]]></code>
+      <code><![CDATA["admin_system_info" => "System Info"]]></code>
+      <code><![CDATA["admin_theme" => "Themes"]]></code>
+      <code><![CDATA["admin_upgrade" => "System Upgrade"]]></code>
+      <code><![CDATA["contact_map_placeholder" => "Set a map image in admin"]]></code>
+      <code><![CDATA["home_cta_desc"            => "Contact us for a tailored solution"]]></code>
+      <code><![CDATA["home_cta_title"           => "Ready to get started?"]]></code>
     </DuplicateArrayKey>
   </file>
   <file src="lang/ja.php">
     <DuplicateArrayKey>
-      <code>'contact_map_placeholder' =&gt; '管理画面で地図画像を設定'</code>
+      <code><![CDATA['contact_map_placeholder' => '管理画面で地図画像を設定']]></code>
     </DuplicateArrayKey>
   </file>
   <file src="lang/zh-CN.php">
     <DuplicateArrayKey>
-      <code>"admin_database" =&gt; "数据库"</code>
-      <code>"admin_extfield" =&gt; "扩展字段"</code>
-      <code>"admin_member" =&gt; "会员管理"</code>
-      <code>"admin_plugin" =&gt; "插件"</code>
-      <code>"admin_setting_ai" =&gt; "AI 设置"</code>
-      <code>"admin_setting_contact" =&gt; "联系方式"</code>
-      <code>"admin_setting_security" =&gt; "安全设置"</code>
-      <code>"admin_setting_seo" =&gt; "SEO 设置"</code>
-      <code>"admin_setting_social" =&gt; "社交账号"</code>
-      <code>"admin_system_info" =&gt; "系统信息"</code>
-      <code>"admin_theme" =&gt; "主题"</code>
-      <code>"admin_upgrade" =&gt; "系统升级"</code>
-      <code>"contact_map_placeholder" =&gt; "可在后台设置地图图片"</code>
-      <code>"home_cta_desc"            =&gt; "联系我们，获取专属解决方案"</code>
-      <code>"home_cta_title"           =&gt; "准备开始合作？"</code>
-      <code>'admin_no_data' =&gt; '暂无数据'</code>
-      <code>'admin_request_failed' =&gt; '请求失败'</code>
-      <code>'btn_upload' =&gt; '上传'</code>
-      <code>'label_content' =&gt; '正文内容'</code>
-      <code>'label_slug' =&gt; 'URL别名 (Slug)'</code>
-      <code>'no' =&gt; '否'</code>
-      <code>'setting_add_link' =&gt; '添加链接'</code>
-      <code>'setting_clear_row' =&gt; '清空此行'</code>
-      <code>'setting_col_title' =&gt; '标题'</code>
-      <code>'setting_col_unit' =&gt; '列'</code>
-      <code>'setting_link_name' =&gt; '名称'</code>
-      <code>'setting_restore_default' =&gt; '恢复默认'</code>
-      <code>'setting_site_description' =&gt; 'SEO描述'</code>
-      <code>'setting_site_keywords' =&gt; 'SEO关键词'</code>
-      <code>'setting_site_logo' =&gt; '站点Logo'</code>
-      <code>'setting_site_name' =&gt; '站点名称'</code>
-      <code>'yes' =&gt; '是'</code>
+      <code><![CDATA["admin_database" => "数据库"]]></code>
+      <code><![CDATA["admin_extfield" => "扩展字段"]]></code>
+      <code><![CDATA["admin_member" => "会员管理"]]></code>
+      <code><![CDATA["admin_plugin" => "插件"]]></code>
+      <code><![CDATA["admin_setting_ai" => "AI 设置"]]></code>
+      <code><![CDATA["admin_setting_contact" => "联系方式"]]></code>
+      <code><![CDATA["admin_setting_security" => "安全设置"]]></code>
+      <code><![CDATA["admin_setting_seo" => "SEO 设置"]]></code>
+      <code><![CDATA["admin_setting_social" => "社交账号"]]></code>
+      <code><![CDATA["admin_system_info" => "系统信息"]]></code>
+      <code><![CDATA["admin_theme" => "主题"]]></code>
+      <code><![CDATA["admin_upgrade" => "系统升级"]]></code>
+      <code><![CDATA["contact_map_placeholder" => "可在后台设置地图图片"]]></code>
+      <code><![CDATA["home_cta_desc"            => "联系我们，获取专属解决方案"]]></code>
+      <code><![CDATA["home_cta_title"           => "准备开始合作？"]]></code>
+      <code><![CDATA['admin_no_data' => '暂无数据']]></code>
+      <code><![CDATA['admin_request_failed' => '请求失败']]></code>
+      <code><![CDATA['btn_upload' => '上传']]></code>
+      <code><![CDATA['label_content' => '正文内容']]></code>
+      <code><![CDATA['label_slug' => 'URL别名 (Slug)']]></code>
+      <code><![CDATA['no' => '否']]></code>
+      <code><![CDATA['setting_add_link' => '添加链接']]></code>
+      <code><![CDATA['setting_clear_row' => '清空此行']]></code>
+      <code><![CDATA['setting_col_title' => '标题']]></code>
+      <code><![CDATA['setting_col_unit' => '列']]></code>
+      <code><![CDATA['setting_link_name' => '名称']]></code>
+      <code><![CDATA['setting_restore_default' => '恢复默认']]></code>
+      <code><![CDATA['setting_site_description' => 'SEO描述']]></code>
+      <code><![CDATA['setting_site_keywords' => 'SEO关键词']]></code>
+      <code><![CDATA['setting_site_logo' => '站点Logo']]></code>
+      <code><![CDATA['setting_site_name' => '站点名称']]></code>
+      <code><![CDATA['yes' => '是']]></code>
     </DuplicateArrayKey>
   </file>
   <file src="list.php">
     <NoValue>
-      <code>$tempCat</code>
+      <code><![CDATA[$tempCat]]></code>
     </NoValue>
     <UndefinedGlobalVariable>
-      <code>$currentSort</code>
-      <code>$total</code>
-      <code>$total</code>
-      <code>$total</code>
-      <code>$total</code>
+      <code><![CDATA[$currentSort]]></code>
+      <code><![CDATA[$total]]></code>
+      <code><![CDATA[$total]]></code>
+      <code><![CDATA[$total]]></code>
+      <code><![CDATA[$total]]></code>
     </UndefinedGlobalVariable>
     <UndefinedVariable>
-      <code>$currentSort</code>
+      <code><![CDATA[$currentSort]]></code>
     </UndefinedVariable>
   </file>
   <file src="page.php">
     <UnusedVariable>
-      <code>$breadcrumbItems</code>
-      <code>$canonicalUrl</code>
-      <code>$content</code>
-      <code>$currentChannelId</code>
-      <code>$jsonLd</code>
-      <code>$navChannels</code>
-      <code>$ogImage</code>
-      <code>$pageDescription</code>
-      <code>$pageKeywords</code>
-      <code>$pageTitle</code>
-      <code>$siteUrl</code>
+      <code><![CDATA[$breadcrumbItems]]></code>
+      <code><![CDATA[$canonicalUrl]]></code>
+      <code><![CDATA[$content]]></code>
+      <code><![CDATA[$currentChannelId]]></code>
+      <code><![CDATA[$jsonLd]]></code>
+      <code><![CDATA[$navChannels]]></code>
+      <code><![CDATA[$ogImage]]></code>
+      <code><![CDATA[$pageDescription]]></code>
+      <code><![CDATA[$pageKeywords]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+      <code><![CDATA[$siteUrl]]></code>
     </UnusedVariable>
   </file>
   <file src="plugins/_example/register.php">
     <UnusedClosureParam>
-      <code>$data</code>
-      <code>$id</code>
-      <code>$isUpdate</code>
+      <code><![CDATA[$data]]></code>
+      <code><![CDATA[$id]]></code>
+      <code><![CDATA[$isUpdate]]></code>
     </UnusedClosureParam>
   </file>
   <file src="plugins/announcement/admin.php">
     <UnusedVariable>
-      <code>$annContentJson</code>
-      <code>$extraJs</code>
+      <code><![CDATA[$annContentJson]]></code>
+      <code><![CDATA[$extraJs]]></code>
     </UnusedVariable>
   </file>
   <file src="plugins/menu-sort/admin.php">
     <UnusedVariable>
-      <code>$pageTitle</code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
   <file src="plugins/search-replace/admin.php">
     <UnusedVariable>
-      <code>$pageTitle</code>
+      <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
 </files>

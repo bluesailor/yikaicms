@@ -347,7 +347,7 @@ if ($action !== '') {
         $errors = $state['errors'] ?? [];
         $copied = (int) ($state['done'] ?? $state['total'] ?? 0);
         $mode   = $state['mode'] ?? 'full';
-        try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 $copied / 删 $deletedCount，config补丁:$patch"); } catch (\Throwable $e) {}
+        try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 {$copied} / 删 {$deletedCount}，config补丁:{$patch}"); } catch (\Throwable $e) {}
 
         $newVer = '';
         $vf = @file_get_contents(ROOT_PATH . '/config/version.php');
