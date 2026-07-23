@@ -377,6 +377,20 @@ foreach ($blocksConfig as $__cb) {
     ];
 }
 
+// ── 插件扩展点：允许插件注册自定义首页版块类型 ──
+// 插件在 home_block_types 过滤器里追加 $meta（含 'title'/'icon'/'plugin'=>true 等），
+// 即可让自己的版块出现在首页设置里；配 home_block_config_ui(后台配置) + home_block_render(前台)。
+$blockMeta = apply_filters('home_block_types', $blockMeta, ['lang' => $_viewLang, 'config' => $blocksConfig]);
+
+// 插件版块：已注册类型但 config 里还没有的，以「禁用」追加到列表末尾，管理员开启后即生效
+foreach ($blockMeta as $__bt => $__bm) {
+    if (empty($__bm['plugin'])) continue;
+    $__inCfg = false;
+    foreach ($blocksConfig as $__b) { if (($__b['type'] ?? '') === $__bt) { $__inCfg = true; break; } }
+    if (!$__inCfg) { $blocksConfig[] = ['type' => $__bt, 'enabled' => false]; }
+}
+unset($__bt, $__bm, $__b, $__inCfg);
+
 // Banner 版块提示：动态列出所有轮播图分组 + 各自短码 + 张数（首页用 home 组）
 try {
     $__bGroups = bannerGroupModel()->all();
@@ -710,6 +724,9 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     </div>
                     <?php endif; ?>
 
+                    <?php // 插件版块的后台配置 UI 扩展点：插件按 $type 输出自己的配置字段 ?>
+                    <?php do_action('home_block_config_ui', $type, $block, $meta); ?>
+
                     <?php // 数据统计：4 项图标（Tabler 图标名，留空/none 则不显示）
                     if ($type === 'stats'):
                         $statIconDefaults = ['award', 'users', 'briefcase', 'thumb-up'];
@@ -1005,6 +1022,10 @@ function collectBlocksConfig() {
         if (perRow) item.per_row = parseInt(perRow.value);
         if (limit)  item.limit   = parseInt(limit.value);
         if (sort)   item.sort    = sort.value;
+        // 插件版块：调用插件注册的采集器补齐自定义字段（见 window.homeBlockCollectors）
+        if (window.homeBlockCollectors && typeof window.homeBlockCollectors[item.type] === 'function') {
+            try { window.homeBlockCollectors[item.type](card, item); } catch (e) { console.error(e); }
+        }
         config.push(item);
     });
     // 禁用（隐藏）的区块统一沉到底部，各自保持相对顺序
@@ -1286,5 +1307,8 @@ document.getElementById('blocksContainer').addEventListener('click', function (e
     }, 300);
 })();
 </script>
+
+<?php // 插件版块的后台 JS 扩展点：插件在此注入采集器(window.homeBlockCollectors[type]=fn) 及选择器脚本 ?>
+<?php do_action('home_settings_footer'); ?>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

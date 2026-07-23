@@ -119,7 +119,9 @@ $perPage = 20;
 
 $offset = ($page - 1) * $perPage;
 
-$where = ['a.lang = ?'];
+// a.deleted_at IS NULL：ContentModel 为软删除，后台列表此前是裸 SQL 漏了该过滤，
+// 导致"删除后前台消失、后台仍显示"。回收站另设入口，主列表只看未删除。
+$where = ['a.lang = ?', 'a.deleted_at IS NULL'];
 $params = [$_viewLang];
 
 // 限制只查询 news 栏目下的内容

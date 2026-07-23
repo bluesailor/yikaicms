@@ -161,6 +161,7 @@ EXCLUDES=(
     "plugins/menu-sort"
     "plugins/search-replace"
     "plugins/stats"
+    "plugins/product-carousel"
 
     # 主题：核心内置 default / business / aurora 三套，
     #   minimal 走模板市场按需安装（update.yikaicms.com/api/themes/）。源码保留在仓库供开发与市场打包。

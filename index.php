@@ -260,6 +260,9 @@ foreach ($blocksConfig as $block) {
         }
     } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
         require $blockTemplates[$type];
+    } else {
+        // 插件版块前台渲染扩展点：插件按 $type 返回 HTML（内置类型都不匹配时才走这里）
+        echo apply_filters('home_block_render', '', $type, $block);
     }
 
     if ($ykHomeEdit) {

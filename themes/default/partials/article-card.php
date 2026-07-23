@@ -10,7 +10,7 @@
  */
 ?>
 <a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
-    <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden bg-gray-100">
+    <div class="flex-shrink-0 w-48 md:w-64 aspect-[4/3] self-start overflow-hidden bg-gray-100">
         <?php if ($item['cover']): ?>
         <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">

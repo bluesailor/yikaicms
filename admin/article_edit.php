@@ -22,7 +22,8 @@ $langSwitcher = [
 ];
 require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
-$id = getInt('id');
+// id 来源：GET ?id=（编辑打开）或 POST id（表单隐藏域，保存后回填，防重复插入）
+$id = getInt('id') ?: postInt('id');
 $article = null;
 
 if ($id > 0) {
@@ -138,6 +139,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <form id="editForm" class="space-y-6">
+    <!-- 保存后由 JS 回填新建记录的 id，使后续提交转为更新，避免重复插入 -->
+    <input type="hidden" name="id" id="articleId" value="<?php echo (int)($article['id'] ?? 0); ?>">
     <div class="flex gap-6">
         <!-- 主内容区 -->
         <div class="flex-1 space-y-6">
@@ -449,21 +452,47 @@ $extraJs = <<<JSEOF
 <script>
 initTinyEditor(".tinymce-editor");
 
-document.getElementById("editForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    tinymce.triggerSave();
+(function () {
+    const form = document.getElementById("editForm");
+    let submitting = false;
 
-    const formData = new FormData(this);
-    const response = await fetch("", { method: "POST", body: formData });
-    const data = await safeJson(response);
+    // 阻止在普通输入框（如"标签"）按回车触发表单隐式提交 —— 这会导致一次静默保存，
+    // 再点"保存"就会重复插入。textarea / 富文本编辑器不受影响。
+    form.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && e.target.tagName === "INPUT"
+            && e.target.type !== "submit" && e.target.type !== "button") {
+            e.preventDefault();
+        }
+    });
 
-    if (data.code === 0) {
-        showMessage({$msgSaveSuccess});
-        setTimeout(function() { location.href = "/admin/article.php"; }, 1000);
-    } else {
-        showMessage(data.msg, "error");
-    }
-});
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (submitting) return;              // 防连点 / 并发重复提交
+        submitting = true;
+        tinymce.triggerSave();
+
+        try {
+            const formData = new FormData(this);
+            const response = await fetch("", { method: "POST", body: formData });
+            const data = await safeJson(response);
+
+            if (data.code === 0) {
+                // 回填新建记录的 id → 后续任何提交都走"更新"，不再重复插入
+                if (data.data && data.data.id) {
+                    document.getElementById("articleId").value = data.data.id;
+                }
+                showMessage({$msgSaveSuccess});
+                setTimeout(function () { location.href = "/admin/article.php"; }, 1000);
+            } else {
+                submitting = false;          // 失败允许重试
+                showMessage(data.msg, "error");
+            }
+        } catch (err) {
+            submitting = false;
+            showMessage("网络错误，请重试", "error");
+        }
+    });
+})();
 
 </script>
 JSEOF;
