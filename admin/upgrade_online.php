@@ -394,7 +394,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="font-medium mb-1"><i class="ti ti-alert-triangle mr-1"></i>升级前请知悉</p>
         <ul class="list-disc pl-5 space-y-0.5">
             <li>升级会覆盖程序文件，<b>不会触碰</b> config.php、storage、uploads、install。</li>
-            <li>建议先在主机面板做一次整站/数据库备份；本工具仅自动备份 config.php。</li>
+            <li>升级前建议先<a href="/admin/database.php?tab=backup" target="_blank" class="font-semibold underline hover:text-amber-900">备份数据库</a>（本工具仅自动备份 config.php，程序文件与数据请先自行备份）。</li>
             <li>文件更新后需再到「升级管理」运行数据库迁移以完成升级。</li>
         </ul>
     </div>
@@ -483,6 +483,7 @@ document.getElementById('uo-start').onclick = async () => {
     UO.set(r, 'ok', `发现新版本 v${d.latest_version}（当前 v${ck.current_version}）`);
     UO.target = d;
     document.getElementById('uo-target').textContent = 'v' + d.latest_version;
+    document.getElementById('uo-start').classList.add('hidden');   // 已发现新版，隐藏「检查更新」，突出「一键升级」
     document.getElementById('uo-upgrade').classList.remove('hidden');
     if (d.changelog) {
         document.getElementById('uo-changelog').classList.remove('hidden');
