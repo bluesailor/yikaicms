@@ -1,0 +1,80 @@
+/* =====================================================================
+   Trade —— 外贸/进出口行业主题
+   全部样式 scoped 在 .trade-theme 下，不影响其它主题。
+   识别度来自：卡片质感 + 区块标题 + 询盘琥珀强调 + 国际化排版。
+   （不新增 Tailwind class，无需重编 tailwind.css）
+   ===================================================================== */
+
+.trade-theme {
+    --trade-accent: #F59E0B;          /* 询盘/CTA 琥珀强调色 */
+    --trade-ink: #0f172a;
+    --trade-line: #e8edf3;
+    background: #ffffff;
+    font-family: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 导航：国际化字距 + 悬停下划线 ---------- */
+.trade-theme header nav a { letter-spacing: .01em; }
+.trade-theme header nav a:hover { color: var(--color-primary); }
+
+/* ---------- 卡片（产品/案例/文章）：描边 + 圆角 + 上浮 ---------- */
+.trade-theme a.group.rounded-lg,
+.trade-theme a.group.rounded-xl {
+    border: 1px solid var(--trade-line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+}
+.trade-theme a.group.rounded-lg:hover,
+.trade-theme a.group.rounded-xl:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 22px 44px -16px rgba(14, 165, 164, .28);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+/* ---------- 区块标题：居中大标题 + 顶部小色条（外贸站常见） ---------- */
+.trade-theme section h2:not([class*="text-left"]) {
+    letter-spacing: -.01em;
+}
+.trade-theme section .text-center > h2::after,
+.trade-theme section .text-center h2.section-title::after {
+    content: "";
+    display: block;
+    width: 48px;
+    height: 3px;
+    margin: 16px auto 0;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--color-primary), var(--trade-accent));
+}
+
+/* ---------- 询盘 / 联系类按钮：琥珀强调 ---------- */
+.trade-theme a[href*="contact"].bg-primary,
+.trade-theme a[href*="inquiry"].bg-primary,
+.trade-theme a.btn-inquiry {
+    background: var(--trade-accent) !important;
+    box-shadow: 0 8px 20px -8px rgba(245, 158, 11, .5);
+}
+.trade-theme a[href*="contact"].bg-primary:hover,
+.trade-theme a.btn-inquiry:hover {
+    filter: brightness(1.05);
+}
+
+/* ---------- 顶部信息条：细描边分隔，更克制 ---------- */
+.trade-theme > div:first-of-type { border-bottom: 1px solid var(--trade-line); }
+
+/* ---------- Banner/Hero 文案：更利落 ---------- */
+.trade-theme .banner-swiper h1,
+.trade-theme section h1 { letter-spacing: -.02em; }
+
+/* ---------- 产品价格/标签点缀 ---------- */
+.trade-theme .text-primary { color: var(--color-primary); }
+
+/* ---------- 页脚：深色沉稳 ---------- */
+.trade-theme footer { background: #0b1220; }
+
+/* ---------- 响应式微调：手机端卡片上浮减弱 ---------- */
+@media (max-width: 640px) {
+    .trade-theme a.group.rounded-lg:hover,
+    .trade-theme a.group.rounded-xl:hover { transform: translateY(-3px); }
+}

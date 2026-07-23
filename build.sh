@@ -164,8 +164,9 @@ EXCLUDES=(
     "plugins/product-carousel"
 
     # 主题：核心内置 default / business / aurora 三套，
-    #   minimal 走模板市场按需安装（update.yikaicms.com/api/themes/）。源码保留在仓库供开发与市场打包。
+    #   minimal / trade 等行业主题走模板市场按需安装（update.yikaicms.com/api/themes/）。源码保留在仓库供开发与市场打包。
     "themes/minimal"
+    "themes/trade"
 
     # 临时测试文件（如本地 dev 时手写的）
     "recipe_test.php"
