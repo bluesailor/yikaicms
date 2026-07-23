@@ -29,7 +29,7 @@ add_filter('home_block_types', function (array $blockMeta): array {
 });
 
 // ── 2. 后台配置 UI ────────────────────────────────────────────
-add_action('home_block_config_ui', function (string $type, array $block, ?array $meta): void {
+add_action('home_block_config_ui', function (string $type, array $block): void {
     if ($type !== 'product_carousel') {
         return;
     }
@@ -180,5 +180,5 @@ add_filter('home_block_render', function (string $html, string $type, array $blo
         </style>
     </section>
     <?php
-    return ob_get_clean();
+    return (string) ob_get_clean();
 }, 10);
