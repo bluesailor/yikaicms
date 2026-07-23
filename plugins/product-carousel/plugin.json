@@ -1,0 +1,12 @@
+{
+    "name": "首页产品轮播",
+    "name_ja": "トップ製品カルーセル",
+    "name_en": "Home Product Carousel",
+    "version": "1.0.0",
+    "description": "在首页设置里新增「产品轮播」版块，手动挑选任意产品，以横向轮播的形式展示在首页。可拖拽排序、开关显隐，标题与每屏个数可配。",
+    "description_ja": "トップページ設定に「製品カルーセル」ブロックを追加し、任意の製品を手動で選んで横スクロールのカルーセルで表示します。並べ替え・表示切替が可能で、タイトルと列数を設定できます。",
+    "description_en": "Adds a \"Product Carousel\" block to the homepage settings so you can hand-pick any products and show them as a horizontal carousel. Drag to reorder, toggle visibility, and configure the title and columns.",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.12.6"
+}

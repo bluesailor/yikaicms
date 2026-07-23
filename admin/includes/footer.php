@@ -259,8 +259,8 @@
             language: tinymceLang,
             height: options.height || 500,
             menubar: 'file edit view insert format tools table',
-            plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
-            toolbar: 'undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | removeformat code fullscreen',
+            plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code codesample fullscreen insertdatetime media table help wordcount',
+            toolbar: 'undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media codesample | table | removeformat code fullscreen',
             font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px 36px 48px',
             images_upload_handler: function(blobInfo) {
                 return new Promise(function(resolve, reject) {
@@ -275,6 +275,15 @@
                         })
                         .catch(function() { reject('Upload failed'); });
                 });
+            },
+            // 图片对话框的"来源"旁提供浏览按钮 → 直接从媒体库选图（复用全局 openMediaPicker）
+            file_picker_types: 'image',
+            file_picker_callback: function(callback, value, meta) {
+                if (meta.filetype === 'image' && typeof openMediaPicker === 'function') {
+                    openMediaPicker(function(url) {
+                        callback(url, { alt: '' });
+                    }, { type: 'image' });
+                }
             },
             content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 16px; line-height: 1.8; } img { max-width: 100%; height: auto; }',
             branding: false, promotion: false, convert_urls: false,

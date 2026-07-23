@@ -43,6 +43,10 @@
 .prose table { width: 100%; border-collapse: collapse; margin: 1em 0; }
 .prose th, .prose td { border: 1px solid #e5e7eb; padding: 0.5em 0.75em; text-align: left; }
 .prose th { background: #f9fafb; font-weight: 600; }
+/* 代码：内联 code + 代码块 pre（编辑器 codesample 生成 <pre class="language-*"><code>） */
+.prose code { background: #f3f4f6; color: #db2777; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace; }
+.prose pre { background: #1e293b; color: #e2e8f0; padding: 1em 1.25em; border-radius: 8px; margin: 1em 0; overflow-x: auto; font-size: 0.9em; line-height: 1.6; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace; }
+.prose pre code { background: transparent; color: inherit; padding: 0; border-radius: 0; font-size: inherit; }
 
 /* ============================================================
    滚动入场动画（Intersection Observer 触发）

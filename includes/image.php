@@ -172,6 +172,18 @@ function _thumbnailPath(string $filepath, string $sizeName): string
 }
 
 /**
+ * 是否为远程/绝对 URL 或 data URI。
+ * 这类地址没有对应的本地文件，绝不能与 ROOT_PATH 拼接去做 file_exists 检查
+ * （否则会拼出 /www/wwwroot/site/https://... 之类的非法路径，在开启 open_basedir 的
+ * 服务器上还会抛 Warning 并被注入到 <img src>）。
+ */
+function _isExternalUrl(string $url): bool
+{
+    return (bool) preg_match('#^(?:[a-z][a-z0-9+.\-]*:)?//#i', $url)  // http:// https:// // 协议相对
+        || str_starts_with($url, 'data:');
+}
+
+/**
  * 获取缩略图URL
  * 用法: thumbnail('/uploads/images/202602/img.jpg', 'thumb')
  * 若缩略图不存在则返回原图URL
@@ -179,14 +191,16 @@ function _thumbnailPath(string $filepath, string $sizeName): string
 function thumbnail(?string $url, string $size = 'thumb'): string
 {
     if (empty($url)) return '';
+    // 远程/绝对 URL 或 data URI：无本地缩略图，原样返回
+    if (_isExternalUrl($url)) return $url;
     if (!isset(THUMBNAIL_SIZES[$size])) return $url;
 
     $info = pathinfo($url);
     $thumbUrl = $info['dirname'] . '/' . $info['filename'] . '_' . $size . '.' . ($info['extension'] ?? 'jpg');
 
-    // 检查文件是否存在
+    // 检查文件是否存在（@ 兜底：极端环境下也不让文件系统告警泄露到页面）
     $thumbPath = ROOT_PATH . $thumbUrl;
-    if (file_exists($thumbPath)) {
+    if (@file_exists($thumbPath)) {
         return $thumbUrl;
     }
 
@@ -224,12 +238,14 @@ function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $qu
 function webpUrl(?string $url): string
 {
     if (empty($url)) return '';
+    // 远程/绝对 URL 或 data URI：无本地 webp，原样返回
+    if (_isExternalUrl($url)) return $url;
 
     $webp = preg_replace('/\.(jpe?g|png)$/i', '.webp', $url);
     if ($webp === $url) return $url;
 
     $webpPath = ROOT_PATH . $webp;
-    if (file_exists($webpPath)) {
+    if (@file_exists($webpPath)) {
         return $webp;
     }
 

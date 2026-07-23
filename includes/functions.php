@@ -1820,11 +1820,15 @@ function uploadFile(array $file, string $type = 'images'): array
         'rar'  => ['application/x-rar-compressed', 'application/vnd.rar', 'application/x-rar'],
         '7z'   => ['application/x-7z-compressed', 'application/x-7z'],
     ];
-    if (isset($mimeMap[$ext])) {
+    // MIME 内容校验（防伪造扩展名）。fileinfo 扩展为可选：未安装则跳过此项检查，
+    // 上传仍受扩展名白名单 + 图片 getimagesize 校验保护（强烈建议装 fileinfo 以获得完整防护）。
+    if (isset($mimeMap[$ext]) && function_exists('finfo_open')) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $detectedMime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
-        if (!in_array($detectedMime, $mimeMap[$ext])) {
+        $detectedMime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
+        if ($finfo) {
+            finfo_close($finfo);
+        }
+        if ($detectedMime !== '' && $detectedMime !== false && !in_array($detectedMime, $mimeMap[$ext])) {
             return ['error' => '文件内容与扩展名不匹配'];
         }
     }
