@@ -149,7 +149,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo $item['status'] ? __('admin_show') : __('admin_hide'); ?>
                         </button>
                     </td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-pencil text-sm"></i>

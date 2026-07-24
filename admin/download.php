@@ -224,7 +224,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             echo renderTransPills($_pillSrcId, $transStatus, '/admin/download_edit.php');
                             ?>
                         </td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
                             <?php if ($item['file_url']): ?>
                             <a href="<?php echo e($item['file_url']); ?>" target="_blank"
                                class="text-gray-500 hover:text-primary text-sm mr-2 inline-flex items-center gap-1">

@@ -154,6 +154,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
+    // 保存即存档：覆盖前把旧版本快照下来（channels + 同步的 contents 行，含 blocks_data）
+    $revTargets = [[
+        'table'  => 'channels',
+        'id'     => $id,
+        'fields' => [
+            'name'            => $page['name'] ?? '',
+            'content'         => $page['content'] ?? '',
+            'description'     => $page['description'] ?? '',
+            'image'           => $page['image'] ?? '',
+            'seo_title'       => $page['seo_title'] ?? '',
+            'seo_keywords'    => $page['seo_keywords'] ?? '',
+            'seo_description' => $page['seo_description'] ?? '',
+        ],
+    ]];
+    if ($contentRecord) {
+        $revTargets[] = ['table' => 'contents', 'id' => (int) $contentRecord['id'], 'fields' => [
+            'content'      => $contentRecord['content'] ?? '',
+            'content_type' => $contentRecord['content_type'] ?? 'blocks',
+            'blocks_data'  => $contentRecord['blocks_data'] ?? null,
+        ]];
+    }
+    recordContentRevision('page', $id, (string) ($page['lang'] ?? ''), $revTargets, (string) ($page['name'] ?? ''));
+
     channelModel()->updateById($id, $channelData);
 
     // 同步到 contents 表（向后兼容）
@@ -1607,6 +1630,13 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
     setTimeout(function() { msgEl.className = "text-sm hidden"; }, 3000);
 });
 </script>';
+
+// 历史版本面板（仅已保存单页）
+if ($id > 0) {
+    $revType = 'page';
+    $revTargetId = (int) $id;
+    require ROOT_PATH . '/admin/includes/revision_panel.php';
+}
 
 require_once ROOT_PATH . '/admin/includes/footer.php';
 ?>

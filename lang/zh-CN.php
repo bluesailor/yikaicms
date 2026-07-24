@@ -1688,4 +1688,17 @@ return [
     'search_empty_hint'    => '输入关键字开始搜索',
     'search_no_result'     => '没有找到相关内容',
     'search_try_other'     => '请尝试其他关键字',
+
+    // 内容版本历史（保存即存档 / 一键恢复）
+    'revision_history'         => '历史版本',
+    'revision_tip'            => '每次保存前自动存档，可随时恢复到最近的版本。',
+    'revision_none'           => '暂无历史版本',
+    'revision_load_fail'      => '加载失败',
+    'revision_preview'        => '预览',
+    'revision_restore'        => '恢复',
+    'revision_restore_confirm' => '确定恢复到该版本吗？系统会先把当前内容自动存为一个新版本，之后仍可退回。',
+    'revision_restored'       => '已恢复，正在刷新…',
+    'revision_restore_fail'   => '恢复失败',
+    'revision_close'          => '关闭',
+    'revision_by'             => '操作人',
 ];
