@@ -1641,6 +1641,26 @@ function adminLog(string $module, string $action, string $description = ''): int
 }
 
 /**
+ * 记录一个内容版本（保存即存档）。$targets 见 ContentRevisionModel::record()。
+ * 操作人取自当前后台会话；表缺失/异常都静默，不阻断保存。
+ */
+function recordContentRevision(string $type, int $targetId, string $lang, array $targets, string $summary): void
+{
+    if (!function_exists('contentRevisionModel')) {
+        return;
+    }
+    contentRevisionModel()->record(
+        $type,
+        $targetId,
+        $lang,
+        $targets,
+        $summary,
+        (int) ($_SESSION['admin_id'] ?? 0),
+        (string) ($_SESSION['admin_username'] ?? '')
+    );
+}
+
+/**
  * 发送邮件
  */
 function sendMail(string $to, string $subject, string $body, array $attachments = []): bool|string

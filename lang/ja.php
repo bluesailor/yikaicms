@@ -1758,4 +1758,17 @@ return [
 選択肢3',
     'fd_taggen_preview_empty' => '[タイプ フィールド名 ...]',
     'fd_taggen_title_pattern' => '%sタグを生成',
+
+    // コンテンツ版本履歴（保存前に自動スナップショット / ワンクリック復元）
+    'revision_history'         => 'バージョン履歴',
+    'revision_tip'            => '保存のたびに自動でスナップショットを保存します。最近のバージョンにいつでも復元できます。',
+    'revision_none'           => '履歴はまだありません',
+    'revision_load_fail'      => '読み込みに失敗しました',
+    'revision_preview'        => 'プレビュー',
+    'revision_restore'        => '復元',
+    'revision_restore_confirm' => 'このバージョンに復元しますか？現在の内容は先に新しいバージョンとして保存されるため、後で元に戻せます。',
+    'revision_restored'       => '復元しました。再読み込み中…',
+    'revision_restore_fail'   => '復元に失敗しました',
+    'revision_close'          => '閉じる',
+    'revision_by'             => '操作者',
 ];

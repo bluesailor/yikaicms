@@ -177,6 +177,19 @@ CREATE TABLE "yikai_blocks_library" (
   "updated_at" INTEGER NOT NULL DEFAULT 0
 );
 
+DROP TABLE IF EXISTS "yikai_content_revisions";
+CREATE TABLE "yikai_content_revisions" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "target_type" varchar(20) NOT NULL,
+  "target_id" INTEGER NOT NULL,
+  "lang" varchar(10) NOT NULL DEFAULT '',
+  "snapshot" longtext,
+  "summary" varchar(255) NOT NULL DEFAULT '',
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "admin_name" varchar(50) NOT NULL DEFAULT '',
+  "created_at" INTEGER NOT NULL DEFAULT 0
+);
+
 DROP TABLE IF EXISTS "yikai_brands";
 CREATE TABLE "yikai_brands" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
