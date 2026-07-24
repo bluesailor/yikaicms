@@ -246,7 +246,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-3 text-center">
                             <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/product_edit.php'); ?>
                         </td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
                             <a href="/admin/product_edit.php?id=<?php echo $item['id']; ?>"
                                class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                                 <i class="ti ti-pencil text-sm"></i>
