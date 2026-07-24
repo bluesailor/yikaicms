@@ -347,7 +347,17 @@ if ($action !== '') {
         $errors = $state['errors'] ?? [];
         $copied = (int) ($state['done'] ?? $state['total'] ?? 0);
         $mode   = $state['mode'] ?? 'full';
-        try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 {$copied} / 删 {$deletedCount}，config补丁:{$patch}"); } catch (\Throwable $e) {}
+        // 失败清单写入持久日志（收尾已删状态文件，名单本会丢失）；供事后排查/手动补文件。
+        if (!empty($errors)) {
+            $verPair = $mode === 'delta' ? "{$state['from']}→{$state['to']}" : ('→' . ($state['to'] ?? ''));
+            @file_put_contents(
+                uo_dir() . '/upgrade-failures.log',
+                '[' . date('Y-m-d H:i:s') . "] {$verPair} 覆盖 {$copied}，失败 " . count($errors) . "：\n  - " . implode("\n  - ", $errors) . "\n",
+                FILE_APPEND
+            );
+        }
+        $failNote = empty($errors) ? '' : ('，失败 ' . count($errors) . '：' . implode('; ', array_slice($errors, 0, 10)));
+        try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 {$copied} / 删 {$deletedCount}，config补丁:{$patch}{$failNote}"); } catch (\Throwable $e) {}
 
         $newVer = '';
         $vf = @file_get_contents(ROOT_PATH . '/config/version.php');
@@ -529,6 +539,13 @@ document.getElementById('uo-upgrade').onclick = async () => {
     const fin = await UO.post('apply_finalize');
     if (fin.code === 1) return fail(rf, fin.msg);
     UO.set(rf, fin.code === 0 ? 'ok' : 'fail', fin.msg);
+    // 有失败：把未覆盖的文件逐个列出来（名字，非只显示个数），并给手动修复指引
+    if (fin.errors && fin.errors.length) {
+        const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+        UO.row(`以下 ${fin.errors.length} 个文件未能覆盖（请检查其文件/目录写权限后重试，或从 v${fin.new_version || d.latest_version} 安装包手动上传覆盖）：`,
+            'fail',
+            fin.errors.map(esc).join('<br>') + '<br><span class="text-gray-400">完整记录已写入 storage/upgrade/upgrade-failures.log</span>');
+    }
     UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。`, 'ok', '最后一步：运行数据库迁移。');
     document.getElementById('uo-migrate').classList.remove('hidden');
     btn.classList.add('hidden');
