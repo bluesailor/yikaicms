@@ -275,7 +275,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
             <span class="flex-1"></span>
             <?php if (($item['type'] ?? '') !== 'album'): ?>
             <a href="/admin/page_edit.php?id=<?php echo $item['id']; ?>"
-               class="text-primary hover:underline text-sm inline-flex items-center gap-1">
+               class="text-primary hover:underline text-sm inline-flex items-center gap-1 whitespace-nowrap">
                 <i class="ti ti-pencil text-sm"></i><?php echo __('admin_content_edit'); ?>
             </a>
             <?php endif; ?>
@@ -285,7 +285,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
             </button>
             <?php if (empty($item['is_system']) && ($item['type'] ?? '') !== 'album'): ?>
             <button onclick="deletePage(<?php echo $item['id']; ?>, '<?php echo e($item['name']); ?>')"
-                    class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1">
+                    class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1 whitespace-nowrap">
                 <i class="ti ti-trash text-base"></i><?php echo __('admin_delete'); ?>
             </button>
             <?php endif; ?>

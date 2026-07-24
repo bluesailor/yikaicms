@@ -125,3 +125,7 @@ function extFieldModel(): ExtFieldModel {
 function contentModelModel(): ContentModelModel {
     static $i; return $i ??= new ContentModelModel();
 }
+
+function contentRevisionModel(): ContentRevisionModel {
+    static $i; return $i ??= new ContentRevisionModel();
+}

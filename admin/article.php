@@ -270,7 +270,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
                     <td class="px-4 py-3 text-gray-400 text-xs"><?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?></td>
                     <td class="px-4 py-3"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/article_edit.php'); ?></td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 whitespace-nowrap">
                         <div class="flex gap-3 items-center">
                             <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_edit'); ?>">
                                 <i class="ti ti-pencil text-base"></i>

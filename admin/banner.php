@@ -304,7 +304,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
                         echo renderTransPills($_pillSrcId, $transStatus, '/admin/banner.php');
                         ?>
                     </td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-pencil text-sm"></i>

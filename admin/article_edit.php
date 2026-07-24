@@ -87,6 +87,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($id > 0) {
+        // 保存即存档：覆盖前把旧版本快照下来（供「历史版本」查看/一键恢复）
+        if ($article) {
+            recordContentRevision('article', $id, (string) ($article['lang'] ?? ''), [[
+                'table'  => 'contents',
+                'id'     => $id,
+                'fields' => [
+                    'title'       => $article['title'] ?? '',
+                    'subtitle'    => $article['subtitle'] ?? '',
+                    'content'     => $article['content'] ?? '',
+                    'blocks_data' => $article['blocks_data'] ?? null,
+                    'summary'     => $article['summary'] ?? '',
+                    'cover'       => $article['cover'] ?? '',
+                ],
+            ]], (string) ($article['title'] ?? ''));
+        }
         contentModel()->updateById($id, $data);
         adminLog('article', 'update', "更新文章ID: $id");
     } else {
@@ -496,6 +511,13 @@ initTinyEditor(".tinymce-editor");
 
 </script>
 JSEOF;
+
+// 历史版本面板（仅已保存文章）
+if ($id > 0) {
+    $revType = 'article';
+    $revTargetId = (int) $id;
+    require ROOT_PATH . '/admin/includes/revision_panel.php';
+}
 
 require_once ROOT_PATH . '/admin/includes/footer.php';
 ?>
