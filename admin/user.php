@@ -169,7 +169,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center text-sm text-gray-500">
                         <?php echo $item['last_login_time'] ? date('Y-m-d H:i', (int)$item['last_login_time']) : '-'; ?>
                     </td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
                         <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-pencil text-sm"></i>
