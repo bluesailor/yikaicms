@@ -833,6 +833,18 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                             <input type="text" class="cb-title w-full border rounded px-3 py-2 text-sm" value="<?php echo e($meta['title']); ?>">
                         </div>
                         <?php if ($__hasEl): ?>
+                        <?php // section 级标题/副标题（对齐全页构建器；留空则该区块不显示居中大标题） ?>
+                        <div class="space-y-2 mb-3">
+                            <?php foreach ($__secs as $si => $__sec): if (empty($__sec['columns'])) continue; $__ss = $__sec['settings'] ?? []; ?>
+                            <div class="cb-sec p-3 border border-blue-100 rounded-lg bg-blue-50/40" data-sec="<?php echo (int)$si; ?>">
+                                <div class="text-[11px] uppercase tracking-wide text-blue-400 mb-2">区块 <?php echo (int)$si + 1; ?> · 标题（可选，居中大标题 + 装饰条）</div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="text" class="cb-sec-field border rounded px-2 py-1.5 text-sm" data-sec-field="title" value="<?php echo e($__ss['title'] ?? ''); ?>" placeholder="区块标题（留空不显示）">
+                                    <input type="text" class="cb-sec-field border rounded px-2 py-1.5 text-sm" data-sec-field="subtitle" value="<?php echo e($__ss['subtitle'] ?? ''); ?>" placeholder="副标题">
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
                         <div class="space-y-2">
                             <?php foreach ($__secs as $si => $__sec): foreach (($__sec['columns'] ?? []) as $ci => $col): foreach (($col['elements'] ?? []) as $ei => $el):
                                 $eType = (string)($el['type'] ?? ''); $d = is_array($el['data'] ?? null) ? $el['data'] : [];
@@ -1255,6 +1267,16 @@ function collectCustomBlocks() {
             el.data = el.data || {};
             elBox.querySelectorAll('.cb-field').forEach(function (f) {
                 el.data[f.dataset.field] = (f.type === 'checkbox') ? f.checked : f.value;
+            });
+        });
+        // section 级标题/副标题 → 写回 blocks[si].settings
+        box.querySelectorAll('.cb-sec').forEach(function (secBox) {
+            var si = parseInt(secBox.dataset.sec, 10);
+            var sec = blocks[si];
+            if (!sec) return;
+            sec.settings = sec.settings || {};
+            secBox.querySelectorAll('.cb-sec-field').forEach(function (f) {
+                sec.settings[f.dataset.secField] = f.value.trim();
             });
         });
         var titleEl = box.querySelector('.cb-title');
