@@ -98,6 +98,9 @@ select {
     line-height: 1.18;
     margin: 0 0 0.5rem;
 }
+/* 构建器卡片列（col_card，已 flex flex-col + 等高 h-full）：把最后一个元素（通常是按钮/CTA）
+   顶到卡片底部，使多张卡片的按钮落在同一水平线上，不因功能条数不同而高低不齐。 */
+.yk-col-card > :last-child { margin-top: auto; }
 
 /* 副标题：限宽居中、行距舒展 */
 .blk-sub {

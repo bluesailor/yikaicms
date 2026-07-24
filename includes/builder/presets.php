@@ -54,11 +54,8 @@ function builderPresets(): array
                 'key' => 'pricing', 'label' => '价格表三栏', 'icon' => 'currency-yen',
                 'desc' => '总标题 + 3 档定价卡片（加宽）',
                 'sections' => [
-                    ['id' => 's', 'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'sm', 'max_width' => 'default'], 'columns' => [['id' => 'c', 'elements' => [
-                        ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div class="text-center"><h2 class="blk-title mb-2">价格方案</h2><span class="section-title-bar"></span><p class="blk-sub">选择最适合你的套餐，随时可升级</p></div>']],
-                    ]]]],
                     ['id' => 's',
-                    'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'sm', 'max_width' => 'default', 'align_items' => 'stretch', 'gap' => 'md', 'col_card' => true],
+                    'settings' => ['title' => '价格方案', 'subtitle' => '选择最适合你的套餐，随时可升级', 'bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'gap' => 'md', 'col_card' => true],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
                             ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '基础版', 'level' => 'h3']],

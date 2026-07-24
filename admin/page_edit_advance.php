@@ -883,6 +883,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" onclick="setSectionCols(4)" data-cols="4" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">4 列</button>
                 </div>
             </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm text-gray-700 mb-1">区块标题 <span class="text-xs text-gray-400">（可选，居中大标题 + 装饰条；留空则不显示，适合"总标题 + 多列"版块如价格表）</span></label>
+                <input id="settingTitle" type="text" class="w-full border rounded px-3 py-2" placeholder="如：价格方案 / 我们的产品">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm text-gray-700 mb-1">区块副标题 <span class="text-xs text-gray-400">（可选）</span></label>
+                <input id="settingSubtitle" type="text" class="w-full border rounded px-3 py-2" placeholder="如：选择最适合你的套餐，随时可升级">
+            </div>
             <div class="md:col-span-2 flex items-center justify-between gap-2">
                 <label class="text-sm text-gray-700">设备分档 <span class="text-xs text-gray-400">内边距/列间距可按设备分别设置</span></label>
                 <div class="flex gap-1">
@@ -1138,6 +1146,8 @@ function saveSectionSettings() {
     if (_settingSi < 0 || !data.sections[_settingSi]) return;
     var section = data.sections[_settingSi];
     _commitSettingDevice();
+    section.settings.title = document.getElementById('settingTitle').value.trim();
+    section.settings.subtitle = document.getElementById('settingSubtitle').value.trim();
     section.settings.padding = collapseResp(_respVals.padding);
     section.settings.max_width = document.getElementById('settingMaxWidth').value;
     section.settings.bg_color = document.getElementById('settingBgColorText').value.trim();
@@ -1466,6 +1476,8 @@ function pageBuilder() {
             _respVals.padding = normResp(s.padding, "md");
             _respVals.gap = normResp(s.gap, "lg");
             setSettingDevice("d", true);
+            document.getElementById("settingTitle").value = s.title || "";
+            document.getElementById("settingSubtitle").value = s.subtitle || "";
             document.getElementById("settingMaxWidth").value = s.max_width || "default";
             document.getElementById("settingBgColorText").value = s.bg_color || "";
             document.getElementById("settingBgColor").value = s.bg_color || "#ffffff";

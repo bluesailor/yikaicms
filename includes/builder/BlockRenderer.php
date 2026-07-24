@@ -103,6 +103,19 @@ final class BlockRenderer
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
             $html .= '<section class="' . $padding . '"' . $styleAttr . $editAttr . '>';
             $html .= '<div class="' . $maxWidth . ' mx-auto px-4">';
+            // section 级标题（可选）：有 title 才渲染 —— 让"总标题 + 多列"在同一 section 内完成，
+            // 无 title 的 section 输出与旧版完全一致（黄金对拍不变）。
+            $secTitle = trim((string) ($settings['title'] ?? ''));
+            if ($secTitle !== '') {
+                $secSub = trim((string) ($settings['subtitle'] ?? ''));
+                $html .= '<div class="text-center mb-10">';
+                $html .= '<h2 class="blk-title">' . htmlspecialchars($secTitle) . '</h2>';
+                $html .= '<span class="section-title-bar"></span>';
+                if ($secSub !== '') {
+                    $html .= '<p class="blk-sub">' . htmlspecialchars($secSub) . '</p>';
+                }
+                $html .= '</div>';
+            }
             if ($gridClass) {
                 $html .= '<div class="' . $gridClass . '">';
             }
@@ -114,8 +127,8 @@ final class BlockRenderer
                         // 列级背景色（card_bg）：用于高亮某一列（如价格表「推荐」档），有则加重阴影
                         $cbg = isset($col['card_bg']) && (string) $col['card_bg'] !== '' ? (string) $col['card_bg'] : '';
                         $html .= $cbg !== ''
-                            ? '<div class="rounded-xl border border-gray-100 shadow-md p-6 h-full text-center" style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
-                            : '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center">';
+                            ? '<div class="rounded-xl border border-gray-100 shadow-md p-6 h-full text-center flex flex-col yk-col-card" style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
+                            : '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center flex flex-col yk-col-card">';
                     } else {
                         $html .= '<div>';
                     }
