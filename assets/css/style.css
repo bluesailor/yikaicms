@@ -89,6 +89,15 @@ select {
 }
 /* 深色/主题色底上的标题：保持字号字重，改用白色 */
 .blk-title--light { color: #fff; }
+/* 构建器 text 元素会把内容包进 .prose，其 .prose h2(1.5rem) 特异性高于 .blk-title，
+   会把区块大标题压小。此处用更高特异性让 .blk-title 在 .prose 内仍保持大字号。 */
+.prose .blk-title, .content-body .blk-title {
+    font-size: clamp(1.75rem, 2.2vw + 1rem, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.18;
+    margin: 0 0 0.5rem;
+}
 
 /* 副标题：限宽居中、行距舒展 */
 .blk-sub {
