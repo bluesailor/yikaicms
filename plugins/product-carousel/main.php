@@ -211,7 +211,10 @@ add_filter('home_block_render', function (string $html, string $type, array $blo
              style="padding:48px 0;background:<?php echo e($bgColor); ?>;">
         <div style="max-width:1200px;margin:0 auto;padding:0 16px;position:relative;">
             <?php if ($title !== ''): ?>
-            <h2 style="text-align:center;font-size:1.75rem;font-weight:700;color:#1e293b;margin:0 0 32px;"><?php echo e($title); ?></h2>
+            <div style="text-align:center;margin-bottom:32px;">
+                <h2 class="blk-title"><?php echo function_exists('homeTitleInner') ? homeTitleInner($title) : e($title); ?></h2>
+                <?php echo function_exists('homeTitleDeco') ? homeTitleDeco() : ''; ?>
+            </div>
             <?php endif; ?>
 
             <div class="yk-pc-viewport" style="overflow:hidden;">

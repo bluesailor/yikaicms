@@ -268,7 +268,13 @@ foreach ($blocksConfig as $block) {
     if ($ykHomeEdit) {
         $blockHtml = ob_get_clean();
         if ($blockHtml !== '') {
-            $blockHtml = preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $blockHtml, 1);
+            if (str_starts_with($type, 'custom:')) {
+                // 自定义块可能渲染成多个 <section>（如"标题段 + 卡片段"）——逐个注入 data-yk-home，
+                // 使整块（标题 + 下方卡片）都纳入前台可视编辑区，而非只框住第一个标题段。
+                $blockHtml = preg_replace('/<section\b/', '<section data-yk-home="' . e($type) . '"', $blockHtml);
+            } else {
+                $blockHtml = preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $blockHtml, 1);
+            }
         }
         echo $blockHtml;
     }
