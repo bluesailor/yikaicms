@@ -236,6 +236,21 @@ CREATE TABLE `yikai_blocks_library` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+DROP TABLE IF EXISTS `yikai_content_revisions`;
+CREATE TABLE `yikai_content_revisions` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `target_type` varchar(20) NOT NULL COMMENT 'article=contents.id / page=channels.id',
+  `target_id` int(11) unsigned NOT NULL COMMENT '归属对象ID',
+  `lang` varchar(10) NOT NULL DEFAULT '' COMMENT '语言',
+  `snapshot` longtext COMMENT '旧版快照JSON {targets:[{table,id,fields}]}',
+  `summary` varchar(255) NOT NULL DEFAULT '' COMMENT '列表展示用（通常为标题）',
+  `admin_id` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '操作人ID',
+  `admin_name` varchar(50) NOT NULL DEFAULT '' COMMENT '操作人名',
+  `created_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_target` (`target_type`,`target_id`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 DROP TABLE IF EXISTS `yikai_brands`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;

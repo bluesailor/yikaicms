@@ -1603,4 +1603,17 @@ return [
     'search_empty_hint'    => 'Type a keyword to begin',
     'search_no_result'     => 'No results found',
     'search_try_other'     => 'Try a different keyword',
+
+    // Content revision history (auto-snapshot on save / one-click restore)
+    'revision_history'         => 'Version history',
+    'revision_tip'            => 'A snapshot is saved automatically before each save; you can restore a recent version anytime.',
+    'revision_none'           => 'No history yet',
+    'revision_load_fail'      => 'Failed to load',
+    'revision_preview'        => 'Preview',
+    'revision_restore'        => 'Restore',
+    'revision_restore_confirm' => 'Restore this version? The current content will first be saved as a new version, so you can still roll back.',
+    'revision_restored'       => 'Restored, reloading…',
+    'revision_restore_fail'   => 'Restore failed',
+    'revision_close'          => 'Close',
+    'revision_by'             => 'By',
 ];
