@@ -24,7 +24,7 @@ require_once __DIR__ . '/controllers/detail/JobDetailController.php';
 $_vars = (new JobDetailController())->prepare($id);
 if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_job_not_found'));
+    render404(__('error_job_not_found'));
 }
 $job     = $_vars['job'];
 $channel = $_vars['channel'];

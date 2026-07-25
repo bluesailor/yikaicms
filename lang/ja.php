@@ -1733,6 +1733,10 @@ return [
     'product_default_inq_msg' => '商品【%s】に興味があります。ご連絡ください。',
 
     'error_page_not_found' => 'ページが見つかりません',
+    'error_404_title' => 'ページが見つかりません',
+    'error_404_desc' => 'お探しのページは移動・削除されたか、存在しない可能性があります。',
+    'error_404_home' => 'ホームに戻る',
+    'error_404_search_placeholder' => 'サイト内を検索…',
 
     'footer_partners' => 'パートナー',
 
