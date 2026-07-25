@@ -70,6 +70,32 @@ function theme_path_optional(string $file): ?string
 }
 
 /**
+ * 渲染主题化 404 页并退出。内容不存在（文章/单页/产品/栏目等）时调用，
+ * 替代早先各前台控制器的 exit(纯文本)。套当前主题的 header/footer；正文模板
+ * 为 partials/404.php（主题可放 themes/<主题>/partials/404.php 覆盖，缺省回退
+ * includes/partials/404.php）。$message 为可选的更具体提示（如「文章不存在」）。
+ */
+function render404(string $message = ''): void
+{
+    if (!headers_sent()) {
+        header('HTTP/1.1 404 Not Found');
+    }
+    // 主题壳所需变量给安全默认，避免 header 模板里未定义告警
+    $notFoundMessage  = $message !== '' ? $message : __('error_page_not_found');
+    $pageTitle        = __('error_404_title');
+    $seoTitle         = $pageTitle;
+    $pageKeywords     = '';
+    $pageDescription  = $notFoundMessage;
+    $currentChannelId = 0;
+    $currentId        = 0;
+    $currentSlug      = '';
+    require theme_path('layouts/header.php');
+    require theme_path('partials/404.php');
+    require theme_path('layouts/footer.php');
+    exit;
+}
+
+/**
  * 列出可用的列表卡片模板（供自定义模型列表模板下拉）。
  * 扫 overrides/partials + 当前主题 partials + includes/partials 里的 *-card.php，去重。
  * 返回 ['partials/xxx-card.php' => 'xxx'] 形式（值作展示名）。

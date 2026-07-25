@@ -61,7 +61,7 @@ if ($slug) {
 
 if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_page_not_found'));
+    render404(__('error_page_not_found'));
 }
 
 // 联系页：所有语言版本都委托给 contact.php 渲染

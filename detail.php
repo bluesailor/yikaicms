@@ -26,7 +26,7 @@ if ($id <= 0 && $slug !== '') {
 
 if (!$id) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_content_not_found'));
+    render404(__('error_content_not_found'));
 }
 
 // 数据装配交给 ContentDetailController：404 判断、浏览量自增、栏目、
@@ -35,7 +35,7 @@ require_once __DIR__ . '/controllers/detail/ContentDetailController.php';
 $_vars = (new ContentDetailController())->prepare($id);
 if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_content_not_found'));
+    render404(__('error_content_not_found'));
 }
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);

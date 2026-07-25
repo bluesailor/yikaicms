@@ -24,7 +24,7 @@ if ($productId <= 0 && $slug !== '') {
 
 if ($productId <= 0) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_product_not_found'));
+    render404(__('error_product_not_found'));
 }
 
 // 数据装配交给 ProductDetailController：产品载入、浏览量自增、分类/相关/上下篇、
@@ -33,7 +33,7 @@ require_once __DIR__ . '/controllers/detail/ProductDetailController.php';
 $_vars = (new ProductDetailController())->prepare($productId);
 if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_product_not_found'));
+    render404(__('error_product_not_found'));
 }
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
