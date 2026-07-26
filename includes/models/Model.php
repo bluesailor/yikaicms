@@ -207,13 +207,33 @@ class Model
     }
 
     /**
+     * 缺列友好报错：软删除写 deleted_at 时列不存在（文件已升级、数据库未升级的中间态），
+     * 把晦涩的 SQL 异常转成指路提示；其它异常原样抛出。
+     */
+    private function raiseIfMissingSoftDeleteColumn(\Throwable $e): void
+    {
+        $msg = $e->getMessage();
+        $isMissingCol = strpos($msg, $this->deletedAtColumn) !== false
+            && (strpos($msg, '42S22') !== false || strpos($msg, '1054') !== false
+                || stripos($msg, 'no such column') !== false || stripos($msg, 'Unknown column') !== false);
+        if ($isMissingCol && function_exists('error')) {
+            error("数据库结构未升级（缺少 {$this->table}.{$this->deletedAtColumn} 列），删除未执行。请到「系统 → 升级管理」运行数据库升级后重试。");
+        }
+    }
+
+    /**
      * 按 ID 删除。软删除模型写 deleted_at（进回收站），否则物理删除。
      */
     public function deleteById(int $id): int
     {
         if (function_exists('do_action')) do_action('model_before_delete', $this->table, $id);
         if ($this->softDelete) {
-            $r = db()->update($this->table, [$this->deletedAtColumn => time()], "{$this->primaryKey} = ?", [$id]);
+            try {
+                $r = db()->update($this->table, [$this->deletedAtColumn => time()], "{$this->primaryKey} = ?", [$id]);
+            } catch (\Throwable $e) {
+                $this->raiseIfMissingSoftDeleteColumn($e);
+                throw $e;
+            }
         } else {
             $r = db()->delete($this->table, "{$this->primaryKey} = ?", [$id]);
         }
@@ -235,10 +255,15 @@ class Model
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         if ($this->softDelete) {
             $params = array_merge([time()], array_values($ids));
-            $r = db()->execute(
-                "UPDATE {$this->tableName()} SET {$this->deletedAtColumn} = ? WHERE {$this->primaryKey} IN ({$placeholders})",
-                $params
-            );
+            try {
+                $r = db()->execute(
+                    "UPDATE {$this->tableName()} SET {$this->deletedAtColumn} = ? WHERE {$this->primaryKey} IN ({$placeholders})",
+                    $params
+                );
+            } catch (\Throwable $e) {
+                $this->raiseIfMissingSoftDeleteColumn($e);
+                throw $e;
+            }
         } else {
             $r = db()->execute(
                 "DELETE FROM {$this->tableName()} WHERE {$this->primaryKey} IN ({$placeholders})",
