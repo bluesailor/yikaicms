@@ -3,7 +3,7 @@
  * Yikai CMS — central URL router.
  *
  * Today the live URL form is `.html` pseudo-static (see .htaccess /
- * nginx.conf), and URL generation has been spread across loose helpers
+ * deploy/nginx-server.conf), and URL generation has been spread across loose helpers
  * in includes/functions.php. This class consolidates the contract so:
  *
  *   1. Plugins can register their own named routes via Router::register().
@@ -109,7 +109,7 @@ final class Router
     }
 
     // ───────────────────────────────────────────────────────────────────
-    // Default routes — mirror the existing .htaccess / nginx.conf rules.
+    // Default routes — mirror the existing .htaccess / deploy/nginx-server.conf rules.
     // ───────────────────────────────────────────────────────────────────
 
     private static function loadDefaults(): void
