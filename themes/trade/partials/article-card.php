@@ -7,9 +7,12 @@
  *
  * @var array $item - title, cover, summary/content, author, publish_time/created_at, views, is_top;
  *                    可选：is_recommend, channel_name, url（自定义详情链接，缺省 contentUrl($item)）
+ * @var ?array $listOpts - 栏目「列表显示元素」配置（channelListOptions()），null = 全显示
  */
+$__lo = $listOpts ?? null;
 ?>
 <a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
+    <?php if (listShowEl($__lo, 'cover')): ?>
     <div class="flex-shrink-0 w-48 md:w-64 aspect-[4/3] self-start overflow-hidden bg-gray-100">
         <?php if ($item['cover']): ?>
         <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
@@ -20,7 +23,8 @@
         </div>
         <?php endif; ?>
     </div>
-    <div class="flex-1 py-4 pr-4">
+    <?php endif; ?>
+    <div class="flex-1 py-4 <?php echo listShowEl($__lo, 'cover') ? 'pr-4' : 'px-6'; ?>">
         <h3 class="text-lg font-bold text-dark group-hover:text-primary transition line-clamp-2">
             <?php if (!empty($item['is_top'])): ?>
             <span class="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_top'); ?></span>
@@ -30,18 +34,24 @@
             <?php endif; ?>
             <?php echo e($item['title']); ?>
         </h3>
+        <?php if (listShowEl($__lo, 'summary')): ?>
         <p class="mt-2 text-gray-500 text-sm line-clamp-2">
             <?php echo e($item['summary'] ?: cutStr(strip_tags($item['content']), 120)); ?>
         </p>
+        <?php endif; ?>
         <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
-            <?php if (!empty($item['channel_name'])): ?>
+            <?php if (listShowEl($__lo, 'channel') && !empty($item['channel_name'])): ?>
             <span class="text-primary"><?php echo e($item['channel_name']); ?></span>
             <?php endif; ?>
-            <?php if (!empty($item['author'])): ?>
+            <?php if (listShowEl($__lo, 'author') && !empty($item['author'])): ?>
             <span><?php echo e($item['author']); ?></span>
             <?php endif; ?>
+            <?php if (listShowEl($__lo, 'date')): ?>
             <span><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span>
+            <?php endif; ?>
+            <?php if (listShowEl($__lo, 'views')): ?>
             <span><?php echo __('detail_views'); ?> <?php echo number_format((int)$item['views']); ?></span>
+            <?php endif; ?>
         </div>
     </div>
 </a>
