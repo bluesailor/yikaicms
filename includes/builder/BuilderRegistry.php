@@ -79,6 +79,7 @@ final class BuilderRegistry
             new CardElement(),
             new VideoElement(),
             new IconBoxElement(),
+            new AccordionElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new BannerElement(),

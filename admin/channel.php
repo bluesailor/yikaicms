@@ -998,6 +998,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <input type="checkbox" name="is_nav" value="1" <?php echo ($editChannel['is_nav'] ?? 1) ? 'checked' : ''; ?> class="mr-2">
                             <?= __('admin_main_menu') ?>
                         </label>
+                        <label class="flex items-center" title="<?= __('admin_home_display') ?>：作为版块出现在首页（仅顶级栏目生效，可在「首页设置」调整顺序与样式）">
+                            <input type="checkbox" name="is_home" value="1" <?php echo ($editChannel['is_home'] ?? 1) ? 'checked' : ''; ?> class="mr-2">
+                            <?= __('admin_home_display') ?>
+                        </label>
                         <label class="flex items-center">
                             <?php
                             $editInFooterNav = false;
