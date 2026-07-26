@@ -468,6 +468,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
 
 // 历史版本面板（仅已保存单页）
 if ($id > 0) {
+    // 供 require 的 revision_panel.php 使用（豁免见 psalm.xml issueHandlers）
     $revType = 'page';
     $revTargetId = (int) $id;
     require ROOT_PATH . '/admin/includes/revision_panel.php';

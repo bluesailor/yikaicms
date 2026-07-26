@@ -30,4 +30,16 @@
             <directory name="vendor" />
         </ignoreFiles>
     </projectFiles>
+
+    <issueHandlers>
+        <!-- 编辑页为 require 的 revision_panel.php 准备变量（include 作用域，Psalm 视为未使用；
+             语句级 @psalm-suppress 对文件作用域 UnusedVariable 不生效，故在此豁免） -->
+        <UnusedVariable>
+            <errorLevel type="suppress">
+                <file name="admin/article_edit.php" />
+                <file name="admin/page_edit.php" />
+                <file name="admin/page_edit_advance.php" />
+            </errorLevel>
+        </UnusedVariable>
+    </issueHandlers>
 </psalm>
