@@ -1004,31 +1004,18 @@ $envAllPass = checkAllPass($envChecks);
                                 </div>
                             </div>
                             <div id="panel-nginx" style="display:none">
-                                <div style="background:#fff7ed;color:#c2410c;padding:12px;border-radius:6px;font-size:14px;margin-bottom:8px">
-                                    <strong>&#9888; <?php echo $L['rewrite_nginx_manual'] ?? '需要手动配置'; ?></strong><br>
-                                    <?php echo $L['rewrite_nginx_desc'] ?? '请将以下规则添加到站点的 Nginx 配置文件（server 块内）。'; ?>
+                                <div style="background:#f0fdf4;color:#15803d;padding:12px;border-radius:6px;font-size:14px;margin-bottom:8px">
+                                    <strong>&#10003; <?php echo $L['rewrite_nginx_wp_title'] ?? '与 WordPress 规则通用'; ?></strong><br>
+                                    <?php echo $L['rewrite_nginx_wp'] ?? '宝塔等面板：伪静态直接选「wordpress」预设即可，无需手写任何规则。'; ?>
                                 </div>
+                                <div style="margin:8px 0 4px;font-size:13px;color:#4b5563"><?php echo $L['rewrite_nginx_desc'] ?? '没有预设时，手动在 server 块（或面板伪静态框）加入这一行：'; ?></div>
                                 <div style="position:relative">
-                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;line-height:1.6"><code># YikaiCMS Rewrite Rules
-location ~ ^/list/(\d+)\.html$ { rewrite ^/list/(\d+)\.html$ /list.php?id=$1 last; }
-location ~ ^/list/(\d+)/page/(\d+)\.html$ { rewrite ^/list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 last; }
-location ~ ^/product/(\d+)\.html$ { rewrite ^/product/(\d+)\.html$ /product.php?id=$1 last; }
-location ~ ^/product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ { rewrite ^/product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /product.php?slug=$2 last; }
-location ~ ^/product/([a-z0-9_-]+)/page/(\d+)\.html$ { rewrite ^/product/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=product&cat=$1&page=$2 last; }
-location ~ ^/product/([a-z0-9_-]+)\.html$ { rewrite ^/product/([a-z0-9_-]+)\.html$ /list.php?slug=product&cat=$1 last; }
-location ~ ^/detail/(\d+)\.html$ { rewrite ^/detail/(\d+)\.html$ /detail.php?id=$1 last; }
-location ~ ^/job/(\d+)\.html$ { rewrite ^/job/(\d+)\.html$ /job_detail.php?id=$1 last; }
-location ~ ^/page/(\d+)\.html$ { rewrite ^/page/(\d+)\.html$ /page.php?id=$1 last; }
-location = /contact.html { rewrite ^ /contact.php last; }
-location = /sitemap.xml { rewrite ^ /sitemap.php last; }
-location ~ ^/([a-z0-9_-]+)/page/(\d+)\.html$ { rewrite ^/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=$1&page=$2 last; }
-location ~ ^/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ { rewrite ^/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /page.php?parent=$1&slug=$2 last; }
-location ~ ^/([a-z0-9_-]+)\.html$ { rewrite ^/([a-z0-9_-]+)\.html$ /page.php?slug=$1 last; }
-location / { try_files $uri $uri/ /index.php?$query_string; }</code></pre>
+                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;line-height:1.6"><code>location / { try_files $uri $uri/ /index.php?$query_string; }</code></pre>
                                     <button onclick="copyNginxCode(this)" style="position:absolute;top:8px;right:8px;background:#334155;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">复制</button>
                                 </div>
                                 <div style="margin-top:8px;font-size:12px;color:#6b7280">
-                                    <?php echo $L['rewrite_nginx_reload'] ?? '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。'; ?>
+                                    <?php echo $L['rewrite_nginx_reload'] ?? '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。'; ?><br>
+                                    <?php echo $L['rewrite_nginx_advanced'] ?? '进阶（静态 HTML 直出 + 服务器层安全拦截）见程序仓库 deploy/nginx-server.conf。'; ?>
                                 </div>
                             </div>
                             <script>
