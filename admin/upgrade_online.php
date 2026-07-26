@@ -600,9 +600,22 @@ document.getElementById('uo-upgrade').onclick = async () => {
             'fail',
             fin.errors.map(esc).join('<br>') + '<br><span class="text-gray-400">完整记录已写入 storage/upgrade/upgrade-failures.log</span>');
     }
-    UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。`, 'ok', '最后一步：运行数据库迁移。');
     document.getElementById('uo-migrate').classList.remove('hidden');
     btn.classList.add('hidden');
+    // 文件更新成功后自动前往数据库升级：避免用户停在「文件已升、库未升」的中间态
+    //（该状态下软删除等写操作会失效）。有失败文件时不自动跳，让用户先看清单。
+    if (!fin.errors || !fin.errors.length) {
+        let sec = 5;
+        const rj = UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。${sec} 秒后自动前往「数据库升级」完成最后一步…`, 'ok', '无需迁移时该页会显示「全部已应用」。');
+        const lbl = rj.querySelector('.text-gray-800');
+        const timer = setInterval(() => {
+            sec--;
+            if (lbl) lbl.textContent = `程序文件已更新到 v${fin.new_version || d.latest_version}。${sec} 秒后自动前往「数据库升级」完成最后一步…`;
+            if (sec <= 0) { clearInterval(timer); location.href = 'upgrade.php'; }
+        }, 1000);
+    } else {
+        UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。`, 'ok', '请先处理上方失败文件，然后点击「下一步：升级数据库」完成最后一步。');
+    }
 };
 </script>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

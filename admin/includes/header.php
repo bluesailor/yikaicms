@@ -518,3 +518,27 @@ if ($adminBrand === '后台管理') {
 
             <!-- 页面内容 -->
             <main class="p-6">
+            <?php
+            // ── 数据库迁移待执行检测 ──────────────────────────────
+            // 「文件已升级、数据库未升级」中间态会让软删除等写操作静默失效（如：删文章刷新又回来）。
+            // migrations_ok_version 缓存 = 当前版本时跳过（每次版本变更后仅全量探测一次）；
+            // 升级页自身不显示（那里有完整状态）。
+            $__pendingMig = 0;
+            if (hasPermission('*') && ($currentMenu ?? '') !== 'upgrade'
+                && (string) config('migrations_ok_version', '') !== (defined('CMS_VERSION') ? CMS_VERSION : '')) {
+                $__pendingMig = pendingMigrationsCount();
+                if ($__pendingMig === 0 && defined('CMS_VERSION')) {
+                    try { settingModel()->set('migrations_ok_version', CMS_VERSION, 'system'); } catch (\Throwable $e) {}
+                }
+            }
+            ?>
+            <?php if ($__pendingMig > 0): ?>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+                <i class="ti ti-alert-triangle text-lg text-red-500 mt-0.5"></i>
+                <div class="text-sm text-red-800 flex-1">
+                    <p class="font-bold">数据库有 <?php echo (int) $__pendingMig; ?> 项升级待执行 —— 程序文件已更新，但数据库结构还没跟上</p>
+                    <p class="mt-1">在此状态下部分功能会异常（如删除内容不生效、新功能报错）。请立即执行数据库升级（几秒钟完成，不影响数据）。</p>
+                </div>
+                <a href="/admin/upgrade.php" class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition">立即升级数据库 →</a>
+            </div>
+            <?php endif; ?>
