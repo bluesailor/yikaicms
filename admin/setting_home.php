@@ -896,6 +896,15 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                             <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_url" value="<?php echo e($d['btn_url'] ?? ''); ?>" placeholder="按钮链接">
                                         </div>
                                     </div>
+                                <?php elseif ($eType === 'accordion'): ?>
+                                    <div class="space-y-2">
+                                        <textarea class="cb-field w-full border rounded px-2 py-1.5 text-sm font-mono" data-field="items" rows="6" placeholder="每行一条：问题|答案"><?php echo e($d['items'] ?? ''); ?></textarea>
+                                        <p class="text-xs text-gray-400 -mt-1">每行一条问答，问题和答案之间用竖线 <code>|</code> 分隔；加行 = 加一条</p>
+                                        <div class="flex gap-4 text-xs text-gray-600">
+                                            <label class="inline-flex items-center gap-1"><input type="checkbox" class="cb-field" data-field="open_first" <?php echo !empty($d['open_first']) ? 'checked' : ''; ?>>默认展开第一条</label>
+                                            <label class="inline-flex items-center gap-1"><input type="checkbox" class="cb-field" data-field="seo_schema" <?php echo !empty($d['seo_schema']) ? 'checked' : ''; ?>>输出 FAQ 结构化数据(SEO)</label>
+                                        </div>
+                                    </div>
                                 <?php else: ?>
                                     <p class="text-xs text-gray-400">「<?php echo e($eType); ?>」元素请到构建器编辑</p>
                                 <?php endif; ?>
