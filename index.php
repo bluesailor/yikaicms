@@ -9,6 +9,17 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
+// WP 式单入口路由：主机只配了两行 catch-all（如面板「WordPress 伪静态」预设）时，
+// 伪静态 URL 会落到这里，由 Dispatcher 分发到对应入口文件；配了完整规则的主机
+// 不受影响（服务器层已映射，不经 index.php）。顺带把旧行为里
+// 「任意未知路径渲染首页」的软 404 改为真 404。
+$__reqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if ($__reqPath !== '/' && $__reqPath !== '/index.php') {
+    require_once __DIR__ . '/includes/Dispatcher.php';
+    Dispatcher::run();   // 命中即接管并 exit；语言前缀首页（/ja/）设 lang 后返回
+}
+unset($__reqPath);
+
 HtmlCache::start(300);
 
 // 页面信息

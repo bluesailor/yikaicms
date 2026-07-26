@@ -2,8 +2,13 @@
 
 不同 Web 环境的伪静态（URL 重写）配置。选你的环境照做即可。
 
+> **v1.12.9 起支持 WordPress 兼容模式**：主机面板选「WordPress 伪静态」预设即可运行
+> （程序内置 Dispatcher 完成分发），或用 `deploy/htaccess-minimal.txt`。
+> 有条件仍推荐完整规则（静态直出性能最好 + 服务器层安全拦截）。
+
 | 环境 | 用哪个文件 | 一句话 |
 |---|---|---|
+| 任何支持 WordPress 的主机 | 面板选「WordPress 伪静态」或 `deploy/htaccess-minimal.txt` | 两行 catch-all，程序内分发 |
 | 宝塔面板（nginx） | `deploy/nginx-baota.conf` | 粘进伪静态框，或 include 一次 |
 | 阿里云虚拟主机 / 万网（Apache 共享主机） | `deploy/aliyun-vhost.htaccess` 或根目录 `.htaccess` | 重命名放根目录 |
 | 阿里云虚拟主机（nginx 型） | `deploy/aliyun-nginx.htaccess` | 面板伪静态处使用（仅支持有限指令） |
