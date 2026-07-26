@@ -33,12 +33,16 @@ function renderFrontEdit(): void
       [data-yk-logo]::after { content: ""; position: absolute; inset: -6px; border: 2px dashed transparent;
         border-radius: 6px; pointer-events: none; transition: border-color .15s; }
       [data-yk-logo]:hover::after { border-color: #2563eb; }
-      .yk-logo-btn { position: absolute; top: -10px; right: -10px; z-index: 99991;
-        background: #2563eb; color: #fff; font-size: 11px; line-height: 1; font-weight: 600;
-        padding: 4px 8px; border-radius: 999px; white-space: nowrap; cursor: pointer; display: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,.25); font-family: system-ui,-apple-system,"Microsoft YaHei",sans-serif; }
-      [data-yk-logo]:hover .yk-logo-btn, .yk-logo-btn:hover { display: block; }
-      @media print { #yk-edit-outline, .yk-logo-btn { display: none !important; } }
+      .yk-logo-btns { position: absolute; top: -10px; right: -10px; z-index: 99991; display: none; gap: 4px; }
+      [data-yk-logo]:hover .yk-logo-btns, .yk-logo-btns:hover { display: flex; }
+      .yk-logo-btn { background: #2563eb; color: #fff; font-size: 11px; line-height: 1; font-weight: 600;
+        padding: 4px 8px; border-radius: 999px; white-space: nowrap; cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,.25); font-family: system-ui,-apple-system,"Microsoft YaHei",sans-serif;
+        text-decoration: none; }
+      .yk-logo-btn:hover { background: #1d4ed8; color: #fff; }
+      .yk-logo-btn--make { background: #7c3aed; }
+      .yk-logo-btn--make:hover { background: #6d28d9; }
+      @media print { #yk-edit-outline, .yk-logo-btns { display: none !important; } }
     </style>
     <script>
     (function () {
@@ -122,12 +126,14 @@ function renderFrontEdit(): void
       fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
       document.body.appendChild(fileInput);
 
+      var hasIconMaker = <?php echo json_encode(function_exists('getActivePlugins') && in_array('icon-maker', getActivePlugins(), true)); ?>;
       onReady(function () {
         document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
+          var wrap = document.createElement('span');
+          wrap.className = 'yk-logo-btns';
           var b = document.createElement('span');
           b.className = 'yk-logo-btn';
           b.textContent = '✎ 换Logo';
-          logo.appendChild(b);
           b.addEventListener('click', function (e) {
             e.preventDefault(); e.stopPropagation();
             fileInput.onchange = function () {
@@ -137,6 +143,17 @@ function renderFrontEdit(): void
             };
             fileInput.click();
           });
+          wrap.appendChild(b);
+          if (hasIconMaker) {
+            // 图标工坊在线制作入口（做好后可一键设为站点 Logo）
+            var mk = document.createElement('a');
+            mk.className = 'yk-logo-btn yk-logo-btn--make';
+            mk.textContent = '★ 制作Logo';
+            mk.href = '/admin/plugin_page.php?plugin=icon-maker#logo';
+            mk.addEventListener('click', function (e) { e.stopPropagation(); });
+            wrap.appendChild(mk);
+          }
+          logo.appendChild(wrap);
         });
       });
 

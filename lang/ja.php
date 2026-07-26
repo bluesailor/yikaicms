@@ -488,6 +488,10 @@ return [
 
     'setting_site_url' => 'サイトURL',
     'setting_site_favicon' => 'サイトアイコン',
+    'setting_site_favicon_tip' => 'ブラウザタブのアイコン：.ico または .png、正方形、32×32 か 48×48 推奨（.ico は 16/32/48 の複数サイズを同梱でき、互換性が最良）',
+    'setting_favicon_make' => 'アイコンがない場合は「アイコン工房」でオンライン作成 →',
+    'setting_site_logo_tip' => 'ヘッダーナビの LOGO：透明背景の PNG または SVG、320×96 前後を推奨（縦横比 3:1〜5:1；フロントでは高さ 32〜48px で表示、高解像度画面には 2 倍サイズが必要）',
+    'setting_logo_make' => 'LOGO がない場合は「アイコン工房」でオンライン作成 →',
     'setting_primary_color' => 'メインカラー',
     'setting_secondary_color' => 'サブカラー',
     'setting_admin_title' => '管理画面名称',

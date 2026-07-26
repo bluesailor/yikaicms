@@ -411,9 +411,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div id="uo-steps" class="space-y-3"></div>
 
+    <!-- 新版本信息卡：进入页面自动检查后填充（版本对比 / 升级级别 / 更新内容） -->
+    <div id="uo-card" class="hidden mt-5 bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3 bg-gray-50">
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-baseline gap-2 font-bold">
+                    <span class="text-gray-400 text-base">v<span id="uo-cur"></span></span>
+                    <i class="ti ti-arrow-narrow-right text-gray-400"></i>
+                    <span class="text-green-600 text-lg">v<span id="uo-new"></span></span>
+                </div>
+                <span id="uo-level" class="text-xs font-medium px-2 py-0.5 rounded-full"></span>
+            </div>
+            <span id="uo-date" class="text-xs text-gray-400"></span>
+        </div>
+        <div class="p-5">
+            <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="ti ti-list-details mr-1 text-gray-400"></i>更新内容</h3>
+            <pre id="uo-changelog-body" class="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto"></pre>
+        </div>
+    </div>
+
     <div class="mt-6 flex gap-3">
         <button id="uo-start" class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition">
-            <i class="ti ti-search mr-1"></i>检查更新
+            <i class="ti ti-refresh mr-1"></i>重新检查
         </button>
         <button id="uo-upgrade" class="hidden px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition">
             <i class="ti ti-bolt mr-1"></i>一键升级到 <span id="uo-target"></span>
@@ -421,11 +440,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <a href="upgrade.php" id="uo-migrate" class="hidden px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
             <i class="ti ti-database mr-1"></i>下一步：升级数据库 →
         </a>
-    </div>
-
-    <div id="uo-changelog" class="hidden mt-6 bg-white border border-gray-200 rounded-lg p-4">
-        <h3 class="font-bold text-gray-800 mb-2">更新内容</h3>
-        <pre id="uo-changelog-body" class="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed"></pre>
     </div>
 </div>
 
@@ -474,8 +488,31 @@ const UO = {
     }
 };
 
-document.getElementById('uo-start').onclick = async () => {
+/**
+ * 升级级别徽章：优先用服务端 level 字段（security/critical/feature/normal），
+ * 服务端未提供时从更新说明的关键词推断，兜底为「常规更新」。
+ */
+function uoLevel(d, logText) {
+    const lv = String(d.level || '').toLowerCase();
+    if (lv === 'security' || lv === 'critical'
+        || (!lv && /安全|漏洞|XSS|CSRF|SQL\s*注入|RCE|越权|提权|security|vulnerab/i.test(logText || ''))) {
+        return { cls: 'bg-red-100 text-red-700', text: '关键更新（含安全修复），建议尽快升级' };
+    }
+    if (lv === 'feature') return { cls: 'bg-blue-100 text-blue-700', text: '功能更新' };
+    if (/修复|fix/i.test(logText || '')) return { cls: 'bg-amber-100 text-amber-700', text: '常规更新（含问题修复）' };
+    return { cls: 'bg-gray-100 text-gray-600', text: '常规更新' };
+}
+
+/** x.y.z 版本号比较：a>b 返回正数 */
+function uoCmpVer(a, b) {
+    const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+    for (let i = 0; i < 3; i++) { const df = (pa[i] || 0) - (pb[i] || 0); if (df) return df; }
+    return 0;
+}
+
+async function uoCheck() {
     UO.steps.innerHTML = '';
+    document.getElementById('uo-card').classList.add('hidden');
     document.getElementById('uo-upgrade').classList.add('hidden');
     document.getElementById('uo-migrate').classList.add('hidden');
     // 预检
@@ -489,17 +526,34 @@ document.getElementById('uo-start').onclick = async () => {
     const ck = await UO.post('check');
     if (ck.code !== 0) return UO.set(r, 'fail', ck.msg || '检查失败');
     const d = ck.data || {};
-    if (!d.has_update) { UO.set(r, 'ok', `已是最新版本 v${ck.current_version}`); return; }
-    UO.set(r, 'ok', `发现新版本 v${d.latest_version}（当前 v${ck.current_version}）`);
+    if (!d.has_update) { UO.set(r, 'ok', `已是最新版本 v${ck.current_version}，无需升级`); return; }
+    UO.set(r, 'ok', `发现新版本 v${d.latest_version}`);
     UO.target = d;
-    document.getElementById('uo-target').textContent = 'v' + d.latest_version;
-    document.getElementById('uo-start').classList.add('hidden');   // 已发现新版，隐藏「检查更新」，突出「一键升级」
-    document.getElementById('uo-upgrade').classList.remove('hidden');
-    if (d.changelog) {
-        document.getElementById('uo-changelog').classList.remove('hidden');
-        document.getElementById('uo-changelog-body').textContent = d.changelog;
+    // 版本信息卡：当前 → 最新、发布日期与包大小、升级级别、更新内容
+    document.getElementById('uo-cur').textContent = ck.current_version;
+    document.getElementById('uo-new').textContent = d.latest_version;
+    document.getElementById('uo-date').textContent =
+        [d.release_date ? '发布于 ' + d.release_date : '', d.size ? '安装包 ' + d.size : ''].filter(Boolean).join(' · ');
+    // 跨版本升级时把中间每个版本的更新日志都列出来（history 由服务端提供，按版本降序）
+    let logText = d.changelog || '';
+    const hist = Array.isArray(d.history)
+        ? d.history.filter(h => h && h.version && uoCmpVer(h.version, ck.current_version) > 0) : [];
+    if (hist.length > 1) {
+        logText = hist.map(h => `【v${h.version}】${h.release_date ? '（' + h.release_date + '）' : ''}\n${(h.changelog || '').trim()}`).join('\n\n');
     }
-};
+    const lv = uoLevel(d, logText);
+    const lvEl = document.getElementById('uo-level');
+    lvEl.className = 'text-xs font-medium px-2 py-0.5 rounded-full ' + lv.cls;
+    lvEl.textContent = lv.text;
+    document.getElementById('uo-changelog-body').textContent = logText || '（本次更新未提供更新说明）';
+    document.getElementById('uo-card').classList.remove('hidden');
+    document.getElementById('uo-target').textContent = 'v' + d.latest_version;
+    document.getElementById('uo-start').classList.add('hidden');   // 已发现新版，隐藏「重新检查」，突出「一键升级」
+    document.getElementById('uo-upgrade').classList.remove('hidden');
+}
+
+document.getElementById('uo-start').onclick = uoCheck;
+uoCheck();   // 进入页面即自动检查：从仪表盘「查看并升级」跳来直接看到版本对比与更新内容
 
 document.getElementById('uo-upgrade').onclick = async () => {
     const btn = document.getElementById('uo-upgrade');

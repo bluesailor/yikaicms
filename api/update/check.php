@@ -24,6 +24,7 @@ header('Content-Type: application/json; charset=utf-8');
 $latestVersion  = '1.0.0';           // 最新版本号
 $releaseDate    = '2026-02-15';      // 发布日期
 $changelog      = '初始发布版本';     // 更新说明
+$updateLevel    = 'normal';          // 升级级别：security(关键安全) / feature(功能) / normal(常规)
 $downloadUrl    = '';                 // 更新包下载地址，空表示暂无
 $minPhpVersion  = '8.0.0';          // 最低 PHP 版本要求
 $minMysqlVersion = '5.7.0';         // 最低 MySQL 版本要求
@@ -64,6 +65,7 @@ echo json_encode([
         'current_version'  => $clientVersion,
         'latest_version'   => $latestVersion,
         'release_date'     => $releaseDate,
+        'level'            => $hasUpdate ? $updateLevel : '',
         'changelog'        => $hasUpdate ? $changelog : '',
         'download_url'     => $hasUpdate ? $downloadUrl : '',
         'min_php_version'  => $minPhpVersion,
