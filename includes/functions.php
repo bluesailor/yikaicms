@@ -761,6 +761,27 @@ function langPrefix(?string $lang = null): string
 }
 
 /**
+ * 栏目列表显示元素配置（list_options 列，JSON 数组存勾选显示的元素键）。
+ * 返回 null = 未配置/列不存在 → 全部显示（向后兼容）。
+ * 元素键：cover / summary / author / date / views / channel
+ */
+function channelListOptions(array $channel): ?array
+{
+    $raw = (string) ($channel['list_options'] ?? '');
+    if ($raw === '') {
+        return null;
+    }
+    $d = json_decode($raw, true);
+    return is_array($d) ? array_values(array_map('strval', $d)) : null;
+}
+
+/** 列表卡片是否显示某元素（$opts 来自 channelListOptions()；null = 全显示）。 */
+function listShowEl(?array $opts, string $el): bool
+{
+    return $opts === null || in_array($el, $opts, true);
+}
+
+/**
  * 获取栏目URL（SEO友好）
  */
 function channelUrl(array $channel): string

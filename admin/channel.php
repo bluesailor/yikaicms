@@ -73,6 +73,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'updated_at' => time(),
         ];
 
+        // 列表显示元素（list_options 列由 20260726 迁移新增；未跑迁移的库跳过，避免保存整体失败）
+        try {
+            db()->fetchOne("SELECT list_options FROM " . DB_PREFIX . "channels LIMIT 1");
+            $__lsAll = ['cover', 'summary', 'author', 'date', 'views', 'channel'];
+            $__lsPicked = array_values(array_intersect($__lsAll, array_map('strval', (array) ($_POST['list_show'] ?? []))));
+            // 全选 = 存空（默认全显示语义，升级前后行为一致）
+            $data['list_options'] = count($__lsPicked) === count($__lsAll) ? '' : json_encode($__lsPicked, JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            // 列不存在：不写该字段
+        }
+
         if (empty($data['name'])) {
             error(__('admin_category_name_required'));
         }
@@ -1016,6 +1027,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
 
+                <!-- 列表显示元素（文章列表类栏目；随类型选择显隐） -->
+                <?php
+                $__lsOpts = channelListOptions($editChannel ?? []);
+                $__lsDefs = [
+                    'cover'   => __('admin_ls_cover'),
+                    'summary' => __('admin_ls_summary'),
+                    'author'  => __('admin_ls_author'),
+                    'date'    => __('admin_ls_date'),
+                    'views'   => __('admin_ls_views'),
+                    'channel' => __('admin_ls_channel'),
+                ];
+                ?>
+                <div id="listOptFields">
+                    <label class="block text-gray-700 text-sm mb-1"><?= __('admin_list_show') ?>
+                        <span class="text-xs text-gray-400 font-normal ml-1"><?= __('admin_list_show_tip') ?></span>
+                    </label>
+                    <div class="flex flex-wrap gap-x-4 gap-y-2">
+                        <?php foreach ($__lsDefs as $__lk => $__ll): ?>
+                        <label class="flex items-center text-sm text-gray-600">
+                            <input type="checkbox" name="list_show[]" value="<?php echo $__lk; ?>" <?php echo listShowEl($__lsOpts, $__lk) ? 'checked' : ''; ?> class="mr-1.5">
+                            <?php echo e($__ll); ?>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
                 <div class="border-t pt-4">
                     <p class="text-gray-500 text-sm mb-2"><?php echo __('admin_seo_settings'); ?></p>
                     <div class="space-y-3">
@@ -1066,6 +1103,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 document.getElementById('channelType').addEventListener('change', function() {
     document.getElementById('linkFields').classList.toggle('hidden', this.value !== 'link');
     document.getElementById('albumFields').classList.toggle('hidden', this.value !== 'album');
+    // 列表显示元素：仅文章列表类（list + 自定义模型，用文章卡片渲染的）显示
+    var __listCardTypes = <?php echo json_encode(array_values(array_diff(array_keys($channelTypes), ['page', 'link', 'album', 'product', 'case', 'download', 'job']))); ?>;
+    document.getElementById('listOptFields').classList.toggle('hidden', __listCardTypes.indexOf(this.value) === -1);
 });
 document.getElementById('channelType').dispatchEvent(new Event('change'));
 
