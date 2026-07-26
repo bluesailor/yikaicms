@@ -19,6 +19,7 @@ requirePermission('content');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settingModel()->set('product_layout', post('product_layout', 'sidebar'));
     settingModel()->set('show_price', post('show_price', '0'));
+    settingModel()->set('product_spec_presets', trim((string) ($_POST['product_spec_presets'] ?? '')));
     adminLog('setting', 'update', '更新产品设置');
     success();
 }
@@ -105,6 +106,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            <?php echo config('show_price', '0') === '1' ? 'checked' : ''; ?>>
                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
+            </div>
+
+            <hr>
+
+            <!-- 预置规格参数 -->
+            <div>
+                <label class="font-medium text-gray-800"><?php echo __('admin_spec_presets'); ?></label>
+                <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo __('admin_spec_presets_tip'); ?></p>
+                <textarea name="product_spec_presets" rows="7" class="w-full border rounded px-4 py-2 font-mono text-sm"
+                          placeholder="size|尺寸|100×60mm
+material|材质
+weight|重量
+voltage|电压|220V"><?php echo e((string) config('product_spec_presets', '')); ?></textarea>
+                <p class="text-xs text-gray-400 mt-2"><?php echo __('admin_spec_presets_fmt'); ?></p>
             </div>
 
             <hr>

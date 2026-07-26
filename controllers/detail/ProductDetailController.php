@@ -73,8 +73,12 @@ final class ProductDetailController extends DetailController
     }
 
     /**
-     * 规格参数：优先 JSON；否则按行解析 key:value。
-     * @return array<int,array{name:string,value:string}>|array<string,mixed>
+     * 规格参数 → [{name, value}] 统一结构（模板据此渲染规格表）。
+     * 支持三种存储格式：
+     *   1. [{name,value}] 列表：直接用
+     *   2. {key: value} 平面对象（产品编辑器格式）：键映射为预置显示名（缺省用键名），空值跳过
+     *   3. 纯文本每行 key:value：按行解析
+     * @return array<int,array{name:string,value:string}>
      */
     private function parseSpecs(string $raw): array
     {
@@ -82,8 +86,20 @@ final class ProductDetailController extends DetailController
             return [];
         }
         $specsData = json_decode($raw, true);
-        if ($specsData) {
-            return $specsData;
+        if (is_array($specsData)) {
+            if (isset($specsData[0]) && is_array($specsData[0])) {
+                return $specsData;   // 已是 [{name,value}]
+            }
+            $labels = self::presetSpecLabels();
+            $out = [];
+            foreach ($specsData as $k => $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    continue;   // 未填写的预置参数不上前台
+                }
+                $out[] = ['name' => $labels[(string) $k] ?? (string) $k, 'value' => $v];
+            }
+            return $out;
         }
         $specs = [];
         foreach (explode("\n", $raw) as $line) {
@@ -94,5 +110,26 @@ final class ProductDetailController extends DetailController
             }
         }
         return $specs;
+    }
+
+    /**
+     * 预置规格参数的 键→显示名 映射（产品设置 product_spec_presets，每行 键|显示名|默认值）。
+     * @return array<string,string>
+     */
+    private static function presetSpecLabels(): array
+    {
+        $labels = [];
+        foreach (preg_split('/\r\n|\r|\n/', (string) config('product_spec_presets', '')) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            [$k, $lbl] = array_pad(explode('|', $line, 3), 2, '');
+            $k = trim($k);
+            if ($k !== '') {
+                $labels[$k] = trim($lbl) !== '' ? trim($lbl) : $k;
+            }
+        }
+        return $labels;
     }
 }
