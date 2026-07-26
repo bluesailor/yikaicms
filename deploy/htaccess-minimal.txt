@@ -1,0 +1,25 @@
+# ============================================================
+# Yikai CMS 最小伪静态规则（WordPress 兼容模式）
+#
+# 与 WordPress 的规则完全同构——如果你的主机面板有「WordPress 伪静态」
+# 预设，直接选它即可，无需粘贴本文件。
+#
+# 原理：所有不存在的路径统一交给 index.php，由程序内置的 Dispatcher
+# 完成伪静态分发（v1.12.9+）。
+#
+# 与根目录完整版 .htaccess 的取舍：
+#   完整版：静态 HTML 由服务器直出（性能最好）+ 敏感文件访问在服务器层拦截 —— 推荐
+#   最小版：兼容一切支持 WP 的主机；静态直出与 404 由 PHP 兜底，性能略低
+# 能用完整版就用完整版；受限主机（面板只给 WP 预设/指令受限）用本文件。
+# ============================================================
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# nginx 等价写法（放 server 块 / 面板伪静态框）：
+#   location / { try_files $uri $uri/ /index.php?$args; }
