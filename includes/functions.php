@@ -761,6 +761,27 @@ function langPrefix(?string $lang = null): string
 }
 
 /**
+ * 待执行的数据库迁移条数（0 = 库结构与代码同步）。
+ * 用于「文件已升级、数据库未升级」中间态的全局检测；调用方应自行做缓存
+ * （见 admin/includes/header.php 的 migrations_ok_version 机制，避免每页全量探测）。
+ */
+function pendingMigrationsCount(): int
+{
+    require_once ROOT_PATH . '/includes/Migrator.php';
+    $n = 0;
+    try {
+        foreach (Migrator::loadAll() as $m) {
+            if (!Migrator::isApplied($m)) {
+                $n++;
+            }
+        }
+    } catch (\Throwable $e) {
+        return 0;   // 探测失败不打扰页面（升级页会给出准确状态）
+    }
+    return $n;
+}
+
+/**
  * 栏目列表显示元素配置（list_options 列，JSON 数组存勾选显示的元素键）。
  * 返回 null = 未配置/列不存在 → 全部显示（向后兼容）。
  * 元素键：cover / summary / author / date / views / channel
