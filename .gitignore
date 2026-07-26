@@ -91,3 +91,4 @@ storage/backups/
 # PHPUnit cache
 .phpunit.cache/
 
+/uploads/brand/
