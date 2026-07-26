@@ -1,0 +1,12 @@
+{
+    "name": "图标工坊",
+    "name_ja": "アイコン工房",
+    "name_en": "Icon Maker",
+    "version": "1.0.0",
+    "description": "站点图标 / LOGO 一站式生成：文字或图片生成 favicon.ico，多尺寸实时预览；专业版解锁全套图标包（iOS / Android / PWA）、一键应用到本站与 SVG 导出。",
+    "description_ja": "サイトアイコン／ロゴをワンストップで生成。テキストや画像から favicon.ico を作成し、複数サイズをリアルタイムプレビュー。Pro 版ではフルアイコンパック（iOS / Android / PWA）、ワンクリック適用、SVG 書き出しが利用できます。",
+    "description_en": "All-in-one site icon / logo generator: build favicon.ico from text or an image with live multi-size preview. Pro unlocks the full icon pack (iOS / Android / PWA), one-click apply to this site, and SVG export.",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.12.0"
+}
