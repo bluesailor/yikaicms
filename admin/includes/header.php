@@ -115,6 +115,11 @@ if ($adminBrand === '后台管理') {
                 // ── 侧边栏菜单（数据驱动；通过 register_admin_menu() / 'admin_sidebar' filter 可扩展）──
                 foreach ($sidebarMenu as $groupKey => $navGroup):
                     if (!empty($navGroup['super_only']) && !isSuperAdmin()) continue;
+                    // 权限过滤：菜单项声明了 perm 而当前角色没有该权限 → 不显示；整组被滤空则组标题也不显示
+                    $navGroup['items'] = array_filter(
+                        (array) ($navGroup['items'] ?? []),
+                        static fn($it) => empty($it['perm']) || hasPermission((string) $it['perm'])
+                    );
                     if (empty($navGroup['items'])) continue;
                 ?>
                 <div @click="toggle('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" class="sidebar-group px-4 pt-3 pb-1 text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between">
