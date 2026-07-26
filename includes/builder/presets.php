@@ -165,6 +165,27 @@ function builderPresets(): array
                     ]],
                 ]],
             ],
+            [
+                'key' => 'faq', 'label' => '常见问题 FAQ', 'icon' => 'help-circle',
+                'desc' => '折叠问答 × 4（含 SEO 结构化数据）',
+                'sections' => [[
+                    'id' => 's',
+                    'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
+                    'columns' => [[
+                        'id' => 'c', 'elements' => [
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '常见问题', 'level' => 'h2']],
+                            ['id' => 'e', 'type' => 'accordion', 'data' => [
+                                'items' => "如何购买你们的产品？|您可以通过在线表单留言或直接电话联系我们，客服会在一个工作日内回复您。\n"
+                                    . "是否提供售后服务？|提供。所有产品均含一年质保与终身技术支持，让您没有后顾之忧。\n"
+                                    . "可以定制吗？|支持。请把您的需求告诉我们，我们会评估后给出方案与报价。\n"
+                                    . "发货周期是多久？|常规产品 3 个工作日内发货，定制类产品以合同约定为准。",
+                                'open_first' => true,
+                                'seo_schema' => true,
+                            ]],
+                        ],
+                    ]],
+                ]],
+            ],
         ],
 
         // ---- 整页模板：一键插入整套区块 ----
