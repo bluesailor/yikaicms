@@ -498,6 +498,7 @@ $horizRootChannel = $channel;
         if ($_listModel && !empty($_listModel['list_template']) && theme_path_optional($_listModel['list_template'])) {
             $cardTpl = $_listModel['list_template'];
         }
+        $listOpts = channelListOptions($channel);   // 栏目「列表显示元素」配置，卡片模板按此显隐
         ?>
         <div class="space-y-6">
             <?php foreach ($contents as $item): ?>

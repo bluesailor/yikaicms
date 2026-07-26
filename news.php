@@ -106,6 +106,7 @@ unset($_heroChannelBackup);
 <section class="py-12">
     <div class="container mx-auto px-4">
         <?php if (!empty($articles)): ?>
+        <?php $listOpts = channelListOptions($category ?: ($newsChannel ?: [])); // 栏目「列表显示元素」配置 ?>
         <div class="space-y-6">
             <?php foreach ($articles as $item): ?>
             <?php $item['url'] = '/news/article/' . $item['id'] . '.html'; // 新闻详情固定路由 ?>
