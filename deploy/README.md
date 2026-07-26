@@ -9,7 +9,7 @@
 | 环境 | 用哪个文件 | 一句话 |
 |---|---|---|
 | 任何支持 WordPress 的主机 | 面板选「WordPress 伪静态」或 `deploy/htaccess-minimal.txt` | 两行 catch-all，程序内分发 |
-| 宝塔面板（nginx） | `deploy/nginx-baota.conf` | 粘进伪静态框，或 include 一次 |
+| 宝塔面板（nginx） | 伪静态选「wordpress」预设，或 `deploy/nginx-baota.conf` | 选预设最省事；conf 版含静态直出 |
 | 阿里云虚拟主机 / 万网（Apache 共享主机） | `deploy/aliyun-vhost.htaccess` 或根目录 `.htaccess` | 重命名放根目录 |
 | 阿里云虚拟主机（nginx 型） | `deploy/aliyun-nginx.htaccess` | 面板伪静态处使用（仅支持有限指令） |
 | 自己的 nginx 服务器（完整 server 块） | `deploy/nginx-server.conf` | 加进 server 块，带静态直出 |

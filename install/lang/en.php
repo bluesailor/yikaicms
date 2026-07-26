@@ -111,8 +111,10 @@ return [
     'rewrite_apache_ok' => 'No configuration needed',
     'rewrite_apache_desc' => 'A .htaccess file is included. As long as Apache mod_rewrite is enabled, it works automatically.',
     'rewrite_apache_check' => 'Make sure AllowOverride All is set in your Apache httpd.conf.',
-    'rewrite_nginx_manual' => 'Manual configuration required',
-    'rewrite_nginx_desc' => 'Add the following block to your Nginx site config (inside the server block).',
+    'rewrite_nginx_wp_title' => 'WordPress-compatible rules',
+    'rewrite_nginx_wp' => 'Panels like BT/aaPanel: just pick the "wordpress" rewrite preset — nothing to paste.',
+    'rewrite_nginx_desc' => 'No preset available? Add this single line inside the server block:',
+    'rewrite_nginx_advanced' => 'Advanced (static HTML pass-through + server-level hardening): see deploy/nginx-server.conf in the repository.',
     'rewrite_nginx_reload' => 'After saving, run nginx -t to verify syntax, then nginx -s reload to apply.',
 
     // Errors

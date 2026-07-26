@@ -111,8 +111,10 @@ return [
     'rewrite_apache_ok' => '設定不要',
     'rewrite_apache_desc' => '.htaccess ファイルが同梱されています。mod_rewrite が有効であれば自動的に動作します。',
     'rewrite_apache_check' => 'Apache の httpd.conf で AllowOverride All が設定されていることを確認してください。',
-    'rewrite_nginx_manual' => '手動設定が必要',
-    'rewrite_nginx_desc' => '以下の内容をサイトの Nginx 設定ファイル（server ブロック内）に追加してください。',
+    'rewrite_nginx_wp_title' => 'WordPress のルールと互換',
+    'rewrite_nginx_wp' => 'BTパネル等：リライト設定で「wordpress」プリセットを選ぶだけで動作します。',
+    'rewrite_nginx_desc' => 'プリセットがない場合は、server ブロックに次の 1 行を追加してください：',
+    'rewrite_nginx_advanced' => '上級者向け（静的 HTML 直接配信＋サーバー側の保護）はリポジトリの deploy/nginx-server.conf を参照。',
     'rewrite_nginx_reload' => '設定後、nginx -t で構文チェックし、nginx -s reload で反映してください。',
 
     // エラー

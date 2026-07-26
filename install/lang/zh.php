@@ -109,8 +109,10 @@ return [
     'rewrite_apache_ok' => '无需配置',
     'rewrite_apache_desc' => '已内置 .htaccess 文件。确保 Apache 启用了 mod_rewrite 模块即可自动生效。',
     'rewrite_apache_check' => '请确认 Apache 的 httpd.conf 中已设置 AllowOverride All。',
-    'rewrite_nginx_manual' => '需要手动配置',
-    'rewrite_nginx_desc' => '请将以下规则添加到站点的 Nginx 配置文件（server 块内）。',
+    'rewrite_nginx_wp_title' => '与 WordPress 规则通用',
+    'rewrite_nginx_wp' => '宝塔等面板：伪静态直接选「wordpress」预设即可，无需手写任何规则。',
+    'rewrite_nginx_desc' => '没有预设时，手动在 server 块（或面板伪静态框）加入这一行：',
+    'rewrite_nginx_advanced' => '进阶（静态 HTML 直出 + 服务器层安全拦截）见程序仓库 deploy/nginx-server.conf。',
     'rewrite_nginx_reload' => '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。',
 
     // 错误
