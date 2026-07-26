@@ -57,5 +57,16 @@ return [
                        'name' => '联系我们', 'name_en' => 'Contact',   'name_ja' => 'お問い合わせ',
                        'seo_title' => '联系我们',
                        'content' => '<h2>联系我们</h2><p>电话：<br>邮箱：<br>地址：</p>'],
+        'faq'      => ['slug' => 'faq',      'type' => 'page',     'group' => '通用',
+                       'name' => '常见问题', 'name_en' => 'FAQ',       'name_ja' => 'よくある質問',
+                       'seo_title' => '常见问题',
+                       // 与构建器折叠面板(FAQ)元素同款 details/summary 结构与样式类
+                       'content' => '<h2>常见问题</h2>'
+                           . '<div class="divide-y divide-gray-200 border border-gray-200 rounded-xl bg-white overflow-hidden">'
+                           . '<details class="group px-5" open><summary class="flex items-center justify-between gap-3 py-4 cursor-pointer list-none font-medium text-gray-800 hover:text-primary transition"><span>如何购买你们的产品？</span><i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i></summary><div class="pb-4 text-sm text-gray-600 leading-relaxed">您可以通过在线表单留言或直接电话联系我们，客服会在一个工作日内回复您。</div></details>'
+                           . '<details class="group px-5"><summary class="flex items-center justify-between gap-3 py-4 cursor-pointer list-none font-medium text-gray-800 hover:text-primary transition"><span>是否提供售后服务？</span><i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i></summary><div class="pb-4 text-sm text-gray-600 leading-relaxed">提供。所有产品均含一年质保与终身技术支持，让您没有后顾之忧。</div></details>'
+                           . '<details class="group px-5"><summary class="flex items-center justify-between gap-3 py-4 cursor-pointer list-none font-medium text-gray-800 hover:text-primary transition"><span>可以定制吗？</span><i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i></summary><div class="pb-4 text-sm text-gray-600 leading-relaxed">支持。请把您的需求告诉我们，我们会评估后给出方案与报价。</div></details>'
+                           . '<details class="group px-5"><summary class="flex items-center justify-between gap-3 py-4 cursor-pointer list-none font-medium text-gray-800 hover:text-primary transition"><span>发货周期是多久？</span><i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i></summary><div class="pb-4 text-sm text-gray-600 leading-relaxed">常规产品 3 个工作日内发货，定制类产品以合同约定为准。</div></details>'
+                           . '</div>'],
     ],
 ];
