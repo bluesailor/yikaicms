@@ -6,7 +6,8 @@
 |---|---|---|
 | 宝塔面板（nginx） | `deploy/nginx-baota.conf` | 粘进伪静态框，或 include 一次 |
 | 阿里云虚拟主机 / 万网（Apache 共享主机） | `deploy/aliyun-vhost.htaccess` 或根目录 `.htaccess` | 重命名放根目录 |
-| 自己的 nginx 服务器（完整 server 块） | 根目录 `nginx.conf` | 加进 server 块，带静态直出 |
+| 阿里云虚拟主机（nginx 型） | `deploy/aliyun-nginx.htaccess` | 面板伪静态处使用（仅支持有限指令） |
+| 自己的 nginx 服务器（完整 server 块） | `deploy/nginx-server.conf` | 加进 server 块，带静态直出 |
 | Apache（自己的服务器 / phpStudy） | 根目录 `.htaccess` | 开 mod_rewrite 即用 |
 
 ---
@@ -28,7 +29,7 @@ include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;
 
 > 为什么能 include：宝塔的「伪静态」本质就是一个被 nginx `include` 进 server 块的文件，所以里面再 include 一个我们自己的文件完全合法。
 >
-> 这个文件只含 `rewrite`、不含任何 `location` 块，因此不会和宝塔自带的 `location /`、`location ~ \.php$` 冲突（那正是不能直接用根目录 `nginx.conf` 的原因——它含 location 块，会「duplicate location」报错）。
+> 这个文件只含 `rewrite`、不含任何 `location` 块，因此不会和宝塔自带的 `location /`、`location ~ \.php$` 冲突（那正是不能直接用`deploy/nginx-server.conf` 的原因——它含 location 块，会「duplicate location」报错）。
 
 **老站 301 跳转**（迁移旧链接保 SEO）是每个站自己的，不在通用文件里。如需，把 `rewrite ^/旧路径$ /新路径 permanent;` 加在 `nginx-baota.conf` **最上面**（permanent 会中断后续规则）。
 
@@ -50,7 +51,7 @@ include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;
 
 ## 三、完整 nginx server 块（含静态 HTML 直出）
 
-如果你有服务器 root 权限、想要**静态化直出**（后台「静态生成」后 `.html` 由 nginx 直接返回、不进 PHP，性能最好），用根目录的 `nginx.conf`：把它的内容合并进你的 `server { }` 块。它包含 `try_files /html$uri …` 的静态优先逻辑。
+如果你有服务器 root 权限、想要**静态化直出**（后台「静态生成」后 `.html` 由 nginx 直接返回、不进 PHP，性能最好），用`deploy/nginx-server.conf`：把它的内容合并进你的 `server { }` 块。它包含 `try_files /html$uri …` 的静态优先逻辑。
 
 > 宝塔的伪静态框不适合放这个（含 location 块会冲突）。要在宝塔用静态直出，去「配置文件」里改完整 server 块，而不是伪静态框。
 

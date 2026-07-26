@@ -14,7 +14,7 @@
  * 失效策略：内容变更（data_changed 钩子）即清空静态文件，回落到实时 PHP，
  *           等下次手动「生成」或定时任务重建。
  *
- * 服务规则（需在 .htaccess / nginx.conf 配合，仅 GET + 空查询串 + 文件存在时直出）。
+ * 服务规则（需在 .htaccess / deploy/nginx-server.conf 配合，仅 GET + 空查询串 + 文件存在时直出）。
  *
  * PHP 8.0+
  */
