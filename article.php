@@ -24,7 +24,7 @@ if ($id <= 0 && $slug !== '') {
 
 if ($id <= 0) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_article_not_found'));
+    render404(__('error_article_not_found'));
 }
 
 // 数据装配交给 ContentDetailController：浏览量自增、栏目、上一篇/下一篇/相关。
@@ -34,7 +34,7 @@ require_once __DIR__ . '/controllers/detail/ContentDetailController.php';
 $_vars = (new ContentDetailController())->prepare($id);
 if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_article_not_found'));
+    render404(__('error_article_not_found'));
 }
 
 // 模板沿用 $article / $prevArticle / $nextArticle / $relatedArticles 命名

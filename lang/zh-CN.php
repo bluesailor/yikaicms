@@ -1681,6 +1681,10 @@ return [
 
     // 错误 / 页脚 / 搜索页
     'error_page_not_found' => '页面不存在',
+    'error_404_title' => '页面不存在',
+    'error_404_desc' => '抱歉，你访问的页面可能已被移动、删除，或从未存在。',
+    'error_404_home' => '返回首页',
+    'error_404_search_placeholder' => '搜索站内内容…',
     'footer_partners'      => '合作伙伴',
     'search_all'           => '全部',
     'search_article'       => '文章',
