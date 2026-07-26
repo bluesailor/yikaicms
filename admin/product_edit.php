@@ -90,6 +90,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success(['id' => $id]);
 }
 
+// 预置规格参数（产品设置里配置，每行 键|显示名|默认值）：新建预填、编辑可一键补齐
+$specPresets = [];
+foreach (preg_split('/\r\n|\r|\n/', (string) config('product_spec_presets', '')) ?: [] as $__pl) {
+    $__pl = trim($__pl);
+    if ($__pl === '') {
+        continue;
+    }
+    [$__pk, $__plbl, $__pdv] = array_pad(explode('|', $__pl, 3), 3, '');
+    $__pk = trim($__pk);
+    if ($__pk !== '') {
+        $specPresets[$__pk] = ['label' => trim($__plbl) !== '' ? trim($__plbl) : $__pk, 'value' => trim($__pdv)];
+    }
+}
+
 // 编辑视图的语言：编辑现有 → 用该产品的 lang；新建 → 用 ?lang= 参数，没传则用源语言
 $_defaultLang = (string) config('site_lang', 'zh-CN');
 if ($product && !empty($product['lang'])) {
@@ -161,9 +175,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_product_specs') ?: '规格参数'; ?></label>
-                        <input type="hidden" name="specs" id="specsInput" value="<?php echo e($product['specs'] ?? '{}'); ?>">
+                        <?php
+                        // 新建产品：用预置参数预填（键→默认值）；编辑：保留已存数据
+                        $__specsInit = (string) ($product['specs'] ?? '');
+                        if ($__specsInit === '' || $__specsInit === '{}') {
+                            $__specsInit = $specPresets
+                                ? json_encode(array_map(static fn($p) => $p['value'], $specPresets), JSON_UNESCAPED_UNICODE)
+                                : '{}';
+                        }
+                        ?>
+                        <input type="hidden" name="specs" id="specsInput" value="<?php echo e($__specsInit); ?>">
                         <div id="specsList" class="space-y-2 mb-3"></div>
                         <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec') ?: '添加参数'; ?></button>
+                        <?php if ($specPresets): ?>
+                        <button type="button" onclick="fillSpecPresets()" class="text-sm text-primary hover:underline ml-3"><i class="ti ti-list-check"></i> <?php echo __('admin_spec_fill_preset'); ?></button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -600,15 +626,36 @@ var specLabels = {
     'use': '<?php echo __("spec_use") ?: "用途"; ?>',
     'corner': '<?php echo __("spec_corner") ?: "角丸"; ?>',
 };
+// 预置参数（产品设置配置）：显示名并入标签映射；「从预置补齐」按缺哪补哪，不覆盖已填值
+var specPresets = <?php echo json_encode($specPresets, JSON_UNESCAPED_UNICODE); ?>;
+Object.keys(specPresets).forEach(function (k) { specLabels[k] = specPresets[k].label; });
+function fillSpecPresets() {
+    var added = 0;
+    Object.keys(specPresets).forEach(function (k) {
+        if (!specsData.hasOwnProperty(k)) { specsData[k] = specPresets[k].value || ''; added++; }
+    });
+    if (added) syncSpecs();
+}
 
 function renderSpecs() {
     var list = document.getElementById('specsList');
     list.innerHTML = '';
-    var keys = Object.keys(specsData);
-    if (keys.length === 0) {
+    // WooCommerce 式排布：预置参数（固定显示名、按预置顺序）在前，自定义键值行在后
+    var presetOrder = Object.keys(specPresets).filter(function (k) { return specsData.hasOwnProperty(k); });
+    var customKeys = Object.keys(specsData).filter(function (k) { return !specPresets.hasOwnProperty(k); });
+    if (presetOrder.length + customKeys.length === 0) {
         list.innerHTML = '<div class="text-sm text-gray-400 py-2"><?php echo __("admin_no_specs") ?: "暂无参数"; ?></div>';
+        return;
     }
-    keys.forEach(function(key) {
+    presetOrder.forEach(function (key) {
+        var div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = '<span class="w-32 text-sm text-gray-600 px-1 truncate" title="' + escapeAttr(specPresets[key].label) + '">' + escapeAttr(specPresets[key].label) + '</span>' +
+            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __("admin_spec_val_ph") ?: "留空则前台不显示该项"; ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
+            '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold" title="移除">&times;</button>';
+        list.appendChild(div);
+    });
+    customKeys.forEach(function(key) {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
         var label = specLabels[key] || key;
