@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 define('ROOT_PATH', dirname(__DIR__));
+/** @psalm-suppress MissingFile CI 环境无 config.php（部署时生成） */
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';

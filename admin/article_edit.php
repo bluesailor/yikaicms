@@ -514,6 +514,7 @@ JSEOF;
 
 // 历史版本面板（仅已保存文章）
 if ($id > 0) {
+    // 供 require 的 revision_panel.php 使用（豁免见 psalm.xml issueHandlers）
     $revType = 'article';
     $revTargetId = (int) $id;
     require ROOT_PATH . '/admin/includes/revision_panel.php';

@@ -11,6 +11,9 @@ function im_scaled(GdImage $src, int $size): GdImage
     $w = imagesx($src);
     $h = imagesy($src);
     $dst = imagecreatetruecolor($size, $size);
+    if ($dst === false) {
+        throw new RuntimeException('GD 创建画布失败');
+    }
     imagealphablending($dst, false);
     imagesavealpha($dst, true);
     imagefill($dst, 0, 0, imagecolorallocatealpha($dst, 0, 0, 0, 127));
