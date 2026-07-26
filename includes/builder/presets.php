@@ -170,10 +170,10 @@ function builderPresets(): array
                 'desc' => '折叠问答 × 4（含 SEO 结构化数据）',
                 'sections' => [[
                     'id' => 's',
-                    'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
+                    // 用 section 级标题（blk-title + 装饰条），与首页其它版块标题风格统一
+                    'settings' => ['title' => '常见问题', 'subtitle' => '为您解答购买、售后与定制的常见疑问', 'bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
                     'columns' => [[
                         'id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '常见问题', 'level' => 'h2']],
                             ['id' => 'e', 'type' => 'accordion', 'data' => [
                                 'items' => "如何购买你们的产品？|您可以通过在线表单留言或直接电话联系我们，客服会在一个工作日内回复您。\n"
                                     . "是否提供售后服务？|提供。所有产品均含一年质保与终身技术支持，让您没有后顾之忧。\n"
