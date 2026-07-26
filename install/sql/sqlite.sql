@@ -210,6 +210,7 @@ DROP TABLE IF EXISTS "yikai_channels";
 CREATE TABLE "yikai_channels" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "show_cover" INTEGER NOT NULL DEFAULT 1,
+  "list_options" TEXT DEFAULT '',
   "lang" TEXT NOT NULL DEFAULT 'ja',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "parent_id" INTEGER NOT NULL DEFAULT '0',
