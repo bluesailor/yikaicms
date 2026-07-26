@@ -1596,6 +1596,10 @@ return [
 
     // error / footer / search
     'error_page_not_found' => 'Page not found',
+    'error_404_title' => 'Page Not Found',
+    'error_404_desc' => 'Sorry, the page you are looking for may have been moved, removed, or never existed.',
+    'error_404_home' => 'Back to Home',
+    'error_404_search_placeholder' => 'Search the site…',
     'footer_partners'      => 'Partners',
     'search_all'           => 'All',
     'search_article'       => 'Articles',

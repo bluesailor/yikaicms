@@ -31,7 +31,7 @@ if ($slug) {
 
 if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
-    exit(__('error_channel_not_found'));
+    render404(__('error_channel_not_found'));
 }
 
 // page / link 走 PageRedirectController（短路：要么 include page.php，要么 302）
