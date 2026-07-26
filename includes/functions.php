@@ -74,6 +74,8 @@ function theme_path_optional(string $file): ?string
  * 替代早先各前台控制器的 exit(纯文本)。套当前主题的 header/footer；正文模板
  * 为 partials/404.php（主题可放 themes/<主题>/partials/404.php 覆盖，缺省回退
  * includes/partials/404.php）。$message 为可选的更具体提示（如「文章不存在」）。
+ *
+ * @psalm-suppress UnusedVariable 本函数内变量均供 require 的主题模板使用
  */
 function render404(string $message = ''): void
 {
