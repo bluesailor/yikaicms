@@ -119,11 +119,8 @@ EXCLUDES=(
     ".editorconfig"
     ".claude"
 
-    # 部署样例 / 依赖清单 —— 不是运行时代码，且置于 web 根会被当静态文件下载
-    # （nginx 不读根目录 nginx.conf；真正生效的配置在服务器层）。避免信息暴露，打包排除。
-    # deploy/ 同理（nginx-baota.conf / aliyun-vhost.htaccess 等样例），发行包不带；参考见 GitHub 仓库。
-    "nginx.conf"
-    "nginx.htaccess"
+    # 部署样例 —— 不是运行时代码；已全部集中在 deploy/（避免 web 根出现 nginx.conf 等
+    # 知名文件名被扫描器探测/下载）。发行包不带；参考见 GitHub 仓库。
     "deploy"
 
     # 开发文档（内部说明，不发布给用户）
