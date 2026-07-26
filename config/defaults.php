@@ -182,6 +182,7 @@ return [
     'product' => [
         'product_layout'        => ['value' => 'sidebar', 'type' => 'select', 'name' => '产品列表布局', 'tip' => '', 'options' => '{"sidebar":"侧边栏","top":"顶部栏"}', 'sort_order' => 1],
         'show_price'            => ['value' => '0', 'type' => 'select', 'name' => '显示产品价格', 'tip' => '前台是否显示价格', 'options' => '{"0":"隐藏","1":"显示"}', 'sort_order' => 2],
+        'product_spec_presets'  => ['value' => "size|尺寸\nweight|重量\norigin|产地\nbrand|品牌\ncolor|颜色", 'type' => 'textarea', 'name' => '预置规格参数', 'tip' => '每行一条：键名|显示名|默认值（后两项可省略）；新建产品自动填入', 'sort_order' => 3],
         'product_sort_options'  => ['value' => '["default","newest","views"]', 'type' => 'text', 'name' => '可用排序选项', 'tip' => 'JSON数组，可选：default/newest/updated/views/price_asc/price_desc', 'sort_order' => 3],
     ],
 
