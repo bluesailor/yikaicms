@@ -102,7 +102,7 @@ $contents = $hChannel['contents'];
             ?>
             <a href="<?php echo $itemUrl; ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
                 <?php if ($item['cover']): ?>
-                <div class="overflow-hidden h-40">
+                <div class="overflow-hidden aspect-[4/3]">
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover">
                 </div>
                 <?php endif; ?>
@@ -124,7 +124,7 @@ $contents = $hChannel['contents'];
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <?php for ($i = 0; $i < 3; $i++): ?>
             <div class="border border-gray-200">
-                <div class="h-48 bg-gray-50"></div>
+                <div class="aspect-[4/3] bg-gray-50"></div>
                 <div class="p-6">
                     <div class="h-4 bg-gray-100 mb-3"></div>
                     <div class="h-3 bg-gray-50 w-2/3"></div>
