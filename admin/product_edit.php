@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_product');
 
 // 多语言翻译创建器：拦截 action=create_translation 的 POST
 $langSwitcher = [
