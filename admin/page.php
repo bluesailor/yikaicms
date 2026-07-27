@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_page');
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete') {
+        requirePermission('delete_page');
         $id = postInt('id');
         $channel = channelModel()->find($id);
         if (!$channel) {

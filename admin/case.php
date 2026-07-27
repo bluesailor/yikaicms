@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_case');
 
 $contentType = 'case';
 
@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'delete') {
+        requirePermission('delete_case');
         $id = postInt('id');
         contentModel()->deleteById($id);
         adminLog('case', 'delete', '删除案例ID：' . $id);
@@ -29,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_delete') {
+        requirePermission('delete_case');
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             contentModel()->deleteByIds($ids);
