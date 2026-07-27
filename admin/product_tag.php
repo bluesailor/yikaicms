@@ -8,7 +8,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
-requirePermission('content');
+requirePermission('edit_product');
 
 // ============== 多语言视图 ==============
 $_lang        = adminLangView();

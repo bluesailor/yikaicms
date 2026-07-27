@@ -17,7 +17,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_case');
 
 $srcLang = (string) config('site_lang', 'zh-CN');
 

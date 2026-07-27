@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_page');
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 require_once ROOT_PATH . '/includes/builder/presets.php';

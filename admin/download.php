@@ -13,13 +13,14 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_download');
 
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'delete') {
+        requirePermission('delete_download');
         $id = postInt('id');
         $download = downloadModel()->find($id);
         if ($download && !$download['is_external'] && $download['file_url']) {
@@ -34,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_delete') {
+        requirePermission('delete_download');
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             $downloads = downloadModel()->getFileInfoByIds($ids);

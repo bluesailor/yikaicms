@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+if (!hasAnyContentPerm()) requirePermission('edit_article');
 
 // 内容类型
 $contentTypes = [
@@ -30,6 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = postInt('id');
+        // 按被删内容的类型要求对应 delete_ 权限（保持类型隔离）
+        $__row = contentModel()->find($id);
+        if ($__row) {
+            requirePermission('delete_' . (in_array($__row['type'], contentPermTypes(), true) ? $__row['type'] : 'article'));
+        }
         contentModel()->deleteById($id);
         adminLog('content', 'delete', '删除内容ID：' . $id);
         success();
@@ -38,6 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'batch_delete') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
+            // 逐项按类型校验删除权限，任一不足即拒绝整批
+            foreach (contentModel()->query('SELECT DISTINCT type FROM ' . contentModel()->tableName() . ' WHERE id IN (' . implode(',', array_map('intval', $ids)) . ')') as $__t) {
+                requirePermission('delete_' . (in_array($__t['type'], contentPermTypes(), true) ? $__t['type'] : 'article'));
+            }
             contentModel()->deleteByIds($ids);
             adminLog('content', 'batch_delete', '批量删除：' . implode(',', $ids));
         }

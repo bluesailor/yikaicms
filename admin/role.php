@@ -15,17 +15,8 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
-// 可分配权限列表
-$allPermissions = [
-    '*'       => '全部权限（超级管理员）',
-    'content' => '内容管理',
-    'media'   => '媒体管理',
-    'form'    => '表单管理',
-    'banner'  => '横幅管理',
-    'link'    => '友情链接',
-    'member'  => '会员管理',
-    'setting' => '系统设置',
-];
+// 权限目录来自 includes/permissions.php（单一数据源）
+$permCatalog = permissionCatalog();
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -42,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 过滤无效权限
-        $permissions = array_values(array_intersect($permissions, array_keys($allPermissions)));
+        $permissions = array_values(array_intersect($permissions, allPermissionKeys()));
         if (in_array('*', $permissions)) {
             $permissions = ['*'];
         }
@@ -163,7 +154,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">全部权限</span>
                             <?php else: ?>
                             <?php foreach ($perms as $p): ?>
-                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded"><?php echo e($allPermissions[$p] ?? $p); ?></span>
+                            <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded"><?php echo e(permLabel($p)); ?></span>
                             <?php endforeach; ?>
                             <?php if (empty($perms)): ?>
                             <span class="text-xs text-gray-400">无权限</span>
@@ -218,16 +209,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div>
                 <label class="block text-gray-700 mb-2">权限分配</label>
-                <div class="border rounded p-4 space-y-3 bg-gray-50">
-                    <?php foreach ($allPermissions as $key => $label): ?>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="permissions[]" value="<?php echo $key; ?>"
+                <div class="border rounded p-4 space-y-4 bg-gray-50">
+                    <!-- 全部权限（超管）单列，勾选后禁用其余 -->
+                    <label class="flex items-center gap-2 cursor-pointer pb-2 border-b">
+                        <input type="checkbox" name="permissions[]" value="*"
                                class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox"
-                               data-perm="<?php echo $key; ?>"
-                               onchange="handlePermChange(this)">
-                        <span class="text-sm <?php echo $key === '*' ? 'font-bold text-red-600' : 'text-gray-700'; ?>"><?php echo e($label); ?></span>
+                               data-perm="*" onchange="handlePermChange(this)">
+                        <span class="text-sm font-bold text-red-600"><?php echo e(__('perm_all')); ?></span>
                     </label>
+                    <?php foreach ($permCatalog as $group): ?>
+                    <div>
+                        <div class="text-xs font-medium text-gray-400 uppercase mb-1.5"><?php echo e($group['label']); ?></div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                            <?php foreach ($group['caps'] as $key => $label): ?>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="permissions[]" value="<?php echo e($key); ?>"
+                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox"
+                                       data-perm="<?php echo e($key); ?>" onchange="handlePermChange(this)">
+                                <span class="text-sm text-gray-700"><?php echo e($label); ?></span>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                     <?php endforeach; ?>
+                    <p class="text-xs text-gray-400 pt-1"><?php echo e(__('perm_no_delete_hint')); ?></p>
                 </div>
             </div>
 
