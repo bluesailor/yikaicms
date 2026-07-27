@@ -173,24 +173,38 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="hidden" name="content" id="contentInput">
                     </div>
 
-                    <div>
-                        <label class="block text-gray-700 mb-1"><?php echo __('admin_product_specs') ?: '规格参数'; ?></label>
-                        <?php
-                        // 新建产品：用预置参数预填（键→默认值）；编辑：保留已存数据
-                        $__specsInit = (string) ($product['specs'] ?? '');
-                        if ($__specsInit === '' || $__specsInit === '{}') {
-                            $__specsInit = $specPresets
-                                ? json_encode(array_map(static fn($p) => $p['value'], $specPresets), JSON_UNESCAPED_UNICODE)
-                                : '{}';
+                    <?php
+                    // 新建产品：用预置参数预填（键→默认值）；编辑：保留已存数据
+                    $__specsInit = (string) ($product['specs'] ?? '');
+                    if ($__specsInit === '' || $__specsInit === '{}') {
+                        $__specsInit = $specPresets
+                            ? json_encode(array_map(static fn($p) => $p['value'], $specPresets), JSON_UNESCAPED_UNICODE)
+                            : '{}';
+                    }
+                    // 默认折叠：已填有值的产品自动展开（有内容就该看见），全空/新建保持收起不占版面
+                    $__specsFilled = 0;
+                    foreach ((array) (json_decode($__specsInit, true) ?: []) as $__sv) {
+                        if (trim((string) $__sv) !== '') {
+                            $__specsFilled++;
                         }
-                        ?>
-                        <input type="hidden" name="specs" id="specsInput" value="<?php echo e($__specsInit); ?>">
-                        <div id="specsList" class="space-y-2 mb-3"></div>
-                        <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec') ?: '添加参数'; ?></button>
-                        <?php if ($specPresets): ?>
-                        <button type="button" onclick="fillSpecPresets()" class="text-sm text-primary hover:underline ml-3"><i class="ti ti-list-check"></i> <?php echo __('admin_spec_fill_preset'); ?></button>
-                        <?php endif; ?>
-                    </div>
+                    }
+                    ?>
+                    <details class="group border rounded-lg"<?php echo $__specsFilled > 0 ? ' open' : ''; ?>>
+                        <summary class="flex items-center justify-between px-4 py-3 cursor-pointer list-none text-gray-700 hover:text-primary transition">
+                            <span><?php echo __('admin_product_specs') ?: '规格参数'; ?>
+                                <span id="specsCount" class="text-xs text-gray-400 ml-1"><?php echo $__specsFilled > 0 ? "（{$__specsFilled}）" : ''; ?></span>
+                            </span>
+                            <i class="ti ti-chevron-down text-gray-400 transition-transform group-open:rotate-180"></i>
+                        </summary>
+                        <div class="px-4 pb-4">
+                            <input type="hidden" name="specs" id="specsInput" value="<?php echo e($__specsInit); ?>">
+                            <div id="specsList" class="space-y-2 mb-3"></div>
+                            <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec') ?: '添加参数'; ?></button>
+                            <?php if ($specPresets): ?>
+                            <button type="button" onclick="fillSpecPresets()" class="text-sm text-primary hover:underline ml-3"><i class="ti ti-list-check"></i> <?php echo __('admin_spec_fill_preset'); ?></button>
+                            <?php endif; ?>
+                        </div>
+                    </details>
                 </div>
             </div>
 
@@ -671,6 +685,10 @@ function renderSpecs() {
 function syncSpecs() {
     document.getElementById('specsInput').value = JSON.stringify(specsData);
     renderSpecs();
+    // 折叠标题上的已填计数同步
+    var filled = Object.keys(specsData).filter(function (k) { return String(specsData[k]).trim() !== ''; }).length;
+    var cnt = document.getElementById('specsCount');
+    if (cnt) cnt.textContent = filled > 0 ? '（' + filled + '）' : '';
 }
 
 function addSpecRow() {
