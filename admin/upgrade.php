@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             }
             $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: __('upgrade_success')];
             // adminLog 失败不影响升级响应
-            try { adminLog('upgrade', 'execute', '执行升级: ' . $up['title']); } catch (\Throwable $e) {}
+            try { adminLog('upgrade', 'execute', '执行升级: ' . ($up['title'] ?? $up['id'])); } catch (\Throwable $e) {}
         } catch (\Throwable $e) {
             $results[$up['id']] = ['status' => 'error', 'message' => $e->getMessage()];
         }
@@ -232,12 +232,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow" data-id="<?php echo $up['id']; ?>">
         <div class="px-5 py-4 border-b flex items-center gap-3">
             <input type="checkbox" class="upgrade-check w-4 h-4" value="<?php echo $up['id']; ?>" checked>
-            <span class="font-semibold flex-1"><?php echo htmlspecialchars($up['title']); ?></span>
+            <span class="font-semibold flex-1"><?php echo htmlspecialchars((string) ($up['title'] ?? $up['name'] ?? $up['id'])); ?></span>
             <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
             <span class="upgrade-badge inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">待升级</span>
         </div>
         <div class="px-5 py-3 text-sm text-gray-500">
-            <?php echo htmlspecialchars($up['desc']); ?>
+            <?php echo htmlspecialchars((string) ($up['desc'] ?? '')); ?>
             <div class="upgrade-msg mt-2 hidden"></div>
         </div>
     </div>
@@ -260,7 +260,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="bg-white rounded-lg shadow">
             <div class="px-5 py-3.5 flex items-center gap-3">
                 <i class="ti ti-circle-check text-lg text-green-500 flex-shrink-0"></i>
-                <span class="font-medium flex-1 text-sm"><?php echo htmlspecialchars($up['title']); ?></span>
+                <span class="font-medium flex-1 text-sm"><?php echo htmlspecialchars((string) ($up['title'] ?? $up['name'] ?? $up['id'])); ?></span>
                 <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
                 <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('upgrade_completed'); ?></span>
             </div>
