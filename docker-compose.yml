@@ -1,0 +1,34 @@
+# YikaiCMS 本地一键起站（web + MySQL）
+# 用法：docker compose up -d  →  浏览器打开 http://localhost:8080 进入安装向导
+#   安装向导数据库处填：主机 db / 用户 root / 密码见下 / 数据库名 yikaicms
+services:
+  web:
+    build: .
+    image: yikaicms:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    volumes:
+      # 部署实例数据持久化（config 含安装后生成的 config.php）
+      - yikai_config:/var/www/html/config
+      - yikai_storage:/var/www/html/storage
+      - yikai_uploads:/var/www/html/uploads
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: yikai_root_pass
+      MYSQL_DATABASE: yikaicms
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - yikai_db:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  yikai_config:
+  yikai_storage:
+  yikai_uploads:
+  yikai_db:
