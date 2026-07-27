@@ -123,6 +123,11 @@ EXCLUDES=(
     # 知名文件名被扫描器探测/下载）。发行包不带；参考见 GitHub 仓库。
     "deploy"
 
+    # 容器化文件（共享主机发行包用不到；镜像走 docs/docker.md）
+    "Dockerfile"
+    ".dockerignore"
+    "docker-compose.yml"
+
     # 开发文档（内部说明，不发布给用户）
     "docs"
     "AGENTS.md"
