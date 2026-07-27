@@ -134,45 +134,34 @@ document.getElementById('onbDismiss')?.addEventListener('click', async function 
 </script>
 <?php endif; ?>
 
-<!-- クイックアクセス -->
+<!-- クイックアクセス（按权限显示，非超管只见自己能用的入口） -->
+<?php
+// [url, 图标, 图标盒class(字面量供Tailwind扫描), 图标色, lang键, 所需权限]
+$__quick = [
+    ['/admin/setting.php',            'ti-settings',        'bg-blue-50 group-hover:bg-blue-100',     'text-blue-600',   'dashboard_quick_setting',  '*'],
+    ['/admin/setting_home.php',       'ti-home',            'bg-green-50 group-hover:bg-green-100',   'text-green-600',  'dashboard_quick_home',     '*'],
+    ['/admin/setting_contact.php',    'ti-phone',           'bg-cyan-50 group-hover:bg-cyan-100',     'text-cyan-600',   'dashboard_quick_contact',  '*'],
+    ['/admin/database.php?tab=backup','ti-database',        'bg-purple-50 group-hover:bg-purple-100', 'text-purple-600', 'dashboard_quick_database', '*'],
+    ['/admin/banner.php',             'ti-photo',           'bg-amber-50 group-hover:bg-amber-100',   'text-amber-600',  'dashboard_quick_banner',   'banner'],
+    ['/admin/channel.php',            'ti-align-justified', 'bg-rose-50 group-hover:bg-rose-100',     'text-rose-600',   'dashboard_quick_channel',  '*'],
+    // 内容编辑常用入口（非超管也可见，凭内容权限）
+    ['/admin/article.php',            'ti-file-text',       'bg-indigo-50 group-hover:bg-indigo-100', 'text-indigo-600', 'dashboard_quick_article',  'edit_article'],
+    ['/admin/product.php',            'ti-package',         'bg-teal-50 group-hover:bg-teal-100',     'text-teal-600',   'dashboard_quick_product',  'edit_product'],
+];
+$__quick = array_values(array_filter($__quick, fn($q) => hasPermission($q[5])));
+?>
+<?php if ($__quick): ?>
 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-    <a href="/admin/setting.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition">
-            <i class="ti ti-settings text-lg text-blue-600"></i>
+    <?php foreach ($__quick as [$url, $icon, $boxClass, $iconColor, $langKey]): ?>
+    <a href="<?php echo e($url); ?>" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <div class="w-10 h-10 <?php echo $boxClass; ?> rounded-lg flex items-center justify-center transition">
+            <i class="ti <?php echo e($icon); ?> text-lg <?php echo $iconColor; ?>"></i>
         </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __('dashboard_quick_setting'); ?></span>
+        <span class="text-sm text-gray-600 font-medium"><?php echo __($langKey); ?></span>
     </a>
-    <a href="/admin/setting_home.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition">
-            <i class="ti ti-home text-lg text-green-600"></i>
-        </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __('dashboard_quick_home'); ?></span>
-    </a>
-    <a href="/admin/setting_contact.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 bg-cyan-50 rounded-lg flex items-center justify-center group-hover:bg-cyan-100 transition">
-            <i class="ti ti-phone text-lg text-cyan-600"></i>
-        </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __('dashboard_quick_contact'); ?></span>
-    </a>
-    <a href="/admin/theme.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center group-hover:bg-purple-100 transition">
-            <i class="ti ti-brush text-lg text-purple-600"></i>
-        </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __('dashboard_quick_theme'); ?></span>
-    </a>
-    <a href="/admin/banner.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center group-hover:bg-amber-100 transition">
-            <i class="ti ti-photo text-lg text-amber-600"></i>
-        </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __('dashboard_quick_banner'); ?></span>
-    </a>
-    <a href="/admin/channel.php" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center group-hover:bg-rose-100 transition">
-            <i class="ti ti-align-justified text-lg text-rose-600"></i>
-        </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __('dashboard_quick_channel'); ?></span>
-    </a>
+    <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <!-- 統計カード -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

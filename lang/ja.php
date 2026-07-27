@@ -1465,6 +1465,9 @@ return [
     'dashboard_quick_home' => 'トップページ設定',
     'dashboard_quick_contact' => 'お問い合わせ設定',
     'dashboard_quick_theme' => 'テンプレート選択',
+    'dashboard_quick_database' => 'データベースバックアップ',
+    'dashboard_quick_article' => '記事管理',
+    'dashboard_quick_product' => '製品管理',
     'dashboard_quick_banner' => 'スライドショー',
     'dashboard_quick_channel' => 'カテゴリ管理',
 
