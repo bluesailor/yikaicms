@@ -16,7 +16,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('*');
 
 $presets = require ROOT_PATH . '/includes/content_model_presets.php';
 

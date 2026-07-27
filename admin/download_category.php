@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_download');
 
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

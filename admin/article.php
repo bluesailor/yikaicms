@@ -14,7 +14,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_article');
 
 // 视图语言（?lang=en/ja 切换列哪个语言；默认为 site_lang）
 // 必须先于 news 栏目查询：news 栏目在每种语言下是不同的行（id 不同），
@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'delete') {
+        requirePermission('delete_article');
         $id = postInt('id');
         contentModel()->deleteById($id);
         adminLog('article', 'delete', "删除文章ID: $id");
@@ -55,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_delete') {
+        requirePermission('delete_article');
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             contentModel()->deleteByIds($ids);
