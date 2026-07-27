@@ -13,13 +13,14 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+if (!hasAnyContentPerm()) requirePermission('edit_article');
 
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'delete') {
+        requirePermission('delete_article');
         $id = postInt('id');
         jobModel()->deleteById($id);
         adminLog('job', 'delete', '删除职位ID：' . $id);
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_delete') {
+        requirePermission('delete_article');
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             jobModel()->deleteByIds($ids);

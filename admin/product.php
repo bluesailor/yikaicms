@@ -13,13 +13,14 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('edit_product');
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'delete') {
+        requirePermission('delete_product');
         $id = postInt('id');
         productModel()->deleteById($id);
         adminLog('product', 'delete', "删除产品ID: $id");
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_delete') {
+        requirePermission('delete_product');
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             productModel()->deleteByIds($ids);

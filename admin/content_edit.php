@@ -13,7 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+if (!hasAnyContentPerm()) requirePermission('edit_article');   // 无任何内容权限直接拦下
 
 // 多语言翻译创建器：处理 action=create_translation 的 POST（必须在主 POST 处理前 require）
 $langSwitcher = [
@@ -33,6 +33,9 @@ if ($content) {
         exit;
     }
 }
+
+// 类型隔离守卫：按被编辑内容的类型精确要求 edit_{type}（防产品编辑者借共享编辑器改文章）
+requireContentEditPerm($content['type'] ?? ($_SERVER['REQUEST_METHOD'] === 'POST' ? post('type', 'article') : get('type', '')));
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

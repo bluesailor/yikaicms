@@ -16,7 +16,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+requirePermission('*');
 
 $ownerType = get('owner_type', 'content');
 if (!in_array($ownerType, extFieldOwnerTypes(), true)) {
