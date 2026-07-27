@@ -1,0 +1,35 @@
+# 构建上下文瘦身：以下不进镜像
+.git
+.github
+.claude
+node_modules
+vendor
+releases
+tests
+docs
+ui-library
+*.md
+!README.md
+build.sh
+build.bat
+reset_test.sh
+phpunit.xml
+psalm.xml
+psalm-baseline.xml
+package.json
+package-lock.json
+composer.phar
+Dockerfile
+.dockerignore
+docker-compose.yml
+deploy
+nginx.conf
+nginx.htaccess
+# 部署实例数据（每部署各异，绝不入镜像）
+config/config.php
+config/installed.lock
+installed.lock
+storage/*
+!storage/.gitkeep
+uploads/*
+!uploads/.gitkeep
