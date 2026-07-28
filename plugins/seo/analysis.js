@@ -44,6 +44,15 @@
         while ((i = h.indexOf(n, i)) !== -1) { c++; i += n.length; }
         return c;
     }
+    function truncate(s, n) {
+        s = (s || '').trim();
+        return s.length > n ? s.slice(0, n - 1).trim() + '…' : s;
+    }
+    function esc(s) {
+        return (s || '').replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+    }
 
     // ---------- 分析引擎 ----------
     // 返回 [{level:'good|ok|bad|na', text}]，level 决定分数与颜色
@@ -180,10 +189,68 @@
         '</div>' +
         '<ul id="ykSeoList" class="space-y-1.5 text-xs"></ul>';
 
-    // 插入到 SEO 设置卡之后（同左主栏），退化到 body 末尾
+    // SERP 摘要预览卡（谷歌/百度风格，展示搜索结果观感）
+    var snippet = document.createElement('div');
+    snippet.className = 'bg-white rounded-lg shadow p-6';
+    snippet.innerHTML =
+        '<h3 class="font-bold text-gray-800 mb-1 flex items-center gap-2">' +
+            '<i class="ti ti-search text-blue-500"></i> 搜索结果预览' +
+            '<span class="text-[10px] font-medium bg-green-100 text-green-700 px-1.5 py-0.5 rounded">免费</span>' +
+        '</h3>' +
+        '<div class="flex items-center gap-1 mb-3 text-xs">' +
+            '<button type="button" data-dev="desktop" class="ykSeoDev px-2 py-1 rounded border border-blue-400 bg-blue-50 text-blue-600 inline-flex items-center gap-1"><i class="ti ti-device-desktop"></i>电脑</button>' +
+            '<button type="button" data-dev="mobile" class="ykSeoDev px-2 py-1 rounded border border-gray-200 text-gray-500 inline-flex items-center gap-1"><i class="ti ti-device-mobile"></i>手机</button>' +
+        '</div>' +
+        '<div id="ykSeoSerp" class="border border-gray-100 rounded-lg p-3 bg-white" style="max-width:600px">' +
+            '<div id="ykSeoSerpUrl" class="text-xs text-gray-500 truncate"></div>' +
+            '<div id="ykSeoSerpTitle" class="text-[#1a0dab] text-lg leading-snug truncate" style="font-family:arial,sans-serif"></div>' +
+            '<div id="ykSeoSerpDesc" class="text-sm text-gray-600 leading-snug mt-0.5"></div>' +
+        '</div>';
+
+    // 插入到 SEO 设置卡之后（同左主栏）：SEO设置 → 搜索预览 → SEO分析。退化到 body 末尾
     var seoCard = seoDescEl.closest('.bg-white');
-    if (seoCard && seoCard.parentNode) seoCard.parentNode.insertBefore(panel, seoCard.nextSibling);
-    else document.body.appendChild(panel);
+    if (seoCard && seoCard.parentNode) {
+        seoCard.parentNode.insertBefore(snippet, seoCard.nextSibling);
+        snippet.parentNode.insertBefore(panel, snippet.nextSibling);
+    } else {
+        document.body.appendChild(snippet);
+        document.body.appendChild(panel);
+    }
+
+    // SERP 预览：设备切换 + 元素引用
+    var serpDevice = 'desktop';
+    var serpUrlEl = snippet.querySelector('#ykSeoSerpUrl');
+    var serpTitleEl = snippet.querySelector('#ykSeoSerpTitle');
+    var serpDescEl = snippet.querySelector('#ykSeoSerpDesc');
+    snippet.querySelectorAll('.ykSeoDev').forEach(function (b) {
+        b.addEventListener('click', function () {
+            serpDevice = b.getAttribute('data-dev');
+            snippet.querySelectorAll('.ykSeoDev').forEach(function (x) {
+                var on = x === b;
+                x.className = 'ykSeoDev px-2 py-1 rounded border inline-flex items-center gap-1 ' +
+                    (on ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500');
+            });
+            updateSnippet();
+        });
+    });
+
+    function updateSnippet() {
+        var title = (titleEl.value || '').trim();
+        var seoTitle = (seoTitleEl && seoTitleEl.value.trim()) || title || '页面标题';
+        var desc = (seoDescEl.value || '').trim();
+        if (!desc) desc = htmlToText(getContentHtml());   // 回退：正文摘要（与前台一致）
+        var slug = (slugEl && slugEl.value.trim()) || '';
+        var base = location.protocol + '//' + location.host;
+        var url = base + (slug ? '/' + slug : '');
+        // 电脑 vs 手机的截断宽度不同
+        var tMax = serpDevice === 'mobile' ? 38 : 60;
+        var dMax = serpDevice === 'mobile' ? 120 : 158;
+        serpUrlEl.textContent = url;
+        serpTitleEl.textContent = truncate(seoTitle, tMax);
+        serpDescEl.textContent = desc ? truncate(desc, dMax) : '（暂无描述：填写 SEO 描述或正文，将在此显示搜索摘要）';
+        serpDescEl.style.color = desc ? '' : '#9ca3af';
+        serpTitleEl.style.maxWidth = serpDevice === 'mobile' ? '360px' : '';
+    }
 
     var kwInput = panel.querySelector('#ykSeoKw');
     var ring = panel.querySelector('#ykSeoRing');
@@ -196,6 +263,7 @@
     try { kwInput.value = localStorage.getItem(KW_STORE) || ''; } catch (e) {}
 
     function render() {
+        updateSnippet();
         var res = analyze();
         var sc = score(res.items);
         ring.setAttribute('stroke-dasharray', sc.pct + ' 100');
