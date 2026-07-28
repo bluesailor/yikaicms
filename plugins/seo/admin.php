@@ -30,6 +30,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gen_l
     success(['at' => date('Y-m-d H:i')], $msg);
 }
 
+// 保存推送配置（百度站点/token）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_push') {
+    settingModel()->set('seo_baidu_site', trim((string) ($_POST['baidu_site'] ?? '')));
+    settingModel()->set('seo_baidu_token', trim((string) ($_POST['baidu_token'] ?? '')));
+    success([], '已保存');
+}
+
+// 生成 IndexNow 密钥文件
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gen_indexnow_key') {
+    [$ok, $msg, $key] = seo_ensure_indexnow_key();
+    if (!$ok) {
+        error($msg);
+    }
+    success(['key' => $key], $msg);
+}
+
+// 推送到百度 / IndexNow
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['push_baidu', 'push_indexnow'], true)) {
+    $urls = seo_all_urls(500);
+    if (($_POST['action']) === 'push_baidu') {
+        [$ok, $msg] = seo_submit_baidu((string) config('seo_baidu_site', ''), (string) config('seo_baidu_token', ''), $urls);
+    } else {
+        $host = parse_url(siteBaseUrl(), PHP_URL_HOST) ?: '';
+        [$ok, $msg] = seo_submit_indexnow((string) $host, (string) config('seo_indexnow_key', ''), $urls);
+    }
+    if (!$ok) {
+        error($msg);
+    }
+    adminLog('plugin', 'seo', $_POST['action'] . ': ' . $msg);
+    success(['count' => count($urls)], $msg);
+}
+
 // —— 页面数据 ——
 $llmsPreview = seo_build_llms_txt();
 $llmsPath    = seo_llms_path();
@@ -37,6 +69,14 @@ $llmsExists  = file_exists($llmsPath);
 $llmsGenAt   = (int) config('seo_llms_generated_at', 0);
 $siteUrl     = rtrim(siteBaseUrl(), '/');
 $siteUrlSet  = trim((string) config('site_url', '')) !== '';
+
+// 搜索引擎推送
+$baiduSite         = (string) config('seo_baidu_site', '');
+$baiduToken        = (string) config('seo_baidu_token', '');
+$indexnowKey       = (string) config('seo_indexnow_key', '');
+$indexnowHost      = (string) (parse_url(siteBaseUrl(), PHP_URL_HOST) ?: '');
+$indexnowKeyExists = $indexnowKey !== '' && file_exists(seo_indexnow_key_path($indexnowKey));
+$pushUrlCount      = count(seo_all_urls(500));
 
 $pageTitle   = 'SEO 工坊';
 $currentMenu = 'plugin';
@@ -115,6 +155,75 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
+    <!-- ===== 免费：搜索引擎主动推送 ===== -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+                <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                    <i class="ti ti-send text-blue-500"></i> 搜索引擎主动推送
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">把站点 URL 主动提交给搜索引擎，加快收录。当前可推送约 <strong x-text="urlCount"></strong> 条 URL。</p>
+            </div>
+            <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded">免费</span>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- 百度 -->
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="font-medium text-gray-800 text-sm mb-3 flex items-center gap-1.5">
+                    <i class="ti ti-brand-baidu text-blue-600"></i> 百度（普通收录）
+                </div>
+                <label class="block text-xs text-gray-500 mb-1">站点（与百度资源平台一致，如 http://www.example.com）</label>
+                <input type="text" x-model="baiduSite" placeholder="http://www.example.com"
+                       class="w-full border border-gray-200 rounded px-3 py-1.5 text-sm mb-2">
+                <label class="block text-xs text-gray-500 mb-1">推送 token</label>
+                <input type="text" x-model="baiduToken" placeholder="百度资源平台 → 普通收录 → API 提交"
+                       class="w-full border border-gray-200 rounded px-3 py-1.5 text-sm mb-3">
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="savePush()" :disabled="busy"
+                            class="text-sm border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-gray-600 px-3 py-1.5 rounded-lg">保存</button>
+                    <button type="button" @click="push('baidu')" :disabled="busy"
+                            class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                        <i class="ti ti-send text-base"></i> 推送到百度
+                    </button>
+                </div>
+            </div>
+
+            <!-- IndexNow -->
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="font-medium text-gray-800 text-sm mb-3 flex items-center gap-1.5">
+                    <i class="ti ti-brand-bing text-teal-600"></i> IndexNow（Bing / Yandex 等）
+                </div>
+                <p class="text-xs text-gray-500 mb-2">一次提交，多引擎共享。需在站点根放一个密钥文件供验证。</p>
+                <div class="text-xs mb-2">
+                    <span class="text-gray-500">域名：</span><code><?php echo e($indexnowHost ?: '未配置站点网址'); ?></code>
+                </div>
+                <div class="text-xs mb-3 flex items-center gap-2">
+                    <span class="text-gray-500">密钥文件：</span>
+                    <template x-if="keyReady">
+                        <a :href="'/' + keyName + '.txt'" target="_blank" class="text-green-600 inline-flex items-center gap-1"><i class="ti ti-circle-check"></i><span x-text="'/' + keyName + '.txt'"></span></a>
+                    </template>
+                    <template x-if="!keyReady">
+                        <span class="text-amber-600 inline-flex items-center gap-1"><i class="ti ti-alert-circle"></i>未生成</span>
+                    </template>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="genKey()" :disabled="busy"
+                            class="text-sm border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-gray-600 px-3 py-1.5 rounded-lg">
+                        <span x-text="keyReady ? '重新生成密钥' : '生成密钥文件'"></span>
+                    </button>
+                    <button type="button" @click="push('indexnow')" :disabled="busy || !keyReady"
+                            class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                        <i class="ti ti-send text-base"></i> 推送 IndexNow
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 pb-4 -mt-2">
+            <p class="text-xs text-gray-400" x-show="pushMsg" x-text="pushMsg"></p>
+        </div>
+    </div>
+
     <!-- ===== 专业版功能（就地上锁展示） ===== -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -175,6 +284,44 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             loading: false,
             exists: <?php echo $llmsExists ? 'true' : 'false'; ?>,
             genAt: <?php echo $llmsGenAt ? ('"' . date('Y-m-d H:i', $llmsGenAt) . '"') : '""'; ?>,
+            // 搜索引擎推送
+            busy: false,
+            pushMsg: "",
+            urlCount: <?php echo (int) $pushUrlCount; ?>,
+            baiduSite: <?php echo json_encode($baiduSite, JSON_UNESCAPED_UNICODE); ?>,
+            baiduToken: <?php echo json_encode($baiduToken, JSON_UNESCAPED_UNICODE); ?>,
+            keyName: <?php echo json_encode($indexnowKey, JSON_UNESCAPED_UNICODE); ?>,
+            keyReady: <?php echo $indexnowKeyExists ? 'true' : 'false'; ?>,
+            _post(action, extra) {
+                var body = new URLSearchParams();
+                body.set("action", action);
+                Object.keys(extra || {}).forEach(function (k) { body.set(k, extra[k]); });
+                return fetch(window.location.href, { method: "POST", body: body }).then(function (r) { return r.json(); });
+            },
+            savePush() {
+                var self = this; this.busy = true; this.pushMsg = "";
+                this._post("save_push", { baidu_site: this.baiduSite, baidu_token: this.baiduToken })
+                    .then(function (res) { self.pushMsg = (res && res.msg) || "已保存"; })
+                    .catch(function () { self.pushMsg = "保存失败"; })
+                    .finally(function () { self.busy = false; });
+            },
+            genKey() {
+                var self = this; this.busy = true; this.pushMsg = "";
+                this._post("gen_indexnow_key")
+                    .then(function (res) {
+                        if (res && res.code === 0) { self.keyName = res.data.key; self.keyReady = true; self.pushMsg = res.msg; }
+                        else self.pushMsg = (res && res.msg) || "生成失败";
+                    })
+                    .catch(function () { self.pushMsg = "生成失败"; })
+                    .finally(function () { self.busy = false; });
+            },
+            push(engine) {
+                var self = this; this.busy = true; this.pushMsg = "推送中…";
+                this._post(engine === "baidu" ? "push_baidu" : "push_indexnow")
+                    .then(function (res) { self.pushMsg = (res && res.msg) || "完成"; })
+                    .catch(function () { self.pushMsg = "推送失败"; })
+                    .finally(function () { self.busy = false; });
+            },
             generate() {
                 var self = this;
                 this.loading = true;
