@@ -1119,6 +1119,8 @@ return [
     'sys_info' => 'システム情報',
     'sys_stat_log' => '操作ログ',
     'sys_error_log' => 'エラーログ',
+    'seo_plugin_hint' => '「SEO ツールキット」プラグインが有効です：llms.txt、リアルタイム執筆分析、検索エンジン送信などの機能はプラグインパネルへ。本ページはサイト全体のタイトル/キーワード/説明などの基本項目を管理します。',
+    'seo_plugin_hint_go' => 'プラグインパネルへ',
     'sys_error_log_entries' => '件',
     'sys_error_log_clear' => 'このログを消去',
     'sys_error_log_clear_confirm' => 'このエラーログを消去しますか？この操作は取り消せません。',

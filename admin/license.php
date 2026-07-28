@@ -64,7 +64,7 @@ $currentMenu = 'license';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="max-w-3xl space-y-6">
+<div class="space-y-6">
 
     <!-- 状态卡 -->
     <div class="bg-white rounded-lg shadow p-6">
