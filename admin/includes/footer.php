@@ -547,6 +547,28 @@ function switchAdminLang(lang) {
 }
 </script>
     <script src="/assets/js/screen-options.js?v=1"></script>
+    <!-- flatpickr：统一美化后台所有日期/时间输入（跨浏览器一致 + 本地化日历） -->
+    <link rel="stylesheet" href="/assets/flatpickr/flatpickr.min.css">
+    <script src="/assets/flatpickr/flatpickr.min.js"></script>
+    <?php $__fpLang = str_starts_with((string) config('site_lang', 'zh-CN'), 'ja') ? 'ja' : (str_starts_with((string) config('site_lang', 'zh-CN'), 'zh') ? 'zh' : ''); ?>
+    <?php if ($__fpLang): ?><script src="/assets/flatpickr/l10n-<?php echo $__fpLang; ?>.js"></script><?php endif; ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.flatpickr) return;
+        <?php if ($__fpLang === 'zh'): ?>flatpickr.localize(flatpickr.l10ns.zh);<?php elseif ($__fpLang === 'ja'): ?>flatpickr.localize(flatpickr.l10ns.ja);<?php endif; ?>
+        // 日期时间输入（发布时间等）：先转 text，否则原生控件会拒绝「Y-m-d H:i」空格格式而清空
+        document.querySelectorAll('input[type="datetime-local"]').forEach(function (el) {
+            el.value = (el.value || '').replace('T', ' ');   // 原生 ISO 值归一，服务端 strtotime 兼容
+            el.type = 'text';
+            flatpickr(el, { enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', allowInput: true });
+        });
+        // 纯日期输入（日志筛选等）
+        document.querySelectorAll('input[type="date"]').forEach(function (el) {
+            el.type = 'text';
+            flatpickr(el, { dateFormat: 'Y-m-d', allowInput: true });
+        });
+    });
+    </script>
     <?php do_action('ik_admin_footer_scripts'); ?>
 </body>
 </html>
