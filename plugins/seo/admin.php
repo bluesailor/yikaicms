@@ -15,6 +15,7 @@ if (!defined('ROOT_PATH')) {
 
 require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/redirects.php';
+require_once __DIR__ . '/audit.php';
 
 $seoHasPro = function_exists('license_has_module') && license_has_module('seo-pro');
 
@@ -69,6 +70,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
     }
 }
 
+// SEO 体检：保存单条 SEO 字段（专业版）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'audit_save') {
+    if (!$seoHasPro) {
+        error('该功能需要 SEO 工坊专业版');
+    }
+    [$ok, $msg] = seo_audit_save(
+        (string) ($_POST['table'] ?? ''), (int) ($_POST['id'] ?? 0),
+        (string) ($_POST['seo_title'] ?? ''), (string) ($_POST['seo_description'] ?? ''), (string) ($_POST['seo_keywords'] ?? '')
+    );
+    $ok ? success([], $msg) : error($msg);
+}
+
 // 推送到百度 / IndexNow
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['push_baidu', 'push_indexnow'], true)) {
     $urls = seo_all_urls(500);
@@ -109,6 +122,11 @@ if ($seoHasPro) {
     $redirectRules = seo_redirect_list(500);
     $log404 = seo_404_list(200);
 }
+
+// SEO 体检（专业版）
+$audit = $seoHasPro ? seo_audit_scan(500) : ['items' => [], 'summary' => [], 'total' => 0, 'healthy' => 0];
+$auditIssueMeta = seo_audit_issue_meta();
+$auditTables = seo_audit_tables();
 
 $pageTitle   = 'SEO 工坊';
 $currentMenu = 'plugin';
@@ -384,6 +402,116 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     this.src = path; this.dst = "";
                     this.$refs.src.scrollIntoView({ behavior: "smooth", block: "center" });
                     this.$nextTick(function () {}); var self = this; setTimeout(function () { self.$refs.src.focus(); }, 300);
+                },
+            };
+        }
+        </script>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($seoHasPro): ?>
+    <!-- ===== 专业版：SEO 体检 + 批量修复 ===== -->
+    <?php
+    $colorCls = ['red' => 'bg-red-100 text-red-700', 'amber' => 'bg-amber-100 text-amber-700', 'gray' => 'bg-gray-100 text-gray-600'];
+    $auditShown = array_slice($audit['items'], 0, 150);
+    ?>
+    <div id="seo-audit" class="bg-white rounded-lg shadow mb-6" x-data="seoAudit()">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+                <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                    <i class="ti ti-stethoscope text-amber-500"></i> SEO 体检
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    共扫描 <strong><?php echo (int) $audit['total']; ?></strong> 条，
+                    <span class="text-green-600"><?php echo (int) $audit['healthy']; ?> 条健康</span>，
+                    <span class="text-red-500"><?php echo count($audit['items']); ?> 条有待优化</span>。可在下方直接改，即改即存。
+                </p>
+            </div>
+            <span class="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-1 rounded inline-flex items-center gap-1"><i class="ti ti-crown text-sm"></i> Pro</span>
+        </div>
+
+        <!-- 汇总 -->
+        <?php if ($audit['summary']): ?>
+        <div class="px-6 py-3 border-b flex flex-wrap gap-2">
+            <?php foreach ($audit['summary'] as $code => $cnt):
+                [$label, $color] = $auditIssueMeta[$code] ?? [$code, 'gray']; ?>
+                <span class="text-xs px-2 py-1 rounded <?php echo $colorCls[$color]; ?>"><?php echo e($label); ?> · <?php echo (int) $cnt; ?></span>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <div class="p-6">
+            <?php if (!$audit['items']): ?>
+                <p class="text-sm text-gray-400 text-center py-8"><i class="ti ti-circle-check text-2xl text-green-400 block mb-2"></i>全部内容 SEO 健康，暂无待优化项 🎉</p>
+            <?php else: ?>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-xs text-gray-400 border-b">
+                        <th class="py-2 pr-3 min-w-[140px]">内容</th>
+                        <th class="py-2 pr-3">问题</th>
+                        <th class="py-2 pr-3 min-w-[180px]">SEO 标题</th>
+                        <th class="py-2 pr-3 min-w-[220px]">SEO 描述</th>
+                        <th class="py-2 w-16"></th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($auditShown as $it): ?>
+                        <tr class="border-b border-gray-50 align-top" data-table="<?php echo e($it['table']); ?>" data-id="<?php echo (int) $it['id']; ?>">
+                            <td class="py-2 pr-3">
+                                <div class="text-gray-700 text-xs font-medium break-all line-clamp-2"><?php echo e($it['title'] ?: '（无标题）'); ?></div>
+                                <span class="text-[10px] text-gray-400"><?php echo e($auditTables[$it['table']]['type'] ?? $it['table']); ?></span>
+                            </td>
+                            <td class="py-2 pr-3">
+                                <div class="flex flex-wrap gap-1">
+                                    <?php foreach ($it['issues'] as $code):
+                                        [$label, $color] = $auditIssueMeta[$code] ?? [$code, 'gray']; ?>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded <?php echo $colorCls[$color]; ?>"><?php echo e($label); ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </td>
+                            <td class="py-2 pr-3">
+                                <input type="text" class="ykA-title w-full border border-gray-200 rounded px-2 py-1 text-xs" value="<?php echo e($it['seo_title']); ?>" placeholder="留空用标题">
+                                <input type="hidden" class="ykA-kw" value="<?php echo e($it['seo_keywords']); ?>">
+                            </td>
+                            <td class="py-2 pr-3">
+                                <textarea class="ykA-desc w-full border border-gray-200 rounded px-2 py-1 text-xs" rows="2" placeholder="搜索摘要，60–160 字"><?php echo e($it['seo_description']); ?></textarea>
+                            </td>
+                            <td class="py-2 text-right">
+                                <button type="button" @click="save($event.target)" class="text-xs border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded">保存</button>
+                                <div class="ykA-msg text-[10px] text-green-600 mt-1"></div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php if (count($audit['items']) > count($auditShown)): ?>
+                <p class="text-xs text-gray-400 mt-3">仅显示前 <?php echo count($auditShown); ?> 条待优化项，共 <?php echo count($audit['items']); ?> 条。修复后刷新本页继续。</p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <script>
+        function seoAudit() {
+            return {
+                save(btn) {
+                    var tr = btn.closest('tr');
+                    var msg = tr.querySelector('.ykA-msg');
+                    var body = new URLSearchParams();
+                    body.set('action', 'audit_save');
+                    body.set('table', tr.getAttribute('data-table'));
+                    body.set('id', tr.getAttribute('data-id'));
+                    body.set('seo_title', tr.querySelector('.ykA-title').value);
+                    body.set('seo_description', tr.querySelector('.ykA-desc').value);
+                    body.set('seo_keywords', tr.querySelector('.ykA-kw').value);
+                    btn.disabled = true; msg.style.color = '#6b7280'; msg.textContent = '保存中…';
+                    fetch(window.location.href, { method: 'POST', body: body })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (res && res.code === 0) { msg.style.color = '#16a34a'; msg.textContent = '✓ 已存'; }
+                            else { msg.style.color = '#dc2626'; msg.textContent = (res && res.msg) || '失败'; }
+                        })
+                        .catch(function () { msg.style.color = '#dc2626'; msg.textContent = '失败'; })
+                        .finally(function () { btn.disabled = false; });
                 },
             };
         }
