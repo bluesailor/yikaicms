@@ -98,6 +98,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG 图按语言独立保存（key_' . $_viewLang . '）；验证码/Sitemap 等全局共享');
 ?>
 
+<?php if (in_array('seo', getActivePlugins(), true)): ?>
+<!-- SEO 工坊插件已启用：互链提示（本页管全站 TDK/OG/验证基础项，进阶功能在插件面板） -->
+<div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 flex items-center gap-3 text-sm">
+    <i class="ti ti-puzzle text-lg text-blue-500"></i>
+    <span class="text-blue-800"><?php echo __('seo_plugin_hint'); ?></span>
+    <a href="/admin/plugin_page.php?plugin=seo" class="ml-auto text-primary hover:underline whitespace-nowrap"><?php echo __('seo_plugin_hint_go'); ?> →</a>
+</div>
+<?php endif; ?>
+
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b overflow-x-auto">

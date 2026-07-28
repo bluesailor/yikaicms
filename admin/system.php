@@ -58,6 +58,46 @@ if ($tab === 'log') {
     ];
 }
 
+// ── 错误日志 Tab ──
+if ($tab === 'errorlog') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $action = post('action');
+        if ($action === 'clear_errorlog') {
+            $f = (string) post('file');
+            if (preg_match('/^error-\d{6}\.log$/', $f)) {
+                @unlink(ROOT_PATH . '/storage/logs/' . $f);
+                adminLog('log', 'clear_errorlog', '清空错误日志：' . $f);
+            }
+            success();
+        }
+        exit;
+    }
+
+    $errFiles = ErrorHandler::listFiles();
+    $errFile = (string) get('file', $errFiles[0] ?? '');
+    if (!in_array($errFile, $errFiles, true)) {
+        $errFile = $errFiles[0] ?? '';
+    }
+    $errEntries = [];
+    $errSize = 0;
+    if ($errFile !== '') {
+        $p = ROOT_PATH . '/storage/logs/' . $errFile;
+        $errSize = (int) @filesize($p);
+        $fp = @fopen($p, 'rb');
+        if ($fp) {
+            // 只读末尾 512KB，超大日志不至于拖垮页面
+            if ($errSize > 524288) {
+                fseek($fp, -524288, SEEK_END);
+            }
+            $raw = (string) stream_get_contents($fp);
+            fclose($fp);
+            // 每条以 [YYYY-mm-dd ...] 开头，续行（堆栈）以缩进开头
+            preg_match_all('/^\[\d{4}-\d{2}-\d{2} [^\]]+\].*(?:\n(?!\[).+)*/m', $raw, $m);
+            $errEntries = array_slice(array_reverse($m[0]), 0, 200);
+        }
+    }
+}
+
 // ── 系统信息 Tab ──
 if ($tab === 'info') {
     $mysqlVersion = '';
@@ -112,7 +152,7 @@ if ($tab === 'info') {
 }
 
 $pageTitle = '系统管理';
-$currentMenu = $tab === 'log' ? 'system_log' : 'system';
+$currentMenu = in_array($tab, ['log', 'errorlog'], true) ? 'system_log' : 'system';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
@@ -122,6 +162,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="flex border-b">
         <a href="/admin/system.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_info'); ?></a>
         <a href="/admin/system.php?tab=log" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'log' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_stat_log'); ?></a>
+        <a href="/admin/system.php?tab=errorlog" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'errorlog' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_error_log'); ?></a>
     </div>
 </div>
 
@@ -135,10 +176,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6">
             <table class="w-full text-sm">
                 <tbody class="divide-y">
+                    <?php // 白标：有效授权的站点（建站公司场景）不露 CMS 品牌与版本，与 footer 隐藏 Powered by 同一惯例
+                          $sysLicensed = function_exists('license_valid') && license_valid(); ?>
                     <tr>
                         <td class="py-3 text-gray-500 w-48"><?php echo __('sys_name'); ?></td>
-                        <td class="py-3 text-gray-800"><?php echo __('sys_brand_name'); ?></td>
+                        <td class="py-3 text-gray-800"><?php echo $sysLicensed ? e(config('site_name', __('sys_brand_name'))) : __('sys_brand_name'); ?></td>
                     </tr>
+                    <?php if (!$sysLicensed): ?>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_version'); ?></td>
                         <td class="py-3 text-gray-800">
@@ -148,6 +192,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </span>
                         </td>
                     </tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_domain'); ?></td>
                         <td class="py-3 text-gray-800">
@@ -461,6 +506,67 @@ async function clearOldLogs() {
     if (data.code === 0) {
         showMessage('清除成功');
         setTimeout(() => location.reload(), 1000);
+    } else {
+        showMessage(data.msg, 'error');
+    }
+}
+</script>
+<?php endif; ?>
+
+<?php if ($tab === 'errorlog'): ?>
+<div class="bg-white rounded-lg shadow">
+    <div class="p-4 border-b flex flex-wrap items-center gap-3">
+        <?php if (!empty($errFiles)): ?>
+        <form class="flex items-center gap-2">
+            <input type="hidden" name="tab" value="errorlog">
+            <select name="file" class="border rounded px-3 py-2" onchange="this.form.submit()">
+                <?php foreach ($errFiles as $f): ?>
+                <option value="<?php echo e($f); ?>" <?php echo $f === $errFile ? 'selected' : ''; ?>><?php echo e($f); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+        <span class="text-sm text-gray-500"><?php echo count($errEntries); ?> <?php echo __('sys_error_log_entries'); ?> · <?php echo $errSize > 1048576 ? round($errSize / 1048576, 1) . ' MB' : round($errSize / 1024, 1) . ' KB'; ?></span>
+        <button onclick="clearErrorLog()" class="ml-auto text-red-600 hover:text-red-700 text-sm inline-flex items-center gap-1">
+            <i class="ti ti-trash text-base"></i><?php echo __('sys_error_log_clear'); ?>
+        </button>
+        <?php endif; ?>
+    </div>
+    <div class="p-4 text-xs text-gray-400 border-b bg-gray-50"><?php echo __('sys_error_log_tip'); ?></div>
+
+    <?php if (empty($errEntries)): ?>
+    <div class="px-4 py-12 text-center text-gray-500"><?php echo __('sys_error_log_empty'); ?></div>
+    <?php else: ?>
+    <div class="divide-y">
+        <?php foreach ($errEntries as $entry):
+            $lvl = preg_match('/^\[[^\]]+\] \[(\w+)\]/', $entry, $lm) ? $lm[1] : 'ERROR';
+            $badge = match ($lvl) {
+                'FATAL', 'ERROR' => 'bg-red-100 text-red-600',
+                'WARNING' => 'bg-yellow-100 text-yellow-700',
+                default => 'bg-gray-100 text-gray-500',
+            }; ?>
+        <div class="px-4 py-3">
+            <span class="text-xs px-2 py-0.5 rounded <?php echo $badge; ?>"><?php echo e($lvl); ?></span>
+            <pre class="mt-2 text-xs font-mono text-gray-700 whitespace-pre-wrap break-all leading-relaxed"><?php echo e($entry); ?></pre>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+
+<script>
+async function clearErrorLog() {
+    if (!confirm('<?php echo __('sys_error_log_clear_confirm'); ?>')) return;
+
+    const formData = new FormData();
+    formData.append('action', 'clear_errorlog');
+    formData.append('file', <?php echo json_encode($errFile); ?>);
+
+    const response = await fetch(location.href, { method: 'POST', body: formData });
+    const data = await safeJson(response);
+
+    if (data.code === 0) {
+        showMessage('<?php echo __('sys_error_log_cleared'); ?>');
+        setTimeout(() => location.href = '/admin/system.php?tab=errorlog', 800);
     } else {
         showMessage(data.msg, 'error');
     }
