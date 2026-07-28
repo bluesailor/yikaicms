@@ -79,6 +79,8 @@ function theme_path_optional(string $file): ?string
  */
 function render404(string $message = ''): void
 {
+    // 扩展点：插件可据此记录 404（如 SEO 重定向管理），或据请求路径动态跳转。
+    do_action('render_404', (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
     if (!headers_sent()) {
         header('HTTP/1.1 404 Not Found');
     }
