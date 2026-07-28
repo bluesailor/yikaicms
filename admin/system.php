@@ -176,10 +176,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6">
             <table class="w-full text-sm">
                 <tbody class="divide-y">
+                    <?php // 白标：有效授权的站点（建站公司场景）不露 CMS 品牌与版本，与 footer 隐藏 Powered by 同一惯例
+                          $sysLicensed = function_exists('license_valid') && license_valid(); ?>
                     <tr>
                         <td class="py-3 text-gray-500 w-48"><?php echo __('sys_name'); ?></td>
-                        <td class="py-3 text-gray-800"><?php echo __('sys_brand_name'); ?></td>
+                        <td class="py-3 text-gray-800"><?php echo $sysLicensed ? e(config('site_name', __('sys_brand_name'))) : __('sys_brand_name'); ?></td>
                     </tr>
+                    <?php if (!$sysLicensed): ?>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_version'); ?></td>
                         <td class="py-3 text-gray-800">
@@ -189,6 +192,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </span>
                         </td>
                     </tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_domain'); ?></td>
                         <td class="py-3 text-gray-800">
