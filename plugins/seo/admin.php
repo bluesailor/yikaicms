@@ -14,6 +14,7 @@ if (!defined('ROOT_PATH')) {
 }
 
 require_once __DIR__ . '/lib.php';
+require_once __DIR__ . '/redirects.php';
 
 $seoHasPro = function_exists('license_has_module') && license_has_module('seo-pro');
 
@@ -44,6 +45,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gen_i
         error($msg);
     }
     success(['key' => $key], $msg);
+}
+
+// 重定向管理器（专业版）CRUD
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['redirect_add', 'redirect_delete', 'log_clear', 'log_delete'], true)) {
+    if (!$seoHasPro) {
+        error('该功能需要 SEO 工坊专业版');
+    }
+    seo_redirect_ensure_tables();
+    $act = $_POST['action'];
+    if ($act === 'redirect_add') {
+        [$ok, $msg] = seo_redirect_add((string) ($_POST['source'] ?? ''), (string) ($_POST['target'] ?? ''), (int) ($_POST['type'] ?? 301));
+        $ok ? success([], $msg) : error($msg);
+    } elseif ($act === 'redirect_delete') {
+        seo_redirect_delete((int) ($_POST['id'] ?? 0));
+        success([], '已删除');
+    } elseif ($act === 'log_delete') {
+        seo_404_delete((int) ($_POST['id'] ?? 0));
+        success([], '已删除');
+    } else { // log_clear
+        seo_404_clear();
+        success([], '已清空');
+    }
 }
 
 // 推送到百度 / IndexNow
@@ -77,6 +100,15 @@ $indexnowKey       = (string) config('seo_indexnow_key', '');
 $indexnowHost      = (string) (parse_url(siteBaseUrl(), PHP_URL_HOST) ?: '');
 $indexnowKeyExists = $indexnowKey !== '' && file_exists(seo_indexnow_key_path($indexnowKey));
 $pushUrlCount      = count(seo_all_urls(500));
+
+// 重定向管理器（专业版）
+$redirectRules = [];
+$log404 = [];
+if ($seoHasPro) {
+    seo_redirect_ensure_tables();
+    $redirectRules = seo_redirect_list(500);
+    $log404 = seo_404_list(200);
+}
 
 $pageTitle   = 'SEO 工坊';
 $currentMenu = 'plugin';
@@ -224,6 +256,141 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
+    <?php if ($seoHasPro): ?>
+    <!-- ===== 专业版：重定向管理器 ===== -->
+    <div id="seo-redirects" class="bg-white rounded-lg shadow mb-6" x-data="seoRedirects()">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                <i class="ti ti-arrows-right-left text-amber-500"></i> 重定向管理器
+            </h2>
+            <span class="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-1 rounded inline-flex items-center gap-1"><i class="ti ti-crown text-sm"></i> Pro</span>
+        </div>
+        <div class="p-6">
+            <!-- 添加规则 -->
+            <div class="flex flex-wrap items-end gap-2 mb-4">
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-xs text-gray-500 mb-1">来源路径</label>
+                    <input type="text" x-model="src" x-ref="src" placeholder="/old-page.html"
+                           class="w-full border border-gray-200 rounded px-3 py-1.5 text-sm">
+                </div>
+                <div class="text-gray-300 pb-1.5"><i class="ti ti-arrow-right"></i></div>
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-xs text-gray-500 mb-1">目标（路径或完整 URL）</label>
+                    <input type="text" x-model="dst" placeholder="/new-page.html 或 https://…"
+                           class="w-full border border-gray-200 rounded px-3 py-1.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">类型</label>
+                    <select x-model="type" class="border border-gray-200 rounded px-2 py-1.5 text-sm bg-white">
+                        <option value="301">301 永久</option>
+                        <option value="302">302 临时</option>
+                    </select>
+                </div>
+                <button type="button" @click="add()" :disabled="busy"
+                        class="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                    <i class="ti ti-plus text-base"></i> 添加
+                </button>
+            </div>
+            <p class="text-xs text-red-500 mb-3" x-show="msg" x-text="msg"></p>
+
+            <!-- 规则列表 -->
+            <?php if (!$redirectRules): ?>
+                <p class="text-sm text-gray-400 text-center py-6">还没有重定向规则。改版换链接时，在此把旧地址跳到新地址，保住 SEO 权重与流量。</p>
+            <?php else: ?>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-xs text-gray-400 border-b">
+                        <th class="py-2 pr-3">来源</th><th class="py-2 pr-3">目标</th>
+                        <th class="py-2 pr-3 whitespace-nowrap">类型</th><th class="py-2 pr-3 whitespace-nowrap">命中</th><th class="py-2 w-10"></th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($redirectRules as $r): ?>
+                        <tr class="border-b border-gray-50">
+                            <td class="py-2 pr-3 font-mono text-xs text-gray-700 break-all"><?php echo e($r['source']); ?></td>
+                            <td class="py-2 pr-3 font-mono text-xs text-blue-600 break-all"><?php echo e($r['target']); ?></td>
+                            <td class="py-2 pr-3"><span class="text-xs px-1.5 py-0.5 rounded <?php echo (int) $r['type'] === 302 ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'; ?>"><?php echo (int) $r['type']; ?></span></td>
+                            <td class="py-2 pr-3 text-gray-500"><?php echo (int) $r['hits']; ?></td>
+                            <td class="py-2 text-right">
+                                <button type="button" @click="del(<?php echo (int) $r['id']; ?>)" class="text-gray-400 hover:text-red-500 p-1" title="删除"><i class="ti ti-trash text-sm"></i></button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- 404 监控 -->
+        <div class="px-6 py-4 border-t border-b flex items-center justify-between">
+            <h3 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                <i class="ti ti-alert-triangle text-red-400"></i> 404 监控
+                <span class="text-xs font-normal text-gray-400">（访客碰到的死链，点「建重定向」一键修复）</span>
+            </h3>
+            <?php if ($log404): ?>
+            <button type="button" @click="clearLog()" class="text-xs text-gray-400 hover:text-red-500 inline-flex items-center gap-1"><i class="ti ti-trash text-sm"></i> 清空</button>
+            <?php endif; ?>
+        </div>
+        <div class="p-6">
+            <?php if (!$log404): ?>
+                <p class="text-sm text-gray-400 text-center py-6">暂无 404 记录。访客访问到不存在的页面时会记录在此。</p>
+            <?php else: ?>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-xs text-gray-400 border-b">
+                        <th class="py-2 pr-3">路径</th><th class="py-2 pr-3 whitespace-nowrap">次数</th>
+                        <th class="py-2 pr-3 whitespace-nowrap">最近</th><th class="py-2 w-28"></th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($log404 as $l): ?>
+                        <tr class="border-b border-gray-50">
+                            <td class="py-2 pr-3 font-mono text-xs text-gray-700 break-all"><?php echo e($l['path']); ?></td>
+                            <td class="py-2 pr-3 text-gray-500"><?php echo (int) $l['hits']; ?></td>
+                            <td class="py-2 pr-3 text-gray-400 text-xs whitespace-nowrap"><?php echo $l['last_seen'] ? date('m-d H:i', (int) $l['last_seen']) : '—'; ?></td>
+                            <td class="py-2 text-right whitespace-nowrap">
+                                <button type="button" @click="fixFrom(<?php echo htmlspecialchars(json_encode($l['path']), ENT_QUOTES); ?>)" class="text-xs text-amber-600 hover:text-amber-500 px-2 py-1">建重定向</button>
+                                <button type="button" @click="delLog(<?php echo (int) $l['id']; ?>)" class="text-gray-400 hover:text-red-500 p-1" title="删除"><i class="ti ti-x text-sm"></i></button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <script>
+        function seoRedirects() {
+            return {
+                src: "", dst: "", type: "301", busy: false, msg: "",
+                _post(action, extra) {
+                    var b = new URLSearchParams(); b.set("action", action);
+                    Object.keys(extra || {}).forEach(function (k) { b.set(k, extra[k]); });
+                    return fetch(window.location.href, { method: "POST", body: b }).then(function (r) { return r.json(); });
+                },
+                add() {
+                    var self = this; this.busy = true; this.msg = "";
+                    this._post("redirect_add", { source: this.src, target: this.dst, type: this.type })
+                        .then(function (res) { if (res && res.code === 0) location.reload(); else { self.msg = (res && res.msg) || "添加失败"; self.busy = false; } })
+                        .catch(function () { self.msg = "添加失败"; self.busy = false; });
+                },
+                del(id) {
+                    if (!confirm("删除这条重定向规则？")) return;
+                    this._post("redirect_delete", { id: id }).then(function () { location.reload(); });
+                },
+                delLog(id) { this._post("log_delete", { id: id }).then(function () { location.reload(); }); },
+                clearLog() { if (confirm("清空全部 404 记录？")) this._post("log_clear").then(function () { location.reload(); }); },
+                fixFrom(path) {
+                    this.src = path; this.dst = "";
+                    this.$refs.src.scrollIntoView({ behavior: "smooth", block: "center" });
+                    this.$nextTick(function () {}); var self = this; setTimeout(function () { self.$refs.src.focus(); }, 300);
+                },
+            };
+        }
+        </script>
+    </div>
+    <?php endif; ?>
+
     <!-- ===== 专业版功能（就地上锁展示） ===== -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -237,12 +404,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <?php
             $proCards = [
-                ['ti-sparkles',   'AI 一键优化 meta', '基于站内 AI，一键生成 / 改写 SEO 标题与描述、推荐关键词。'],
-                ['ti-arrows-right-left', '重定向管理器', '301/404 监控与重定向规则，改版换链接不丢权重、不丢流量。'],
-                ['ti-send',       '搜索引擎自动推送', '发布 / 更新 / 删除时自动 ping 百度、IndexNow（Bing/Yandex），带历史与配额。'],
-                ['ti-link',       '内链建议 + 基石内容', '基于内容相似度推荐内链、标记基石内容，优化站点结构。'],
+                ['ti-sparkles',   'AI 一键优化 meta', '基于站内 AI，一键生成 / 改写 SEO 标题与描述、推荐关键词。', ''],
+                ['ti-arrows-right-left', '重定向管理器', '301/404 监控与重定向规则，改版换链接不丢权重、不丢流量。', '#seo-redirects'],
+                ['ti-send',       '搜索引擎自动推送', '发布 / 更新 / 删除时自动 ping 百度、IndexNow（Bing/Yandex），带历史与配额。', ''],
+                ['ti-link',       '内链建议 + 基石内容', '基于内容相似度推荐内链、标记基石内容，优化站点结构。', ''],
             ];
-            foreach ($proCards as [$icon, $title, $desc]):
+            foreach ($proCards as [$icon, $title, $desc, $liveAnchor]):
+                $isLive = $liveAnchor !== '';
             ?>
             <div class="relative border rounded-lg p-4 <?php echo $seoHasPro ? 'border-gray-200' : 'border-gray-200 bg-gray-50'; ?>">
                 <div class="flex items-start gap-3">
@@ -255,7 +423,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php if (!$seoHasPro): ?><i class="ti ti-lock text-xs text-gray-400"></i><?php endif; ?>
                         </div>
                         <p class="text-xs text-gray-500 mt-1 leading-relaxed"><?php echo e($desc); ?></p>
-                        <?php if ($seoHasPro): ?>
+                        <?php if ($seoHasPro && $isLive): ?>
+                        <a href="<?php echo e($liveAnchor); ?>" class="inline-flex items-center gap-1 mt-2 text-xs text-green-600 hover:text-green-500"><i class="ti ti-circle-check text-sm"></i> 已上线 · 前往设置</a>
+                        <?php elseif ($seoHasPro): ?>
                         <span class="inline-block mt-2 text-xs text-gray-400">即将上线</span>
                         <?php endif; ?>
                     </div>

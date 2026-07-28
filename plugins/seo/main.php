@@ -20,4 +20,7 @@ add_action('ik_admin_footer_scripts', function () {
     echo "\n" . '<script src="/plugins/seo/analysis.js?v=' . $v . '"></script>' . "\n";
 });
 
-// 预留：后续在此挂前台 SEO 钩子（如 meta 增强、面包屑 Schema 补充等）。
+// 重定向管理器（专业版）：前台匹配跳转 + 404 记录。函数内再判 Pro 与表存在，非 Pro 零开销。
+require_once __DIR__ . '/redirects.php';
+add_action('init', 'seo_redirect_apply');
+add_action('render_404', 'seo_redirect_log404');
