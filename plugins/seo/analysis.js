@@ -298,5 +298,56 @@
         if (h !== lastHtml) { lastHtml = h; schedule(); }
     }, 1000);
 
+    // ---------- AI 一键优化（专业版）----------
+    if (window.__ykSeoPro) {
+        var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+        var targets = { seo_title: seoTitleEl, seo_description: seoDescEl, seo_keywords: seoKwEl };
+        var btnCls = 'ykSeoAi text-xs border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 px-2 py-1 rounded inline-flex items-center gap-1';
+        var aiRow = document.createElement('div');
+        aiRow.className = 'mb-3';
+        aiRow.innerHTML =
+            '<div class="text-xs text-gray-500 mb-1 flex items-center gap-1">' +
+                '<i class="ti ti-sparkles text-amber-500"></i>AI 一键优化' +
+                '<span class="text-[10px] font-medium bg-amber-100 text-amber-700 px-1 rounded">Pro</span>' +
+            '</div>' +
+            '<div class="flex flex-wrap gap-1">' +
+                '<button type="button" data-f="seo_title" class="' + btnCls + '"><i class="ti ti-wand"></i>标题</button>' +
+                '<button type="button" data-f="seo_description" class="' + btnCls + '"><i class="ti ti-wand"></i>描述</button>' +
+                '<button type="button" data-f="seo_keywords" class="' + btnCls + '"><i class="ti ti-wand"></i>关键词</button>' +
+            '</div>' +
+            '<div class="ykSeoAiMsg text-[11px] text-gray-400 mt-1"></div>';
+        kwInput.parentNode.insertBefore(aiRow, kwInput.nextSibling);
+        var aiMsg = aiRow.querySelector('.ykSeoAiMsg');
+        aiRow.querySelectorAll('.ykSeoAi').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var f = btn.getAttribute('data-f');
+                var target = targets[f];
+                if (!target) { aiMsg.textContent = '当前编辑器没有该字段'; return; }
+                var label = btn.textContent;
+                btn.disabled = true; aiMsg.textContent = 'AI 生成中…';
+                var body = new URLSearchParams();
+                body.set('field', f);
+                body.set('title', titleEl.value || '');
+                body.set('content', htmlToText(getContentHtml()).slice(0, 3000));
+                body.set('keyword', kwInput.value || '');
+                body.set('_token', csrf);
+                fetch('/plugins/seo/ai.php', { method: 'POST', body: body })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res && res.success) {
+                            target.value = res.content;
+                            target.dispatchEvent(new Event('input', { bubbles: true }));
+                            aiMsg.textContent = '✓ 已填入「' + label + '」，可继续手改';
+                            render();
+                        } else {
+                            aiMsg.textContent = (res && res.error) || '生成失败';
+                        }
+                    })
+                    .catch(function () { aiMsg.textContent = '请求失败'; })
+                    .finally(function () { btn.disabled = false; });
+            });
+        });
+    }
+
     render();
 })();

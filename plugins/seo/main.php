@@ -17,6 +17,8 @@ if (!defined('ROOT_PATH')) {
 add_action('ik_admin_footer_scripts', function () {
     $js = ROOT_PATH . '/plugins/seo/analysis.js';
     $v = @filemtime($js) ?: '1';
+    $pro = function_exists('license_has_module') && license_has_module('seo-pro') ? 'true' : 'false';
+    echo "\n" . '<script>window.__ykSeoPro=' . $pro . ';</script>';
     echo "\n" . '<script src="/plugins/seo/analysis.js?v=' . $v . '"></script>' . "\n";
 });
 
