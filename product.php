@@ -368,48 +368,10 @@ require_once theme_path('layouts/header.php');
 </section>
 
 <?php if (!empty($productImages)): ?>
-<!-- Lightbox 画廊 -->
-<div id="product-lightbox" class="hidden fixed inset-0 z-[9999] bg-black/90 items-center justify-center" onclick="if(event.target === this) closeLightbox()">
-    <!-- 关闭 -->
-    <button type="button" onclick="closeLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="<?php echo __('lightbox_close'); ?>">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-    </button>
-    <!-- 计数 -->
-    <div id="lightbox-counter" class="absolute top-5 left-5 text-white/80 text-sm font-medium">1 / <?php echo count($productImages); ?></div>
-
-    <?php if (count($productImages) > 1): ?>
-    <!-- 上一张 -->
-    <button type="button" onclick="lightboxPrev()" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3" aria-label="上一张">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-    </button>
-    <!-- 下一张 -->
-    <button type="button" onclick="lightboxNext()" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-3" aria-label="下一张">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-    </button>
-    <?php endif; ?>
-
-    <!-- 主图 -->
-    <img id="lightbox-img" src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
-         class="max-w-[90vw] max-h-[80vh] object-contain select-none">
-
-    <?php if (count($productImages) > 1): ?>
-    <!-- 底部缩略图 -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 max-w-[90vw] overflow-x-auto px-4 pb-1">
-        <?php foreach ($productImages as $i => $img): ?>
-        <button type="button" onclick="event.stopPropagation(); currentImageIdx=<?php echo $i; ?>; renderLightbox(); changeImage(<?php echo $i; ?>);"
-                class="lb-thumb flex-shrink-0 w-16 h-16 rounded overflow-hidden transition <?php echo $i === 0 ? 'ring-2 ring-white' : 'opacity-50'; ?>">
-            <img src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
-        </button>
-        <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
-</div>
+<!-- PhotoSwipe 灯箱资源（替代手写 lightbox：双指缩放/滑动/键盘全内置） -->
+<link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
+<script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
+<script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>
 <?php endif; ?>
 
 <script>
@@ -442,66 +404,27 @@ function changeImage(idx) {
     if (counter) counter.textContent = (idx + 1) + ' / ' + productImages.length;
 }
 
-// ============ Lightbox 画廊 ============
-function openLightbox(idx) {
-    if (!productImages.length) return;
-    currentImageIdx = idx || 0;
-    var lb = document.getElementById('product-lightbox');
-    if (!lb) return;
-    lb.classList.remove('hidden');
-    lb.classList.add('flex');
-    renderLightbox();
-    document.body.style.overflow = 'hidden';
-}
-function closeLightbox() {
-    var lb = document.getElementById('product-lightbox');
-    if (!lb) return;
-    lb.classList.add('hidden');
-    lb.classList.remove('flex');
-    document.body.style.overflow = '';
-}
-function lightboxPrev() {
-    currentImageIdx = (currentImageIdx - 1 + productImages.length) % productImages.length;
-    renderLightbox();
-    changeImage(currentImageIdx);
-}
-function lightboxNext() {
-    currentImageIdx = (currentImageIdx + 1) % productImages.length;
-    renderLightbox();
-    changeImage(currentImageIdx);
-}
-function renderLightbox() {
-    var img = document.getElementById('lightbox-img');
-    var cnt = document.getElementById('lightbox-counter');
-    if (img) img.src = productImages[currentImageIdx];
-    if (cnt) cnt.textContent = (currentImageIdx + 1) + ' / ' + productImages.length;
-    // 底部缩略图高亮
-    document.querySelectorAll('.lb-thumb').forEach(function(t, i) {
-        t.classList.toggle('ring-2', i === currentImageIdx);
-        t.classList.toggle('ring-white', i === currentImageIdx);
-        t.classList.toggle('opacity-50', i !== currentImageIdx);
-    });
-}
-// 键盘操作
-document.addEventListener('keydown', function(e) {
-    var lb = document.getElementById('product-lightbox');
-    if (!lb || lb.classList.contains('hidden')) return;
-    if (e.key === 'Escape') closeLightbox();
-    else if (e.key === 'ArrowLeft') lightboxPrev();
-    else if (e.key === 'ArrowRight') lightboxNext();
+// ============ PhotoSwipe 灯箱 ============
+var pswpDims = {};   // src -> {w,h}：提前探测真实尺寸，供 PhotoSwipe 正确缩放
+productImages.forEach(function (src) {
+    var im = new Image();
+    im.onload = function () { pswpDims[src] = { w: im.naturalWidth, h: im.naturalHeight }; };
+    im.src = src;
 });
-// 触摸滑动
-(function() {
-    var lb = document.getElementById('product-lightbox');
-    if (!lb) return;
-    var sx = 0;
-    lb.addEventListener('touchstart', function(e) { sx = e.touches[0].clientX; }, { passive: true });
-    lb.addEventListener('touchend', function(e) {
-        var dx = e.changedTouches[0].clientX - sx;
-        if (Math.abs(dx) > 40) dx > 0 ? lightboxPrev() : lightboxNext();
+function openLightbox(idx) {
+    if (!productImages.length || !window.PhotoSwipeLightbox) return;
+    var ds = productImages.map(function (src) {
+        var d = pswpDims[src] || { w: 1600, h: 1600 };
+        return { src: src, width: d.w, height: d.h };
     });
-})();
-
+    var lb = new PhotoSwipeLightbox({
+        dataSource: ds, pswpModule: window.PhotoSwipe,
+        showHideAnimationType: 'zoom', bgOpacity: 0.92
+    });
+    lb.init();
+    lb.loadAndOpen(idx || 0);
+    lb.on('destroy', function () { lb = null; });
+}
 // Tab 切换
 document.querySelectorAll('.product-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
