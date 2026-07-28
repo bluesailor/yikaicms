@@ -148,7 +148,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i class="ti ti-crown text-sm"></i> 专业版已激活
         </span>
     <?php else: ?>
-        <a href="/admin/license.php" class="text-xs font-medium bg-gray-900 text-white px-3 py-1.5 rounded inline-flex items-center gap-1 hover:bg-black" title="填写授权码即可解锁；单独购买见 yikaicms.com 插件市场">
+        <a href="/admin/license.php" class="text-xs font-medium bg-gray-900 text-white px-3 py-1.5 rounded inline-flex items-center gap-1 hover:bg-black" title="CMS 授权码内含全部官方插件 Pro，填码即解锁">
             <i class="ti ti-crown text-sm text-amber-400"></i> 升级专业版
         </a>
     <?php endif; ?>
