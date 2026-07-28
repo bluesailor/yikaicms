@@ -206,3 +206,9 @@ FileETag MTime Size
 
 # WebP 内容类型
 AddType image/webp .webp
+
+# 纯文本以 UTF-8 输出（llms.txt / robots.txt 等含中文时，
+# 缺 charset 会被中文环境浏览器按 GBK 猜测显示乱码）
+<IfModule mod_mime.c>
+    AddCharset utf-8 .txt
+</IfModule>
