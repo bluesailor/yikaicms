@@ -39,6 +39,7 @@
                 <file name="admin/article_edit.php" />
                 <file name="admin/page_edit.php" />
                 <file name="admin/page_edit_advance.php" />
+                <file name="plugins/seo/admin.php" />
             </errorLevel>
         </UnusedVariable>
     </issueHandlers>
