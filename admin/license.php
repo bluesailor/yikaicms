@@ -33,11 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $moduleLabels = [
-    'stats' => '统计接入 Pro',
-    'leads' => '表单线索中心',
-    'ai'    => 'AI 内容助手',
-    'seo'   => '百度 SEO 套件',
-    'oss'   => '媒体加速 OSS',
+    'stats'      => '统计接入 Pro',
+    'leads'      => '表单线索中心',
+    'ai'         => 'AI 内容助手',
+    'seo'        => '百度 SEO 套件',
+    'oss'        => '媒体加速 OSS',
+    'icon-maker' => '图标工坊 Pro',
+    'seo-pro'    => 'SEO 工坊 Pro',
 ];
 $planLabels   = ['free' => '免费版', 'basic' => '基础版', 'pro' => '专业版'];
 $reasonLabels = [
@@ -127,6 +129,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
         <p class="text-xs text-gray-400 mt-3">本站域名：<code class="bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(license_domain()); ?></code>　授权到期后仅停用付费模块，网站正常运行不受影响。</p>
     </div>
+
+    <?php if (!$valid): ?>
+    <!-- 未授权：展示专业版权益（已授权即白标，不展示营销内容） -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="font-bold text-gray-800 mb-1">专业授权包含什么？</h2>
+        <p class="text-sm text-gray-500 mb-4">一个授权码解锁全部官方 Pro 插件与模块，含后续新出的官方 Pro 插件，不另收费。</p>
+        <div class="grid sm:grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
+            <div class="flex gap-2"><span class="text-primary">✓</span> SEO 工坊 Pro（AI 优化 meta / 301 重定向 / 全站体检）</div>
+            <div class="flex gap-2"><span class="text-primary">✓</span> 图标工坊 Pro（全套图标包 / favicon 直接应用）</div>
+            <div class="flex gap-2"><span class="text-primary">✓</span> AI 内容助手（撰写 / 润色 / 对话式改站）</div>
+            <div class="flex gap-2"><span class="text-primary">✓</span> 统计接入 Pro + 表单线索中心</div>
+            <div class="flex gap-2"><span class="text-primary">✓</span> 百度 SEO 套件 + 媒体加速 OSS</div>
+            <div class="flex gap-2"><span class="text-primary">✓</span> 后台去版权白标（建站交付不露 CMS 品牌）</div>
+        </div>
+        <a href="https://www.yikaicms.com/pro.html" target="_blank" rel="noopener" class="inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition text-sm">
+            了解专业版权益与购买 <i class="ti ti-external-link text-base"></i>
+        </a>
+    </div>
+    <?php endif; ?>
 
 </div>
 
