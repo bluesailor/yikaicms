@@ -13,4 +13,11 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+// 后台内容编辑页：注入「实时 SEO 分析」面板脚本（自门控，非编辑页不激活）。
+add_action('ik_admin_footer_scripts', function () {
+    $js = ROOT_PATH . '/plugins/seo/analysis.js';
+    $v = @filemtime($js) ?: '1';
+    echo "\n" . '<script src="/plugins/seo/analysis.js?v=' . $v . '"></script>' . "\n";
+});
+
 // 预留：后续在此挂前台 SEO 钩子（如 meta 增强、面包屑 Schema 补充等）。
