@@ -127,9 +127,11 @@ final class BuilderRenderTest extends TestCase
         $yt = $this->inner($this->oneEl(['type' => 'video', 'data' => ['url' => 'https://youtu.be/abc123']]));
         $this->assertStringContainsString('youtube.com/embed/abc123', $yt);
         $this->assertStringContainsString('padding-bottom:56.25%', $yt); // 16:9
-        // 直链 → video 标签
+        // 直链 → Plyr 增强的 video 标签（src 属性 + plyr class + 资源）
         $mp4 = $this->inner($this->oneEl(['type' => 'video', 'data' => ['url' => 'https://x.com/a.mp4']]));
-        $this->assertStringContainsString('<video src="https://x.com/a.mp4"', $mp4);
+        $this->assertStringContainsString('<video class="ykt-plyr"', $mp4);
+        $this->assertStringContainsString('src="https://x.com/a.mp4"', $mp4);
+        $this->assertStringContainsString('/assets/plyr/plyr.min.js', $mp4);
         // 空 → 空
         $this->assertSame('', $this->inner($this->oneEl(['type' => 'video', 'data' => []])));
     }
