@@ -134,9 +134,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="mb-6 flex items-center justify-between">
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
         <a href="/admin/plugin.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
             <i class="ti ti-chevron-left text-base"></i> 插件管理
+        </a>
+        <span class="text-gray-300">|</span>
+        <a href="/admin/setting_seo.php" class="text-gray-500 hover:text-primary inline-flex items-center gap-1">
+            <i class="ti ti-settings text-base"></i> 基础 SEO 设置
         </a>
     </div>
     <?php if ($seoHasPro): ?>
@@ -144,7 +148,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i class="ti ti-crown text-sm"></i> 专业版已激活
         </span>
     <?php else: ?>
-        <a href="/admin/plugin.php" class="text-xs font-medium bg-gray-900 text-white px-3 py-1.5 rounded inline-flex items-center gap-1 hover:bg-black">
+        <a href="/admin/license.php" class="text-xs font-medium bg-gray-900 text-white px-3 py-1.5 rounded inline-flex items-center gap-1 hover:bg-black" title="填写授权码即可解锁；单独购买见 yikaicms.com 插件市场">
             <i class="ti ti-crown text-sm text-amber-400"></i> 升级专业版
         </a>
     <?php endif; ?>
