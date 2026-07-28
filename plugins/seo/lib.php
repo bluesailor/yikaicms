@@ -41,7 +41,6 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
     }
 
     // —— 主要栏目（导航树，含一层子栏目）——
-    $channels = [];
     try {
         $channels = channelModel()->getTree();
     } catch (\Throwable $e) {
@@ -70,7 +69,6 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
     }
 
     // —— 最新内容 ——
-    $contents = [];
     try {
         $contents = db()->fetchAll(
             'SELECT c.title, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
@@ -93,7 +91,6 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
     }
 
     // —— 产品 ——
-    $products = [];
     try {
         $products = db()->fetchAll(
             'SELECT p.title, p.slug, p.category_id, pc.slug AS category_slug
@@ -320,8 +317,8 @@ function seo_submit_indexnow(string $host, string $key, array $urls): array
     if ($code === 200 || $code === 202) {
         return [true, 'IndexNow：已提交 ' . count($urls) . ' 条（Bing/Yandex 等）'];
     }
-    $hint = ['400' => '请求格式错误', '403' => '密钥校验失败（检查 key 文件）', '422' => 'URL 与域名不匹配', '429' => '过于频繁'];
-    return [false, 'IndexNow 返回 HTTP ' . $code . '：' . ($hint[(string) $code] ?? mb_substr($resp, 0, 120))];
+    $hint = [400 => '请求格式错误', 403 => '密钥校验失败（检查 key 文件）', 422 => 'URL 与域名不匹配', 429 => '过于频繁'];
+    return [false, 'IndexNow 返回 HTTP ' . $code . '：' . ($hint[(int) $code] ?? mb_substr($resp, 0, 120))];
 }
 
 /**
