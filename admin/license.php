@@ -114,7 +114,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 授权码 -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-1">授权码</h2>
+        <?php if (function_exists('license_valid') && license_valid()): ?>
+        <?php // 白标：已授权站点不展示购买链接，只留功能说明 ?>
+        <p class="text-sm text-gray-500 mb-4">填写授权码并保存即自动开通对应模块。授权与本站域名绑定。</p>
+        <?php else: ?>
         <p class="text-sm text-gray-500 mb-4">在 <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-primary hover:underline">yikaicms.com</a> 购买后获得授权码，填写并保存即自动开通对应模块。授权与本站域名绑定。</p>
+        <?php endif; ?>
         <form id="licenseForm" class="flex flex-col sm:flex-row gap-3">
             <input type="text" name="license_key" value="<?php echo e($key); ?>" placeholder="XXXX-XXXX-XXXX-XXXX"
                    class="flex-1 border rounded px-4 py-2 font-mono tracking-wider">

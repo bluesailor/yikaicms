@@ -362,7 +362,8 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
                     <i class="ti ti-bolt text-xl text-primary"></i>
                 </div>
                 <div>
-                    <p class="text-gray-800 font-medium">YikaiCMS</p>
+                    <?php // 白标：有效授权不露 CMS 品牌名（同 footer / 系统信息页惯例） ?>
+                    <p class="text-gray-800 font-medium"><?php echo (function_exists('license_valid') && license_valid()) ? e(config('site_name', 'YikaiCMS')) : 'YikaiCMS'; ?></p>
                     <p class="text-sm text-gray-500">当前版本：<span class="font-mono font-medium text-primary">v<?php echo e($currentVersion); ?></span></p>
                 </div>
             </div>
