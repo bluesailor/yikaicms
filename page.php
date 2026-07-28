@@ -416,60 +416,26 @@ require theme_path('partials/page-hero.php');
 </section>
 
 <?php if ($channel['type'] === 'album' && !empty($albumPhotos)): ?>
-<!-- Lightbox -->
-<div id="lightbox" class="lightbox-overlay" onclick="closeLightbox(event)">
-    <div class="lightbox-content">
-        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
-        <span class="lightbox-nav lightbox-prev" onclick="prevImage(event)">&lsaquo;</span>
-        <img id="lightbox-img" src="" alt="">
-        <span class="lightbox-nav lightbox-next" onclick="nextImage(event)">&rsaquo;</span>
-        <div class="lightbox-title" id="lightbox-title"></div>
-    </div>
-</div>
+<!-- PhotoSwipe 灯箱（相册；替代手写 lightbox） -->
+<link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
+<script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
+<script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>
 <script>
-const images = <?php echo json_encode(array_map(function($p) { return ['src' => $p['image'], 'title' => $p['title']]; }, $albumPhotos)); ?>;
-let currentIndex = 0;
-
-document.querySelectorAll('[data-lightbox="album"]').forEach((el, idx) => {
-    el.addEventListener('click', (e) => {
-        e.preventDefault();
-        currentIndex = idx;
-        showImage();
-        document.getElementById('lightbox').classList.add('active');
-        document.body.style.overflow = 'hidden';
-    });
-});
-
-function showImage() {
-    document.getElementById('lightbox-img').src = images[currentIndex].src;
-    document.getElementById('lightbox-title').textContent = images[currentIndex].title || '';
-}
-
-function closeLightbox(e) {
-    if (!e || e.target.id === 'lightbox') {
-        document.getElementById('lightbox').classList.remove('active');
-        document.body.style.overflow = '';
+(function () {
+    var images = <?php echo json_encode(array_map(function ($p) { return ['src' => $p['image'], 'title' => $p['title']]; }, $albumPhotos), JSON_UNESCAPED_UNICODE); ?>;
+    var dims = {};
+    images.forEach(function (im) { var pr = new Image(); pr.onload = function () { dims[im.src] = { w: pr.naturalWidth, h: pr.naturalHeight }; }; pr.src = im.src; });
+    function openAlbum(idx) {
+        if (!window.PhotoSwipeLightbox) return;
+        var ds = images.map(function (im) { var d = dims[im.src] || { w: 1600, h: 1600 }; return { src: im.src, width: d.w, height: d.h, alt: im.title }; });
+        var lb = new PhotoSwipeLightbox({ dataSource: ds, pswpModule: window.PhotoSwipe, showHideAnimationType: 'zoom', bgOpacity: 0.92 });
+        lb.init();
+        lb.loadAndOpen(idx || 0);
     }
-}
-
-function prevImage(e) {
-    e.stopPropagation();
-    currentIndex = (currentIndex - 1 + images.length) % images.length;
-    showImage();
-}
-
-function nextImage(e) {
-    e.stopPropagation();
-    currentIndex = (currentIndex + 1) % images.length;
-    showImage();
-}
-
-document.addEventListener('keydown', (e) => {
-    if (!document.getElementById('lightbox').classList.contains('active')) return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') prevImage(e);
-    if (e.key === 'ArrowRight') nextImage(e);
-});
+    document.querySelectorAll('[data-lightbox="album"]').forEach(function (el, idx) {
+        el.addEventListener('click', function (e) { e.preventDefault(); openAlbum(idx); });
+    });
+})();
 </script>
 <?php endif; ?>
 
