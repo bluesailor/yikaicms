@@ -24,12 +24,20 @@ final class VideoElement extends AbstractElement
             return '';
         }
         $embed = self::toEmbed($url);
-        $wrap = '<div class="relative my-4" style="padding-bottom:56.25%;height:0;overflow:hidden">';
+        // 平台嵌入（YouTube/Bilibili）：保留各自原生播放器，16:9 响应式包裹
         if ($embed !== null) {
-            return $wrap . '<iframe src="' . htmlspecialchars($embed) . '" class="absolute inset-0 w-full h-full" style="border:0" allowfullscreen loading="lazy"></iframe></div>';
+            return '<div class="relative my-4" style="padding-bottom:56.25%;height:0;overflow:hidden">'
+                . '<iframe src="' . htmlspecialchars($embed) . '" class="absolute inset-0 w-full h-full" style="border:0" allowfullscreen loading="lazy"></iframe></div>';
         }
-        // 直链视频
-        return $wrap . '<video src="' . htmlspecialchars($url) . '" class="absolute inset-0 w-full h-full" controls></video></div>';
+        // 直链视频：Plyr 统一美化播放器（进度/音量/全屏/倍速；自带响应式）。
+        // 加载器自守卫（window.__ykPlyr）——多个视频只注入一次 Plyr、初始化全部 .ykt-plyr；
+        // 输出对每个直链视频恒定，不用 PHP 静态标志（避免单进程/测试的顺序依赖）。
+        return '<div class="my-4"><video class="ykt-plyr" playsinline controls src="' . htmlspecialchars($url) . '"></video></div>'
+            . '<script>(function(){if(window.__ykPlyr)return;window.__ykPlyr=1;'
+            . 'var c=document.createElement("link");c.rel="stylesheet";c.href="/assets/plyr/plyr.min.css";document.head.appendChild(c);'
+            . 'var s=document.createElement("script");s.src="/assets/plyr/plyr.min.js";'
+            . 's.onload=function(){document.querySelectorAll(".ykt-plyr:not([data-plyr-ready])").forEach(function(v){v.setAttribute("data-plyr-ready","1");new Plyr(v);});};'
+            . 'document.head.appendChild(s);})();</script>';
     }
 
     /** 常见平台链接 → 可嵌入 URL；无法识别的直链返回 null */
