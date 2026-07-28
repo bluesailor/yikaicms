@@ -1100,6 +1100,8 @@ return [
     'sys_info' => '系统信息',
     'sys_stat_log' => '操作日志',
     'sys_error_log' => '错误日志',
+    'seo_plugin_hint' => '已启用「SEO 工坊」插件：llms.txt、写作实时分析、搜索引擎推送等进阶功能在插件面板；本页管理全站标题/关键词/描述等基础项。',
+    'seo_plugin_hint_go' => '前往插件面板',
     'sys_error_log_entries' => '条记录',
     'sys_error_log_clear' => '清空此日志',
     'sys_error_log_clear_confirm' => '确定清空这份错误日志？此操作不可恢复。',

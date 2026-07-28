@@ -1023,6 +1023,8 @@ return [
     'sys_info' => 'System Info',
     'sys_stat_log' => 'Logs',
     'sys_error_log' => 'Error Log',
+    'seo_plugin_hint' => 'SEO Toolkit plugin is active: llms.txt, real-time writing analysis, search engine submission and more live in the plugin panel; this page manages site-wide title/keywords/description basics.',
+    'seo_plugin_hint_go' => 'Open plugin panel',
     'sys_error_log_entries' => 'entries',
     'sys_error_log_clear' => 'Clear this log',
     'sys_error_log_clear_confirm' => 'Clear this error log? This cannot be undone.',
