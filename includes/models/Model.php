@@ -38,7 +38,7 @@ class Model
      * 按主键查单条。软删除模型自动排除回收站中的行
      *（详情页/编辑页据此对已删项返回 null；回收站的读取用 getTrashed，不走这里）。
      */
-    public function find(int $id): ?array
+    public function find(int|string $id): ?array
     {
         return db()->fetchOne(
             "SELECT * FROM {$this->tableName()} WHERE {$this->primaryKey} = ?" . $this->softDeleteGuard(),
@@ -185,7 +185,7 @@ class Model
     /**
      * 按 ID 更新
      */
-    public function updateById(int $id, array $data): int
+    public function updateById(int|string $id, array $data): int
     {
         if (function_exists('apply_filters')) $data = apply_filters('model_before_update', $data, $this->table, $id);
         $r = db()->update($this->table, $data, "{$this->primaryKey} = ?", [$id]);
@@ -224,7 +224,7 @@ class Model
     /**
      * 按 ID 删除。软删除模型写 deleted_at（进回收站），否则物理删除。
      */
-    public function deleteById(int $id): int
+    public function deleteById(int|string $id): int
     {
         if (function_exists('do_action')) do_action('model_before_delete', $this->table, $id);
         if ($this->softDelete) {
