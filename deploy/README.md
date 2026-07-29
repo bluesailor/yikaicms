@@ -71,3 +71,12 @@ include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;
 ```
 
 没有 cron 的共享主机：定时发布会在有访问时兜底触发；备份/清理建议手动或用主机自带的计划任务。
+
+## 万网 / 阿里云云虚拟主机（NGINX）
+
+| 文件 | 用途 |
+|---|---|
+| `aliyun-nginx-minimal.txt` | **推荐**。极简版：敏感目录拦截 + 不存在的文件交给 index.php，由内置路由分发器接管 |
+| `aliyun-nginx.htaccess` | 全量显式 rewrite 规则版，需要逐条控制时使用 |
+
+粘贴位置：主机控制面板 → 高级环境设置 → NGINX 设置，替换掉面板默认的 `location / {}` 与 `location ~ /\.ht {deny all;}`。
