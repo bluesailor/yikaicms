@@ -132,9 +132,11 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             </script>
             <nav class="mt-4 px-3" x-data="sidebarNav()">
                 <!-- 控制台 -->
-                <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>">
-                    <i class="ti ti-home text-lg mr-3"></i>
-                    <?php echo __('admin_dashboard'); ?>
+                <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
+                   :class="collapsed ? 'lg:justify-center' : ''"
+                   :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
+                    <i class="ti ti-home text-lg flex-shrink-0" :class="collapsed ? 'lg:mr-0 mr-3' : 'mr-3'"></i>
+                    <span x-show="!collapsed"><?php echo __('admin_dashboard'); ?></span>
                 </a>
 
                 <?php
