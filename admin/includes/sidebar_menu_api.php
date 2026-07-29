@@ -66,7 +66,7 @@ function register_admin_menu(string $groupKey, array $item, ?array $groupDefault
  * with anything register_admin_menu() collected, then run through the
  * `admin_sidebar` filter.
  *
- * @return array<string,array{label:string,priority:int,super_only?:bool,items:array}>
+ * @return array<string,array{label:string,icon?:string,priority:int,super_only?:bool,items:array}>
  */
 function resolveAdminSidebar(): array
 {

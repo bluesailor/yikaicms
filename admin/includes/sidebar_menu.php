@@ -19,6 +19,7 @@
  * Structure:
  *   $menu[<group_key>] = [
  *     'label'        => string,             // group heading (i18n)
+ *     'icon'         => string,             // optional — raw <path/> SVG markup (24x24 viewBox)
  *     'priority'     => int,                // group order; ascending; default 100
  *     'super_only'   => bool,               // hide unless isSuperAdmin()
  *     'items'        => [
