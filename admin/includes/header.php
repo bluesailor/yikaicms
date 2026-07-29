@@ -55,13 +55,18 @@ if ($adminBrand === '后台管理') {
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/admin.css'); ?>">
     <?php do_action('ik_admin_head'); ?>
 </head>
-<?php // 侧栏折叠态（图标栏）：桌面端记忆到 localStorage，移动端始终展开抽屉 ?>
+<?php
+// 侧栏折叠态（图标栏）：状态存 Cookie，服务端据此预渲染宽度与主内容边距，
+// 避免 Alpine 初始化前后布局跳动；前端切换时同步回写 Cookie + localStorage。
+$_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
+?>
 <body class="bg-gray-100" x-data="{
         mobileMenu: false,
-        collapsed: (function () { try { return localStorage.getItem('sidebarCollapsed') === '1'; } catch (e) { return false; } })(),
+        collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
         toggleCollapsed() {
             this.collapsed = !this.collapsed;
             try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
+            document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=/;max-age=' + (365 * 86400) + ';samesite=Lax';
             if (!this.collapsed) { this.fly = { key: '', label: '', items: [], top: 0 }; }
         },
         fly: { key: '', label: '', items: [], top: 0 },
@@ -95,10 +100,10 @@ if ($adminBrand === '后台管理') {
              x-cloak></div>
 
         <!-- 侧边栏 -->
-        <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64"
+        <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                :class="[mobileMenu ? 'translate-x-0' : '', collapsed ? 'lg:w-16' : 'lg:w-64']">
             <!-- Logo -->
-            <div class="h-16 flex items-center justify-center border-b border-gray-700">
+            <div class="h-16 flex items-center justify-center border-b border-white/5">
                 <?php $adminLogo = config('admin_logo', ''); ?>
                 <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0">
                     <?php if ($adminLogo): ?>
@@ -196,8 +201,8 @@ if ($adminBrand === '后台管理') {
         <div x-show="collapsed && fly.key" x-cloak
              @mouseenter="flyKeep()" @mouseleave="flyLater()"
              :style="'top:' + fly.top + 'px'"
-             class="hidden lg:block fixed left-16 z-[60] w-52 bg-sidebar text-gray-300 rounded-r-lg shadow-2xl border border-gray-700 border-l-0 py-2">
-            <div class="px-4 py-1.5 text-sm text-gray-400 border-b border-gray-700 mb-1" x-text="fly.label"></div>
+             class="hidden lg:block fixed left-16 z-[60] w-52 bg-sidebar text-gray-300 rounded-r-lg shadow-2xl border border-white/10 border-l-0 py-2">
+            <div class="px-4 py-1.5 text-sm text-gray-400 border-b border-white/5 mb-1" x-text="fly.label"></div>
             <template x-for="it in fly.items" :key="it.url">
                 <a :href="it.url" class="sidebar-link block px-4 py-1.5 text-sm" x-text="it.label"></a>
             </template>
@@ -221,7 +226,8 @@ if ($adminBrand === '后台管理') {
         </script>
 
         <!-- 主内容区 -->
-        <div class="flex-1 transition-all duration-300" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'">
+        <div class="flex-1 transition-all duration-300 <?= $_sbCollapsed ? 'lg:ml-16' : 'lg:ml-64' ?>"
+             :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'">
             <!-- 顶部导航 -->
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
                 <!-- 移动端菜单按钮 -->
