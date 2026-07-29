@@ -169,7 +169,11 @@ if ($action !== '') {
 
     // ---- 1) 环境预检 ----
     if ($action === 'precheck') {
-        @mkdir(uo_dir(), 0755, true);
+        if (!is_dir(uo_dir())) {
+            if (!is_dir(uo_dir())) {
+            @mkdir(uo_dir(), 0755, true);
+        }
+        }
         $checks = [];
         $checks[] = ['name' => 'ZipArchive 扩展', 'ok' => class_exists('ZipArchive'), 'hint' => '解压安装包必需'];
         $checks[] = ['name' => '网络下载能力', 'ok' => function_exists('curl_init') || (bool) ini_get('allow_url_fopen'), 'hint' => 'curl 或 allow_url_fopen'];
@@ -214,7 +218,9 @@ if ($action !== '') {
             uo_json(['code' => 1, 'msg' => '下载地址不合法，仅允许官方 packages 目录']);
         }
         if (strlen($hash) !== 64) uo_json(['code' => 1, 'msg' => '缺少有效的 SHA256 校验值，拒绝升级']);
-        @mkdir(uo_dir(), 0755, true);
+        if (!is_dir(uo_dir())) {
+            @mkdir(uo_dir(), 0755, true);
+        }
         $pkg = uo_dir() . '/package.zip';
         @unlink($pkg);
         [$ok, $err] = uo_download($url, $pkg);
@@ -242,7 +248,9 @@ if ($action !== '') {
         // 备份 config.php + 记录旧版本（轻量、稳妥；完整代码回滚依赖主机备份）
         $oldVer = defined('CMS_VERSION') ? CMS_VERSION : 'unknown';
         $bakDir = ROOT_PATH . '/storage/backups/pre-upgrade-' . $oldVer . '-' . date('YmdHis');
-        @mkdir($bakDir, 0755, true);
+        if (!is_dir($bakDir)) {
+            @mkdir($bakDir, 0755, true);
+        }
         @copy(ROOT_PATH . '/config/config.php', $bakDir . '/config.php');
         @file_put_contents($bakDir . '/INFO.txt', "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n");
 
