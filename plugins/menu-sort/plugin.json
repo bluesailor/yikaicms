@@ -3,10 +3,10 @@
     "name_ja": "管理メニュー並び替え",
     "name_en": "Admin Menu Sort",
     "slug": "menu-sort",
-    "description": "自定义后台侧栏菜单的显示顺序，支持拖拽排序菜单分组和菜单项",
+    "description": "自定义后台侧栏菜单的显示顺序，支持拖拽排序菜单分组和菜单项。v1.1 起菜单清单实时读取当前后台（含插件注册项），不再随版本过时。",
     "description_ja": "管理画面サイドバーメニューの表示順をドラッグ&ドロップでカスタマイズ。グループとメニュー項目の両方を並び替えられます。",
     "description_en": "Customize the display order of the admin sidebar menu. Drag-and-drop to reorder both groups and individual items.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "author": "Yikai CMS",
-    "require_cms": "1.0.0"
+    "require_cms": "1.12.8"
 }

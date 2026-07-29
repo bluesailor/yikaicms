@@ -56,8 +56,13 @@ add_action('ik_admin_footer_scripts', function () {
     echo '    var ct=groupMap[gn].content;';
     echo '    var linkMap={};';
     echo '    ct.querySelectorAll("a.sidebar-link").forEach(function(a){';
-    echo '      var m=(a.getAttribute("href")||"").match(/\\/admin\\/([^\\.]+)\\.php/);';
-    echo '      if(m)linkMap[m[1]]=a;';
+    echo '      var href=a.getAttribute("href")||"";';
+    echo '      var m=href.match(/\\/admin\\/([^.\\/?]+)\\.php/);';
+    echo '      if(!m)return;';
+    echo '      var key=m[1];';
+    // 插件页共用 plugin_page.php，用 ?plugin= 区分（与 admin.php 的 ms_item_key 一致）
+    echo '      if(key==="plugin_page"){var pm=href.match(/[?&]plugin=([\\w\\-]+)/);if(pm)key="plugin_page:"+pm[1];}';
+    echo '      linkMap[key]=a;';
     echo '    });';
     echo '    cfg.items[gn].forEach(function(key){';
     echo '      if(!linkMap[key])return;';
