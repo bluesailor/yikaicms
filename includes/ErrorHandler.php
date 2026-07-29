@@ -202,11 +202,17 @@ final class ErrorHandler
         }
     }
 
-    /** 请求是否期望 JSON（后台的 fetch 均带 X-Requested-With） */
+    /**
+     * 请求是否期望 JSON。除标准头外，后台的 POST 一律视为 AJAX——
+     * 编辑器等页面用原生 fetch 提交表单不带 X-Requested-With，
+     * 回 HTML 会让前端报「JSON解析失败」看不到真实错误提示。
+     */
     private static function wantsJson(): bool
     {
         return strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest'
-            || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
+            || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')
+            || (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+                && str_starts_with((string) ($_SERVER['REQUEST_URI'] ?? ''), '/admin/'));
     }
 
     private static function levelName(int $severity): string
