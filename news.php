@@ -109,7 +109,7 @@ unset($_heroChannelBackup);
         <?php $listOpts = channelListOptions($category ?: ($newsChannel ?: [])); // 栏目「列表显示元素」配置 ?>
         <div class="space-y-6">
             <?php foreach ($articles as $item): ?>
-            <?php $item['url'] = '/news/article/' . $item['id'] . '.html'; // 新闻详情固定路由 ?>
+            <?php $item['url'] = contentUrl($item); // 文章路由统一由 contentUrl 决定（含 slug 友好链接） ?>
             <?php require theme_path('partials/article-card.php'); // 共用当前主题卡片模板，勿再内联 ?>
             <?php endforeach; ?>
         </div>

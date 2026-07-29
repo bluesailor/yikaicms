@@ -928,6 +928,15 @@ function contentUrl(array $content): string
         return $prefix . '/case/' . $content['id'] . '.html';
     }
 
+    // 文章类型固定走 /news/article/{slug|id}.html —— 与 .htaccess / nginx 的
+    // 文章路由和 article.php 一致。此前落到下方「栏目别名/内容别名」分支，
+    // 而该形态被单页通用规则吃掉（→ page.php），有别名的文章一律 404；
+    // 前台各处（news.php、首页栏目区块）曾各自硬编码绕开本函数，现统一由此出。
+    // 注意按内容自身的 type 判断：新闻子栏目的 channel_type 是 'list'，不是 'article'
+    if (($content['type'] ?? '') === 'article') {
+        return $prefix . '/news/article/' . (!empty($slug) ? $slug : $content['id']) . '.html';
+    }
+
     // 自定义模型：/<url_prefix>/<slug>.html（url_prefix 空则用 model_key），
     // 跨栏目统一干净 URL；prefixMap 进程内缓存，不重复查库。
     if ($channelType !== '' && !empty($slug)) {

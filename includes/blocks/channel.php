@@ -106,7 +106,7 @@ $contents = $hChannel['contents'];
         <!-- 文章/新闻：列表样式 -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach ($contents as $item):
-                $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
+                $itemUrl = contentUrl($item);   // 文章路由已由 contentUrl 统一处理，不再本地特判
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
             ?>
             <a href="<?php echo $itemUrl; ?>" class="block bg-white rounded-lg overflow-hidden hover:shadow-lg transition group">

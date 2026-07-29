@@ -206,7 +206,7 @@ require theme_path('partials/page-hero.php');
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div class="flex-1">
                             <?php if ($prevArticle): ?>
-                            <a href="/news/article/<?php echo $prevArticle['id']; ?>.html" class="group flex items-center gap-2 text-gray-600 hover:text-primary">
+                            <a href="<?php echo e(contentUrl($prevArticle)); ?>" class="group flex items-center gap-2 text-gray-600 hover:text-primary">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                                 </svg>
@@ -218,7 +218,7 @@ require theme_path('partials/page-hero.php');
                         </div>
                         <div class="flex-1 text-right">
                             <?php if ($nextArticle): ?>
-                            <a href="/news/article/<?php echo $nextArticle['id']; ?>.html" class="group flex items-center justify-end gap-2 text-gray-600 hover:text-primary">
+                            <a href="<?php echo e(contentUrl($nextArticle)); ?>" class="group flex items-center justify-end gap-2 text-gray-600 hover:text-primary">
                                 <span class="line-clamp-1"><?php echo e($nextArticle['title']); ?></span>
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -242,7 +242,7 @@ require theme_path('partials/page-hero.php');
                     </div>
                     <div class="divide-y">
                         <?php foreach ($relatedArticles as $related): ?>
-                        <a href="/news/article/<?php echo $related['id']; ?>.html"
+                        <a href="<?php echo e(contentUrl($related)); ?>"
                            class="flex gap-3 p-4 hover:bg-gray-50 transition">
                             <?php if ($related['cover']): ?>
                             <div class="flex-shrink-0 w-20 h-14 overflow-hidden rounded">

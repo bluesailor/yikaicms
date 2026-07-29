@@ -195,7 +195,7 @@ class ContentModel extends Model
     public function getPrev(int $channelId, int $currentId): ?array
     {
         return db()->fetchOne(
-            "SELECT c.id, c.title, c.slug, ch.slug as channel_slug, ch.type as channel_type
+            "SELECT c.id, c.title, c.slug, c.type, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
              WHERE c.channel_id = ? AND c.status = 1 AND c.deleted_at IS NULL AND c.id < ? ORDER BY c.id DESC LIMIT 1",
@@ -209,7 +209,7 @@ class ContentModel extends Model
     public function getNext(int $channelId, int $currentId): ?array
     {
         return db()->fetchOne(
-            "SELECT c.id, c.title, c.slug, ch.slug as channel_slug, ch.type as channel_type
+            "SELECT c.id, c.title, c.slug, c.type, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
              WHERE c.channel_id = ? AND c.status = 1 AND c.deleted_at IS NULL AND c.id > ? ORDER BY c.id ASC LIMIT 1",
@@ -223,7 +223,7 @@ class ContentModel extends Model
     public function getRelated(int $channelId, int $excludeId, int $limit = 4): array
     {
         return db()->fetchAll(
-            "SELECT c.id, c.title, c.cover, c.slug, c.created_at, ch.slug as channel_slug, ch.type as channel_type
+            "SELECT c.id, c.title, c.cover, c.slug, c.type, c.created_at, ch.slug as channel_slug, ch.type as channel_type
              FROM {$this->tableName()} c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
              WHERE c.channel_id = ? AND c.status = 1 AND c.deleted_at IS NULL AND c.id != ? ORDER BY " . (db()->isSqlite() ? 'RANDOM()' : 'RAND()') . " LIMIT ?",
