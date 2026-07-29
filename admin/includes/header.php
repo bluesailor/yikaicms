@@ -236,14 +236,14 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <i class="ti ti-menu-2 text-xl"></i>
                 </button>
 
-                <div class="flex-1 lg:flex-none">
-                    <h1 class="text-lg font-semibold text-gray-800"><?php echo $pageTitle ?? __('admin_dashboard'); ?></h1>
+                <div class="flex-1 min-w-0 lg:flex-none">
+                    <h1 class="text-lg font-semibold text-gray-800 truncate"><?php echo $pageTitle ?? __('admin_dashboard'); ?></h1>
                 </div>
 
                 <!-- 右侧工具栏 -->
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-shrink-0">
                     <!-- 后台命令面板搜索 -->
-                    <div class="relative" x-data="adminSearch()" x-init="init()" @click.away="open = false">
+                    <div class="relative hidden md:block" x-data="adminSearch()" x-init="init()" @click.away="open = false">
                         <div class="relative" style="display:inline-block;">
                             <input x-ref="input" id="adminSearchInput" name="admin_search" type="search"
                                    role="searchbox" autocomplete="off" aria-label="<?php echo __('admin_quick_search'); ?>"
