@@ -28,6 +28,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'batch_publish' || $action === 'batch_unpublish') {
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        if ($ids) {
+            $val = $action === 'batch_publish' ? 1 : 0;
+            foreach ($ids as $bid) {
+                jobModel()->updateById($bid, ['status' => $val, 'updated_at' => time()]);
+            }
+            adminLog('job', $action, '批量' . ($val ? '发布' : '下架') . '：' . implode(',', $ids));
+        }
+        success();
+    }
+
     if ($action === 'batch_delete') {
         requirePermission('delete_article');
         $ids = $_POST['ids'] ?? [];
@@ -128,18 +140,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">薪资</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_publish_time'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_date'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     <?php foreach ($items as $item): ?>
-                    <tr class="hover:bg-gray-50">
+                    <tr class="group hover:bg-gray-50">
                         <td class="px-4 py-3"><input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>"></td>
                         <td class="px-4 py-3">
                             <div class="font-medium"><?php echo e($item['title']); ?></div>
+                            <?php echo renderRowActions([
+                                'id'   => (int) $item['id'],
+                                'edit' => '/admin/job_edit.php?id=' . (int) $item['id'],
+                                'view' => '/job/' . (int) $item['id'] . '.html',
+                            ]); ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
@@ -156,14 +171,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php echo $item['is_top'] ? __('admin_top') : '-'; ?>
                             </button>
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <button onclick="toggle(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>, this)"
-                                    class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                                <?php echo $item['status'] ? __('admin_published') : __('admin_disabled'); ?>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="toggle(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>, this)" class="text-sm block mx-auto">
+                                <?php echo $item['status']
+                                    ? '<span class="text-green-600">' . __('admin_published') . '</span>'
+                                    : '<span class="text-gray-400">' . __('admin_disabled') . '</span>'; ?>
                             </button>
-                        </td>
-                        <td class="px-4 py-3 text-center text-sm text-gray-500">
-                            <?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?>
+                            <span class="text-gray-400 text-xs">
+                                <?php $_ts = (int) ($item['publish_time'] ?: $item['updated_at'] ?? 0); ?>
+                                <?php echo $_ts ? date('Y-m-d H:i', $_ts) : '-'; ?>
+                            </span>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php
@@ -171,21 +188,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             echo renderTransPills($_pillSrcId, $transStatus, '/admin/job_edit.php');
                             ?>
                         </td>
-                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <a href="/admin/job_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1 mr-2" title="<?php echo __('admin_edit'); ?>"><i class="ti ti-pencil text-base"></i> <?php echo __('admin_edit'); ?></a>
-                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i> <?php echo __('admin_delete'); ?></button>
-                        </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($items)): ?>
-                    <tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无职位数据</td></tr>
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无职位数据</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
         <div class="px-6 py-4 border-t flex flex-wrap gap-4 items-center justify-between">
-            <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100"><?php echo __('admin_batch_delete'); ?></button>
+            <?php echo renderBulkBar([
+                'batch_publish'   => __('admin_published'),
+                'batch_unpublish' => __('admin_disabled'),
+                'batch_delete'    => __('admin_move_to_trash'),
+            ]); ?>
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
@@ -236,19 +253,17 @@ async function deleteItem(id) {
     }
 }
 
-async function batchDelete() {
+async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
-    if (!confirm(`确定要删除选中的 ${checked.length} 项吗？`)) return;
+    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?> ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
     const formData = new FormData();
-    formData.append('action', 'batch_delete');
+    formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
-    if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
-        setTimeout(() => location.reload(), 1000);
-    }
+    if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
+    else { showMessage(data.msg, 'error'); }
 }
 </script>
 

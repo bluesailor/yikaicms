@@ -35,6 +35,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'batch_publish' || $action === 'batch_unpublish') {
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        if ($ids) {
+            $val = $action === 'batch_publish' ? 1 : 0;
+            foreach ($ids as $bid) {
+                downloadModel()->updateById($bid, ['status' => $val, 'updated_at' => time()]);
+            }
+            adminLog('download', $action, '批量' . ($val ? '发布' : '下架') . '：' . implode(',', $ids));
+        }
+        success();
+    }
+
     if ($action === 'batch_delete') {
         requirePermission('delete_download');
         $ids = $_POST['ids'] ?? [];
@@ -159,9 +171,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">大小</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">下载</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_date'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -177,18 +188,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         default => ['bg-gray-100 text-gray-500', strtoupper($item['file_ext']) ?: '?'],
                     };
                     ?>
-                    <tr class="hover:bg-gray-50">
+                    <tr class="group hover:bg-gray-50">
                         <td class="px-4 py-3"><input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>"></td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 <?php echo $extIcon[0]; ?> rounded flex items-center justify-center text-xs font-bold">
                                     <?php echo $extIcon[1]; ?>
                                 </div>
-                                <div>
+                                <div class="min-w-0">
                                     <div class="font-medium"><?php echo e($item['title']); ?></div>
                                     <?php if ($item['file_name']): ?>
                                     <div class="text-xs text-gray-400"><?php echo e($item['file_name']); ?></div>
                                     <?php endif; ?>
+                                    <?php echo renderRowActions([
+                                        'id'   => (int) $item['id'],
+                                        'edit' => '/admin/download_edit.php?id=' . (int) $item['id'],
+                                        'view' => (string) ($item['file_url'] ?? ''),
+                                    ]); ?>
                                 </div>
                             </div>
                         </td>
@@ -215,11 +231,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                    onchange="updateSort(<?php echo $item['id']; ?>, this.value)"
                                    class="w-16 text-center border rounded px-2 py-1 text-sm">
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
-                                    class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                                <?php echo $item['status'] ? __('admin_published') : __('admin_hide'); ?>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)" class="text-sm block mx-auto">
+                                <?php echo $item['status']
+                                    ? '<span class="text-green-600">' . __('admin_published') . '</span>'
+                                    : '<span class="text-gray-400">' . __('admin_hide') . '</span>'; ?>
                             </button>
+                            <span class="text-gray-400 text-xs">
+                                <?php $_ts = (int) ($item['updated_at'] ?: $item['created_at'] ?? 0); ?>
+                                <?php echo $_ts ? date('Y-m-d H:i', $_ts) : '-'; ?>
+                            </span>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php
@@ -227,33 +248,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             echo renderTransPills($_pillSrcId, $transStatus, '/admin/download_edit.php');
                             ?>
                         </td>
-                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <?php if ($item['file_url']): ?>
-                            <a href="<?php echo e($item['file_url']); ?>" target="_blank"
-                               class="text-gray-500 hover:text-primary text-sm mr-2 inline-flex items-center gap-1">
-                                <i class="ti ti-download text-sm"></i>
-                                下载
-                            </a>
-                            <?php endif; ?>
-                            <a href="/admin/download_edit.php?id=<?php echo $item['id']; ?>"
-                               class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1 mr-2" title="<?php echo __('admin_edit'); ?>"><i class="ti ti-pencil text-base"></i> <?php echo __('admin_edit'); ?></a>
-                            <button onclick="deleteItem(<?php echo $item['id']; ?>)"
-                                    class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i> <?php echo __('admin_delete'); ?></button>
-                        </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($items)): ?>
-                    <tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">暂无下载数据</td></tr>
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无下载数据</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
         <div class="px-6 py-4 border-t flex flex-wrap gap-4 items-center justify-between">
-            <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100 inline-flex items-center gap-1">
-                <i class="ti ti-trash text-base"></i>
-                <?php echo __('admin_batch_delete'); ?>
-            </button>
+            <?php echo renderBulkBar([
+                'batch_publish'   => __('admin_published'),
+                'batch_unpublish' => __('admin_hide'),
+                'batch_delete'    => __('admin_move_to_trash'),
+            ]); ?>
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
@@ -323,19 +332,17 @@ async function deleteItem(id) {
     }
 }
 
-async function batchDelete() {
+async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
-    if (!confirm(`确定要删除选中的 ${checked.length} 项吗？`)) return;
+    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?> ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
     const formData = new FormData();
-    formData.append('action', 'batch_delete');
+    formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
-    if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
-        setTimeout(() => location.reload(), 1000);
-    }
+    if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
+    else { showMessage(data.msg, 'error'); }
 }
 </script>
 
