@@ -48,14 +48,23 @@ $latestContents = contentModel()->query(
 // 最新表单
 $latestForms = formModel()->where([], 'id DESC', 10);
 
+// 控制台新版本提醒开关（所有站点可关；默认开启。重新开启入口在 系统升级→在线更新）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_update_bar') {
+    if (hasPermission('*')) {
+        settingModel()->set('dashboard_update_check', post('value') === '1' ? '1' : '0', 'system');
+        adminLog('setting', 'update', '控制台新版本提醒：' . (post('value') === '1' ? '开启' : '关闭'));
+    }
+    success();
+}
+
 $pageTitle = __('admin_dashboard');
 $currentMenu = 'dashboard';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php if (hasPermission('*')): ?>
-<!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器） -->
+<?php if (hasPermission('*') && config('dashboard_update_check', '1') === '1'): ?>
+<!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 -->
 <div id="uoBar" class="bg-white rounded-lg shadow px-5 py-3 mb-6 flex items-center justify-between flex-wrap gap-3">
     <div class="flex items-center gap-2 text-sm text-gray-600">
         <i class="ti ti-versions text-gray-400"></i>
@@ -64,9 +73,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i class="ti ti-loader-2 animate-spin text-xs"></i><?php echo __('dashboard_update_check'); ?>
         </span>
     </div>
-    <a id="uoGo" href="/admin/upgrade_online.php" class="hidden items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm font-medium transition">
-        <i class="ti ti-cloud-download text-base"></i><span><?php echo __('dashboard_update_go'); ?></span>
-    </a>
+    <div class="flex items-center gap-3">
+        <a id="uoGo" href="/admin/upgrade_online.php" class="hidden items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm font-medium transition">
+            <i class="ti ti-cloud-download text-base"></i><span><?php echo __('dashboard_update_go'); ?></span>
+        </a>
+        <button type="button" onclick="uoDismiss()" title="<?php echo e(__('dashboard_update_hide_tip')); ?>"
+                class="text-gray-300 hover:text-gray-500 transition"><i class="ti ti-x text-base"></i></button>
+    </div>
 </div>
 <script>
 (function () {
@@ -104,6 +117,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         })
         .catch(function () { statusEl.textContent = ''; });
 })();
+async function uoDismiss() {
+    var fd = new FormData();
+    fd.append('action', 'toggle_update_bar');
+    fd.append('value', '0');
+    try {
+        await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        document.getElementById('uoBar').remove();
+        showMessage(<?php echo json_encode(__('dashboard_update_hidden_msg')); ?>);
+    } catch (e) {}
+}
 </script>
 <?php endif; ?>
 

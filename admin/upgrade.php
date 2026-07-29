@@ -41,6 +41,13 @@ if (!function_exists('_columnExists')) {
 require_once ROOT_PATH . '/includes/Migrator.php';
 $upgrades = Migrator::loadAll();
 
+// AJAX: 控制台新版本提醒开关（与 admin/index.php 的关闭按钮配对）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_update_bar') {
+    settingModel()->set('dashboard_update_check', post('value') === '1' ? '1' : '0', 'system');
+    adminLog('setting', 'update', '控制台新版本提醒：' . (post('value') === '1' ? '开启' : '关闭'));
+    success();
+}
+
 // AJAX: 在线升级检测（服务端代理，避免 CORS）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_update') {
     header('Content-Type: application/json; charset=utf-8');
@@ -370,6 +377,11 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 
             <div id="updateResult" class="hidden"></div>
 
+            <label class="flex items-center gap-2 text-sm text-gray-500 mb-4 cursor-pointer select-none">
+                <input type="checkbox" id="uoBarToggle" <?php echo config('dashboard_update_check', '1') === '1' ? 'checked' : ''; ?>
+                       onchange="toggleUoBar(this)" class="w-4 h-4 accent-blue-500">
+                在控制台首页显示新版本提醒
+            </label>
             <button id="btnCheckUpdate" onclick="checkUpdate()" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded transition inline-flex items-center gap-2">
                 <i class="ti ti-refresh text-base"></i>
                 检测更新
@@ -395,6 +407,15 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 var currentVersion = <?php echo json_encode($currentVersion); ?>;
 
 async function checkUpdate() {
+    async function toggleUoBar(cb) {
+        var fd = new FormData();
+        fd.append('action', 'toggle_update_bar');
+        fd.append('value', cb.checked ? '1' : '0');
+        try {
+            await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            showMessage(cb.checked ? '已开启控制台提醒' : '已关闭控制台提醒');
+        } catch (e) { showMessage('保存失败', 'error'); cb.checked = !cb.checked; }
+    }
     var btn = document.getElementById('btnCheckUpdate');
     var result = document.getElementById('updateResult');
     btn.disabled = true;
