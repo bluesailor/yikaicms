@@ -460,7 +460,8 @@ return [
             $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "contents WHERE slug = 'smart-factory-solution' LIMIT 1");
             if (!empty($row)) return true;
             // 站点未安装"解决方案"模块（无 solution 栏目）时，此演示种子不适用，视为已满足，避免升级页长期显示待跑
-            $ch = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "channels WHERE slug = 'solution' LIMIT 1");
+            // 栏目不存在或已停用 → 模块未启用，演示种子不适用
+            $ch = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "channels WHERE slug = 'solution' AND status = 1 LIMIT 1");
             return empty($ch);
         },
         'sqls' => [],
@@ -566,7 +567,8 @@ return [
             $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "contents WHERE slug = 'retail-chain-digitalization' LIMIT 1");
             if (!empty($row)) return true;
             // 站点未安装"行业方案"模块（无 industry 栏目）时，此演示种子不适用，视为已满足
-            $ch = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "channels WHERE slug = 'industry' LIMIT 1");
+            // 栏目不存在或已停用 → 模块未启用，演示种子不适用
+            $ch = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "channels WHERE slug = 'industry' AND status = 1 LIMIT 1");
             return empty($ch);
         },
         'sqls' => [],
