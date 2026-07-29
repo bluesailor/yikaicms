@@ -1132,6 +1132,8 @@ return [
     'code_copied' => 'コピーしました',
     'upgrade_config_title' => 'アップデート設定',
     'upgrade_tab_db' => 'データベース更新',
+    'admin_license' => 'ライセンス管理',
+    'admin_customer_service' => 'オンライン接客',
     'upgrade_notify_label' => 'ダッシュボードの新バージョン通知',
     'upgrade_notify_all' => 'すべての更新を通知',
     'upgrade_notify_security' => 'セキュリティ更新のみ',

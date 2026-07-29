@@ -1036,6 +1036,8 @@ return [
     'code_copied' => 'Copied',
     'upgrade_config_title' => 'Update Settings',
     'upgrade_tab_db' => 'Database Upgrade',
+    'admin_license' => 'License',
+    'admin_customer_service' => 'Live Chat',
     'upgrade_notify_label' => 'New version notice on the dashboard',
     'upgrade_notify_all' => 'Notify about all updates',
     'upgrade_notify_security' => 'Security updates only',
