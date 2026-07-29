@@ -55,6 +55,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'duplicate') {
+        $id  = postInt('id');
+        $src = contentModel()->find($id);
+        if (!$src) {
+            error(__('admin_no_data'));
+        }
+        // 复制为草稿：清主键/统计/时间，重算 slug；translation_group_id 必须清零，
+        // 否则副本会被当成原文的翻译行而在语言切换时相互覆盖。
+        unset($src['id'], $src['deleted_at']);
+        $src['title']                = $src['title'] . ' ' . __('admin_copy_suffix');
+        $src['slug']                 = resolveSlug('', (string) $src['title'], 'contents', 0);
+        $src['status']               = 0;
+        $src['views']                = 0;
+        $src['translation_group_id'] = 0;
+        $src['publish_time']         = 0;
+        $src['created_at']           = time();
+        $src['updated_at']           = time();
+        $src['admin_id']             = $_SESSION['admin_id'] ?? 0;
+        $newId = contentModel()->create($src);
+        adminLog('article', 'duplicate', "复制文章 #$id → #$newId");
+        success(['id' => $newId]);
+    }
+
     if ($action === 'batch_delete') {
         requirePermission('delete_article');
         $ids = $_POST['ids'] ?? [];
@@ -156,7 +179,7 @@ $total = (int)db()->fetchColumn(
 );
 
 $articles = db()->fetchAll(
-    "SELECT a.*, c.name as channel_name
+    "SELECT a.*, c.name as channel_name, c.slug AS channel_slug, c.type AS channel_type
      FROM " . DB_PREFIX . "contents a
      LEFT JOIN " . DB_PREFIX . "channels c ON a.channel_id = c.id
      {$whereSQL} ORDER BY a.is_top DESC, a.id DESC LIMIT ? OFFSET ?",
@@ -223,42 +246,49 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 w-8"><input type="checkbox" id="checkAll"></th>
                     <th class="px-4 py-3"><?php echo __('admin_title_label'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_channel'); ?></th>
-                    <th class="px-4 py-3"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_top'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_recommend'); ?></th>
                     <th class="px-4 py-3"><?php echo __('detail_views'); ?></th>
-                    <th class="px-4 py-3"><?php echo __('admin_created_at'); ?></th>
+                    <th class="px-4 py-3"><?php echo __('admin_date'); ?></th>
                     <th class="px-4 py-3">翻译</th>
-                    <th class="px-4 py-3 w-32"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
                 <?php if (empty($articles)): ?>
-                <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400"><?php echo __('admin_no_data'); ?></td></tr>
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400"><?php echo __('admin_no_data'); ?></td></tr>
                 <?php else: ?>
                 <?php foreach ($articles as $item): ?>
-                <tr class="hover:bg-gray-50" id="row-<?php echo $item['id']; ?>">
+                <tr class="group hover:bg-gray-50" id="row-<?php echo $item['id']; ?>">
                     <td class="px-4 py-3"><input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>" class="row-check"></td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
                             <?php if ($item['cover']): ?>
                             <img src="<?php echo e(thumbnail($item['cover'], 'thumb')); ?>" alt="" class="w-10 h-10 rounded object-cover flex-shrink-0">
+                            <?php else: ?>
+                            <?php // 无封面用同尺寸占位，保证标题列左边缘始终对齐 ?>
+                            <span class="w-10 h-10 rounded bg-gray-100 text-gray-300 flex items-center justify-center flex-shrink-0" title="<?php echo __('admin_no_cover'); ?>">
+                                <i class="ti ti-photo text-lg"></i>
+                            </span>
                             <?php endif; ?>
-                            <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-800 hover:text-primary font-medium line-clamp-1">
-                                <?php echo e($item['title']); ?>
-                            </a>
+                            <div class="min-w-0">
+                                <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-800 hover:text-primary font-medium line-clamp-1">
+                                    <?php echo e($item['title']); ?>
+                                </a>
+                                <?php // 行内操作（借鉴 WordPress）：桌面端悬停显现，移动端常驻；
+                                      // 始终占位，避免悬停时行高跳动 ?>
+                                <div class="row-actions mt-0.5 flex items-center gap-1 text-xs text-gray-400 opacity-100 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100 transition-opacity">
+                                    <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="hover:text-primary"><?php echo __('admin_edit'); ?></a>
+                                    <span class="text-gray-200">|</span>
+                                    <button type="button" onclick="duplicateItem(<?php echo $item['id']; ?>)" class="hover:text-primary"><?php echo __('admin_duplicate'); ?></button>
+                                    <span class="text-gray-200">|</span>
+                                    <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="hover:text-red-500"><?php echo __('admin_move_to_trash'); ?></button>
+                                    <span class="text-gray-200">|</span>
+                                    <a href="<?php echo e(contentUrl($item)); ?>" target="_blank" rel="noopener" class="hover:text-primary"><?php echo __('admin_view'); ?></a>
+                                </div>
+                            </div>
                         </div>
                     </td>
                     <td class="px-4 py-3 text-gray-500"><?php echo e($item['channel_name'] ?? '-'); ?></td>
-                    <td class="px-4 py-3">
-                        <button onclick="toggleStatus(<?php echo $item['id']; ?>)" class="status-btn-<?php echo $item['id']; ?>">
-                            <?php if ($item['status']): ?>
-                            <span class="text-green-500"><?php echo __('admin_published'); ?></span>
-                            <?php else: ?>
-                            <span class="text-gray-400"><?php echo __('admin_draft'); ?></span>
-                            <?php endif; ?>
-                        </button>
-                    </td>
                     <td class="px-4 py-3">
                         <button onclick="toggleTop(<?php echo $item['id']; ?>)" class="top-btn-<?php echo $item['id']; ?>">
                             <?php echo $item['is_top'] ? '<span class="text-red-500">' . __('admin_yes') . '</span>' : '<span class="text-gray-300">' . __('admin_no') . '</span>'; ?>
@@ -270,20 +300,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </button>
                     </td>
                     <td class="px-4 py-3 text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
-                    <td class="px-4 py-3 text-gray-400 text-xs"><?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?></td>
-                    <td class="px-4 py-3"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/article_edit.php'); ?></td>
+                    <?php // 日期列合并状态（借鉴 WordPress）：状态可点切换，下方是发布/更新时间 ?>
                     <td class="px-4 py-3 whitespace-nowrap">
-                        <div class="flex gap-3 items-center">
-                            <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_edit'); ?>">
-                                <i class="ti ti-pencil text-base"></i>
-                                <?php echo __('admin_edit'); ?>
-                            </a>
-                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_delete'); ?>">
-                                <i class="ti ti-trash text-base"></i>
-                                <?php echo __('admin_delete'); ?>
-                            </button>
-                        </div>
+                        <button onclick="toggleStatus(<?php echo $item['id']; ?>)" class="status-btn-<?php echo $item['id']; ?> text-sm block">
+                            <?php if ($item['status']): ?>
+                            <span class="text-green-600"><?php echo __('admin_published'); ?></span>
+                            <?php else: ?>
+                            <span class="text-gray-400"><?php echo __('admin_draft'); ?></span>
+                            <?php endif; ?>
+                        </button>
+                        <span class="text-gray-400 text-xs">
+                            <?php $_ts = (int) ($item['publish_time'] ?: $item['updated_at'] ?? 0); ?>
+                            <?php echo $_ts ? date('Y-m-d H:i', $_ts) : '-'; ?>
+                        </span>
                     </td>
+                    <td class="px-4 py-3"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/article_edit.php'); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
@@ -348,6 +379,15 @@ async function deleteItem(id) {
     if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
     const data = await postAction('delete', { id });
     if (data.code === 0) { document.getElementById('row-' + id)?.remove(); showMessage('<?php echo __('admin_deleted'); ?>'); }
+}
+async function duplicateItem(id) {
+    const data = await postAction('duplicate', { id });
+    if (data.code === 0) {
+        showMessage('<?php echo __('admin_duplicated'); ?>');
+        setTimeout(() => location.href = '/admin/article_edit.php?id=' + data.data.id, 700);
+    } else {
+        showMessage(data.msg, 'error');
+    }
 }
 async function batchAction(action) {
     const ids = [...document.querySelectorAll('.row-check:checked')].map(cb => cb.value);
