@@ -245,7 +245,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 </button>
 
                 <div class="flex-1 min-w-0 lg:flex-none">
-                    <h1 class="text-lg font-semibold text-gray-800 truncate"><?php echo $pageTitle ?? __('admin_dashboard'); ?></h1>
+                    <?php // 手机上标题只作定位提示：小一号、不加粗、淡一档，不与图标抢注意力；桌面端保持原样 ?>
+                    <h1 class="text-sm font-normal text-gray-500 sm:text-lg sm:font-semibold sm:text-gray-800 truncate"><?php echo $pageTitle ?? __('admin_dashboard'); ?></h1>
                 </div>
 
                 <!-- 右侧工具栏 -->
