@@ -46,10 +46,16 @@ function csrf(string $html): string
 $token = csrf($loginPage);
 if ($token === '') { fwrite(STDERR, "❌ 拿不到登录 CSRF token（HTTP {$c}）\n"); exit(2); }
 [$c, $r] = req('POST', '/admin/login.php', ['username' => 'admin', 'password' => 'smoke@Test123', '_token' => $token]);
-// 确认已登录
+// 严判：登录成功 = 302 跳转（传统表单流）。200 = 带错误文案的登录页——把文案吐出来。
+if ($c !== 302) {
+    $plain = trim((string) preg_replace('/\s+/', ' ', strip_tags($r)));
+    fwrite(STDERR, "❌ 登录 POST 未跳转（HTTP {$c}）。页面文本：" . mb_substr($plain, 0, 300) . "\n");
+    exit(2);
+}
+// 二次确认：进得去仪表盘且不是登录页
 [$c, $dash] = req('GET', '/admin/index.php');
-if (stripos($dash, 'login') !== false && stripos($dash, '仪表') === false && $c !== 200) {
-    fwrite(STDERR, "❌ 登录失败（HTTP {$c}）\n"); exit(2);
+if ($c !== 200 || stripos($dash, 'name="password"') !== false) {
+    fwrite(STDERR, "❌ 登录后访问仪表盘失败（HTTP {$c}）\n"); exit(2);
 }
 echo "✓ 登录成功\n";
 
