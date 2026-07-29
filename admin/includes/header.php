@@ -86,20 +86,15 @@ if ($adminBrand === '后台管理') {
 
             <!-- 导航菜单 -->
             <script>
-            // 单开手风琴（借鉴 WordPress）：同时只展开一个分组——菜单项近 40 个时
-            // 全展开需滚动才能看全，单开后常驻约 15 行、一屏可见。
-            // 优先展开「当前所在组」；无活动组（如控制台）时沿用上次记忆。
+            // 单开手风琴（借鉴 WordPress）：同时只展开「当前所在组」，其余收起。
+            // 菜单项近 40 个，全展开需滚动；单开后常驻约 15 行、一屏可见。
+            // 不记忆上次展开项——服务端已按 activeGroup 预渲染折叠态，
+            // 避免 Alpine 初始化前后出现「先全展开再塌陷」的闪烁。
             function sidebarNav() {
-                var activeGroup = '<?php echo $activeGroup; ?>';
-                var saved = '';
-                try { saved = localStorage.getItem('sidebarOpenGroup') || ''; } catch (e) {}
                 return {
-                    openGroup: activeGroup || saved,
+                    openGroup: '<?php echo $activeGroup; ?>',
                     isOpen: function (g) { return this.openGroup === g; },
-                    toggle: function (g) {
-                        this.openGroup = (this.openGroup === g) ? '' : g;
-                        try { localStorage.setItem('sidebarOpenGroup', this.openGroup); } catch (e) {}
-                    }
+                    toggle: function (g) { this.openGroup = (this.openGroup === g) ? '' : g; }
                 };
             }
             </script>
@@ -121,16 +116,26 @@ if ($adminBrand === '后台管理') {
                     );
                     if (empty($navGroup['items'])) continue;
                 ?>
-                <?php $_first = reset($navGroup['items']); $_firstUrl = (string) ($_first['url'] ?? ''); ?>
-                <div @click="toggle('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" data-group="<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>" class="sidebar-group px-4 pt-3 pb-1 text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between cursor-pointer select-none">
+                <?php
+                $_first    = reset($navGroup['items']);
+                $_firstUrl = (string) ($_first['url'] ?? '');
+                $_gKey     = htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8');
+                $_gIcon    = (string) ($navGroup['icon'] ?? '');
+                $_gOpen    = ($groupKey === $activeGroup);
+                ?>
+                <div @click="toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
+                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5">
+                    <?php if ($_gIcon !== ''): ?>
+                    <svg class="w-[18px] h-[18px] flex-shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
+                    <?php endif; ?>
                     <?php if ($_firstUrl !== ''): ?>
-                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate hover:text-gray-300 transition"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
+                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
                     <?php else: ?>
                     <span class="flex-1 min-w-0 truncate"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
                     <?php endif; ?>
-                    <i class="ti ti-chevron-down text-sm transition-transform duration-200" :class="isOpen('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>') ? 'rotate-180' : ''"></i>
+                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
                 </div>
-                <div x-show="isOpen('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" x-collapse>
+                <div class="pl-2" x-show="isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
