@@ -140,6 +140,12 @@ jobs:
       - name: Run admin CRUD smoke test
         run: php tests/smoke/admin_crud.php
 
+      - name: Dump error logs on failure（ErrorHandler 落盘的真实堆栈）
+        if: failure()
+        run: |
+          echo "=== storage/logs ==="; cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
+          echo "=== php server log ==="; tail -50 /tmp/php-server.log 2>/dev/null || true
+
   # ─── Psalm static analysis. Blocking: existing legacy noise is frozen in
   # ─── psalm-baseline.xml, so only NEW issues fail the build. Shrink the
   # ─── baseline over time (findUnusedBaselineEntry flags fixed entries).
