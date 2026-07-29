@@ -188,18 +188,22 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                         <i class="ti ti-logout text-lg mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
                         <span x-show="!collapsed"><?php echo __('admin_safe_logout'); ?></span>
                     </a>
-                    <?php // 折叠为图标栏（借鉴 WordPress 的「折叠菜单」）——仅桌面端 ?>
-                    <button type="button" @click="toggleCollapsed()"
-                            class="sidebar-link hidden lg:flex items-center w-full px-4 py-2 rounded-lg text-gray-500 hover:text-gray-200 transition"
-                            :class="collapsed ? 'justify-center' : ''"
-                            :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
-                        <i class="ti text-lg mr-3" :class="{ 'ti-chevrons-right': collapsed, 'ti-chevrons-left': !collapsed, 'mr-3': !collapsed }"></i>
-                        <span x-show="!collapsed"><?php echo __('admin_sidebar_collapse'); ?></span>
-                    </button>
                 </div>
                 <div style="height:20px"></div>
             </nav>
         </aside>
+
+        <?php // 折叠把手：骑在侧栏与内容区交界线上，随侧栏宽度移动。
+              // 静态 class 预渲染初始位置 + 对象语法绑定，避免首次切换时类残留。 ?>
+        <button type="button" @click="toggleCollapsed()"
+                class="hidden lg:flex fixed top-1/2 -translate-y-1/2 -ml-3 z-[55] w-6 h-6 items-center justify-center rounded-full
+                       bg-sidebar text-gray-400 border border-white/10 shadow-lg
+                       hover:text-white hover:border-white/25 transition-all duration-300 <?= $_sbCollapsed ? 'left-16' : 'left-64' ?>"
+                :class="{ 'left-16': collapsed, 'left-64': !collapsed }"
+                :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'"
+                :aria-label="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
+            <i class="ti text-xs" :class="{ 'ti-chevron-right': collapsed, 'ti-chevron-left': !collapsed }"></i>
+        </button>
 
         <?php // 折叠态的二级飞出面板：侧栏是滚动容器会裁剪子元素，故用 fixed 定位单例，
               // 悬停分组图标时按其位置弹出。数据从同一份菜单生成，不重复维护。 ?>
