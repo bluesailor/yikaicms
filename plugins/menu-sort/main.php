@@ -1,83 +1,114 @@
 <?php
 /**
- * 后台菜单排序 & 显示/隐藏插件
+ * 后台菜单排序 / 显示隐藏 / 改名
  *
- * 通过 JS 在页面加载后根据保存的配置重排并隐藏侧栏 DOM 元素
+ * v1.2.0 起改走服务端 `admin_sidebar` 过滤器，不再注入 JS 操作 DOM：
+ *   - 侧栏、折叠态飞出面板、顶栏命令面板搜索等所有消费菜单数据的地方一次全对
+ *   - 无「加载后才变化」的闪烁，也不与他人抢 DOM
+ *
+ * 配置存 setting `admin_menu_order`（JSON）：
+ *   {
+ *     "groups": ["site","product",...],          // 分组顺序
+ *     "items":  {"site":["channel","page",...]}, // 组内菜单项顺序
+ *     "hidden": ["system"],                      // 隐藏的分组
+ *     "hiddenItems": ["cron"],                   // 隐藏的菜单项
+ *     "labels": {"zh-CN": {"__group:site":"站点", "article":"新闻中心"}}  // 改名（按语言分存）
+ *   }
+ * 菜单项键与 admin.php 的 ms_item_key() 同规则（插件页为 plugin_page:插件名）。
  */
 
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
-add_action('ik_admin_footer_scripts', function () {
-    $order = config('admin_menu_order', '');
-    if (empty($order)) return;
+/** 菜单项排序键：普通页取文件名，插件页取 plugin_page:插件名（避免多个插件页同键互相覆盖）。 */
+if (!function_exists('ms_item_key')) {
+    function ms_item_key(string $url): string
+    {
+        if (!preg_match('#/admin/([^./?]+)\.php#', $url, $m)) {
+            return '';
+        }
+        if ($m[1] === 'plugin_page' && preg_match('#[?&]plugin=([\w\-]+)#', $url, $pm)) {
+            return 'plugin_page:' . $pm[1];
+        }
+        return $m[1];
+    }
+}
 
-    $orderJson = json_encode($order, JSON_HEX_TAG | JSON_HEX_AMP);
-    echo '<script>';
-    echo '(function(){';
-    echo 'try{';
-    echo 'var cfg=JSON.parse(' . $orderJson . ');';
-    echo 'if(!cfg||!cfg.groups)return;';
-    echo 'var sidebar=document.querySelector("nav[x-data]");';
-    echo 'if(!sidebar)return;';
-    // 收集所有分组：header(.sidebar-group) + content(下一个兄弟div)
-    echo 'var groupMap={};';
-    echo 'sidebar.querySelectorAll(".sidebar-group").forEach(function(hdr){';
-    // 分组键：优先 data-group（v1.13.3+ 侧栏），回退旧版 @click="toggle(key)" 解析
-    echo '  var key=hdr.getAttribute("data-group")||"";';
-    echo '  if(!key){var attr=hdr.getAttribute("@click")||"";var m=attr.match(/toggle\\([\'"]([^\'"]+)[\'"]/);if(m)key=m[1];}';
-    echo '  if(key){';
-    echo '    groupMap[key]={header:hdr,content:hdr.nextElementSibling};';
-    echo '  }';
-    echo '});';
-    // 防御：一个分组都没识别出来（侧栏结构变化）时原样放行，绝不清空侧栏
-    echo 'if(!Object.keys(groupMap).length)return;';
-    // 隐藏的分组和菜单项
-    echo 'var hidden=cfg.hidden||[];';
-    echo 'var hiddenItems=cfg.hiddenItems||[];';
-    // 创建容器，把排序后的元素放进去（避免空白残留）
-    echo 'var dashLink=sidebar.querySelector("a.sidebar-link");';
-    echo 'var frag=document.createDocumentFragment();';
-    echo 'cfg.groups.forEach(function(g){';
-    echo '  if(!groupMap[g])return;';
-    echo '  if(hidden.indexOf(g)>=0){';
-    echo '    groupMap[g].header.style.display="none";';
-    echo '    groupMap[g].content.style.display="none";';
-    echo '  }';
-    echo '  frag.appendChild(groupMap[g].header);';
-    echo '  frag.appendChild(groupMap[g].content);';
-    echo '});';
-    // 清空侧边栏，保留控制台链接，然后插入排序后的内容
-    echo 'sidebar.innerHTML="";';
-    echo 'if(dashLink)sidebar.appendChild(dashLink);';
-    echo 'sidebar.appendChild(frag);';
-    // 重排分组内的菜单项 + 隐藏
-    echo 'if(cfg.items){';
-    echo '  Object.keys(cfg.items).forEach(function(gn){';
-    echo '    if(!groupMap[gn])return;';
-    echo '    var ct=groupMap[gn].content;';
-    echo '    var linkMap={};';
-    echo '    ct.querySelectorAll("a.sidebar-link").forEach(function(a){';
-    echo '      var href=a.getAttribute("href")||"";';
-    echo '      var m=href.match(/\\/admin\\/([^.\\/?]+)\\.php/);';
-    echo '      if(!m)return;';
-    echo '      var key=m[1];';
-    // 插件页共用 plugin_page.php，用 ?plugin= 区分（与 admin.php 的 ms_item_key 一致）
-    echo '      if(key==="plugin_page"){var pm=href.match(/[?&]plugin=([\\w\\-]+)/);if(pm)key="plugin_page:"+pm[1];}';
-    echo '      linkMap[key]=a;';
-    echo '    });';
-    echo '    cfg.items[gn].forEach(function(key){';
-    echo '      if(!linkMap[key])return;';
-    echo '      if(hiddenItems.indexOf(key)>=0){';
-    echo '        linkMap[key].style.display="none";';
-    echo '      }else{';
-    echo '        ct.appendChild(linkMap[key]);';
-    echo '      }';
-    echo '    });';
-    echo '  });';
-    echo '}';
-    echo '}catch(e){console.error("menu-sort:",e)}';
-    echo '})();';
-    echo '</script>';
+add_filter('admin_sidebar', function (array $menu): array {
+    $cfg = json_decode((string) config('admin_menu_order', ''), true);
+    if (!is_array($cfg)) {
+        return $menu;
+    }
+
+    $hiddenGroups = (array) ($cfg['hidden'] ?? []);
+    $hiddenItems  = (array) ($cfg['hiddenItems'] ?? []);
+    $itemOrder    = (array) ($cfg['items'] ?? []);
+    // 改名按当前后台语言取；无该语言的自定义则保持原文案
+    $lang   = function_exists('getLang') ? getLang() : 'zh-CN';
+    $labels = (array) (($cfg['labels'] ?? [])[$lang] ?? []);
+
+    // ── 1) 分组：隐藏 / 改名 / 组内排序与隐藏 ──
+    foreach ($menu as $gKey => &$group) {
+        if (in_array($gKey, $hiddenGroups, true)) {
+            unset($menu[$gKey]);
+            continue;
+        }
+        if (isset($labels['__group:' . $gKey]) && $labels['__group:' . $gKey] !== '') {
+            $group['label'] = (string) $labels['__group:' . $gKey];
+        }
+
+        $items = (array) ($group['items'] ?? []);
+        if (!$items) {
+            continue;
+        }
+
+        // 菜单项：隐藏 + 改名
+        $kept = [];
+        foreach ($items as $it) {
+            $k = ms_item_key((string) ($it['url'] ?? ''));
+            if ($k !== '' && in_array($k, $hiddenItems, true)) {
+                continue;
+            }
+            if ($k !== '' && isset($labels[$k]) && $labels[$k] !== '') {
+                $it['label'] = (string) $labels[$k];
+            }
+            $kept[] = $it;
+        }
+
+        // 菜单项排序：配置里出现过的按配置序在前，其余（新增项）保持原序追加
+        $desired = array_values((array) ($itemOrder[$gKey] ?? []));
+        if ($desired) {
+            $byKey = [];
+            foreach ($kept as $i => $it) {
+                $byKey[ms_item_key((string) ($it['url'] ?? '')) ?: ('#' . $i)] = $it;
+            }
+            $sorted = [];
+            foreach ($desired as $k) {
+                if (isset($byKey[$k])) {
+                    $sorted[] = $byKey[$k];
+                    unset($byKey[$k]);
+                }
+            }
+            $kept = array_merge($sorted, array_values($byKey));
+        }
+
+        $group['items'] = $kept;
+    }
+    unset($group);
+
+    // ── 2) 分组排序：配置里出现过的在前，新增分组保持原序追加 ──
+    $desiredGroups = array_values((array) ($cfg['groups'] ?? []));
+    if ($desiredGroups) {
+        $sorted = [];
+        foreach ($desiredGroups as $gKey) {
+            if (isset($menu[$gKey])) {
+                $sorted[$gKey] = $menu[$gKey];
+                unset($menu[$gKey]);
+            }
+        }
+        $menu = $sorted + $menu;
+    }
+
+    return $menu;
 });

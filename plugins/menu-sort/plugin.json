@@ -3,10 +3,10 @@
     "name_ja": "管理メニュー並び替え",
     "name_en": "Admin Menu Sort",
     "slug": "menu-sort",
-    "description": "自定义后台侧栏菜单的显示顺序，支持拖拽排序菜单分组和菜单项。v1.1 起菜单清单实时读取当前后台（含插件注册项），不再随版本过时。",
-    "description_ja": "管理画面サイドバーメニューの表示順をドラッグ&ドロップでカスタマイズ。グループとメニュー項目の両方を並び替えられます。",
-    "description_en": "Customize the display order of the admin sidebar menu. Drag-and-drop to reorder both groups and individual items.",
-    "version": "1.1.2",
+    "description": "自定义后台侧栏菜单：拖拽排序、显示隐藏、菜单改名（按语言分存）。v1.2 起走服务端过滤器，侧栏/折叠飞出/命令面板一次全对，无加载闪烁。",
+    "description_ja": "管理サイドバーをカスタマイズ：ドラッグ並び替え、表示/非表示、メニュー名の変更（言語ごとに保存）。v1.2 よりサーバー側フィルターで動作し、サイドバー・フライアウト・コマンドパレットが一括で反映されます。",
+    "description_en": "Customize the admin sidebar: drag to reorder, show/hide, and rename menu entries (per admin language). Since v1.2 it works through the server-side filter, so sidebar, fly-out and command palette all stay in sync.",
+    "version": "1.2.0",
     "author": "Yikai CMS",
     "require_cms": "1.12.8"
 }
