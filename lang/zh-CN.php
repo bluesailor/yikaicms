@@ -594,7 +594,7 @@ return [
     'sh_queue_lost' => '生成队列丢失，请重新开始',
     'sh_failed_prefix' => '失败页面：',
     'sh_server_note_title' => '服务器配置说明',
-    'sh_server_note' => 'Apache（.htaccess）已自动配置静态直出，开箱即用。Nginx 用户需按 nginx.conf 内注释手动启用 try_files 规则。',
+    'sh_server_note' => 'Apache（.htaccess）已自动配置静态直出，开箱即用。Nginx 用户在站点配置中加入 <code class="bg-amber-100 px-1 rounded">location ~ \.html$ { try_files /html$uri @yikai_dynamic; }</code>，并把原有伪静态 rewrite 规则收拢进 <code class="bg-amber-100 px-1 rounded">location @yikai_dynamic { … }</code>；完整配置样例见源码仓库 deploy/nginx-server.conf（宝塔面板参考 deploy/nginx-baota.conf）。',
     'page_show' => '显示',
     'page_hide' => '隐藏',
     'page_confirm_delete' => '确定要删除单页「\' + name + \'」吗？\n关联的页面内容也会一并删除，此操作不可恢复。',

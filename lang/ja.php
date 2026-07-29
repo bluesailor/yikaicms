@@ -600,7 +600,7 @@ return [
     'sh_queue_lost' => '生成キューが失われました。最初からやり直してください',
     'sh_failed_prefix' => '失敗したページ：',
     'sh_server_note_title' => 'サーバー設定について',
-    'sh_server_note' => 'Apache（.htaccess）は自動設定済みで、そのまま利用できます。Nginx 利用者は nginx.conf 内のコメントに従って try_files ルールを有効化してください。',
+    'sh_server_note' => 'Apache（.htaccess）は自動設定済みで、そのまま利用できます。Nginx 利用者はサイト設定に <code class="bg-amber-100 px-1 rounded">location ~ \.html$ { try_files /html$uri @yikai_dynamic; }</code> を追加し、既存のリライトルールを <code class="bg-amber-100 px-1 rounded">location @yikai_dynamic { … }</code> にまとめてください。完全な設定例はソースリポジトリの deploy/nginx-server.conf を参照（宝塔パネルは deploy/nginx-baota.conf）。',
     'page_show' => '表示',
     'page_hide' => '非表示',
     'page_confirm_delete' => 'この固定ページを削除しますか？\n関連コンテンツも削除されます。',

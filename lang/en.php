@@ -546,7 +546,7 @@ return [
     'sh_queue_lost' => 'Generation queue lost, please restart',
     'sh_failed_prefix' => 'Failed pages: ',
     'sh_server_note_title' => 'Server Configuration',
-    'sh_server_note' => 'Apache (.htaccess) is preconfigured and works out of the box. Nginx users must enable the try_files rules per the comments in nginx.conf.',
+    'sh_server_note' => 'Apache (.htaccess) is preconfigured and works out of the box. Nginx users: add <code class="bg-amber-100 px-1 rounded">location ~ \.html$ { try_files /html$uri @yikai_dynamic; }</code> to your site config and move your existing rewrite rules into <code class="bg-amber-100 px-1 rounded">location @yikai_dynamic { … }</code>; see deploy/nginx-server.conf in the source repository for a complete example (Baota panel: deploy/nginx-baota.conf).',
     'page_show' => 'Show',
     'page_hide' => 'Hide',
     'page_confirm_delete' => 'Delete page "\' + name + \'"?\nLinked content will be deleted. This cannot be undone.',
