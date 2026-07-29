@@ -259,7 +259,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                 x-show="!mExpand" aria-label="<?php echo e(__('admin_quick_search')); ?>">
                             <i class="ti ti-search text-lg"></i>
                         </button>
-                        <div class="relative md:!block" :class="mExpand ? 'block absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-white' : 'hidden'" style="display:inline-block;">
+                        <?php // 不能用内联 display（会压过 hidden 类）：桌面常显，手机仅展开时以浮层出现 ?>
+                        <div class="relative hidden md:inline-block"
+                             :class="{ '!block absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-white rounded-full': mExpand }">
                             <input x-ref="input" id="adminSearchInput" name="admin_search" type="search"
                                    role="searchbox" autocomplete="off" aria-label="<?php echo __('admin_quick_search'); ?>"
                                    x-model="query"
@@ -275,7 +277,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                             <kbd style="position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:10px; padding:2px 4px; line-height:1;" class="font-mono text-gray-400 border border-gray-200 rounded bg-gray-50 hidden lg:inline-block" title="Ctrl/⌘+K">⌘K</kbd>
                         </div>
                         <div x-show="open && query.trim()" x-cloak
-                             class="absolute right-0 mt-1 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
+                             class="absolute right-0 mt-1 w-[min(85vw,20rem)] bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
                             <template x-if="results.length === 0">
                                 <div class="px-3 py-4 text-center text-xs text-gray-400">没有匹配「<span x-text="query"></span>」的页面<br>试试：logo / 联系 / 邮件 / 主题 / 升级</div>
                             </template>
