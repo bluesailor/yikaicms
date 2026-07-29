@@ -1143,8 +1143,6 @@ return [
     'admin_bulk_confirm_suffix' => '件に実行しますか？',
     'home_pc_title' => '製品カテゴリ',
     'home_pc_search_ph' => '製品を検索…',
-    'dashboard_update_hide_tip' => 'ダッシュボードの新バージョン通知を非表示（システムアップグレード → オンライン更新 で再有効化）',
-    'dashboard_update_hidden_msg' => '通知を非表示にしました。「システムアップグレード → オンライン更新」で再有効化できます',
     'seo_plugin_hint' => '「SEO ツールキット」プラグインが有効です：llms.txt、リアルタイム執筆分析、検索エンジン送信などの機能はプラグインパネルへ。本ページはサイト全体のタイトル/キーワード/説明などの基本項目を管理します。',
     'seo_plugin_hint_go' => 'プラグインパネルへ',
     'sys_error_log_entries' => '件',

@@ -1047,8 +1047,6 @@ return [
     'admin_bulk_confirm_suffix' => 'selected item(s)?',
     'home_pc_title' => 'Product Categories',
     'home_pc_search_ph' => 'Search products…',
-    'dashboard_update_hide_tip' => 'Hide the dashboard update notice (re-enable under System Upgrade → Online Update)',
-    'dashboard_update_hidden_msg' => 'Update notice hidden. Re-enable under System Upgrade → Online Update',
     'seo_plugin_hint' => 'SEO Toolkit plugin is active: llms.txt, real-time writing analysis, search engine submission and more live in the plugin panel; this page manages site-wide title/keywords/description basics.',
     'seo_plugin_hint_go' => 'Open plugin panel',
     'sys_error_log_entries' => 'entries',

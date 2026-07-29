@@ -54,15 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     success();
 }
 
-// AJAX: 控制台版本条的「×」关闭（等价于把级别设为 off）
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_update_bar') {
-    $on = post('value') === '1';
-    settingModel()->set('update_notify_level', $on ? 'all' : 'off', 'system');
-    settingModel()->set('dashboard_update_check', $on ? '1' : '0', 'system');
-    adminLog('setting', 'update', '控制台新版本提醒：' . ($on ? '开启' : '关闭'));
-    success();
-}
-
 // AJAX: 在线升级检测（服务端代理，避免 CORS）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_update') {
     header('Content-Type: application/json; charset=utf-8');
