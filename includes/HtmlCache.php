@@ -81,6 +81,19 @@ final class HtmlCache
 
         if (self::$currentKey === '' || $html === '' || $html === false) return;
 
+        // 只缓存正常响应。500/404/302 的页面体一旦落盘，一次瞬时故障就会被
+        // 冻结成静态文件反复吐给所有访客，直到 TTL 到期——排查时还看不到
+        // 新的错误日志（请求根本没进 PHP 业务），极难定位。
+        $code = http_response_code();
+        if ($code !== false && $code !== 200) return;
+
+        // 致命错误走 shutdown 时 http_response_code() 可能仍是 200，
+        // 补一道：本次请求已产生 E_ERROR 级错误则不落盘。
+        $last = error_get_last();
+        if ($last !== null && ((int) $last['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR)) !== 0) {
+            return;
+        }
+
         $dir = self::dir();
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
