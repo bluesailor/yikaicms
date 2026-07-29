@@ -284,6 +284,12 @@ $blockMeta = [
         'tip'   => '轮播图内容在 <a href="/admin/banner.php" class="text-primary hover:underline">轮播图管理</a> 中编辑',
         'keys'  => [],
     ],
+    'product_categories' => [
+        'title' => '产品分类树',
+        'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>',
+        'tip'   => '展示产品分类（一级 + 子级），分类多的工业/批发站适用；分类在 <a href="/admin/product_category.php" class="text-primary hover:underline">产品分类</a> 或产品栏目下维护',
+        'keys'  => [],
+    ],
     'about' => [
         'title' => '关于我们',
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
@@ -724,6 +730,36 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     </div>
                     <?php endif; ?>
 
+                    <?php // 产品分类树：标题 / 每行列数 / 搜索框
+                    if ($type === 'product_categories'):
+                        $pcT = (string)($block['title'] ?? '');
+                        $pcC = (int)($block['cols'] ?? 3);
+                        $pcS = !empty($block['show_search']);
+                    ?>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">展示设置</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">版块标题</label>
+                                <input type="text" class="block-pc-title w-full border rounded px-2 py-1.5 text-xs"
+                                       value="<?php echo e($pcT); ?>" placeholder="产品分类">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">每行列数 <span class="text-gray-300">(1-4)</span></label>
+                                <input type="number" min="1" max="4" class="block-pc-cols w-full border rounded px-2 py-1.5 text-xs"
+                                       value="<?php echo $pcC; ?>">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">搜索框</label>
+                                <label class="flex items-center gap-2 text-xs text-gray-600 mt-1.5">
+                                    <input type="checkbox" class="block-pc-search w-4 h-4 accent-blue-500" <?php echo $pcS ? 'checked' : ''; ?>>
+                                    显示产品搜索框
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php // 插件版块的后台配置 UI 扩展点：插件按 $type 输出自己的配置字段 ?>
                     <?php do_action('home_block_config_ui', $type, $block, $meta); ?>
 
@@ -1043,6 +1079,12 @@ function collectBlocksConfig() {
         if (perRow) item.per_row = parseInt(perRow.value);
         if (limit)  item.limit   = parseInt(limit.value);
         if (sort)   item.sort    = sort.value;
+        var pcTitle  = card.querySelector('.block-pc-title');
+        var pcCols   = card.querySelector('.block-pc-cols');
+        var pcSearch = card.querySelector('.block-pc-search');
+        if (pcTitle)  item.title       = pcTitle.value;
+        if (pcCols)   item.cols        = parseInt(pcCols.value) || 3;
+        if (pcSearch) item.show_search = pcSearch.checked;
         // 插件版块：调用插件注册的采集器补齐自定义字段（见 window.homeBlockCollectors）
         if (window.homeBlockCollectors && typeof window.homeBlockCollectors[item.type] === 'function') {
             try { window.homeBlockCollectors[item.type](card, item); } catch (e) { console.error(e); }
