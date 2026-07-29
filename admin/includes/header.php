@@ -103,7 +103,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                :class="[mobileMenu ? 'translate-x-0' : '', collapsed ? 'lg:w-16' : 'lg:w-64']">
             <!-- Logo -->
-            <div class="h-16 flex items-center justify-center border-b border-white/5">
+            <?php // Logo 栏不画分隔线：深色侧栏上任何浅色边框都会显成一条亮线 ?>
+            <div class="h-16 flex items-center justify-center">
                 <?php $adminLogo = config('admin_logo', ''); ?>
                 <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0">
                     <?php if ($adminLogo): ?>
