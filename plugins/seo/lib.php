@@ -71,7 +71,7 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
     // —— 最新内容 ——
     try {
         $contents = db()->fetchAll(
-            'SELECT c.title, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
+            'SELECT c.id, c.title, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
              FROM ' . DB_PREFIX . 'contents c
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
              WHERE c.status = 1
@@ -93,7 +93,7 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
     // —— 产品 ——
     try {
         $products = db()->fetchAll(
-            'SELECT p.title, p.slug, p.category_id, pc.slug AS category_slug
+            'SELECT p.id, p.title, p.slug, p.category_id, pc.slug AS category_slug
              FROM ' . DB_PREFIX . 'products p
              LEFT JOIN ' . DB_PREFIX . 'product_categories pc ON p.category_id = pc.id
              WHERE p.status = 1
@@ -193,7 +193,7 @@ function seo_all_urls(int $limit = 1000): array
 
     try {
         $rows = db()->fetchAll(
-            'SELECT c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
+            'SELECT c.id, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
              FROM ' . DB_PREFIX . 'contents c
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
              WHERE c.status = 1 ORDER BY c.publish_time DESC, c.id DESC LIMIT ' . (int) $limit
@@ -206,7 +206,7 @@ function seo_all_urls(int $limit = 1000): array
 
     try {
         $rows = db()->fetchAll(
-            'SELECT p.slug, p.category_id, pc.slug AS category_slug
+            'SELECT p.id, p.slug, p.category_id, pc.slug AS category_slug
              FROM ' . DB_PREFIX . 'products p
              LEFT JOIN ' . DB_PREFIX . 'product_categories pc ON p.category_id = pc.id
              WHERE p.status = 1 ORDER BY p.updated_at DESC, p.id DESC LIMIT ' . (int) $limit
