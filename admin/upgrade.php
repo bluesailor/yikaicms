@@ -390,29 +390,6 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
         </div>
     </div>
 
-    <!-- 升级配置 -->
-    <div class="bg-white rounded-lg shadow mb-6">
-        <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800"><?php echo __('upgrade_config_title'); ?></h2>
-        </div>
-        <div class="px-6 py-5">
-            <?php
-            // 级别：新键优先；未设置时兼容旧的布尔开关
-            $__lv = (string) config('update_notify_level', '');
-            if ($__lv === '') {
-                $__lv = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
-            }
-            ?>
-            <label class="block text-sm text-gray-700 mb-2"><?php echo __('upgrade_notify_label'); ?></label>
-            <select id="notifyLevel" onchange="saveNotifyLevel(this)" class="border rounded px-3 py-2 text-sm bg-white w-full sm:w-72">
-                <option value="all" <?php echo $__lv === 'all' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_all'); ?></option>
-                <option value="security" <?php echo $__lv === 'security' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_security'); ?></option>
-                <option value="off" <?php echo $__lv === 'off' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_off'); ?></option>
-            </select>
-            <p class="text-xs text-gray-400 mt-2"><?php echo __('upgrade_notify_tip'); ?></p>
-        </div>
-    </div>
-
     <!-- 升级说明 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
@@ -431,15 +408,6 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 var currentVersion = <?php echo json_encode($currentVersion); ?>;
 
 async function checkUpdate() {
-    async function saveNotifyLevel(sel) {
-        var fd = new FormData();
-        fd.append('action', 'save_update_notify');
-        fd.append('level', sel.value);
-        try {
-            await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            showMessage('<?php echo e(__('admin_saved')); ?>');
-        } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
-    }
     var btn = document.getElementById('btnCheckUpdate');
     var result = document.getElementById('updateResult');
     btn.disabled = true;
@@ -500,5 +468,41 @@ function escapeHtml(str) {
 }
 </script>
 <?php endif; ?>
+
+<?php // 升级配置：页面级设置，不属于任何标签页 —— 放在标签内容之后，两个标签下均可见 ?>
+<!-- 升级配置 -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b">
+        <h2 class="font-bold text-gray-800"><?php echo __('upgrade_config_title'); ?></h2>
+    </div>
+    <div class="px-6 py-5">
+        <?php
+        // 级别：新键优先；未设置时兼容旧的布尔开关
+        $__lv = (string) config('update_notify_level', '');
+        if ($__lv === '') {
+            $__lv = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
+        }
+        ?>
+        <label class="block text-sm text-gray-700 mb-2"><?php echo __('upgrade_notify_label'); ?></label>
+        <select id="notifyLevel" onchange="saveNotifyLevel(this)" class="border rounded px-3 py-2 text-sm bg-white w-full sm:w-72">
+            <option value="all" <?php echo $__lv === 'all' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_all'); ?></option>
+            <option value="security" <?php echo $__lv === 'security' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_security'); ?></option>
+            <option value="off" <?php echo $__lv === 'off' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_off'); ?></option>
+        </select>
+        <p class="text-xs text-gray-400 mt-2"><?php echo __('upgrade_notify_tip'); ?></p>
+    </div>
+</div>
+
+<script>
+async function saveNotifyLevel(sel) {
+    var fd = new FormData();
+    fd.append('action', 'save_update_notify');
+    fd.append('level', sel.value);
+    try {
+        await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        showMessage('<?php echo e(__('admin_saved')); ?>');
+    } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
+}
+</script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
