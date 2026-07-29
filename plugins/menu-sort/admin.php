@@ -31,66 +31,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['ms_action'] ?? '') === 're
     exit;
 }
 
-// 默认菜单结构
-$defaultGroups = [
-    'content' => [
-        'label' => '栏目与内容',
-        'items' => [
-            'channel'  => '栏目管理',
-            'page'     => '单页管理',
-        ]
-    ],
-    'product' => [
-        'label' => '商品与展示',
-        'items' => [
-            'product'  => '产品管理',
-            'case'     => '案例管理',
-        ]
-    ],
-    'article' => [
-        'label' => '文章与资讯',
-        'items' => [
-            'article'  => '文章管理',
-            'download' => '下载管理',
-            'job'      => '招聘管理',
-        ]
-    ],
-    'media' => [
-        'label' => '媒体与组件',
-        'items' => [
-            'media'    => '媒体管理',
-            'album'    => '图库相册',
-            'banner'   => '横幅管理',
-            'timeline' => '发展历程',
-            'link'     => '友情链接',
-        ]
-    ],
-    'data' => [
-        'label' => '互动数据',
-        'items' => [
-            'form'    => '询盘管理',
-            'member'  => '会员管理',
-        ]
-    ],
-    'system' => [
-        'label' => '系统设置',
-        'items' => [
-            'setting'          => '站点设置',
-            'setting_home'     => '首页设置',
-            'setting_contact'  => '联系设置',
-            'setting_email'    => '邮件设置',
-            'setting_seo'      => 'SEO 设置',
-            'setting_ai'       => 'AI 设置',
-            'setting_security' => '安全设置',
-            'setting_translate' => '多语言翻译',
-            'theme'            => '主题管理',
-            'user'             => '管理员',
-            'plugin'           => '插件管理',
-            'upgrade'          => '系统升级',
-            'system'           => '系统信息',
-        ]
-    ],
-];
+// 菜单结构：v1.1.0 起不再硬编码快照，直接读侧栏的权威定义
+// （resolveAdminSidebar 已排序/按权限过滤/含插件注册项——与当前后台永远一致）
+if (!function_exists('resolveAdminSidebar') && is_file(ROOT_PATH . '/admin/includes/sidebar_menu_api.php')) {
+    require_once ROOT_PATH . '/admin/includes/sidebar_menu_api.php';
+}
+
+/**
+ * 菜单项的排序键：与 main.php 前端 DOM 匹配规则一致。
+ * 普通页 = 文件名（/admin/license.php → license）；
+ * 插件页 = plugin_page:插件名（/admin/plugin_page.php?plugin=seo → plugin_page:seo），
+ * 避免多个插件页共用 plugin_page 键相互覆盖。
+ */
+if (!function_exists('ms_item_key')):
+function ms_item_key(string $url): string
+{
+    if (!preg_match('#/admin/([^./?]+)\.php#', $url, $m)) {
+        return '';
+    }
+    if ($m[1] === 'plugin_page' && preg_match('#[?&]plugin=([\w\-]+)#', $url, $pm)) {
+        return 'plugin_page:' . $pm[1];
+    }
+    return $m[1];
+}
+endif;
+
+$defaultGroups = [];
+if (function_exists('resolveAdminSidebar')) {
+    foreach (resolveAdminSidebar() as $gKey => $g) {
+        $items = [];
+        foreach (($g['items'] ?? []) as $it) {
+            $k = ms_item_key((string) ($it['url'] ?? ''));
+            if ($k !== '') {
+                $items[$k] = trim(strip_tags((string) ($it['label'] ?? $k)));
+            }
+        }
+        if ($items) {
+            $defaultGroups[$gKey] = [
+                'label' => trim(strip_tags((string) ($g['label'] ?? $gKey))),
+                'items' => $items,
+            ];
+        }
+    }
+}
+if (!$defaultGroups) {
+    // 兜底（老内核无 API 时）：极简快照，保证页面可用
+    $defaultGroups = [
+        'system' => ['label' => '系统', 'items' => ['setting' => '站点设置', 'plugin' => '插件管理']],
+    ];
+}
 
 // 读取已保存的排序
 $savedOrder = json_decode(config('admin_menu_order', ''), true) ?: null;
@@ -184,7 +173,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
                 <span class="text-sm text-gray-700 flex-1"><?php echo e($itemLabel); ?></span>
-                <span class="text-xs text-gray-400">/admin/<?php echo $itemKey; ?>.php</span>
+                <span class="text-xs text-gray-400"><?php echo e(str_starts_with($itemKey, 'plugin_page:') ? '插件·' . substr($itemKey, 12) : '/admin/' . $itemKey . '.php'); ?></span>
                 <span class="toggle-vis" onclick="toggleItem(this)" title="显示/隐藏">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <?php if ($itemHidden): ?>
