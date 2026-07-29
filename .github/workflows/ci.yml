@@ -85,16 +85,24 @@ jobs:
   # ─── 登录后逐类 POST「新建」（栏目/产品/内容/文章/下载/招聘），断言无
   # ─── Fatal/undefined-function 且保存成功。专抓 job_edit 的 getAdminId()
   # ─── 那类「控制器层 Fatal」回归——单元测试与 Psalm baseline 都漏掉的类型。
+  # ─── 矩阵覆盖 8.0（产品承诺的最低版）与 8.2：用 --no-dev 安装（= 发行包
+  # ─── 真实形态，且不受 dev 工具链要求 8.2+ 的限制）。v1.13.0 的 pinyin 事故
+  # ─── （生产依赖要求 PHP 8.1、8.0 主机保存文章 ParseError 500）由本矩阵
+  # ─── 的 8.0 腿拦截：composer 平台约束、vendor 语法、真实保存 三层全覆盖。
   smoke:
-    name: Admin CRUD Smoke Test
+    name: Admin CRUD Smoke (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.2']
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, pdo_sqlite, curl, json, gd
           tools: composer:v2
           coverage: none
@@ -105,12 +113,18 @@ jobs:
           path: |
             ~/.composer/cache
             vendor
-          key: composer-8.2-${{ hashFiles('composer.lock') }}
+          key: composer-nodev-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            composer-8.2-
+            composer-nodev-${{ matrix.php }}-
 
-      - name: composer install
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: composer install（仅生产依赖；8.0 上失败 = 依赖的 PHP 约束与产品承诺冲突）
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      - name: Lint vendor（生产依赖在本 PHP 版本下的语法兼容性）
+        run: |
+          find vendor -type f -name '*.php' -print0 \
+            | xargs -0 -n50 php -l > /tmp/vendor-lint.log 2>&1 \
+            || { grep -B1 -E 'Errors parsing|Parse error' /tmp/vendor-lint.log; exit 1; }
 
       - name: Prepare fresh SQLite install
         run: php tests/smoke/setup.php
