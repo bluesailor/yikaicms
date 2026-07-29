@@ -170,9 +170,7 @@ if ($action !== '') {
     // ---- 1) 环境预检 ----
     if ($action === 'precheck') {
         if (!is_dir(uo_dir())) {
-            if (!is_dir(uo_dir())) {
             @mkdir(uo_dir(), 0755, true);
-        }
         }
         $checks = [];
         $checks[] = ['name' => 'ZipArchive 扩展', 'ok' => class_exists('ZipArchive'), 'hint' => '解压安装包必需'];
