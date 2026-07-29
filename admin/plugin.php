@@ -403,9 +403,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if (!empty($p['version'])): ?>
                         <span class="text-xs text-gray-400">v<?php echo e($p['version']); ?></span>
                         <?php endif; ?>
-                        <template x-if="upd[<?php echo json_encode($slug); ?>]">
+                        <template x-if="upd['<?php echo e($slug); ?>']">
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                                <i class="ti ti-arrow-big-up-line text-xs"></i>可升级 v<span x-text="upd[<?php echo json_encode($slug); ?>].version"></span>
+                                <i class="ti ti-arrow-big-up-line text-xs"></i>可升级 v<span x-text="upd['<?php echo e($slug); ?>'].version"></span>
                             </span>
                         </template>
                         <?php if ($p['status']): ?>
@@ -430,12 +430,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <!-- 操作按钮 -->
                 <div class="flex-shrink-0 flex items-center gap-2">
-                    <button x-show="upd[<?php echo json_encode($slug); ?>]" x-cloak
-                            @click="upgradeInstalled(<?php echo json_encode($slug); ?>)"
-                            :disabled="installing === <?php echo json_encode($slug); ?>"
+                    <button x-show="upd['<?php echo e($slug); ?>']" x-cloak
+                            @click="upgradeInstalled('<?php echo e($slug); ?>')"
+                            :disabled="installing === '<?php echo e($slug); ?>'"
                             class="px-3 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition inline-flex items-center gap-1">
                         <i class="ti ti-cloud-download text-sm"></i>
-                        <span x-text="installing === <?php echo json_encode($slug); ?> ? '升级中…' : '升级'"></span>
+                        <span x-text="installing === '<?php echo e($slug); ?>' ? '升级中…' : '升级'"></span>
                     </button>
                     <?php if ($p['status']): ?>
                     <?php if (file_exists(ROOT_PATH . '/plugins/' . $slug . '/admin.php')): ?>
