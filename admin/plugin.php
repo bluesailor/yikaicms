@@ -294,6 +294,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     :class="tab === 'installed' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:text-primary'"
                     class="px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition cursor-pointer inline-flex items-center gap-1">
                 <i class="ti ti-clipboard-list text-base"></i>已安装 (<?php echo count($plugins); ?>)
+                <span x-show="updCount() > 0" x-cloak
+                      class="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-xs font-bold"
+                      x-text="updCount()"></span>
             </button>
             <button @click="openMarket()"
                     :class="tab === 'market' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:text-primary'"
@@ -400,6 +403,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if (!empty($p['version'])): ?>
                         <span class="text-xs text-gray-400">v<?php echo e($p['version']); ?></span>
                         <?php endif; ?>
+                        <template x-if="upd[<?php echo json_encode($slug); ?>]">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                <i class="ti ti-arrow-big-up-line text-xs"></i>可升级 v<span x-text="upd[<?php echo json_encode($slug); ?>].version"></span>
+                            </span>
+                        </template>
                         <?php if ($p['status']): ?>
                         <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('status_enabled'); ?></span>
                         <?php else: ?>
@@ -422,6 +430,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <!-- 操作按钮 -->
                 <div class="flex-shrink-0 flex items-center gap-2">
+                    <button x-show="upd[<?php echo json_encode($slug); ?>]" x-cloak
+                            @click="upgradeInstalled(<?php echo json_encode($slug); ?>)"
+                            :disabled="installing === <?php echo json_encode($slug); ?>"
+                            class="px-3 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition inline-flex items-center gap-1">
+                        <i class="ti ti-cloud-download text-sm"></i>
+                        <span x-text="installing === <?php echo json_encode($slug); ?> ? '升级中…' : '升级'"></span>
+                    </button>
                     <?php if ($p['status']): ?>
                     <?php if (file_exists(ROOT_PATH . '/plugins/' . $slug . '/admin.php')): ?>
                     <a href="/admin/plugin_page.php?plugin=<?php echo e($slug); ?>"
@@ -498,6 +513,32 @@ function pluginMarket() {
         error: '',
         // 本地已装版本表：slug -> version
         local: <?php echo json_encode($localVersions, JSON_UNESCAPED_UNICODE); ?>,
+        // 可升级映射：slug -> 市场条目（进页面即后台静默检测）
+        upd: {},
+
+        init() { this.checkUpdates(); },
+        async checkUpdates() {
+            if (!Object.keys(this.local).length) return;
+            var body = new URLSearchParams();
+            body.set('action', 'market_list');
+            try {
+                var resp = await fetch('', { method: 'POST', body: body });
+                var data = await resp.json();
+                if (data.code !== 0) return;
+                this.items = (data.data && data.data.plugins) || [];
+                this.loaded = true;   // 顺带预热市场页签
+                var u = {};
+                for (var i = 0; i < this.items.length; i++) {
+                    var it = this.items[i];
+                    if (it.slug in this.local && this.verCmp(it.version, this.local[it.slug]) > 0) u[it.slug] = it;
+                }
+                this.upd = u;
+            } catch (e) { /* 静默：检测失败不打扰 */ }
+        },
+        updCount() { return Object.keys(this.upd).length; },
+        upgradeInstalled(slug) {
+            if (this.upd[slug]) this.install(this.upd[slug]);
+        },
 
         openMarket() {
             this.tab = 'market';
