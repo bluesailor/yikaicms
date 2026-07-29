@@ -224,6 +224,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
         </a>
         <a href="/admin/upgrade_online.php" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"><?php echo __('upgrade_online'); ?></a>
+        <a href="/admin/upgrade.php?tab=config" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'config' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('upgrade_config_title'); ?></a>
     </div>
 </div>
 
@@ -469,7 +470,7 @@ function escapeHtml(str) {
 </script>
 <?php endif; ?>
 
-<?php // 升级配置：页面级设置，不属于任何标签页 —— 放在标签内容之后，两个标签下均可见 ?>
+<?php if ($tab === 'config'): ?>
 <!-- 升级配置 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
@@ -504,5 +505,6 @@ async function saveNotifyLevel(sel) {
     } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
 }
 </script>
+<?php endif; ?>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
