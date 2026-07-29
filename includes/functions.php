@@ -2193,6 +2193,23 @@ function assetVer(string $path): string
  * 吸顶头部「滚动时略微透明」效果（挂在 ik_footer_scripts 钩子，各主题通用）。
  * 仅当 header_sticky=1 且 header_scroll_opacity<100 时输出；目标为 <header id="siteHeader">。
  */
+/**
+ * 代码块「复制」按钮 + 语言标签（前台 footer 输出，各主题通用）。
+ *
+ * 脚本自行扫描 .prose pre > code，存量文章无需改动即可生效；
+ * 页面没有代码块时脚本自身立即返回，开销可忽略。多语言文案随页面语言注入。
+ */
+function renderCodeCopy(): void
+{
+    $i18n = json_encode([
+        'copy'   => __('code_copy'),
+        'copied' => __('code_copied'),
+    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+
+    echo '<script>window.__ykCodeCopyI18n=' . $i18n . ';</script>';
+    echo '<script src="/assets/js/code-copy.js?v=' . e((string) (defined('CMS_VERSION') ? CMS_VERSION : '1')) . '" defer></script>';
+}
+
 function renderHeaderScrollFade(): void
 {
     if ((string) config('header_sticky', '0') !== '1') return;

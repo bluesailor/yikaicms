@@ -1128,6 +1128,8 @@ return [
     'admin_no_cover' => 'カバー画像なし',
     'admin_sidebar_collapse' => 'メニューを折りたたむ',
     'admin_save_failed' => '保存に失敗しました',
+    'code_copy' => 'コピー',
+    'code_copied' => 'コピーしました',
     'upgrade_config_title' => 'アップデート設定',
     'upgrade_notify_label' => 'ダッシュボードの新バージョン通知',
     'upgrade_notify_all' => 'すべての更新を通知',

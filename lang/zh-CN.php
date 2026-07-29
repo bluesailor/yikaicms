@@ -1109,6 +1109,8 @@ return [
     'admin_no_cover' => '暂无封面',
     'admin_sidebar_collapse' => '折叠菜单',
     'admin_save_failed' => '保存失败',
+    'code_copy' => '复制',
+    'code_copied' => '已复制',
     'upgrade_config_title' => '升级配置',
     'upgrade_notify_label' => '控制台首页的新版本提醒',
     'upgrade_notify_all' => '提醒全部更新',
