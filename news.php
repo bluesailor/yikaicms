@@ -66,7 +66,7 @@ unset($_heroChannelBackup);
                 </a>
                 <?php foreach ($categories as $cat): ?>
                 <a href="/news/<?php echo e($cat['slug']); ?>.html"
-                   class="px-4 py-2 rounded-full text-sm <?php echo $categoryId === (int)$cat['id'] ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
+                   class="px-4 py-2 rounded-full text-sm <?php echo (int) ($category['id'] ?? 0) === (int) $cat['id'] ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
                     <?php echo e($cat['name']); ?>
                 </a>
                 <?php endforeach; ?>
