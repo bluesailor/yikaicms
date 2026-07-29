@@ -4,48 +4,47 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f6ae364262d045721d3361aa321bf63c",
+    "content-hash": "f9d68c0aa3867fcc014b4dea12db6d0d",
     "packages": [
         {
             "name": "overtrue/pinyin",
-            "version": "6.0.1",
+            "version": "4.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/overtrue/pinyin.git",
-                "reference": "d79364f289f5ccdabdd3142556d4254c7574f87c"
+                "reference": "4d0fb4f27f0c79e81c9489e0c0ae4a4f8837eae7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/pinyin/zipball/d79364f289f5ccdabdd3142556d4254c7574f87c",
-                "reference": "d79364f289f5ccdabdd3142556d4254c7574f87c",
+                "url": "https://api.github.com/repos/overtrue/pinyin/zipball/4d0fb4f27f0c79e81c9489e0c0ae4a4f8837eae7",
+                "reference": "4d0fb4f27f0c79e81c9489e0c0ae4a4f8837eae7",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.1"
+                "php": ">=7.1"
             },
             "require-dev": {
-                "brainmaestro/composer-git-hooks": "^3.0",
-                "laravel/pint": "^1.10",
-                "nunomaduro/termwind": "^1.0 || ^2.0",
-                "phpunit/phpunit": "^10.5 || ^11.5 || ^12.0"
+                "brainmaestro/composer-git-hooks": "^2.7",
+                "friendsofphp/php-cs-fixer": "^2.16",
+                "phpunit/phpunit": "~8.0"
             },
-            "bin": [
-                "bin/pinyin"
-            ],
             "type": "library",
             "extra": {
                 "hooks": {
                     "pre-push": [
-                        "composer pint",
-                        "composer test"
+                        "composer test",
+                        "composer check-style"
                     ],
                     "pre-commit": [
-                        "composer pint",
-                        "composer test"
+                        "composer test",
+                        "composer fix-style"
                     ]
                 }
             },
             "autoload": {
+                "files": [
+                    "src/const.php"
+                ],
                 "psr-4": {
                     "Overtrue\\Pinyin\\": "src/"
                 }
@@ -70,7 +69,7 @@
             ],
             "support": {
                 "issues": "https://github.com/overtrue/pinyin/issues",
-                "source": "https://github.com/overtrue/pinyin/tree/6.0.1"
+                "source": "https://github.com/overtrue/pinyin/tree/4.1.0"
             },
             "funding": [
                 {
@@ -78,7 +77,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-06T13:15:43+00:00"
+            "time": "2023-04-27T10:17:12+00:00"
         }
     ],
     "packages-dev": [
@@ -4883,10 +4882,10 @@
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.0",
-        "ext-pdo": "*",
-        "ext-mbstring": "*",
+        "ext-gd": "*",
         "ext-json": "*",
-        "ext-gd": "*"
+        "ext-mbstring": "*",
+        "ext-pdo": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"
