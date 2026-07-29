@@ -119,7 +119,7 @@ $perRowGrid = [
         <?php $withCover = $contents; ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach (array_slice($withCover, 0, 4) as $item):
-                $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
+                $itemUrl = contentUrl($item);   // 文章路由已由 contentUrl 统一处理，不再本地特判
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
             ?>
             <a href="<?php echo $itemUrl; ?>" class="block u-card group">

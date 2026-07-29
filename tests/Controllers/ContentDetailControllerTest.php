@@ -34,6 +34,7 @@ class ContentDetailControllerTest extends TestCase
                 channel_id INTEGER NOT NULL,
                 title TEXT NOT NULL, slug TEXT, summary TEXT, cover TEXT,
                 content TEXT, tags TEXT,
+                type TEXT DEFAULT 'article',
                 status INTEGER DEFAULT 1,
                 is_top INTEGER DEFAULT 0, is_recommend INTEGER DEFAULT 0, is_hot INTEGER DEFAULT 0,
                 publish_time INTEGER DEFAULT 0,
