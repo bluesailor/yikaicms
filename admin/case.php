@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/list_ui.php';   // 列表共享组件：行内操作 / 批量下拉 / 封面占位
 
 checkLogin();
 requirePermission('edit_case');
@@ -37,6 +38,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('case', 'batch_delete', '批量删除：' . implode(',', $ids));
         }
         success();
+    }
+
+    if ($action === 'batch_publish' || $action === 'batch_unpublish') {
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        if ($ids) {
+            $val = $action === 'batch_publish' ? 1 : 0;
+            foreach ($ids as $bid) {
+                contentModel()->updateById($bid, ['status' => $val, 'updated_at' => time()]);
+            }
+            adminLog('case', $action, '批量' . ($val ? '发布' : '下架') . '：' . implode(',', $ids));
+        }
+        success();
+    }
+
+    if ($action === 'duplicate') {
+        $id  = postInt('id');
+        $src = contentModel()->find($id);
+        if (!$src) {
+            error(__('admin_no_data'));
+        }
+        // 复制为草稿；translation_group_id 必须清零，否则副本会被当成原文的翻译行
+        unset($src['id'], $src['deleted_at']);
+        $src['title']                = $src['title'] . ' ' . __('admin_copy_suffix');
+        $src['slug']                 = resolveSlug('', (string) $src['title'], 'contents', 0);
+        $src['status']               = 0;
+        $src['views']                = 0;
+        $src['translation_group_id'] = 0;
+        $src['publish_time']         = 0;
+        $src['created_at']           = time();
+        $src['updated_at']           = time();
+        $src['admin_id']             = $_SESSION['admin_id'] ?? 0;
+        $newId = contentModel()->create($src);
+        adminLog('case', 'duplicate', "复制案例 #$id → #$newId");
+        success(['id' => $newId]);
     }
 
     if ($action === 'toggle') {
@@ -173,22 +208,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_channel'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_recommend'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_publish_time'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
+
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     <?php foreach ($items as $item): ?>
-                    <tr class="hover:bg-gray-50">
+                    <tr class="group hover:bg-gray-50">
                         <td class="px-4 py-3"><input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>"></td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 <?php if ($item['cover']): ?>
                                 <img src="<?php echo e($item['cover']); ?>" class="w-16 h-12 object-cover rounded">
+                                <?php else: ?>
+                                <?php echo renderCoverCell('', 'w-16 h-12'); ?>
                                 <?php endif; ?>
-                                <div class="font-medium"><?php echo e(cutStr($item['title'], 40)); ?></div>
+                                <div class="min-w-0">
+                                    <div class="font-medium"><?php echo e(cutStr($item['title'], 40)); ?></div>
+                                    <?php echo renderRowActions([
+                                        'id'        => (int) $item['id'],
+                                        'edit'      => '/admin/content_edit.php?id=' . (int) $item['id'],
+                                        'view'      => contentUrl($item),
+                                        'duplicate' => true,
+                                    ]); ?>
+                                </div>
                             </div>
                         </td>
                         <td class="px-4 py-3 text-center">
@@ -203,14 +248,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php echo $item['is_recommend'] ? __('admin_recommend') : '-'; ?>
                             </button>
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <button onclick="toggle(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>, this)"
-                                    class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                                <?php echo $item['status'] ? __('admin_published') : __('admin_draft'); ?>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="toggle(<?php echo $item['id']; ?>, 'status', <?php echo $item['status'] ? 0 : 1; ?>, this)" class="text-sm block mx-auto">
+                                <?php echo $item['status']
+                                    ? '<span class="text-green-600">' . __('admin_published') . '</span>'
+                                    : '<span class="text-gray-400">' . __('admin_draft') . '</span>'; ?>
                             </button>
-                        </td>
-                        <td class="px-4 py-3 text-center text-sm text-gray-500">
-                            <?php echo $item['publish_time'] ? date('Y-m-d', (int)$item['publish_time']) : '-'; ?>
+                            <span class="text-gray-400 text-xs">
+                                <?php $_ts = (int) ($item['publish_time'] ?: $item['updated_at'] ?? 0); ?>
+                                <?php echo $_ts ? date('Y-m-d H:i', $_ts) : '-'; ?>
+                            </span>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php
@@ -218,21 +265,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             echo renderTransPills($_pillSrcId, $transStatus, '/admin/content_edit.php');
                             ?>
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <a href="/admin/content_edit.php?id=<?php echo $item['id']; ?>" class="text-blue-500 hover:text-blue-700 text-sm inline-flex items-center gap-1 mr-2" title="<?php echo __('admin_edit'); ?>"><i class="ti ti-pencil text-base"></i> <?php echo __('admin_edit'); ?></a>
-                            <button onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-700 text-sm inline-flex items-center gap-1" title="<?php echo __('admin_delete'); ?>"><i class="ti ti-trash text-base"></i> <?php echo __('admin_delete'); ?></button>
-                        </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($items)): ?>
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td></tr>
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500"><?php echo __('admin_no_data'); ?></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
         <div class="px-6 py-4 border-t flex flex-wrap gap-4 items-center justify-between">
-            <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100"><?php echo __('admin_batch_delete'); ?></button>
+            <?php echo renderBulkBar([
+                'batch_publish'   => __('admin_published'),
+                'batch_unpublish' => __('admin_unpublished'),
+                'batch_delete'    => __('admin_move_to_trash'),
+            ]); ?>
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-500"><?php echo sprintf(__('admin_total_items'), $total); ?></span>
@@ -285,19 +332,34 @@ async function deleteItem(id) {
     }
 }
 
-async function batchDelete() {
+async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
-    if (!confirm('<?php echo __('admin_confirm_batch_delete'); ?>')) return;
+    const labels = {
+        batch_publish: '<?php echo __('admin_published'); ?>',
+        batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
+        batch_delete: '<?php echo __('admin_move_to_trash'); ?>'
+    };
+    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?>' + (labels[action] || '') + ' ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
     const formData = new FormData();
-    formData.append('action', 'batch_delete');
+    formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
+    if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
+    else { showMessage(data.msg, 'error'); }
+}
+
+async function duplicateItem(id) {
+    const formData = new FormData();
+    formData.append('action', 'duplicate');
+    formData.append('id', id);
+    const response = await fetch('', { method: 'POST', body: formData });
+    const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
-        setTimeout(() => location.reload(), 1000);
-    }
+        showMessage('<?php echo __('admin_duplicated'); ?>');
+        setTimeout(() => location.href = '/admin/content_edit.php?id=' + data.data.id, 700);
+    } else { showMessage(data.msg, 'error'); }
 }
 </script>
 

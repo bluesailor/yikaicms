@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/list_ui.php';   // 列表共享组件：行内操作 / 批量下拉 / 封面占位
 
 checkLogin();
 requirePermission('edit_product');
@@ -35,6 +36,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('product', 'batch_delete', '批量删除：' . implode(',', $ids));
         }
         success();
+    }
+
+    if ($action === 'batch_publish' || $action === 'batch_unpublish') {
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        if ($ids) {
+            $val = $action === 'batch_publish' ? 1 : 0;
+            foreach ($ids as $bid) {
+                productModel()->updateById($bid, ['status' => $val, 'updated_at' => time()]);
+            }
+            adminLog('product', $action, '批量' . ($val ? '上架' : '下架') . '：' . implode(',', $ids));
+        }
+        success();
+    }
+
+    if ($action === 'duplicate') {
+        $id  = postInt('id');
+        $src = productModel()->find($id);
+        if (!$src) {
+            error(__('admin_no_data'));
+        }
+        // 复制为下架草稿：清主键/统计/时间，重算 slug；translation_group_id 必须清零，
+        // 否则副本会被当成原品的翻译行而在语言切换时相互覆盖。
+        unset($src['id'], $src['deleted_at']);
+        $src['title']                = $src['title'] . ' ' . __('admin_copy_suffix');
+        $src['slug']                 = resolveSlug('', (string) $src['title'], 'products', 0);
+        $src['status']               = 0;
+        $src['views']                = 0;
+        $src['translation_group_id'] = 0;
+        $src['created_at']           = time();
+        $src['updated_at']           = time();
+        $newId = productModel()->create($src);
+        adminLog('product', 'duplicate', "复制产品 #$id → #$newId");
+        success(['id' => $newId]);
     }
 
     if ($action === 'toggle_status') {
@@ -172,23 +206,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_recommend'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_date'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     <?php foreach ($products as $item): ?>
-                    <tr class="hover:bg-gray-50">
+                    <tr class="group hover:bg-gray-50">
                         <td class="px-4 py-3">
                             <input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>">
                         </td>
                         <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
-                                <?php if ($item['cover']): ?>
-                                <img src="<?php echo e($item['cover']); ?>" class="w-12 h-12 object-cover rounded">
-                                <?php endif; ?>
+                                <?php echo renderCoverCell((string) $item['cover'], 'w-12 h-12'); ?>
                                 <div>
                                     <div class="font-medium flex items-center gap-2">
                                         <?php echo e(cutStr($item['title'], 30)); ?>
@@ -207,6 +238,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <code class="bg-gray-100 px-1.5 py-0.5 rounded ml-1"><?php echo e($item['slug']); ?></code>
                                         <?php endif; ?>
                                     </div>
+                                    <?php echo renderRowActions([
+                                        'id'        => (int) $item['id'],
+                                        'edit'      => '/admin/product_edit.php?id=' . (int) $item['id'],
+                                        'view'      => productUrl($item),
+                                        'duplicate' => true,
+                                        'delete_fn' => 'deleteProduct',
+                                    ]); ?>
                                 </div>
                             </div>
                         </td>
@@ -239,24 +277,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
                             <?php echo number_format((int)$item['views']); ?>
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
-                                    class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                                <?php echo $item['status'] ? __('admin_published') : __('admin_unpublished'); ?>
-                            </button>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <?php echo renderStatusDateCell(
+                                (int) $item['id'],
+                                (int) $item['status'],
+                                (int) ($item['updated_at'] ?: $item['created_at'] ?? 0)
+                            ); ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/product_edit.php'); ?>
-                        </td>
-                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <a href="/admin/product_edit.php?id=<?php echo $item['id']; ?>"
-                               class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                                <i class="ti ti-pencil text-sm"></i>
-                                <?php echo __('admin_edit'); ?></a>
-                            <button onclick="deleteProduct(<?php echo $item['id']; ?>)"
-                                    class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
-                                <i class="ti ti-trash text-sm"></i>
-                                <?php echo __('admin_delete'); ?></button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -270,12 +299,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
 
         <div class="px-6 py-4 border-t flex flex-wrap gap-4 items-center justify-between">
-            <div class="flex gap-2">
-                <button type="button" onclick="batchDelete()" class="border px-3 py-1 rounded text-sm hover:bg-gray-100 inline-flex items-center gap-1">
-                    <i class="ti ti-trash text-base"></i>
-                    <?php echo __('admin_batch_delete'); ?>
-                </button>
-            </div>
+            <?php echo renderBulkBar([
+                'batch_publish'   => __('admin_published'),
+                'batch_unpublish' => __('admin_unpublished'),
+                'batch_delete'    => __('admin_move_to_trash'),
+            ]); ?>
 
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
@@ -374,21 +402,41 @@ async function deleteProduct(id) {
     }
 }
 
-async function batchDelete() {
+// 批量操作入口（由共享组件的 applyBulk() 调用）
+async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) {
         showMessage('<?php echo __('admin_please_select'); ?>', 'error');
         return;
     }
-    if (!confirm(`确定要删除选中的 ${checked.length} 项吗？`)) return;
+    const labels = {
+        batch_publish: '<?php echo __('admin_published'); ?>',
+        batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
+        batch_delete: '<?php echo __('admin_move_to_trash'); ?>'
+    };
+    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?>' + (labels[action] || '') + ' ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
     const formData = new FormData();
-    formData.append('action', 'batch_delete');
+    formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage('<?php echo __('admin_success'); ?>');
         setTimeout(() => location.reload(), 1000);
+    } else {
+        showMessage(data.msg, 'error');
+    }
+}
+
+async function duplicateItem(id) {
+    const formData = new FormData();
+    formData.append('action', 'duplicate');
+    formData.append('id', id);
+    const response = await fetch('', { method: 'POST', body: formData });
+    const data = await safeJson(response);
+    if (data.code === 0) {
+        showMessage('<?php echo __('admin_duplicated'); ?>');
+        setTimeout(() => location.href = '/admin/product_edit.php?id=' + data.data.id, 700);
     } else {
         showMessage(data.msg, 'error');
     }
