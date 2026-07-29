@@ -406,9 +406,10 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
     <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-4 mb-5">
         <p class="font-medium mb-1"><i class="ti ti-alert-triangle mr-1"></i>升级前请知悉</p>
         <ul class="list-disc pl-5 space-y-0.5">
-            <li>升级会覆盖程序文件，<b>不会触碰</b> config.php、storage、uploads、install。</li>
-            <li>升级前建议先<a href="/admin/database.php?tab=backup" target="_blank" class="font-semibold underline hover:text-amber-900">备份数据库</a>（本工具仅自动备份 config.php，程序文件与数据请先自行备份）。</li>
-            <li>文件更新后需再到「升级管理」运行数据库迁移以完成升级。</li>
+            <li>本次只覆盖<b>程序文件</b>；配置 config.php、上传文件 uploads、运行数据 storage 与 install 目录<b>保持不动</b>。</li>
+            <li>升级前请先<a href="/admin/database.php?tab=backup" target="_blank" class="font-semibold underline hover:text-amber-900">备份数据库</a>——文件更新完成后还要运行数据库迁移，迁移会改动表结构。</li>
+            <li>如果你直接改过核心程序文件（主题与插件不受影响），请自行留存副本：这些改动会被新版本覆盖。</li>
+            <li>升级过程会自动保存一份 config.php 到 storage/backups/，供万一需要时比对。</li>
         </ul>
     </div>
 
