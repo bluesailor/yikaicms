@@ -22,7 +22,7 @@ class ProductModel extends Model
 
         if ($categoryId > 0) {
             $includeChildren = $filters['include_children'] ?? true;
-            $catIds = $includeChildren ? productCategoryModel()->getChildIds($categoryId) : [$categoryId];
+            $catIds = $includeChildren ? $this->categoryTreeIds($categoryId) : [$categoryId];
             $placeholders = implode(',', array_fill(0, count($catIds), '?'));
             $where[] = "p.category_id IN ({$placeholders})";
             $params = array_merge($params, $catIds);
@@ -80,7 +80,7 @@ class ProductModel extends Model
 
         if ($categoryId > 0) {
             $includeChildren = $filters['include_children'] ?? true;
-            $catIds = $includeChildren ? productCategoryModel()->getChildIds($categoryId) : [$categoryId];
+            $catIds = $includeChildren ? $this->categoryTreeIds($categoryId) : [$categoryId];
             $placeholders = implode(',', array_fill(0, count($catIds), '?'));
             $where[] = "category_id IN ({$placeholders})";
             $params = array_merge($params, $catIds);
@@ -212,13 +212,37 @@ class ProductModel extends Model
         return ['min' => (float) ($row['lo'] ?? 0), 'max' => (float) ($row['hi'] ?? 0)];
     }
 
+    /**
+     * 分类树展开（含自身）。常规站走 product_categories 树；当该 id 在
+     * product_categories 中不存在、却是 product 型栏目时，按栏目树展开——
+     * 兼容「子栏目即分类」拓扑（如 ShopEx 迁移站，products.category_id 存栏目 id）。
+     */
+    private function categoryTreeIds(int $categoryId): array
+    {
+        $ids = productCategoryModel()->getChildIds($categoryId);
+        if (count($ids) > 1) {
+            return $ids;
+        }
+        try {
+            if (!productCategoryModel()->find($categoryId) && function_exists('channelModel')) {
+                $ch = channelModel()->find($categoryId);
+                if ($ch && ($ch['type'] ?? '') === 'product') {
+                    return channelModel()->getChildIds($categoryId);
+                }
+            }
+        } catch (\Throwable $e) {
+            // 容错：任何异常回落常规结果
+        }
+        return $ids;
+    }
+
     /** 拼「限定当前分类（含子类）」的 SQL 片段 + 参数。 */
     private function facetCategoryClause(int $categoryId): array
     {
         if ($categoryId <= 0) {
             return ['', []];
         }
-        $catIds = productCategoryModel()->getChildIds($categoryId);
+        $catIds = $this->categoryTreeIds($categoryId);
         if (!$catIds) {
             return ['', []];
         }
