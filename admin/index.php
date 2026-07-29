@@ -63,7 +63,14 @@ $currentMenu = 'dashboard';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php if (hasPermission('*') && config('dashboard_update_check', '1') === '1'): ?>
+<?php
+// 更新提醒级别：all=全部 / security=仅安全更新 / off=关闭（未设置时兼容旧的布尔开关）
+$__notifyLv = (string) config('update_notify_level', '');
+if ($__notifyLv === '') {
+    $__notifyLv = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
+}
+?>
+<?php if (hasPermission('*') && $__notifyLv !== 'off'): ?>
 <!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 -->
 <div id="uoBar" class="bg-white rounded-lg shadow px-5 py-3 mb-6 flex items-center justify-between flex-wrap gap-3">
     <div class="flex items-center gap-2 text-sm text-gray-600">
@@ -90,7 +97,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         uptodate: <?php echo json_encode(__('dashboard_update_uptodate')); ?>,
         available: <?php echo json_encode(__('dashboard_update_available')); ?>
     };
+    var NOTIFY_LEVEL = <?php echo json_encode($__notifyLv); ?>;
     function render(d) {
+        // 仅安全更新：非 security 级别的版本不提示（后端 releases.json 的 level 字段）
+        if (NOTIFY_LEVEL === 'security' && d && d.has_update && d.level !== 'security') {
+            d = { has_update: false };
+        }
         if (d && d.has_update) {
             statusEl.className = 'text-amber-600 font-medium';
             statusEl.textContent = T.available + ' v' + d.latest_version;
@@ -102,7 +114,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         }
     }
     // 本地缓存（按当前版本键控，6 小时内不重复请求）
-    var key = 'yk_upd_' + cur, TTL = 6 * 3600 * 1000;
+    var key = 'yk_upd_' + cur + '_' + NOTIFY_LEVEL, TTL = 6 * 3600 * 1000;
     try {
         var c = JSON.parse(localStorage.getItem(key) || 'null');
         if (c && (Date.now() - c.t) < TTL) { render(c.d); return; }
@@ -113,7 +125,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
             var d = res.data || {};
             render(d);
-            try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version } })); } catch (e) {}
+            try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version, level: d.level } })); } catch (e) {}
         })
         .catch(function () { statusEl.textContent = ''; });
 })();

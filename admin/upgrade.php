@@ -41,10 +41,25 @@ if (!function_exists('_columnExists')) {
 require_once ROOT_PATH . '/includes/Migrator.php';
 $upgrades = Migrator::loadAll();
 
-// AJAX: 控制台新版本提醒开关（与 admin/index.php 的关闭按钮配对）
+// AJAX: 控制台新版本提醒级别（all=全部 / security=仅安全更新 / off=关闭）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_update_notify') {
+    $lv = post('level');
+    if (!in_array($lv, ['all', 'security', 'off'], true)) {
+        $lv = 'all';
+    }
+    settingModel()->set('update_notify_level', $lv, 'system');
+    // 兼容旧键：控制台首页与既有代码仍读它做粗粒度判断
+    settingModel()->set('dashboard_update_check', $lv === 'off' ? '0' : '1', 'system');
+    adminLog('setting', 'update', '控制台更新提醒级别：' . $lv);
+    success();
+}
+
+// AJAX: 控制台版本条的「×」关闭（等价于把级别设为 off）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_update_bar') {
-    settingModel()->set('dashboard_update_check', post('value') === '1' ? '1' : '0', 'system');
-    adminLog('setting', 'update', '控制台新版本提醒：' . (post('value') === '1' ? '开启' : '关闭'));
+    $on = post('value') === '1';
+    settingModel()->set('update_notify_level', $on ? 'all' : 'off', 'system');
+    settingModel()->set('dashboard_update_check', $on ? '1' : '0', 'system');
+    adminLog('setting', 'update', '控制台新版本提醒：' . ($on ? '开启' : '关闭'));
     success();
 }
 
@@ -377,15 +392,33 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 
             <div id="updateResult" class="hidden"></div>
 
-            <label class="flex items-center gap-2 text-sm text-gray-500 mb-4 cursor-pointer select-none">
-                <input type="checkbox" id="uoBarToggle" <?php echo config('dashboard_update_check', '1') === '1' ? 'checked' : ''; ?>
-                       onchange="toggleUoBar(this)" class="w-4 h-4 accent-blue-500">
-                在控制台首页显示新版本提醒
-            </label>
             <button id="btnCheckUpdate" onclick="checkUpdate()" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded transition inline-flex items-center gap-2">
                 <i class="ti ti-refresh text-base"></i>
                 检测更新
             </button>
+        </div>
+    </div>
+
+    <!-- 升级配置 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b">
+            <h2 class="font-bold text-gray-800"><?php echo __('upgrade_config_title'); ?></h2>
+        </div>
+        <div class="px-6 py-5">
+            <?php
+            // 级别：新键优先；未设置时兼容旧的布尔开关
+            $__lv = (string) config('update_notify_level', '');
+            if ($__lv === '') {
+                $__lv = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
+            }
+            ?>
+            <label class="block text-sm text-gray-700 mb-2"><?php echo __('upgrade_notify_label'); ?></label>
+            <select id="notifyLevel" onchange="saveNotifyLevel(this)" class="border rounded px-3 py-2 text-sm bg-white w-full sm:w-72">
+                <option value="all" <?php echo $__lv === 'all' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_all'); ?></option>
+                <option value="security" <?php echo $__lv === 'security' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_security'); ?></option>
+                <option value="off" <?php echo $__lv === 'off' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_off'); ?></option>
+            </select>
+            <p class="text-xs text-gray-400 mt-2"><?php echo __('upgrade_notify_tip'); ?></p>
         </div>
     </div>
 
@@ -407,14 +440,14 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 var currentVersion = <?php echo json_encode($currentVersion); ?>;
 
 async function checkUpdate() {
-    async function toggleUoBar(cb) {
+    async function saveNotifyLevel(sel) {
         var fd = new FormData();
-        fd.append('action', 'toggle_update_bar');
-        fd.append('value', cb.checked ? '1' : '0');
+        fd.append('action', 'save_update_notify');
+        fd.append('level', sel.value);
         try {
             await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            showMessage(cb.checked ? '已开启控制台提醒' : '已关闭控制台提醒');
-        } catch (e) { showMessage('保存失败', 'error'); cb.checked = !cb.checked; }
+            showMessage('<?php echo e(__('admin_saved')); ?>');
+        } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
     }
     var btn = document.getElementById('btnCheckUpdate');
     var result = document.getElementById('updateResult');
