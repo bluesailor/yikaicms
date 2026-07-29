@@ -129,14 +129,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 .toggle-vis svg { width: 16px; height: 16px; }
 </style>
 
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="p-4 flex items-center justify-between">
-        <p class="text-sm text-gray-500">拖拽排序，点击 👁 切换显示/隐藏，保存后立即生效</p>
-        <div class="flex gap-2">
+<div class="bg-white rounded-lg shadow mb-6 sticky top-0 z-20">
+    <div class="p-4 flex items-center justify-between gap-3 flex-wrap">
+        <p class="text-sm text-gray-500">拖拽排序、点击 👁 切换显示/隐藏——<b>改动自动保存</b>，刷新后台页面后侧栏生效</p>
+        <div class="flex items-center gap-3">
+            <span id="msStatus" class="text-xs text-gray-400"></span>
             <button onclick="resetOrder()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm">恢复默认</button>
-            <button onclick="saveOrder()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1 text-sm">
+            <button onclick="saveOrder(false)" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1 text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                保存排序
+                立即保存
             </button>
         </div>
     </div>
@@ -200,13 +201,23 @@ var eyeClosed = '<path stroke-linecap="round" stroke-linejoin="round" stroke-wid
 new Sortable(document.getElementById('groupList'), {
     animation: 200,
     handle: '.group-handle',
-    ghostClass: 'opacity-50'
+    ghostClass: 'opacity-50',
+    onEnd: autoSave
 });
 
 // 组内菜单项排序
 document.querySelectorAll('.item-list').forEach(function(el) {
-    new Sortable(el, { animation: 200, ghostClass: 'opacity-50', group: 'items' });
+    new Sortable(el, { animation: 200, ghostClass: 'opacity-50', group: 'items', onEnd: autoSave });
 });
+
+// 自动保存（防抖 600ms，静默）
+var _msTimer = null;
+function autoSave() {
+    var st = document.getElementById('msStatus');
+    if (st) st.textContent = '保存中…';
+    clearTimeout(_msTimer);
+    _msTimer = setTimeout(function () { saveOrder(true); }, 600);
+}
 
 function toggleGroup(btn) {
     var groupEl = btn.closest('.group-item');
@@ -214,6 +225,7 @@ function toggleGroup(btn) {
     groupEl.dataset.hidden = isHidden ? '0' : '1';
     groupEl.classList.toggle('is-hidden');
     btn.querySelector('svg').innerHTML = isHidden ? eyeOpen : eyeClosed;
+    autoSave();
 }
 
 function toggleItem(btn) {
@@ -222,6 +234,7 @@ function toggleItem(btn) {
     itemEl.dataset.hidden = isHidden ? '0' : '1';
     itemEl.classList.toggle('is-hidden');
     btn.querySelector('svg').innerHTML = isHidden ? eyeOpen : eyeClosed;
+    autoSave();
 }
 
 function collectOrder() {
@@ -240,16 +253,26 @@ function collectOrder() {
     return { groups: groups, items: items, hidden: hidden, hiddenItems: hiddenItems };
 }
 
-async function saveOrder() {
+async function saveOrder(silent) {
     var order = collectOrder();
     var formData = new FormData();
     formData.append('ms_action', 'save');
     formData.append('order_json', JSON.stringify(order));
+    var st = document.getElementById('msStatus');
     try {
         var res = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await res.json();
-        data.code === 0 ? showMessage('保存成功，刷新页面生效') : showMessage(data.msg, 'error');
-    } catch(e) { showMessage('请求失败', 'error'); }
+        if (data.code === 0) {
+            if (st) st.textContent = '✓ 已自动保存 ' + new Date().toLocaleTimeString();
+            if (!silent) showMessage('已保存，刷新后台页面后侧栏生效');
+        } else {
+            if (st) st.textContent = '保存失败';
+            showMessage(data.msg, 'error');
+        }
+    } catch(e) {
+        if (st) st.textContent = '保存失败';
+        showMessage('请求失败', 'error');
+    }
 }
 
 async function resetOrder() {
