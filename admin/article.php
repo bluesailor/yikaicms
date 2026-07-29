@@ -276,12 +276,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </a>
                                 <?php // 行内操作（借鉴 WordPress）：桌面端悬停显现，移动端常驻；
                                       // 始终占位，避免悬停时行高跳动 ?>
-                                <div class="row-actions mt-1 flex items-center gap-1.5 text-[13px] text-gray-500 opacity-100 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100 transition-opacity">
+                                <div class="row-actions mt-1 flex items-center gap-2 text-sm text-gray-600 opacity-100 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100 transition-opacity">
                                     <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="hover:text-primary hover:underline"><?php echo __('admin_edit'); ?></a>
                                     <span class="text-gray-300">|</span>
                                     <button type="button" onclick="duplicateItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_duplicate'); ?></button>
                                     <span class="text-gray-300">|</span>
-                                    <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-600 hover:underline"><?php echo __('admin_move_to_trash'); ?></button>
+                                    <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_move_to_trash'); ?></button>
                                     <span class="text-gray-300">|</span>
                                     <a href="<?php echo e(contentUrl($item)); ?>" target="_blank" rel="noopener" class="hover:text-primary hover:underline"><?php echo __('admin_view'); ?></a>
                                 </div>
