@@ -276,14 +276,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </a>
                                 <?php // 行内操作（借鉴 WordPress）：桌面端悬停显现，移动端常驻；
                                       // 始终占位，避免悬停时行高跳动 ?>
-                                <div class="row-actions mt-0.5 flex items-center gap-1 text-xs text-gray-400 opacity-100 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100 transition-opacity">
-                                    <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="hover:text-primary"><?php echo __('admin_edit'); ?></a>
-                                    <span class="text-gray-200">|</span>
-                                    <button type="button" onclick="duplicateItem(<?php echo $item['id']; ?>)" class="hover:text-primary"><?php echo __('admin_duplicate'); ?></button>
-                                    <span class="text-gray-200">|</span>
-                                    <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="hover:text-red-500"><?php echo __('admin_move_to_trash'); ?></button>
-                                    <span class="text-gray-200">|</span>
-                                    <a href="<?php echo e(contentUrl($item)); ?>" target="_blank" rel="noopener" class="hover:text-primary"><?php echo __('admin_view'); ?></a>
+                                <div class="row-actions mt-1 flex items-center gap-1.5 text-[13px] text-gray-500 opacity-100 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100 transition-opacity">
+                                    <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="hover:text-primary hover:underline"><?php echo __('admin_edit'); ?></a>
+                                    <span class="text-gray-300">|</span>
+                                    <button type="button" onclick="duplicateItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_duplicate'); ?></button>
+                                    <span class="text-gray-300">|</span>
+                                    <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="text-red-500 hover:text-red-600 hover:underline"><?php echo __('admin_move_to_trash'); ?></button>
+                                    <span class="text-gray-300">|</span>
+                                    <a href="<?php echo e(contentUrl($item)); ?>" target="_blank" rel="noopener" class="hover:text-primary hover:underline"><?php echo __('admin_view'); ?></a>
                                 </div>
                             </div>
                         </div>
@@ -324,10 +324,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <!-- 底部操作栏 & 分页 -->
     <div class="px-4 py-3 border-t flex items-center justify-between">
+        <?php // 批量操作（借鉴 WordPress）：下拉选动作 + 应用按钮，替代并排按钮，
+              // 避免误点破坏性操作，也便于以后加动作而不撑长工具栏 ?>
         <div class="flex items-center gap-2">
-            <button onclick="batchAction('batch_publish')" class="border px-3 py-1 rounded text-sm hover:bg-green-50 text-green-600"><?php echo __('admin_published'); ?></button>
-            <button onclick="batchAction('batch_unpublish')" class="border px-3 py-1 rounded text-sm hover:bg-yellow-50 text-yellow-600"><?php echo __('admin_unpublished'); ?></button>
-            <button onclick="batchAction('batch_delete')" class="border px-3 py-1 rounded text-sm hover:bg-red-50 text-red-600"><?php echo __('admin_batch_delete'); ?></button>
+            <select id="bulkAction" class="border rounded px-3 py-1.5 text-sm bg-white">
+                <option value=""><?php echo __('admin_bulk_actions'); ?></option>
+                <option value="batch_publish"><?php echo __('admin_published'); ?></option>
+                <option value="batch_unpublish"><?php echo __('admin_unpublished'); ?></option>
+                <option value="batch_delete"><?php echo __('admin_move_to_trash'); ?></option>
+            </select>
+            <button onclick="applyBulk()" class="border px-4 py-1.5 rounded text-sm hover:bg-gray-50 text-gray-700"><?php echo __('admin_apply'); ?></button>
+            <span id="bulkCount" class="text-xs text-gray-400"></span>
         </div>
         <?php if ($total > $perPage): ?>
         <div class="flex items-center gap-2 text-sm">
@@ -389,11 +396,29 @@ async function duplicateItem(id) {
         showMessage(data.msg, 'error');
     }
 }
+function applyBulk() {
+    const sel = document.getElementById('bulkAction');
+    if (!sel.value) { showMessage('<?php echo __('admin_bulk_pick_action'); ?>', 'error'); return; }
+    batchAction(sel.value);
+}
+// 选中数量实时提示，动作前心里有数
+function refreshBulkCount() {
+    const n = document.querySelectorAll('.row-check:checked').length;
+    const el = document.getElementById('bulkCount');
+    if (el) el.textContent = n ? ('<?php echo __('admin_selected_prefix'); ?>' + n) : '';
+}
+document.addEventListener('change', function (e) {
+    if (e.target.classList && (e.target.classList.contains('row-check') || e.target.id === 'checkAll')) refreshBulkCount();
+});
 async function batchAction(action) {
     const ids = [...document.querySelectorAll('.row-check:checked')].map(cb => cb.value);
     if (!ids.length) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
-    const labels = { batch_publish: '发布', batch_unpublish: '下架', batch_delete: '删除' };
-    if (!confirm('确定' + (labels[action] || '操作') + '选中的 ' + ids.length + ' 篇文章？')) return;
+    const labels = {
+        batch_publish: '<?php echo __('admin_published'); ?>',
+        batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
+        batch_delete: '<?php echo __('admin_move_to_trash'); ?>'
+    };
+    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?>' + (labels[action] || '') + ' ' + ids.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
     const data = await postAction(action, { ids });
     if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
 }
