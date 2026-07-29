@@ -244,12 +244,17 @@ require theme_path('partials/page-hero.php');
                         <?php foreach ($relatedArticles as $related): ?>
                         <a href="<?php echo e(contentUrl($related)); ?>"
                            class="flex gap-3 p-4 hover:bg-gray-50 transition">
-                            <?php if ($related['cover']): ?>
+                            <?php // 无封面留同尺寸占位，保证标题左边缘对齐、卡片高度一致 ?>
                             <div class="flex-shrink-0 w-20 h-14 overflow-hidden rounded">
+                                <?php if ($related['cover']): ?>
                                 <img loading="lazy" src="<?php echo e(thumbnail($related['cover'], 'thumb')); ?>" alt="<?php echo e($related['title']); ?>"
                                      class="w-full h-full object-cover">
+                                <?php else: ?>
+                                <span class="w-full h-full bg-gray-100 text-gray-300 flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                </span>
+                                <?php endif; ?>
                             </div>
-                            <?php endif; ?>
                             <div class="flex-1 min-w-0">
                                 <h4 class="text-sm font-medium text-gray-800 line-clamp-2 hover:text-primary transition">
                                     <?php echo e($related['title']); ?>
