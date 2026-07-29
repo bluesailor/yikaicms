@@ -251,18 +251,24 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 <!-- 右侧工具栏 -->
                 <div class="flex items-center gap-4 flex-shrink-0">
                     <!-- 后台命令面板搜索 -->
-                    <div class="relative hidden md:block" x-data="adminSearch()" x-init="init()" @click.away="open = false">
-                        <div class="relative" style="display:inline-block;">
+                    <div class="relative" x-data="adminSearch()" x-init="init()" @click.away="open = false; mExpand = false">
+                        <?php // 手机：先显示放大镜图标，点开后输入框覆盖顶栏（桌面端一直是输入框） ?>
+                        <button type="button" class="md:hidden flex items-center justify-center w-9 h-9 rounded-full text-gray-500 hover:text-primary hover:bg-gray-50 transition"
+                                @click="mExpand = true; $nextTick(() => $refs.input.focus())"
+                                x-show="!mExpand" aria-label="<?php echo e(__('admin_quick_search')); ?>">
+                            <i class="ti ti-search text-lg"></i>
+                        </button>
+                        <div class="relative md:!block" :class="mExpand ? 'block absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-white' : 'hidden'" style="display:inline-block;">
                             <input x-ref="input" id="adminSearchInput" name="admin_search" type="search"
                                    role="searchbox" autocomplete="off" aria-label="<?php echo __('admin_quick_search'); ?>"
                                    x-model="query"
                                    @input="search()" @focus="open = true"
-                                   @keydown.escape="open = false"
+                                   @keydown.escape="open = false; mExpand = false"
                                    @keydown.down.prevent="moveSel(1)"
                                    @keydown.up.prevent="moveSel(-1)"
                                    @keydown.enter.prevent="goSelected()"
                                    placeholder="<?php echo __('admin_quick_search_ph'); ?>"
-                                   style="padding-left:36px; padding-right:42px; width:220px; height:34px; box-sizing:border-box;"
+                                   :style="mExpand ? 'padding-left:36px; padding-right:42px; width:min(70vw,320px); height:34px; box-sizing:border-box;' : 'padding-left:36px; padding-right:42px; width:220px; height:34px; box-sizing:border-box;'"
                                    class="text-sm border border-gray-200 rounded-full focus:border-primary focus:ring-1 focus:ring-primary outline-none">
                             <i class="ti ti-search text-sm text-gray-400" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"></i>
                             <kbd style="position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:10px; padding:2px 4px; line-height:1;" class="font-mono text-gray-400 border border-gray-200 rounded bg-gray-50 hidden lg:inline-block" title="Ctrl/⌘+K">⌘K</kbd>
@@ -287,7 +293,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <script>
                     function adminSearch() {
                         return {
-                            open: false, query: '', results: [], selected: 0, _t: null,
+                            open: false, mExpand: false, query: '', results: [], selected: 0, _t: null,
                             init() {
                                 window.addEventListener('keydown', (e) => {
                                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -375,7 +381,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <?php if (class_exists('AiService') && aiService()->isConfigured() && $currentMenu !== 'ai_assistant'): ?>
                     <div class="relative" x-data="aiBubble()" x-init="init()">
                         <button @click="toggle()" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary relative px-2 py-1 rounded hover:bg-gray-50" title="<?php echo __('admin_ai_assistant'); ?>">
-                            <i class="ti ti-message-dots text-lg"></i>
+                            <i class="ti ti-robot text-lg"></i>
                             <span class="hidden sm:inline"><?php echo __('admin_ai_assistant'); ?></span>
                             <span x-show="busy" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
                         </button>
