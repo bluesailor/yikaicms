@@ -86,20 +86,19 @@ if ($adminBrand === '后台管理') {
 
             <!-- 导航菜单 -->
             <script>
+            // 单开手风琴（借鉴 WordPress）：同时只展开一个分组——菜单项近 40 个时
+            // 全展开需滚动才能看全，单开后常驻约 15 行、一屏可见。
+            // 优先展开「当前所在组」；无活动组（如控制台）时沿用上次记忆。
             function sidebarNav() {
                 var activeGroup = '<?php echo $activeGroup; ?>';
-                var allGroups = ['content','product','article','media','data','site','appearance','system'];
-                var saved = {};
-                try { saved = JSON.parse(localStorage.getItem('sidebarState') || '{}'); } catch(e) {}
-                var open = {};
-                allGroups.forEach(function(g) {
-                    open[g] = g === activeGroup ? true : (saved.hasOwnProperty(g) ? saved[g] : true);
-                });
+                var saved = '';
+                try { saved = localStorage.getItem('sidebarOpenGroup') || ''; } catch (e) {}
                 return {
-                    open: open,
-                    toggle: function(g) {
-                        this.open[g] = !this.open[g];
-                        localStorage.setItem('sidebarState', JSON.stringify(this.open));
+                    openGroup: activeGroup || saved,
+                    isOpen: function (g) { return this.openGroup === g; },
+                    toggle: function (g) {
+                        this.openGroup = (this.openGroup === g) ? '' : g;
+                        try { localStorage.setItem('sidebarOpenGroup', this.openGroup); } catch (e) {}
                     }
                 };
             }
@@ -122,11 +121,16 @@ if ($adminBrand === '后台管理') {
                     );
                     if (empty($navGroup['items'])) continue;
                 ?>
-                <div @click="toggle('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" class="sidebar-group px-4 pt-3 pb-1 text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between">
-                    <span><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <i class="ti ti-chevron-down text-sm transition-transform duration-200"></i>
+                <?php $_first = reset($navGroup['items']); $_firstUrl = (string) ($_first['url'] ?? ''); ?>
+                <div @click="toggle('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" data-group="<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>" class="sidebar-group px-4 pt-3 pb-1 text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between cursor-pointer select-none">
+                    <?php if ($_firstUrl !== ''): ?>
+                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate hover:text-gray-300 transition"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
+                    <?php else: ?>
+                    <span class="flex-1 min-w-0 truncate"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <?php endif; ?>
+                    <i class="ti ti-chevron-down text-sm transition-transform duration-200" :class="isOpen('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>') ? 'rotate-180' : ''"></i>
                 </div>
-                <div x-show="open.<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>" x-collapse>
+                <div x-show="isOpen('<?= htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8') ?>')" x-collapse>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>

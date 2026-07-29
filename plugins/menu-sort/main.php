@@ -24,12 +24,15 @@ add_action('ik_admin_footer_scripts', function () {
     // 收集所有分组：header(.sidebar-group) + content(下一个兄弟div)
     echo 'var groupMap={};';
     echo 'sidebar.querySelectorAll(".sidebar-group").forEach(function(hdr){';
-    echo '  var attr=hdr.getAttribute("@click")||"";';
-    echo '  var m=attr.match(/toggle\\([\'"]([^\'"]+)[\'"]/);';
-    echo '  if(m){';
-    echo '    groupMap[m[1]]={header:hdr,content:hdr.nextElementSibling};';
+    // 分组键：优先 data-group（v1.13.3+ 侧栏），回退旧版 @click="toggle(key)" 解析
+    echo '  var key=hdr.getAttribute("data-group")||"";';
+    echo '  if(!key){var attr=hdr.getAttribute("@click")||"";var m=attr.match(/toggle\\([\'"]([^\'"]+)[\'"]/);if(m)key=m[1];}';
+    echo '  if(key){';
+    echo '    groupMap[key]={header:hdr,content:hdr.nextElementSibling};';
     echo '  }';
     echo '});';
+    // 防御：一个分组都没识别出来（侧栏结构变化）时原样放行，绝不清空侧栏
+    echo 'if(!Object.keys(groupMap).length)return;';
     // 隐藏的分组和菜单项
     echo 'var hidden=cfg.hidden||[];';
     echo 'var hiddenItems=cfg.hiddenItems||[];';
