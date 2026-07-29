@@ -1033,6 +1033,59 @@ function getProductCategories(int $parentId = 0): array
 }
 
 /**
+ * 首页「产品分类树」版块数据：一级分类 + 一层子级，统一成 [name,url,children]。
+ *
+ * 数据源自动适配：常规站取 product_categories 树；该表为空（或无一级分类）时，
+ * 回退 product 型栏目树——兼容「子栏目即分类」拓扑（ShopEx 等迁移站）。
+ *
+ * @return array<int, array{name:string,url:string,children:array<int, array{name:string,url:string}>}>
+ */
+function homeProductCategoryTree(int $limit = 12, int $subLimit = 12): array
+{
+    $out = [];
+    // 语言过滤：product_categories 是分语言存行的，getProductCategories() 不过滤，
+    // 直接用会把三语同名分类并排列出来。
+    $pcWhere = static function (int $parentId): array {
+        $cond = ['parent_id' => $parentId, 'status' => 1];
+        if (function_exists('isMultiLangEnabled') && isMultiLangEnabled('product_categories')) {
+            $cond['lang'] = siteLang();
+        }
+        return productCategoryModel()->where($cond, 'sort_order ASC, id ASC');
+    };
+    try {
+        foreach ($pcWhere(0) as $cat) {
+            $children = [];
+            foreach ($pcWhere((int) $cat['id']) as $sub) {
+                $children[] = ['name' => (string) $sub['name'], 'url' => productCategoryUrl($sub)];
+                if (count($children) >= $subLimit) break;
+            }
+            $out[] = ['name' => (string) $cat['name'], 'url' => productCategoryUrl($cat), 'children' => $children];
+            if (count($out) >= $limit) break;
+        }
+        if ($out) {
+            return $out;
+        }
+        // 回退：product 型栏目树（子栏目即分类）
+        $root = channelModel()->findWhere(['type' => 'product', 'parent_id' => 0, 'lang' => siteLang(), 'status' => 1]);
+        if (!$root) {
+            return [];
+        }
+        foreach (channelModel()->where(['parent_id' => (int) $root['id'], 'status' => 1], 'sort_order ASC, id ASC') as $cat) {
+            $children = [];
+            foreach (channelModel()->where(['parent_id' => (int) $cat['id'], 'status' => 1], 'sort_order ASC, id ASC') as $sub) {
+                $children[] = ['name' => (string) $sub['name'], 'url' => channelUrl($sub)];
+                if (count($children) >= $subLimit) break;
+            }
+            $out[] = ['name' => (string) $cat['name'], 'url' => channelUrl($cat), 'children' => $children];
+            if (count($out) >= $limit) break;
+        }
+    } catch (\Throwable $e) {
+        return $out;
+    }
+    return $out;
+}
+
+/**
  * 通过slug获取产品分类
  */
 function getProductCategoryBySlug(string $slug): ?array

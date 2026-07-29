@@ -163,6 +163,7 @@ $blockTemplates = [
     'advantage'    => theme_path('blocks/advantage.php'),
     'cta'          => theme_path('blocks/cta.php'),
     'partners'     => theme_path('blocks/partners.php'),
+    'product_categories' => theme_path('blocks/product_categories.php'),
 ];
 
 // Swiper轮播图资源

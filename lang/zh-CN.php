@@ -1100,6 +1100,8 @@ return [
     'sys_info' => '系统信息',
     'sys_stat_log' => '操作日志',
     'sys_error_log' => '错误日志',
+    'home_pc_title' => '产品分类',
+    'home_pc_search_ph' => '搜索产品…',
     'dashboard_update_hide_tip' => '关闭控制台的新版本提醒（可在 系统升级 → 在线更新 重新开启）',
     'dashboard_update_hidden_msg' => '已关闭新版本提醒，可在「系统升级 → 在线更新」重新开启',
     'seo_plugin_hint' => '已启用「SEO 工坊」插件：llms.txt、写作实时分析、搜索引擎推送等进阶功能在插件面板；本页管理全站标题/关键词/描述等基础项。',
