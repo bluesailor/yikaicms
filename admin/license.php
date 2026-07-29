@@ -122,10 +122,29 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php else: ?>
         <p class="text-sm text-gray-500 mb-4">在 <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-primary hover:underline">yikaicms.com</a> 购买后获得授权码，填写并保存即自动开通对应模块。授权与本站域名绑定。</p>
         <?php endif; ?>
-        <form id="licenseForm" class="flex flex-col sm:flex-row gap-3">
-            <input type="text" name="license_key" value="<?php echo e($key); ?>" placeholder="XXXX-XXXX-XXXX-XXXX"
-                   class="flex-1 border rounded px-4 py-2 font-mono tracking-wider">
+        <?php
+        // 安全：完整授权码不回显页面（防截屏/共享后台泄露），只展示打码版；
+        // 更换须显式点击后重新输入完整码。
+        $keyMasked = '';
+        if ($key !== '') {
+            $keyMasked = mb_strlen($key) > 8
+                ? substr($key, 0, 4) . str_repeat('*', max(4, mb_strlen($key) - 8)) . substr($key, -4)
+                : str_repeat('*', mb_strlen($key));
+        }
+        ?>
+        <?php if ($key !== ''): ?>
+        <div id="licMaskedRow" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <code class="flex-1 bg-gray-50 border border-gray-200 rounded px-4 py-2 font-mono tracking-wider text-gray-600 select-none"><?php echo e($keyMasked); ?></code>
+            <button type="button" onclick="licShowInput()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded transition whitespace-nowrap">更换授权码</button>
+        </div>
+        <?php endif; ?>
+        <form id="licenseForm" class="flex flex-col sm:flex-row gap-3 <?php echo $key !== '' ? 'hidden' : ''; ?>">
+            <input type="text" name="license_key" value="" placeholder="输入完整授权码，如 XXXX-XXXX-XXXX-XXXX"
+                   autocomplete="off" class="flex-1 border rounded px-4 py-2 font-mono tracking-wider">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition whitespace-nowrap">保存并校验</button>
+            <?php if ($key !== ''): ?>
+            <button type="button" onclick="licHideInput()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded transition whitespace-nowrap">取消</button>
+            <?php endif; ?>
         </form>
         <p class="text-xs text-gray-400 mt-3">本站域名：<code class="bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(license_domain()); ?></code>　授权到期后仅停用付费模块，网站正常运行不受影响。</p>
     </div>
@@ -152,8 +171,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <script>
+function licShowInput() {
+    var m = document.getElementById('licMaskedRow');
+    if (m) m.classList.add('hidden');
+    var f = document.getElementById('licenseForm');
+    f.classList.remove('hidden');
+    f.querySelector('input[name="license_key"]').focus();
+}
+function licHideInput() {
+    var m = document.getElementById('licMaskedRow');
+    if (m) m.classList.remove('hidden');
+    var f = document.getElementById('licenseForm');
+    f.classList.add('hidden');
+    f.querySelector('input[name="license_key"]').value = '';
+}
 document.getElementById('licenseForm').addEventListener('submit', function (e) {
     e.preventDefault();
+    var v = this.querySelector('input[name="license_key"]').value.trim();
+    if (v === '' && !confirm('授权码为空——确定要清除本站授权吗？付费模块将停用。')) return;
     adminSave(this, { reload: true });
 });
 document.getElementById('btnRefresh').addEventListener('click', function () {
