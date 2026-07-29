@@ -1107,6 +1107,8 @@ return [
     'admin_view' => '查看',
     'admin_date' => '日期',
     'admin_no_cover' => '暂无封面',
+    'admin_sidebar_collapse' => '折叠菜单',
+    'admin_sidebar_expand' => '展开菜单',
     'admin_bulk_actions' => '批量操作',
     'admin_apply' => '应用',
     'admin_bulk_pick_action' => '请先选择要执行的操作',
