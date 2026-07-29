@@ -1126,6 +1126,8 @@ return [
     'admin_view' => '表示',
     'admin_date' => '日付',
     'admin_no_cover' => 'カバー画像なし',
+    'admin_sidebar_collapse' => 'メニューを折りたたむ',
+    'admin_sidebar_expand' => 'メニューを展開',
     'admin_bulk_actions' => '一括操作',
     'admin_apply' => '適用',
     'admin_bulk_pick_action' => '先に操作を選択してください',

@@ -55,7 +55,32 @@ if ($adminBrand === '后台管理') {
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/admin.css'); ?>">
     <?php do_action('ik_admin_head'); ?>
 </head>
-<body class="bg-gray-100" x-data="{ mobileMenu: false }">
+<?php // 侧栏折叠态（图标栏）：桌面端记忆到 localStorage，移动端始终展开抽屉 ?>
+<body class="bg-gray-100" x-data="{
+        mobileMenu: false,
+        collapsed: (function () { try { return localStorage.getItem('sidebarCollapsed') === '1'; } catch (e) { return false; } })(),
+        toggleCollapsed() {
+            this.collapsed = !this.collapsed;
+            try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
+            if (!this.collapsed) { this.fly = { key: '', label: '', items: [], top: 0 }; }
+        },
+        fly: { key: '', label: '', items: [], top: 0 },
+        _flyTimer: null,
+        flyOpen(e, key) {
+            clearTimeout(this._flyTimer);
+            var d = (window.__ykMenuFly || {})[key];
+            if (!d) { return; }
+            var r = e.currentTarget.getBoundingClientRect();
+            var top = Math.min(r.top, Math.max(8, window.innerHeight - (d.items.length * 32 + 60)));
+            this.fly = { key: key, label: d.label, items: d.items, top: top };
+        },
+        flyKeep() { clearTimeout(this._flyTimer); },
+        flyLater() {
+            var self = this;
+            clearTimeout(this._flyTimer);
+            this._flyTimer = setTimeout(function () { self.fly = { key: '', label: '', items: [], top: 0 }; }, 180);
+        }
+     }">
     <div class="flex min-h-screen">
         <!-- 移动端遮罩层 -->
         <div x-show="mobileMenu"
@@ -70,16 +95,17 @@ if ($adminBrand === '后台管理') {
              x-cloak></div>
 
         <!-- 侧边栏 -->
-        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-gray-300 transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto"
-               :class="mobileMenu ? 'translate-x-0' : ''">
+        <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64"
+               :class="[mobileMenu ? 'translate-x-0' : '', collapsed ? 'lg:w-16' : 'lg:w-64']">
             <!-- Logo -->
             <div class="h-16 flex items-center justify-center border-b border-gray-700">
                 <?php $adminLogo = config('admin_logo', ''); ?>
-                <a href="/admin/" class="flex items-center gap-2">
+                <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0">
                     <?php if ($adminLogo): ?>
-                    <img src="<?php echo e($adminLogo); ?>" alt="" class="h-8">
+                    <img src="<?php echo e($adminLogo); ?>" alt="" class="h-8 flex-shrink-0">
                     <?php else: ?>
-                    <span class="text-xl font-bold text-white"><?php echo e($adminBrand); ?></span>
+                    <span class="text-xl font-bold text-white truncate" x-show="!collapsed"><?php echo e($adminBrand); ?></span>
+                    <span class="text-xl font-bold text-white" x-show="collapsed" x-cloak><?php echo e(mb_substr($adminBrand, 0, 1)); ?></span>
                     <?php endif; ?>
                 </a>
             </div>
@@ -123,19 +149,22 @@ if ($adminBrand === '后台管理') {
                 $_gIcon    = (string) ($navGroup['icon'] ?? '');
                 $_gOpen    = ($groupKey === $activeGroup);
                 ?>
-                <div @click="toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
-                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base font-semibold flex items-center gap-2.5">
+                <div @click="collapsed ? null : toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
+                     @mouseenter="collapsed && flyOpen($event, '<?= $_gKey ?>')" @mouseleave="collapsed && flyLater()"
+                     :title="collapsed ? '<?= htmlspecialchars(strip_tags((string)$navGroup['label']), ENT_QUOTES, 'UTF-8') ?>' : ''"
+                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base flex items-center gap-2.5"
+                     :class="collapsed ? 'lg:justify-center' : ''">
                     <?php if ($_gIcon !== ''): ?>
                     <svg class="w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
                     <?php endif; ?>
                     <?php if ($_firstUrl !== ''): ?>
-                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
+                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
                     <?php else: ?>
-                    <span class="flex-1 min-w-0 truncate"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
                     <?php endif; ?>
-                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
+                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="!collapsed" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
                 </div>
-                <div class="pl-2" x-show="isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
+                <div class="pl-2" x-show="!collapsed && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
@@ -144,17 +173,55 @@ if ($adminBrand === '后台管理') {
 
                 <?php do_action('admin_menu', $currentMenu); ?>
                 <div class="mt-6 mb-4 px-1">
-                    <a href="/admin/logout.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition">
-                        <i class="ti ti-logout text-lg mr-3"></i>
-                        <?php echo __('admin_safe_logout'); ?>
+                    <a href="/admin/logout.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition"
+                       :class="collapsed ? 'lg:justify-center' : ''" :title="collapsed ? '<?php echo e(__('admin_safe_logout')); ?>' : ''">
+                        <i class="ti ti-logout text-lg" :class="collapsed ? 'lg:mr-0 mr-3' : 'mr-3'"></i>
+                        <span x-show="!collapsed"><?php echo __('admin_safe_logout'); ?></span>
                     </a>
+                    <?php // 折叠为图标栏（借鉴 WordPress 的「折叠菜单」）——仅桌面端 ?>
+                    <button type="button" @click="toggleCollapsed()"
+                            class="sidebar-link hidden lg:flex items-center w-full px-4 py-2 rounded-lg text-gray-500 hover:text-gray-200 transition"
+                            :class="collapsed ? 'justify-center' : ''"
+                            :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
+                        <i class="ti text-lg" :class="[collapsed ? 'ti-chevrons-right' : 'ti-chevrons-left', collapsed ? '' : 'mr-3']"></i>
+                        <span x-show="!collapsed"><?php echo __('admin_sidebar_collapse'); ?></span>
+                    </button>
                 </div>
                 <div style="height:20px"></div>
             </nav>
         </aside>
 
+        <?php // 折叠态的二级飞出面板：侧栏是滚动容器会裁剪子元素，故用 fixed 定位单例，
+              // 悬停分组图标时按其位置弹出。数据从同一份菜单生成，不重复维护。 ?>
+        <div x-show="collapsed && fly.key" x-cloak
+             @mouseenter="flyKeep()" @mouseleave="flyLater()"
+             :style="'top:' + fly.top + 'px'"
+             class="hidden lg:block fixed left-16 z-[60] w-52 bg-sidebar text-gray-300 rounded-r-lg shadow-2xl border border-gray-700 border-l-0 py-2">
+            <div class="px-4 py-1.5 text-sm text-gray-400 border-b border-gray-700 mb-1" x-text="fly.label"></div>
+            <template x-for="it in fly.items" :key="it.url">
+                <a :href="it.url" class="sidebar-link block px-4 py-1.5 text-sm" x-text="it.label"></a>
+            </template>
+        </div>
+        <script>
+        window.__ykMenuFly = <?php
+            $_flyData = [];
+            foreach ($sidebarMenu as $_gk => $_gv) {
+                if (!empty($_gv['super_only']) && !isSuperAdmin()) continue;
+                $_its = [];
+                foreach ((array) ($_gv['items'] ?? []) as $_it) {
+                    if (!empty($_it['perm']) && !hasPermission((string) $_it['perm'])) continue;
+                    $_its[] = ['label' => trim(strip_tags((string) ($_it['label'] ?? ''))), 'url' => (string) ($_it['url'] ?? '')];
+                }
+                if ($_its) {
+                    $_flyData[$_gk] = ['label' => trim(strip_tags((string) ($_gv['label'] ?? $_gk))), 'items' => $_its];
+                }
+            }
+            echo json_encode($_flyData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+        ?>;
+        </script>
+
         <!-- 主内容区 -->
-        <div class="flex-1 lg:ml-64">
+        <div class="flex-1 transition-all duration-300" :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'">
             <!-- 顶部导航 -->
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
                 <!-- 移动端菜单按钮 -->

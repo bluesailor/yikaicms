@@ -1030,6 +1030,8 @@ return [
     'admin_view' => 'View',
     'admin_date' => 'Date',
     'admin_no_cover' => 'No cover image',
+    'admin_sidebar_collapse' => 'Collapse menu',
+    'admin_sidebar_expand' => 'Expand menu',
     'admin_bulk_actions' => 'Bulk actions',
     'admin_apply' => 'Apply',
     'admin_bulk_pick_action' => 'Choose an action first',

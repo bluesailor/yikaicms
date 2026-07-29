@@ -60,7 +60,8 @@ input[type="radio"] {
 .sidebar-group {
     cursor: pointer;
     user-select: none;
-    color: #9ca3af;
+    color: #f3f4f6;          /* 比子项(#d1d5db)更亮：不加粗也有层级 */
+    letter-spacing: .01em;
     transition: color .15s, background-color .15s;
 }
 .sidebar-group:hover {
