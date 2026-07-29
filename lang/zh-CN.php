@@ -1112,6 +1112,7 @@ return [
     'code_copy' => '复制',
     'code_copied' => '已复制',
     'upgrade_config_title' => '升级配置',
+    'upgrade_tab_db' => '数据库升级',
     'upgrade_notify_label' => '控制台首页的新版本提醒',
     'upgrade_notify_all' => '提醒全部更新',
     'upgrade_notify_security' => '仅提醒安全更新',

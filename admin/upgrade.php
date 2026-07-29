@@ -214,19 +214,10 @@ $currentMenu = $tab === 'online' ? 'online_upgrade' : 'upgrade';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/upgrade.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'check' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
-            数据库升级
-            <?php if (!empty($pendingUpgrades)): ?>
-            <span class="ml-1.5 inline-block w-5 h-5 leading-5 text-center rounded-full bg-red-500 text-white text-xs"><?php echo count($pendingUpgrades); ?></span>
-            <?php endif; ?>
-        </a>
-        <a href="/admin/upgrade_online.php" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"><?php echo __('upgrade_online'); ?></a>
-        <a href="/admin/upgrade.php?tab=config" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'config' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('upgrade_config_title'); ?></a>
-    </div>
-</div>
+<?php // 标签栏由 admin/includes/upgrade_tabs.php 统一渲染（两页共用，避免各自维护漂移）
+$__upgTab = $tab === 'config' ? 'config' : 'check';
+require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
+?>
 
 <?php if ($tab === 'check'): ?>
 <div>
