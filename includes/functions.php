@@ -1040,7 +1040,7 @@ function getProductCategories(int $parentId = 0): array
  *
  * @return array<int, array{name:string,url:string,children:array<int, array{name:string,url:string}>}>
  */
-function homeProductCategoryTree(int $limit = 12, int $subLimit = 12): array
+function homeProductCategoryTree(int $limit = 30, int $subLimit = 20): array
 {
     $out = [];
     // 语言过滤：product_categories 是分语言存行的，getProductCategories() 不过滤，

@@ -14,7 +14,8 @@ $bg = getBlockBg($block ?? [], '@auto');
 $pcTitle   = trim((string) ($block['title'] ?? '')) ?: __('home_pc_title');
 $pcCols    = max(1, min(4, (int) ($block['cols'] ?? 3)));
 $pcSearch  = !empty($block['show_search']);
-$pcTree    = homeProductCategoryTree();
+$pcLimit   = max(1, min(60, (int) ($block['limit'] ?? 30)));
+$pcTree    = homeProductCategoryTree($pcLimit);
 
 if (!$pcTree) {
     return;
