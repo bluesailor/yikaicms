@@ -475,7 +475,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </select>
                     <span class="text-gray-500">前的日志</span>
                     <button type="button" onclick="clearLogs()"
-                            class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded transition">
+                            class="border border-red-300 text-red-600 hover:bg-red-500 hover:border-red-500 hover:text-white px-6 py-2 rounded transition">
                         执行清理
                     </button>
                 </div>
@@ -488,7 +488,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </label>
                 <div class="md:col-span-3">
                     <button type="button" onclick="clearThrottle()"
-                            class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded transition">
+                            class="border border-gray-300 text-gray-700 hover:bg-gray-100 px-6 py-2 rounded transition">
                         清除全部限流记录 (<?php echo $throttleCount; ?> 个)
                     </button>
                     <span class="text-xs text-gray-400 ml-2">如有用户被误锁定，可清除后重试登录</span>
