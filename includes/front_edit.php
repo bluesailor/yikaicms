@@ -21,6 +21,7 @@ function renderFrontEdit(): void
     <style>
       #yk-edit-outline { position: absolute; z-index: 99990; pointer-events: none;
         border: 2px solid #2563eb; border-radius: 6px; box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+        background: rgba(37,99,235,.12); /* 颜色滤镜：悬停区域整体罩一层蓝，比只有外框显眼 */
         display: none; transition: opacity .1s; }
       #yk-edit-btn { position: absolute; top: 0; right: 0; pointer-events: auto;
         background: #2563eb; color: #fff; font-size: 16px; line-height: 1.1; font-weight: 700;
@@ -32,7 +33,7 @@ function renderFrontEdit(): void
       [data-yk-logo] { position: relative; }
       [data-yk-logo]::after { content: ""; position: absolute; inset: -6px; border: 2px dashed transparent;
         border-radius: 6px; pointer-events: none; transition: border-color .15s; }
-      [data-yk-logo]:hover::after { border-color: #2563eb; }
+      [data-yk-logo]:hover::after { border-color: #2563eb; background: rgba(37,99,235,.10); }
       .yk-logo-btns { position: absolute; top: -10px; right: -10px; z-index: 99991; display: none; gap: 4px; }
       [data-yk-logo]:hover .yk-logo-btns, .yk-logo-btns:hover { display: flex; }
       .yk-logo-btn { background: #2563eb; color: #fff; font-size: 11px; line-height: 1; font-weight: 600;
