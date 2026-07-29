@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         $data = [
             'name' => post('name'),
-            'url' => post('url'),
+            'url' => safeUrl((string) post('url')),   // 入库即过滤伪协议（输出侧亦有防护，双重保险）
             'logo' => post('logo'),
             'description' => post('description'),
             'sort_order' => postInt('sort_order', 0),
@@ -139,7 +139,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </td>
                     <td class="px-4 py-3 font-medium"><?php echo e($item['name']); ?></td>
                     <td class="px-4 py-3">
-                        <a href="<?php echo e($item['url']); ?>" target="_blank" class="text-primary hover:underline">
+                        <a href="<?php echo e(safeUrl((string) ($item['url'] ?? ''))); ?>" target="_blank" class="text-primary hover:underline">
                             <?php echo e(cutStr($item['url'], 40)); ?>
                         </a>
                     </td>

@@ -2194,6 +2194,37 @@ function assetVer(string $path): string
  * 仅当 header_sticky=1 且 header_scroll_opacity<100 时输出；目标为 <header id="siteHeader">。
  */
 /**
+ * URL 安全过滤：只放行站内相对路径与白名单协议，挡掉 javascript:/data: 等伪协议。
+ *
+ * 用于任何「由管理员填写、最终进入 href」的字段（友情链接、社交账号、
+ * 下载外链等）。仅做 HTML 转义并不够——转义能防属性逃逸，但 javascript:
+ * 伪协议本身仍可点击执行，对前台即是面向全体访客的存储型 XSS。
+ * 不合法返回空串，调用方据此不渲染链接。
+ *
+ * @param string $url  待校验地址
+ * @return string      安全地址；不合法为空串
+ */
+function safeUrl(string $url): string
+{
+    $url = trim($url);
+    if ($url === '') {
+        return '';
+    }
+    // 站内相对路径；排除协议相对 //evil.com（会跳到外站）
+    if ($url[0] === '/' && !str_starts_with($url, '//')) {
+        return $url;
+    }
+    // 锚点与查询串
+    if ($url[0] === '#' || $url[0] === '?') {
+        return $url;
+    }
+    return preg_match('#^(https?|mailto|tel)://#i', $url) === 1
+        || preg_match('#^(mailto|tel):#i', $url) === 1
+        ? $url
+        : '';
+}
+
+/**
  * 代码块「复制」按钮 + 语言标签（前台 footer 输出，各主题通用）。
  *
  * 脚本自行扫描 .prose pre > code，存量文章无需改动即可生效；

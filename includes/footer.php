@@ -115,7 +115,7 @@ if ($footerBgImage) {
                             <span class="text-white font-medium"><?php echo e($group['title']); ?></span>
                             <?php foreach ($groupLinks as $li => $link): ?>
                             <?php if ($li > 0): ?><span class="opacity-40 mx-2">|</span><?php endif; ?>
-                            <a href="<?php echo e($link['url']); ?>"
+                            <a href="<?php echo e(safeUrl((string) ($link['url'] ?? ''))); ?>"
                                <?php echo ($link['target'] ?? '_self') === '_blank' ? 'target="_blank" rel="nofollow"' : ''; ?>
                                class="hover:text-white transition">
                                 <?php echo e($link['name']); ?>
@@ -125,7 +125,7 @@ if ($footerBgImage) {
                         <?php else: ?>
                         <?php foreach ($groupLinks as $li => $link): ?>
                         <?php if ($li > 0): ?><span class="opacity-40 mx-2">|</span><?php endif; ?>
-                        <a href="<?php echo e($link['url']); ?>"
+                        <a href="<?php echo e(safeUrl((string) ($link['url'] ?? ''))); ?>"
                            <?php echo ($link['target'] ?? '_self') === '_blank' ? 'target="_blank" rel="nofollow"' : ''; ?>
                            class="hover:text-white transition">
                             <?php echo e($link['name']); ?>
