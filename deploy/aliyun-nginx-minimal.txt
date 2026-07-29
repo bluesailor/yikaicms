@@ -1,0 +1,35 @@
+# ============================================================
+# 万网 / 阿里云云虚拟主机 —— NGINX 极简伪静态（推荐）
+#
+# 位置：主机控制面板 → 高级环境设置 → NGINX 设置
+# 用法：把面板里默认的那两段（location / {} 与 location ~ /\.ht {deny all;}）
+#       整体替换成本文件内容，保存后生效。
+#
+# 为什么这么短：YikaiCMS 的 index.php 内置路由分发器（includes/Dispatcher.php），
+# 只要把「不存在的文件」统一交给 index.php，剩下的路由由 PHP 完成——
+# 等价于 WordPress 那条通用规则。需要显式 rewrite 全量规则时用
+# 同目录的 aliyun-nginx.htaccess。
+#
+# 该面板仅支持 location/allow/deny/try_files/rewrite/return/if/set，
+# 且后七条须写在 location 内，本文件已遵守。
+# ============================================================
+
+# ---- 1) 拦截敏感目录与文件 ----
+location ~ ^/(config|storage|vendor|includes|install/sql|bin|migrations|recipes)/ {
+    deny all;
+}
+
+location ~ /\.(git|env|htaccess|htpasswd) {
+    deny all;
+}
+
+location ~ ^/(composer\.(json|lock)|package(-lock)?\.json)$ {
+    deny all;
+}
+
+# ---- 2) 主规则：真实文件直出，其余交给 index.php ----
+location / {
+    if (!-e $request_filename) {
+        rewrite ^ /index.php last;
+    }
+}
