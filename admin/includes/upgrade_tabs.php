@@ -1,0 +1,36 @@
+<?php
+/**
+ * 升级管理页的标签栏（upgrade.php 与 upgrade_online.php 共用）
+ *
+ * 此前两页各自复制一份，加标签时只改了一处，另一页就少一个入口。
+ * 统一由此渲染，避免再次漂移。
+ *
+ * 调用前设 $__upgTab：'check' | 'online' | 'config'
+ * 可选 $pendingUpgrades：非空时在「数据库升级」上显示待执行计数徽标。
+ *
+ * PHP 8.0+
+ */
+
+declare(strict_types=1);
+
+if (!defined('ROOT_PATH')) {
+    exit('Access Denied');
+}
+
+$__upgTab = $__upgTab ?? 'check';
+$__upgOn  = 'px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary';
+$__upgOff = 'px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+$__upgPending = (int) count((array) ($pendingUpgrades ?? []));
+?>
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="flex border-b overflow-x-auto">
+        <a href="/admin/upgrade.php" class="whitespace-nowrap <?php echo $__upgTab === 'check' ? $__upgOn : $__upgOff; ?>">
+            <?php echo __('upgrade_tab_db'); ?>
+            <?php if ($__upgPending > 0): ?>
+            <span class="ml-1.5 inline-block w-5 h-5 leading-5 text-center rounded-full bg-red-500 text-white text-xs"><?php echo $__upgPending; ?></span>
+            <?php endif; ?>
+        </a>
+        <a href="/admin/upgrade_online.php" class="whitespace-nowrap <?php echo $__upgTab === 'online' ? $__upgOn : $__upgOff; ?>"><?php echo __('upgrade_online'); ?></a>
+        <a href="/admin/upgrade.php?tab=config" class="whitespace-nowrap <?php echo $__upgTab === 'config' ? $__upgOn : $__upgOff; ?>"><?php echo __('upgrade_config_title'); ?></a>
+    </div>
+</div>

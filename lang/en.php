@@ -1035,6 +1035,7 @@ return [
     'code_copy' => 'Copy',
     'code_copied' => 'Copied',
     'upgrade_config_title' => 'Update Settings',
+    'upgrade_tab_db' => 'Database Upgrade',
     'upgrade_notify_label' => 'New version notice on the dashboard',
     'upgrade_notify_all' => 'Notify about all updates',
     'upgrade_notify_security' => 'Security updates only',
