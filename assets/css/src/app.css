@@ -48,6 +48,31 @@
 .prose pre { background: #1e293b; color: #e2e8f0; padding: 1em 1.25em; border-radius: 8px; margin: 1em 0; overflow-x: auto; font-size: 0.9em; line-height: 1.6; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace; }
 .prose pre code { background: transparent; color: inherit; padding: 0; border-radius: 0; font-size: inherit; }
 
+/* 代码块增强（assets/js/code-copy.js 注入）：右上角复制按钮 + 左上角语言标签。
+   按钮默认半透明，悬停代码块才明显；移动端无 hover 故常驻。 */
+.prose pre.yk-code { position: relative; padding-top: 2.2em; }
+.yk-code-lang {
+    position: absolute; top: .55em; left: 1.1em;
+    font-size: .72em; letter-spacing: .04em; text-transform: uppercase;
+    color: #94a3b8; user-select: none; pointer-events: none;
+}
+.yk-code-copy {
+    position: absolute; top: .45em; right: .6em;
+    padding: .25em .7em; border-radius: 5px;
+    font-size: .75em; line-height: 1.6; font-family: inherit;
+    color: #cbd5e1; background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .12);
+    cursor: pointer; opacity: 1; transition: opacity .15s, background-color .15s, color .15s;
+}
+.prose pre.yk-code .yk-code-copy:hover { background: rgba(255, 255, 255, .2); color: #fff; }
+.yk-code-copy.is-done { color: #86efac; border-color: rgba(134, 239, 172, .4); }
+@media (hover: hover) {
+    .prose pre.yk-code .yk-code-copy { opacity: 0; }
+    .prose pre.yk-code:hover .yk-code-copy,
+    .prose pre.yk-code .yk-code-copy:focus { opacity: 1; }
+}
+@media print { .yk-code-copy { display: none; } }
+
 /* ============================================================
    滚动入场动画（Intersection Observer 触发）
    ============================================================ */

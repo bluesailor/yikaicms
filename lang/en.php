@@ -1032,6 +1032,8 @@ return [
     'admin_no_cover' => 'No cover image',
     'admin_sidebar_collapse' => 'Collapse menu',
     'admin_save_failed' => 'Save failed',
+    'code_copy' => 'Copy',
+    'code_copied' => 'Copied',
     'upgrade_config_title' => 'Update Settings',
     'upgrade_notify_label' => 'New version notice on the dashboard',
     'upgrade_notify_all' => 'Notify about all updates',
