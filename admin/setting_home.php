@@ -735,10 +735,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         $pcT = (string)($block['title'] ?? '');
                         $pcC = (int)($block['cols'] ?? 3);
                         $pcS = !empty($block['show_search']);
+                        $pcL = (int)($block['limit'] ?? 30);
                     ?>
                     <div class="bg-gray-50 rounded-lg p-4">
                         <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">展示设置</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-x-6 gap-y-4">
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1">版块标题</label>
                                 <input type="text" class="block-pc-title w-full border rounded px-2 py-1.5 text-xs"
@@ -748,6 +749,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 <label class="text-xs text-gray-500 block mb-1">每行列数 <span class="text-gray-300">(1-4)</span></label>
                                 <input type="number" min="1" max="4" class="block-pc-cols w-full border rounded px-2 py-1.5 text-xs"
                                        value="<?php echo $pcC; ?>">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">显示分类数 <span class="text-gray-300">(1-60)</span></label>
+                                <input type="number" min="1" max="60" class="block-pc-limit w-full border rounded px-2 py-1.5 text-xs"
+                                       value="<?php echo $pcL; ?>">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1">搜索框</label>
@@ -1085,6 +1091,8 @@ function collectBlocksConfig() {
         if (pcTitle)  item.title       = pcTitle.value;
         if (pcCols)   item.cols        = parseInt(pcCols.value) || 3;
         if (pcSearch) item.show_search = pcSearch.checked;
+        var pcLimit = card.querySelector('.block-pc-limit');
+        if (pcLimit) item.limit = parseInt(pcLimit.value) || 30;
         // 插件版块：调用插件注册的采集器补齐自定义字段（见 window.homeBlockCollectors）
         if (window.homeBlockCollectors && typeof window.homeBlockCollectors[item.type] === 'function') {
             try { window.homeBlockCollectors[item.type](card, item); } catch (e) { console.error(e); }
