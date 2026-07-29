@@ -16,6 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['ms_action'] ?? '') === 'sa
         echo json_encode(['code' => 1, 'msg' => '无效的排序数据']);
         exit;
     }
+    // labels 按语言分存：本次只提交当前后台语言的改名，需与既有其它语言合并，
+    // 否则切到别的语言保存一次就会把这边的自定义名抹掉。
+    $curLang = function_exists('getLang') ? getLang() : 'zh-CN';
+    $prev    = json_decode((string) config('admin_menu_order', ''), true);
+    $prevLabels = is_array($prev) ? (array) ($prev['labels'] ?? []) : [];
+    $prevLabels[$curLang] = array_filter((array) ($order['labels'][$curLang] ?? []), static fn($v) => trim((string) $v) !== '');
+    $order['labels'] = array_filter($prevLabels, static fn($v) => !empty($v));
+    $orderJson = json_encode($order, JSON_UNESCAPED_UNICODE);
+
     settingModel()->set('admin_menu_order', $orderJson, 'plugin');
     adminLog('plugin', 'update', '更新菜单排序配置');
     echo json_encode(['code' => 0, 'msg' => '保存成功']);
@@ -83,6 +92,9 @@ if (!$defaultGroups) {
 
 // 读取已保存的排序
 $savedOrder = json_decode(config('admin_menu_order', ''), true) ?: null;
+// 当前后台语言下的改名（其它语言的互不影响）
+$msLang   = function_exists('getLang') ? getLang() : 'zh-CN';
+$msLabels = (array) (($savedOrder['labels'] ?? [])[$msLang] ?? []);
 $hiddenGroups = $savedOrder['hidden'] ?? [];
 $hiddenItems = $savedOrder['hiddenItems'] ?? [];
 
@@ -131,7 +143,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="bg-white rounded-lg shadow mb-6 sticky top-0 z-20">
     <div class="p-4 flex items-center justify-between gap-3 flex-wrap">
-        <p class="text-sm text-gray-500">拖拽排序、点击 👁 切换显示/隐藏——<b>改动自动保存</b>，刷新后台页面后侧栏生效</p>
+        <p class="text-sm text-gray-500">拖拽排序、点击名称可改名、👁 切换显示隐藏——<b>改动自动保存</b>，刷新后台页面后生效。改名仅作用于当前后台语言（<?php echo e($msLang); ?>），清空恢复默认。</p>
         <div class="flex items-center gap-3">
             <span id="msStatus" class="text-xs text-gray-400"></span>
             <button onclick="resetOrder()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm">恢复默认</button>
@@ -152,7 +164,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <svg class="w-5 h-5 text-gray-400 cursor-move" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>
-            <span class="font-bold text-gray-800 flex-1"><?php echo e($group['label']); ?></span>
+            <input type="text" class="group-label font-bold text-gray-800 flex-1 bg-transparent border border-transparent hover:border-gray-200 focus:border-primary focus:bg-white rounded px-2 py-1 outline-none"
+                   value="<?php echo e($msLabels['__group:' . $groupKey] ?? $group['label']); ?>"
+                   data-default="<?php echo e($group['label']); ?>"
+                   onclick="event.stopPropagation()" placeholder="<?php echo e($group['label']); ?>" title="改名后立即保存；清空则恢复默认">
             <span class="text-xs text-gray-400">(<?php echo $groupKey; ?>)</span>
             <span class="toggle-vis" onclick="toggleGroup(this)" title="显示/隐藏整个分组">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,7 +188,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
-                <span class="text-sm text-gray-700 flex-1"><?php echo e($itemLabel); ?></span>
+                <input type="text" class="item-label text-sm text-gray-700 flex-1 bg-transparent border border-transparent hover:border-gray-200 focus:border-primary focus:bg-white rounded px-2 py-1 outline-none"
+                       value="<?php echo e($msLabels[$itemKey] ?? $itemLabel); ?>"
+                       data-default="<?php echo e($itemLabel); ?>"
+                       placeholder="<?php echo e($itemLabel); ?>" title="改名后立即保存；清空则恢复默认">
                 <span class="text-xs text-gray-400"><?php echo e(str_starts_with($itemKey, 'plugin_page:') ? '插件·' . substr($itemKey, 12) : '/admin/' . $itemKey . '.php'); ?></span>
                 <span class="toggle-vis" onclick="toggleItem(this)" title="显示/隐藏">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,6 +237,13 @@ function autoSave() {
     _msTimer = setTimeout(function () { saveOrder(true); }, 600);
 }
 
+// 改名输入：停止输入 600ms 后自动保存（复用同一防抖）
+document.addEventListener('input', function (e) {
+    if (e.target.classList && (e.target.classList.contains('group-label') || e.target.classList.contains('item-label'))) {
+        autoSave();
+    }
+});
+
 function toggleGroup(btn) {
     var groupEl = btn.closest('.group-item');
     var isHidden = groupEl.dataset.hidden === '1';
@@ -237,20 +262,34 @@ function toggleItem(btn) {
     autoSave();
 }
 
+var MS_LANG = <?php echo json_encode($msLang); ?>;
 function collectOrder() {
-    var groups = [], items = {}, hidden = [], hiddenItems = [];
+    var groups = [], items = {}, hidden = [], hiddenItems = [], labels = {};
     document.querySelectorAll('.group-item').forEach(function(g) {
         var gKey = g.dataset.group;
         groups.push(gKey);
         if (g.dataset.hidden === '1') hidden.push(gKey);
+        // 改名：与默认一致或留空则不记录，配置保持精简、跟随核心文案更新
+        var gl = g.querySelector('.group-label');
+        if (gl) {
+            var gv = gl.value.trim();
+            if (gv && gv !== gl.dataset.default) labels['__group:' + gKey] = gv;
+        }
         items[gKey] = [];
         g.querySelectorAll('.menu-item').forEach(function(m) {
             var key = m.dataset.key;
             items[gKey].push(key);
             if (m.dataset.hidden === '1') hiddenItems.push(key);
+            var il = m.querySelector('.item-label');
+            if (il) {
+                var iv = il.value.trim();
+                if (iv && iv !== il.dataset.default) labels[key] = iv;
+            }
         });
     });
-    return { groups: groups, items: items, hidden: hidden, hiddenItems: hiddenItems };
+    var out = { groups: groups, items: items, hidden: hidden, hiddenItems: hiddenItems, labels: {} };
+    out.labels[MS_LANG] = labels;
+    return out;
 }
 
 async function saveOrder(silent) {
