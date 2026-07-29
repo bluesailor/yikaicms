@@ -90,7 +90,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                value="<?php echo e($linkMap[$key] ?? ''); ?>">
                     </div>
                     <?php if (!empty($linkMap[$key])): ?>
-                    <a href="<?php echo e($linkMap[$key]); ?>" target="_blank" class="text-gray-400 hover:text-primary flex-shrink-0" title="<?php echo __('admin_open'); ?>">
+                    <a href="<?php echo e(safeUrl((string) ($linkMap[$key] ?? ''))); ?>" target="_blank" class="text-gray-400 hover:text-primary flex-shrink-0" title="<?php echo __('admin_open'); ?>">
                         <i class="ti ti-external-link text-base"></i>
                     </a>
                     <?php endif; ?>

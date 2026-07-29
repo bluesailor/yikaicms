@@ -20,6 +20,19 @@ if (!defined('ROOT_PATH')) {
 }
 
 /**
+ * 链接安全过滤：只放行站内相对路径与 http(s) 绝对地址。
+ *
+ * 列表里的「查看」可能取自管理员填写的字段（如下载的外链 file_url），
+ * 若直接进 href，javascript:/data: 伪协议会形成存储型 XSS——低权角色
+ * 存入、超管点击即执行。不合法一律返回空串（调用方据此不渲染该链接）。
+ */
+function listSafeUrl(string $url): string
+{
+    // 统一委托 includes/functions.php 的 safeUrl()，避免两份实现漂移
+    return function_exists('safeUrl') ? safeUrl($url) : '';
+}
+
+/**
  * 行内操作条。
  *
  * @param array{
@@ -31,7 +44,7 @@ function renderRowActions(array $o): string
 {
     $id      = (int) $o['id'];
     $edit    = (string) $o['edit'];
-    $view    = (string) ($o['view'] ?? '');
+    $view    = listSafeUrl((string) ($o['view'] ?? ''));   // 伪协议过滤，见 listSafeUrl()
     $delFn   = (string) ($o['delete_fn'] ?? 'deleteItem');
     $dupFn   = (string) ($o['dup_fn'] ?? 'duplicateItem');
     $canDup  = !empty($o['duplicate']);
@@ -76,8 +89,8 @@ function renderBulkBar(array $actions): string
 
     if (!$scriptDone) {
         $scriptDone = true;
-        $pick = json_encode(__('admin_bulk_pick_action'), JSON_UNESCAPED_UNICODE);
-        $pre  = json_encode(__('admin_selected_prefix'), JSON_UNESCAPED_UNICODE);
+        $pick = json_encode(__('admin_bulk_pick_action'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+        $pre  = json_encode(__('admin_selected_prefix'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
         $html .= <<<HTML
 <script>
 function applyBulk() {
