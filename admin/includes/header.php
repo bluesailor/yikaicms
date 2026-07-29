@@ -124,9 +124,9 @@ if ($adminBrand === '后台管理') {
                 $_gOpen    = ($groupKey === $activeGroup);
                 ?>
                 <div @click="toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
-                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2.5">
+                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base font-semibold flex items-center gap-2.5">
                     <?php if ($_gIcon !== ''): ?>
-                    <svg class="w-[18px] h-[18px] flex-shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
+                    <svg class="w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
                     <?php endif; ?>
                     <?php if ($_firstUrl !== ''): ?>
                     <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>

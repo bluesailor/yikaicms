@@ -127,11 +127,12 @@ function renderAdminMenuItem(array $item, string $currentMenu): string
     $activeKeys = (array)  ($item['active_keys'] ?? [$key]);
 
     $isActive = in_array($currentMenu, $activeKeys, true);
-    $cls = 'sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5'
+    // 子项 14px / 图标 18px，与分组标题（16px 半粗 / 20px 图标）形成层级
+    $cls = 'sidebar-link flex items-center px-4 py-1.5 rounded-lg mb-0.5 text-sm'
          . ($isActive ? ' active' : '');
 
     $svg = $icon !== ''
-        ? '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">' . $icon . '</svg>'
+        ? '<svg class="w-[18px] h-[18px] mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">' . $icon . '</svg>'
         : '';
 
     // 红点徽标（如待更新数）：item['badge'] > 0 时在右侧显示
