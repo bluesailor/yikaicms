@@ -42,5 +42,12 @@
                 <file name="plugins/seo/admin.php" />
             </errorLevel>
         </UnusedVariable>
+        <!-- CI 无 config.php：入口文件的 require 均在 baseline 豁免；baseline 只能在
+             无 config 环境重生成（见 v1.12.0 教训），新增的独立入口在此定点豁免 -->
+        <MissingFile>
+            <errorLevel type="suppress">
+                <file name="plugins/seo/ai.php" />
+            </errorLevel>
+        </MissingFile>
     </issueHandlers>
 </psalm>
