@@ -101,7 +101,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 
         <!-- 侧边栏 -->
         <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
-               :class="[mobileMenu ? 'translate-x-0' : '', collapsed ? 'lg:w-16' : 'lg:w-64']">
+               <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，
+                     // 首次切换时服务端预渲染的 lg:w-64 会残留并与 lg:w-16 打架 ?>
+               :class="{ 'translate-x-0': mobileMenu, 'lg:w-16': collapsed, 'lg:w-64': !collapsed }">
             <!-- Logo -->
             <?php // Logo 栏不画分隔线：深色侧栏上任何浅色边框都会显成一条亮线 ?>
             <div class="h-16 flex items-center justify-center">
@@ -135,7 +137,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
                    :class="collapsed ? 'lg:justify-center' : ''"
                    :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
-                    <i class="ti ti-home text-lg flex-shrink-0" :class="collapsed ? 'lg:mr-0 mr-3' : 'mr-3'"></i>
+                    <i class="ti ti-home text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
                     <span x-show="!collapsed"><?php echo __('admin_dashboard'); ?></span>
                 </a>
 
@@ -183,7 +185,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 <div class="mt-6 mb-4 px-1">
                     <a href="/admin/logout.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition"
                        :class="collapsed ? 'lg:justify-center' : ''" :title="collapsed ? '<?php echo e(__('admin_safe_logout')); ?>' : ''">
-                        <i class="ti ti-logout text-lg" :class="collapsed ? 'lg:mr-0 mr-3' : 'mr-3'"></i>
+                        <i class="ti ti-logout text-lg mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
                         <span x-show="!collapsed"><?php echo __('admin_safe_logout'); ?></span>
                     </a>
                     <?php // 折叠为图标栏（借鉴 WordPress 的「折叠菜单」）——仅桌面端 ?>
@@ -191,7 +193,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                             class="sidebar-link hidden lg:flex items-center w-full px-4 py-2 rounded-lg text-gray-500 hover:text-gray-200 transition"
                             :class="collapsed ? 'justify-center' : ''"
                             :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
-                        <i class="ti text-lg" :class="[collapsed ? 'ti-chevrons-right' : 'ti-chevrons-left', collapsed ? '' : 'mr-3']"></i>
+                        <i class="ti text-lg mr-3" :class="{ 'ti-chevrons-right': collapsed, 'ti-chevrons-left': !collapsed, 'mr-3': !collapsed }"></i>
                         <span x-show="!collapsed"><?php echo __('admin_sidebar_collapse'); ?></span>
                     </button>
                 </div>
@@ -230,7 +232,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 
         <!-- 主内容区 -->
         <div class="flex-1 transition-all duration-300 <?= $_sbCollapsed ? 'lg:ml-16' : 'lg:ml-64' ?>"
-             :class="collapsed ? 'lg:ml-16' : 'lg:ml-64'">
+             :class="{ 'lg:ml-16': collapsed, 'lg:ml-64': !collapsed }">
             <!-- 顶部导航 -->
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
                 <!-- 移动端菜单按钮 -->
