@@ -249,7 +249,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_publish_time'); ?></label>
                         <input type="datetime-local" name="publish_time"
-                               value="<?php echo $article['publish_time'] ? date('Y-m-d\TH:i', (int)$article['publish_time']) : ''; ?>"
+                               value="<?php echo !empty($article['publish_time']) ? date('Y-m-d\TH:i', (int)$article['publish_time']) : ''; ?>"
                                class="w-full border rounded px-4 py-2">
                     </div>
 
