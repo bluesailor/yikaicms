@@ -206,7 +206,9 @@ foreach ($upgrades as $up) {
     }
 }
 
-$tab = $_GET['tab'] ?? 'check';
+// 默认标签：有待执行迁移时进「数据库升级」（要紧事优先），否则进「升级配置」——
+// 数据库升级是少用的恢复动作，不该做门面
+$tab = $_GET['tab'] ?? (!empty($pendingUpgrades) ? 'check' : 'config');
 if ($tab === 'history') $tab = 'check';   // 升级历史已并入「数据库升级」标签
 $pageTitle = '升级管理';
 $currentMenu = $tab === 'online' ? 'online_upgrade' : 'upgrade';
