@@ -1756,4 +1756,9 @@ return [
     'sum_placeholder' => 'Summarise the article in a sentence or two; leave empty to auto-generate',
     'sum_chars' => 'chars',
     'sum_too_long' => 'That is long for a summary — should this text go in Content above?',
+
+    // ── Blox 全屏编辑器（实验）──
+    'page_mode_blox' => 'Blox fullscreen',
+    'page_mode_blox_tip' => 'Full-screen visual editing (experimental): structure tree, canvas and properties — operating on the same layout data',
+    'label_experimental' => 'beta',
 ];

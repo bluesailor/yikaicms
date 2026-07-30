@@ -215,10 +215,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <i class="ti ti-chevron-left text-base"></i>
         <?php echo __('page_back_to_list'); ?>
     </a>
-    <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
-        <i class="ti ti-pencil text-base"></i>
-        <?php echo __('page_switch_simple'); ?>
-    </a>
+    <div class="flex items-center gap-2">
+        <?php // Blox 全屏编辑器（实验）：Bricks 式三栏，编辑的是同一份 blocks_data ?>
+        <a href="/admin/blox_editor.php?id=<?php echo $id; ?>"
+           class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1.5 cursor-pointer transition"
+           title="<?php echo e(__('page_mode_blox_tip')); ?>">
+            <i class="ti ti-stack-2 text-base text-blue-400"></i>
+            <?php echo __('page_mode_blox'); ?>
+            <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?php echo __('label_experimental'); ?></span>
+        </a>
+        <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+            <i class="ti ti-pencil text-base"></i>
+            <?php echo __('page_switch_simple'); ?>
+        </a>
+    </div>
 </div>
 
 <?php $childEditBase = '/admin/page_edit_advance.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>

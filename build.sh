@@ -172,6 +172,13 @@ EXCLUDES=(
     "themes/minimal"
     "themes/trade"
 
+    # Blox 全屏编辑器（实验）——只在本地/开发调试，**不随包发布**：
+    #   功能仍在演进（结构树/画布/属性三栏才走到第一步），发出去等于承诺尚不存在的能力。
+    #   themes/blox 是它的配套实验主题，同理不发。
+    #   入口挂在单页管理与排版编辑器里，源码保留在仓库供继续开发。
+    "themes/blox"
+    "admin/blox_editor.php"
+
     # 临时测试文件（如本地 dev 时手写的）
     "recipe_test.php"
     "_i18n_test.php"
