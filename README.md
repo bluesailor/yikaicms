@@ -3,7 +3,7 @@
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-276%20passing-brightgreen.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-349%20passing-brightgreen.svg)](./tests)
 
 **简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持简体中文、English、日本語多语言网站建设。
 
@@ -47,9 +47,10 @@
 - **标签打通** — `{yk:list type=模型key}` 标签与构建器动态列表直接消费模型内容
 
 ### 主题系统
-- **3 套内置主题** — Default（标准）、Minimal（极简）、Business（深色商务风）
+- **3 套随包主题** — Default（标准）、Business（深色商务风）、Aurora（渐变现代风）
+- **模板市场** — Minimal（极简）等主题在后台「主题 → 模板市场」按需安装
 - **文件覆盖机制** — layouts / blocks / partials 三层模板
-- **主题配置** — theme.json 元信息、预览截图、后台一键切换
+- **主题规范** — theme.json Schema v1，安装时校验版本要求与必需模板；预览截图、后台一键切换
 
 ### 媒体管理
 - **媒体库** — 图片与文件统一管理，自动缩略图
@@ -206,7 +207,7 @@ location / {
 ├── install/        # 安装向导 + SQL 脚本（MySQL / SQLite）
 ├── lang/           # 语言包
 ├── plugins/        # 插件目录
-├── themes/         # 主题目录（default / minimal / business）
+├── themes/         # 主题目录（default / business / aurora）
 ├── uploads/        # 用户上传文件
 └── storage/        # 缓存与日志
 ```
