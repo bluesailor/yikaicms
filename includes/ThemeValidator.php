@@ -32,9 +32,6 @@ final class ThemeValidator
         'general', 'manufacturing', 'trade', 'tech', 'creative', 'services', 'retail',
     ];
 
-    /** 主题自带演示内容可声明的语言 */
-    public const LOCALES = ['zh-CN', 'en', 'ja'];
-
     /** 缺了就无法渲染的文件（相对主题目录） */
     public const REQUIRED_FILES = ['layouts/header.php', 'layouts/footer.php'];
 
@@ -153,15 +150,8 @@ final class ThemeValidator
             $warnings[] = "category「{$meta['category']}」不在词表内：" . implode(' / ', self::CATEGORIES);
         }
 
-        $locales = $meta['locales'] ?? null;
-        if ($locales === null) {
-            if (!$legacy) { $warnings[] = '未声明 locales（自带演示内容覆盖的语言）'; }
-        } else {
-            foreach ((array) $locales as $l) {
-                if (!in_array((string) $l, self::LOCALES, true)) {
-                    $warnings[] = "locales 含未知语言：{$l}";
-                }
-            }
+        if (isset($meta['locales'])) {
+            $warnings[] = 'locales 已废弃：主题不承载演示内容，该字段无对应实现';
         }
 
         foreach (['name_en', 'name_ja', 'description_en', 'description_ja'] as $k) {
