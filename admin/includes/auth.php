@@ -48,6 +48,10 @@ function checkLogin(): void
         redirect('/admin/login.php');
     }
 
+    // 每次请求重新解析身份：会话里的角色与权限是登录那一刻的快照，
+    // 不刷新的话「停用某人」「收紧某个角色」对已登录的人都不生效。
+    refreshAdminIdentity();
+
     // 自动校验 CSRF：所有 POST 请求必须携带 _token
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
@@ -61,6 +65,54 @@ function checkLogin(): void
             }
         }
     }
+}
+
+/**
+ * 按当前请求重新解析登录者的身份（账号状态、所属角色、角色权限）。
+ *
+ * 为什么必须每请求做：`$_SESSION['admin_permissions']` 原本只在登录时写一次，
+ * 之后再不更新，于是
+ *   - 改角色权限 → 已登录的人沿用旧权限，**收紧权限不生效**
+ *   - 把用户改到别的角色 → 同样不生效
+ *   - **账号被禁用（status=0）或删除 → 现存会话照常可用**，「停用某人」停不掉
+ * 最后一条比权限那条严重：它意味着离职、误操作、被盗号之后，
+ * 管理员在后台点「禁用」其实什么也没发生，只能等对方自己退出。
+ *
+ * 代价是每个后台请求两次主键查询（用户 + 角色），按请求缓存一次。
+ * 后台页面本就有几十次查询，这点开销换「权限即时生效」是值得的。
+ */
+function refreshAdminIdentity(): void
+{
+    static $done = false;
+    if ($done) {
+        return;   // 有的页面会调两次 checkLogin()
+    }
+    $done = true;
+
+    $uid = (int) ($_SESSION['admin_id'] ?? 0);
+    if ($uid <= 0) {
+        return;
+    }
+
+    $user = userModel()->find($uid);
+    if (!$user || (int) ($user['status'] ?? 0) !== 1) {
+        // 账号已被禁用或删除：当场失效，不等对方自己退出
+        doLogout();
+        if (isAjax()) {
+            error('账号已失效，请重新登录', 401);
+        }
+        redirect('/admin/login.php');
+    }
+
+    $roleId = (int) ($user['role_id'] ?? 0);
+    $role   = $roleId > 0 ? roleModel()->find($roleId) : null;
+    // 角色被停用或删除 → 权限清空（不踢出，让人能看到「没有操作权限」而不是莫名被登出）
+    $perms  = ($role && (int) ($role['status'] ?? 1) === 1)
+        ? (json_decode((string) ($role['permissions'] ?? '[]'), true) ?: [])
+        : [];
+
+    $_SESSION['admin_role_id']     = $roleId;
+    $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
 }
 
 /**

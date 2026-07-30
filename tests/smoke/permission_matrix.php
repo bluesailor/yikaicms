@@ -281,6 +281,51 @@ foreach ([
 @unlink($jar);
 echo "\n";
 
+// ── 会话身份不是登录时的快照：改权限 / 停用账号必须立即生效 ──
+// 会话里的 admin_permissions 原本只在登录时写一次，导致「收紧某个角色」
+// 与「停用某人」对已登录的人都不生效。后者尤其严重。
+echo "【会话身份即时失效】\n";
+$jar2 = sys_get_temp_dir() . '/pm_live_' . getmypid() . '.txt';
+pmLogin($jar2, $ISOLATED['user'], $ISOLATED['pass']);
+
+// 登录时有 edit_article → 文章列表可进
+[$c, $b] = pmReq($jar2, 'GET', '/admin/article.php');
+$checked++;
+if (pmDenied($c, $b)) { $fail++; echo "  ✗ 前置：登录后本应进得去文章列表\n"; }
+else { echo "  ✓ 前置：登录后可进文章列表\n"; }
+
+$pdo3 = new PDO('sqlite:' . $dbFile);
+$pdo3->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// 1) 抽掉角色权限——同一会话下一次请求就该被拒
+$pdo3->prepare('UPDATE yikai_roles SET permissions = ? WHERE id = ?')
+     ->execute([json_encode([]), $ISOLATED['roleId']]);
+[$c, $b] = pmReq($jar2, 'GET', '/admin/article.php');
+$checked++;
+if (pmDenied($c, $b)) { echo "  ✓ 收紧角色权限后立即失效\n"; }
+else { $fail++; printf("  ✗ 收紧角色权限后仍放行 (HTTP %d)——会话还在用旧快照\n", $c); }
+
+// 还原权限，验证同样即时生效（不是「一律拒绝」那种假通过）
+$pdo3->prepare('UPDATE yikai_roles SET permissions = ? WHERE id = ?')
+     ->execute([json_encode(['edit_article', 'delete_article']), $ISOLATED['roleId']]);
+[$c, $b] = pmReq($jar2, 'GET', '/admin/article.php');
+$checked++;
+if (!pmDenied($c, $b)) { echo "  ✓ 放开权限后同样立即生效\n"; }
+else { $fail++; echo "  ✗ 放开权限后仍被拒——说明上一条是误判\n"; }
+
+// 2) 停用账号——同一会话应被踢回登录页
+$pdo3->prepare('UPDATE yikai_users SET status = 0 WHERE username = ?')->execute([$ISOLATED['user']]);
+[$c, $b] = pmReq($jar2, 'GET', '/admin/article.php');
+$checked++;
+$kicked = $c === 302 || $c === 401 || str_contains($b, 'name="password"') || str_contains($b, '账号已失效');
+if ($kicked) { echo "  ✓ 停用账号后当场踢出\n"; }
+else { $fail++; printf("  ✗ 停用账号后仍可用 (HTTP %d)——「禁用」等于没禁\n", $c); }
+
+$pdo3->prepare('UPDATE yikai_users SET status = 1 WHERE username = ?')->execute([$ISOLATED['user']]);
+unset($pdo3);
+@unlink($jar2);
+echo "\n";
+
 echo str_repeat('─', 72) . "\n";
 if ($fail > 0) {
     fwrite(STDERR, "❌ 权限矩阵：{$checked} 项中 {$fail} 项不符\n");
