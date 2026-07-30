@@ -96,7 +96,9 @@ final class StaticHtml
 
             // 内容详情（文章/案例/下载/招聘）
             $contents = db()->fetchAll(
-                "SELECT c.id, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
+                // c.type 必须选出来：contentUrl() 靠它区分文章（走 /news/article/…）
+                // 与其它内容。漏掉会静默生成 /{栏目}/{slug}.html 这种 404 地址。
+                "SELECT c.id, c.slug, c.type, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
                  FROM " . DB_PREFIX . "contents c
                  LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
                  WHERE c.status = 1 AND c.lang = ?
