@@ -751,6 +751,8 @@ return [
     'dashboard_version' => 'Current version',
     'dashboard_update_check' => 'Checking for updates…',
     'dashboard_update_uptodate' => 'Up to date',
+    'dashboard_update_checking' => 'Checking…',
+    'dashboard_update_recheck' => 'Click to re-check',
     'dashboard_update_available' => 'New version available',
     'dashboard_update_go' => 'View & upgrade',
     'dashboard_latest_contents' => 'Latest Content',

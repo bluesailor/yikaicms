@@ -818,6 +818,8 @@ return [
     'dashboard_version' => '当前版本',
     'dashboard_update_check' => '检查更新中…',
     'dashboard_update_uptodate' => '已是最新版本',
+    'dashboard_update_checking' => '检测中…',
+    'dashboard_update_recheck' => '点击重新检测',
     'dashboard_update_available' => '发现新版本',
     'dashboard_update_go' => '查看并升级',
     'dashboard_latest_contents' => '最新内容',
