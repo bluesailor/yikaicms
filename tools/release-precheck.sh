@@ -129,34 +129,37 @@ if php_exe="$(command -v php 2>/dev/null)" || php_exe="/mnt/d/phpstudy_pro/Exten
             db_pass=$(grep -oE "DB_PASS',\s*'[^']*'" "$cfg" | sed -E "s/.*'([^']*)'/\1/" | head -1)
             db_pre=$(grep -oE "DB_PREFIX',\s*'[^']+'" "$cfg" | sed -E "s/.*'([^']+)'/\1/" | head -1)
             if [ -n "${db_name:-}" ]; then
-                tmp="/mnt/d/phpstudy_pro/WWW/.precheck_dbcount.php"
+                # 临时脚本写在**当前项目目录**里、用相对路径调用。
+                # 原来写的是 /mnt/... 绝对路径：这台机器上的 php 是 Windows 的 php.exe，
+                # 它看不见 /mnt，报「Could not open input file」，于是这项检查长期静默跳过。
+                # 相对路径两种 PHP 都能跑（php.exe 按 cwd 解析）。
+                tmp=".precheck_dbcount.php"
                 cat > "$tmp" << PHPEOF
 <?php
+// 只报「install SQL 有、库里没有」——那才是真漂移。
+// 反方向（库里多出来的）一律无害：插件自建表、运行时建表、以及 v1.7.5 起
+// 有意保留不 DROP 的历史表，都会让库比 install SQL 多，按数量比必然误报。
 try {
     \$pdo = new PDO('mysql:host=${db_host};dbname=${db_name};charset=utf8mb4', '${db_user}', '${db_pass}');
-    \$rs = \$pdo->query("SHOW TABLES LIKE '${db_pre}%'");
-    echo count(\$rs->fetchAll(PDO::FETCH_COLUMN));
+    \$live = \$pdo->query("SHOW TABLES LIKE '${db_pre}%'")->fetchAll(PDO::FETCH_COLUMN);
+    preg_match_all('/CREATE TABLE[^\`]*\`([a-z0-9_]+)\`/i', file_get_contents('install/sql/mysql.sql'), \$m);
+    \$missing = array_diff(\$m[1], \$live);
+    \$extra   = array_diff(\$live, \$m[1]);
+    echo 'MISSING:' . implode(',', \$missing) . '|EXTRA:' . count(\$extra);
 } catch (Throwable \$e) { echo "ERROR: " . \$e->getMessage(); }
 PHPEOF
-                # WSL → Windows 路径转换（仅当 PHP 是 .exe 时需要）
-                if [[ "$php_exe" == *.exe ]]; then
-                    # /mnt/d/phpstudy_pro/Extensions/php/php8.2.9nts/php.exe → D:\phpstudy_pro\Extensions\php\php8.2.9nts\php.exe
-                    php_win=$(echo "$php_exe" | sed -E 's|^/mnt/([a-z])|\U\1:|' | tr '/' '\\')
-                    tmp_win=$(echo "$tmp" | sed -E 's|^/mnt/([a-z])|\U\1:|' | tr '/' '\\')
-                    actual=$(cmd.exe /c "$php_win $tmp_win" 2>/dev/null | tr -d '\r' | head -1)
-                else
-                    actual=$("$php_exe" "$tmp" 2>&1 | head -1)
-                fi
+                actual=$("$php_exe" "$tmp" 2>&1 | tr -d '\r' | head -1)
                 rm -f "$tmp"
-                if [[ "$actual" =~ ^[0-9]+$ ]]; then
-                    info "实际数据库 (${db_pre}*) 表数: $actual"
-                    if [ "$actual" = "$mysql_count" ]; then
-                        pass "数据库表数与 mysql.sql 一致 ($actual)"
+                if [[ "$actual" == MISSING:* ]]; then
+                    miss="${actual#MISSING:}"; miss="${miss%%|*}"
+                    extra="${actual##*EXTRA:}"
+                    if [ -z "$miss" ]; then
+                        pass "本地库已含 mysql.sql 的全部 ${mysql_count} 张表（另有 ${extra} 张插件/历史表，正常）"
                     else
-                        fail "数据库表数 ($actual) ≠ mysql.sql ($mysql_count)（schema 可能漂移）"
+                        fail "本地库缺少 mysql.sql 里的表：${miss}"
                     fi
                 else
-                    warn "数据库连接失败，跳过实际表数对比：$actual"
+                    warn "数据库连接失败，跳过实际表对比：$actual"
                 fi
             else
                 warn "config.php 解析 DB 配置失败，跳过实际表数对比"
@@ -280,7 +283,11 @@ if [ -f "$demo_cfg" ]; then
         warn "demo.yikaicms  DEMO_MODE 未启用（演示站应为 true）"
     fi
 else
-    warn "$demo_cfg 不存在（跳过演示站校验）"
+    # 本地 demo 副本已于 2026-07-30 移除：线上 demo.yikaicms.com 改走在线更新，
+    # 本地那份不再是部署源，长期停在旧版反而每次预检都报噪音。
+    # 演示站的版本改为发版后核对（见下方提示），不在预检里当问题。
+    info "本地 demo 副本已移除（线上走在线更新），跳过本地校验"
+    info "发版后记得把 demo.yikaicms.com 升到 v${VERSION} 并跑一次数据库升级"
 fi
 
 # ─────────────────────────────────────────────────────────────
