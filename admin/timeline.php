@@ -15,7 +15,7 @@ require_once ROOT_PATH . '/includes/HtmlCache.php';
 require_once ROOT_PATH . '/includes/blocks/timeline.php';
 
 checkLogin();
-if (!hasAnyContentPerm()) requirePermission('edit_article');
+requirePermission('edit_timeline');
 
 // 图标选项
 $iconOptions = [
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete') {
-        requirePermission('delete_page');
+        requirePermission('delete_timeline');
         $id = postInt('id');
         timelineModel()->deleteById($id);
         adminLog('timeline', 'delete', "删除时间线ID: $id");

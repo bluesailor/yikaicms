@@ -56,8 +56,7 @@ function recycleRequirePerm(string $type, string $action, int $id): void
         'product'  => hasPermission('delete_product'),
         'download' => hasPermission('delete_download'),
         'album'    => hasPermission('media'),
-        // 招聘目前没有独立权限键，暂随文章的删除档；待 edit_job/delete_job 落地后改这里
-        'job'      => hasPermission('delete_article'),
+        'job'      => hasPermission('delete_job'),
         default    => false,
     };
     if (!$ok) {

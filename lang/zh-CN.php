@@ -318,6 +318,8 @@ return [
     'perm_type_case' => '案例',
     'perm_type_download' => '下载',
     'perm_type_page' => '单页',
+    'perm_type_job' => '招聘',
+    'perm_type_timeline' => '发展历程',
     'perm_no_delete_hint' => '未勾选「删除」时，该内容只能编辑不能删除',
     'admin_setting_api' => '开放接口',
     'apiset_title' => '开放接口（公开内容 API）',

@@ -280,6 +280,8 @@ return [
     'perm_type_case' => 'Cases',
     'perm_type_download' => 'Downloads',
     'perm_type_page' => 'Pages',
+    'perm_type_job' => 'Jobs',
+    'perm_type_timeline' => 'Timeline',
     'perm_no_delete_hint' => 'Without "Delete", the role can edit but not delete that content',
     'admin_setting_api' => 'Open API',
     'apiset_title' => 'Open Content API',
