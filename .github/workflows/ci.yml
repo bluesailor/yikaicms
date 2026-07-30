@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main, master, develop]
+    # release/** 必须在列：稳定候选分支才是真正出版本的地方，
+    # 它上面的修复如果不跑 CI，等于发版前最后一段路没有护栏。
+    branches: [main, master, develop, 'release/**', 'hotfix/**']
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, master, develop, 'release/**']
 
 # Cancel in-progress runs from the same branch when a new commit lands.
 concurrency:
