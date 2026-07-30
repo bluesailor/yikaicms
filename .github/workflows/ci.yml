@@ -126,6 +126,12 @@ jobs:
             | xargs -0 -n50 php -l > /tmp/vendor-lint.log 2>&1 \
             || { grep -B1 -E 'Errors parsing|Parse error' /tmp/vendor-lint.log; exit 1; }
 
+      # 全新安装 ≡ 老站跑完全部迁移。install SQL 与 migrations 是两条独立演进的
+      # 路径，两个方向都漏过（v1.11.0 新装缺列 500 / cile.cn 升级缺 9 列），单向
+      # 检查抓不全。排在装机之前：本步不依赖 config.php，且失败时后面都没意义。
+      - name: Schema parity（install SQL ↔ migrations 双向对拍）
+        run: php tests/smoke/schema_parity.php
+
       - name: Prepare fresh SQLite install
         run: php tests/smoke/setup.php
 

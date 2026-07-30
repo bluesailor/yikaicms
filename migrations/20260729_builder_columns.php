@@ -42,9 +42,10 @@ return [
         $added = [];
         foreach ($__cols as $t => $defs) {
             foreach ($defs as $c => $def) {
-                if (_columnExists($t, $c)) continue;
-                db()->execute("ALTER TABLE `" . DB_PREFIX . "{$t}` ADD COLUMN `{$c}` {$def}");
-                $added[] = "$t.$c";
+                // 走 _addColumn 而非直接拼 SQL：定义里的 COMMENT 在 SQLite 上是语法错
+                if (_addColumn($t, $c, $def)) {
+                    $added[] = "$t.$c";
+                }
             }
         }
         return $added ? ('补列：' . implode(', ', $added)) : '无缺列';
