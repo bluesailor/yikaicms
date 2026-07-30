@@ -1749,4 +1749,11 @@ return [
     'revision_restore_fail'   => 'Restore failed',
     'revision_close'          => 'Close',
     'revision_by'             => 'By',
+
+    // ── 文章摘要字段的说明文案 ──
+    'sum_optional' => 'optional',
+    'sum_hint' => 'A one- or two-sentence blurb shown in listings. The article body belongs in the Content editor above — this is not the body. Left empty, an excerpt is taken from the content automatically.',
+    'sum_placeholder' => 'Summarise the article in a sentence or two; leave empty to auto-generate',
+    'sum_chars' => 'chars',
+    'sum_too_long' => 'That is long for a summary — should this text go in Content above?',
 ];
