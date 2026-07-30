@@ -14,6 +14,12 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 
+// 上传是独立能力，不随内容编辑权附带（见 canUploadMedia()）。
+// 此前这里只判登录，「投稿者」角色写着不能上传媒体却能直接 POST 本接口。
+if (!canUploadMedia()) {
+    error('没有上传权限', 403);
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     error('非法请求');
 }

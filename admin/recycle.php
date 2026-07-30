@@ -16,7 +16,12 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('content');
+// 回收站横跨全部内容类型，不该挂在单一权限上——原先写的 'content' 在权限
+// 细粒度化后已不是合法键，这页退化成了超管专属。改为：能进页面只要求「有任一
+// 内容权限或媒体权限」，真正的判定下沉到每个动作（见 recycleRequirePerm）。
+if (!hasAnyContentPerm() && !hasPermission('media')) {
+    requirePermission('edit_article');   // 必失败，走统一的「没有操作权限」提示
+}
 
 /** 支持的回收站类型 → 对应 model 与展示标签 */
 function recycleModels(): array
@@ -30,6 +35,36 @@ function recycleModels(): array
     ];
 }
 
+/**
+ * 回收站单个动作的权限判定。
+ *
+ * 还原与彻底删除都是写操作，且彻底删除不可逆，所以要的是 delete_ 档而不是 edit_ 档。
+ * content 桶里混着文章/案例/单页/下载四种类型（同一张 contents 表），按行的 type 判；
+ * 其余桶各自对应固定权限。清空整个回收站是批量不可逆操作，只给超管。
+ */
+function recycleRequirePerm(string $type, string $action, int $id): void
+{
+    if (hasPermission('*')) {
+        return;
+    }
+    if ($action === 'empty') {
+        error(__('perm_denied'), 403);   // 批量彻底删除只给超管
+    }
+
+    $ok = match ($type) {
+        'content'  => $id > 0 && canDeleteContentRow($id),
+        'product'  => hasPermission('delete_product'),
+        'download' => hasPermission('delete_download'),
+        'album'    => hasPermission('media'),
+        // 招聘目前没有独立权限键，暂随文章的删除档；待 edit_job/delete_job 落地后改这里
+        'job'      => hasPermission('delete_article'),
+        default    => false,
+    };
+    if (!$ok) {
+        error(__('perm_denied'), 403);
+    }
+}
+
 // ============================================================
 // AJAX（CSRF 已由 checkLogin() 统一校验）
 // ============================================================
@@ -41,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error(__('recycle_invalid_type'));
     }
     $model = $models[$type]['model'];
+    recycleRequirePerm($type, $action, postInt('id'));
 
     if ($action === 'restore') {
         $model->restore(postInt('id'));

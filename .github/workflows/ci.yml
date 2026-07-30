@@ -146,6 +146,11 @@ jobs:
       - name: Run admin CRUD smoke test
         run: php tests/smoke/admin_crud.php
 
+      # CRUD 冒烟用的是超管，hasPermission() 对超管恒真——越权与死权限问题
+      # 它结构性地看不见。这一步换非超管角色跑权限矩阵，专抓那一类。
+      - name: Permission matrix（角色 × 端点 × 方法）
+        run: php tests/smoke/permission_matrix.php
+
       - name: Dump error logs on failure（ErrorHandler 落盘的真实堆栈）
         if: failure()
         run: |

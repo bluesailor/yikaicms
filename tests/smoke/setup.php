@@ -7,6 +7,28 @@
 declare(strict_types=1);
 $root = dirname(__DIR__, 2);
 
+// 0) 保护本地开发配置：本脚本会把 config.php 整个换成 SQLite 冒烟配置。
+//    CI 上没有 config.php，直接写；本地已有非冒烟配置时先备份，跑完可 --restore 还原。
+//    （踩过：直接覆写把本地开发站的 MySQL 配置冲掉了）
+$cfgPath = $root . '/config/config.php';
+$bakPath = $root . '/config/config.php.smoke-backup';
+
+if (in_array('--restore', $argv, true)) {
+    if (is_file($bakPath)) {
+        copy($bakPath, $cfgPath);
+        unlink($bakPath);
+        echo "已还原 config.php（来自 config.php.smoke-backup）\n";
+    } else {
+        echo "无备份可还原\n";
+    }
+    exit(0);
+}
+
+if (is_file($cfgPath) && !str_contains((string) file_get_contents($cfgPath), "'sqlite'")) {
+    copy($cfgPath, $bakPath);
+    echo "已备份原 config.php → config.php.smoke-backup（跑完用 php tests/smoke/setup.php --restore 还原）\n";
+}
+
 // 1) 生成 sqlite 版 config.php（基于 example，改数据库驱动）
 $example = file_get_contents($root . '/config/config.php.example');
 $cfg = preg_replace(

@@ -611,6 +611,7 @@ return [
     'admin_add_case' => '添加案例',
     'admin_manage_channel' => '管理栏目',
     'admin_add_article' => '添加文章',
+    'perm_denied' => '没有操作权限',
     'admin_no_data' => '暂无数据',
 
     // 主题管理

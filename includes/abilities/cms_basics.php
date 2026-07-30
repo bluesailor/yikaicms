@@ -28,7 +28,8 @@ register_ability('cms_search_content', [
         ],
         'required' => ['keyword'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    // 只读，但会吐出内容标题/摘要：要求至少持有一种内容权限
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $kw    = trim((string)($input['keyword'] ?? ''));
         $limit = max(1, min(50, (int)($input['limit'] ?? 10)));
@@ -56,7 +57,7 @@ register_ability('cms_list_drafts', [
             'limit' => ['type' => 'integer', 'description' => '最大返回数，默认 20'],
         ],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $limit = max(1, min(100, (int)($input['limit'] ?? 20)));
         $sql = 'SELECT id, title, channel_id, created_at FROM ' . DB_PREFIX . 'contents WHERE status = 0 ORDER BY id DESC LIMIT ?';
@@ -81,7 +82,7 @@ register_ability('cms_get_content', [
         'properties' => ['id' => ['type' => 'integer']],
         'required'   => ['id'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $id   = (int)$input['id'];
         $row  = contentModel()->getDetail($id);
@@ -108,11 +109,13 @@ register_ability('cms_publish_content', [
         'properties' => ['id' => ['type' => 'integer']],
         'required'   => ['id'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    // 粗闸；真正的类型判定在 execute 里按行做（见 assertCanEditContentRow）
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
         $row = db()->fetchOne('SELECT id, title, status FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
         if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);   // 文章/案例/单页/下载同表，必须按行的 type 判定
         if ((int)$row['status'] === 1) {
             return ['id' => $id, 'title' => $row['title'], 'already_published' => true];
         }
@@ -143,7 +146,8 @@ register_ability('cms_create_article_draft', [
         ],
         'required' => ['title', 'channel_id', 'content'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    // 落库就是一篇文章，直接要求 edit_article
+    'permission'   => fn() => hasPermission('edit_article'),
     'execute'      => function (array $input): array {
         $now = time();
         $row = [
@@ -179,11 +183,13 @@ register_ability('cms_generate_seo_summary', [
         'properties' => ['id' => ['type' => 'integer']],
         'required'   => ['id'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    // 会写回 contents.summary；类型判定在 execute 里
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
         $row = contentModel()->getDetail($id);
         if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);
 
         $plain = trim(strip_tags((string)$row['content']));
         if ($plain === '') throw new \RuntimeException('Empty content');
@@ -216,12 +222,14 @@ register_ability('cms_auto_tag_content', [
         ],
         'required' => ['id'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    // 会写回 contents.tags；类型判定在 execute 里
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $id    = (int)$input['id'];
         $count = max(3, min(8, (int)($input['count'] ?? 5)));
         $row = contentModel()->getDetail($id);
         if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);
 
         $base = trim($row['title'] . "\n" . ($row['summary'] ?? ''));
         if ($base === '') $base = mb_substr(strip_tags((string)$row['content']), 0, 500);

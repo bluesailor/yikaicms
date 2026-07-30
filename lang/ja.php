@@ -616,6 +616,7 @@ return [
     'admin_add_case' => '事例追加',
     'admin_manage_channel' => 'カテゴリ管理',
     'admin_add_article' => '記事追加',
+    'perm_denied' => '操作権限がありません',
     'admin_no_data' => 'データがありません',
 
     'theme_current' => '現在のテーマ',

@@ -26,6 +26,11 @@ if (!in_array($type, ['article', 'page'], true) || $targetId <= 0) {
     error('参数错误');
 }
 
+// 按类型要求对应的编辑权限。此前本端点只有 checkLogin()：虽然有版本归属校验
+// （版本必须属于该对象），但没有能力校验——只持有 edit_article 的投稿者可以
+// ?type=page&action=restore，把任意单页回滚到旧版本，是实打实的写操作。
+requirePermission('edit_' . $type);
+
 $model = contentRevisionModel();
 
 if ($action === 'list') {

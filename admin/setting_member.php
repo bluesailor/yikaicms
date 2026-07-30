@@ -13,7 +13,9 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('setting');
+// 'setting' 键在权限细粒度化时被明确丢弃（结构项归超管），写在这里等于死锁。
+// 会员设置属于站点结构配置，与其他 setting_*.php 一致归超管。
+requirePermission('*');
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
