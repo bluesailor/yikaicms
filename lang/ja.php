@@ -803,6 +803,8 @@ return [
     'dashboard_version' => '現在のバージョン',
     'dashboard_update_check' => '更新を確認中…',
     'dashboard_update_uptodate' => '最新版です',
+    'dashboard_update_checking' => '確認中…',
+    'dashboard_update_recheck' => 'クリックで再確認',
     'dashboard_update_available' => '新しいバージョンがあります',
     'dashboard_update_go' => '確認して更新',
     'dashboard_latest_contents' => '最新コンテンツ',
