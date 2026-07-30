@@ -158,10 +158,11 @@ $add('插件管理', 'GET', '/admin/plugin.php',   ['contributor' => 'deny', 'ed
 $add('在线升级', 'GET', '/admin/upgrade_online.php', ['contributor' => 'deny', 'editor' => 'deny']);
 $add('授权管理', 'GET', '/admin/license.php',  ['contributor' => 'deny', 'editor' => 'deny']);
 
-// —— 上传：投稿者角色描述写明「不能上传媒体」 ——
-$add('媒体库页面',      'GET',  '/admin/media.php',                 ['contributor' => 'deny', 'editor' => 'allow']);
-$add('媒体库 API·列表', 'GET',  '/admin/media_api.php?action=list',  ['contributor' => 'deny', 'editor' => 'allow']);
-$add('上传接口',        'POST', '/admin/upload.php',                ['contributor' => 'deny', 'editor' => 'allow']);
+// —— 上传：能编辑就该能传图（写文章插不了图不成其为能写文章）。
+//    但媒体库管理页仍要 media——上传选图是一回事，浏览删除全站文件是另一回事。
+$add('媒体库管理页（要 media）', 'GET',  '/admin/media.php',                ['contributor' => 'deny',  'editor' => 'allow']);
+$add('媒体选择器·列表',        'GET',  '/admin/media_api.php?action=list', ['contributor' => 'allow', 'editor' => 'allow']);
+$add('上传接口',               'POST', '/admin/upload.php',               ['contributor' => 'allow', 'editor' => 'allow']);
 
 // —— 版本历史：按类型判定，投稿者不得读/恢复单页版本 ——
 $add('版本·读文章', 'GET', '/admin/revision.php?action=list&type=article&id=1',
