@@ -165,8 +165,10 @@ EXCLUDES=(
     "plugins/stats"
     "plugins/product-carousel"
 
-    # 主题：核心内置 default / business / aurora 三套，
-    #   minimal / trade 等行业主题走模板市场按需安装（update.yikaicms.com/api/themes/）。源码保留在仓库供开发与市场打包。
+    # 主题：随包只发英文命名的 default / business / aurora 三套。
+    #   minimal —— 已上架模板市场（update.yikaicms.com/api/themes/），按需安装。
+    #   trade（外贸通）—— **有意既不随包、也暂不上架**（2026-07-30 决定），
+    #     只保留源码在仓库。看到它「哪儿都装不到」不是 bug，别去补上架。
     "themes/minimal"
     "themes/trade"
 
