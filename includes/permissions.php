@@ -94,6 +94,97 @@ function requireContentEditPerm(?string $type): void
 }
 
 /**
+ * 能否上传文件 / 浏览媒体库。
+ *
+ * 上传是一项**独立能力**，不随内容编辑权自动附带——预置的「投稿者」角色
+ * （只有 edit_article）自我描述就是「仅可撰写文章，不能删除或上传媒体」，
+ * 而此前 upload.php / media_api.php 只判登录，这句描述一直是空话。
+ *
+ * 不能简单收成「只认 media」：upload.php 同时被 banner.php（banner 权限）与
+ * link.php（link 权限）调用，一刀切会让这两类角色连图都传不了。
+ * 因此三者任一即可；产品/文章编辑者若需要上传，给他勾上 media。
+ */
+function canUploadMedia(): bool
+{
+    return hasPermission('media') || hasPermission('banner') || hasPermission('link');
+}
+
+/**
+ * 能否编辑 contents 表里的某一行——按该行自身的 type 判定。
+ *
+ * 文章 / 案例 / 单页 / 下载 都存在同一张 contents 表里，只靠「登录了」或
+ * 「有任一内容权限」是拦不住跨类型改写的：只有 edit_article 的投稿者
+ * 照样能动单页。凡是按 id 写 contents 的地方都要过这里。
+ */
+function canEditContentRow(int $id): bool
+{
+    if (hasPermission('*')) {
+        return true;
+    }
+    $row = db()->fetchOne('SELECT `type` FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
+    if (!$row) {
+        return false;
+    }
+    $type = (string) $row['type'];
+    return in_array($type, contentPermTypes(), true)
+        ? hasPermission('edit_' . $type)
+        : hasAnyContentPerm();   // 自定义模型：放宽到任一内容权限
+}
+
+/** 能否删除 contents 表里的某一行——同 canEditContentRow，但要的是 delete_ 档。 */
+function canDeleteContentRow(int $id): bool
+{
+    if (hasPermission('*')) {
+        return true;
+    }
+    $row = db()->fetchOne('SELECT `type` FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
+    if (!$row) {
+        return false;
+    }
+    $type = (string) $row['type'];
+    if (!in_array($type, contentPermTypes(), true)) {
+        return false;   // 自定义模型的删除不放宽：删除是不可逆操作，宁可要超管
+    }
+    return hasPermission('delete_' . $type);
+}
+
+/**
+ * canEditContentRow 的断言版，失败抛异常。
+ *
+ * 与 requirePermission() 的区别：那个会 die 一段 HTML 或直接吐 JSON 并退出，
+ * 在 Abilities::execute() 这类「结果要被包成 JSON 返回给调用方」的场景里不能用。
+ *
+ * @throws RuntimeException
+ */
+function assertCanEditContentRow(int $id): void
+{
+    if (!canEditContentRow($id)) {
+        throw new RuntimeException('Permission denied: 无权编辑该内容（#' . $id . '）');
+    }
+}
+
+/**
+ * 设置键是否属于「不可通过通用接口读写」的敏感项。
+ *
+ * 用模式匹配而不是逐个列举——黑名单只挡住了 ai_api_key / smtp_pass / license_key 三个，
+ * 而库里实际还有 cron_token、translate_api_key、seo_indexnow_key 等；插件将来还会写入
+ * 新的密钥项，列举法必然漏。宁可误伤 site_keywords 这类无害键（它有专门的设置页可改），
+ * 也不能把 cron_token 漏出去。
+ */
+function isSensitiveSettingKey(string $key): bool
+{
+    $key = strtolower(trim($key));
+    if ($key === '' || str_starts_with($key, '_')) {
+        return true;
+    }
+    // 明确豁免：语义上撞词但确实无害，且是 AI 助手的常用问答对象
+    if (in_array($key, ['site_keywords', 'site_keywords_en', 'site_keywords_ja'], true)) {
+        return false;
+    }
+    return preg_match('/(^|_)(key|secret|token|pass|password|credential|appid|appkey|access_id)($|_)/', $key) === 1;
+}
+
+/**
  * 分组能力目录（供角色勾选界面）：
  *   [ 组键 => ['label'=>组名, 'caps'=>[权限键=>标签, ...]], ... ]
  */

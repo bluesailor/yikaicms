@@ -561,6 +561,7 @@ return [
     'admin_add_case' => 'Add Case',
     'admin_manage_channel' => 'Manage Columns',
     'admin_add_article' => 'Add Article',
+    'perm_denied' => 'Permission denied',
     'admin_no_data' => 'No data',
     'theme_current' => 'Current Theme',
     'theme_switched' => 'Theme switched to',

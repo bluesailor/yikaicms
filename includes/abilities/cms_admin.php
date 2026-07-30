@@ -81,8 +81,9 @@ register_ability('cms_get_setting', [
     'permission'   => fn() => !empty($_SESSION['admin_id']),
     'execute'      => function (array $input): array {
         $key = trim((string)$input['key']);
-        // 敏感项：禁止读取
-        if (in_array($key, ['ai_api_key', 'smtp_pass', 'license_key'], true) || str_starts_with($key, '_')) {
+        // 敏感项禁止读取。改用模式匹配：原来的三项黑名单漏掉了 cron_token /
+        // translate_api_key / seo_indexnow_key 等，任何登录账号都能从 AI 气泡里读出来。
+        if (isSensitiveSettingKey($key)) {
             throw new \RuntimeException("Setting key '{$key}' is restricted");
         }
         $value = config($key, null);
@@ -97,8 +98,10 @@ register_ability('cms_get_setting', [
 if (!function_exists('cms_setting_key_guard')) {
     function cms_setting_key_guard(string $key): void
     {
-        $blocked = ['ai_api_key', 'smtp_pass', 'license_key', 'encrypt_key'];
-        if (in_array($key, $blocked, true) || str_starts_with($key, '_')) {
+        // 与读取端共用同一套敏感键判定，避免两处各维护一份黑名单而漂移。
+        // 下面的前缀白名单已经很紧，但 mail_ 这类前缀将来可能被塞进 mail_api_key，
+        // 先过一遍模式判定更稳。
+        if (isSensitiveSettingKey($key) || $key === 'encrypt_key') {
             throw new \RuntimeException("Setting key '{$key}' is restricted");
         }
         $allowedPrefixes = ['site_', 'admin_', 'contact_', 'social_', 'footer_', 'mail_', 'banner_', 'primary_', 'secondary_', 'show_', 'product_', 'download_', 'allow_', 'html_cache_', 'cache_'];
@@ -202,11 +205,13 @@ register_ability('cms_set_content_flags', [
         ],
         'required' => ['id'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    // 写 contents 的标志位；类型判定在 execute 里按行做
+    'permission'   => fn() => hasAnyContentPerm(),
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
         $row = db()->fetchOne('SELECT id, title FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
         if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);
 
         $sets = [];
         $params = [];

@@ -99,3 +99,6 @@ storage/backups/
 
 # schema 对拍的临时库（tests/smoke/schema_parity.php 跑完自删，异常退出时可能残留）
 storage/parity-*.sqlite
+
+# 冒烟测试对本地 config.php 的备份（tests/smoke/setup.php）
+/config/config.php.smoke-backup

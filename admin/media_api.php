@@ -20,6 +20,13 @@ checkLogin();
 
 header('Content-Type: application/json; charset=utf-8');
 
+// list 与 upload 都要闸：媒体库列表会列出全站已上传文件，
+// 与 media.php 页面同级敏感，不能只因为登录了就给看。
+if (!canUploadMedia()) {
+    echo json_encode(['code' => 403, 'msg' => '没有媒体库权限'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $action = $_GET['action'] ?? 'list';
 
 // 列表查询

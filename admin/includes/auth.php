@@ -348,8 +348,8 @@ function requirePermission(string $permission): void
 {
     if (!hasPermission($permission)) {
         if (isAjax()) {
-            error('没有操作权限', 403);
+            error(__('perm_denied'), 403);
         }
-        die('<div style="padding:50px;text-align:center;"><h2>没有操作权限</h2><a href="/admin/">返回首页</a></div>');
+        die('<div style="padding:50px;text-align:center;"><h2>' . e(__('perm_denied')) . '</h2><a href="/admin/">返回首页</a></div>');
     }
 }
