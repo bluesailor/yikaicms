@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry
+require_once ROOT_PATH . '/includes/ThemeValidator.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -91,6 +92,24 @@ function installThemeFromZip(string $zipPath): array
         return [false, __('theme_err_badjson'), ''];
     }
 
+    // 元数据完整校验（规范见 yikaicms-docs/theme-schema.md）。
+    // 此前只查 name：要求 CMS 1.20 的主题也照装不误，缺 layouts/header.php 的包
+    // 装完切过去才发现整站白屏。这里在**解压之前**判掉。
+    $vr = ThemeValidator::validateMeta($meta, $themeSlug);
+
+    // 必需文件在 zip 条目里查（此时还没落盘，validateDir 用不上）
+    foreach (ThemeValidator::REQUIRED_FILES as $need) {
+        if ($zip->locateName($themeSlug . '/' . $need) === false) {
+            $vr['errors'][] = "缺少 {$need}（主题无法渲染）";
+        }
+    }
+    if ($vr['errors'] !== []) {
+        $zip->close();
+        return [false, __('theme_err_invalid') . '：' . implode('；', $vr['errors']), ''];
+    }
+    // 警告不拦安装，攒起来随成功消息一并回显，让作者看得到该补什么
+    $GLOBALS['__themeInstallWarnings'] = $vr['warnings'];
+
     // zip-slip 防护：任一条目会逃出目录则拒绝，绝不 extractTo
     $unsafe = zipUnsafeEntry($zip);
     if ($unsafe !== null) {
@@ -108,7 +127,13 @@ function installThemeFromZip(string $zipPath): array
     $zip->extractTo($themesDir);
     $zip->close();
 
-    return [true, __('theme_installed_ok') . '：' . ($meta['name'] ?? $themeSlug), $themeSlug];
+    $msg = __('theme_installed_ok') . '：' . ($meta['name'] ?? $themeSlug);
+    $warn = (array) ($GLOBALS['__themeInstallWarnings'] ?? []);
+    if ($warn !== []) {
+        $msg .= '（' . count($warn) . ' 项提示：' . implode('；', array_slice($warn, 0, 3))
+            . (count($warn) > 3 ? '…' : '') . '）';
+    }
+    return [true, $msg, $themeSlug];
 }
 
 // ============================================================
@@ -213,9 +238,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
         $slug = $_POST['slug'] ?? '';
         $themeDir = ROOT_PATH . '/themes/' . basename($slug);
         if ($slug && is_dir($themeDir) && file_exists($themeDir . '/theme.json')) {
-            settingModel()->set('current_theme', $slug);
-            $message = __('theme_switched') . '「' . e($slug) . '」';
-            $messageType = 'success';
+            // 切过去之前先校验：缺 layouts/header.php 之类的主题一旦启用就是整站白屏，
+            // 而那时候后台也进不去了（前台后台共用 header 的站尤其致命）。
+            $vr = ThemeValidator::validateDir($themeDir, basename($slug));
+            if ($vr['errors'] !== []) {
+                $message = __('theme_err_invalid') . '：' . implode('；', $vr['errors']);
+                $messageType = 'error';
+            } else {
+                settingModel()->set('current_theme', $slug);
+                $message = __('theme_switched') . '「' . e($slug) . '」';
+                $messageType = 'success';
+            }
         } else {
             $message = __('theme_not_found');
             $messageType = 'error';
@@ -227,6 +260,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
 }
 
 $themes = getThemes();
+// 每套主题附上校验结果与区块覆盖，供卡片展示。
+// 覆盖率是**扫文件系统**得出的（theme.json 的 supports 声明五套里三套与实际不符，已废弃）。
+foreach ($themes as &$__t) {
+    $__slug = (string) ($__t['slug'] ?? '');
+    $__vr = ThemeValidator::validateDir(ROOT_PATH . '/themes/' . $__slug, $__slug);
+    $__t['_errors']   = $__vr['errors'];
+    $__t['_warnings'] = $__vr['warnings'];
+    $__t['_coverage'] = themeBlockCoverage($__slug);
+}
+unset($__t);
 $currentTheme = currentTheme();
 
 // 本地已装版本表（市场页签据此显示 已安装/可升级）
@@ -319,7 +362,31 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if (!empty($theme['author'])): ?>
                     <span><?php echo e($theme['author']); ?></span>
                     <?php endif; ?>
+                    <?php if (!empty($theme['category'])): ?>
+                    <span class="px-1.5 py-0.5 bg-gray-100 rounded"><?php echo e($theme['category']); ?></span>
+                    <?php endif; ?>
                 </div>
+
+                <?php
+                // 校验状态与区块覆盖：让站长在**切过去之前**就知道这套主题能不能用、
+                // 哪些区块会退回默认样式，而不是切完才发现。
+                $__fb = (array) ($theme['_coverage']['fallback'] ?? []);
+                ?>
+                <?php if (!empty($theme['_errors'])): ?>
+                <div class="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                    <?php echo __('theme_check_failed'); ?>：<?php echo e(implode('；', $theme['_errors'])); ?>
+                </div>
+                <?php elseif (!empty($theme['_warnings'])): ?>
+                <div class="mt-2 text-xs text-amber-600" title="<?php echo e(implode('&#10;', $theme['_warnings'])); ?>">
+                    <i class="ti ti-alert-triangle"></i>
+                    <?php echo count($theme['_warnings']); ?> <?php echo __('theme_check_warnings'); ?>
+                </div>
+                <?php endif; ?>
+                <?php if ($__fb): ?>
+                <div class="mt-1.5 text-xs text-gray-400" title="<?php echo e(implode('、', $__fb)); ?>">
+                    <?php echo count($__fb); ?> <?php echo __('theme_blocks_fallback'); ?>
+                </div>
+                <?php endif; ?>
 
                 <div class="mt-4 flex gap-2">
                     <?php if (!$isActive): ?>

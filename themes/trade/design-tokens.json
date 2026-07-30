@@ -1,0 +1,8 @@
+{
+  "_comment": "设计令牌。结构待第二批正式定义，当前仅承载原 theme.json 里的 colors。",
+  "schema_version": 1,
+  "colors": {
+    "primary": "#0EA5A4",
+    "secondary": "#0F766E"
+  }
+}
