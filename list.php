@@ -252,6 +252,11 @@ if ($showProductTopNav && !empty($categoryTree)) {
 // 获取导航
 $navChannels = getNavChannels();
 
+// 列表页标题扩展点：站点/插件可据栏目与当前筛选条件改写标题
+// （如按品牌筛选时把品牌名带进标题）。放在渲染头部之前的最后一刻，
+// 此时 $channel 与各筛选参数都已就位。挂在 overrides/bootstrap.php 里即可。
+$pageTitle = (string) apply_filters('list_page_title', $pageTitle, $channel, $_GET);
+
 // 引入头部
 require_once theme_path('layouts/header.php');
 ?>
