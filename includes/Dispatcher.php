@@ -71,8 +71,13 @@ final class Dispatcher
     /**
      * 纯匹配：路径（不带开头 / 与查询串）→ ['file'=>目标, 'params'=>[...], 'lang'=>?string]。
      * 返回 null = 未命中；'file' 为 '' 且 lang 非空 = 语言前缀首页（如 /ja/）。
+     *
+     * $routes 为 null 时用内置表。run() 会传入经 dispatch_routes 过滤后的表；
+     * 保留参数化是为了让本函数维持纯函数（不碰 CMS 运行时），单元测试可直接调。
+     *
+     * @param array<int, array{0:string, 1:string, 2:array<int,string>, 3:array<string,string>}>|null $routes
      */
-    public static function match(string $path): ?array
+    public static function match(string $path, ?array $routes = null): ?array
     {
         $path = ltrim($path, '/');
         $lang = null;
@@ -89,7 +94,7 @@ final class Dispatcher
             return $lang !== null ? ['file' => '', 'params' => [], 'lang' => $lang] : null;
         }
 
-        foreach (self::ROUTES as [$re, $file, $names, $fixed]) {
+        foreach (($routes ?? self::ROUTES) as [$re, $file, $names, $fixed]) {
             if (preg_match($re, $path, $m)) {
                 $params = $fixed;
                 foreach ($names as $i => $name) {
@@ -120,7 +125,23 @@ final class Dispatcher
             }
         }
 
-        $hit = self::match($path);
+        // 站点/插件可在此增删路由——旧站迁移过来的历史 URL（如 ShopEx 的
+        // /cat-73.html、/brand-5.html）在只配了 catch-all 伪静态的主机上没有
+        // 服务器层 rewrite 可用，只能由这里兜住。写法同内置表：
+        // [正则, 目标入口文件, 捕获组参数名, 固定参数]。
+        //
+        // ⚠ 自定义规则必须**放在返回数组的前面**：内置表末尾是
+        //   `([a-z0-9_-]+)\.html → page.php` 这类通配规则，会吃掉排在它后面的一切，
+        //   追加到末尾的规则永远匹配不到。即
+        //       add_filter('dispatch_routes', fn($r) => array_merge($mine, $r));
+        //   代价是自定义规则优先级最高，正则务必写窄（锚定 ^…$、限定前缀），
+        //   否则会误伤核心路由。
+        //
+        // 挂在 overrides/bootstrap.php 里即可，升级不冲突。见 overrides/README.md。
+        /** @var array<int, array{0:string, 1:string, 2:array<int,string>, 3:array<string,string>}> $routes */
+        $routes = apply_filters('dispatch_routes', self::ROUTES);
+
+        $hit = self::match($path, $routes);
         if ($hit === null) {
             render404();
         }

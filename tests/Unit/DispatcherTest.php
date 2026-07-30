@@ -77,6 +77,29 @@ final class DispatcherTest extends TestCase
         $this->assertNull(Dispatcher::match('/News.html'));               // 大写不匹配（与 htaccess 同义）
     }
 
+    /**
+     * 站点自定义路由：dispatch_routes 过滤器前置的规则必须能命中。
+     * 必须前置——内置表末尾的 `([a-z0-9_-]+).html → page.php` 会吃掉排在其后的一切。
+     * 这是旧站历史 URL（ShopEx 的 /cat-73.html 等）在 catch-all 主机上的唯一出路。
+     */
+    public function testCustomRoutesMustBePrepended(): void
+    {
+        $builtin = (new ReflectionClass(Dispatcher::class))->getConstant('ROUTES');
+        $mine    = [['#^cat-(\d+)\.html$#', 'list.php', ['cat_id'], []]];
+
+        $hit = Dispatcher::match('/cat-73.html', array_merge($mine, $builtin));
+        $this->assertNotNull($hit);
+        $this->assertSame('list.php', $hit['file']);
+        $this->assertSame(['cat_id' => '73'], $hit['params']);
+
+        // 内置规则不受影响
+        $this->assertSame('contact.php', Dispatcher::match('/contact.html', array_merge($mine, $builtin))['file']);
+        // 不传自定义表时默认行为不变：被通用单页规则接走
+        $this->assertSame('page.php', Dispatcher::match('/cat-73.html')['file']);
+        // 反例固化：追加到末尾无效（通用规则先命中），文档里的「必须前置」不是随口说的
+        $this->assertSame('page.php', Dispatcher::match('/cat-73.html', array_merge($builtin, $mine))['file']);
+    }
+
     public function testSpecificBeatsGeneric(): void
     {
         // contact.html 必须命中专用文件而非通用单页规则

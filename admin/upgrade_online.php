@@ -30,7 +30,40 @@ if (!function_exists('license_pubkey') && is_file(ROOT_PATH . '/includes/License
 }
 
 const UO_UPDATE_SERVER = 'https://update.yikaicms.com';
-const UO_EXCLUDES = ['config/config.php', 'config/installed.lock', 'installed.lock', 'storage', 'uploads', 'install'];
+
+/**
+ * 升级时永不覆盖、也永不删除的路径（相对站点根）。
+ *
+ * 后三项是站点覆盖层：各站的模板/配置/文案/逻辑定制都放在这里，是「升级安全的
+ * per-site 定制」的立身之本。它们本就被 gitignore、不会进发行包，所以此前不写进
+ * 排除表也没出过事——但那是「碰巧安全」：哪天包里出现同名文件，或增量包的删除
+ * 清单扫到这些路径，客户的定制就会被静默抹掉。写进契约，不靠巧合。
+ */
+const UO_EXCLUDES = [
+    'config/config.php', 'config/installed.lock', 'installed.lock',
+    'storage', 'uploads', 'install',
+    'overrides', 'config/overrides.php', 'lang/overrides',
+];
+
+/**
+ * 相对路径是否落在受保护路径内（自身或其任一层父目录命中 UO_EXCLUDES）。
+ *
+ * 不能只比完整路径 + 首段：那样 `lang/overrides/zh-CN.php` 会漏网——完整路径不等于
+ * `lang/overrides`，首段是 `lang` 也不在表里，于是客户改的文案会被增量包的删除清单抹掉。
+ */
+function uo_is_protected(string $rel): bool
+{
+    $rel = trim(str_replace('\\', '/', $rel), '/');
+    if ($rel === '') return false;
+
+    $parts = explode('/', $rel);
+    for ($i = count($parts); $i > 0; $i--) {
+        if (in_array(implode('/', array_slice($parts, 0, $i)), UO_EXCLUDES, true)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 function uo_dir(): string { return ROOT_PATH . '/storage/upgrade'; }
 
@@ -96,7 +129,7 @@ function uo_copy_tree(string $src, string $dst, string $baseRel = ''): array
     $copied = 0; $errors = [];
     foreach (array_diff(scandir($src) ?: [], ['.', '..']) as $it) {
         $rel = $baseRel === '' ? $it : "$baseRel/$it";
-        if (in_array($rel, UO_EXCLUDES, true)) continue;
+        if (uo_is_protected($rel)) continue;
         $s = "$src/$it"; $d = "$dst/$it";
         if (is_dir($s)) {
             if (!is_dir($d) && !@mkdir($d, 0755, true) && !is_dir($d)) { $errors[] = "建目录失败: $rel"; continue; }
@@ -126,8 +159,7 @@ function uo_zip_entries(ZipArchive $zip, string $prefix): array
         $rel = $prefix === '' ? $name : substr($name, $plen);
         if ($rel === '' || substr($rel, -1) === '/') continue;              // 目录条目
         if ($rel[0] === '/' || strpos($rel, '..') !== false) continue;      // 越界防护
-        $top = explode('/', $rel)[0];
-        if (in_array($rel, UO_EXCLUDES, true) || in_array($top, UO_EXCLUDES, true)) continue;
+        if (uo_is_protected($rel)) continue;
         $out[] = ['name' => $name, 'rel' => $rel];
     }
     return $out;
@@ -334,13 +366,12 @@ if ($action !== '') {
         $state = json_decode((string) @file_get_contents($sf), true);
         if (!is_array($state)) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
 
-        // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护根，仅删普通文件
+        // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护路径，仅删普通文件
         $deletedCount = 0;
         foreach ((array) ($state['deleted'] ?? []) as $rel) {
             $rel = (string) $rel;
             if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
-            $top = explode('/', $rel)[0];
-            if (in_array($rel, UO_EXCLUDES, true) || in_array($top, UO_EXCLUDES, true)) continue;
+            if (uo_is_protected($rel)) continue;
             if (is_file(ROOT_PATH . '/' . $rel) && @unlink(ROOT_PATH . '/' . $rel)) $deletedCount++;
         }
         $patch = uo_patch_config_version();
