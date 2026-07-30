@@ -48,6 +48,10 @@ function checkLogin(): void
         redirect('/admin/login.php');
     }
 
+    // 每次请求重新解析身份：会话里的角色与权限是登录那一刻的快照，
+    // 不刷新的话「停用某人」「收紧某个角色」对已登录的人都不生效。
+    refreshAdminIdentity();
+
     // 自动校验 CSRF：所有 POST 请求必须携带 _token
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
@@ -60,6 +64,59 @@ function checkLogin(): void
                 error('演示模式下不允许修改操作');
             }
         }
+    }
+}
+
+/**
+ * 按当前请求重新解析登录者的身份（账号状态、所属角色、角色权限）。
+ *
+ * 为什么必须每请求做：`$_SESSION['admin_permissions']` 原本只在登录时写一次，
+ * 之后再不更新，于是
+ *   - 改角色权限 → 已登录的人沿用旧权限，**收紧权限不生效**
+ *   - 把用户改到别的角色 → 同样不生效
+ *   - **账号被禁用（status=0）或删除 → 现存会话照常可用**，「停用某人」停不掉
+ * 最后一条比权限那条严重：它意味着离职、误操作、被盗号之后，
+ * 管理员在后台点「禁用」其实什么也没发生，只能等对方自己退出。
+ *
+ * 代价是每个后台请求两次主键查询（用户 + 角色），按请求缓存一次。
+ * 后台页面本就有几十次查询，这点开销换「权限即时生效」是值得的。
+ */
+function refreshAdminIdentity(): void
+{
+    static $done = false;
+    if ($done) {
+        return;   // 有的页面会调两次 checkLogin()
+    }
+    $done = true;
+
+    $uid = (int) ($_SESSION['admin_id'] ?? 0);
+    if ($uid <= 0) {
+        return;
+    }
+
+    $user = userModel()->find($uid);
+    if (!$user || (int) ($user['status'] ?? 0) !== 1) {
+        // 账号已被禁用或删除：当场失效，不等对方自己退出
+        doLogout();   // 内含清除静态绕过标记
+        if (isAjax()) {
+            error('账号已失效，请重新登录', 401);
+        }
+        redirect('/admin/login.php');
+    }
+
+    $roleId = (int) ($user['role_id'] ?? 0);
+    $role   = $roleId > 0 ? roleModel()->find($roleId) : null;
+    // 角色被停用或删除 → 权限清空（不踢出，让人能看到「没有操作权限」而不是莫名被登出）
+    $perms  = ($role && (int) ($role['status'] ?? 1) === 1)
+        ? (json_decode((string) ($role['permissions'] ?? '[]'), true) ?: [])
+        : [];
+
+    $_SESSION['admin_role_id']     = $roleId;
+    $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
+
+    // 升级前就已登录的会话不会有这个 cookie，在此补种，免得管理员要重新登录才生效
+    if (empty($_COOKIE[ADMIN_STATIC_BYPASS_COOKIE])) {
+        setAdminStaticBypassCookie();
     }
 }
 
@@ -125,6 +182,50 @@ function doLogin(string $username, string $password): array
 /**
  * 密码（及两步验证）全部通过后建立后台会话。
  */
+/**
+ * 静态直出的「管理员绕过」标记 cookie。
+ *
+ * 为什么需要：`html/` 下已生成的静态文件由 Web 服务器在 PHP 之前直接返回，
+ * 那一层看不到会话，于是已登录管理员看到的也是静态快照——前台管理条与就地编辑
+ * 全部消失，且改了内容也不生效。HtmlCache 那层有 isCacheable() 跳过管理员，
+ * 静态直出这层此前没有对应机制。
+ *
+ * 为什么不直接判会话 cookie：config.php 对**每个访客**都 session_start()，
+ * 匿名访客同样带 IKAICMS_SESSION，拿它当条件会让静态直出对所有人失效，等于白做。
+ *
+ * 安全性：本 cookie 只是一个提示，作用仅仅是「让这个请求走动态渲染」，
+ * 不携带任何身份信息、也不授予任何权限——伪造它最多让自己多跑一次 PHP。
+ */
+const ADMIN_STATIC_BYPASS_COOKIE = 'yk_admin';
+
+/** 种下绕过标记（会话级 cookie，关浏览器即失效）。 */
+function setAdminStaticBypassCookie(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+    $secure = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443)
+        || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+    setcookie(ADMIN_STATIC_BYPASS_COOKIE, '1', [
+        'expires'  => 0,
+        'path'     => '/',
+        'secure'   => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    $_COOKIE[ADMIN_STATIC_BYPASS_COOKIE] = '1';
+}
+
+/** 清除绕过标记。 */
+function clearAdminStaticBypassCookie(): void
+{
+    if (!headers_sent()) {
+        setcookie(ADMIN_STATIC_BYPASS_COOKIE, '', ['expires' => time() - 42000, 'path' => '/']);
+    }
+    unset($_COOKIE[ADMIN_STATIC_BYPASS_COOKIE]);
+}
+
 function completeAdminLogin(array $user): void
 {
     // 防止 Session Fixation 攻击
@@ -148,6 +249,9 @@ function completeAdminLogin(array $user): void
     // 获取角色权限
     $role = roleModel()->find($user['role_id']);
     $_SESSION['admin_permissions'] = $role ? json_decode($role['permissions'] ?? '[]', true) : [];
+
+    // 静态直出绕过标记：让管理员浏览前台时始终拿到实时页面（见常量注释）
+    setAdminStaticBypassCookie();
 
     // 记录日志
     adminLog('auth', 'login', '登录成功');
@@ -279,6 +383,8 @@ function _loginThrottleFile(): string
 function doLogout(): void
 {
     adminLog('auth', 'logout', '退出登录');
+
+    clearAdminStaticBypassCookie();   // 退出后恢复吃静态直出
 
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {

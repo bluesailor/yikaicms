@@ -22,6 +22,9 @@ if (empty($_SESSION['admin_id'])) {
     echo json_encode(['success' => false, 'error' => '请先登录'], JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+// 本端点自建登录判断、不走 checkLogin()，身份刷新要自己调（否则沿用登录时的旧权限快照）
+refreshAdminIdentity();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'error' => 'POST only'], JSON_UNESCAPED_UNICODE);
     exit;

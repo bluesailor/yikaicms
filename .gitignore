@@ -102,3 +102,6 @@ storage/parity-*.sqlite
 
 # 冒烟测试对本地 config.php 的备份（tests/smoke/setup.php）
 /config/config.php.smoke-backup
+
+# release-precheck 的临时探测脚本（跑完即删，异常退出时可能残留）
+/.precheck_dbcount.php

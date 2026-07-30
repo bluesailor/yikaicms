@@ -82,7 +82,9 @@ if ($__notifyLv === '') {
     var goEl = document.getElementById('uoGo');
     var T = {
         uptodate: <?php echo json_encode(__('dashboard_update_uptodate')); ?>,
-        available: <?php echo json_encode(__('dashboard_update_available')); ?>
+        available: <?php echo json_encode(__('dashboard_update_available')); ?>,
+        checking: <?php echo json_encode(__('dashboard_update_checking')); ?>,
+        recheck: <?php echo json_encode(__('dashboard_update_recheck')); ?>
     };
     var NOTIFY_LEVEL = <?php echo json_encode($__notifyLv); ?>;
     function render(d) {
@@ -100,21 +102,47 @@ if ($__notifyLv === '') {
             statusEl.innerHTML = '<i class="ti ti-circle-check"></i>' + T.uptodate;
         }
     }
-    // 本地缓存（按当前版本键控，6 小时内不重复请求）
-    var key = 'yk_upd_' + cur + '_' + NOTIFY_LEVEL, TTL = 6 * 3600 * 1000;
-    try {
-        var c = JSON.parse(localStorage.getItem(key) || 'null');
-        if (c && (Date.now() - c.t) < TTL) { render(c.d); return; }
-    } catch (e) {}
-    fetch('/admin/upgrade_online.php?action=check', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function (r) { return r.json(); })
-        .then(function (res) {
-            if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
-            var d = res.data || {};
-            render(d);
-            try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version, level: d.level } })); } catch (e) {}
-        })
-        .catch(function () { statusEl.textContent = ''; });
+    // 本地缓存（按当前版本 + 提醒级别键控）。
+    // 「已是最新」只缓存 1 小时：新版发布后，这条结果就成了错的，而它和
+    // 「检测坏了」在界面上看不出区别——压着 6 小时不重查，管理员会以为升级检测挂了。
+    // 「有新版」缓存 6 小时：横幅已经挂出来了，再频繁复查没有意义。
+    var key = 'yk_upd_' + cur + '_' + NOTIFY_LEVEL;
+    var TTL_NONE = 3600 * 1000, TTL_HAS = 6 * 3600 * 1000;
+
+    function cached() {
+        try {
+            var c = JSON.parse(localStorage.getItem(key) || 'null');
+            if (!c) return null;
+            var ttl = (c.d && c.d.has_update) ? TTL_HAS : TTL_NONE;
+            return (Date.now() - c.t) < ttl ? c.d : null;
+        } catch (e) { return null; }
+    }
+
+    function check(force) {
+        if (!force) {
+            var c = cached();
+            if (c) { render(c); return; }
+        }
+        statusEl.className = 'text-gray-400';
+        statusEl.textContent = T.checking;
+        fetch('/admin/upgrade_online.php?action=check', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
+                var d = res.data || {};
+                render(d);
+                try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version, level: d.level } })); } catch (e) {}
+            })
+            .catch(function () { statusEl.textContent = ''; });
+    }
+
+    // 点状态文字可强制重查——缓存没到期时也能立刻拿到真实结果，
+    // 省得怀疑是检测坏了。
+    statusEl.style.cursor = 'pointer';
+    statusEl.title = T.recheck;
+    statusEl.addEventListener('click', function () { check(true); });
+
+    check(false);
 })();
 </script>
 <?php endif; ?>

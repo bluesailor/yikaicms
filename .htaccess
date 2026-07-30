@@ -34,14 +34,21 @@
     # 未生成则全部规则失效、照常走下方动态路由。删除 html/ 目录即可彻底关闭。
     # 防重写循环：已指向 html/ 的请求直接放行
     RewriteRule ^html/ - [L]
+    # 已登录管理员不吃静态：静态文件是匿名抓取生成的，不含管理条与就地编辑，
+    # 且改完内容也不会立刻变。yk_admin 由后台登录时种下、退出时清除，
+    # 只是个「走动态渲染」的提示，不含身份信息、不授予任何权限。
+    # 不能改判会话 cookie——每个访客都有 IKAICMS_SESSION，那样静态直出就全废了。
+    #
     # 普通页面：/about/company.html -> html/about/company.html
     RewriteCond %{REQUEST_METHOD} =GET
     RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{HTTP_COOKIE} !(^|;\s*)yk_admin=1
     RewriteCond %{DOCUMENT_ROOT}/html%{REQUEST_URI} -f
     RewriteRule ^ html%{REQUEST_URI} [L]
     # 首页：/ -> html/index.html
     RewriteCond %{REQUEST_METHOD} =GET
     RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{HTTP_COOKIE} !(^|;\s*)yk_admin=1
     RewriteCond %{REQUEST_URI} ^/$
     RewriteCond %{DOCUMENT_ROOT}/html/index.html -f
     RewriteRule ^$ html/index.html [L]
