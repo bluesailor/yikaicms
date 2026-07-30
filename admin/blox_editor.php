@@ -52,6 +52,62 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
+
+/**
+ * 元素库（第一批）。
+ *
+ * 数据源是 BuilderRegistry::meta()——18 种元素的 label / icon / category / defaults
+ * 都在里面，这里只做**筛选**，不另抄一份清单（抄一份就会漂）。
+ *
+ * 第一批只放「用默认值就能在画布上看见效果」的：blox 目前还没有元素级设置面板，
+ * 插入后只能跳到高级构建器改内容。若放 image / card / video 这类默认渲染为空的，
+ * 插进去画布毫无变化，看着像坏了。
+ * 同理动态类（轮播图 / 导航菜单 / 动态列表）需要先选数据源，也押后。
+ *
+ * 加元素只需往这个数组里添 type —— 面板、分组、图标都会自动跟上。
+ */
+$bloxElementTypes = ['heading', 'text', 'button', 'quote', 'alert', 'icon', 'icon-box', 'divider', 'spacer'];
+
+/**
+ * 插入时的占位内容。
+ *
+ * 注册表的 defaults 把主内容字段留空（heading.text / text.html / quote.text 都是 ""），
+ * 高级构建器照搬即可——它把元素显示成可编辑的卡片，空着也看得见。但 blox 的画布是
+ * **渲染后的预览**：插入一个空标题，画布上什么都不会出现，像是没插进去。
+ *
+ * 所以这里给主内容字段种占位文本，和 Bricks / Elementor 的行为一致——插入即可见，
+ * 再去改文字。只覆盖列出的字段，其余仍用注册表的 defaults。
+ *
+ * ⚠ 这是 blox 与高级构建器**有意**的行为差异（那边插入仍为空）。两者写进同一份
+ *   blocks_data，占位文本只是普通内容、不影响渲染一致性。若日后统一，改这里即可。
+ */
+$bloxPlaceholders = [
+    'heading' => ['text' => '标题文字'],
+    'text'    => ['html' => '<p>在这里输入正文内容。</p>'],
+    'quote'   => ['text' => '引用内容', 'author' => ''],
+    'alert'   => ['text' => '提示内容'],
+    'icon-box' => ['title' => '标题', 'text' => '描述文字'],
+];
+
+$elementLib = [];
+foreach (BuilderRegistry::meta() as $type => $m) {
+    if (!in_array($type, $bloxElementTypes, true)) {
+        continue;
+    }
+    $defaults = $m['defaults'];
+    foreach ($bloxPlaceholders[$type] ?? [] as $k => $v) {
+        $defaults[$k] = $v;
+    }
+    $elementLib[] = [
+        'type'     => $type,
+        'label'    => $m['label'],
+        'category' => $m['category'],
+        'icon'     => $m['icon'],
+        'defaults' => $defaults,
+    ];
+}
+// 分类显示名：category 是机器值，界面要中文
+$catLabels = ['basic' => '基本', 'media' => '媒体', 'layout' => '布局', 'advanced' => '高级', 'dynamic' => '动态'];
 ?>
 <!doctype html>
 <html lang="<?php echo htmlspecialchars(siteLang()); ?>">
@@ -116,15 +172,80 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
     <!-- ===== 三栏主体 ===== -->
     <div class="flex" style="height: calc(100vh - 3.5rem);">
 
-        <!-- 左：结构树 + 加区块 -->
+        <!-- 左：结构树 / 元素库 -->
         <aside class="w-64 shrink-0 bg-white border-r border-gray-200 flex flex-col">
-            <div class="h-10 px-3 flex items-center justify-between border-b border-gray-100 shrink-0">
-                <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1">
+            <!-- 页签 -->
+            <div class="h-10 flex items-stretch border-b border-gray-100 shrink-0">
+                <button type="button" @click="leftTab = 'tree'"
+                        class="flex-1 text-xs font-semibold inline-flex items-center justify-center gap-1 border-b-2 transition"
+                        :class="leftTab === 'tree' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'">
                     <i class="ti ti-list-tree text-sm"></i>结构
-                </span>
-                <span class="text-[10px] text-gray-400" x-text="sections.length + ' 区块'"></span>
+                    <span class="text-[10px] font-normal opacity-70" x-text="sections.length"></span>
+                </button>
+                <button type="button" @click="leftTab = 'lib'"
+                        class="flex-1 text-xs font-semibold inline-flex items-center justify-center gap-1 border-b-2 transition"
+                        :class="leftTab === 'lib' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'">
+                    <i class="ti ti-category text-sm"></i>元素
+                </button>
             </div>
-            <div class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree">
+
+            <!-- ── 元素库 ── -->
+            <div x-show="leftTab === 'lib'" class="flex-1 flex flex-col min-h-0">
+                <div class="p-2 border-b border-gray-100 shrink-0">
+                    <div class="relative">
+                        <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" x-model="libQuery" placeholder="搜索元素…"
+                               class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
+                    </div>
+                    <?php // 插入目标：没选区块时先提示，避免点了没反应 ?>
+                    <template x-if="selectedSi < 0">
+                        <p class="text-[10px] text-amber-600 mt-1.5 leading-relaxed">
+                            先在「结构」里选一个区块，元素会插进去
+                        </p>
+                    </template>
+                    <template x-if="sel && sel.columns.length > 1">
+                        <div class="mt-2">
+                            <div class="text-[10px] text-gray-400 mb-1">插入到哪一列</div>
+                            <div class="flex gap-1">
+                                <template x-for="(col, ci) in sel.columns" :key="col.id">
+                                    <button type="button" @click="targetCi = ci"
+                                            class="flex-1 h-7 rounded text-[11px] border transition"
+                                            :class="colIndex() === ci ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
+                                            x-text="'列' + (ci + 1)"></button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="flex-1 overflow-y-auto blox-scroll p-2">
+                    <template x-for="grp in filteredLib()" :key="grp.cat">
+                        <div class="mb-3">
+                            <div class="text-[10px] text-gray-400 px-1 mb-1.5" x-text="grp.label"></div>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <template x-for="el in grp.items" :key="el.type">
+                                    <button type="button" @click="addElement(el)"
+                                            :disabled="selectedSi < 0"
+                                            class="h-16 rounded-md border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 transition flex flex-col items-center justify-center gap-1 disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-500 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                                            :title="el.label">
+                                        <i class="ti text-lg" :class="'ti-' + el.icon"></i>
+                                        <span class="text-[11px] leading-none" x-text="el.label"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="filteredLib().length === 0">
+                        <p class="text-xs text-gray-400 text-center py-8">没有匹配的元素</p>
+                    </template>
+                    <p class="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2 mt-1">
+                        第一批只放默认值就能看出效果的元素。图片、卡片、轮播等需要先配置内容，
+                        待元素设置面板做好后再开放。
+                    </p>
+                </div>
+            </div>
+
+            <!-- ── 结构树 ── -->
+            <div x-show="leftTab === 'tree'" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree">
                 <template x-if="sections.length === 0">
                     <p class="text-xs text-gray-400 text-center py-8">还没有区块，从下方添加</p>
                 </template>
@@ -157,8 +278,8 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
                     </div>
                 </template>
             </div>
-            <!-- 加区块 -->
-            <div class="border-t border-gray-100 p-2 shrink-0">
+            <!-- 加区块（仅结构页签） -->
+            <div x-show="leftTab === 'tree'" class="border-t border-gray-100 p-2 shrink-0">
                 <div class="flex items-center justify-between mb-1.5 px-1">
                     <span class="text-[10px] text-gray-400">添加区块（列数）</span>
                     <span class="text-[10px] text-blue-500" x-text="insertHint()"></span>
@@ -365,6 +486,13 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
                 { k: "center", label: "中" }, { k: "end", label: "末" },
             ],
 
+            // ── 元素库 ──────────────────────────────────────
+            leftTab: "tree",            // tree | lib
+            libQuery: "",
+            targetCi: 0,                // 插入到选中区块的第几列
+            elementLib: <?php echo json_encode($elementLib, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            catLabels: <?php echo json_encode($catLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+
             get sel() { return this.selectedSi >= 0 && this.sections[this.selectedSi] ? this.sections[this.selectedSi] : null; },
 
             init() {
@@ -374,7 +502,10 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
                 this.$watch("sections", function() { self.schedulePreview(); });
                 // 画布点选 → 回传 → 选中
                 window.addEventListener("message", function(e) {
-                    if (e && e.data && typeof e.data.ykPick === "number") self.selectedSi = e.data.ykPick;
+                    if (e && e.data && typeof e.data.ykPick === "number") {
+                        self.selectedSi = e.data.ykPick;
+                        self.targetCi = 0;   // 与 selectSection 一致
+                    }
                 });
             },
 
@@ -414,6 +545,7 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
 
             selectSection(si) {
                 this.selectedSi = si;
+                this.targetCi = 0;   // 换区块就回到第一列，避免沿用上一个区块的列号
                 var frame = this.$refs.canvas;
                 if (frame && frame.contentWindow) frame.contentWindow.postMessage({ ykHighlight: si }, "*");
             },
@@ -488,6 +620,52 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
             insertHint() {
                 var at = this.insertIndex();
                 return at >= this.sections.length ? "插入到末尾" : ("插入到区块 " + at + " 之后");
+            },
+
+            // ── 元素库 ──────────────────────────────────────
+
+            /**
+             * 目标列下标。夹在有效范围内——换了区块后 targetCi 可能越界
+             * （比如从 3 列区块切到 1 列），越界会把元素塞进不存在的列里丢掉。
+             */
+            colIndex() {
+                var s = this.sel;
+                if (!s || !s.columns.length) return 0;
+                return Math.min(Math.max(this.targetCi, 0), s.columns.length - 1);
+            },
+
+            /** 按分类分组 + 关键词过滤，供左栏渲染 */
+            filteredLib() {
+                var q = this.libQuery.trim().toLowerCase();
+                var self = this;
+                var groups = [];
+                this.elementLib.forEach(function (el) {
+                    if (q && el.label.toLowerCase().indexOf(q) === -1 && el.type.indexOf(q) === -1) return;
+                    var g = groups.find(function (x) { return x.cat === el.category; });
+                    if (!g) {
+                        g = { cat: el.category, label: self.catLabels[el.category] || el.category, items: [] };
+                        groups.push(g);
+                    }
+                    g.items.push(el);
+                });
+                return groups;
+            },
+
+            /**
+             * 插入元素到选中区块的目标列。
+             * data 用注册表给的 defaults 深拷贝——直接引用会让多次插入共享同一个对象，
+             * 改一个全变。
+             */
+            addElement(el) {
+                var s = this.sel;
+                if (!s) { this.toast("请先选择一个区块"); return; }
+                var ci = this.colIndex();
+                s.columns[ci].elements.push({
+                    id: this.uid("e"),
+                    type: el.type,
+                    data: JSON.parse(JSON.stringify(el.defaults || {})),
+                });
+                this.toast(el.label + " 已插入" + (s.columns.length > 1 ? "（列" + (ci + 1) + "）" : ""));
             },
 
             save() {
