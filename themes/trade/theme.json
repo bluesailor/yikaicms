@@ -1,4 +1,5 @@
 {
+    "schema_version": 1,
     "name": "外贸通",
     "name_en": "Trade",
     "name_ja": "トレード",
@@ -7,7 +8,15 @@
     "description_ja": "貿易・輸出入向けテーマ：クリーンで国際的なデザイン、製品・実績グリッド重視、問い合わせ導線を強調。輸出メーカーや越境 B2B サイトに最適。",
     "version": "1.0.0",
     "author": "Yikai CMS",
+    "category": "trade",
+    "requires_cms": ">=1.14",
+    "requires_php": ">=8.0",
+    "locales": [
+        "zh-CN",
+        "en",
+        "ja"
+    ],
+    "required_plugins": [],
     "screenshot": "assets/images/screenshot.png",
-    "colors": { "primary": "#0EA5A4", "secondary": "#0F766E" },
-    "supports": ["banner","about","stats","advantage","testimonials","cta","channel"]
+    "design_tokens": "design-tokens.json"
 }

@@ -35,6 +35,9 @@ if (empty($_SESSION['admin_id'])) {
     exit;
 }
 
+// 本端点自建登录判断、不走 checkLogin()，身份刷新要自己调（否则沿用登录时的旧权限快照）
+refreshAdminIdentity();
+
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

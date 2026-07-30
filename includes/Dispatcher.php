@@ -115,8 +115,13 @@ final class Dispatcher
     {
         $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
-        // 静态 HTML 直出兜底（完整规则主机由服务器层直出，不经 PHP；此处服务受限主机）
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && (string) ($_SERVER['QUERY_STRING'] ?? '') === '') {
+        // 静态 HTML 直出兜底（完整规则主机由服务器层直出，不经 PHP；此处服务受限主机）。
+        // 已登录管理员跳过：静态文件是匿名抓取生成的，不含前台管理条与就地编辑，
+        // 内容改完也不会立刻变。这里能直接读会话，比服务器层的 cookie 判断更准。
+        $__isAdmin = !empty($_SESSION['admin_id']);
+        if (!$__isAdmin
+            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+            && (string) ($_SERVER['QUERY_STRING'] ?? '') === '') {
             $static = ROOT_PATH . '/html' . $path;
             if (is_file($static) && str_starts_with((string) realpath($static), (string) realpath(ROOT_PATH . '/html'))) {
                 header('Content-Type: text/html; charset=utf-8');

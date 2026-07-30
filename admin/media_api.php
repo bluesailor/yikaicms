@@ -20,10 +20,14 @@ checkLogin();
 
 header('Content-Type: application/json; charset=utf-8');
 
-// list 与 upload 都要闸：媒体库列表会列出全站已上传文件，
-// 与 media.php 页面同级敏感，不能只因为登录了就给看。
-if (!canUploadMedia()) {
-    echo json_encode(['code' => 403, 'msg' => '没有媒体库权限'], JSON_UNESCAPED_UNICODE);
+/**
+ * 统一的拒绝出口。
+ * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
+ * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
+ */
+function ma_deny(string $msg): void
+{
+    echo json_encode(['code' => 403, 'msg' => $msg], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -31,7 +35,15 @@ $action = $_GET['action'] ?? 'list';
 
 // 列表查询
 if ($action === 'list') {
-    $type    = $_GET['type'] ?? 'image';
+    // 选择器对内容编辑者开放（要插图就得能选图），但**不是媒体管理员的人只能看图片**：
+    // 文档与压缩包是对外分发的资料，不该因为「能写文章」就能翻出来。
+    if (!canUploadImage()) {
+        ma_deny('没有媒体库权限');
+    }
+    $type = $_GET['type'] ?? 'image';
+    if (!canManageMedia()) {
+        $type = 'image';   // 忽略客户端传的 type，强制只列图片
+    }
     $keyword = $_GET['keyword'] ?? '';
     $page    = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 24;
@@ -60,12 +72,16 @@ if ($action === 'list') {
 
 // 上传
 if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 权限先于输入校验（同 upload.php）
+    $type = post('type', 'images');
+    if (!canUploadType($type)) {
+        ma_deny($type === 'images' ? '没有上传图片的权限' : '没有上传文档/压缩包的权限');
+    }
+
     if (empty($_FILES['file'])) {
         echo json_encode(['code' => 1, 'msg' => '请选择文件'], JSON_UNESCAPED_UNICODE);
         exit;
     }
-
-    $type   = post('type', 'images');
     $result = uploadFile($_FILES['file'], $type);
 
     if (isset($result['error'])) {

@@ -121,6 +121,41 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 <?php endif; ?>
 
+<?php
+// 「管理员绕过静态直出」是否真的生效——自检一次而不是只写在文档里。
+// 静态文件由 Web 服务器在 PHP 之前直出，那一层看不到会话；本系统靠登录时种下的
+// yk_admin cookie 让服务器跳过静态。Apache 的 .htaccess 随升级自动更新，
+// **自建 Nginx 的站点必须手工更新 server 配置**，否则管理员在前台看不到管理条、
+// 改了内容也不生效，而且毫无提示——这里替他们检出来。
+$__shSelfCheck = null;
+if ($stats['files'] > 0 && function_exists('curl_init')) {
+    $__probe = rtrim(siteBaseUrl(), '/') . '/';
+    $__ch = curl_init($__probe);
+    curl_setopt_array($__ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 8, CURLOPT_NOBODY => true,
+        CURLOPT_HEADER => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_COOKIE => 'yk_admin=1',
+        CURLOPT_HTTPHEADER => ['X-Static-Gen: 1'],
+    ]);
+    $__head = (string) curl_exec($__ch);
+    $__code = (int) curl_getinfo($__ch, CURLINFO_HTTP_CODE);
+    curl_close($__ch);
+    // 判据是响应头 X-Yikai-Render：只有 PHP 实时渲染才会带它，
+    // 静态文件由 Web 服务器直出、不经 PHP，一定没有。
+    // 不能拿页面内容判断——探测请求只带 yk_admin、不带会话，
+    // PHP 渲染出来的也是匿名视角，与静态文件几乎一模一样。
+    if ($__code === 200) {
+        $__shSelfCheck = stripos($__head, 'X-Yikai-Render:') !== false;
+    }
+}
+?>
+<?php if ($__shSelfCheck === false): ?>
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-sm text-amber-800">
+    <p class="font-medium"><?php echo __('sh_bypass_warn_title'); ?></p>
+    <p class="mt-1"><?php echo __('sh_bypass_warn_body'); ?></p>
+</div>
+<?php endif; ?>
+
 <!-- 状态卡片 -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-lg shadow p-5">

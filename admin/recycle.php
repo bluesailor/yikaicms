@@ -17,10 +17,16 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 // 回收站横跨全部内容类型，不该挂在单一权限上——原先写的 'content' 在权限
-// 细粒度化后已不是合法键，这页退化成了超管专属。改为：能进页面只要求「有任一
-// 内容权限或媒体权限」，真正的判定下沉到每个动作（见 recycleRequirePerm）。
-if (!hasAnyContentPerm() && !hasPermission('media')) {
-    requirePermission('edit_article');   // 必失败，走统一的「没有操作权限」提示
+// 细粒度化后已不是合法键，这页退化成了超管专属。
+//
+// 进入门槛 = 「至少能还原/清除某一类」。只有编辑权（没有任何 delete_）的人
+// 在这里一件事也做不成，却能看到全部类型的已删标题——读取没过滤等于信息泄露。
+// 可见范围由 recycleVisibleTypes() 决定，动作判定见 recycleRequirePerm()。
+if (recycleVisibleTypes() === []) {
+    // 用 '*' 而不是某个具体内容权限：后者对「恰好持有该权限、却没有任何
+    // delete_ 权」的角色（如只有 edit_article 的投稿者）判定为通过，
+    // 会漏进下面导致 $visible[0] 为空而 500。超管永远走不到这里。
+    requirePermission('*');
 }
 
 /** 支持的回收站类型 → 对应 model 与展示标签 */
@@ -104,21 +110,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ============================================================
 // 展示
 // ============================================================
-$models = recycleModels();
-$activeType = isset($models[get('type')]) ? get('type') : 'content';
-$model = $models[$activeType]['model'];
+$models  = recycleModels();
+$visible = recycleVisibleTypes();
+// 只保留看得见的分类；请求了看不见的分类则回落到第一个可见分类
+$models     = array_intersect_key($models, array_flip($visible));
+$activeType = isset($models[get('type')]) ? get('type') : (string) ($visible[0] ?? 'content');
+$model      = $models[$activeType]['model'];
 
 $page = max(1, getInt('page', 1));
 $perPage = 20;
 $offset = ($page - 1) * $perPage;
 $total = $model->trashedCount();
-$items = $model->getTrashed($perPage, $offset);
+$items = recycleFilterRows($activeType, $model->getTrashed($perPage, $offset));
 $totalPages = (int) ceil($total / $perPage);
 
-// 各类型待清数量（tab 徽标）
+// 各类型待清数量（tab 徽标）。content 桶要按可见行数计，
+// 否则徽标会把无权看到的条目也算进去，等于间接泄露数量。
 $counts = [];
 foreach ($models as $k => $m) {
-    $counts[$k] = $m['model']->trashedCount();
+    if ($k === 'content' && !hasPermission('*')) {
+        $counts[$k] = count(recycleFilterRows('content', $m['model']->getTrashed(1000, 0)));
+    } else {
+        $counts[$k] = $m['model']->trashedCount();
+    }
 }
 
 $pageTitle = __('admin_recycle_bin');

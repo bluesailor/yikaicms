@@ -127,8 +127,67 @@ git clone https://github.com/bluesailor/yikaicms.git
 
 ### 3. 配置伪静态
 
-- **Apache** — `.htaccess` 已内置，确保启用 `mod_rewrite` + `AllowOverride All`
-- **Nginx** — 安装完成页提供 rewrite 规则
+**「首页正常，点栏目就 404」几乎都是这一步没做。**
+
+YikaiCMS 内置 PHP 路由分发器（`includes/Dispatcher.php`），只要把「不存在的文件」
+统一交给 `index.php`，剩下的路由由 PHP 完成——等价于 WordPress 那条通用规则。
+所以多数主机不需要逐条 rewrite，配一条 catch-all 即可。
+
+#### Apache
+
+`.htaccess` 已内置，确保启用 `mod_rewrite` 且 `AllowOverride All`。
+
+#### 宝塔面板（Nginx）
+
+站点 → **设置** → **伪静态** → 下拉选择 **wordpress** → 保存。就这一步，无需重启。
+
+选 wordpress 预设即可，是因为它就是上面说的那条 catch-all：
+
+```nginx
+location / {
+    try_files $uri $uri/ /index.php?$query_string;
+}
+```
+
+#### 阿里云 / 万网 云虚拟主机
+
+主机控制面板 → **高级环境设置** → **NGINX 设置**，把默认的
+`location / {}` 与 `location ~ /\.ht {deny all;}` 两段**整体替换**为下面内容，
+保存即生效（无需重启）：
+
+```nginx
+# 1) 拦截敏感目录与文件
+location ~ ^/(config|storage|vendor|includes|install/sql|bin|migrations|recipes)/ {
+    deny all;
+}
+location ~ /\.(git|env|htaccess|htpasswd) {
+    deny all;
+}
+location ~ ^/(composer\.(json|lock)|package(-lock)?\.json)$ {
+    deny all;
+}
+
+# 2) 主规则：真实文件直出，其余交给 index.php
+location / {
+    if (!-e $request_filename) {
+        rewrite ^ /index.php last;
+    }
+}
+```
+
+> 该面板只允许 `location` / `allow` / `deny` / `try_files` / `rewrite` / `return` / `if` / `set`，
+> 且后七者必须写在 `location` 内——上面的写法已经遵守这些限制。
+> 同样内容也放在源码的 `deploy/aliyun-nginx-minimal.txt`。
+
+#### 自建 Nginx
+
+完整示例见源码 `deploy/nginx-server.conf`，改完 `nginx -s reload`。
+
+#### 配好了仍然 404？
+
+按顺序排查：栏目是否已启用 → 别名（slug）是否与其它栏目/单页重名 →
+栏目类型是否为「外链」（这类只跳转、本身没有页面）→
+是否开了「静态生成」（开启后页面由已生成的静态文件提供，新栏目需重新生成一次）。
 
 ### 4. 安装后
 
