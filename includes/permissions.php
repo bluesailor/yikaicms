@@ -100,24 +100,102 @@ function requireContentEditPerm(?string $type): void
 }
 
 /**
- * 能否上传文件 / 使用媒体选择器。
+ * 上传与媒体相关的三档能力。
  *
- * 规则：**能编辑就该能传图**。写文章却插不了图不成其为「能写文章」，
- * 硬把上传拆成独立能力只会逼着管理员给每个内容角色都补勾 media，
- * 徒增配置负担而挡不住什么——能编辑内容的人本来就能往页面里放任意 HTML。
+ * 之前只有一个 canUploadMedia()，规则是「能编辑就能传图」。方向没错——写文章
+ * 插不了图不成其为能写文章——但它实际放得比「图」宽得多：upload.php 的
+ * `$type` 是**客户端传的**，传 `type=files` 就能上传 pdf/doc/xls/ppt/zip/rar/7z；
+ * 媒体选择器又会列出全站已上传的一切。于是「能编辑就能传图」事实上变成了
+ * 「能编辑就能浏览全站媒体并上传任意白名单文件」。拆成三档：
  *
- * 所以：任一内容编辑权，或 media / banner / link 任一模块权，即可上传。
- * （upload.php 同时被 banner.php 与 link.php 调用，那两个模块权必须在列。）
- *
- * 但**媒体库管理页 media.php 仍要 media 权限**：上传和选图是一回事，
- * 浏览并删除全站已上传文件是另一回事。
- *
- * 此前这里只判登录，任何登录账号（含只读角色）都能调上传接口。
+ *   canUploadImage()  插图 —— 任一内容编辑权 / banner / link / media
+ *   canUploadFile()   文档与压缩包 —— 只有下载编辑者与媒体管理员需要
+ *   canManageMedia()  媒体库管理页、浏览全站媒体 —— 仅 media
  */
-function canUploadMedia(): bool
+
+/** 能否上传图片（插图是编辑流程的一部分）。 */
+function canUploadImage(): bool
 {
     return hasAnyContentPerm()
         || hasPermission('media') || hasPermission('banner') || hasPermission('link');
+}
+
+/**
+ * 能否上传文档 / 压缩包。
+ * 比图片严得多：这类文件不是「排版需要」，而是对外分发的资料，
+ * 且 zip/rar 这类容器一旦能上传，风险面和一张图完全不是一个量级。
+ */
+function canUploadFile(): bool
+{
+    return hasPermission('media') || hasPermission('edit_download');
+}
+
+/** 能否管理媒体库（浏览全站已上传文件、删除）。 */
+function canManageMedia(): bool
+{
+    return hasPermission('media');
+}
+
+/**
+ * 按上传类型选择对应的能力闸。
+ * $type 取值同 uploadFile()：images / files / 其它（其它 = 合并两个白名单，按更严的算）。
+ */
+function canUploadType(string $type): bool
+{
+    return $type === 'images' ? canUploadImage() : canUploadFile();
+}
+
+/**
+ * 当前账号能看见哪些回收站分类。
+ *
+ * 与动作权限同源：能还原/彻底删除某一类，才看得到那一类。
+ * 只有 edit_ 没有 delete_ 的账号一个分类也看不到，回收站入口也不显示。
+ *
+ * @return list<string>
+ */
+function recycleVisibleTypes(): array
+{
+    // 与 admin/recycle.php 的 recycleModels() 保持同一份桶清单（改一处要同步另一处）
+    $all = ['content', 'product', 'album', 'download', 'job'];
+    if (hasPermission('*')) {
+        return $all;
+    }
+    $out = [];
+    foreach ($all as $t) {
+        $ok = match ($t) {
+            // content 是混合桶（文章/案例/单页/下载同表）：持有其中任一类型的
+            // 删除权即可进入，具体行再按各自的 type 过滤，见 recycleFilterRows()
+            'content'  => hasPermission('delete_article') || hasPermission('delete_case')
+                       || hasPermission('delete_page')    || hasPermission('delete_download'),
+            'product'  => hasPermission('delete_product'),
+            'download' => hasPermission('delete_download'),
+            'album'    => hasPermission('media'),
+            'job'      => hasPermission('delete_job'),
+            default    => false,
+        };
+        if ($ok) {
+            $out[] = $t;
+        }
+    }
+    return $out;
+}
+
+/**
+ * content 混合桶的行级过滤：只留下当前账号有权删除的那些类型。
+ * 只有 edit_article 的投稿者不该在回收站里看到已删的单页标题与别名。
+ *
+ * @param list<array<string,mixed>> $rows
+ * @return list<array<string,mixed>>
+ */
+function recycleFilterRows(string $bucket, array $rows): array
+{
+    if ($bucket !== 'content' || hasPermission('*')) {
+        return $rows;
+    }
+    return array_values(array_filter($rows, static function (array $r): bool {
+        $t = (string) ($r['type'] ?? '');
+        return in_array($t, contentPermTypes(), true) && hasPermission('delete_' . $t);
+    }));
 }
 
 /**

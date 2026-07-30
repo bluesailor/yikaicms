@@ -14,21 +14,23 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 
-// 上传是独立能力，不随内容编辑权附带（见 canUploadMedia()）。
-// 此前这里只判登录，「投稿者」角色写着不能上传媒体却能直接 POST 本接口。
-if (!canUploadMedia()) {
-    error('没有上传权限', 403);
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     error('非法请求');
+}
+
+// 权限按上传类型分档，而不是一个「能不能上传」的总闸：
+// $type 是客户端传的，传 files 就能上传 pdf/doc/xls/ppt/zip/rar/7z——
+// 图片是排版需要（能编辑就该能传），文档压缩包不是。见 canUploadType()。
+// 放在输入校验之前：无权者不该先收到「请选择文件」这种提示，
+// 那既是信息泄露，也让权限测试难以断言。
+$type = post('type', 'images');
+if (!canUploadType($type)) {
+    error($type === 'images' ? '没有上传图片的权限' : '没有上传文档/压缩包的权限', 403);
 }
 
 if (empty($_FILES['file'])) {
     error('请选择文件');
 }
-
-$type = post('type', 'images');
 $result = uploadFile($_FILES['file'], $type);
 
 if (isset($result['error'])) {

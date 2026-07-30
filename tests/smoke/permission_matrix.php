@@ -141,7 +141,6 @@ $add = function (string $label, string $method, string $url, array $expect, ?arr
 $add('文章列表',        'GET', '/admin/article.php',        ['contributor' => 'allow', 'editor' => 'allow']);
 $add('招聘列表',        'GET', '/admin/job.php',            ['contributor' => 'allow', 'editor' => 'allow']);
 $add('招聘编辑（曾死锁）', 'GET', '/admin/job_edit.php',       ['contributor' => 'allow', 'editor' => 'allow']);
-$add('回收站（曾死锁）',   'GET', '/admin/recycle.php',        ['contributor' => 'allow', 'editor' => 'allow']);
 $add('会员设置（超管专属）', 'GET', '/admin/setting_member.php', ['contributor' => 'deny',  'editor' => 'deny']);
 
 // —— 类型隔离：只有 edit_article 的投稿者不得碰产品/单页 ——
@@ -158,11 +157,18 @@ $add('插件管理', 'GET', '/admin/plugin.php',   ['contributor' => 'deny', 'ed
 $add('在线升级', 'GET', '/admin/upgrade_online.php', ['contributor' => 'deny', 'editor' => 'deny']);
 $add('授权管理', 'GET', '/admin/license.php',  ['contributor' => 'deny', 'editor' => 'deny']);
 
-// —— 上传：能编辑就该能传图（写文章插不了图不成其为能写文章）。
-//    但媒体库管理页仍要 media——上传选图是一回事，浏览删除全站文件是另一回事。
+// —— 上传分三档：图片（能编辑就能传）/ 文档压缩包（下载编辑者与媒体管理员）/
+//    媒体库管理（仅 media）。$type 是客户端传的，两档必须分别判。
 $add('媒体库管理页（要 media）', 'GET',  '/admin/media.php',                ['contributor' => 'deny',  'editor' => 'allow']);
 $add('媒体选择器·列表',        'GET',  '/admin/media_api.php?action=list', ['contributor' => 'allow', 'editor' => 'allow']);
-$add('上传接口',               'POST', '/admin/upload.php',               ['contributor' => 'allow', 'editor' => 'allow']);
+$add('上传图片',               'POST', '/admin/upload.php',               ['contributor' => 'allow', 'editor' => 'allow'], ['type' => 'images']);
+// 投稿者只有 edit_article：不该能上传 pdf/zip。内容编辑有 edit_download，可以。
+$add('上传文档/压缩包',        'POST', '/admin/upload.php',               ['contributor' => 'deny',  'editor' => 'allow'], ['type' => 'files']);
+
+// —— 回收站：读取也要按权限过滤，不能只拦写操作 ——
+//    投稿者只有 edit_article、无任何 delete_ → 一个分类也看不到 → 整页拒绝。
+//    内容编辑有 media → 相册分类可见 → 整页放行（但只该看到相册，见下方 tab 过滤断言）。
+$add('回收站', 'GET', '/admin/recycle.php', ['contributor' => 'deny', 'editor' => 'allow']);
 
 // —— 招聘 / 发展历程：2026-07-30 起独立成键。迁移把 edit_article 持有者
 //    自动补上 edit_job + edit_timeline，所以两个角色都应放行（语义无损）。
@@ -186,7 +192,7 @@ $pdo2->exec('DELETE FROM yikai_roles WHERE id = ' . $ISOLATED['roleId']);
 $pdo2->prepare(
     'INSERT INTO yikai_roles (id,name,name_en,name_ja,description,description_en,description_ja,permissions,status,created_at)'
     . " VALUES (?,'仅文章','Article Only','記事のみ','','','',?,1,?)"
-)->execute([$ISOLATED['roleId'], json_encode(['edit_article']), $t]);
+)->execute([$ISOLATED['roleId'], json_encode(['edit_article', 'delete_article']), $t]);
 $pdo2->prepare('DELETE FROM yikai_users WHERE username = ?')->execute([$ISOLATED['user']]);
 $pdo2->prepare(
     'INSERT INTO yikai_users (username,password,nickname,email,role_id,status,created_at,updated_at)'
@@ -240,6 +246,7 @@ foreach ([
     ['文章列表（应放行）', '/admin/article.php',  'allow'],
     ['招聘（应拒绝）',     '/admin/job.php',      'deny'],
     ['发展历程（应拒绝）', '/admin/timeline.php', 'deny'],
+    ['回收站（有 delete_article，应放行）', '/admin/recycle.php', 'allow'],
 ] as [$label, $url, $want]) {
     [$code, $body] = pmReq($jar, 'GET', $url);
     $denied = pmDenied($code, $body);
@@ -252,6 +259,25 @@ foreach ([
         printf("  ✓ %-22s %s\n", $label, $denied ? '已拒绝' : '已放行');
     }
 }
+// 只拦住入口不算数：页面内的分类 tab 也必须按权限过滤，
+// 否则「已删产品/相册有几条、叫什么」照样看得到。
+[$c, $body] = pmReq($jar, 'GET', '/admin/recycle.php');
+foreach ([
+    ['内容分类可见',   "?type=content",  true],
+    ['产品分类不可见', "?type=product",  false],
+    ['相册分类不可见', "?type=album",    false],
+    ['招聘分类不可见', "?type=job",      false],
+] as [$label, $needle, $want]) {
+    $got = str_contains($body, $needle);
+    $checked++;
+    if ($got !== $want) {
+        $fail++;
+        printf("  ✗ 回收站 tab：%-16s 期望%s 实际%s\n", $label, $want ? '有' : '无', $got ? '有' : '无');
+    } else {
+        printf("  ✓ 回收站 tab：%s\n", $label);
+    }
+}
+
 @unlink($jar);
 echo "\n";
 
