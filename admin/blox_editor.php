@@ -159,7 +159,10 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
             </div>
             <!-- 加区块 -->
             <div class="border-t border-gray-100 p-2 shrink-0">
-                <div class="text-[10px] text-gray-400 mb-1.5 px-1">添加区块（列数）</div>
+                <div class="flex items-center justify-between mb-1.5 px-1">
+                    <span class="text-[10px] text-gray-400">添加区块（列数）</span>
+                    <span class="text-[10px] text-blue-500" x-text="insertHint()"></span>
+                </div>
                 <div class="grid grid-cols-4 gap-1">
                     <template x-for="n in [1,2,3,4]" :key="n">
                         <button type="button" @click="addSection(n)"
@@ -167,6 +170,10 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
                                 x-text="n + ' 列'"></button>
                     </template>
                 </div>
+                <button type="button" x-show="selectedSi >= 0" @click="selectedSi = -1"
+                        class="w-full mt-1.5 text-[10px] text-gray-400 hover:text-gray-600 py-1">
+                    取消选中（改为插入到末尾）
+                </button>
             </div>
         </aside>
 
@@ -195,6 +202,14 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
 
                 <template x-if="sel">
                     <div class="space-y-5">
+                        <!-- 区块标题 / 副标题：渲染器会输出成居中的段落头 -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">区块标题</label>
+                            <input type="text" x-model="sel.settings.title" placeholder="留空则不显示"
+                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
+                            <input type="text" x-model="sel.settings.subtitle" placeholder="副标题（可选）"
+                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm mt-1.5">
+                        </div>
                         <!-- 背景色 -->
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1.5">背景颜色</label>
@@ -245,6 +260,60 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
                             </div>
                         </div>
 
+                        <!-- 背景图 + 遮罩不透明度 -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">背景图</label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" x-model="sel.settings.bg_image" placeholder="/uploads/images/xx.jpg"
+                                       class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                <button type="button" @click="sel.settings.bg_image = ''"
+                                        class="text-gray-400 hover:text-red-500 p-1" title="清除">
+                                    <i class="ti ti-x text-sm"></i></button>
+                            </div>
+                            <?php // bg_opacity 只在有背景图时才有意义——渲染器用它做背景色遮罩的透明度 ?>
+                            <div x-show="sel.settings.bg_image" class="mt-2">
+                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                    <span>遮罩不透明度</span>
+                                    <span x-text="(sel.settings.bg_opacity ?? 100) + '%'"></span>
+                                </div>
+                                <input type="range" min="0" max="100" step="5" class="w-full"
+                                       :value="sel.settings.bg_opacity ?? 100"
+                                       @input="sel.settings.bg_opacity = parseInt($event.target.value, 10)">
+                            </div>
+                        </div>
+                        <!-- 对齐 -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">列内对齐</label>
+                            <div class="text-[10px] text-gray-400 mb-1">垂直</div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <template x-for="opt in alignOptions" :key="'a'+opt.k">
+                                    <button type="button" @click="sel.settings.align_items = opt.k"
+                                            class="h-8 rounded text-xs border transition"
+                                            :class="(sel.settings.align_items || 'stretch') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
+                                            x-text="opt.label"></button>
+                                </template>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mb-1 mt-2">水平</div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <template x-for="opt in alignOptions" :key="'j'+opt.k">
+                                    <button type="button" @click="sel.settings.justify_items = opt.k"
+                                            class="h-8 rounded text-xs border transition"
+                                            :class="(sel.settings.justify_items || 'stretch') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
+                                            x-text="opt.label"></button>
+                                </template>
+                            </div>
+                        </div>
+                        <!-- 列卡片化：渲染器仅在列数 > 1 时生效 -->
+                        <div x-show="sel.columns.length > 1">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded border-gray-300"
+                                       :checked="!!sel.settings.col_card"
+                                       @change="sel.settings.col_card = $event.target.checked">
+                                <span class="text-xs font-medium text-gray-600">每列显示为卡片</span>
+                            </label>
+                            <p class="text-[10px] text-gray-400 mt-1">白底、圆角、投影。单列区块不生效。</p>
+                        </div>
+
                         <!-- 元素编辑（v1 暂由高级构建器承接） -->
                         <div class="pt-3 border-t border-gray-100">
                             <div class="text-xs text-gray-400 mb-2" x-text="'本区块含 ' + elCount(sel) + ' 个元素'"></div>
@@ -288,6 +357,12 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
             padOptions: [
                 { k: "none", label: "无" }, { k: "sm", label: "小" }, { k: "md", label: "中" },
                 { k: "lg", label: "大" }, { k: "xl", label: "特" },
+            ],
+            // 取值与 BlockRenderer 的 ALIGN_ITEMS_MAP / JUSTIFY_ITEMS_MAP 对齐；
+            // stretch 是默认值（渲染器映射表里没有它 = 不加对齐类，即拉伸）
+            alignOptions: [
+                { k: "stretch", label: "拉伸" }, { k: "start", label: "起" },
+                { k: "center", label: "中" }, { k: "end", label: "末" },
             ],
 
             get sel() { return this.selectedSi >= 0 && this.sections[this.selectedSi] ? this.sections[this.selectedSi] : null; },
@@ -372,15 +447,47 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
                 else if (this.selectedSi > si) this.selectedSi--;
             },
 
+            /**
+             * 插入区块。
+             * 位置：有选中项 → 插到它**之后**；没有 → 追加到末尾。
+             * 这比「永远追加」符合直觉——在中间调整版面时不必插完再一路上移。
+             * settings 与高级构建器（page_edit_advance.php:1469）渲染等价：那边不写
+             * title/subtitle/bg_opacity/col_card，这里写成显式默认值，渲染器对
+             * 「缺键」与这些值的处理相同（空标题不输出、bg_opacity 默认 100、
+             * col_card 空即不启用）。两个编辑器共用同一份 blocks_data，
+             * 默认值若真不一致，来回切换会造成版面漂移。
+             */
             addSection(cols) {
                 var c = [];
                 for (var i = 0; i < cols; i++) c.push({ id: this.uid("c"), elements: [] });
-                this.sections.push({
+                var sec = {
                     id: this.uid("s"), type: "section",
-                    settings: { bg_color: "", bg_image: "", padding: "md", max_width: "default", align_items: "stretch", justify_items: "stretch", gap: "lg" },
+                    settings: {
+                        title: "", subtitle: "",
+                        bg_color: "", bg_image: "", bg_opacity: 100,
+                        padding: "md", max_width: "default",
+                        align_items: "stretch", justify_items: "stretch",
+                        gap: "lg", col_card: false,
+                    },
                     columns: c,
-                });
-                this.selectedSi = this.sections.length - 1;
+                };
+                var at = this.insertIndex();
+                this.sections.splice(at, 0, sec);
+                this.selectedSi = at;
+                this.toast(cols + " 列区块已插入");
+            },
+
+            /** 下一个区块插入到的下标（选中项之后，否则末尾） */
+            insertIndex() {
+                return (this.selectedSi >= 0 && this.selectedSi < this.sections.length)
+                    ? this.selectedSi + 1
+                    : this.sections.length;
+            },
+
+            /** 插入位置的人话描述，显示在「添加区块」上方 */
+            insertHint() {
+                var at = this.insertIndex();
+                return at >= this.sections.length ? "插入到末尾" : ("插入到区块 " + at + " 之后");
             },
 
             save() {
