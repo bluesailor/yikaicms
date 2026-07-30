@@ -65,7 +65,8 @@ foreach ($channels as $channel) {
 
 // 文章/案例/下载/招聘等内容
 $contents = db()->fetchAll(
-    "SELECT c.id, c.title, c.slug, c.cover, c.publish_time, c.updated_at,
+    // c.type 必须选出来，否则 contentUrl() 认不出文章，提交给搜索引擎的就是 404 地址
+    "SELECT c.id, c.title, c.slug, c.type, c.cover, c.publish_time, c.updated_at,
             ch.slug as channel_slug, ch.type as channel_type
      FROM " . DB_PREFIX . "contents c
      LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id

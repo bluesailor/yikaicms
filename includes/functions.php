@@ -910,6 +910,17 @@ function addDownloadCount(int $id): int
  */
 function contentUrl(array $content): string
 {
+    // 缺 type 是「查询没 select c.type」造成的静默错误：本函数会漏掉文章分支，
+    // 生成 /{栏目}/{slug}.html 这种 404 地址。这类问题已经出现过三次
+    //   v1.13.3 ContentModel::getPrev/getNext/getRelated（详情页上下篇）
+    //   StaticHtml::enumerate（静态生成两个页面失败）
+    //   sitemap.php（提交给搜索引擎的是 404 地址）+ search.php（type 被别名成 _type）
+    // 而三次都是「页面看起来正常、点进去才 404」，很难被发现。开发期直接报出来。
+    if (!array_key_exists('type', $content) && defined('DEBUG') && DEBUG) {
+        error_log('contentUrl(): 传入的内容行缺少 type 字段，文章链接会退化成 404 地址。'
+            . '检查取数的 SELECT 是否漏了 c.type。id=' . (string) ($content['id'] ?? '?'));
+    }
+
     $prefix = langPrefix();
     $slug = $content['slug'] ?? '';
     $channelSlug = $content['channel_slug'] ?? '';
