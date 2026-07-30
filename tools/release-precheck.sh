@@ -86,7 +86,10 @@ fi
 section "2. 改动盘点文档"
 # ─────────────────────────────────────────────────────────────
 
-doc="docs/improvements-v${VERSION}.md"
+# 盘点文档在仓库外的 yikaicms-docs/（docs/ 自 2026-05-16 起就是 gitignore 的）；
+# 兼容旧位置，两处任一存在即可。
+doc="../yikaicms-docs/improvements-v${VERSION}.md"
+[ -f "$doc" ] || doc="docs/improvements-v${VERSION}.md"
 if [ -f "$doc" ]; then
     pass "$doc 存在  ($(wc -l < "$doc") 行)"
     if grep -qE "v${VERSION//./\\.}" "$doc"; then
