@@ -94,19 +94,24 @@ function requireContentEditPerm(?string $type): void
 }
 
 /**
- * 能否上传文件 / 浏览媒体库。
+ * 能否上传文件 / 使用媒体选择器。
  *
- * 上传是一项**独立能力**，不随内容编辑权自动附带——预置的「投稿者」角色
- * （只有 edit_article）自我描述就是「仅可撰写文章，不能删除或上传媒体」，
- * 而此前 upload.php / media_api.php 只判登录，这句描述一直是空话。
+ * 规则：**能编辑就该能传图**。写文章却插不了图不成其为「能写文章」，
+ * 硬把上传拆成独立能力只会逼着管理员给每个内容角色都补勾 media，
+ * 徒增配置负担而挡不住什么——能编辑内容的人本来就能往页面里放任意 HTML。
  *
- * 不能简单收成「只认 media」：upload.php 同时被 banner.php（banner 权限）与
- * link.php（link 权限）调用，一刀切会让这两类角色连图都传不了。
- * 因此三者任一即可；产品/文章编辑者若需要上传，给他勾上 media。
+ * 所以：任一内容编辑权，或 media / banner / link 任一模块权，即可上传。
+ * （upload.php 同时被 banner.php 与 link.php 调用，那两个模块权必须在列。）
+ *
+ * 但**媒体库管理页 media.php 仍要 media 权限**：上传和选图是一回事，
+ * 浏览并删除全站已上传文件是另一回事。
+ *
+ * 此前这里只判登录，任何登录账号（含只读角色）都能调上传接口。
  */
 function canUploadMedia(): bool
 {
-    return hasPermission('media') || hasPermission('banner') || hasPermission('link');
+    return hasAnyContentPerm()
+        || hasPermission('media') || hasPermission('banner') || hasPermission('link');
 }
 
 /**
