@@ -1841,4 +1841,9 @@ return [
     'sum_placeholder' => '一两句话概括本文，留空则自动截取',
     'sum_chars' => '字',
     'sum_too_long' => '摘要偏长，内容是不是该写到上方的「内容」里？',
+
+    // ── Blox 全屏编辑器（实验）──
+    'page_mode_blox' => 'Blox 全屏',
+    'page_mode_blox_tip' => '全屏可视化编辑（实验功能）：左侧结构树、中间画布、右侧属性，编辑的是同一份排版数据',
+    'label_experimental' => '实验',
 ];
