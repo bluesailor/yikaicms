@@ -16,6 +16,6 @@
         "en"
     ],
     "required_plugins": [],
-    "screenshot": "assets/images/screenshot.png",
+    "screenshot": "assets/images/screenshot.jpg",
     "design_tokens": "design-tokens.json"
 }
