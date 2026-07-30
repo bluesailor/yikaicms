@@ -16,6 +16,18 @@ if (!defined('ROOT_PATH')) { exit('Access Denied'); }
 
 return [
 
+    // ─── 结构补齐：必须先于一切数据迁移 ───────────────────────────────
+    // 这两条补的都是「install SQL 一直有、却从无配套迁移」的列。老站升上来缺这些列，
+    // 后面按日期排的数据迁移会一路撞 no such column 而整条链卡死：
+    //   lang / translation_group_id → 20260511 全系列 i18n 迁移
+    //   contents.content_type       → 20260511_solution_sample / _industry_sample
+    // 所以它们的执行顺序由「依赖关系」决定，与 id 里的日期无关，一律排最前。
+    // 定义仍在各自的独立文件里（本包不因此增条目）；这里 require 只为占位定序——
+    // loadAll() 按 id 去重时保留首次插入位置、取独立文件里的定义。
+    // 两条都判列存在，幂等，新装站与已升级站会直接跳过。
+    require ROOT_PATH . '/migrations/20260511_i18n_base_columns.php',
+    require ROOT_PATH . '/migrations/20260729_builder_columns.php',
+
     [
         'id'    => '20260220_banner_groups',
         'title' => '轮播图分组管理',
@@ -133,6 +145,11 @@ return [
                 `url` varchar(255) NOT NULL DEFAULT '' COMMENT '官网',
                 `sort_order` int(11) NOT NULL DEFAULT 0,
                 `status` tinyint(1) NOT NULL DEFAULT 1,
+                -- 这两列本条迁移当初没有，是后来 i18n 铺开时只加进 install SQL 的。
+                -- 补在这里，让「本次才建表」的站点一步到位；已有该表的站点由
+                -- 20260511_i18n_base_columns 补列（那条排在最前，见本文件顶部）。
+                `lang` varchar(10) NOT NULL DEFAULT 'zh-CN' COMMENT '语言代码',
+                `translation_group_id` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '翻译组ID',
                 PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='品牌管理'",
         ],
@@ -153,6 +170,9 @@ return [
                 `slug` varchar(100) NOT NULL DEFAULT '',
                 `sort_order` int(11) NOT NULL DEFAULT 0,
                 `status` tinyint(1) NOT NULL DEFAULT 1,
+                -- 同 brands：i18n 铺开时只加进了 install SQL，这里补上（理由见本文件顶部）
+                `lang` varchar(10) NOT NULL DEFAULT 'zh-CN' COMMENT '语言代码',
+                `translation_group_id` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '翻译组ID',
                 PRIMARY KEY (`id`),
                 KEY `idx_group` (`group_name`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='产品标签'",

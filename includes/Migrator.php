@@ -64,8 +64,56 @@ if (!function_exists('_sqlToSqlite')) {
         if (stripos($sql, 'AUTOINCREMENT') !== false) {
             $sql = preg_replace('/,\s*PRIMARY\s+KEY\s*\(`id`\)/i', '', $sql);
         }
+        // UNIQUE KEY `名` (列) → UNIQUE (列)：SQLite 不认命名的 KEY 子句，但支持匿名 UNIQUE，
+        // 保住唯一约束。必须排在下面删 KEY 之前——否则 `UNIQUE KEY` 会被当成普通索引整段丢掉。
+        $sql = preg_replace('/\bUNIQUE\s+KEY\s+`[^`]+`\s*(\([^)]+\))/i', 'UNIQUE $1', $sql);
+        // 普通索引没有内联等价写法，只能丢；建表后如需索引另发 CREATE INDEX。
         $sql = preg_replace('/,\s*KEY\s+`[^`]+`\s*\([^)]+\)/i', '', $sql);
         return $sql;
+    }
+}
+
+if (!function_exists('_addColumn')) {
+    /**
+     * 幂等加列，两种驱动都安全。
+     *
+     * 迁移在 'sqls' 里写的语句会自动过 _sqlToSqlite()，但在 'php' 回调里直接
+     * db()->execute() 拼 DDL 的则不会——MySQL 的 COMMENT / UNSIGNED / AFTER
+     * 会让 SQLite 站直接报语法错。加列请一律走本函数。
+     *
+     * @param string $def MySQL 写法的列定义，如 "varchar(10) NOT NULL DEFAULT '' COMMENT '语言'"
+     * @return bool true=本次新增，false=已存在
+     */
+    function _addColumn(string $table, string $column, string $def): bool
+    {
+        if (_columnExists($table, $column)) {
+            return false;
+        }
+        $sql = 'ALTER TABLE `' . DB_PREFIX . $table . '` ADD COLUMN `' . $column . '` ' . $def;
+        db()->execute(db()->isSqlite() ? (_sqlToSqlite($sql) ?? $sql) : $sql);
+        return true;
+    }
+}
+
+if (!function_exists('_addIndex')) {
+    /**
+     * 幂等建索引。MySQL 用 ALTER ADD INDEX，SQLite 用 CREATE INDEX IF NOT EXISTS。
+     * 索引重名等幂等失败视为成功；其余异常照抛，别把真错误吞掉。
+     *
+     * @param string $cols 列清单，如 "`translation_group_id`"
+     */
+    function _addIndex(string $table, string $name, string $cols): void
+    {
+        $full = DB_PREFIX . $table;
+        try {
+            db()->execute(db()->isSqlite()
+                ? "CREATE INDEX IF NOT EXISTS `{$name}` ON `{$full}` ({$cols})"
+                : "ALTER TABLE `{$full}` ADD INDEX `{$name}` ({$cols})");
+        } catch (\Throwable $e) {
+            if (!preg_match('/already exists|Duplicate key name|duplicate/i', $e->getMessage())) {
+                throw $e;
+            }
+        }
     }
 }
 

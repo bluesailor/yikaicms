@@ -96,3 +96,6 @@ storage/backups/
 # SEO 工坊生成物（站点专属，不入 CMS 库）：llms.txt + IndexNow 密钥文件
 # robots.txt 已被 git 跟踪，不受下面通配影响
 /*.txt
+
+# schema 对拍的临时库（tests/smoke/schema_parity.php 跑完自删，异常退出时可能残留）
+storage/parity-*.sqlite
