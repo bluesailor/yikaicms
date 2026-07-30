@@ -578,6 +578,8 @@ return [
     'sh_title' => '静态 HTML 生成',
     'sh_intro' => '将全站公开页面预生成为静态 .html 文件，由 Web 服务器直接返回（不经过 PHP），提升性能、抗压能力与安全性。',
     'sh_no_curl' => '当前 PHP 未启用 cURL 扩展，无法使用静态生成功能。请联系主机商开启 php-curl。',
+    'sh_bypass_warn_title' => '管理员绕过静态直出未生效',
+    'sh_bypass_warn_body' => '检测到已生成静态文件，但带管理员标记的请求仍被静态直出接管——你在前台将看不到管理条与就地编辑，改了内容也不会立刻生效。Apache 站随升级自动修复；自建 Nginx 需按 deploy/nginx-server.conf 更新 server 配置（判断 yk_admin cookie 时跳过静态）。',
     'sh_stat_files' => '已生成文件',
     'sh_stat_size' => '占用空间',
     'sh_stat_last' => '上次生成时间',

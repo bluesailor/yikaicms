@@ -530,6 +530,8 @@ return [
     'sh_title' => 'Static HTML Generation',
     'sh_intro' => 'Pre-render all public pages into static .html files served directly by the web server (bypassing PHP) for better performance, resilience and security.',
     'sh_no_curl' => 'The PHP cURL extension is not enabled, so static generation is unavailable. Please ask your host to enable php-curl.',
+    'sh_bypass_warn_title' => 'Admin bypass for static serving is not active',
+    'sh_bypass_warn_body' => 'Static files exist, but a request carrying the admin marker is still served statically — you will not see the admin bar or inline editing on the front end, and content changes will not appear. Apache sites are fixed automatically on upgrade; self-hosted Nginx must update the server config per deploy/nginx-server.conf (skip static when the yk_admin cookie is present).',
     'sh_stat_files' => 'Generated Files',
     'sh_stat_size' => 'Disk Usage',
     'sh_stat_last' => 'Last Generated',

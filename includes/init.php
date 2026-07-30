@@ -126,5 +126,12 @@ if (is_file($__ovBootstrap)) {
     }
 }
 
+// 标记「本次响应由 PHP 实时渲染」。html/ 下的静态文件由 Web 服务器直出、不经这里，
+// 因此没有这个头——静态生成页的自检据此判断「管理员绕过静态」是否真的配好了。
+// 对访客无副作用，也不泄露任何信息。
+if (!headers_sent()) {
+    header('X-Yikai-Render: dynamic');
+}
+
 // 前台启动完成，供插件挂载初始化逻辑
 do_action('init');
