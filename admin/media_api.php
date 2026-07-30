@@ -20,8 +20,12 @@ checkLogin();
 
 header('Content-Type: application/json; charset=utf-8');
 
-/** 统一的拒绝出口。 */
-function ma_deny(string $msg): never
+/**
+ * 统一的拒绝出口。
+ * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
+ * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
+ */
+function ma_deny(string $msg): void
 {
     echo json_encode(['code' => 403, 'msg' => $msg], JSON_UNESCAPED_UNICODE);
     exit;
