@@ -85,9 +85,14 @@ $_enabledList = $_lang['enabled'];
 
 // 获取当前视图语言下的单页 + 图库相册类型栏目
 // （album 型栏目本身是导航入口，内容在相册里维护，一并列出避免用户在「单页」找不到入口）
+// 顺带取回每页的编辑方式（content_type 在 contents 表）：单页可以用普通编辑器
+// 或排版编辑器维护，两者数据结构不同，列表上必须看得出来是哪种——
+// 否则点「编辑」进去才发现走错编辑器，而在普通编辑器里保存会清掉排版数据。
 $pages = channelModel()->query(
-    'SELECT c.*, p.name as parent_name FROM ' . channelModel()->tableName() . ' c
+    'SELECT c.*, p.name as parent_name, ct.content_type FROM ' . channelModel()->tableName() . ' c
      LEFT JOIN ' . channelModel()->tableName() . ' p ON c.parent_id = p.id
+     LEFT JOIN ' . contentModel()->tableName() . ' ct
+            ON ct.channel_id = c.id AND ct.lang = c.lang AND ct.deleted_at IS NULL
      WHERE c.type IN (\'page\', \'album\') AND c.lang = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
     [$_viewLang]
 );
@@ -221,11 +226,21 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                             <?php echo __('admin_content_edit'); ?>
                         </a>
                         <?php else: ?>
-                        <a href="/admin/page_edit.php?id=<?php echo $item['id']; ?>"
+                        <?php
+                        // 按该页实际的编辑方式直达对应编辑器：排版页点「编辑」不该落到
+                        // 普通编辑器里（那里一保存就会清掉排版数据）
+                        $__isBlocks = ($item['content_type'] ?? 'html') === 'blocks';
+                        $__editUrl  = ($__isBlocks ? '/admin/page_edit_advance.php?id=' : '/admin/page_edit.php?id=') . $item['id'];
+                        ?>
+                        <a href="<?php echo $__editUrl; ?>"
                            class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                            <i class="ti ti-pencil text-sm"></i>
+                            <i class="ti ti-<?php echo $__isBlocks ? 'layout-board' : 'pencil'; ?> text-sm"></i>
                             <?php echo __('admin_content_edit'); ?>
                         </a>
+                        <?php if ($__isBlocks): ?>
+                        <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
+                              title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
+                        <?php endif; ?>
                         <?php endif; ?>
                         <a href="/<?php echo e($item['slug']); ?>.html" target="_blank"
                            class="text-gray-500 hover:underline text-sm inline-flex items-center gap-1">

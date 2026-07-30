@@ -447,8 +447,19 @@ var editor = initWangEditor("#toolbar-container", "#editor-container", {
     }
 });
 
+var IS_BLOCKS_PAGE = ' . ($contentType === 'blocks' ? 'true' : 'false') . ';
+var BLOCKS_OVERWRITE_CONFIRM = ' . json_encode(__('pe_blocks_overwrite_confirm'), JSON_UNESCAPED_UNICODE) . ';
+
 document.getElementById("editForm").addEventListener("submit", async function(e) {
     e.preventDefault();
+
+    // 排版页在这里保存会把 blocks_data 清空、退回富文本模式。
+    // 页顶虽有横幅，但横幅很容易被划过去——不可逆的破坏性动作要挡在提交这一步。
+    // （保存前会自动存档，真误操作了可以从「历史版本」恢复，提示里也写明了。）
+    if (IS_BLOCKS_PAGE && !confirm(BLOCKS_OVERWRITE_CONFIRM)) {
+        return;
+    }
+
     document.getElementById("contentInput").value = editor.getHtml();
 
     const formData = new FormData(this);
