@@ -28,6 +28,7 @@
  *         'label'       => string,          // anchor text (i18n)
  *         'url'         => string,
  *         'perm'        => string,          // optional — permission required to SEE this item
+ *         'visible'     => bool,            // optional — 复杂可见性（单个 perm 键表达不了时）
  *                                           //   (must match the page's requirePermission();
  *                                           //    '*' = super admin only; absent = everyone)
  *         'icon'        => string,          // raw <path/> SVG markup (24x24 viewBox)
@@ -345,6 +346,12 @@ return [
             ],
             [
                 'key'   => 'recycle',
+                // 回收站的可见性不是单个权限键能表达的（横跨五类内容），
+                // 用 visible 布尔：一个分类也看不到的人不显示入口，
+                // 免得点进去只收获一句「没有操作权限」。
+                // function_exists 守卫：本文件在只加载菜单结构的场景（单测、
+                // sidebar_menu_api）里不一定引入了 permissions.php
+                'visible' => !function_exists('recycleVisibleTypes') || recycleVisibleTypes() !== [],
                 'label' => __('admin_recycle_bin'),
                 'url'   => '/admin/recycle.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>',

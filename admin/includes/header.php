@@ -148,7 +148,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     // 权限过滤：菜单项声明了 perm 而当前角色没有该权限 → 不显示；整组被滤空则组标题也不显示
                     $navGroup['items'] = array_filter(
                         (array) ($navGroup['items'] ?? []),
-                        static fn($it) => empty($it['perm']) || hasPermission((string) $it['perm'])
+                        static fn($it) => (!isset($it['visible']) || $it['visible'])
+                            && (empty($it['perm']) || hasPermission((string) $it['perm']))
                     );
                     if (empty($navGroup['items'])) continue;
                 ?>
@@ -223,6 +224,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 if (!empty($_gv['super_only']) && !isSuperAdmin()) continue;
                 $_its = [];
                 foreach ((array) ($_gv['items'] ?? []) as $_it) {
+                    if (isset($_it['visible']) && !$_it['visible']) continue;
                     if (!empty($_it['perm']) && !hasPermission((string) $_it['perm'])) continue;
                     $_its[] = ['label' => trim(strip_tags((string) ($_it['label'] ?? ''))), 'url' => (string) ($_it['url'] ?? '')];
                 }
