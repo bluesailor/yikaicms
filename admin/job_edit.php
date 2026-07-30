@@ -16,7 +16,7 @@ checkLogin();
 // 与 job.php 列表页对齐。原先写的 'content' 在权限细粒度化之后已不是合法键
 // （见 includes/permissions.php:allPermissionKeys）——迁移把各角色的 content 展开掉了，
 // 于是这页退化成只有超管能进，列表进得去、点编辑就撞「没有操作权限」。
-requirePermission('edit_article');
+requirePermission('edit_job');
 
 $id = getInt('id');
 $isEdit = $id > 0;

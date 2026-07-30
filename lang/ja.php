@@ -324,6 +324,8 @@ return [
     'perm_type_case' => '事例',
     'perm_type_download' => 'ダウンロード',
     'perm_type_page' => '固定ページ',
+    'perm_type_job' => '求人',
+    'perm_type_timeline' => '沿革',
     'perm_no_delete_hint' => '「削除」未選択の場合、編集はできても削除はできません',
     'admin_setting_api' => 'API公開',
     'apiset_title' => '公開API（コンテンツAPI）',

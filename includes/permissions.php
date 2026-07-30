@@ -16,10 +16,16 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
-/** 内容类型（各自有 edit_/delete_ 两档） */
+/**
+ * 内容类型（各自有 edit_/delete_ 两档）。
+ *
+ * 不等于「contents 表的 type 取值」——product / job / timeline 各有自己的表，
+ * 这里列的是「值得单独授权的一类内容」。招聘与发展历程原先借用 edit_article，
+ * 语义混乱（能写文章 ≠ 能改招聘岗位），2026-07-30 起独立成键。
+ */
 function contentPermTypes(): array
 {
-    return ['article', 'product', 'case', 'download', 'page'];
+    return ['article', 'product', 'case', 'download', 'page', 'job', 'timeline'];
 }
 
 /** 辅助模块单权限 */

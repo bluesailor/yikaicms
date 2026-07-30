@@ -14,14 +14,14 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 require_once ROOT_PATH . '/admin/includes/list_ui.php';   // 列表共享组件：行内操作 / 批量下拉 / 封面占位
 
 checkLogin();
-if (!hasAnyContentPerm()) requirePermission('edit_article');
+requirePermission('edit_job');
 
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'delete') {
-        requirePermission('delete_article');
+        requirePermission('delete_job');
         $id = postInt('id');
         jobModel()->deleteById($id);
         adminLog('job', 'delete', '删除职位ID：' . $id);
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_delete') {
-        requirePermission('delete_article');
+        requirePermission('delete_job');
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             jobModel()->deleteByIds($ids);

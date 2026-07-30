@@ -164,11 +164,35 @@ $add('媒体库管理页（要 media）', 'GET',  '/admin/media.php',           
 $add('媒体选择器·列表',        'GET',  '/admin/media_api.php?action=list', ['contributor' => 'allow', 'editor' => 'allow']);
 $add('上传接口',               'POST', '/admin/upload.php',               ['contributor' => 'allow', 'editor' => 'allow']);
 
+// —— 招聘 / 发展历程：2026-07-30 起独立成键。迁移把 edit_article 持有者
+//    自动补上 edit_job + edit_timeline，所以两个角色都应放行（语义无损）。
+$add('招聘（独立 edit_job）',      'GET', '/admin/job.php',      ['contributor' => 'allow', 'editor' => 'allow']);
+$add('发展历程（edit_timeline）',  'GET', '/admin/timeline.php', ['contributor' => 'allow', 'editor' => 'allow']);
+
 // —— 版本历史：按类型判定，投稿者不得读/恢复单页版本 ——
 $add('版本·读文章', 'GET', '/admin/revision.php?action=list&type=article&id=1',
      ['contributor' => 'allow', 'editor' => 'allow']);
 $add('版本·读单页', 'GET', '/admin/revision.php?action=list&type=page&id=' . $PAGE_ID,
      ['contributor' => 'deny',  'editor' => 'allow']);
+
+// 独立成键的意义在于「能单独收紧」。造一个只有 edit_article、
+// 不含 edit_job / edit_timeline 的角色，验证招聘与历程确实被挡住——
+// 否则等于白拆。
+$ISOLATED = ['user' => 'pm_artonly', 'pass' => 'Perm@Test123', 'roleId' => 91];
+$pdo2 = new PDO('sqlite:' . $dbFile);
+$pdo2->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$t = time();
+$pdo2->exec('DELETE FROM yikai_roles WHERE id = ' . $ISOLATED['roleId']);
+$pdo2->prepare(
+    'INSERT INTO yikai_roles (id,name,name_en,name_ja,description,description_en,description_ja,permissions,status,created_at)'
+    . " VALUES (?,'仅文章','Article Only','記事のみ','','','',?,1,?)"
+)->execute([$ISOLATED['roleId'], json_encode(['edit_article']), $t]);
+$pdo2->prepare('DELETE FROM yikai_users WHERE username = ?')->execute([$ISOLATED['user']]);
+$pdo2->prepare(
+    'INSERT INTO yikai_users (username,password,nickname,email,role_id,status,created_at,updated_at)'
+    . ' VALUES (?,?,?,?,?,1,?,?)'
+)->execute([$ISOLATED['user'], password_hash($ISOLATED['pass'], PASSWORD_BCRYPT), 'art', 'art@t.local', $ISOLATED['roleId'], $t, $t]);
+unset($pdo2);
 
 echo str_repeat('─', 72) . "\n";
 
@@ -207,6 +231,29 @@ foreach (['contributor', 'editor'] as $roleKey) {
     @unlink($jar);
     echo "\n";
 }
+
+// ── 隔离验证：只有 edit_article 的角色，招聘与历程必须被挡住 ──
+$jar = sys_get_temp_dir() . '/pm_artonly_' . getmypid() . '.txt';
+pmLogin($jar, $ISOLATED['user'], $ISOLATED['pass']);
+echo "【仅 edit_article（验证独立成键真能收紧）】{$ISOLATED['user']}\n";
+foreach ([
+    ['文章列表（应放行）', '/admin/article.php',  'allow'],
+    ['招聘（应拒绝）',     '/admin/job.php',      'deny'],
+    ['发展历程（应拒绝）', '/admin/timeline.php', 'deny'],
+] as [$label, $url, $want]) {
+    [$code, $body] = pmReq($jar, 'GET', $url);
+    $denied = pmDenied($code, $body);
+    $ok = ($want === 'deny') ? $denied : !$denied;
+    $checked++;
+    if (!$ok) {
+        $fail++;
+        printf("  ✗ %-22s 期望%s 实际%s (HTTP %d)\n", $label, $want === 'deny' ? '拒绝' : '放行', $denied ? '被拒' : '放行', $code);
+    } else {
+        printf("  ✓ %-22s %s\n", $label, $denied ? '已拒绝' : '已放行');
+    }
+}
+@unlink($jar);
+echo "\n";
 
 echo str_repeat('─', 72) . "\n";
 if ($fail > 0) {
