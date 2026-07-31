@@ -172,6 +172,11 @@ EXCLUDES=(
     "themes/minimal"
     "themes/trade"
 
+    # Blox 编辑器自 v1.15.1 起以「实验」标注随包发布（三栏/分层/拖拽/媒体库已成型）。
+    #   themes/blox 配套实验主题仍不发（2026-07-31 决定）——编辑器不依赖它，
+    #   看到它「哪儿都装不到」不是 bug，别去补。
+    "themes/blox"
+
     # 临时测试文件（如本地 dev 时手写的）
     "recipe_test.php"
     "_i18n_test.php"

@@ -1834,4 +1834,16 @@ return [
     'revision_restore_fail'   => '恢复失败',
     'revision_close'          => '关闭',
     'revision_by'             => '操作人',
+
+    // ── 文章摘要字段的说明文案 ──
+    'sum_optional' => '选填',
+    'sum_hint' => '列表页展示的一两句话概述。正文请写到上方的「内容」编辑器里——摘要不是正文。留空时系统自动从正文截取。',
+    'sum_placeholder' => '一两句话概括本文，留空则自动截取',
+    'sum_chars' => '字',
+    'sum_too_long' => '摘要偏长，内容是不是该写到上方的「内容」里？',
+
+    // ── Blox 全屏编辑器（实验）──
+    'page_mode_blox' => '使用 Blox 编辑',
+    'page_mode_blox_tip' => '全屏可视化编辑（实验功能）：左侧结构树、中间画布、右侧属性，编辑的是同一份排版数据',
+    'label_experimental' => '实验',
 ];

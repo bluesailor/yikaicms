@@ -28,6 +28,9 @@ final class BlockRenderer
         'xl'   => ['gap-12', 'md:gap-12', 'lg:gap-12'],
     ];
     private const MAXWIDTH_MAP = ['default' => 'max-w-6xl', 'narrow' => 'max-w-4xl', 'wide' => 'max-w-7xl', 'full' => 'max-w-full'];
+    // 容器层（内容层）独立样式：区块=全宽背景层、内层 div=容器（Bricks 的 Section/Container 分层）
+    private const CONTAINER_PAD_MAP = ['sm' => 'p-4', 'md' => 'p-6', 'lg' => 'p-10'];
+    private const CONTAINER_RADIUS_MAP = ['md' => 'rounded-xl', 'xl' => 'rounded-3xl'];
     private const ALIGN_ITEMS_MAP = ['start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end'];
     private const JUSTIFY_ITEMS_MAP = ['start' => 'justify-items-start', 'center' => 'justify-items-center', 'end' => 'justify-items-end'];
 
@@ -77,7 +80,20 @@ final class BlockRenderer
                     $style .= 'background-color:' . $bgColor . ';';
                 }
             }
-            if (!empty($settings['bg_image'])) {
+            // 渐变背景：白名单校验后才进 style（值会拼进 style 属性，不能放行任意 CSS）。
+            // 与背景图共存时渐变叠在图上（半透明渐变即成遮罩）；bg_gradient 为空时
+            // 走原分支，输出与旧版逐字节一致（黄金对拍不破）。
+            $bgGrad = (string) ($settings['bg_gradient'] ?? '');
+            if ($bgGrad !== '' && !preg_match('/^(linear|radial)-gradient\([a-zA-Z0-9#%.,()\s-]+\)$/', $bgGrad)) {
+                $bgGrad = '';
+            }
+            if ($bgGrad !== '') {
+                if (!empty($settings['bg_image'])) {
+                    $style .= 'background-image:' . $bgGrad . ',url(' . htmlspecialchars($settings['bg_image']) . ');background-size:cover;background-position:center;';
+                } else {
+                    $style .= 'background-image:' . $bgGrad . ';';
+                }
+            } elseif (!empty($settings['bg_image'])) {
                 $style .= 'background-image:url(' . htmlspecialchars($settings['bg_image']) . ');background-size:cover;background-position:center;';
             }
             $styleAttr = $style ? ' style="' . $style . '"' : '';
@@ -102,7 +118,28 @@ final class BlockRenderer
 
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
             $html .= '<section class="' . $padding . '"' . $styleAttr . $editAttr . '>';
-            $html .= '<div class="' . $maxWidth . ' mx-auto px-4">';
+
+            // ── 容器层：宽度自定义 px + 独立背景/内边距/圆角。全部是新增可选键，
+            //    一个不设时输出仍为 <div class="max-w-* mx-auto px-4">（黄金对拍不破）──
+            $innerCls = $maxWidth . ' mx-auto px-4';
+            $innerStyle = '';
+            if (($settings['max_width'] ?? '') === 'custom') {
+                $px = (int) ($settings['max_width_px'] ?? 0);
+                if ($px >= 320 && $px <= 3840) {
+                    $innerCls = 'mx-auto px-4';
+                    $innerStyle .= 'max-width:' . $px . 'px;';
+                }
+            }
+            if (!empty(self::CONTAINER_PAD_MAP[$settings['container_padding'] ?? ''])) {
+                $innerCls .= ' ' . self::CONTAINER_PAD_MAP[$settings['container_padding']];
+            }
+            if (!empty(self::CONTAINER_RADIUS_MAP[$settings['container_radius'] ?? ''])) {
+                $innerCls .= ' ' . self::CONTAINER_RADIUS_MAP[$settings['container_radius']];
+            }
+            if (!empty($settings['container_bg'])) {
+                $innerStyle .= 'background-color:' . htmlspecialchars((string) $settings['container_bg'], ENT_QUOTES) . ';';
+            }
+            $html .= '<div class="' . $innerCls . '"' . ($innerStyle !== '' ? ' style="' . $innerStyle . '"' : '') . '>';
             // section 级标题（可选）：有 title 才渲染 —— 让"总标题 + 多列"在同一 section 内完成，
             // 无 title 的 section 输出与旧版完全一致（黄金对拍不变）。
             $secTitle = trim((string) ($settings['title'] ?? ''));
@@ -134,12 +171,9 @@ final class BlockRenderer
                     }
                 }
                 foreach ($col['elements'] ?? [] as $el) {
-                    $type = $el['type'] ?? '';
-                    $element = BuilderRegistry::get($type);
-                    if ($element !== null) {
-                        $html .= $element->render($el['data'] ?? []);
+                    if (is_array($el)) {
+                        $html .= self::renderElement($el);
                     }
-                    // 未注册 type：静默跳过（与旧 switch default 行为一致）
                 }
                 if ($colCount > 1) {
                     $html .= '</div>';
@@ -153,5 +187,28 @@ final class BlockRenderer
         }
 
         return $html;
+    }
+
+    /**
+     * 渲染单个元素。容器元素（isContainer）先递归渲染 data.children 传入 $children；
+     * 普通元素不看 children 键，输出与抽取前逐字节一致（黄金对拍不破）。
+     * 深度上限 3 防坏数据画圈（编辑器只允许一层，这里是兜底不是约束）。
+     * 未注册 type 静默跳过（与旧 switch default 行为一致）。
+     */
+    private static function renderElement(array $el, int $depth = 0): string
+    {
+        $element = BuilderRegistry::get((string) ($el['type'] ?? ''));
+        if ($element === null) {
+            return '';
+        }
+        $children = '';
+        if ($element->isContainer() && $depth < 3) {
+            foreach ((array) ($el['data']['children'] ?? []) as $child) {
+                if (is_array($child)) {
+                    $children .= self::renderElement($child, $depth + 1);
+                }
+            }
+        }
+        return $element->render($el['data'] ?? [], $children);
     }
 }

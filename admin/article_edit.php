@@ -178,14 +178,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="hidden" name="subtitle" value="<?php echo e($article['subtitle'] ?? ''); ?>">
 
                     <div>
-                        <label class="block text-gray-700 mb-1"><?php echo __('label_article_summary'); ?></label>
-                        <textarea name="summary" rows="3" class="w-full border rounded px-4 py-2"
-                                  placeholder="<?php echo __('label_article_summary'); ?>"><?php echo e($article['summary'] ?? ''); ?></textarea>
-                    </div>
-
-                    <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_article_content'); ?></label>
                         <textarea name="content" id="contentEditor" class="tinymce-editor"><?php echo e($article['content'] ?? ''); ?></textarea>
+                    </div>
+
+                    <?php
+                    // 摘要排在正文之后，并做视觉降级。
+                    //
+                    // 真实事故：客户把整篇月刊（一万余字）粘进摘要、正文留空，前台列表
+                    // 显示整篇、详情页却是空的。根因不是不认识字段，而是版面顺序——摘要
+                    // 原本排在正文之前、外观又和正文框一样，从上往下填时第一个大输入框
+                    // 就被当成了正文。所以：
+                    //   1) 位置后移：先写正文，才轮到摘要
+                    //   2) 视觉降级：灰底、小字、标注「选填」，与正文编辑器区分开
+                    //   3) 说明它是什么、不是什么
+                    //   4) 实时字数，超长变色并提示内容可能该写到上面的正文里
+                    // 不加硬性长度限制：存量文章里确实有较长摘要，截断会丢数据。
+                    $__sumLen = mb_strlen((string) ($article['summary'] ?? ''), 'UTF-8');
+                    ?>
+                    <div class="bg-gray-50 border border-gray-200 rounded px-4 py-3">
+                        <label class="block text-gray-500 text-sm mb-1">
+                            <?php echo __('label_article_summary'); ?>
+                            <span class="text-gray-400 font-normal">（<?php echo __('sum_optional'); ?>）</span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2"><?php echo __('sum_hint'); ?></p>
+                        <textarea name="summary" id="summaryBox" rows="2"
+                                  class="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white"
+                                  placeholder="<?php echo __('sum_placeholder'); ?>"><?php echo e($article['summary'] ?? ''); ?></textarea>
+                        <div class="flex items-center justify-between mt-1">
+                            <span id="summaryWarn" class="text-xs text-amber-600 hidden"><?php echo __('sum_too_long'); ?></span>
+                            <span id="summaryCount" class="text-xs text-gray-400 ml-auto"><?php echo $__sumLen; ?> <?php echo __('sum_chars'); ?></span>
+                        </div>
                     </div>
 
                     <?php /* AI 助手面板由 admin/includes/footer.php 自动注入 */ ?>
@@ -463,6 +486,7 @@ function pickCoverFromMedia() {
 // 不要改回 nowdoc（单引号定界符），否则内嵌的 PHP 标签不会被执行、会原样输出到 JS。
 // 切勿在本注释里写 PHP 闭合标签，否则会提前结束 PHP 块、把后面的代码当文本输出。
 $msgSaveSuccess = json_encode(__('msg_save_success'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
+$sumCharsLabel  = json_encode(__('sum_chars'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 $extraJs = <<<JSEOF
 <script>
 initTinyEditor(".tinymce-editor");
@@ -507,6 +531,24 @@ initTinyEditor(".tinymce-editor");
             showMessage("网络错误，请重试", "error");
         }
     });
+})();
+
+// 摘要字数：超阈值提示内容可能填错了地方。只提示，不阻断保存。
+(function () {
+    var box = document.getElementById('summaryBox');
+    if (!box) return;
+    var countEl = document.getElementById('summaryCount');
+    var warnEl  = document.getElementById('summaryWarn');
+    var LIMIT = 300;
+    function tick() {
+        var n = Array.from(box.value).length;   // 按字符数，不用 length（避免代理对算两个）
+        countEl.textContent = n + ' ' + {$sumCharsLabel};
+        var over = n > LIMIT;
+        warnEl.classList.toggle('hidden', !over);
+        countEl.className = 'text-xs ml-auto ' + (over ? 'text-amber-600' : 'text-gray-400');
+    }
+    box.addEventListener('input', tick);
+    tick();
 })();
 
 </script>
