@@ -64,12 +64,13 @@ $saveEndpoint = '/admin/page_edit_advance.php?id=' . $id;
  *
  * 入选标准：「插入即所见」或「插入即可配」。image / video 默认渲染为空，但媒体库
  * 选择器已进 blox（插入后设置面板自动打开，选图/贴链接马上可见），故放开。
- * card / 动态类（轮播图 / 导航菜单 / 动态列表）需要先配数据源或多字段内容，仍押后。
+ * CTA / card 用 blox 占位数据保证插入可见；FAQ / 动态列表 / 导航沿用注册表默认值。
+ * banner 仍需先有分组数据源，暂时通过 code/短码入口插入。
  *
  * 加元素只需往这个数组里添 type —— 面板、分组、图标都会自动跟上。
  */
 // code = 代码/HTML/短码入口：贴 [form-xxx]、{yk:banner} 等短码即可挂表单/轮播图
-$bloxElementTypes = ['heading', 'text', 'button', 'quote', 'alert', 'icon', 'icon-box', 'divider', 'spacer', 'container', 'image', 'video', 'code'];
+$bloxElementTypes = ['heading', 'text', 'button', 'quote', 'alert', 'icon', 'icon-box', 'cta', 'card', 'accordion', 'divider', 'spacer', 'container', 'image', 'video', 'list-dynamic', 'nav', 'code'];
 
 /**
  * 插入时的占位内容。
@@ -90,6 +91,18 @@ $bloxPlaceholders = [
     'quote'   => ['text' => '引用内容', 'author' => ''],
     'alert'   => ['text' => '提示内容'],
     'icon-box' => ['title' => '标题', 'text' => '描述文字'],
+    'cta' => [
+        'title' => '准备开始合作？',
+        'text' => '告诉我们你的需求，我们会尽快给出建议方案。',
+        'btn_text' => '联系我们',
+        'btn_url' => '/contact.html',
+    ],
+    'card' => [
+        'title' => '卡片标题',
+        'text' => '这里是卡片描述文字。',
+        'image' => '',
+        'link' => '',
+    ],
     // 容器的子元素数组：defaults 由 controls 推导不含它，这里补上空数组骨架
     'container' => ['children' => []],
 ];
@@ -205,6 +218,11 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs text-amber-300" x-show="dirty">未保存</span>
+            <button type="button" @click="openRevisions()"
+                    class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="历史版本">
+                <i class="ti ti-history text-base"></i>
+            </button>
             <span class="text-xs text-gray-400" x-show="previewLoading">刷新中…</span>
             <a :href="'/' + '<?php echo e($page['slug']); ?>' + '.html'" target="_blank"
                class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="前台预览">
@@ -297,8 +315,8 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                         <p class="text-xs text-gray-400 text-center py-8">没有匹配的元素</p>
                     </template>
                     <p class="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2 mt-1">
-                        第一批只放默认值就能看出效果的元素。图片、卡片、轮播等需要先配置内容，
-                        待元素设置面板做好后再开放。
+                        已开放常用内容、媒体、布局与动态元素；插入后会自动选中，可在右侧面板继续配置。
+                        轮播图等依赖分组数据源的元素，暂时建议通过代码/短码入口插入。
                     </p>
                 </div>
             </div>
@@ -359,7 +377,117 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                                        class="flex-1 min-w-0 text-sm font-medium text-gray-700 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
                             </div>
 
-                            <template x-if="visibleCtrls().length === 0">
+                            <template x-if="isSelectedContainerEl() && panelTab === 'style'">
+                                <div class="space-y-4">
+                                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-xs font-medium text-gray-600">布局预览</span>
+                                            <span class="text-[10px] text-gray-400" x-text="containerChildCount() + ' 个子元素'"></span>
+                                        </div>
+                                        <div class="rounded border border-dashed border-gray-300 p-3 min-h-24 transition"
+                                             :class="containerPreviewClass()"
+                                             :style="containerPreviewStyle()">
+                                            <template x-for="n in Math.max(containerChildCount(), 3)" :key="n">
+                                                <div class="rounded bg-white/90 border border-gray-200 shadow-sm h-8 flex items-center justify-center text-[10px] text-gray-400 px-2"
+                                                     x-text="n <= containerChildCount() ? ('元素 ' + n) : '占位'"></div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5">排列方向</label>
+                                        <div class="grid grid-cols-2 gap-1">
+                                            <template x-for="opt in containerDirectionOptions" :key="'dir'+opt.k">
+                                                <button type="button" @click="selEl.data.direction = opt.k" :title="opt.label"
+                                                        class="h-9 rounded border inline-flex items-center justify-center gap-1.5 text-xs transition"
+                                                        :class="(selEl.data.direction || 'column') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200 hover:text-blue-500'">
+                                                    <i class="ti text-base" :class="'ti-' + opt.icon"></i><span x-text="opt.short"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5">子元素间距</label>
+                                        <div class="grid grid-cols-4 gap-1">
+                                            <template x-for="opt in containerSizeOptions" :key="'cg'+opt.k">
+                                                <button type="button" @click="selEl.data.gap = opt.k"
+                                                        class="h-8 rounded text-xs border transition"
+                                                        :class="(selEl.data.gap || 'md') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
+                                                        x-text="opt.label"></button>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1.5">交叉轴对齐</label>
+                                            <div class="grid grid-cols-4 gap-1">
+                                                <template x-for="opt in containerAlignOptions" :key="'ca'+opt.k">
+                                                    <button type="button" @click="selEl.data.align = opt.k" :title="opt.label"
+                                                            class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                            :class="(selEl.data.align || 'stretch') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200 hover:text-blue-500'">
+                                                        <i class="ti text-base" :class="'ti-' + opt.icon"></i>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1.5">主轴分布</label>
+                                            <div class="grid grid-cols-4 gap-1">
+                                                <template x-for="opt in containerJustifyOptions" :key="'cj'+opt.k">
+                                                    <button type="button" @click="selEl.data.justify = opt.k" :title="opt.label"
+                                                            class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                            :class="(selEl.data.justify || 'start') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200 hover:text-blue-500'">
+                                                        <i class="ti text-base" :class="'ti-' + opt.icon"></i>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5">背景颜色</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
+                                                   :value="selEl.data.bg_color || '#ffffff'"
+                                                   @input="selEl.data.bg_color = $event.target.value">
+                                            <input type="text" x-model="selEl.data.bg_color" placeholder="留空=透明"
+                                                   class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                            <button type="button" @click="selEl.data.bg_color = ''"
+                                                    class="text-gray-400 hover:text-red-500 p-1" title="清除">
+                                                <i class="ti ti-x text-sm"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1.5">内边距</label>
+                                            <div class="grid grid-cols-4 gap-1">
+                                                <template x-for="opt in containerSizeOptions" :key="'cp'+opt.k">
+                                                    <button type="button" @click="selEl.data.padding = opt.k"
+                                                            class="h-8 rounded text-xs border transition"
+                                                            :class="(selEl.data.padding || 'none') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
+                                                            x-text="opt.label"></button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1.5">圆角</label>
+                                            <div class="grid grid-cols-3 gap-1">
+                                                <template x-for="opt in containerRadiusOptions" :key="'er'+opt.k">
+                                                    <button type="button" @click="selEl.data.radius = opt.k"
+                                                            class="h-8 rounded text-xs border transition"
+                                                            :class="(selEl.data.radius || 'none') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
+                                                            x-text="opt.label"></button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="visibleCtrls().length === 0 && !(isSelectedContainerEl() && panelTab === 'style')">
                                 <p class="text-xs text-gray-400 leading-relaxed"
                                    x-text="ctrlQuery.trim() || modifiedOnly ? '没有匹配的设置项。'
                                        : (elSchema(selEl.type).container && panelTab === 'content'
@@ -761,12 +889,13 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                     <span class="text-[10px] font-normal opacity-70" x-text="sections.length"></span>
                 </span>
             </div>
-            <div class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree">
+            <div class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections>
                 <template x-if="sections.length === 0">
                     <p class="text-xs text-gray-400 text-center py-8">还没有区块，从下方添加</p>
                 </template>
                 <template x-for="(section, si) in sections" :key="section.id">
                     <div @click="selectSection(si)"
+                         :data-section-id="section.id"
                          class="rounded-lg border cursor-pointer transition group"
                          :class="selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200'">
                         <div class="flex items-center gap-2 px-2.5 py-2">
@@ -791,6 +920,7 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
                                     <div @dragover.prevent="dragOver = 'c' + si + '-' + ci" @dragleave="dragOver = ''"
                                          @drop.prevent="treeDrop(si, ci, null)"
+                                         :data-si="si" :data-ci="ci" data-sort-elements
                                          class="rounded transition"
                                          :class="dragOver === 'c' + si + '-' + ci ? 'ring-2 ring-blue-300 bg-blue-50' : ''">
                                         <?php // 单列时不显示列标题——只有一列，说「列1」是噪音 ?>
@@ -800,7 +930,7 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                                             <p class="text-[10px] text-gray-300 pl-2 py-1">空</p>
                                         </template>
                                         <template x-for="(el, ei) in col.elements" :key="el.id">
-                                            <div>
+                                            <div :data-item-id="el.id" data-sort-el-item>
                                                 <div @click.stop="selectElement(si, ci, ei)"
                                                      @dragover.prevent.stop="elSchema(el.type).container && (dragOver = 'ce' + si + '-' + ci + '-' + ei)"
                                                      @drop.prevent.stop="elSchema(el.type).container ? treeDrop(si, ci, ei) : treeDrop(si, ci, null)"
@@ -822,12 +952,13 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                                                 </div>
                                                 <!-- 容器：子元素嵌套一层（图层式） -->
                                                 <template x-if="elSchema(el.type).container">
-                                                    <div class="ml-3 pl-1.5 border-l border-gray-200">
+                                                    <div class="ml-3 pl-1.5 border-l border-gray-200" :data-si="si" :data-ci="ci" :data-ei="ei" data-sort-children>
                                                         <template x-if="(el.data.children || []).length === 0">
                                                             <p class="text-[10px] text-gray-300 pl-2 py-0.5">空容器</p>
                                                         </template>
                                                         <template x-for="(cel, cei) in (el.data.children || [])" :key="cel.id">
                                                             <div @click.stop="selectChild(si, ci, ei, cei)"
+                                                                 :data-item-id="cel.id" data-sort-child-item
                                                                  class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
                                                                  :class="isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
                                                                 <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(cel.type)"></i>
@@ -977,6 +1108,54 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
         </div>
     </div>
 
+    <!-- revisions modal -->
+    <div x-show="revisionOpen" x-cloak @keydown.escape.window="revisionOpen = false"
+         class="fixed inset-0 z-[120] flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/50" @click="revisionOpen = false"></div>
+        <div class="relative bg-white rounded-xl shadow-2xl w-[920px] max-w-[94vw] flex flex-col" style="max-height:calc(100vh - 4rem)">
+            <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+                <span class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
+                    <i class="ti ti-history text-base text-blue-500"></i>历史版本
+                </span>
+                <button type="button" @click="revisionOpen = false" class="text-gray-400 hover:text-gray-600 p-1" title="关闭">
+                    <i class="ti ti-x text-base"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-[280px_1fr] min-h-0 flex-1">
+                <div class="border-r border-gray-100 min-h-0 flex flex-col">
+                    <div class="h-10 px-3 flex items-center justify-between border-b border-gray-100 shrink-0">
+                        <span class="text-xs text-gray-500" x-text="revisionLoading ? '加载中...' : (revisions.length + ' 个版本')"></span>
+                        <button type="button" @click="loadRevisions()" class="text-xs text-gray-400 hover:text-blue-500 inline-flex items-center gap-1">
+                            <i class="ti ti-refresh text-sm"></i>刷新
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto blox-scroll p-2">
+                        <p x-show="!revisionLoading && revisions.length === 0" class="text-xs text-gray-400 text-center py-10">暂无历史版本</p>
+                        <template x-for="rev in revisions" :key="rev.id">
+                            <button type="button" @click="previewRevision(rev)"
+                                    class="w-full text-left rounded-lg border px-3 py-2 mb-2 transition"
+                                    :class="activeRev && activeRev.id === rev.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200'">
+                                <span class="block text-sm text-gray-700 truncate" x-text="rev.summary || '历史版本'"></span>
+                                <span class="block text-[11px] text-gray-400 mt-0.5" x-text="rev.time_text + (rev.admin_name ? ' / ' + rev.admin_name : '')"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div class="min-h-0 flex flex-col">
+                    <div class="h-10 px-3 flex items-center justify-between border-b border-gray-100 shrink-0">
+                        <span class="text-xs text-gray-500 truncate" x-text="activeRev ? (activeRev.summary || '历史版本') : '选择左侧版本预览'"></span>
+                        <button type="button" x-show="activeRev" @click="restoreRevision(activeRev)" :disabled="revisionRestoring"
+                                class="text-xs text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
+                            <i class="ti text-sm" :class="revisionRestoring ? 'ti-loader-2 animate-spin' : 'ti-restore'"></i>
+                            恢复此版本
+                        </button>
+                    </div>
+                    <iframe class="flex-1 w-full border-0 bg-white" :srcdoc="revisionPreview || '<!doctype html><html><body></body></html>'"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- toast -->
     <div x-show="toastMsg" x-transition
          class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
@@ -990,9 +1169,18 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
             previewDevice: "desktop",
             previewLoading: false,
             saving: false,
+            dirty: false,
+            _ready: false,
             toastMsg: "",
             _debounce: null,
             _tt: null,
+            revisionOpen: false,
+            revisionLoading: false,
+            revisionRestoring: false,
+            revisions: [],
+            activeRev: null,
+            revisionPreview: "",
+            _sortables: [],
             csrf: "<?php echo csrfToken(); ?>",
             endpoint: "<?php echo $saveEndpoint; ?>",
             devices: [
@@ -1020,7 +1208,30 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                 { k: "end", label: "右对齐", icon: "layout-align-right" },
             ],
 
-            // ── 左栏（Bricks 式：元素库 ↔ 设置） ───────────────
+            // ── 左栏（Bricks 式：元素库 ↔ 设置）───────────────
+            containerDirectionOptions: [
+                { k: "column", label: "纵向排列", short: "纵向", icon: "layout-list" },
+                { k: "row", label: "横向排列", short: "横向", icon: "layout-columns" },
+            ],
+            containerSizeOptions: [
+                { k: "none", label: "无" }, { k: "sm", label: "小" },
+                { k: "md", label: "中" }, { k: "lg", label: "大" },
+            ],
+            containerRadiusOptions: [
+                { k: "none", label: "无" }, { k: "md", label: "中" }, { k: "xl", label: "大" },
+            ],
+            containerAlignOptions: [
+                { k: "stretch", label: "拉伸", icon: "arrows-vertical" },
+                { k: "start", label: "起点", icon: "layout-align-top" },
+                { k: "center", label: "居中", icon: "layout-align-middle" },
+                { k: "end", label: "终点", icon: "layout-align-bottom" },
+            ],
+            containerJustifyOptions: [
+                { k: "start", label: "起点", icon: "align-left" },
+                { k: "center", label: "居中", icon: "align-center" },
+                { k: "end", label: "终点", icon: "align-right" },
+                { k: "between", label: "两端", icon: "align-justified" },
+            ],
             libOpen: false,             // true = 有选中项时仍显示元素库（「＋ 元素」按钮）
             panelTab: "content",        // 设置面板页签：content | style
             ctrlQuery: "",              // 设置搜索关键词（仅元素设置）
@@ -1233,6 +1444,33 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
             elSchema(type) { return this.elementSchemas[type] || { label: type, icon: "box", controls: [] }; },
             elIcon(type) { return this.elSchema(type).icon || "box"; },
 
+            isSelectedContainerEl() {
+                return !!(this.selEl && this.elSchema(this.selEl.type).container);
+            },
+
+            containerChildCount() {
+                if (!this.isSelectedContainerEl()) return 0;
+                return ((this.selEl.data && this.selEl.data.children) || []).length;
+            },
+
+            containerPreviewClass() {
+                if (!this.isSelectedContainerEl()) return "";
+                var d = this.selEl.data || {};
+                var cls = (d.direction || "column") === "row" ? "flex flex-row flex-wrap" : "flex flex-col";
+                cls += " " + ({none:"gap-0", sm:"gap-1", md:"gap-2", lg:"gap-4"}[d.gap || "md"] || "gap-2");
+                cls += " " + ({stretch:"items-stretch", start:"items-start", center:"items-center", end:"items-end"}[d.align || "stretch"] || "items-stretch");
+                cls += " " + ({start:"justify-start", center:"justify-center", end:"justify-end", between:"justify-between"}[d.justify || "start"] || "justify-start");
+                cls += " " + ({none:"", sm:"p-2", md:"p-4", lg:"p-6"}[d.padding || "none"] || "");
+                cls += " " + ({none:"rounded", md:"rounded-lg", xl:"rounded-2xl"}[d.radius || "none"] || "rounded");
+                return cls;
+            },
+
+            containerPreviewStyle() {
+                if (!this.isSelectedContainerEl()) return "";
+                var bg = (this.selEl.data && this.selEl.data.bg_color) || "#f8fafc";
+                return "background:" + bg;
+            },
+
             /** 树里显示的元素名：自定义命名 > 自己的文字 > 类型名 */
             elLabel(el) {
                 if (el.name) return String(el.name);
@@ -1268,15 +1506,19 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                 this.targetCi = ci;   // 插入新元素时默认跟着当前所在列
                 // 选中即进设置（Bricks 动线）；换选中项就重置面板筛选状态
                 this.libOpen = false;
-                this.panelTab = "content";
+                var el = this.sections[si].columns[ci].elements[ei];
+                this.panelTab = this.elSchema(el.type).container ? "style" : "content";
                 this.ctrlQuery = "";
                 this.iconPick = "";
                 this.iconQuery = "";
+                this.highlightCanvasSelection();
             },
 
             selectChild(si, ci, ei, k) {
                 this.selectElement(si, ci, ei);
                 this.selectedSubEi = k;
+                this.panelTab = this.isSelectedContainerEl() ? "style" : "content";
+                this.highlightCanvasSelection();
             },
 
             moveChild(si, ci, ei, k, dir) {
@@ -1298,6 +1540,7 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
             /** 元素设置的可见控件：页签归属（color→样式，其余→内容）+ 搜索 + 只看已修改 */
             visibleCtrls() {
                 if (!this.selEl) return [];
+                if (this.isSelectedContainerEl() && this.panelTab === "style") return [];
                 var self = this;
                 var q = this.ctrlQuery.trim().toLowerCase();
                 return (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
@@ -1345,10 +1588,21 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
                 this.normalizeIds();
-                this.$nextTick(function() { self.refreshPreview(); });
-                // 区块/设置变化 → 防抖刷新画布
-                this.$watch("sections", function() { self.schedulePreview(); });
-                // 画布点选 → 回传 → 选中
+                this.$nextTick(function() {
+                    self.refreshPreview();
+                    self.initTreeSortable();
+                    self._ready = true;
+                });
+                // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
+                window.addEventListener("beforeunload", function (e) {
+                    if (self.dirty) { e.preventDefault(); e.returnValue = ""; }
+                });
+                // 数据变更 → 标脏 + 重渲染画布 + 重绑结构树拖拽
+                this.$watch("sections", function() {
+                    if (self._ready) self.dirty = true;
+                    self.schedulePreview();
+                    self.$nextTick(function() { self.initTreeSortable(); });
+                });
                 window.addEventListener("message", function(e) {
                     // 画布放置：iframe 注入脚本算好 {sec, col, type} 后回传
                     if (e && e.data && e.data.ykDrop) {
@@ -1360,6 +1614,10 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                         self.selectSection(d.sec);
                         self.targetCi = d.col || 0;
                         self.addElement(lib);
+                        return;
+                    }
+                    if (e && e.data && typeof e.data.ykPickEl === "string") {
+                        self.selectPath(e.data.ykPickEl, false);
                         return;
                     }
                     if (e && e.data && typeof e.data.ykPick === "number") {
@@ -1411,6 +1669,37 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                     .finally(function() { self.previewLoading = false; });
             },
 
+            selectedPath() {
+                if (this.selectedSi < 0 || this.selectedCi < 0 || this.selectedEi < 0) return "";
+                var path = [this.selectedSi, this.selectedCi, this.selectedEi];
+                if (this.selectedSubEi >= 0) path.push(this.selectedSubEi);
+                return path.join(".");
+            },
+
+            selectPath(path, notifyCanvas) {
+                var parts = String(path).split(".").map(function (v) { return parseInt(v, 10); });
+                if (parts.length < 3 || parts.some(function (v) { return isNaN(v); })) return;
+                if (!this.sections[parts[0]] || !this.sections[parts[0]].columns[parts[1]]) return;
+                var el = this.sections[parts[0]].columns[parts[1]].elements[parts[2]];
+                if (!el) return;
+                if (parts.length >= 4) {
+                    var kids = (el.data && el.data.children) || [];
+                    if (!kids[parts[3]]) return;
+                    this.selectChild(parts[0], parts[1], parts[2], parts[3]);
+                } else {
+                    this.selectElement(parts[0], parts[1], parts[2]);
+                }
+                if (notifyCanvas !== false) this.highlightCanvasSelection();
+            },
+
+            highlightCanvasSelection() {
+                var frame = this.$refs.canvas;
+                if (!frame || !frame.contentWindow) return;
+                var path = this.selectedPath();
+                if (path) frame.contentWindow.postMessage({ ykHighlightEl: path }, "*");
+                else if (this.selectedSi >= 0) frame.contentWindow.postMessage({ ykHighlight: this.selectedSi }, "*");
+            },
+
             selectSection(si) {
                 this.selectedSi = si;
                 this.targetCi = 0;    // 换区块就回到第一列，避免沿用上一个区块的列号
@@ -1421,8 +1710,7 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                 this.libOpen = false;
                 this.panelTab = "content";
                 this.ctrlQuery = "";
-                var frame = this.$refs.canvas;
-                if (frame && frame.contentWindow) frame.contentWindow.postMessage({ ykHighlight: si }, "*");
+                this.highlightCanvasSelection();
             },
 
             /** 选中区块的容器层：树里的「容器」节点，设置面板显示内容层样式 */
@@ -1465,6 +1753,64 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                         });
                     });
                 });
+            },
+
+            initTreeSortable() {
+                if (typeof Sortable === "undefined" || !this.$refs.tree) return;
+                this._sortables.forEach(function (s) { try { s.destroy(); } catch (e) {} });
+                this._sortables = [];
+                var self = this;
+                var secRoot = this.$refs.tree.querySelector("[data-sort-sections]") || this.$refs.tree;
+                this._sortables.push(new Sortable(secRoot, {
+                    animation: 150,
+                    draggable: "[data-section-id]",
+                    onEnd: function (evt) { self.sortSections((evt.oldDraggableIndex ?? evt.oldIndex), (evt.newDraggableIndex ?? evt.newIndex)); }
+                }));
+                this.$refs.tree.querySelectorAll("[data-sort-elements]").forEach(function (el) {
+                    self._sortables.push(new Sortable(el, {
+                        animation: 150,
+                        draggable: "[data-sort-el-item]",
+                        onEnd: function (evt) {
+                            self.sortElements(parseInt(el.dataset.si, 10), parseInt(el.dataset.ci, 10), (evt.oldDraggableIndex ?? evt.oldIndex), (evt.newDraggableIndex ?? evt.newIndex));
+                        }
+                    }));
+                });
+                this.$refs.tree.querySelectorAll("[data-sort-children]").forEach(function (el) {
+                    self._sortables.push(new Sortable(el, {
+                        animation: 150,
+                        draggable: "[data-sort-child-item]",
+                        onEnd: function (evt) {
+                            self.sortChildren(parseInt(el.dataset.si, 10), parseInt(el.dataset.ci, 10), parseInt(el.dataset.ei, 10), (evt.oldDraggableIndex ?? evt.oldIndex), (evt.newDraggableIndex ?? evt.newIndex));
+                        }
+                    }));
+                });
+            },
+
+            sortSections(oldIndex, newIndex) {
+                if (oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+                var selectedId = this.sel ? this.sel.id : "";
+                var s = this.sections.splice(oldIndex, 1)[0];
+                this.sections.splice(newIndex, 0, s);
+                if (selectedId) this.selectedSi = this.sections.findIndex(function (x) { return x.id === selectedId; });
+            },
+
+            sortElements(si, ci, oldIndex, newIndex) {
+                var col = this.sections[si] && this.sections[si].columns[ci];
+                if (!col || oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+                var selectedId = this.selTopEl ? this.selTopEl.id : "";
+                var item = col.elements.splice(oldIndex, 1)[0];
+                col.elements.splice(newIndex, 0, item);
+                if (selectedId) this.selectedEi = col.elements.findIndex(function (x) { return x.id === selectedId; });
+            },
+
+            sortChildren(si, ci, ei, oldIndex, newIndex) {
+                var el = this.sections[si] && this.sections[si].columns[ci] && this.sections[si].columns[ci].elements[ei];
+                var kids = el && el.data ? (el.data.children || []) : [];
+                if (!kids.length || oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
+                var selectedId = this.selEl ? this.selEl.id : "";
+                var item = kids.splice(oldIndex, 1)[0];
+                kids.splice(newIndex, 0, item);
+                if (selectedId) this.selectedSubEi = kids.findIndex(function (x) { return x.id === selectedId; });
             },
 
             moveSection(si, dir) {
@@ -1630,6 +1976,70 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                 this.toast(el.label + " 已插入" + (s.columns.length > 1 ? "（列" + (ci + 1) + "）" : ""));
             },
 
+            openRevisions() {
+                this.revisionOpen = true;
+                this.loadRevisions();
+            },
+
+            loadRevisions() {
+                var self = this;
+                this.revisionLoading = true;
+                fetch("/admin/revision.php?action=list&type=page&id=<?php echo $id; ?>")
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.code === 0) {
+                            self.revisions = res.data.items || [];
+                            if (!self.activeRev && self.revisions.length) self.previewRevision(self.revisions[0]);
+                        } else {
+                            self.toast(res.msg || "历史版本加载失败");
+                        }
+                    })
+                    .catch(function () { self.toast("历史版本请求失败"); })
+                    .finally(function () { self.revisionLoading = false; });
+            },
+
+            previewRevision(rev) {
+                var self = this;
+                this.activeRev = rev;
+                this.revisionPreview = "<!doctype html><html><body style='font-family:system-ui;padding:24px;color:#94a3b8'>加载中...</body></html>";
+                fetch("/admin/revision.php?action=preview&type=page&id=<?php echo $id; ?>&rev_id=" + encodeURIComponent(rev.id))
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.code === 0) {
+                            self.revisionPreview = "<!doctype html><html><head><meta charset='utf-8'><link rel='stylesheet' href='/assets/css/tailwind.css'><link rel='stylesheet' href='/assets/tabler/tabler-icons.min.css'><style>body{margin:0;background:#fff}</style></head><body>" + (res.data.html || "") + "</body></html>";
+                        } else {
+                            self.revisionPreview = "<!doctype html><html><body style='font-family:system-ui;padding:24px;color:#ef4444'>预览失败</body></html>";
+                        }
+                    })
+                    .catch(function () { self.revisionPreview = "<!doctype html><html><body style='font-family:system-ui;padding:24px;color:#ef4444'>预览请求失败</body></html>"; });
+            },
+
+            restoreRevision(rev) {
+                if (!rev || this.revisionRestoring) return;
+                var msg = this.dirty ? "当前有未保存修改，恢复历史版本会丢弃这些修改。继续恢复？" : "恢复到这个历史版本？";
+                if (!confirm(msg)) return;
+                var self = this;
+                this.revisionRestoring = true;
+                var fd = new FormData();
+                fd.append("action", "restore");
+                fd.append("type", "page");
+                fd.append("id", "<?php echo $id; ?>");
+                fd.append("rev_id", rev.id);
+                fd.append("_token", this.csrf);
+                fetch("/admin/revision.php", { method: "POST", body: fd })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (res.code === 0) {
+                            self.toast("已恢复，正在重新载入…");
+                            setTimeout(function () { location.reload(); }, 500);
+                        } else {
+                            self.toast(res.msg || "Restore failed");
+                        }
+                    })
+                    .catch(function () { self.toast("恢复请求失败"); })
+                    .finally(function () { self.revisionRestoring = false; });
+            },
+
             save() {
                 var self = this;
                 this.saving = true;
@@ -1645,7 +2055,14 @@ if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROO
                 body.set("_token", this.csrf);
                 fetch(this.endpoint, { method: "POST", body: body })
                     .then(function(r) { return r.json().catch(function() { return { success: false }; }); })
-                    .then(function(res) { self.toast(res && res.success !== false ? "已保存" : "保存失败：" + (res.message || "")); })
+                    .then(function(res) {
+                        if (res && res.success !== false) {
+                            self.dirty = false;
+                            self.toast("已保存");
+                        } else {
+                            self.toast("保存失败：" + (res.message || res.msg || ""));
+                        }
+                    })
                     .catch(function() { self.toast("保存失败"); })
                     .finally(function() { self.saving = false; });
             },
