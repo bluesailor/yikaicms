@@ -89,40 +89,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'previ
 [data-yk-sec]{position:relative;cursor:pointer}
 [data-yk-sec]:hover{outline:2px dashed #93c5fd;outline-offset:-2px}
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
+.yk-edit-el{cursor:pointer}
+.yk-pick-overlay{position:fixed;z-index:2147483646;pointer-events:none;border:2px solid #3b82f6;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.8),0 6px 18px rgba(37,99,235,.18)}
+.yk-pick-label{position:fixed;z-index:2147483647;pointer-events:none;background:#2563eb;color:#fff;font:12px/1.4 system-ui,sans-serif;padding:2px 6px;border-radius:4px;box-shadow:0 4px 12px rgba(37,99,235,.25)}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
 </style>
 <script>
 (function () {
+    var overlay = document.createElement('div');
+    overlay.className = 'yk-pick-overlay';
+    overlay.style.display = 'none';
+    var label = document.createElement('div');
+    label.className = 'yk-pick-label';
+    label.style.display = 'none';
+    document.body.appendChild(overlay);
+    document.body.appendChild(label);
+
     document.addEventListener('click', function (e) {
         var a = e.target.closest('a');
         if (a) e.preventDefault(); // 画布内不跳转，链接编辑去设置面板
+        var el = e.target.closest('[data-yk-el]');
+        if (el) {
+            var path = el.getAttribute('data-yk-el') || '';
+            highlightEl(path);
+            parent.postMessage({ ykPickEl: path }, '*');
+            return;
+        }
         var s = e.target.closest('[data-yk-sec]');
         if (!s) return;
         var i = parseInt(s.getAttribute('data-yk-sec'), 10);
-        highlight(i);
+        highlightSection(i);
         parent.postMessage({ ykPick: i }, '*');
     }, true);
+
     window.addEventListener('message', function (e) {
         var d = e.data || {};
+        if (typeof d.ykHighlightEl === 'string') {
+            highlightEl(d.ykHighlightEl);
+            scrollToPath(d.ykHighlightEl);
+            return;
+        }
         if (typeof d.ykHighlight === 'number') {
-            highlight(d.ykHighlight);
+            highlightSection(d.ykHighlight);
             var t = document.querySelector('[data-yk-sec="' + d.ykHighlight + '"]');
             if (t) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     });
-    function highlight(i) {
+
+    window.addEventListener('scroll', syncOverlay, true);
+    window.addEventListener('resize', syncOverlay);
+
+    var activeEl = null;
+    function rectFor(node) {
+        if (!node) return null;
+        var rects = Array.prototype.slice.call(node.getClientRects ? node.getClientRects() : []);
+        rects = rects.filter(function (r) { return r.width > 0 && r.height > 0; });
+        if (rects.length) return rects[0];
+        var child = node.firstElementChild;
+        return child ? rectFor(child) : null;
+    }
+    function syncOverlay() {
+        if (!activeEl) return;
+        var r = rectFor(activeEl);
+        if (!r) { overlay.style.display = 'none'; label.style.display = 'none'; return; }
+        overlay.style.display = 'block';
+        overlay.style.left = Math.max(0, r.left - 2) + 'px';
+        overlay.style.top = Math.max(0, r.top - 2) + 'px';
+        overlay.style.width = Math.max(0, r.width + 4) + 'px';
+        overlay.style.height = Math.max(0, r.height + 4) + 'px';
+        label.style.display = 'block';
+        label.style.left = Math.max(0, r.left) + 'px';
+        label.style.top = Math.max(0, r.top - 24) + 'px';
+    }
+    function clearElementOverlay() {
+        activeEl = null;
+        overlay.style.display = 'none';
+        label.style.display = 'none';
+    }
+    function highlightSection(i) {
+        clearElementOverlay();
         document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
         var t = document.querySelector('[data-yk-sec="' + i + '"]');
         if (t) t.classList.add('yk-selected');
     }
-    // 元素库瓦片拖入画布：dragover 放行 + 高亮目标段落；drop 时算出列下标回传父窗
+    function highlightEl(path) {
+        document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
+        activeEl = document.querySelector('[data-yk-el="' + cssEscape(path) + '"]');
+        label.textContent = '元素 ' + path;
+        syncOverlay();
+    }
+    function scrollToPath(path) {
+        var t = document.querySelector('[data-yk-el="' + cssEscape(path) + '"]');
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function cssEscape(v) {
+        if (window.CSS && CSS.escape) return CSS.escape(v);
+        return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    }
+
+    // Allow palette tiles to be dropped onto the canvas section.
     document.addEventListener('dragover', function (e) {
         var s = e.target.closest('[data-yk-sec]');
         if (!s) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
-        highlight(parseInt(s.getAttribute('data-yk-sec'), 10));
+        highlightSection(parseInt(s.getAttribute('data-yk-sec'), 10));
     });
     document.addEventListener('drop', function (e) {
         var s = e.target.closest('[data-yk-sec]');
