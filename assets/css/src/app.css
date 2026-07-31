@@ -7,6 +7,10 @@
 @source "../../../plugins/**/*.php";
 @source "../../../themes/**/*.php";
 
+/* 构建器渲染引擎动态拼接列数类（BlockRenderer: 'md:grid-cols-' . $colCount），
+   扫描器看不见拼出来的 5/6 列，显式登记 1–6 全档 */
+@source inline("{md:,}grid-cols-{1,2,3,4,5,6}");
+
 /* 主题色（默认值，运行时可被 :root CSS 变量覆盖） */
 @theme {
     --color-primary: #3B82F6;
