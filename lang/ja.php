@@ -1913,7 +1913,7 @@ return [
     'sum_too_long' => '概要としては長めです。この内容は上の「内容」欄に書くべきではありませんか？',
 
     // ── Blox 全屏编辑器（实验）──
-    'page_mode_blox' => 'Blox 全画面',
+    'page_mode_blox' => 'Blox で編集',
     'page_mode_blox_tip' => '全画面ビジュアル編集（実験機能）：左に構造ツリー、中央にキャンバス、右にプロパティ。編集対象は同じレイアウトデータです',
     'label_experimental' => '実験',
 ];
