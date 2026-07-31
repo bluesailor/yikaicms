@@ -47,6 +47,7 @@
         <MissingFile>
             <errorLevel type="suppress">
                 <file name="plugins/seo/ai.php" />
+                <file name="admin/blox_editor.php" />
             </errorLevel>
         </MissingFile>
     </issueHandlers>
