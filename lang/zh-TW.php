@@ -23,7 +23,7 @@ return [
     'sum_too_long' => '摘要偏長，內容是不是該寫到上方的「內容」裡？',
 
     // ── Blox 全屏编辑器（实验）──
-    'page_mode_blox' => 'Blox 全螢幕',
+    'page_mode_blox' => '使用 Blox 編輯',
     'page_mode_blox_tip' => '全螢幕視覺化編輯（實驗功能）：左側結構樹、中間畫布、右側屬性，編輯的是同一份排版資料',
     'label_experimental' => '實驗',
 ];
