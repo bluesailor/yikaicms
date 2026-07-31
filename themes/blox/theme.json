@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "Blox 积木",
+  "name_en": "Blox",
+  "name_ja": "Blox 積み木",
+  "description": "可视化搭建实验主题——像搭积木一样组合区块。干净的画布底座，专为构建器演进而设计（实验版，功能开发中）。",
+  "description_en": "Experimental visual-building theme — compose pages like stacking blocks. A clean canvas base built to evolve the page builder (work in progress).",
+  "description_ja": "ビジュアル構築の実験テーマ——積み木のようにブロックを組み合わせる。ビルダー進化のためのクリーンなキャンバス基盤（開発中）。",
+  "version": "0.1.0",
+  "author": "Yikai CMS",
+  "category": "general",
+  "requires_cms": ">=1.11",
+  "requires_php": ">=8.0",
+  "experimental": true
+}

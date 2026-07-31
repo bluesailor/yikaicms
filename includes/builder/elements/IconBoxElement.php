@@ -12,7 +12,8 @@ final class IconBoxElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'icon', 'type' => 'text', 'label' => 'Tabler 图标名', 'default' => 'star', 'placeholder' => '如 star / bolt / shield'],
+            // type=icon：编辑器渲染成带图标库选择器的控件（blox 全量库 / 排版编辑器精选集）
+            ['key' => 'icon', 'type' => 'icon', 'label' => '图标', 'default' => 'star'],
             ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => '描述', 'default' => '', 'rows' => 2],
         ];

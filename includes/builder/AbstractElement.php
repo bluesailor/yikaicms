@@ -67,6 +67,12 @@ abstract class AbstractElement
         return false;
     }
 
+    /** 是否容器元素（data.children 存子元素，渲染器据此递归、编辑器据此显示嵌套树） */
+    public function isContainer(): bool
+    {
+        return false;
+    }
+
     /**
      * 响应式三档解析（P2）：设置值可为标量（全断点统一）或 {d,t,m}（桌面/平板/手机分档）。
      * mobile-first 输出：基类 ← m，md: ← t，lg: ← d（与预览设备档 手机390/平板768/桌面 对应）。

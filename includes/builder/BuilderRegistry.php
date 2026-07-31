@@ -42,13 +42,14 @@ final class BuilderRegistry
         $out = [];
         foreach (self::$elements as $type => $el) {
             $out[$type] = [
-                'type'     => $type,
-                'label'    => $el->label(),
-                'category' => $el->category(),
-                'icon'     => $el->icon(),
-                'controls' => $el->controls(),
-                'defaults' => $el->defaults(),
-                'dynamic'  => $el->isDynamic(),
+                'type'      => $type,
+                'label'     => $el->label(),
+                'category'  => $el->category(),
+                'icon'      => $el->icon(),
+                'controls'  => $el->controls(),
+                'defaults'  => $el->defaults(),
+                'dynamic'   => $el->isDynamic(),
+                'container' => $el->isContainer(),
             ];
         }
         return $out;
@@ -80,6 +81,8 @@ final class BuilderRegistry
             new VideoElement(),
             new IconBoxElement(),
             new AccordionElement(),
+            // 布局容器（一层嵌套；子元素在 data.children）
+            new ContainerElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new BannerElement(),

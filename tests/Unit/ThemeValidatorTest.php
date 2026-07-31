@@ -36,7 +36,6 @@ final class ThemeValidatorTest extends TestCase
             'category'         => 'general',
             'requires_cms'     => '>=1.0',
             'requires_php'     => '>=8.0',
-            'locales'          => ['zh-CN'],
             'required_plugins' => [],
         ], $override);
     }
@@ -145,9 +144,13 @@ final class ThemeValidatorTest extends TestCase
 
     public function testDeprecatedFieldsWarn(): void
     {
-        $r = ThemeValidator::validateMeta($this->validMeta(['supports' => ['banner'], 'colors' => ['primary' => '#000']]));
+        $r = ThemeValidator::validateMeta($this->validMeta([
+            'supports' => ['banner'],
+            'colors'   => ['primary' => '#000'],
+            'locales'  => ['zh-CN'],      // 已废弃：主题不承载演示内容
+        ]));
         $this->assertSame([], $r['errors'], '废弃字段只警告，不拒绝');
-        $this->assertCount(2, array_filter($r['warnings'], static fn($w) => str_contains($w, '已废弃') || str_contains($w, '已移出')));
+        $this->assertCount(3, array_filter($r['warnings'], static fn($w) => str_contains($w, '已废弃') || str_contains($w, '已移出')));
     }
 
     public function testUnknownCategoryWarnsButPasses(): void

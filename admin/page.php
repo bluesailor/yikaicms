@@ -240,6 +240,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                         <?php if ($__isBlocks): ?>
                         <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
                               title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
+                        <?php // Blox 全屏编辑器（实验）：仅排版页可用——它编辑的就是 blocks_data。
+                              // 富文本页没有可编辑的区块结构，给入口只会让人点进去看到空画布。 ?>
+                        <a href="/admin/blox_editor.php?id=<?php echo $item['id']; ?>"
+                           class="text-gray-500 hover:text-gray-900 hover:underline text-sm mr-2 inline-flex items-center gap-1"
+                           title="<?php echo e(__('page_mode_blox_tip')); ?>">
+                            <i class="ti ti-stack-2 text-sm"></i>
+                            <?php echo __('page_mode_blox'); ?>
+                        </a>
                         <?php endif; ?>
                         <?php endif; ?>
                         <a href="/<?php echo e($item['slug']); ?>.html" target="_blank"

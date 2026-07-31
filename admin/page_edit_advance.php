@@ -70,7 +70,101 @@ if ($contentType === 'html' && $htmlContent && !$blocksData) {
 
 // 实时预览：渲染 blocks_data → 套主题 CSS 的独立 HTML，供构建器 iframe 展示（不落库）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
+    // blox=1：Blox 画布请求。开编辑上下文让渲染器输出 data-yk-sec 定位标记，
+    // 并注入点选/高亮/空区块占位脚本；排版编辑器的纯预览不带此参数，输出不变。
+    $bloxCanvas = (($_POST['blox'] ?? '') === '1');
+    if ($bloxCanvas) {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        BlockRenderer::$editChannelId = $id;
+    }
     $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+
+    $bloxInject = '';
+    if ($bloxCanvas) {
+        // 与 blox_editor.php 的协议：iframe 点击段落 → parent 收 ykPick；
+        // parent 发 ykHighlight → 选中描边并滚动到可见。空段落（白底无内容）
+        // 在画布上不可见，编辑态补一块虚线占位——只存在于画布，不进保存的 HTML。
+        $bloxInject = <<<'HTML'
+<style>
+[data-yk-sec]{position:relative;cursor:pointer}
+[data-yk-sec]:hover{outline:2px dashed #93c5fd;outline-offset:-2px}
+[data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
+.yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
+.yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
+</style>
+<script>
+(function () {
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest('a');
+        if (a) e.preventDefault(); // 画布内不跳转，链接编辑去设置面板
+        var s = e.target.closest('[data-yk-sec]');
+        if (!s) return;
+        var i = parseInt(s.getAttribute('data-yk-sec'), 10);
+        highlight(i);
+        parent.postMessage({ ykPick: i }, '*');
+    }, true);
+    window.addEventListener('message', function (e) {
+        var d = e.data || {};
+        if (typeof d.ykHighlight === 'number') {
+            highlight(d.ykHighlight);
+            var t = document.querySelector('[data-yk-sec="' + d.ykHighlight + '"]');
+            if (t) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    });
+    function highlight(i) {
+        document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
+        var t = document.querySelector('[data-yk-sec="' + i + '"]');
+        if (t) t.classList.add('yk-selected');
+    }
+    // 元素库瓦片拖入画布：dragover 放行 + 高亮目标段落；drop 时算出列下标回传父窗
+    document.addEventListener('dragover', function (e) {
+        var s = e.target.closest('[data-yk-sec]');
+        if (!s) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        highlight(parseInt(s.getAttribute('data-yk-sec'), 10));
+    });
+    document.addEventListener('drop', function (e) {
+        var s = e.target.closest('[data-yk-sec]');
+        if (!s) return;
+        e.preventDefault();
+        var type = e.dataTransfer.getData('text/plain');
+        if (!type) return;
+        var col = 0;
+        var grid = s.querySelector(':scope > div > .grid');
+        if (grid) {
+            var kids = Array.prototype.slice.call(grid.children);
+            for (var i = 0; i < kids.length; i++) {
+                if (kids[i] === e.target || kids[i].contains(e.target)) { col = i; break; }
+            }
+        }
+        parent.postMessage({ ykDrop: { sec: parseInt(s.getAttribute('data-yk-sec'), 10), col: col, type: type } }, '*');
+    });
+    // 先标空容器（白底空 flex 在画布上不可见），再标空区块；
+    // 含容器的区块不算「空区块」——它的空态由容器占位表达
+    document.querySelectorAll('.yk-container').forEach(function (c) {
+        if ((c.innerText || '').trim() !== '') return;
+        if (c.querySelector('img,svg,iframe,video,picture')) return;
+        var d = document.createElement('div');
+        d.className = 'yk-empty-hint yk-empty-hint-sm';
+        d.textContent = '空容器 —— 在结构树选中它，再从「＋ 元素」添加子元素';
+        c.appendChild(d);
+    });
+    document.querySelectorAll('[data-yk-sec]').forEach(function (sec) {
+        if (sec.querySelector('.yk-container')) return;
+        if ((sec.innerText || '').trim() !== '') return;
+        if (sec.querySelector('img,svg,iframe,video,picture')) return;
+        var n = parseInt(sec.getAttribute('data-yk-sec'), 10) + 1;
+        var d = document.createElement('div');
+        d.className = 'yk-empty-hint';
+        d.textContent = '空区块 ' + n + ' —— 点选后从左侧「元素库」添加内容';
+        sec.appendChild(d);
+    });
+})();
+</script>
+HTML;
+    }
+
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="' . htmlspecialchars(siteLang()) . '"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -79,6 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'previ
         . '<base target="_blank">'
         . '<style>body{margin:0;background:#fff}</style></head><body>'
         . $body
+        . $bloxInject
         . '</body></html>';
     exit;
 }
@@ -215,10 +310,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <i class="ti ti-chevron-left text-base"></i>
         <?php echo __('page_back_to_list'); ?>
     </a>
-    <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
-        <i class="ti ti-pencil text-base"></i>
-        <?php echo __('page_switch_simple'); ?>
-    </a>
+    <div class="flex items-center gap-2">
+        <?php // Blox 全屏编辑器（实验）：Bricks 式三栏，编辑的是同一份 blocks_data ?>
+        <a href="/admin/blox_editor.php?id=<?php echo $id; ?>"
+           class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1.5 cursor-pointer transition"
+           title="<?php echo e(__('page_mode_blox_tip')); ?>">
+            <i class="ti ti-stack-2 text-base text-blue-400"></i>
+            <?php echo __('page_mode_blox'); ?>
+            <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?php echo __('label_experimental'); ?></span>
+        </a>
+        <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+            <i class="ti ti-pencil text-base"></i>
+            <?php echo __('page_switch_simple'); ?>
+        </a>
+    </div>
 </div>
 
 <?php $childEditBase = '/admin/page_edit_advance.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>
@@ -638,6 +743,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <template x-if="!hasCustomUI(el.type)">
                                                     <div class="space-y-2">
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded inline-block" x-text="elementLabel(el.type)"></span>
+                                                        <?php // 容器：子元素这边不可编辑（数据保存时原样保留），指去 Blox ?>
+                                                        <template x-if="(BUILDER_ELEMENTS[el.type] || {}).container">
+                                                            <p class="text-[11px] text-amber-600 bg-amber-50 rounded px-2 py-1.5 leading-relaxed">
+                                                                容器内含 <span x-text="(el.data.children || []).length"></span> 个子元素，
+                                                                请在 Blox 编辑器中管理；此处仅可调容器样式，保存不影响子元素。
+                                                            </p>
+                                                        </template>
                                                         <template x-for="ctrl in elementControls(el.type)" :key="ctrl.key">
                                                             <div>
                                                                 <template x-if="ctrl.type !== 'checkbox'">
@@ -684,6 +796,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 </template>
                                                                 <template x-if="ctrl.type === 'checkbox'">
                                                                     <label class="inline-flex items-center gap-1 text-sm text-gray-600"><input type="checkbox" x-model="el.data[ctrl.key]"> <span x-text="ctrl.label"></span></label>
+                                                                </template>
+                                                                <!-- icon：预览 + 手填 + 精选集选择器（与图标元素的专用 UI 同一套精选集） -->
+                                                                <template x-if="ctrl.type === 'icon'">
+                                                                    <div x-data="{ pick: false }">
+                                                                        <div class="flex items-center gap-2">
+                                                                            <span class="w-8 h-8 border rounded flex items-center justify-center bg-gray-50 shrink-0">
+                                                                                <i class="ti text-lg" :class="'ti-' + (el.data[ctrl.key] || 'star')"></i>
+                                                                            </span>
+                                                                            <input type="text" x-model="el.data[ctrl.key]" placeholder="Tabler 图标名" class="flex-1 border rounded px-2 py-1 text-sm">
+                                                                            <button type="button" @click="pick = !pick"
+                                                                                    class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? '收起' : '选择'"></button>
+                                                                        </div>
+                                                                        <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mt-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
+                                                                            <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
+                                                                                <button type="button" @click="el.data[ctrl.key] = ic; pick = false"
+                                                                                        class="w-8 h-8 flex items-center justify-center border rounded text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer"
+                                                                                        :class="el.data[ctrl.key] === ic ? 'bg-primary text-white border-primary' : 'bg-white'">
+                                                                                    <i class="ti text-base" :class="'ti-' + ic"></i>
+                                                                                </button>
+                                                                            </template>
+                                                                        </div>
+                                                                    </div>
                                                                 </template>
                                                             </div>
                                                         </template>
@@ -1318,6 +1452,9 @@ function pageBuilder() {
         elementsByCategory() {
             var groups = {};
             for (var t of Object.keys(BUILDER_ELEMENTS)) {
+                // 容器元素不进本编辑器的插入面板：子元素只能在 Blox 里管理，
+                // 在这边插入等于造一个改不了内容的空壳。已有的容器卡片正常显示与保存。
+                if (BUILDER_ELEMENTS[t].container) continue;
                 var c = BUILDER_ELEMENTS[t].category || "basic";
                 (groups[c] = groups[c] || []).push(BUILDER_ELEMENTS[t]);
             }

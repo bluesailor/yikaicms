@@ -97,6 +97,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
 
         <div class="flex gap-2">
+            <?php // 扫描入库：把 uploads/ 下未登记的历史文件（演示图、FTP 手传等）补进媒体表 ?>
+            <button onclick="scanMedia(this)" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1" title="把 uploads 目录里未登记的文件补进媒体库">
+                <i class="ti ti-refresh text-base"></i>
+                扫描入库
+            </button>
             <button onclick="batchDelete()" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <i class="ti ti-trash text-base"></i>
                 <?php echo __('admin_batch_delete'); ?>
@@ -328,6 +333,27 @@ async function deleteMedia(id) {
         document.querySelector(`[data-id="${id}"]`)?.remove();
     } else {
         showMessage(data.msg, 'error');
+    }
+}
+
+async function scanMedia(btn) {
+    btn.disabled = true;
+    var icon = btn.querySelector('i');
+    icon.classList.add('animate-spin');
+    try {
+        var resp = await fetch('/admin/media_api.php?action=scan', { method: 'POST' });
+        var data = await resp.json();
+        if (data.code === 0) {
+            alert('扫描完成：新增 ' + data.data.added + ' 个文件');
+            if (data.data.added > 0) location.reload();
+        } else {
+            alert(data.msg || '扫描失败');
+        }
+    } catch (e) {
+        alert('扫描请求失败');
+    } finally {
+        btn.disabled = false;
+        icon.classList.remove('animate-spin');
     }
 }
 

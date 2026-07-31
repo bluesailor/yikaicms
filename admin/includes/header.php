@@ -62,12 +62,21 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 ?>
 <body class="bg-gray-100" x-data="{
         mobileMenu: false,
+        _sbT: 0,
         collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
         toggleCollapsed() {
+            this._sbT = Date.now();
             this.collapsed = !this.collapsed;
             try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
             document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=/;max-age=' + (365 * 86400) + ';samesite=Lax';
             if (!this.collapsed) { this.fly = { key: '', label: '', items: [], top: 0 }; }
+        },
+        // 折叠态点空白/Logo 展开。400ms 冷却：点把手收起后侧栏还在收窄动画中，
+        // 习惯性连点的第二下会落在未缩完的空白上，无冷却就会立即弹回（收一下又弹开）
+        expandFromBlank() {
+            if (!this.collapsed || window.innerWidth < 1024) return;
+            if (Date.now() - (this._sbT || 0) < 400) return;
+            this.toggleCollapsed();
         },
         fly: { key: '', label: '', items: [], top: 0 },
         _flyTimer: null,
@@ -103,12 +112,19 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，
                      // 首次切换时服务端预渲染的 lg:w-64 会残留并与 lg:w-16 打架 ?>
-               :class="{ 'translate-x-0': mobileMenu, 'lg:w-16': collapsed, 'lg:w-64': !collapsed }">
+               <?php // 折叠态点空白处即展开（.self 只吃直接命中 aside 的点击，不劫持菜单项）；
+                     // 仅桌面端——手机抽屉与 collapsed 状态无关 ?>
+               @click.self="expandFromBlank()"
+               :class="{ 'translate-x-0': mobileMenu, 'lg:w-16': collapsed, 'lg:w-64': !collapsed, 'lg:cursor-pointer': collapsed }">
             <!-- Logo -->
             <?php // Logo 栏不画分隔线：深色侧栏上任何浅色边框都会显成一条亮线 ?>
-            <div class="h-16 flex items-center justify-center">
+            <?php // h-12：Logo 行压缩一档（原 h-16），给菜单多留竖向空间 ?>
+            <div class="h-12 flex items-center justify-center">
                 <?php $adminLogo = config('admin_logo', ''); ?>
-                <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0">
+                <?php // 折叠态点 Logo/标题 = 展开侧栏（拦掉跳转，带连点冷却）；展开态照常回控制台 ?>
+                <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0"
+                   @click="if (collapsed && window.innerWidth >= 1024) { $event.preventDefault(); expandFromBlank(); }"
+                   :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : ''">
                     <?php if ($adminLogo): ?>
                     <img src="<?php echo e($adminLogo); ?>" alt="" class="h-8 flex-shrink-0">
                     <?php else: ?>
@@ -132,7 +148,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 };
             }
             </script>
-            <nav class="mt-4 px-3" x-data="sidebarNav()">
+            <nav class="mt-3 px-3" x-data="sidebarNav()"
+                 @click.self="expandFromBlank()">
                 <!-- 控制台 -->
                 <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
                    :class="collapsed ? 'lg:justify-center' : ''"
@@ -194,17 +211,6 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             </nav>
         </aside>
 
-        <?php // 折叠把手：骑在侧栏与内容区交界线上，随侧栏宽度移动。
-              // 静态 class 预渲染初始位置 + 对象语法绑定，避免首次切换时类残留。 ?>
-        <button type="button" @click="toggleCollapsed()"
-                class="hidden lg:flex fixed top-1/2 -translate-y-1/2 -ml-3 z-[55] w-6 h-6 items-center justify-center rounded-full
-                       bg-sidebar text-gray-400 border border-white/10 shadow-lg
-                       hover:text-white hover:border-white/25 transition-all duration-300 <?= $_sbCollapsed ? 'left-16' : 'left-64' ?>"
-                :class="{ 'left-16': collapsed, 'left-64': !collapsed }"
-                :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'"
-                :aria-label="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
-            <i class="ti text-xs" :class="{ 'ti-chevron-right': collapsed, 'ti-chevron-left': !collapsed }"></i>
-        </button>
 
         <?php // 折叠态的二级飞出面板：侧栏是滚动容器会裁剪子元素，故用 fixed 定位单例，
               // 悬停分组图标时按其位置弹出。数据从同一份菜单生成，不重复维护。 ?>
@@ -241,8 +247,14 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
              :class="{ 'lg:ml-16': collapsed, 'lg:ml-64': !collapsed }">
             <!-- 顶部导航 -->
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
-                <!-- 移动端菜单按钮 -->
-                <button @click="mobileMenu = !mobileMenu" class="lg:hidden text-gray-500 hover:text-gray-700">
+                <?php // 汉堡按钮（桌面+手机通用）：手机=开关抽屉，桌面=收起/展开侧栏。
+                      // 250ms 防抖挡住习惯性连点造成的「收起又弹开」。
+                      // 原骑在侧栏分界线上的小圆把手已移除——热区小且与滚动条/动画区重叠，误触难根治。 ?>
+                <button type="button"
+                        @click="window.innerWidth < 1024 ? (mobileMenu = !mobileMenu) : (Date.now() - (_sbT || 0) > 250 && toggleCollapsed())"
+                        class="text-gray-500 hover:text-gray-700 mr-1"
+                        :title="window.innerWidth >= 1024 ? (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>') : ''"
+                        aria-label="<?php echo e(__('admin_sidebar_collapse')); ?>">
                     <i class="ti ti-menu-2 text-xl"></i>
                 </button>
 

@@ -1,21 +1,17 @@
 {
-    "schema_version": 1,
-    "name": "Aurora",
-    "name_en": "Aurora",
-    "name_ja": "Aurora オーロラ",
-    "description": "现代科技风主题，深色 hero + 紫蓝渐变 + glassmorphism，适合互联网公司、SaaS、AI 服务商",
-    "description_en": "Modern tech-style theme with dark hero, indigo-purple gradients and glassmorphism — fit for internet companies, SaaS and AI service providers",
-    "description_ja": "ダークヒーロー＋インディゴ／パープルのグラデーションとガラスモーフィズムのモダンテックテーマ。IT 企業・SaaS・AI サービス向け。",
-    "version": "1.0.0",
-    "author": "Yikai",
-    "category": "tech",
-    "requires_cms": ">=1.14",
-    "requires_php": ">=8.0",
-    "locales": [
-        "zh-CN",
-        "en"
-    ],
-    "required_plugins": [],
-    "screenshot": "assets/images/screenshot.jpg",
-    "design_tokens": "design-tokens.json"
+  "schema_version": 1,
+  "name": "Aurora",
+  "name_en": "Aurora",
+  "name_ja": "Aurora オーロラ",
+  "description": "现代科技风主题，深色 hero + 紫蓝渐变 + glassmorphism，适合互联网公司、SaaS、AI 服务商",
+  "description_en": "Modern tech-style theme with dark hero, indigo-purple gradients and glassmorphism — fit for internet companies, SaaS and AI service providers",
+  "description_ja": "ダークヒーロー＋インディゴ／パープルのグラデーションとガラスモーフィズムのモダンテックテーマ。IT 企業・SaaS・AI サービス向け。",
+  "version": "1.0.0",
+  "author": "Yikai",
+  "category": "tech",
+  "requires_cms": ">=1.14",
+  "requires_php": ">=8.0",
+  "required_plugins": [],
+  "screenshot": "assets/images/screenshot.jpg",
+  "design_tokens": "design-tokens.json"
 }
