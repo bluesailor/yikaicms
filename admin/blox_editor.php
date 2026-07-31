@@ -49,9 +49,8 @@ $contentRecord = contentModel()->queryOne(
 );
 $blocksData = $contentRecord['blocks_data'] ?? '';
 $initBlocks = trim((string) $blocksData) !== '' ? $blocksData : '[]';
-// 校验是 JSON 数组，避免注入进 JS 出错
-json_decode($initBlocks, true);
-if (json_last_error() !== JSON_ERROR_NONE) {
+// 校验是 JSON 数组，避免注入进 JS 出错（非数组一律回退空——比只查解析错误更严）
+if (!is_array(json_decode($initBlocks, true))) {
     $initBlocks = '[]';
 }
 
