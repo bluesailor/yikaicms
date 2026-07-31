@@ -158,7 +158,7 @@ final class BlockRenderer
             }
 
             $colCard = $colCount > 1 && !empty($settings['col_card']);
-            foreach ($columns as $col) {
+            foreach ($columns as $ci => $col) {
                 if ($colCount > 1) {
                     if ($colCard) {
                         // 列级背景色（card_bg）：用于高亮某一列（如价格表「推荐」档），有则加重阴影
@@ -170,9 +170,9 @@ final class BlockRenderer
                         $html .= '<div>';
                     }
                 }
-                foreach ($col['elements'] ?? [] as $el) {
+                foreach (($col['elements'] ?? []) as $ei => $el) {
                     if (is_array($el)) {
-                        $html .= self::renderElement($el);
+                        $html .= self::renderElement($el, 0, $editMode, [$secIndex, (int) $ci, (int) $ei]);
                     }
                 }
                 if ($colCount > 1) {
@@ -195,7 +195,7 @@ final class BlockRenderer
      * 深度上限 3 防坏数据画圈（编辑器只允许一层，这里是兜底不是约束）。
      * 未注册 type 静默跳过（与旧 switch default 行为一致）。
      */
-    private static function renderElement(array $el, int $depth = 0): string
+    private static function renderElement(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
     {
         $element = BuilderRegistry::get((string) ($el['type'] ?? ''));
         if ($element === null) {
@@ -203,12 +203,19 @@ final class BlockRenderer
         }
         $children = '';
         if ($element->isContainer() && $depth < 3) {
-            foreach ((array) ($el['data']['children'] ?? []) as $child) {
+            foreach ((array) ($el['data']['children'] ?? []) as $childIndex => $child) {
                 if (is_array($child)) {
-                    $children .= self::renderElement($child, $depth + 1);
+                    $childPath = $path;
+                    $childPath[] = (int) $childIndex;
+                    $children .= self::renderElement($child, $depth + 1, $editMode, $childPath);
                 }
             }
         }
-        return $element->render($el['data'] ?? [], $children);
+        $html = $element->render($el['data'] ?? [], $children);
+        if (!$editMode || $path === []) {
+            return $html;
+        }
+        $pathAttr = htmlspecialchars(implode('.', array_map('strval', $path)), ENT_QUOTES);
+        return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '" style="display:contents">' . $html . '</div>';
     }
 }
