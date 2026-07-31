@@ -70,6 +70,81 @@ if ($action === 'list') {
     exit;
 }
 
+// 扫描入库：把 uploads/ 下未登记的文件补进 media 表。
+// 场景：历史文件（演示图、手工 FTP 传的图、老编辑器上传）不在表里，媒体库/选图弹窗看不见。
+// 跳过：已登记 url、缩略图副本（_thumb/_medium）、与原图同名的自动 webp 副本。
+if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!canManageMedia()) {
+        ma_deny('没有媒体管理权限');
+    }
+    $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    $fileExts  = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z'];
+
+    $known = [];
+    foreach (db()->fetchAll('SELECT url FROM ' . DB_PREFIX . 'media') as $r) {
+        $known[(string) $r['url']] = true;
+    }
+
+    $rootNorm = str_replace('\\', '/', rtrim(ROOT_PATH, '/\\'));
+    $added = 0;
+    $iter = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(UPLOADS_PATH, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($iter as $f) {
+        if (!$f->isFile()) {
+            continue;
+        }
+        $ext = strtolower($f->getExtension());
+        $isImage = in_array($ext, $imageExts, true);
+        if (!$isImage && !in_array($ext, $fileExts, true)) {
+            continue;
+        }
+        $path = str_replace('\\', '/', $f->getPathname());
+        if (preg_match('/_(thumb|medium)\.[a-z0-9]+$/i', $path)) {
+            continue;
+        }
+        if ($ext === 'webp') {
+            foreach (['jpg', 'jpeg', 'png'] as $sib) {
+                if (is_file(preg_replace('/\.webp$/i', '.' . $sib, $path))) {
+                    continue 2;
+                }
+            }
+        }
+        $url = substr($path, strlen($rootNorm));
+        if ($url === '' || isset($known[$url])) {
+            continue;
+        }
+        $w = 0;
+        $h = 0;
+        if ($isImage && $ext !== 'svg') {
+            $info = @getimagesize($path);
+            if ($info) {
+                $w = (int) $info[0];
+                $h = (int) $info[1];
+            }
+        }
+        mediaModel()->create([
+            'name'       => $f->getFilename(),
+            'path'       => $path,
+            'url'        => $url,
+            'type'       => $isImage ? 'image' : 'file',
+            'ext'        => $ext,
+            'mime'       => function_exists('mime_content_type') ? (mime_content_type($path) ?: '') : '',
+            'size'       => $f->getSize(),
+            'width'      => $w,
+            'height'     => $h,
+            'md5'        => md5_file($path) ?: '',
+            'admin_id'   => $_SESSION['admin_id'],
+            'created_at' => $f->getMTime(),
+        ]);
+        $known[$url] = true;
+        $added++;
+    }
+    adminLog('media', 'edit', '扫描入库：新增 ' . $added . ' 个文件');
+    echo json_encode(['code' => 0, 'data' => ['added' => $added]], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // 上传
 if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // 权限先于输入校验（同 upload.php）
