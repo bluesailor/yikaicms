@@ -415,4 +415,100 @@ final class BuilderRenderTest extends TestCase
         }
         $this->assertFalse(BuilderRegistry::get('heading')->isDynamic());
     }
+
+    // ── 容器元素（一层嵌套，中间路线） ──────────────────────────
+
+    public function testContainerRendersChildren(): void
+    {
+        $out = $this->inner($this->oneEl(['type' => 'container', 'data' => [
+            'direction' => 'row', 'gap' => 'sm', 'align' => 'center', 'padding' => 'md',
+            'bg_color' => '#f5f5f5', 'radius' => 'md',
+            'children' => [
+                ['type' => 'heading', 'data' => ['level' => 'h3', 'text' => 'T']],
+                ['type' => 'text', 'data' => ['html' => '<p>x</p>']],
+            ],
+        ]]));
+        $this->assertSame(
+            '<div class="yk-container flex flex-row flex-wrap gap-2 items-center p-6 rounded-lg"'
+            . ' style="background-color:#f5f5f5;">'
+            . '<h3 class="text-xl font-bold mb-4">T</h3>'
+            . '<div class="prose prose-lg max-w-none"><p>x</p></div>'
+            . '</div>',
+            $out
+        );
+    }
+
+    public function testContainerDefaultsAndEmpty(): void
+    {
+        // 默认值：纵向、中间距、无对齐/内边距/圆角/背景；无 children 输出空容器
+        $out = $this->inner($this->oneEl(['type' => 'container', 'data' => []]));
+        $this->assertSame('<div class="yk-container flex flex-col gap-4"></div>', $out);
+    }
+
+    public function testContainerDepthCapStopsRunawayNesting(): void
+    {
+        // 编辑器只允许一层；渲染器深度上限 3 兜底坏数据。构造 5 层自嵌套，
+        // 第 4 层（depth=3）的 children 不再展开——只数 yk-container 出现次数。
+        $node = ['type' => 'heading', 'data' => ['level' => 'h2', 'text' => 'deep']];
+        for ($i = 0; $i < 5; $i++) {
+            $node = ['type' => 'container', 'data' => ['children' => [$node]]];
+        }
+        $out = $this->inner($this->oneEl($node));
+        $this->assertSame(4, substr_count($out, 'yk-container')); // depth 0..3 共 4 层
+        $this->assertStringNotContainsString('deep', $out);       // 第 5 层内容被截断
+    }
+
+    public function testSectionGradientBackground(): void
+    {
+        $grad = 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)';
+        // 纯渐变
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => ['bg_gradient' => $grad],
+            'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]]));
+        $this->assertStringContainsString('style="background-image:' . $grad . ';"', $out);
+        // 渐变 + 背景图：渐变叠在图上
+        $out2 = BlockRenderer::render(json_encode([[
+            'settings' => ['bg_gradient' => $grad, 'bg_image' => '/uploads/a.jpg'],
+            'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]]));
+        $this->assertStringContainsString('background-image:' . $grad . ',url(/uploads/a.jpg);background-size:cover', $out2);
+        // 非法值（可注入 style 的内容）被丢弃，退回背景图分支
+        $out3 = BlockRenderer::render(json_encode([[
+            'settings' => ['bg_gradient' => 'url(javascript:alert(1))', 'bg_image' => '/uploads/a.jpg'],
+            'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]]));
+        $this->assertStringNotContainsString('javascript', $out3);
+        $this->assertStringContainsString('background-image:url(/uploads/a.jpg)', $out3);
+    }
+
+    public function testSectionContainerLayer(): void
+    {
+        // 自定义容器宽度 + 容器层独立样式
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => ['max_width' => 'custom', 'max_width_px' => 1280,
+                'container_bg' => '#ffffff', 'container_padding' => 'md', 'container_radius' => 'md'],
+            'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]]));
+        $this->assertStringContainsString(
+            '<div class="mx-auto px-4 p-6 rounded-xl" style="max-width:1280px;background-color:#ffffff;">',
+            $out
+        );
+        // 非法 px 回退预设宽度类
+        $out2 = BlockRenderer::render(json_encode([[
+            'settings' => ['max_width' => 'custom', 'max_width_px' => 50],
+            'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]]));
+        $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4">', $out2);
+    }
+
+    public function testNonContainerIgnoresChildrenKey(): void
+    {
+        // 普通元素带 children 键（异常数据）不得递归——输出与无该键时一致
+        $out = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'level' => 'h2', 'text' => 'A',
+            'children' => [['type' => 'text', 'data' => ['html' => '<p>leak</p>']]],
+        ]]));
+        $this->assertSame('<h2 class="text-2xl font-bold mb-4">A</h2>', $out);
+    }
 }
