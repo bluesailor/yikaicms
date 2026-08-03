@@ -186,7 +186,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
         case 'market_list':
             // 服务端代理市场列表（避免浏览器跨域 + 便于将来附加授权参数）
             $q = trim((string) ($_POST['q'] ?? ''));
-            $url = PLUGIN_MARKET_API . ($q !== '' ? '?q=' . urlencode($q) : '');
+            // 带上本站授权码与域名：付费插件的下载地址由服务端按授权下发
+            $url = PLUGIN_MARKET_API . '?' . http_build_query(array_filter([
+                'q'      => $q,
+                'key'    => function_exists('license_key') ? license_key() : '',
+                'domain' => function_exists('license_domain') ? license_domain() : '',
+            ]));
             $resp = pluginMarketHttpGet($url);
             if ($resp === null) {
                 echo json_encode(['code' => 1, 'msg' => '无法连接插件市场，请检查服务器外网访问（curl/allow_url_fopen）']);
@@ -201,8 +206,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             break;
 
         case 'market_install':
-            // 以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）
-            $resp = pluginMarketHttpGet(PLUGIN_MARKET_API);
+            // 以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）；
+            // 同样带授权参数，否则付费插件拿不到下载地址
+            $resp = pluginMarketHttpGet(PLUGIN_MARKET_API . '?' . http_build_query(array_filter([
+                'key'    => function_exists('license_key') ? license_key() : '',
+                'domain' => function_exists('license_domain') ? license_domain() : '',
+            ])));
             $data = $resp !== null ? json_decode($resp, true) : null;
             if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
                 echo json_encode(['code' => 1, 'msg' => '无法连接插件市场']);
@@ -214,6 +223,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                     $item = $p;
                     break;
                 }
+            }
+            if ($item && empty($item['download_url']) && !empty($item['paid'])) {
+                // 服务端因授权不足未下发下载地址
+                $why = (string) ($item['locked_reason'] ?? '');
+                $tip = match ($why) {
+                    'expired'         => __('plugin_locked_expired'),
+                    'domain_mismatch' => __('plugin_locked_domain'),
+                    default           => __('plugin_locked_need_license'),
+                };
+                echo json_encode(['code' => 1, 'msg' => $tip], JSON_UNESCAPED_UNICODE);
+                exit;
             }
             if (!$item || empty($item['download_url']) || empty($item['hash'])) {
                 echo json_encode(['code' => 1, 'msg' => '市场中不存在该插件']);
@@ -346,9 +366,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <i class="ti ti-puzzle text-xl"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-semibold text-gray-800 truncate" x-text="p.name"></span>
                                 <span class="text-xs text-gray-400" x-text="'v' + p.version"></span>
+                                <!-- 付费标识：统一金色 PRO；已授权时加勾并在 title 说明 -->
+                                <template x-if="p.paid">
+                                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 whitespace-nowrap inline-flex items-center gap-0.5"
+                                          :title="p.entitled ? '<?php echo e(__('plugin_badge_licensed')); ?>' : '<?php echo e(__('plugin_tier_freemium_note')); ?>'">
+                                        PRO
+                                        <template x-if="p.entitled">
+                                            <i class="ti ti-check text-xs"></i>
+                                        </template>
+                                    </span>
+                                </template>
                             </div>
                             <div class="text-xs text-gray-400" x-text="(p.author || '') + (p.size_kb ? ' · ' + p.size_kb + ' KB' : '')"></div>
                         </div>
@@ -360,13 +390,29 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
                                     x-text="installing === p.slug ? '升级中…' : '升级'"></button>
                         </template>
-                        <template x-if="statusOf(p) === 'none'">
+                        <template x-if="statusOf(p) === 'none' && p.tier === 'pro' && !p.entitled">
+                            <a href="https://www.yikaicms.com/#pricing" target="_blank"
+                               class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap inline-flex items-center gap-1">
+                                <i class="ti ti-key text-sm"></i><?php echo e(__('plugin_get_license')); ?>
+                            </a>
+                        </template>
+                        <template x-if="statusOf(p) === 'none' && !(p.tier === 'pro' && !p.entitled)">
                             <button @click="install(p)" :disabled="installing === p.slug"
                                     class="text-sm px-3 py-1.5 rounded bg-primary hover:bg-secondary text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
                                     x-text="installing === p.slug ? '安装中…' : '安装'"></button>
                         </template>
                     </div>
                     <p class="text-sm text-gray-500" x-text="p.description"></p>
+                    <template x-if="p.paid && !p.entitled">
+                        <p class="text-xs text-amber-700 flex items-center gap-1">
+                            <i class="ti ti-lock text-sm"></i>
+                            <span x-text="p.tier === 'freemium'
+                                ? '<?php echo e(__('plugin_tier_freemium_note')); ?>'
+                                : '<?php echo e(__('plugin_tier_pro_note')); ?>'"></span>
+                            <a href="https://www.yikaicms.com/#pricing" target="_blank"
+                               class="underline hover:no-underline"><?php echo e(__('plugin_view_license')); ?></a>
+                        </p>
+                    </template>
                 </div>
             </template>
         </div>
@@ -402,6 +448,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <h3 class="font-semibold text-gray-800"><?php echo e($pName); ?></h3>
                         <?php if (!empty($p['version'])): ?>
                         <span class="text-xs text-gray-400">v<?php echo e($p['version']); ?></span>
+                        <?php endif; ?>
+                        <?php
+                        // 付费插件标识：统一金色 PRO；已授权时加勾（Pro 能力已解锁）
+                        $pModule = trim((string) ($p['module'] ?? ''));
+                        $pTier   = strtolower((string) ($p['tier'] ?? 'free'));
+                        if ($pModule !== '' && $pTier !== 'free'):
+                            $pLicensed = function_exists('license_has_module') && license_has_module($pModule);
+                        ?>
+                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap bg-amber-100 text-amber-700 inline-flex items-center gap-0.5"
+                              title="<?php echo e($pLicensed ? __('plugin_badge_licensed') : __('plugin_tier_freemium_note')); ?>">
+                            PRO<?php if ($pLicensed): ?><i class="ti ti-check text-xs"></i><?php endif; ?>
+                        </span>
                         <?php endif; ?>
                         <template x-if="upd['<?php echo e($slug); ?>']">
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">

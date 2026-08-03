@@ -16,7 +16,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
         <div class="mb-16" data-animate="fade-up">
-            <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo __('home_our_advantage'); ?></h2>
+            <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
             <div class="w-12 h-px bg-gray-900 mt-4"></div>
             <p class="mt-6 text-gray-500 max-w-xl text-sm leading-relaxed">
                 <?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?>

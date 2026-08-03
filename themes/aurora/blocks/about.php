@@ -28,9 +28,9 @@ if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>
                 <?php if ($aboutChannel ?? null): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>"
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>"
                    class="group inline-flex items-center gap-2 mt-8 px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:text-white hover:border-slate-500 hover:bg-white/5 transition">
-                    <?php echo __('home_learn_more'); ?>
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?>
                     <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </a>
                 <?php endif; ?>
@@ -47,9 +47,9 @@ if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>
                 <?php if ($aboutChannel ?? null): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>"
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>"
                    class="group inline-flex items-center gap-2 mt-8 px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm hover:text-white hover:border-slate-500 hover:bg-white/5 transition">
-                    <?php echo __('home_learn_more'); ?>
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?>
                     <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </a>
                 <?php endif; ?>

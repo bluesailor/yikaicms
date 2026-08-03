@@ -51,6 +51,10 @@ if (!function_exists('isMultiLangEnabled')) {
 }
 if (!function_exists('config')) {
     function config(string $key, mixed $default = ''): mixed {
+        $runtimeOverrides = $GLOBALS['yikai_config_runtime_overrides'] ?? [];
+        if (is_array($runtimeOverrides) && array_key_exists($key, $runtimeOverrides)) {
+            return $runtimeOverrides[$key];
+        }
         return $GLOBALS['_test_config'][$key] ?? $default;
     }
 }

@@ -19,6 +19,16 @@ abstract class AbstractElement
     abstract public function render(array $data, string $children = ''): string;
 
     /**
+     * 带渲染上下文的扩展入口。普通元素保持调用 render()；需要掌管子模板的动态元素可覆盖。
+     *
+     * @param array<string,mixed> $context
+     */
+    public function renderWithContext(array $data, string $children = '', array $context = []): string
+    {
+        return $this->render($data, $children);
+    }
+
+    /**
      * 设置项 schema（后台构建器据此自动生成设置表单）。返回控件定义数组，每项：
      *   ['key'=>字段名, 'type'=>控件类型, 'label'=>标签, 'default'=>默认值, ...]
      * 控件类型：text/textarea/number/select/checkbox/color（通用，自动生成表单）；
@@ -29,6 +39,139 @@ abstract class AbstractElement
     public function controls(): array
     {
         return [];
+    }
+
+    /**
+     * 常用内容元素共享的入场动画设置。
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function animationControls(): array
+    {
+        return [
+            [
+                'key' => 'animation', 'type' => 'select', 'label' => '入场动画', 'default' => '', 'tab' => 'style',
+                'options' => [
+                    '' => '无动画',
+                    'fade' => '淡入',
+                    'fade-up' => '向上淡入',
+                    'fade-down' => '向下淡入',
+                    'fade-left' => '从左进入',
+                    'fade-right' => '从右进入',
+                    'zoom-in' => '缩放进入',
+                ],
+                'option_icons' => [
+                    '' => 'ban',
+                    'fade' => 'opacity',
+                    'fade-up' => 'arrow-up',
+                    'fade-down' => 'arrow-down',
+                    'fade-left' => 'arrow-right',
+                    'fade-right' => 'arrow-left',
+                    'zoom-in' => 'zoom-in',
+                ],
+            ],
+            [
+                'key' => 'animation_speed', 'type' => 'select', 'label' => '动画速度', 'default' => 'normal', 'tab' => 'style',
+                'options' => ['normal' => '标准', 'fast' => '快速', 'slow' => '舒缓'],
+            ],
+            [
+                'key' => 'animation_delay', 'type' => 'select', 'label' => '延迟出现', 'default' => 'none', 'tab' => 'style',
+                'options' => ['none' => '无延迟', 'short' => '0.15 秒', 'medium' => '0.3 秒', 'long' => '0.6 秒'],
+            ],
+        ];
+    }
+
+    /** 将动画设置转成安全的 data 属性；无动画时不改变历史 HTML。 */
+    protected function animationAttrs(array $data): string
+    {
+        $animation = is_string($data['animation'] ?? null) ? $data['animation'] : '';
+        if (!in_array($animation, ['fade', 'fade-up', 'fade-down', 'fade-left', 'fade-right', 'zoom-in'], true)) {
+            return '';
+        }
+
+        $attrs = ' data-animate="' . $animation . '"';
+        $speed = is_string($data['animation_speed'] ?? null) ? $data['animation_speed'] : 'normal';
+        if (in_array($speed, ['fast', 'slow'], true)) {
+            $attrs .= ' data-animate-speed="' . $speed . '"';
+        }
+        $delay = is_string($data['animation_delay'] ?? null) ? $data['animation_delay'] : 'none';
+        if (in_array($delay, ['short', 'medium', 'long'], true)) {
+            $attrs .= ' data-animate-delay="' . $delay . '"';
+        }
+        return $attrs;
+    }
+
+    /**
+     * CSS 长度值白名单校验（间距精确输入用）。
+     *
+     * 只放行：数字+单位（px/rem/em/%/vw/vh，最多 4 位整数 2 位小数）、0，
+     * margin 另允许负值与 auto。这是安全边界——值会拼入 style 属性，
+     * 黑名单挡不住 calc()/expression()/注释等注入，必须白名单。
+     * 不合法返回 null（调用方静默忽略，不输出）。
+     */
+    public static function cssLength(string $value, bool $allowNegative, bool $allowAuto): ?string
+    {
+        $value = trim($value);
+        if ($value === '0') {
+            return '0';
+        }
+        if ($allowAuto && $value === 'auto') {
+            return 'auto';
+        }
+        $sign = $allowNegative ? '-?' : '';
+        return preg_match('/^' . $sign . '\d{1,4}(\.\d{1,2})?(px|rem|em|%|vw|vh)$/', $value) ? $value : null;
+    }
+
+    /**
+     * 通用盒模型间距。接受固定档位或经 cssLength() 白名单校验的精确值，
+     * 返回可安全拼入 style 属性的声明。
+     * 总值先输出、四边覆盖后输出；同为 !important 时后者精确覆盖元素自带间距。
+     */
+    public static function boxStyle(array $data): string
+    {
+        $sizes = [
+            'none' => '0',
+            'xs'   => '0.25rem',
+            'sm'   => '0.5rem',
+            'md'   => '1rem',
+            'lg'   => '2rem',
+            'xl'   => '4rem',
+            'auto' => 'auto',
+        ];
+        $fields = [
+            'style_margin'        => ['margin', true],
+            'style_margin_top'    => ['margin-top', true],
+            'style_margin_right'  => ['margin-right', true],
+            'style_margin_bottom' => ['margin-bottom', true],
+            'style_margin_left'   => ['margin-left', true],
+            'style_padding'        => ['padding', false],
+            'style_padding_top'    => ['padding-top', false],
+            'style_padding_right'  => ['padding-right', false],
+            'style_padding_bottom' => ['padding-bottom', false],
+            'style_padding_left'   => ['padding-left', false],
+        ];
+
+        $style = '';
+        foreach ($fields as $key => [$property, $isMargin]) {
+            $value = $data[$key] ?? null;
+            if (!is_string($value) || $value === '') {
+                continue;
+            }
+            if (isset($sizes[$value])) {
+                // 固定档位（auto 档仅 margin 可用）
+                if (!$isMargin && $value === 'auto') {
+                    continue;
+                }
+                $style .= $property . ':' . $sizes[$value] . '!important;';
+                continue;
+            }
+            // 精确输入：白名单校验（margin 允负值/auto，padding 非负），不合法静默忽略
+            $exact = self::cssLength($value, $isMargin, $isMargin);
+            if ($exact !== null) {
+                $style .= $property . ':' . $exact . '!important;';
+            }
+        }
+        return $style;
     }
 
     /** 由 controls() 推导默认 data（后台新增元素用） */
@@ -71,6 +214,40 @@ abstract class AbstractElement
     public function isContainer(): bool
     {
         return false;
+    }
+
+    /** 容器是否自行渲染 data.children；默认仍由 BlockRenderer 递归。 */
+    public function rendersOwnChildren(): bool
+    {
+        return false;
+    }
+
+    /** 返回动态内容网格的 1–8 列响应式类，类名保持字面量以供 Tailwind 扫描。 */
+    public static function gridClasses(int $columns, int $default = 4, bool $singleOnMobile = false): string
+    {
+        $columns = max(1, min(8, $columns > 0 ? $columns : $default));
+        if ($singleOnMobile) {
+            return [
+                1 => 'grid-cols-1',
+                2 => 'grid-cols-1 md:grid-cols-2',
+                3 => 'grid-cols-1 md:grid-cols-3',
+                4 => 'grid-cols-1 md:grid-cols-4',
+                5 => 'grid-cols-1 md:grid-cols-3 lg:grid-cols-5',
+                6 => 'grid-cols-1 md:grid-cols-3 lg:grid-cols-6',
+                7 => 'grid-cols-1 md:grid-cols-4 lg:grid-cols-7',
+                8 => 'grid-cols-1 md:grid-cols-4 lg:grid-cols-8',
+            ][$columns];
+        }
+        return [
+            1 => 'grid-cols-1',
+            2 => 'grid-cols-1 sm:grid-cols-2',
+            3 => 'grid-cols-2 md:grid-cols-3',
+            4 => 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
+            5 => 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
+            6 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6',
+            7 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-7',
+            8 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8',
+        ][$columns];
     }
 
     /**

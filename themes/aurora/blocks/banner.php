@@ -20,7 +20,7 @@
     <div class="absolute bottom-10 -right-32 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-3xl aurora-pulse" style="animation-delay: 2s"></div>
 
     <div class="container mx-auto px-6 lg:px-8 relative z-10 py-20">
-        <div class="max-w-3xl">
+        <div class="max-w-3xl"<?php echo !empty($banners[0]['_blox_path']) ? ' data-yk-el="' . e($banners[0]['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
             <?php if (!empty($banners)): ?>
                 <?php $heroBanner = $banners[0]; ?>
                 <?php if (!empty($heroBanner['subtitle'])): ?>

@@ -10,18 +10,10 @@ $contents = $hChannel['contents'];
 // 无内容的栏目不在首页渲染（避免输出只有标题/骨架占位的空区块）
 if (empty($contents)) return;
 $bg = getBlockBg($block ?? [], '@auto');
-// 每行个数 → 响应式网格类（字面量写全供 Tailwind 扫描）
-$perRow = (int)($hChannel['per_row'] ?? 4);
-$perRowGrid = [
-    1 => 'grid-cols-1',
-    2 => 'grid-cols-1 sm:grid-cols-2',
-    3 => 'grid-cols-2 md:grid-cols-3',
-    4 => 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
-    5 => 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-    6 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6',
-    7 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-7',
-    8 => 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8',
-][$perRow] ?? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+$perRow = (int) ($hChannel['per_row'] ?? 0);
+$productGrid = AbstractElement::gridClasses($perRow, 4);
+$caseGrid = AbstractElement::gridClasses($perRow, 3);
+$articleGrid = AbstractElement::gridClasses($perRow, 4);
 ?>
 <section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -52,7 +44,7 @@ $perRowGrid = [
         </div>
         <?php endif; ?>
 
-        <div class="grid <?php echo $perRowGrid; ?> gap-6" id="productGrid">
+        <div class="grid <?php echo $productGrid; ?> gap-6" id="productGrid">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="product-item block u-card group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
                 <div class="relative overflow-hidden aspect-[4/3]">
@@ -85,7 +77,7 @@ $perRowGrid = [
 
         <?php elseif ($channelType === 'case'): ?>
         <!-- Example: Card Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid <?php echo $caseGrid; ?> gap-8">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block u-card group">
                 <div class="relative overflow-hidden aspect-[4/3]">
@@ -117,7 +109,7 @@ $perRowGrid = [
         <?php else: ?>
         <!-- Articles/News: List Style (无封面文章显示占位图，不再过滤丢弃) -->
         <?php $withCover = $contents; ?>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid <?php echo $articleGrid; ?> gap-6">
             <?php foreach (array_slice($withCover, 0, 4) as $item):
                 $itemUrl = contentUrl($item);   // 文章路由已由 contentUrl 统一处理，不再本地特判
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
@@ -165,8 +157,8 @@ $perRowGrid = [
         <?php endif; ?>
 
         <div class="text-center mt-10">
-            <a href="<?php echo channelUrl($hChannel); ?>" class="inline-block border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-full transition">
-                <?php echo __('home_view_all'); ?> &raquo;
+            <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="inline-block border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-full transition">
+                <?php echo e($hChannel['home_button_text'] ?? __('home_view_all')); ?> &raquo;
             </a>
         </div>
     </div>

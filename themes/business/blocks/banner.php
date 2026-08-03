@@ -11,7 +11,7 @@ $bannerHeightMobile = (int)config('banner_height_mobile', 400);
         <div class="swiper-wrapper">
             <?php if (!empty($banners)): ?>
             <?php foreach ($banners as $banner): ?>
-            <div class="swiper-slide relative">
+            <div class="swiper-slide relative"<?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
                 <?php if (!empty($banner['image'])): ?>
                 <img src="<?php echo e($banner['image']); ?>" alt="<?php echo e($banner['title']); ?>" class="w-full h-full object-cover">
                 <?php else: ?>

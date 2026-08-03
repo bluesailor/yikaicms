@@ -9,7 +9,7 @@
         <div class="swiper-wrapper">
             <?php if (!empty($banners)): ?>
                 <?php foreach ($banners as $banner): ?>
-                <div class="swiper-slide">
+                <div class="swiper-slide"<?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
                     <?php if (!empty($banner['image'])): ?>
                         <?php if ($banner['link_url']): ?>
                         <a href="<?php echo e($banner['link_url']); ?>" target="<?php echo e($banner['link_target']); ?>" class="block w-full h-full">

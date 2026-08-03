@@ -87,6 +87,7 @@ installed.lock
 
 # DB backup dumps (large; should not be tracked)
 storage/backups/
+storage/blox-regression/
 
 # PHPUnit cache
 .phpunit.cache/

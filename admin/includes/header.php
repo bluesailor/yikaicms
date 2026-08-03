@@ -16,7 +16,9 @@ $currentMenu = $currentMenu ?? '';
 // canonical defaults and admin/includes/sidebar_menu_api.php for the
 // register_admin_menu() helper plugins use to extend it.
 require_once __DIR__ . '/sidebar_menu_api.php';
+require_once __DIR__ . '/menu_usage.php';
 $sidebarMenu = resolveAdminSidebar();
+adminMenuUsageRecord($sidebarMenu, (int) ($adminInfo['id'] ?? 0), (string) ($_SERVER['REQUEST_URI'] ?? ''));
 
 // Compute which group should default-open by scanning every item's
 // active_keys (or item.key as a fallback) for a match against $currentMenu.
@@ -116,6 +118,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                      // 仅桌面端——手机抽屉与 collapsed 状态无关 ?>
                @click.self="expandFromBlank()"
                :class="{ 'translate-x-0': mobileMenu, 'lg:w-16': collapsed, 'lg:w-64': !collapsed, 'lg:cursor-pointer': collapsed }">
+            
             <!-- Logo -->
             <?php // Logo 栏不画分隔线：深色侧栏上任何浅色边框都会显成一条亮线 ?>
             <?php // h-12：Logo 行压缩一档（原 h-16），给菜单多留竖向空间 ?>
@@ -200,16 +203,19 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 <?php endforeach; ?>
 
                 <?php do_action('admin_menu', $currentMenu); ?>
-                <div class="mt-6 mb-4 px-1">
-                    <a href="/admin/logout.php" class="sidebar-link flex items-center px-4 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition"
-                       :class="collapsed ? 'lg:justify-center' : ''" :title="collapsed ? '<?php echo e(__('admin_safe_logout')); ?>' : ''">
-                        <i class="ti ti-logout text-lg mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
-                        <span x-show="!collapsed"><?php echo __('admin_safe_logout'); ?></span>
-                    </a>
-                </div>
+                <?php // 退出入口收敛到右上角用户菜单，侧栏不再重复 ?>
                 <div style="height:20px"></div>
             </nav>
         </aside>
+
+        <button type="button"
+                @click.stop="toggleCollapsed()"
+                class="hidden lg:flex fixed top-1/2 -translate-y-1/2 -translate-x-1/2 z-[70] w-8 h-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-md transition-all duration-300 hover:border-blue-300 hover:text-blue-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                :class="collapsed ? 'left-16' : 'left-64'"
+                :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'"
+                :aria-label="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
+            <i class="ti text-base" :class="collapsed ? 'ti-chevron-right' : 'ti-chevron-left'"></i>
+        </button>
 
 
         <?php // 折叠态的二级飞出面板：侧栏是滚动容器会裁剪子元素，故用 fixed 定位单例，
@@ -240,6 +246,84 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             }
             echo json_encode($_flyData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
         ?>;
+        </script>
+
+        <script>
+        // ── 菜单星标收藏（ykFav）：悬停菜单项出 ☆ 收藏。数据出口给控制台常用面板
+        //    与顶栏 ⌘K 下拉（未输入态显示 收藏/最近使用）；本模块自身不再渲染面板。──
+        (function () {
+            var favKey = 'yk_dash_fav_' + <?php echo (int) ($adminInfo['id'] ?? 0); ?>;
+            var T = {
+                add: <?php echo json_encode(__('admin_fav_add'), JSON_UNESCAPED_UNICODE); ?>,
+                del: <?php echo json_encode(__('admin_fav_remove'), JSON_UNESCAPED_UNICODE); ?>
+            };
+            var RECENT = <?php
+                $__sbRecent = [];
+                foreach (adminMenuUsageRecent((int) ($adminInfo['id'] ?? 0), 8) as $__r) {
+                    if (adminMenuUsageFindItem($sidebarMenu, (string) ($__r['url'] ?? '')) === null) continue;
+                    $__sbRecent[] = ['url' => (string) $__r['url'], 'title' => (string) ($__r['title'] ?: $__r['url'])];
+                }
+                echo json_encode($__sbRecent, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+            ?>;
+
+            function favs() {
+                try { var v = JSON.parse(localStorage.getItem(favKey) || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; }
+            }
+            function save(list) { try { localStorage.setItem(favKey, JSON.stringify(list)); } catch (e) {} }
+
+            var nav = document.querySelector('aside nav');
+            if (!nav) return;
+            function itemLinks() {
+                return Array.prototype.slice.call(nav.querySelectorAll('div.pl-2 a.sidebar-link'));
+            }
+            function labelOf(a) {
+                var c = a.cloneNode(true);
+                Array.prototype.forEach.call(c.querySelectorAll('svg, .yk-fav-btn, .rounded-full'), function (n) { n.remove(); });
+                return (c.textContent || '').trim();
+            }
+            function favItems() {
+                var list = favs() || [];
+                return list.map(function (u) {
+                    var src = itemLinks().filter(function (a) { return a.getAttribute('href') === u; })[0];
+                    return src ? { url: u, title: labelOf(src) } : null;   // 权限收回/入口下线 → 不显示
+                }).filter(Boolean);
+            }
+            function decorate() {
+                var cur = favs() || [];
+                itemLinks().forEach(function (a) {
+                    var url = a.getAttribute('href') || '';
+                    var btn = a.querySelector('.yk-fav-btn');
+                    if (!btn) {
+                        btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'yk-fav-btn ml-auto p-0.5 flex-shrink-0';
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            var list = favs() || [];
+                            var i = list.indexOf(url);
+                            if (i === -1) list.push(url); else list.splice(i, 1);
+                            save(list);
+                            refresh();
+                        });
+                        a.appendChild(btn);
+                    }
+                    var on = cur.indexOf(url) !== -1;
+                    btn.classList.toggle('yk-on', on);
+                    <?php // 本 Tabler 字体无 star-filled 字形 → 已收藏态用内联 SVG 实心五角星 ?>
+                    btn.innerHTML = on
+                        ? '<svg class="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2l2.98 6.06 6.69.97-4.84 4.72 1.14 6.66L12 17.47l-5.97 3.14 1.14-6.66-4.84-4.72 6.69-.97z"/></svg>'
+                        : '<i class="ti ti-star text-xs"></i>';
+                    btn.title = on ? T.del : T.add;
+                });
+            }
+            function refresh() {
+                decorate();
+                window.dispatchEvent(new CustomEvent('ykfav:change'));
+            }
+            window.ykFav = { get: favs, save: save, refresh: refresh, links: itemLinks, favItems: favItems, recent: RECENT };
+            refresh();
+        })();
         </script>
 
         <!-- 主内容区 -->
@@ -290,9 +374,37 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                             <i class="ti ti-search text-sm text-gray-400" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"></i>
                             <kbd style="position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:10px; padding:2px 4px; line-height:1;" class="font-mono text-gray-400 border border-gray-200 rounded bg-gray-50 hidden lg:inline-block" title="Ctrl/⌘+K">⌘K</kbd>
                         </div>
-                        <div x-show="open && query.trim()" x-cloak
+                        <div x-show="open" x-cloak
                              class="absolute right-0 mt-1 w-[min(85vw,20rem)] bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
-                            <template x-if="results.length === 0">
+                            <?php // 未输入态：收藏 + 最近使用（数据来自 ykFav 模块）；一输入即切回搜索结果 ?>
+                            <template x-if="!query.trim()">
+                                <div>
+                                    <template x-if="favItems().length">
+                                        <div>
+                                            <div class="px-3 pt-2 pb-1 text-[10px] text-gray-400 flex items-center gap-1">
+                                                <i class="ti ti-star text-xs text-amber-400"></i><?php echo __('admin_fav_group'); ?>
+                                            </div>
+                                            <template x-for="f in favItems()" :key="'f' + f.url">
+                                                <a :href="f.url" class="block px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50" x-text="f.title"></a>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="recentItems().length">
+                                        <div>
+                                            <div class="px-3 pt-2 pb-1 text-[10px] text-gray-400 flex items-center gap-1">
+                                                <i class="ti ti-history text-xs"></i><?php echo __('dashboard_recent'); ?>
+                                            </div>
+                                            <template x-for="r in recentItems()" :key="'r' + r.url">
+                                                <a :href="r.url" class="block px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50" x-text="r.title"></a>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="!favItems().length && !recentItems().length">
+                                        <div class="px-3 py-4 text-center text-xs text-gray-400"><?php echo __('admin_quick_search_ph'); ?></div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template x-if="query.trim() && results.length === 0">
                                 <div class="px-3 py-4 text-center text-xs text-gray-400">没有匹配「<span x-text="query"></span>」的页面<br>试试：logo / 联系 / 邮件 / 主题 / 升级</div>
                             </template>
                             <template x-for="(r, i) in results" :key="r.url">
@@ -321,6 +433,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                     }
                                 });
                             },
+                            favItems() { return (window.ykFav && ykFav.favItems()) || []; },
+                            recentItems() { return (window.ykFav && ykFav.recent) || []; },
                             moveSel(d) {
                                 if (!this.results.length) return;
                                 this.selected = (this.selected + d + this.results.length) % this.results.length;
@@ -612,17 +726,18 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 
                         <div x-show="open" x-cloak @click.away="open = false"
                              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                            <a href="/admin/profile.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                                <?php echo __('admin_profile'); ?>
+                            <a href="/admin/profile.php" class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                <i class="ti ti-user-cog text-base text-gray-400"></i><?php echo __('admin_profile'); ?>
                             </a>
                             <hr class="my-2">
-                            <a href="/admin/logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100">
-                                <?php echo __('admin_logout'); ?>
+                            <a href="/admin/logout.php" class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100">
+                                <i class="ti ti-logout text-base"></i><?php echo __('admin_logout'); ?>
                             </a>
                         </div>
                     </div>
                 </div>
             </header>
+
 
             <?php if (defined('DEMO_MODE') && DEMO_MODE): ?>
             <div class="bg-amber-500 text-white text-center py-2 text-sm font-medium">

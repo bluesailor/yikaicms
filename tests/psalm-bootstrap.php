@@ -35,8 +35,7 @@ require_once ROOT_PATH . '/includes/models/autoload.php'; // channelModel()/prod
 require_once ROOT_PATH . '/includes/TagEngine.php';       // TagEngine 模板标签
 require_once ROOT_PATH . '/admin/includes/auth.php';      // checkLogin/requirePermission/getAdminId/...
 
-// 其余按需加载的运行时助手（前台/会员/时间线/WP 兼容 shim）。
+// 其余按需加载的运行时助手（前台/会员/时间线）。
 require_once ROOT_PATH . '/includes/blocks/timeline.php';      // getTimelineIcon()
 require_once ROOT_PATH . '/includes/customer_service.php';     // renderCustomerService()
 require_once ROOT_PATH . '/includes/member_auth.php';         // getMemberInfo()
-require_once ROOT_PATH . '/includes/html-api/wp-shims.php';   // _doing_it_wrong() 等 WP 兼容

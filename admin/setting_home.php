@@ -433,7 +433,21 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
 ?>
 
 <div class="mb-6">
-    <p class="text-gray-500"><?php echo __('home_editor_hint'); ?></p>
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+        <p class="text-gray-500"><?php echo __('home_editor_hint'); ?></p>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="/admin/page_edit_advance.php?home=1"
+               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-secondary transition">
+                <i class="ti ti-layout-board text-base"></i><?php echo e(__('page_mode_blocks_edit')); ?>
+            </a>
+            <?php if (bloxEditorEnabled()): ?>
+            <a href="/admin/blox_editor.php?home=1"
+               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50 hover:border-gray-400 transition">
+                <i class="ti ti-stack-2 text-base text-blue-600"></i><?php echo e(__('page_mode_blox')); ?>
+            </a>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 
 <form id="settingForm">

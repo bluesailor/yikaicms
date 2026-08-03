@@ -40,8 +40,8 @@ $bg = getBlockBg($block ?? [], '@auto');
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
-                    <?php echo __('home_learn_more'); ?> &raquo;
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?> &raquo;
                 </a>
                 <?php endif; ?>
             </div>
@@ -54,8 +54,8 @@ $bg = getBlockBg($block ?? [], '@auto');
                     <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
-                    <?php echo __('home_learn_more'); ?> &raquo;
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?> &raquo;
                 </a>
                 <?php endif; ?>
             </div>

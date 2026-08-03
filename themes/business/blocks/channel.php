@@ -6,6 +6,10 @@ if (empty($currentChannel)) return;
 $hChannel = $currentChannel;
 $channelType = $hChannel['type'];
 $contents = $hChannel['contents'];
+$perRow = (int) ($hChannel['per_row'] ?? 0);
+$productGrid = AbstractElement::gridClasses($perRow, 3);
+$caseGrid = AbstractElement::gridClasses($perRow, 3);
+$articleGrid = AbstractElement::gridClasses($perRow, 4);
 $bgMap = ['product' => 'bg-white', 'case' => 'bg-gray-50', 'list' => 'section-dark', 'article' => 'section-dark'];
 $sectionBg = $bgMap[$channelType] ?? 'bg-white';
 $isDark = str_contains($sectionBg, 'dark');
@@ -21,8 +25,8 @@ $isDark = str_contains($sectionBg, 'dark');
                 <p class="mt-2 <?php echo $isDark ? 'text-gray-400' : 'text-gray-500'; ?>"><?php echo e($hChannel['description']); ?></p>
                 <?php endif; ?>
             </div>
-            <a href="<?php echo channelUrl($hChannel); ?>" class="hidden md:inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
-                <?php echo e($hChannel['name']); ?>
+            <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="hidden md:inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
+                <?php echo e($hChannel['home_button_text'] ?? __('home_view_all')); ?>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>
         </div>
@@ -31,7 +35,7 @@ $isDark = str_contains($sectionBg, 'dark');
 
         <?php if ($hChannel['is_product'] ?? false): ?>
         <!-- Product grid -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-6" data-stagger>
+        <div class="grid <?php echo $productGrid; ?> gap-6" data-stagger>
             <?php foreach (array_slice($contents, 0, 6) as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="block group">
                 <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
@@ -50,7 +54,7 @@ $isDark = str_contains($sectionBg, 'dark');
 
         <?php elseif ($channelType === 'case'): ?>
         <!-- Case Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-6" data-stagger>
+        <div class="grid <?php echo $caseGrid; ?> gap-6" data-stagger>
             <?php foreach (array_slice($contents, 0, 6) as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
                 <div class="aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden mb-3">
@@ -66,7 +70,7 @@ $isDark = str_contains($sectionBg, 'dark');
         <?php else: ?>
         <!-- Article grid (dark background, only displaying those with cover images) -->
         <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6" data-stagger>
+        <div class="grid <?php echo $articleGrid; ?> gap-6" data-stagger>
             <?php foreach (array_slice($withCover, 0, 4) as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
                 <div class="aspect-[16/9] bg-gray-700 rounded-lg overflow-hidden mb-3">
@@ -81,8 +85,8 @@ $isDark = str_contains($sectionBg, 'dark');
 
         <!-- View more on mobile -->
         <div class="mt-8 text-center md:hidden">
-            <a href="<?php echo channelUrl($hChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full text-sm transition">
-                <?php echo __('home_view_all'); ?> &raquo;
+            <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full text-sm transition">
+                <?php echo e($hChannel['home_button_text'] ?? __('home_view_all')); ?> &raquo;
             </a>
         </div>
 

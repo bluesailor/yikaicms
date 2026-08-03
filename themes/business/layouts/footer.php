@@ -10,7 +10,7 @@ $footerNav = $footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : [];
 ?>
 
     <!-- CTA Contact Area -->
-    <?php if (!isset($hideCta) || !$hideCta): ?>
+    <?php if (empty($hideCta) && empty($GLOBALS['ik_hide_footer_cta'])): ?>
     <section class="cta-gradient py-16 text-white text-center">
         <div class="container mx-auto px-4">
             <h2 class="text-3xl font-bold mb-4"><?php echo e(config('home_cta_title', '') ?: __('home_cta_title')); ?></h2>

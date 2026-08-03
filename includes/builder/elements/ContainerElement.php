@@ -13,11 +13,11 @@ declare(strict_types=1);
 final class ContainerElement extends AbstractElement
 {
     /** 类名全部字面量写死：Tailwind 独立编译靠扫描源码提取 */
-    private const GAP_MAP = ['none' => 'gap-0', 'sm' => 'gap-2', 'md' => 'gap-4', 'lg' => 'gap-8'];
-    private const PAD_MAP = ['none' => '', 'sm' => 'p-3', 'md' => 'p-6', 'lg' => 'p-10'];
+    private const GAP_MAP = ['none' => 'gap-0', 'sm' => 'gap-2', 'md' => 'gap-4', 'lg' => 'gap-8', 'xl' => 'gap-12'];
+    private const PAD_MAP = ['none' => '', 'sm' => 'p-3', 'md' => 'p-6', 'lg' => 'p-10', 'xl' => 'p-16'];
     private const RADIUS_MAP = ['none' => '', 'md' => 'rounded-lg', 'xl' => 'rounded-2xl'];
-    private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end'];
-    private const JUSTIFY_MAP = ['start' => '', 'center' => 'justify-center', 'end' => 'justify-end', 'between' => 'justify-between'];
+    private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end', 'baseline' => 'items-baseline'];
+    private const JUSTIFY_MAP = ['start' => '', 'center' => 'justify-center', 'end' => 'justify-end', 'between' => 'justify-between', 'around' => 'justify-around', 'evenly' => 'justify-evenly'];
 
     public function type(): string { return 'container'; }
     public function label(): string { return '容器'; }
@@ -35,17 +35,19 @@ final class ContainerElement extends AbstractElement
             ['key' => 'direction', 'type' => 'select', 'label' => '排列方向', 'default' => 'column', 'tab' => 'style',
                 'options' => ['column' => '纵向（上下堆叠）', 'row' => '横向（并排，可换行）'],
                 'option_icons' => ['column' => 'layout-list', 'row' => 'layout-columns']],
+            ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
+                'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
             ['key' => 'gap', 'type' => 'select', 'label' => '子元素间距', 'default' => 'md', 'tab' => 'style',
-                'options' => ['none' => '无', 'sm' => '小', 'md' => '中', 'lg' => '大']],
+                'options' => ['none' => '无', 'sm' => '小', 'md' => '中', 'lg' => '大', 'xl' => __('blox_spacing_xl')]],
             ['key' => 'align', 'type' => 'select', 'label' => '交叉轴对齐', 'default' => 'stretch', 'tab' => 'style',
-                'options' => ['stretch' => '拉伸', 'start' => '起点', 'center' => '居中', 'end' => '终点'],
-                'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom']],
+                'options' => ['stretch' => '拉伸', 'start' => '起点', 'center' => '居中', 'end' => '终点', 'baseline' => __('blox_flex_align_baseline')],
+                'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'baseline' => 'align-box-bottom-center']],
             ['key' => 'justify', 'type' => 'select', 'label' => '主轴分布', 'default' => 'start', 'tab' => 'style',
-                'options' => ['start' => '起点', 'center' => '居中', 'end' => '终点', 'between' => '两端'],
-                'option_icons' => ['start' => 'align-left', 'center' => 'align-center', 'end' => 'align-right', 'between' => 'align-justified']],
+                'options' => ['start' => '起点', 'center' => '居中', 'end' => '终点', 'between' => '两端', 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')],
+                'option_icons' => ['start' => 'align-left', 'center' => 'align-center', 'end' => 'align-right', 'between' => 'align-justified', 'around' => 'spacing-horizontal', 'evenly' => 'space']],
             ['key' => 'bg_color', 'type' => 'color', 'label' => '背景颜色', 'default' => '', 'tab' => 'style'],
             ['key' => 'padding', 'type' => 'select', 'label' => '内边距', 'default' => 'none', 'tab' => 'style',
-                'options' => ['none' => '无', 'sm' => '小', 'md' => '中', 'lg' => '大']],
+                'options' => ['none' => '无', 'sm' => '小', 'md' => '中', 'lg' => '大', 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => '圆角', 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => '无', 'md' => '中', 'xl' => '大']],
         ];
@@ -54,7 +56,14 @@ final class ContainerElement extends AbstractElement
     public function render(array $data, string $children = ''): string
     {
         // yk-container 是编辑态定位钩子（画布空容器占位用），前台无样式含义——与 yk-col-card 同例
-        $cls = 'yk-container flex ' . ((($data['direction'] ?? 'column') === 'row') ? 'flex-row flex-wrap' : 'flex-col');
+        $isRow = ($data['direction'] ?? 'column') === 'row';
+        $cls = 'yk-container flex ' . ($isRow ? 'flex-row' : 'flex-col');
+        $wrap = $data['wrap'] ?? 'auto';
+        if ($wrap === 'wrap' || ($wrap === 'auto' && $isRow)) {
+            $cls .= ' flex-wrap';
+        } elseif ($wrap === 'nowrap') {
+            $cls .= ' flex-nowrap';
+        }
         $cls .= ' ' . (self::GAP_MAP[$data['gap'] ?? 'md'] ?? self::GAP_MAP['md']);
         foreach ([
             self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',

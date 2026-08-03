@@ -8,6 +8,10 @@ $bg = getBlockBg($block ?? [], 'bg-white');
 $hChannel = $currentChannel;
 $channelType = $hChannel['type'];
 $contents = $hChannel['contents'];
+$perRow = (int) ($hChannel['per_row'] ?? 0);
+$productGrid = AbstractElement::gridClasses($perRow, 4);
+$caseGrid = AbstractElement::gridClasses($perRow, 3);
+$articleGrid = AbstractElement::gridClasses($perRow, 4);
 ?>
 <section class="py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -39,7 +43,7 @@ $contents = $hChannel['contents'];
         </div>
         <?php endif; ?>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productGrid">
+        <div class="grid <?php echo $productGrid; ?> gap-6" id="productGrid">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="product-item block border border-gray-200 hover:border-gray-400 transition group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
                 <div class="aspect-[4/3] overflow-hidden">
@@ -67,7 +71,7 @@ $contents = $hChannel['contents'];
 
         <?php elseif ($channelType === 'case'): ?>
         <!-- Cases -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid <?php echo $caseGrid; ?> gap-8">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
                 <div class="aspect-[4/3] overflow-hidden">
@@ -95,7 +99,7 @@ $contents = $hChannel['contents'];
 
         <?php else: ?>
         <!-- Articles -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid <?php echo $articleGrid; ?> gap-6">
             <?php foreach ($contents as $item):
                 $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
                 $itemCatName = $item['channel_name'] ?? $hChannel['name'];
@@ -135,8 +139,8 @@ $contents = $hChannel['contents'];
         <?php endif; ?>
 
         <div class="mt-16">
-            <a href="<?php echo channelUrl($hChannel); ?>" class="inline-block text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
-                <?php echo __('home_view_all'); ?> &rarr;
+            <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="inline-block text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
+                <?php echo e($hChannel['home_button_text'] ?? __('home_view_all')); ?> &rarr;
             </a>
         </div>
     </div>

@@ -30,8 +30,8 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block mt-8 text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
-                    <?php echo __('home_learn_more'); ?> &rarr;
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="inline-block mt-8 text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?> &rarr;
                 </a>
                 <?php endif; ?>
             </div>
@@ -44,8 +44,8 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block mt-8 text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
-                    <?php echo __('home_learn_more'); ?> &rarr;
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="inline-block mt-8 text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?> &rarr;
                 </a>
                 <?php endif; ?>
             </div>

@@ -20,8 +20,8 @@ if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('
             <div data-animate="fade-left">
                 <p class="text-gray-600 leading-relaxed mb-8 text-base"><?php echo e($aboutContent); ?></p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition font-medium">
-                    <?php echo __('home_learn_more'); ?> &raquo;
+                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition font-medium">
+                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?> &raquo;
                 </a>
                 <?php endif; ?>
             </div>

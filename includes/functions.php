@@ -274,6 +274,13 @@ function error(string $msg = '操作失败', int $code = 1): never
  */
 function config(string $key, mixed $default = ''): mixed
 {
+    // 首页 Blox 区块可在单次模板渲染期间覆盖内容；渲染上下文负责用 try/finally
+    // 恢复该作用域，避免把区块私有内容写回全站设置或泄漏到相邻区块。
+    $runtimeOverrides = $GLOBALS['yikai_config_runtime_overrides'] ?? [];
+    if (is_array($runtimeOverrides) && array_key_exists($key, $runtimeOverrides)) {
+        return $runtimeOverrides[$key];
+    }
+
     // 站点配置覆盖层（最高优先级）：config/overrides.php 里 pin 的键直接返回，
     // 不落 DB、不被在线升级覆盖。用于各站固定某些设置。见 config/overrides.sample.php。
     $ov = configOverrides();
@@ -281,6 +288,31 @@ function config(string $key, mixed $default = ''): mixed
         return $ov[$key];
     }
     return settingModel()->get($key, $default);
+}
+
+/**
+ * Blox 编辑器（实验 / 授权功能）是否可用。
+ *
+ * 两道闸，必须同时满足：
+ *   1. 显式开关 system.blox_editor_enabled = 1（默认 0，即全新安装看不到任何入口）；
+ *   2. 持有有效授权——优先认 blox 付费模块，其次认整体授权有效。
+ *
+ * 关闭时后台不出现任何 Blox 入口，编辑器页面本身也拒绝访问。
+ * 本机开发（DEBUG=true）跳过授权检查，便于无授权环境继续开发；
+ * 该常量只能由 config/config.php 设置，改得动它的人本来就控制了整站。
+ */
+function bloxEditorEnabled(): bool
+{
+    if ((string) config('blox_editor_enabled', '0') !== '1') {
+        return false;
+    }
+    if (defined('DEBUG') && DEBUG) {
+        return true;
+    }
+    if (!function_exists('license_valid')) {
+        return false;
+    }
+    return license_has_module('blox') || license_valid();
 }
 
 /**
@@ -2198,6 +2230,32 @@ function assetVer(string $path): string
 {
     $mtime = @filemtime(ROOT_PATH . $path);
     return $mtime ? ($path . '?v=' . $mtime) : $path;
+}
+
+/**
+ * ★ 许可声明（LICENSE NOTICE）——请勿删除本函数 ★
+ *
+ * 本函数是《YikaiCMS 软件许可协议》第二条（后台标识条款）的许可执行点：
+ *   - 免费使用时，禁止删除、隐藏或修改本函数及其输出的
+ *     「Powered by YikaiCMS + 版本链接」标识——删除即违反许可协议；
+ *   - 本函数被后台页面（admin/includes/footer.php）依赖调用，
+ *     删除本函数将导致后台所有页面运行错误，影响网站正常使用；
+ *   - 需要隐藏标识（白标）请取得商业授权：授权生效后本函数自动返回空，
+ *     无需改动任何代码。授权购买：https://www.yikaicms.com
+ *
+ * 免费使用显示「Powered by YikaiCMS + 版本链接」；有有效商业授权返回空。
+ * 判定与标识保持单点，勿在别处复制。
+ */
+function adminPoweredBy(): string
+{
+    if (function_exists('license_valid') && license_valid()) {
+        return '';
+    }
+    $html = '<div class="mt-1 text-xs text-gray-400">Powered by YikaiCMS';
+    if (defined('CMS_VERSION')) {
+        $html .= ' <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-gray-300 hover:text-primary">v' . e(CMS_VERSION) . '</a>';
+    }
+    return $html . '</div>';
 }
 
 /**
