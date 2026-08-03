@@ -12,11 +12,28 @@ final class TextElement extends AbstractElement
     // richtext 由构建器 wangEditor 弹窗接管（hasCustomUI），此处仅供默认值 / 元数据
     public function controls(): array
     {
-        return [['key' => 'html', 'type' => 'richtext', 'label' => '正文', 'default' => '']];
+        return [
+            ['key' => 'html', 'type' => 'richtext', 'label' => '正文', 'default' => ''],
+            [
+                'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_text_binding'),
+                'default' => 'summary', 'loop_only' => true,
+                'options' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('summary', 'content'),
+                'source_options' => [
+                    'content' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('summary', 'content'),
+                    'product' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('summary', 'product'),
+                ],
+            ],
+            [
+                'key' => 'loop_length', 'type' => 'number', 'label' => __('blox_loop_text_length'),
+                'default' => 80, 'min' => 20, 'max' => 300, 'loop_only' => true,
+                'required' => ['loop_field', '!=', 'none'],
+            ],
+            ...$this->animationControls(),
+        ];
     }
 
     public function render(array $data, string $children = ''): string
     {
-        return '<div class="prose prose-lg max-w-none">' . ($data['html'] ?? '') . '</div>';
+        return '<div class="prose prose-lg max-w-none"' . $this->animationAttrs($data) . '>' . ($data['html'] ?? '') . '</div>';
     }
 }

@@ -10,6 +10,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../HtmlTagRewriter.php';
+
 final class BlockRenderer
 {
     /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
@@ -33,6 +35,18 @@ final class BlockRenderer
     private const CONTAINER_RADIUS_MAP = ['md' => 'rounded-xl', 'xl' => 'rounded-3xl'];
     private const ALIGN_ITEMS_MAP = ['start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end'];
     private const JUSTIFY_ITEMS_MAP = ['start' => 'justify-items-start', 'center' => 'justify-items-center', 'end' => 'justify-items-end'];
+    private const GRIDCOL_MAP = [
+        2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3', 4 => 'md:grid-cols-4',
+        5 => 'md:grid-cols-5', 6 => 'md:grid-cols-6', 12 => 'md:grid-cols-12',
+    ];
+    private const COLSPAN_MAP = [
+        1 => 'md:col-span-1', 2 => 'md:col-span-2', 3 => 'md:col-span-3', 4 => 'md:col-span-4',
+        5 => 'md:col-span-5', 6 => 'md:col-span-6', 7 => 'md:col-span-7', 8 => 'md:col-span-8',
+        9 => 'md:col-span-9', 10 => 'md:col-span-10', 11 => 'md:col-span-11', 12 => 'md:col-span-12',
+    ];
+    private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
+    private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
+    private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];
 
     /**
      * 前台就地编辑上下文（P1）：>0 时给每个 section 输出 data-yk-sec 索引，供管理员悬停编辑覆盖层定位。
@@ -103,11 +117,20 @@ final class BlockRenderer
             if ($colCount < 1) {
                 continue;
             }
+            $hasCustomSpans = false;
+            $spanTotal = 0;
+            foreach ($columns as $col) {
+                if (is_array($col) && isset($col['span'])) {
+                    $hasCustomSpans = true;
+                    $spanTotal += max(0, (int) $col['span']);
+                }
+            }
+            $useCustomSpans = $hasCustomSpans && $spanTotal > 0 && $spanTotal <= 12;
 
             $gap = AbstractElement::respClasses($settings['gap'] ?? 'lg', self::GAP_MAP, 'lg');
             $gridClass = '';
             if ($colCount > 1) {
-                $gridClass = 'grid grid-cols-1 md:grid-cols-' . $colCount . ' ' . $gap;
+                $gridClass = 'grid grid-cols-1 ' . ($useCustomSpans ? self::GRIDCOL_MAP[12] : (self::GRIDCOL_MAP[$colCount] ?? self::GRIDCOL_MAP[12])) . ' ' . $gap;
                 if (!empty(self::ALIGN_ITEMS_MAP[$settings['align_items'] ?? ''])) {
                     $gridClass .= ' ' . self::ALIGN_ITEMS_MAP[$settings['align_items']];
                 }
@@ -121,12 +144,13 @@ final class BlockRenderer
 
             // ── 容器层：宽度自定义 px + 独立背景/内边距/圆角。全部是新增可选键，
             //    一个不设时输出仍为 <div class="max-w-* mx-auto px-4">（黄金对拍不破）──
-            $innerCls = $maxWidth . ' mx-auto px-4';
+            $containerGutter = ($settings['container_gutter'] ?? 'default') === 'none' ? '' : ' px-4';
+            $innerCls = $maxWidth . ' mx-auto' . $containerGutter;
             $innerStyle = '';
             if (($settings['max_width'] ?? '') === 'custom') {
                 $px = (int) ($settings['max_width_px'] ?? 0);
                 if ($px >= 320 && $px <= 3840) {
-                    $innerCls = 'mx-auto px-4';
+                    $innerCls = 'mx-auto' . $containerGutter;
                     $innerStyle .= 'max-width:' . $px . 'px;';
                 }
             }
@@ -139,17 +163,33 @@ final class BlockRenderer
             if (!empty($settings['container_bg'])) {
                 $innerStyle .= 'background-color:' . htmlspecialchars((string) $settings['container_bg'], ENT_QUOTES) . ';';
             }
-            $html .= '<div class="' . $innerCls . '"' . ($innerStyle !== '' ? ' style="' . $innerStyle . '"' : '') . '>';
+            $containerEditAttr = $editMode ? ' data-yk-con="' . (int) $secIndex . '"' : '';
+            $html .= '<div class="' . $innerCls . '"' . $containerEditAttr . ($innerStyle !== '' ? ' style="' . $innerStyle . '"' : '') . '>';
             // section 级标题（可选）：有 title 才渲染 —— 让"总标题 + 多列"在同一 section 内完成，
             // 无 title 的 section 输出与旧版完全一致（黄金对拍不变）。
             $secTitle = trim((string) ($settings['title'] ?? ''));
             if ($secTitle !== '') {
                 $secSub = trim((string) ($settings['subtitle'] ?? ''));
-                $html .= '<div class="text-center mb-10">';
-                $html .= '<h2 class="blk-title">' . htmlspecialchars($secTitle) . '</h2>';
+                $titleAlign = self::SECTION_ALIGN_MAP[$settings['title_align'] ?? 'center'] ?? self::SECTION_ALIGN_MAP['center'];
+                $titleTagValue = (string) ($settings['title_tag'] ?? 'h2');
+                $titleTag = in_array($titleTagValue, ['h2', 'h3', 'h4'], true) ? $titleTagValue : 'h2';
+                $titleStyle = self::sectionFieldStyle(
+                    $settings['title_size'] ?? '',
+                    $settings['title_color'] ?? '',
+                    self::SECTION_TITLE_SIZE_MAP
+                );
+                $subtitleStyle = self::sectionFieldStyle(
+                    $settings['subtitle_size'] ?? '',
+                    $settings['subtitle_color'] ?? '',
+                    self::SECTION_SUBTITLE_SIZE_MAP
+                );
+                $html .= '<div class="' . $titleAlign . ' mb-10">';
+                $titleEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.title"' : '';
+                $subEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.subtitle"' : '';
+                $html .= '<' . $titleTag . ' class="blk-title"' . $titleEditAttr . $titleStyle . '>' . htmlspecialchars($secTitle) . '</' . $titleTag . '>';
                 $html .= '<span class="section-title-bar"></span>';
                 if ($secSub !== '') {
-                    $html .= '<p class="blk-sub">' . htmlspecialchars($secSub) . '</p>';
+                    $html .= '<p class="blk-sub"' . $subEditAttr . $subtitleStyle . '>' . htmlspecialchars($secSub) . '</p>';
                 }
                 $html .= '</div>';
             }
@@ -160,14 +200,16 @@ final class BlockRenderer
             $colCard = $colCount > 1 && !empty($settings['col_card']);
             foreach ($columns as $ci => $col) {
                 if ($colCount > 1) {
+                    $spanClass = $useCustomSpans && is_array($col) ? self::colSpanClass($col['span'] ?? 0) : '';
+                    $colEditAttr = $editMode ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '"' : '';
                     if ($colCard) {
-                        // 列级背景色（card_bg）：用于高亮某一列（如价格表「推荐」档），有则加重阴影
+                        // Column card background highlights a specific column without affecting other columns.
                         $cbg = isset($col['card_bg']) && (string) $col['card_bg'] !== '' ? (string) $col['card_bg'] : '';
                         $html .= $cbg !== ''
-                            ? '<div class="rounded-xl border border-gray-100 shadow-md p-6 h-full text-center flex flex-col yk-col-card" style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
-                            : '<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center flex flex-col yk-col-card">';
+                            ? '<div class="' . trim($spanClass . ' rounded-xl border border-gray-100 shadow-md p-6 h-full text-center flex flex-col yk-col-card') . '"' . $colEditAttr . ' style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
+                            : '<div class="' . trim($spanClass . ' bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center flex flex-col yk-col-card') . '"' . $colEditAttr . '>';
                     } else {
-                        $html .= '<div>';
+                        $html .= '<div' . ($spanClass !== '' ? ' class="' . $spanClass . '"' : '') . $colEditAttr . '>';
                     }
                 }
                 foreach (($col['elements'] ?? []) as $ei => $el) {
@@ -190,11 +232,62 @@ final class BlockRenderer
     }
 
     /**
+     * 标题字段只接受预设字号和十六进制颜色，避免任意设置值进入 style 属性。
+     */
+    private static function sectionFieldStyle(mixed $size, mixed $color, array $sizeMap): string
+    {
+        $style = '';
+        $sizeKey = is_string($size) ? $size : '';
+        if ($sizeKey !== '' && isset($sizeMap[$sizeKey])) {
+            $style .= 'font-size:' . $sizeMap[$sizeKey] . ';';
+        }
+        $colorValue = is_string($color) ? trim($color) : '';
+        if ($colorValue !== '' && preg_match('/^#[0-9a-fA-F]{6}$/', $colorValue)) {
+            $style .= 'color:' . $colorValue . ';';
+        }
+        return $style !== '' ? ' style="' . $style . '"' : '';
+    }
+
+    /**
      * 渲染单个元素。容器元素（isContainer）先递归渲染 data.children 传入 $children；
      * 普通元素不看 children 键，输出与抽取前逐字节一致（黄金对拍不破）。
      * 深度上限 3 防坏数据画圈（编辑器只允许一层，这里是兜底不是约束）。
      * 未注册 type 静默跳过（与旧 switch default 行为一致）。
      */
+    private static function colSpanClass(mixed $span): string
+    {
+        $span = (int) $span;
+        if ($span < 1 || $span > 12) {
+            return '';
+        }
+        return self::COLSPAN_MAP[$span] ?? '';
+    }
+
+    private static function applyElementBoxStyle(string $html, array $data, string $type): string
+    {
+        $boxStyle = AbstractElement::boxStyle($data);
+        if ($html === '' || $boxStyle === '' || $type === 'code') {
+            return $html;
+        }
+
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $existingStyle = $processor->getAttribute('style');
+        $style = is_string($existingStyle) ? trim($existingStyle) : '';
+        if ($style !== '' && !str_ends_with($style, ';')) {
+            $style .= ';';
+        }
+        $processor->setAttribute('style', $style . $boxStyle);
+        return $processor->getUpdatedHtml();
+    }
+
+    public static function renderElementNode(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
+    {
+        return self::renderElement($el, $depth, $editMode, $path);
+    }
+
     private static function renderElement(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
     {
         $element = BuilderRegistry::get((string) ($el['type'] ?? ''));
@@ -202,7 +295,7 @@ final class BlockRenderer
             return '';
         }
         $children = '';
-        if ($element->isContainer() && $depth < 3) {
+        if ($element->isContainer() && !$element->rendersOwnChildren() && $depth < 3) {
             foreach ((array) ($el['data']['children'] ?? []) as $childIndex => $child) {
                 if (is_array($child)) {
                     $childPath = $path;
@@ -211,11 +304,23 @@ final class BlockRenderer
                 }
             }
         }
-        $html = $element->render($el['data'] ?? [], $children);
+        $data = is_array($el['data'] ?? null) ? $el['data'] : [];
+        $html = $element->renderWithContext($data, $children, [
+            'edit_mode' => $editMode,
+            'path' => $path,
+            'depth' => $depth,
+        ]);
+        $html = self::applyElementBoxStyle($html, $data, $element->type());
         if (!$editMode || $path === []) {
             return $html;
         }
-        $pathAttr = htmlspecialchars(implode('.', array_map('strval', $path)), ENT_QUOTES);
-        return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '" style="display:contents">' . $html . '</div>';
+        $storedPath = (string) ($data['_blox_path'] ?? '');
+        $effectivePath = preg_match('/^\d+(?:\.\d+){2,3}$/', $storedPath) === 1
+            ? $storedPath
+            : implode('.', array_map('strval', $path));
+        $pathAttr = htmlspecialchars($effectivePath, ENT_QUOTES);
+        $typeAttr = htmlspecialchars($element->type(), ENT_QUOTES);
+        return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '" data-yk-el-type="' . $typeAttr
+            . '" style="display:contents">' . $html . '</div>';
     }
 }

@@ -2,13 +2,13 @@
 /**
  * Yikai CMS - HTML 内容增强流水线
  *
- * 基于 vendored WP_HTML_Tag_Processor 对富文本做安全的属性级改写。
+ * 基于自研 HtmlTagRewriter 对富文本做安全的属性级改写。
  * 默认注册 4 个 filter 到 content_render 钩子，可通过 remove_filter 关闭。
  */
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/html-api/loader.php';
+require_once __DIR__ . '/HtmlTagRewriter.php';
 
 class HtmlPipeline
 {
@@ -32,16 +32,16 @@ class HtmlPipeline
         if ($html === '' || stripos($html, '<img') === false) {
             return $html;
         }
-        $p = new WP_HTML_Tag_Processor($html);
-        while ($p->next_tag('IMG')) {
-            if ($p->get_attribute('loading') === null) {
-                $p->set_attribute('loading', 'lazy');
+        $p = new HtmlTagRewriter($html);
+        while ($p->nextTag('IMG')) {
+            if ($p->getAttribute('loading') === null) {
+                $p->setAttribute('loading', 'lazy');
             }
-            if ($p->get_attribute('decoding') === null) {
-                $p->set_attribute('decoding', 'async');
+            if ($p->getAttribute('decoding') === null) {
+                $p->setAttribute('decoding', 'async');
             }
         }
-        return $p->get_updated_html();
+        return $p->getUpdatedHtml();
     }
 
     /**
@@ -52,15 +52,15 @@ class HtmlPipeline
         if ($html === '' || stripos($html, '<img') === false) {
             return $html;
         }
-        $p = new WP_HTML_Tag_Processor($html);
-        while ($p->next_tag('IMG')) {
-            $alt = $p->get_attribute('alt');
+        $p = new HtmlTagRewriter($html);
+        while ($p->nextTag('IMG')) {
+            $alt = $p->getAttribute('alt');
             if ($alt === null) {
-                $title = $p->get_attribute('title');
-                $p->set_attribute('alt', is_string($title) ? $title : '');
+                $title = $p->getAttribute('title');
+                $p->setAttribute('alt', is_string($title) ? $title : '');
             }
         }
-        return $p->get_updated_html();
+        return $p->getUpdatedHtml();
     }
 
     /**
@@ -73,9 +73,9 @@ class HtmlPipeline
             return $html;
         }
         $siteHost = parse_url((string)config('site_url', ''), PHP_URL_HOST) ?: '';
-        $p = new WP_HTML_Tag_Processor($html);
-        while ($p->next_tag('A')) {
-            $href = $p->get_attribute('href');
+        $p = new HtmlTagRewriter($html);
+        while ($p->nextTag('A')) {
+            $href = $p->getAttribute('href');
             if (!is_string($href) || $href === '') continue;
 
             $isExternal = false;
@@ -90,18 +90,18 @@ class HtmlPipeline
             if (!$isExternal) continue;
 
             // 合并 rel
-            $rel = (string)($p->get_attribute('rel') ?? '');
+            $rel = (string)($p->getAttribute('rel') ?? '');
             $tokens = $rel === '' ? [] : (preg_split('/\s+/', strtolower($rel)) ?: []);
             foreach (['noopener', 'noreferrer'] as $token) {
                 if (!in_array($token, $tokens, true)) $tokens[] = $token;
             }
-            $p->set_attribute('rel', implode(' ', array_filter($tokens)));
+            $p->setAttribute('rel', implode(' ', array_filter($tokens)));
 
-            if ($p->get_attribute('target') === null) {
-                $p->set_attribute('target', '_blank');
+            if ($p->getAttribute('target') === null) {
+                $p->setAttribute('target', '_blank');
             }
         }
-        return $p->get_updated_html();
+        return $p->getUpdatedHtml();
     }
 
     /**
@@ -113,26 +113,26 @@ class HtmlPipeline
         if ($html === '' || (stripos($html, '<h2') === false && stripos($html, '<h3') === false)) {
             return $html;
         }
-        $p = new WP_HTML_Tag_Processor($html);
+        $p = new HtmlTagRewriter($html);
         $used = [];
         // 先扫描已有 id 防止冲突
-        while ($p->next_tag()) {
-            $tag = $p->get_tag();
+        while ($p->nextTag()) {
+            $tag = $p->getTag();
             if ($tag !== 'H2' && $tag !== 'H3') continue;
-            $id = $p->get_attribute('id');
+            $id = $p->getAttribute('id');
             if (is_string($id) && $id !== '') {
                 $used[$id] = true;
             }
         }
         // 第二次遍历做注入；Tag_Processor 不支持 rewind，新建实例
-        $p = new WP_HTML_Tag_Processor($html);
+        $p = new HtmlTagRewriter($html);
         // 因为 Tag_Processor 暂不暴露 inner-text，用简单回调读取邻接文本不可行；
         // 改用「序号兜底」方案：未取到文本时用 section-N。
         $idx = 0;
-        while ($p->next_tag()) {
-            $tag = $p->get_tag();
+        while ($p->nextTag()) {
+            $tag = $p->getTag();
             if ($tag !== 'H2' && $tag !== 'H3') continue;
-            if (is_string($p->get_attribute('id'))) continue;
+            if (is_string($p->getAttribute('id'))) continue;
             $idx++;
             $base = 'section-' . $idx;
             $candidate = $base;
@@ -141,9 +141,9 @@ class HtmlPipeline
                 $candidate = $base . '-' . $n++;
             }
             $used[$candidate] = true;
-            $p->set_attribute('id', $candidate);
+            $p->setAttribute('id', $candidate);
         }
-        return $p->get_updated_html();
+        return $p->getUpdatedHtml();
     }
 
     /**
@@ -154,11 +154,11 @@ class HtmlPipeline
         if ($html === '' || stripos($html, '<' . $tag) === false) {
             return $html;
         }
-        $p = new WP_HTML_Tag_Processor($html);
+        $p = new HtmlTagRewriter($html);
         $upper = strtoupper($tag);
-        while ($p->next_tag($upper)) {
-            $p->add_class($className);
+        while ($p->nextTag($upper)) {
+            $p->addClass($className);
         }
-        return $p->get_updated_html();
+        return $p->getUpdatedHtml();
     }
 }

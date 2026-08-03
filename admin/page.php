@@ -151,6 +151,62 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                 </tr>
             </thead>
             <tbody class="divide-y">
+                <tr class="bg-blue-50/60 hover:bg-blue-50">
+                    <td class="px-4 py-3 text-gray-400">-</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <i class="ti ti-home text-primary text-lg"></i>
+                            <div>
+                                <div class="font-medium flex items-center gap-2">
+                                    <?php echo e(__('admin_home')); ?>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 whitespace-nowrap"><?php echo e(__('admin_label_fixed')); ?></span>
+                                </div>
+                                <div class="text-xs text-gray-400"><?php echo e(__('admin_setting_home')); ?></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-xs text-gray-400"><?php echo __('admin_none'); ?></span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <code class="text-xs bg-gray-100 px-2 py-1 rounded">/</code>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600"><?php echo __('page_main_nav'); ?></span>
+                    </td>
+                    <td class="px-4 py-3 text-center text-sm text-gray-400">-</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-xs px-2 py-1 rounded bg-green-100 text-green-600"><?php echo __('admin_show'); ?></span>
+                    </td>
+                    <td class="px-4 py-3 text-center text-gray-300">-</td>
+                    <td class="px-4 py-3 text-center">
+                        <a href="/admin/setting_home.php"
+                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
+                           title="<?php echo e(__('admin_setting_home')); ?>">
+                            <i class="ti ti-settings text-sm"></i>
+                            <?php echo __('admin_setting_home'); ?>
+                        </a>
+                        <a href="/admin/page_edit_advance.php?home=1"
+                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
+                           title="<?php echo e(__('page_mode_blocks_tip')); ?>">
+                            <i class="ti ti-layout-board text-sm"></i>
+                            <?php echo __('page_mode_blocks_edit'); ?>
+                        </a>
+                        <?php if (bloxEditorEnabled()): ?>
+                        <a href="/admin/blox_editor.php?home=1"
+                           class="text-gray-500 hover:text-gray-900 hover:underline text-sm mr-2 inline-flex items-center gap-1"
+                           title="<?php echo e(__('page_mode_blox_tip')); ?>">
+                            <i class="ti ti-stack-2 text-sm"></i>
+                            <?php echo __('page_mode_blox'); ?>
+                        </a>
+                        <?php endif; ?>
+                        <a href="/" target="_blank"
+                           class="text-gray-500 hover:underline text-sm inline-flex items-center gap-1">
+                            <i class="ti ti-external-link text-sm"></i>
+                            <?php echo __('admin_preview'); ?>
+                        </a>
+                    </td>
+                </tr>
                 <?php foreach ($pages as $item): ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
@@ -235,19 +291,21 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                         <a href="<?php echo $__editUrl; ?>"
                            class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-<?php echo $__isBlocks ? 'layout-board' : 'pencil'; ?> text-sm"></i>
-                            <?php echo __('admin_content_edit'); ?>
+                            <?php echo $__isBlocks ? __('page_mode_blocks_edit') : __('admin_content_edit'); ?>
                         </a>
                         <?php if ($__isBlocks): ?>
                         <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
                               title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
                         <?php // Blox 全屏编辑器（实验）：仅排版页可用——它编辑的就是 blocks_data。
                               // 富文本页没有可编辑的区块结构，给入口只会让人点进去看到空画布。 ?>
+                        <?php if (bloxEditorEnabled()): ?>
                         <a href="/admin/blox_editor.php?id=<?php echo $item['id']; ?>"
                            class="text-gray-500 hover:text-gray-900 hover:underline text-sm mr-2 inline-flex items-center gap-1"
                            title="<?php echo e(__('page_mode_blox_tip')); ?>">
                             <i class="ti ti-stack-2 text-sm"></i>
                             <?php echo __('page_mode_blox'); ?>
                         </a>
+                        <?php endif; ?>
                         <?php endif; ?>
                         <?php endif; ?>
                         <a href="/<?php echo e($item['slug']); ?>.html" target="_blank"

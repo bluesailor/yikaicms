@@ -1,6 +1,6 @@
 -- ============================================================
 -- Yikai CMS Install SQL (MySQL)
--- Version: 1.15.2
+-- Version: 1.16.0
 -- Generated: 2026-05-16 20:03:01
 -- ============================================================
 SET NAMES utf8mb4;
@@ -1064,7 +1064,7 @@ CREATE TABLE `yikai_settings` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `group` varchar(50) NOT NULL DEFAULT 'basic' COMMENT '分组',
   `key` varchar(100) NOT NULL COMMENT '键名',
-  `value` text COMMENT '值',
+  `value` longtext COMMENT '值',
   `type` varchar(20) NOT NULL DEFAULT 'text' COMMENT '类型：text/textarea/number/select/image/editor',
   `name` varchar(100) NOT NULL DEFAULT '' COMMENT '显示名称',
   `tip` varchar(255) NOT NULL DEFAULT '' COMMENT '提示',
@@ -1185,7 +1185,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (105,'member','download_require_login','0','switch','下载需要登录','',NULL,2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (106,'social','social_links','[]','social_links','社交媒体链接','',NULL,1);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (107,'system','current_theme','default','text','当前主题','',NULL,0);
-INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (108,'system','cms_version','1.15.2','text','CMS版本号','',NULL,1);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (108,'system','cms_version','1.16.0','text','CMS版本号','',NULL,1);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (109,'system','site_lang','zh-CN','text','站点语言','',NULL,2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (110,'system','admin_lang','zh-CN','text','后台语言','',NULL,3);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (111,'basic','html_cache_enabled','1','select','HTML缓存','','{\"0\":\"关闭\",\"1\":\"开启\"}',15);
@@ -1406,3 +1406,17 @@ INSERT IGNORE INTO `yikai_settings` (`group`, `key`, `value`, `type`, `name`, `t
 ('contact', 'map_zoom',        '15', 'text', '地图缩放级别',   '默认 15，数字越大越近', 7),
 ('contact', 'map_amap_key',    '',   'text', '高德地图 JS Key', '中文版选 amap 时填，lbs.amap.com 申请 Web端(JS API) Key', 8),
 ('contact', 'map_baidu_ak',    '',   'text', '百度地图 ak',     '中文版选 baidu 时填，lbsyun.baidu.com 申请 JavaScript API ak', 8);
+
+-- 后台菜单使用记录（控制台「最近使用」数据源；对应迁移 20260801_admin_menu_usage）
+CREATE TABLE `yikai_admin_menu_usage` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) unsigned NOT NULL,
+  `url` varchar(255) NOT NULL,
+  `title` varchar(120) NOT NULL DEFAULT '',
+  `icon` varchar(80) NOT NULL DEFAULT '',
+  `used_count` int(11) unsigned NOT NULL DEFAULT 0,
+  `last_used_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_admin_url` (`admin_id`, `url`),
+  KEY `idx_admin_last` (`admin_id`, `last_used_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

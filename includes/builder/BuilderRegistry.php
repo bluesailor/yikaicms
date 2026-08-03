@@ -83,10 +83,13 @@ final class BuilderRegistry
             new AccordionElement(),
             // 布局容器（一层嵌套；子元素在 data.children）
             new ContainerElement(),
+            new DivElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new BannerElement(),
             new NavElement(),
+            new HomeBannerItemElement(),
+            new HomeBlockElement(),
         ] as $el) {
             self::register($el);
         }

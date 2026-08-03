@@ -2,23 +2,25 @@
 /**
  * Aurora Theme - CTA Block
  */
-$ctaTitle = config('home_cta_title', __('home_cta_title'));
-$ctaDesc = config('home_cta_desc', __('home_cta_desc'));
-$ctaButton = config('home_cta_button', __('home_cta_button'));
-$ctaLink = config('home_cta_link', '#contact');
+$ctaTitle = configLang('home_cta_title', 'home_cta_title');
+$ctaDesc = configLang('home_cta_desc', 'home_cta_desc');
+$ctaButton = config('home_cta_button', '') ?: __('detail_consult');
+$ctaLink = config('home_cta_link', '') ?: '/contact.html';
+$ctaHasCustomBg = !empty($block['bg_image']) || !empty($block['bg_color']);
+$bg = getBlockBg($block ?? [], '');
 ?>
 <section class="py-24 relative overflow-hidden">
     <div class="container mx-auto px-6 lg:px-8">
-        <div class="relative rounded-3xl overflow-hidden">
-            <!-- 大渐变背景 -->
+        <div class="relative rounded-3xl overflow-hidden <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+            <?php if (!$ctaHasCustomBg): ?>
             <div class="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600"></div>
-            <!-- Mesh overlay 模拟 -->
             <div class="absolute inset-0 opacity-30 aurora-grid"></div>
-            <!-- 装饰球 -->
             <div class="absolute -top-32 -right-32 w-96 h-96 bg-pink-400/30 rounded-full blur-3xl"></div>
             <div class="absolute -bottom-32 -left-32 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl"></div>
+            <?php endif; ?>
+            <?php echo $bg['overlay']; ?>
 
-            <div class="relative px-8 md:px-16 py-16 md:py-20 text-center max-w-3xl mx-auto">
+            <div class="relative <?php echo $bg['content']; ?> px-8 md:px-16 py-16 md:py-20 text-center max-w-3xl mx-auto">
                 <h2 class="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
                     <?php echo e($ctaTitle); ?>
                 </h2>

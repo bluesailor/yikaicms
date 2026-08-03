@@ -1,21 +1,93 @@
-MIT License
+YikaiCMS 软件许可协议
+YikaiCMS Software License Agreement
 
-Copyright (c) 2026 Yikai (https://www.yikaicms.com)
+版权所有 (c) 2026 Yikai (https://www.yikaicms.com)
+保留所有权利。
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+本协议自 YikaiCMS v1.16.0 起适用。v1.16.0 之前发布的版本按其发布时
+随附的 MIT 协议执行，该授权不可撤回。历史版本的 MIT 协议文本见
+LICENSE-MIT-HISTORICAL。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+--------------------------------------------------------------------
+一、授权范围（免费，含商业用途）
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+在遵守本协议的前提下，任何个人或组织可以免费：
+
+  1. 下载、安装、使用本软件建立网站（含商业网站）；
+  2. 为第三方客户使用本软件提供建站、开发、维护服务；
+  3. 修改本软件源代码以满足自身或客户需求；
+  4. 开发本软件的主题、插件，并自主选择其许可方式与收费方式。
+
+--------------------------------------------------------------------
+二、限制条款
+
+  1. 后台标识
+     免费使用时，本软件后台管理界面中的「Powered by YikaiCMS」标识、
+     官网链接（yikaicms.com）与版本号不得移除、隐藏或修改。
+     取得有效商业授权的站点，可按授权范围隐藏上述标识（现行软件已内置
+     此行为，无需自行改动代码）。
+     前台页面无署名义务，是否保留由使用者自行决定。
+
+  2. 源码声明
+     不得移除或修改源代码文件中的版权声明。源码中标注「许可声明
+     （LICENSE NOTICE）」的代码为许可执行点，不得删除或规避；该类代码
+     同时承担运行功能，删除可能导致软件运行错误。
+
+  3. 再分发
+     不得以原名或改名后的形式，对本软件本体进行再分发、销售、OEM 贴牌
+     或上架软件市场；上述行为须取得书面授权。
+     （为单一客户交付含本软件的建站成果，不属于再分发。）
+
+  4. 付费模块
+     Pro 功能、付费插件与付费主题按其各自授权条款执行，不适用本协议的
+     免费授权。
+
+  5. 合法使用
+     不得将本软件用于违反所在地法律法规的用途。
+
+--------------------------------------------------------------------
+三、第三方组件
+
+本软件随包分发的第三方组件（前端库、PHP 依赖等）按其各自的开源协议
+授权，清单见随包 THIRD-PARTY-NOTICES.md。本协议不改变第三方组件的
+授权状态。
+
+--------------------------------------------------------------------
+四、免责声明
+
+本软件按「现状」提供，不附带任何明示或默示的担保，包括但不限于适销性、
+特定用途适用性与非侵权的担保。在任何情况下，作者或版权持有人均不对因
+使用本软件产生的任何索赔、损害或其他责任承担责任。
+
+--------------------------------------------------------------------
+五、协议解释与联系方式
+
+本协议以中文版本为准。商业授权、再分发授权与其他许可事宜，请联系
+https://www.yikaicms.com。
+
+====================================================================
+English summary (for reference only; the Chinese text above prevails)
+
+YikaiCMS is free for commercial use. You may use, modify and deploy it
+for yourself or for clients at no cost, and may build and sell your own
+themes and plugins.
+
+Two conditions apply to free use: (1) the "Powered by YikaiCMS" notice,
+site link and version number in the ADMIN interface must not be removed
+or hidden — front-end pages carry no attribution requirement, and a paid
+license unlocks white-labelling of the admin notice; (2) the software
+itself may not be redistributed, resold, rebranded or listed on software
+marketplaces without written permission — delivering a website built with
+it to a single client is not redistribution.
+
+Code marked "LICENSE NOTICE" enforces these terms and also performs
+runtime functions; removing it both breaches this license and may break
+the software.
+
+Third-party components bundled with this software remain under their own
+licenses; see THIRD-PARTY-NOTICES.md.
+
+Provided "AS IS", without warranty of any kind.
+
+Effective from YikaiCMS v1.16.0. Releases before v1.16.0 remain under the
+MIT license they shipped with; that grant is irrevocable.

@@ -184,7 +184,7 @@ $extraCss = '
 .banner-swiper .swiper-slide-active .pointer-events-auto { pointer-events: auto !important; }
 </style>';
 if ($bannerFullscreen) {
-    // 满屏 banner：量出头部(通栏+导航)总高度写入 --hg-banner-offset；svh 适配移动端浏览器地址栏
+    // 满屏 banner：量出头部（通栏+导航）总高度写入 --hg-banner-offset；svh 适配移动端浏览器地址栏
     $extraCss .= '
 <script>(function(){function s(){var b=document.querySelector(".banner-swiper");if(!b)return;var t=b.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);document.documentElement.style.setProperty("--hg-banner-offset",Math.round(t)+"px");}window.addEventListener("DOMContentLoaded",s);window.addEventListener("load",s);window.addEventListener("resize",s);s();})();</script>';
 }
@@ -246,54 +246,78 @@ require_once theme_path('layouts/header.php');
 $ykHomeEdit = !empty($_SESSION['admin_id']);
 if ($ykHomeEdit) {
     $GLOBALS['ik_front_edit_home'] = true;
-    $GLOBALS['ik_edit_url'] = '/admin/setting_home.php';
+    $GLOBALS['ik_edit_url'] = '/admin/page_edit_advance.php?home=1';
 }
 
-// 动态渲染首页区块
-foreach ($blocksConfig as $block) {
-    if (empty($block['enabled'])) continue;
-    $type = $block['type'] ?? '';
+// 动态渲染首页：已发布 Blox 时按文档树输出，未发布时保留旧首页链路。
+$homeLayoutActive = HomeLayoutDocument::isActive() && HomeLayoutDocument::hasPublished();
+$homeBloxActive = !$homeLayoutActive && HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished();
+$homeBloxDocument = null;
+if ($homeLayoutActive) {
+    $homeBloxDocument = HomeLayoutDocument::loadPublished();
+} elseif ($homeBloxActive) {
+    $homeBloxDocument = HomeBloxDocument::loadPublished();
+}
 
-    // 缓冲每个区块输出，管理员浏览时把 data-yk-home 注入首个标签（无额外包裹，不破版式）
-    if ($ykHomeEdit) ob_start();
+$homeBloxRenderContext = HomeBloxRenderContext::fromHomePageData(
+    $blocksConfig,
+    $blockTemplates,
+    $homeChannelsMap,
+    $banners,
+    $aboutChannel,
+    $testimonials,
+    $ykHomeEdit
+);
+$renderLegacyHomeBlock = [$homeBloxRenderContext, 'renderLegacyBlock'];
 
-    if (str_starts_with($type, 'channel:')) {
-        // 独立栏目区块
-        $channelId = (int)substr($type, 8);
-        $currentChannel = $homeChannelsMap[$channelId] ?? null;
-        if ($currentChannel) {
-            require theme_path('blocks/channel.php');
-        }
-    } elseif (str_starts_with($type, 'custom:')) {
-        // 自定义版块（构建器 JSON，来自预设库）：home_custom_<N> = {"title","blocks":[section]}
-        $__cData = json_decode((string) config('home_custom_' . substr($type, 7), ''), true);
-        if (!empty($__cData['blocks']) && function_exists('renderBlocksToHtml')) {
-            echo renderBlocksToHtml(json_encode($__cData['blocks'], JSON_UNESCAPED_UNICODE));
-        }
-    } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
-        require $blockTemplates[$type];
-    } else {
-        // 插件版块前台渲染扩展点：插件按 $type 返回 HTML（内置类型都不匹配时才走这里）
-        echo apply_filters('home_block_render', '', $type, $block);
-    }
+if (($homeLayoutActive || $homeBloxActive) && is_array($homeBloxDocument)) {
+    echo HomeBloxRenderer::render($homeBloxDocument['sections'], $renderLegacyHomeBlock);
+} else {
+    foreach ($blocksConfig as $block) {
+        if (empty($block['enabled'])) continue;
+        $type = $block['type'] ?? '';
 
-    if ($ykHomeEdit) {
-        $blockHtml = ob_get_clean();
-        if ($blockHtml !== '') {
-            if (str_starts_with($type, 'custom:')) {
-                // 自定义块可能渲染成多个 <section>（如"标题段 + 卡片段"）——逐个注入 data-yk-home，
-                // 使整块（标题 + 下方卡片）都纳入前台可视编辑区，而非只框住第一个标题段。
-                $blockHtml = preg_replace('/<section\b/', '<section data-yk-home="' . e($type) . '"', $blockHtml);
-            } else {
-                $blockHtml = preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $blockHtml, 1);
+        if ($ykHomeEdit) ob_start();
+
+        // 独立栏目区块仍由旧主题模板负责实际数据查询与输出。
+        if (str_starts_with($type, 'channel:')) {
+            $channelId = (int) substr($type, 8);
+            $currentChannel = $homeChannelsMap[$channelId] ?? null;
+            if ($currentChannel) {
+                require theme_path('blocks/channel.php');
             }
+        } elseif (str_starts_with($type, 'custom:')) {
+            // 自定义版块来自预设库：home_custom_<N> = {title, blocks}。
+            $customData = json_decode((string) config('home_custom_' . substr($type, 7), ''), true);
+            if (!empty($customData['blocks']) && function_exists('renderBlocksToHtml')) {
+                echo renderBlocksToHtml(json_encode($customData['blocks'], JSON_UNESCAPED_UNICODE));
+            }
+        } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
+            require $blockTemplates[$type];
+        } else {
+            // 插件版块前台渲染扩展点：内置类型不匹配时交给插件。
+            echo (string) apply_filters('home_block_render', '', $type, $block);
         }
-        echo $blockHtml;
+
+        if ($ykHomeEdit) {
+            $blockHtml = ob_get_clean();
+            if ($blockHtml !== '') {
+                if (str_starts_with($type, 'custom:')) {
+                    $blockHtml = (string) preg_replace('/<section\b/', '<section data-yk-home="' . e($type) . '"', $blockHtml);
+                } else {
+                    $blockHtml = (string) preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $blockHtml, 1);
+                }
+            }
+            echo $blockHtml;
+        }
     }
 }
 
-// 合作伙伴 / 友情链接现由上方「区块系统」按 home_blocks_config 的位置渲染（可拖拽排序）。
-
+// Business 主题的旧 CTA 位于 footer；Blox 启用后只允许文档中的 CTA 区块输出。
+if ($homeLayoutActive || $homeBloxActive) {
+    $GLOBALS['ik_hide_footer_cta'] = true;
+}
+// 合作伙伴 / 友情链接由上方区块系统按 home_blocks_config 的位置渲染。
 require_once theme_path('layouts/footer.php');
 HtmlCache::end();
 ?>

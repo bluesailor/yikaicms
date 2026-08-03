@@ -48,6 +48,8 @@ function renderFrontEdit(): void
     <script>
     (function () {
       var cid = <?php echo $cid; ?>;
+      // Blox 编辑器未启用/无授权时，首页区块回落到「首页设置」，不给出无效入口
+      var bloxOn = <?php echo bloxEditorEnabled() ? 'true' : 'false'; ?>;
       var current = null, hideTimer = null;
 
       var box = document.createElement('div');
@@ -66,7 +68,9 @@ function renderFrontEdit(): void
           return '/admin/page_edit_advance.php?id=' + cid + '&focus=' + el.getAttribute('data-yk-sec');
         }
         if (el.hasAttribute('data-yk-home')) {
-          return '/admin/setting_home.php?focus=' + encodeURIComponent(el.getAttribute('data-yk-home'));
+          return bloxOn
+            ? '/admin/blox_editor.php?home=1&focus=' + encodeURIComponent(el.getAttribute('data-yk-home'))
+            : '/admin/setting_home.php';
         }
         if (el.hasAttribute('data-yk-nav')) {
           return '/admin/channel.php';

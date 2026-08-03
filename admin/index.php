@@ -147,6 +147,7 @@ if ($__notifyLv === '') {
 </script>
 <?php endif; ?>
 
+
 <?php if ($showOnboard): ?>
 <!-- 新站栏目引导卡 -->
 <div id="onbCard" class="relative bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6 flex items-start gap-4">
@@ -174,32 +175,155 @@ document.getElementById('onbDismiss')?.addEventListener('click', async function 
 </script>
 <?php endif; ?>
 
-<!-- クイックアクセス（按权限显示，非超管只见自己能用的入口） -->
 <?php
-// [url, 图标, 图标盒class(字面量供Tailwind扫描), 图标色, lang键, 所需权限]
-$__quick = [
-    ['/admin/setting.php',            'ti-settings',        'bg-blue-50 group-hover:bg-blue-100',     'text-blue-600',   'dashboard_quick_setting',  '*'],
-    ['/admin/setting_home.php',       'ti-home',            'bg-green-50 group-hover:bg-green-100',   'text-green-600',  'dashboard_quick_home',     '*'],
-    ['/admin/setting_contact.php',    'ti-phone',           'bg-cyan-50 group-hover:bg-cyan-100',     'text-cyan-600',   'dashboard_quick_contact',  '*'],
-    ['/admin/database.php?tab=backup','ti-database',        'bg-purple-50 group-hover:bg-purple-100', 'text-purple-600', 'dashboard_quick_database', '*'],
-    ['/admin/banner.php',             'ti-photo',           'bg-amber-50 group-hover:bg-amber-100',   'text-amber-600',  'dashboard_quick_banner',   'banner'],
-    ['/admin/channel.php',            'ti-align-justified', 'bg-rose-50 group-hover:bg-rose-100',     'text-rose-600',   'dashboard_quick_channel',  '*'],
-    // 内容编辑常用入口（非超管也可见，凭内容权限）
-    ['/admin/article.php',            'ti-file-text',       'bg-indigo-50 group-hover:bg-indigo-100', 'text-indigo-600', 'dashboard_quick_article',  'edit_article'],
-    ['/admin/product.php',            'ti-package',         'bg-teal-50 group-hover:bg-teal-100',     'text-teal-600',   'dashboard_quick_product',  'edit_product'],
+require_once ROOT_PATH . '/admin/includes/menu_usage.php';
+$__adminId = (int) (getAdminInfo()['id'] ?? 0);
+// ── 常用面板默认清单：按安装预置角色分套（1超管/2投稿者/3内容编辑/4内容主管/5运营），
+//    自建角色回退超管清单；无论哪套都再过一遍权限闸兜底。管理员收藏过（☆）则收藏优先。──
+$__qkCatalog = [
+    '/admin/setting_home.php'    => ['ti-home',             'bg-green-50 group-hover:bg-green-100',   'text-green-600',   'dashboard_quick_home',    '*'],
+    '/admin/setting_contact.php' => ['ti-phone',            'bg-cyan-50 group-hover:bg-cyan-100',     'text-cyan-600',    'dashboard_quick_contact', '*'],
+    '/admin/setting.php'         => ['ti-settings',         'bg-blue-50 group-hover:bg-blue-100',     'text-blue-600',    'dashboard_quick_setting', '*'],
+    '/admin/database.php'        => ['ti-database',         'bg-purple-50 group-hover:bg-purple-100', 'text-purple-600',  'dashboard_quick_database','*'],
+    '/admin/banner.php'          => ['ti-photo',            'bg-amber-50 group-hover:bg-amber-100',   'text-amber-600',   'dashboard_quick_banner',  'banner'],
+    '/admin/channel.php'         => ['ti-align-justified',  'bg-rose-50 group-hover:bg-rose-100',     'text-rose-600',    'dashboard_quick_channel', '*'],
+    '/admin/page.php'            => ['ti-file-description', 'bg-lime-50 group-hover:bg-lime-100',     'text-lime-600',    'dashboard_quick_page',    'edit_page'],
+    '/admin/article.php'         => ['ti-file-text',        'bg-indigo-50 group-hover:bg-indigo-100', 'text-indigo-600',  'dashboard_quick_article', 'edit_article'],
+    '/admin/product.php'         => ['ti-package',          'bg-teal-50 group-hover:bg-teal-100',     'text-teal-600',    'dashboard_quick_product', 'edit_product'],
+    '/admin/download.php'        => ['ti-download',         'bg-sky-50 group-hover:bg-sky-100',       'text-sky-600',     'admin_download',          'edit_download'],
+    '/admin/case.php'            => ['ti-briefcase',        'bg-orange-50 group-hover:bg-orange-100', 'text-orange-600',  'admin_case',              'edit_case'],
+    '/admin/media.php'           => ['ti-photo-cog',        'bg-fuchsia-50 group-hover:bg-fuchsia-100','text-fuchsia-600','admin_media',             'media'],
+    '/admin/job.php'             => ['ti-id-badge-2',       'bg-emerald-50 group-hover:bg-emerald-100','text-emerald-600','admin_job',               'edit_job'],
+    '/admin/timeline.php'        => ['ti-timeline',         'bg-slate-50 group-hover:bg-slate-100',   'text-slate-600',   'admin_timeline',          'edit_timeline'],
+    '/admin/form.php'            => ['ti-message-dots',     'bg-yellow-50 group-hover:bg-yellow-100', 'text-yellow-600',  'admin_form',              'form'],
+    '/admin/member.php'          => ['ti-users',            'bg-violet-50 group-hover:bg-violet-100', 'text-violet-600',  'admin_member',            'member'],
+    '/admin/link.php'            => ['ti-link',             'bg-pink-50 group-hover:bg-pink-100',     'text-pink-600',    'admin_link',              'link'],
 ];
-$__quick = array_values(array_filter($__quick, fn($q) => hasPermission($q[5])));
+$__qkByRole = [
+    // 1 超级管理员：站点管理全景
+    1 => ['/admin/setting_home.php', '/admin/setting_contact.php', '/admin/setting.php', '/admin/database.php',
+          '/admin/banner.php', '/admin/channel.php', '/admin/page.php', '/admin/product.php', '/admin/download.php'],
+    // 2 投稿者：只写文章相关
+    2 => ['/admin/article.php', '/admin/job.php', '/admin/timeline.php'],
+    // 3 内容编辑：全类内容 + 媒体
+    3 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
+          '/admin/download.php', '/admin/media.php'],
+    // 4 内容主管：内容编辑 + 招聘/时间轴
+    4 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
+          '/admin/download.php', '/admin/job.php', '/admin/media.php'],
+    // 5 运营：内容 + 表单/会员/轮播/友链
+    5 => ['/admin/article.php', '/admin/product.php', '/admin/banner.php', '/admin/form.php',
+          '/admin/member.php', '/admin/link.php', '/admin/media.php', '/admin/page.php'],
+];
+$__roleId = (int) (getAdminInfo()['role_id'] ?? 0);
+$__quick = [];
+foreach (($__qkByRole[$__roleId] ?? $__qkByRole[1]) as $__u) {
+    if (!isset($__qkCatalog[$__u])) continue;
+    [$__icon, $__box, $__color, $__lang, $__perm] = $__qkCatalog[$__u];
+    if (!hasPermission($__perm)) continue;
+    $__quick[] = [$__u, $__icon, $__box, $__color, $__lang];
+}
+$__recent = array_values(array_filter(
+    adminMenuUsageRecent($__adminId, 8),
+    fn(array $row): bool => adminMenuUsageFindItem($sidebarMenu, (string) ($row['url'] ?? '')) !== null
+));
 ?>
 <?php if ($__quick): ?>
-<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-    <?php foreach ($__quick as [$url, $icon, $boxClass, $iconColor, $langKey]): ?>
-    <a href="<?php echo e($url); ?>" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
-        <div class="w-10 h-10 <?php echo $boxClass; ?> rounded-lg flex items-center justify-center transition">
-            <i class="ti <?php echo e($icon); ?> text-lg <?php echo $iconColor; ?>"></i>
-        </div>
-        <span class="text-sm text-gray-600 font-medium"><?php echo __($langKey); ?></span>
-    </a>
-    <?php endforeach; ?>
+<div class="mb-8">
+    <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-gray-400 inline-flex items-center gap-1">
+            <i class="ti ti-bolt text-sm"></i><?php echo __('dashboard_quick_title'); ?>
+            <span class="hidden sm:inline">（<?php echo __('dashboard_fav_hint'); ?>）</span>
+        </span>
+    </div>
+    <div id="quickGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <?php foreach ($__quick as [$url, $icon, $boxClass, $iconColor, $langKey]): ?>
+        <a href="<?php echo e($url); ?>" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+            <div class="w-10 h-10 <?php echo $boxClass; ?> rounded-lg flex items-center justify-center transition">
+                <i class="ti <?php echo e($icon); ?> text-lg <?php echo $iconColor; ?>"></i>
+            </div>
+            <span class="text-sm text-gray-600 font-medium"><?php echo __($langKey); ?></span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<script src="/assets/sortable/Sortable.min.js"></script>
+<script>
+// 常用面板 × 星标收藏：有收藏时用收藏渲染（可拖拽排序），没有收藏保留默认卡片。
+// 图标与文案从侧栏菜单 DOM 采集（header 的 ykFav 模块保证其已就绪）。
+(function () {
+    var QK_COLORS = [
+        ['bg-blue-50', 'text-blue-600'], ['bg-green-50', 'text-green-600'],
+        ['bg-cyan-50', 'text-cyan-600'], ['bg-purple-50', 'text-purple-600'],
+        ['bg-amber-50', 'text-amber-600'], ['bg-rose-50', 'text-rose-600'],
+        ['bg-lime-50', 'text-lime-600'], ['bg-indigo-50', 'text-indigo-600'],
+        ['bg-teal-50', 'text-teal-600'], ['bg-orange-50', 'text-orange-600'],
+    ];
+    function labelOf(a) {
+        var c = a.cloneNode(true);
+        Array.prototype.forEach.call(c.querySelectorAll('svg, .yk-fav-btn, .rounded-full'), function (n) { n.remove(); });
+        return (c.textContent || '').trim();
+    }
+    function render() {
+        var grid = document.getElementById('quickGrid');
+        if (!grid || !window.ykFav) return;
+        var list = ykFav.get();
+        if (!list || !list.length) return;   // 未收藏 → 默认卡片原样保留
+        grid.innerHTML = '';
+        list.forEach(function (url, i) {
+            var src = ykFav.links().filter(function (a) { return a.getAttribute('href') === url; })[0];
+            if (!src) return;
+            var c = QK_COLORS[i % QK_COLORS.length];
+            var a = document.createElement('a');
+            a.href = url;
+            a.setAttribute('data-qk', url);
+            a.className = 'bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing';
+            var box = document.createElement('span');
+            box.className = 'w-10 h-10 ' + c[0] + ' rounded-lg flex items-center justify-center';
+            var svg = src.querySelector('svg');
+            if (svg) {
+                var s2 = svg.cloneNode(true);
+                s2.setAttribute('class', 'w-5 h-5 ' + c[1]);
+                box.appendChild(s2);
+            } else {
+                box.innerHTML = '<i class="ti ti-star text-lg ' + c[1] + '"></i>';
+            }
+            a.appendChild(box);
+            var t = document.createElement('span');
+            t.className = 'text-sm text-gray-600 font-medium';
+            t.textContent = labelOf(src);
+            a.appendChild(t);
+            grid.appendChild(a);
+        });
+        if (typeof Sortable !== 'undefined' && !grid._srt) {
+            grid._srt = new Sortable(grid, {
+                animation: 150,
+                onEnd: function () {
+                    ykFav.save(Array.prototype.map.call(grid.children, function (el) { return el.getAttribute('data-qk'); }));
+                }
+            });
+        }
+    }
+    window.addEventListener('ykfav:change', render);
+    render();
+})();
+</script>
+
+<?php if ($__recent): ?>
+<div class="mb-8">
+    <div class="text-xs text-gray-400 mb-2 inline-flex items-center gap-1">
+        <i class="ti ti-history text-sm"></i><?php echo __('dashboard_recent'); ?>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <?php foreach ($__recent as $row): ?>
+        <a href="<?php echo e((string) $row['url']); ?>" class="bg-white rounded-lg shadow px-3 py-1.5 text-sm text-gray-600 hover:text-primary hover:shadow-md transition inline-flex items-center gap-1.5">
+            <i class="ti <?php echo e((string) ($row['icon'] ?: 'ti-corner-up-right')); ?> text-sm text-gray-400"></i>
+            <?php echo e((string) ($row['title'] ?: $row['url'])); ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
 </div>
 <?php endif; ?>
 

@@ -16,6 +16,7 @@ final class CtaElement extends AbstractElement
             ['key' => 'text', 'type' => 'textarea', 'label' => '副文', 'default' => '', 'rows' => 2],
             ['key' => 'btn_text', 'type' => 'text', 'label' => '按钮文字', 'default' => '联系我们'],
             ['key' => 'btn_url', 'type' => 'text', 'label' => '按钮链接', 'default' => '', 'placeholder' => '/contact.html'],
+            ...$this->animationControls(),
         ];
     }
 
@@ -25,7 +26,7 @@ final class CtaElement extends AbstractElement
         $text = htmlspecialchars($data['text'] ?? '');
         $btnText = htmlspecialchars($data['btn_text'] ?? '');
         $btnUrl = htmlspecialchars($data['btn_url'] ?? '#');
-        $html = '<div class="text-center bg-gray-50 rounded-xl py-10 px-6 my-4">';
+        $html = '<div class="text-center bg-gray-50 rounded-xl py-10 px-6 my-4"' . $this->animationAttrs($data) . '>';
         if ($title !== '') {
             $html .= '<h3 class="text-2xl font-bold mb-2">' . $title . '</h3>';
         }

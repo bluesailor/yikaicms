@@ -4,7 +4,7 @@
     "type": "project",
     "keywords": ["cms", "content-management", "php", "enterprise", "lightweight"],
     "homepage": "https://www.yikaicms.com",
-    "license": "MIT",
+    "license": "proprietary",
     "authors": [
         {
             "name": "Yikai",

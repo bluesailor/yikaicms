@@ -166,6 +166,11 @@ return [
         'home_show_advantage'       => ['value' => '1', 'type' => 'select', 'name' => '显示优势', 'tip' => '', 'sort_order' => 34],
         'home_show_cta'             => ['value' => '1', 'type' => 'select', 'name' => '显示CTA', 'tip' => '', 'sort_order' => 35],
         'home_blocks_config'        => ['value' => '[{"type":"banner","enabled":true},{"type":"about","enabled":true},{"type":"stats","enabled":true},{"type":"channels","enabled":true},{"type":"testimonials","enabled":true},{"type":"advantage","enabled":true},{"type":"cta","enabled":true}]', 'type' => 'home_blocks', 'name' => '首页区块配置', 'tip' => '区块顺序和显示设置', 'sort_order' => 40],
+
+        'home_blox_data'            => ['value' => '', 'type' => 'home_blox', 'name' => '首页 Blox 草稿', 'tip' => '首页排版草稿数据', 'sort_order' => 41],
+        'home_blox_active'          => ['value' => '0', 'type' => 'switch', 'name' => '启用首页 Blox', 'tip' => '使用已发布的 Blox 首页', 'sort_order' => 42],
+        'home_blox_published'       => ['value' => '', 'type' => 'home_blox', 'name' => '首页 Blox 已发布', 'tip' => '已发布的首页排版快照', 'sort_order' => 43],
+        'home_blox_history'         => ['value' => '[]', 'type' => 'home_blox_history', 'name' => '首页 Blox 历史', 'tip' => '用于回退的首页快照', 'sort_order' => 44],
     ],
 
     // ============================================================
@@ -216,6 +221,8 @@ return [
     'system' => [
         'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
         'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],
+        // Blox 编辑器（实验）：默认关闭，入口与页面均不可见；置 1 后才出现在栏目/单页管理等处
+        'blox_editor_enabled' => ['value' => '0', 'type' => 'switch', 'name' => 'Blox 编辑器（实验）', 'tip' => '默认关闭。开启后在栏目管理、单页管理与排版编辑器中显示 Blox 入口', 'sort_order' => 3],
     ],
 
 ];

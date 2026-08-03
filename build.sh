@@ -172,9 +172,13 @@ EXCLUDES=(
     "themes/minimal"
     "themes/trade"
 
-    # Blox 编辑器自 v1.15.1 起以「实验」标注随包发布（三栏/分层/拖拽/媒体库已成型）。
-    #   themes/blox 配套实验主题仍不发（2026-07-31 决定）——编辑器不依赖它，
-    #   看到它「哪儿都装不到」不是 bug，别去补。
+    # Blox 三栏编辑器自 v1.16.0 起**不再随免费包发布**，转为付费插件（2026-08-04 决定）。
+    #   排除的只是编辑器 UI 与其接口；首页排版数据模型（includes/builder/HomeBlox*）保留，
+    #   因为免费的排版编辑器 page_edit_advance.php?home=1 依赖它，且首页发布/回退是免费能力。
+    #   后台各处的 Blox 入口由 bloxEditorEnabled() 统一挡住（默认关 + 需授权），
+    #   包里没有这两个文件时入口本就不显示，不会出现死链。
+    "admin/blox_editor.php"
+    "admin/blox_home_api.php"
     "themes/blox"
 
     # 临时测试文件（如本地 dev 时手写的）
@@ -197,6 +201,9 @@ if [ -d "$PKG_DIR/vendor" ]; then
     find "$PKG_DIR/vendor" -mindepth 1 -maxdepth 1 \
         ! -name 'autoload.php' ! -name 'composer' ! -name 'overtrue' \
         -exec rm -rf {} +
+    # composer/ 下还嵌着 dev 依赖（pcre / semver / xdebug-handler 是 psalm 拉进来的），
+    # 只留 autoload 运行时必需的类与元数据文件。
+    find "$PKG_DIR/vendor/composer" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
     echo "  ✓ vendor 已精简为生产依赖（overtrue/pinyin）"
 fi
 

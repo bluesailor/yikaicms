@@ -74,8 +74,22 @@ final class BuilderRenderTest extends TestCase
     public function testButton(): void
     {
         $out = $this->inner($this->oneEl(['type' => 'button', 'data' => ['text' => 'Go', 'url' => '/go', 'new_tab' => 1]]));
+        $this->assertStringContainsString('<div class="mt-2">', $out);
         $this->assertStringContainsString('href="/go" target="_blank" rel="noopener"', $out);
         $this->assertStringContainsString('>Go</a>', $out);
+
+        $center = $this->inner($this->oneEl(['type' => 'button', 'data' => ['text' => 'Center', 'align' => 'center']]));
+        $right = $this->inner($this->oneEl(['type' => 'button', 'data' => ['text' => 'Right', 'align' => 'right']]));
+        $invalid = $this->inner($this->oneEl(['type' => 'button', 'data' => ['text' => 'Safe', 'align' => 'absolute']]));
+        $this->assertStringContainsString('<div class="mt-2 text-center">', $center);
+        $this->assertStringContainsString('<div class="mt-2 text-right">', $right);
+        $this->assertStringContainsString('<div class="mt-2">', $invalid);
+
+        $controls = BuilderRegistry::get('button')?->controls() ?? [];
+        $alignControl = array_values(array_filter($controls, static fn(array $control): bool => ($control['key'] ?? '') === 'align'));
+        $this->assertCount(1, $alignControl);
+        $this->assertSame('style', $alignControl[0]['tab']);
+        $this->assertSame(['left' => '左对齐', 'center' => '居中', 'right' => '右对齐'], $alignControl[0]['options']);
     }
 
     public function testIconWithFeatherAlias(): void
@@ -310,9 +324,17 @@ final class BuilderRenderTest extends TestCase
     {
         $h = BuilderRegistry::get('heading');
         $keys = array_column($h->controls(), 'key');
-        $this->assertSame(['text', 'level', 'align'], $keys);
+        $this->assertSame(['text', 'loop_field', 'level', 'align', 'animation', 'animation_speed', 'animation_delay'], $keys);
         // defaults 从 controls 推导
-        $this->assertSame(['text' => '', 'level' => 'h2', 'align' => 'left'], $h->defaults());
+        $this->assertSame([
+            'text' => '',
+            'loop_field' => 'title',
+            'level' => 'h2',
+            'align' => 'left',
+            'animation' => '',
+            'animation_speed' => 'normal',
+            'animation_delay' => 'none',
+        ], $h->defaults());
     }
 
     public function testMetaShape(): void
@@ -325,9 +347,10 @@ final class BuilderRenderTest extends TestCase
         }
         $this->assertArrayHasKey('list-dynamic', $meta);
         $ld = $meta['list-dynamic'];
-        $this->assertSame('动态列表', $ld['label']);
+        $this->assertSame(__('blox_dynamic_list_label'), $ld['label']);
         $this->assertSame('dynamic', $ld['category']);
         $this->assertTrue($ld['dynamic']);
+        $this->assertTrue($ld['container']);
         $this->assertNotEmpty($ld['controls']);
         // 每个控件都有 key/type
         foreach ($ld['controls'] as $c) {
@@ -445,6 +468,35 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame('<div class="yk-container flex flex-col gap-4"></div>', $out);
     }
 
+    public function testDivRendersAsBlockOrFlexWrapper(): void
+    {
+        $div = BuilderRegistry::get('div');
+        $this->assertNotNull($div);
+        $this->assertTrue($div->isContainer());
+        $this->assertSame('layout', $div->category());
+
+        $block = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'children' => [
+                ['type' => 'heading', 'data' => ['level' => 'h3', 'text' => 'Inside']],
+            ],
+        ]]));
+        $this->assertSame(
+            '<div class="yk-div"><h3 class="text-xl font-bold mb-4">Inside</h3></div>',
+            $block
+        );
+
+        $flex = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'display' => 'flex', 'direction' => 'row', 'gap' => 'sm',
+            'align' => 'center', 'justify' => 'between',
+            'padding' => 'sm', 'radius' => 'md', 'bg_color' => '#ffffff',
+        ]]));
+        $this->assertSame(
+            '<div class="yk-div flex flex-row flex-wrap gap-2 items-center justify-between p-3 rounded-lg"'
+            . ' style="background-color:#ffffff;"></div>',
+            $flex
+        );
+    }
+
     public function testContainerDepthCapStopsRunawayNesting(): void
     {
         // 编辑器只允许一层；渲染器深度上限 3 兜底坏数据。构造 5 层自嵌套，
@@ -456,6 +508,68 @@ final class BuilderRenderTest extends TestCase
         $out = $this->inner($this->oneEl($node));
         $this->assertSame(4, substr_count($out, 'yk-container')); // depth 0..3 共 4 层
         $this->assertStringNotContainsString('deep', $out);       // 第 5 层内容被截断
+    }
+
+    public function testEditModeAddsInlineEditingMetadata(): void
+    {
+        $json = json_encode([[
+            'settings' => ['title' => 'Section title', 'subtitle' => 'Section subtitle'],
+            'columns' => [['elements' => [
+                ['type' => 'heading', 'data' => ['text' => 'Heading']],
+                ['type' => 'text', 'data' => ['html' => '<p>Plain text</p>']],
+            ]]],
+        ]]);
+
+        $oldChannelId = BlockRenderer::$editChannelId;
+        $oldSession = is_array($_SESSION ?? null) ? $_SESSION : [];
+        try {
+            BlockRenderer::$editChannelId = 2;
+            $_SESSION['admin_id'] = 1;
+            $out = BlockRenderer::render($json);
+            $this->assertStringContainsString('data-yk-sec-field="0.title"', $out);
+            $this->assertStringContainsString('data-yk-sec-field="0.subtitle"', $out);
+            $this->assertStringContainsString('data-yk-el="0.0.0" data-yk-el-type="heading"', $out);
+            $this->assertStringContainsString('data-yk-el="0.0.1" data-yk-el-type="text"', $out);
+        } finally {
+            BlockRenderer::$editChannelId = $oldChannelId;
+            $_SESSION = $oldSession;
+        }
+
+        $this->assertStringNotContainsString('data-yk-el-type', BlockRenderer::render($json));
+    }
+
+    public function testSectionTitleFieldStyles(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [
+                'title' => 'Section title',
+                'subtitle' => 'Section subtitle',
+                'title_tag' => 'h3',
+                'title_align' => 'left',
+                'title_size' => 'lg',
+                'title_color' => '#123456',
+                'subtitle_size' => 'sm',
+                'subtitle_color' => '#654321',
+            ],
+            'columns' => [['elements' => []]],
+        ]]));
+
+        $this->assertStringContainsString('<div class="text-left mb-10">', $out);
+        $this->assertStringContainsString(
+            '<h3 class="blk-title" style="font-size:2.25rem;color:#123456;">Section title</h3>',
+            $out
+        );
+        $this->assertStringContainsString(
+            '<p class="blk-sub" style="font-size:0.875rem;color:#654321;">Section subtitle</p>',
+            $out
+        );
+
+        $fallback = BlockRenderer::render(json_encode([[
+            'settings' => ['title' => 'Safe', 'title_tag' => 'script', 'title_color' => 'red;display:none'],
+            'columns' => [['elements' => []]],
+        ]]));
+        $this->assertStringContainsString('<h2 class="blk-title">Safe</h2>', $fallback);
+        $this->assertStringNotContainsString('display:none', $fallback);
     }
 
     public function testSectionGradientBackground(): void
@@ -502,6 +616,145 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4">', $out2);
     }
 
+    public function testCommonElementsExposeAndRenderAnimations(): void
+    {
+        $types = ['heading', 'text', 'image', 'button', 'card', 'icon-box', 'cta'];
+        foreach ($types as $type) {
+            $controls = BuilderRegistry::get($type)?->controls() ?? [];
+            $keys = array_column($controls, 'key');
+            $this->assertContains('animation', $keys, $type);
+            $this->assertContains('animation_speed', $keys, $type);
+            $this->assertContains('animation_delay', $keys, $type);
+        }
+
+        $fixtures = [
+            ['type' => 'heading', 'data' => ['text' => 'Title']],
+            ['type' => 'text', 'data' => ['html' => '<p>Text</p>']],
+            ['type' => 'image', 'data' => ['src' => '/a.jpg']],
+            ['type' => 'button', 'data' => ['text' => 'Go']],
+            ['type' => 'card', 'data' => ['title' => 'Card']],
+            ['type' => 'icon-box', 'data' => ['title' => 'Icon']],
+            ['type' => 'cta', 'data' => ['title' => 'CTA']],
+        ];
+        foreach ($fixtures as $fixture) {
+            $fixture['data']['animation'] = 'fade-up';
+            $fixture['data']['animation_speed'] = 'fast';
+            $fixture['data']['animation_delay'] = 'medium';
+            $out = $this->inner($this->oneEl($fixture));
+            $this->assertStringContainsString(
+                'data-animate="fade-up" data-animate-speed="fast" data-animate-delay="medium"',
+                $out,
+                $fixture['type']
+            );
+        }
+
+        $unsafe = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'text' => 'Safe',
+            'animation' => '" onmouseover="alert(1)',
+            'animation_speed' => 'instant',
+            'animation_delay' => '999s',
+        ]]));
+        $this->assertSame('<h2 class="text-2xl font-bold mb-4">Safe</h2>', $unsafe);
+    }
+
+    public function testCommonBoxSpacingUsesWhitelistedRootStyles(): void
+    {
+        $out = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'text' => 'Spacing',
+            'style_margin' => 'md',
+            'style_margin_bottom' => 'none',
+            'style_padding' => 'xl',
+            'style_padding_left' => 'sm',
+        ]]));
+        $this->assertStringContainsString(
+            'style="margin:1rem!important;margin-bottom:0!important;padding:4rem!important;padding-left:0.5rem!important;"',
+            $out
+        );
+        $this->assertStringContainsString('class="text-2xl font-bold mb-4"', $out);
+
+        $unsafe = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'text' => 'Safe',
+            'style_margin' => '1rem;display:none',
+            'style_padding' => 'auto',
+            'style_padding_top' => ['d' => 'xl'],
+        ]]));
+        $this->assertSame('<h2 class="text-2xl font-bold mb-4">Safe</h2>', $unsafe);
+
+        $code = $this->inner($this->oneEl(['type' => 'code', 'data' => [
+            'html' => '<div>Raw</div>',
+            'style_margin' => 'xl',
+        ]]));
+        $this->assertSame('<div>Raw</div>', $code);
+    }
+
+    public function testContainerAndDivAdvancedFlexOptions(): void
+    {
+        $container = $this->inner($this->oneEl(['type' => 'container', 'data' => [
+            'direction' => 'row',
+            'wrap' => 'nowrap',
+            'gap' => 'xl',
+            'align' => 'baseline',
+            'justify' => 'evenly',
+            'padding' => 'xl',
+            'style_margin_top' => 'lg',
+        ]]));
+        $this->assertStringContainsString(
+            'class="yk-container flex flex-row flex-nowrap gap-12 items-baseline justify-evenly p-16"',
+            $container
+        );
+        $this->assertStringContainsString('style="margin-top:2rem!important;"', $container);
+
+        $div = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'display' => 'flex',
+            'direction' => 'column',
+            'wrap' => 'wrap',
+            'justify' => 'around',
+        ]]));
+        $this->assertStringContainsString(
+            '<div class="yk-div flex flex-col flex-wrap gap-0 justify-around"></div>',
+            $div
+        );
+
+        // 缺少新字段时继续保持历史默认输出。
+        $legacy = $this->inner($this->oneEl(['type' => 'container', 'data' => [
+            'direction' => 'row',
+            'gap' => 'sm',
+        ]]));
+        $this->assertSame('<div class="yk-container flex flex-row flex-wrap gap-2"></div>', $legacy);
+    }
+
+    public function testBoxStyleExactLengthsWhitelist(): void
+    {
+        // 精确输入：margin 允负值/auto，padding 非负；档位继续可用
+        $s = \AbstractElement::boxStyle([
+            'style_margin_top' => '-12px',
+            'style_margin_left' => 'auto',
+            'style_margin' => '1.5rem',
+            'style_padding_top' => '10%',
+            'style_padding' => 'md',
+        ]);
+        $this->assertStringContainsString('margin-top:-12px!important;', $s);
+        $this->assertStringContainsString('margin-left:auto!important;', $s);
+        $this->assertStringContainsString('margin:1.5rem!important;', $s);
+        $this->assertStringContainsString('padding-top:10%!important;', $s);
+        $this->assertStringContainsString('padding:1rem!important;', $s);
+    }
+
+    public function testBoxStyleRejectsInvalidAndInjection(): void
+    {
+        // 注入与越界一律静默忽略——值会进 style 属性，白名单是安全边界
+        $s = \AbstractElement::boxStyle([
+            'style_padding_top' => '-4px',            // padding 不允许负值
+            'style_padding_left' => 'auto',           // padding 不允许 auto
+            'style_margin_top' => 'calc(1px + 1px)',  // 函数
+            'style_margin_right' => '1px;color:red',  // 分号注入
+            'style_margin_bottom' => 'expression(a)', // IE 注入
+            'style_margin_left' => '99999px',         // 位数越界
+            'style_padding' => '10 px',               // 空格
+        ]);
+        $this->assertSame('', $s);
+    }
+
     public function testNonContainerIgnoresChildrenKey(): void
     {
         // 普通元素带 children 键（异常数据）不得递归——输出与无该键时一致
@@ -510,5 +763,48 @@ final class BuilderRenderTest extends TestCase
             'children' => [['type' => 'text', 'data' => ['html' => '<p>leak</p>']]],
         ]]));
         $this->assertSame('<h2 class="text-2xl font-bold mb-4">A</h2>', $out);
+    }
+    public function testDynamicListExposesVisualQueryAndStyleControls(): void
+    {
+        $controls = [];
+        foreach ((new \ListDynamicElement())->controls() as $control) {
+            $controls[(string) $control['key']] = $control;
+        }
+
+        $this->assertSame('select', $controls['query_source']['type']);
+        $this->assertArrayHasKey('type:article', $controls['query_source']['options']);
+        $this->assertArrayHasKey('type:product', $controls['query_source']['options']);
+        $this->assertSame('style', $controls['columns']['tab']);
+        $this->assertCount(8, $controls['columns']['options']);
+        $this->assertSame(['show_summary', '=', true], $controls['summary_len']['required']);
+    }
+
+    public function testDynamicListQuerySourceUsesBoundedProductQueryAndEightColumnGrid(): void
+    {
+        $out = (new \ListDynamicElement())->buildMarkup([
+            'query_source' => 'type:product',
+            'cat' => '5',
+            'limit' => 500,
+            'keyword' => 'desk{bad}',
+            'order' => 'price_desc',
+            'columns' => 8,
+            'image_ratio' => 'square',
+        ]);
+
+        $this->assertStringContainsString('{yk:list type=product cat=5 limit=50 keyword=deskbad order=price_desc}', $out);
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-6', $out);
+        $this->assertStringContainsString('aspect-square', $out);
+        $this->assertStringContainsString('alt="{yk:field name=title /}"', $out);
+    }
+
+    public function testDynamicListRejectsUnknownProductOrder(): void
+    {
+        $out = (new \ListDynamicElement())->buildMarkup([
+            'query_source' => 'type:product',
+            'order' => 'DROP TABLE products',
+            'template' => [['type' => 'text', 'data' => ['html' => 'x']]],
+        ]);
+
+        $this->assertStringNotContainsString('order=', $out);
     }
 }

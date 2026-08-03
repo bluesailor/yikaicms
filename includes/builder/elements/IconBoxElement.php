@@ -16,6 +16,7 @@ final class IconBoxElement extends AbstractElement
             ['key' => 'icon', 'type' => 'icon', 'label' => '图标', 'default' => 'star'],
             ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => '描述', 'default' => '', 'rows' => 2],
+            ...$this->animationControls(),
         ];
     }
 
@@ -24,7 +25,7 @@ final class IconBoxElement extends AbstractElement
         $icon = preg_replace('/[^a-z0-9-]/', '', (string) ($data['icon'] ?? 'star')) ?: 'star';
         $title = htmlspecialchars($data['title'] ?? '');
         $text = htmlspecialchars($data['text'] ?? '');
-        $html = '<div class="text-center px-4 py-6">';
+        $html = '<div class="text-center px-4 py-6"' . $this->animationAttrs($data) . '>';
         $html .= '<i class="ti ti-' . $icon . ' inline-block text-primary" style="font-size:40px;line-height:1"></i>';
         if ($title !== '') {
             $html .= '<h3 class="text-lg font-semibold mt-3 mb-1">' . $title . '</h3>';

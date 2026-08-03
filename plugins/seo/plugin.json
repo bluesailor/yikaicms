@@ -6,6 +6,8 @@
     "description": "SEO 一站式增强：llms.txt 生成（指引 AI 助手理解站点）、写作实时分析、搜索引擎主动推送。专业版解锁 AI 一键优化 meta、重定向管理、自动推送与内链建议。",
     "description_ja": "SEO をワンストップで強化：llms.txt 生成（AI アシスタントにサイトを理解させる）、リアルタイム執筆分析、検索エンジンへの能動的送信。Pro 版では AI によるメタ最適化、リダイレクト管理、自動送信、内部リンク提案を解放。",
     "description_en": "All-in-one SEO booster: llms.txt generator (help AI assistants understand your site), real-time writing analysis, active search-engine submission. Pro unlocks one-click AI meta optimization, redirect manager, auto-submission and internal-link suggestions.",
+    "tier": "freemium",
+    "module": "seo-pro",
     "author": "Yikai CMS",
     "requires_php": "8.0",
     "requires_cms": "1.12.0"

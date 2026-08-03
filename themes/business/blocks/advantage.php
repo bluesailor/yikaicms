@@ -13,7 +13,7 @@ $advDefaults = [
 <section class="py-20 section-dark">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold text-white mb-4"><?php echo __('home_our_advantage'); ?></h2>
+            <h2 class="text-3xl font-bold text-white mb-4"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
             <img src="/themes/business/images/divide.png" alt="" class="mx-auto mb-4">
             <p class="text-gray-400"><?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?></p>
         </div>

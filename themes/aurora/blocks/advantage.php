@@ -33,7 +33,7 @@ $icons = [
                 FEATURES
             </div>
             <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                <?php echo __('home_advantage_title'); ?>
+                <?php echo e(configLang('home_advantage_title', 'home_advantage_title')); ?>
             </h2>
             <?php if ($_advDesc = config('home_advantage_desc', '')): ?>
             <p class="text-slate-400 mt-4 text-base leading-relaxed">

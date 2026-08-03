@@ -1,0 +1,30 @@
+历史版本许可协议（适用于 YikaiCMS v1.15.x 及更早版本）
+Historical license — applies to YikaiCMS v1.15.x and earlier releases
+
+自 v1.16.0 起，YikaiCMS 改用《YikaiCMS 软件许可协议》（见 LICENSE）。
+本文件保留 v1.16.0 之前各版本随附的 MIT 协议原文：该授权已经授出且
+不可撤回，任何人对 v1.15.x 及更早版本继续享有 MIT 协议下的全部权利。
+
+--------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Yikai (https://www.yikaicms.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

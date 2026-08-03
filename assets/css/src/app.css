@@ -21,6 +21,7 @@
 
 /* v3 兼容：默认边框颜色为 gray-200（v4 默认用 currentColor 太深） */
 @layer base {
+    html, body { overflow-x: hidden; }
     *, ::before, ::after, ::backdrop {
         border-color: var(--color-gray-200, #e5e7eb);
     }
@@ -86,6 +87,11 @@
     opacity: 0;
     transition: opacity 0.7s ease, transform 0.7s ease;
 }
+[data-animate][data-animate-speed="fast"] { transition-duration: 0.45s; }
+[data-animate][data-animate-speed="slow"] { transition-duration: 1s; }
+[data-animate][data-animate-delay="short"] { transition-delay: 0.15s; }
+[data-animate][data-animate-delay="medium"] { transition-delay: 0.3s; }
+[data-animate][data-animate-delay="long"] { transition-delay: 0.6s; }
 [data-animate="fade-up"] { transform: translateY(40px); }
 [data-animate="fade-down"] { transform: translateY(-40px); }
 [data-animate="fade-left"] { transform: translateX(-40px); }

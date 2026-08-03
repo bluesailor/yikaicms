@@ -17,6 +17,7 @@ final class CardElement extends AbstractElement
             ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => '描述', 'default' => '', 'rows' => 2],
             ['key' => 'link', 'type' => 'text', 'label' => '链接', 'default' => '', 'placeholder' => '留空=不可点'],
+            ...$this->animationControls(),
         ];
     }
 
@@ -43,9 +44,10 @@ final class CardElement extends AbstractElement
         }
 
         $cls = 'block bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden';
+        $animationAttrs = $this->animationAttrs($data);
         if ($link !== '') {
-            return '<a href="' . $link . '" class="' . $cls . ' hover:shadow-md transition no-underline">' . $inner . '</a>';
+            return '<a href="' . $link . '" class="' . $cls . ' hover:shadow-md transition no-underline"' . $animationAttrs . '>' . $inner . '</a>';
         }
-        return '<div class="' . $cls . '">' . $inner . '</div>';
+        return '<div class="' . $cls . '"' . $animationAttrs . '>' . $inner . '</div>';
     }
 }

@@ -558,6 +558,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-xs text-gray-400"><?php echo __('admin_label_fixed'); ?></span>
                         <?php echo renderEyeToggle("toggleHomeShow('{$_viewLang}', " . ($_viewHomeShow === '1' ? 0 : 1) . ")", $_viewHomeShow === '1', ($_langLabels[$_viewLang] ?? $_viewLang) . '「首页」'); ?>
                         <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                        <?php if (bloxEditorEnabled()): ?>
+                        <button type="button" data-home-editor-trigger class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm" title="<?php echo e(__('page_mode_blox')); ?>"><i class="ti ti-stack-2 text-base"></i><span>Blox</span></button>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -682,6 +685,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="font-medium text-gray-800 flex-1"><?php echo e($fi['link']['name'] ?? __('admin_home')); ?></span>
                                 <span class="text-xs text-gray-400">/</span>
                                 <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                                <?php if (bloxEditorEnabled()): ?>
+                        <button type="button" data-home-editor-trigger class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm" title="<?php echo e(__('page_mode_blox')); ?>"><i class="ti ti-stack-2 text-base"></i><span>Blox</span></button>
+                        <?php endif; ?>
                             </div>
                         </div>
                         <?php elseif ($fi['type'] === 'channel'): ?>
@@ -1295,4 +1301,63 @@ async function saveFooterSort(container) {
 }
 </script>
 
+<?php if (bloxEditorEnabled()): ?>
+<div id="homeEditorModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4" style="z-index: 1100" role="dialog" aria-modal="true" aria-labelledby="homeEditorModalTitle">
+    <div class="w-full max-w-md rounded-xl bg-white shadow-2xl border border-gray-200" data-home-editor-dialog>
+        <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100">
+            <div>
+                <h3 id="homeEditorModalTitle" class="font-semibold text-gray-800"><?php echo e(__('admin_setting_home')); ?></h3>
+                <p class="mt-1 text-xs leading-5 text-gray-500"><?php echo e(__('page_mode_blox_tip')); ?></p>
+            </div>
+            <button type="button" data-home-editor-close class="w-8 h-8 rounded-lg inline-flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="<?php echo e(__('admin_cancel')); ?>" aria-label="<?php echo e(__('admin_cancel')); ?>">
+                <i class="ti ti-x text-lg"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-5">
+            <a href="/admin/setting_home.php" class="group rounded-lg border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50 transition">
+                <i class="ti ti-adjustments text-xl text-gray-500 group-hover:text-gray-700"></i>
+                <span class="mt-2 block text-sm font-medium text-gray-800"><?php echo e(__('admin_setting_home')); ?></span>
+                <span class="mt-1 block text-xs text-gray-500"><?php echo e(__('home_editor_hint')); ?></span>
+            </a>
+            <a href="/admin/blox_editor.php?home=1" class="group rounded-lg border border-blue-200 bg-blue-50/60 p-4 hover:border-blue-400 hover:bg-blue-50 transition">
+                <i class="ti ti-stack-2 text-xl text-blue-600"></i>
+                <span class="mt-2 block text-sm font-medium text-blue-800"><?php echo e(__('page_mode_blox')); ?></span>
+                <span class="mt-1 block text-xs text-blue-700/70"><?php echo e(__('page_mode_blox_tip')); ?></span>
+            </a>
+        </div>
+        <div class="flex justify-end px-5 pb-4">
+            <button type="button" data-home-editor-close class="px-3 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100"><?php echo e(__('admin_cancel')); ?></button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modal = document.getElementById('homeEditorModal');
+    if (!modal) return;
+    var triggers = document.querySelectorAll('[data-home-editor-trigger]');
+    var closes = modal.querySelectorAll('[data-home-editor-close]');
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.classList.add('overflow-hidden');
+        var close = modal.querySelector('[data-home-editor-close]');
+        if (close) close.focus();
+    }
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.classList.remove('overflow-hidden');
+    }
+    triggers.forEach(function (trigger) { trigger.addEventListener('click', openModal); });
+    closes.forEach(function (close) { close.addEventListener('click', closeModal); });
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+})();
+</script>
+<?php endif; ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

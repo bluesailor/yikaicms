@@ -134,7 +134,7 @@
         }
     });
     </script>
-
+    <script src="/assets/js/scroll-anim.js"></script>
     <?php if (!empty($extraJs)): ?>
     <?php echo $extraJs; ?>
     <?php endif; ?>

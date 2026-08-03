@@ -161,11 +161,24 @@ function license_valid(): bool
     return (bool) (license()['valid'] ?? false);
 }
 
-/** 是否拥有某付费模块（且授权有效）。模块名见服务端 LICENSE_MODULES。 */
+/**
+ * 是否拥有某付费模块。模块名见服务端 LICENSE_MODULES。
+ *
+ * 永久回退授权：**到期不收回功能**——买过的模块继续可用，失去的是更新与新装资格
+ * （由服务端的下载闸把关，见 api/plugins/_entitlement.php）。
+ * 因此这里只看模块归属，不看 valid；授权被停用、域名不符或查无此码时，
+ * 服务端本就不下发 modules，故不会误放行。
+ */
 function license_has_module(string $module): bool
 {
+    return in_array($module, (array) (license()['modules'] ?? []), true);
+}
+
+/** 是否可下载/升级付费插件（到期即失去该资格，但已装功能不受影响） */
+function license_can_update(): bool
+{
     $st = license();
-    return !empty($st['valid']) && in_array($module, (array) ($st['modules'] ?? []), true);
+    return !empty($st['modules']) && empty($st['expired']);
 }
 
 function license_plan(): string

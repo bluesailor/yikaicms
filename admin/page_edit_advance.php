@@ -19,79 +19,151 @@ require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 require_once ROOT_PATH . '/includes/builder/presets.php';
 
 $id = getInt('id');
+$isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
+$homeProductOptions = [];
 
-if (!$id) {
+if (!$id && !$isHomeLayout) {
     header('Location: /admin/page.php');
     exit;
 }
 
-$page = channelModel()->findWhere(['id' => $id, 'type' => 'page']);
+if ($isHomeLayout) {
+    // 首页排版与「首页设置」「首页发布 API」同权限：edit_page 只够改单页，
+    // 不足以改首页——这里若只沿用页面级的 edit_page，等于绕开那两处的 * 校验。
+    requirePermission('*');
 
-if (!$page) {
-    header('Location: /admin/page.php');
-    exit;
-}
+    $homeDocument = HomeLayoutDocument::load();
+    try {
+        foreach (productModel()->getList(0, 500, 0, []) as $product) {
+            $productId = (int) ($product['id'] ?? 0);
+            if ($productId > 0) {
+                $homeProductOptions[] = [
+                    'id' => $productId,
+                    'title' => (string) ($product['title'] ?? ('#' . $productId)),
+                ];
+            }
+        }
+    } catch (Throwable) {
+        $homeProductOptions = [];
+    }
 
-if (($page['slug'] ?? '') === 'contact') {
-    header('Location: /admin/setting_contact.php');
-    exit;
-}
+    $page = [
+        'id' => 0,
+        'name' => __('admin_home'),
+        'slug' => '',
+        'description' => '',
+        'content' => '',
+        'image' => '',
+        'seo_title' => '',
+        'seo_keywords' => '',
+        'seo_description' => '',
+        'lang' => siteLang(),
+    ];
+    $contentRecord = null;
+    $contentType = 'blocks';
+    $blocksData = json_encode(
+        $homeDocument['sections'],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+    $htmlContent = '';
+    $autoConvert = false;
+    // 打开时的排版草稿时间戳；保存时比对基线，避免多个标签页互相静默覆盖。
+    // 免费版排版草稿与 Blox 草稿使用不同 setting key。
+    $homeBaseUpdatedAt = (int) ($homeDocument['updated_at'] ?? 0);
+    $homeBannerSeeds = [];
+    foreach (getBanners('home', HomeBloxBlockSchema::MAX_ITEMS) as $banner) {
+        if (is_array($banner)) {
+            $homeBannerSeeds[] = HomeBannerItemElement::fromLegacy($banner);
+        }
+    }
+} else {
+    $homeBannerSeeds = [];
+    $page = channelModel()->findWhere(['id' => $id, 'type' => 'page']);
 
-if (($page['slug'] ?? '') === 'history') {
-    header('Location: /admin/timeline.php');
-    exit;
-}
+    if (!$page) {
+        header('Location: /admin/page.php');
+        exit;
+    }
 
-// 父栏目有子页：不再硬跳转到第一个子页（那样父页无法编辑、且无视「不跳转」设置），
-// 改为在页面顶部显示醒目横幅（见 parent_page_notice.php），父页本身可直接编辑。
-$children = channelModel()->getByParent($id, true);
+    if (($page['slug'] ?? '') === 'contact') {
+        header('Location: /admin/setting_contact.php');
+        exit;
+    }
 
-// 从 contents 表获取内容
-$contentRecord = contentModel()->queryOne(
-    'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
-    [$id]
-);
+    if (($page['slug'] ?? '') === 'history') {
+        header('Location: /admin/timeline.php');
+        exit;
+    }
 
-$contentType = 'html';
-$blocksData = '';
-$htmlContent = '';
+    $children = channelModel()->getByParent($id, true);
 
-if ($contentRecord) {
-    $contentType = $contentRecord['content_type'] ?? 'html';
-    $blocksData = $contentRecord['blocks_data'] ?? '';
-    $htmlContent = $contentRecord['content'] ?? '';
-}
+    $contentRecord = contentModel()->queryOne(
+        'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
+        [$id]
+    );
 
-// 如果是从富文本模式进入，自动转换为单区块
-$autoConvert = false;
-if ($contentType === 'html' && $htmlContent && !$blocksData) {
-    $autoConvert = true;
-}
+    $contentType = 'html';
+    $blocksData = '';
+    $htmlContent = '';
 
-// 实时预览：渲染 blocks_data → 套主题 CSS 的独立 HTML，供构建器 iframe 展示（不落库）
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
+    if ($contentRecord) {
+        $contentType = $contentRecord['content_type'] ?? 'html';
+        $blocksData = $contentRecord['blocks_data'] ?? '';
+        $htmlContent = $contentRecord['content'] ?? '';
+    }
+
+    $autoConvert = false;
+    if ($contentType === 'html' && $htmlContent && !$blocksData) {
+        $autoConvert = true;
+    }
+}if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
     // blox=1：Blox 画布请求。开编辑上下文让渲染器输出 data-yk-sec 定位标记，
     // 并注入点选/高亮/空区块占位脚本；排版编辑器的纯预览不带此参数，输出不变。
     $bloxCanvas = (($_POST['blox'] ?? '') === '1');
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
-        BlockRenderer::$editChannelId = $id;
+        // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
+        BlockRenderer::$editChannelId = $isHomeLayout ? 1 : $id;
     }
-    $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+    if ($isHomeLayout) {
+        $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
+        if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
+            $previewSections = $previewSections['sections'];
+        }
+        $previewSections = is_array($previewSections) ? $previewSections : [];
+        $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
+        $body = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+    } else {
+        $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+    }
 
     $bloxInject = '';
     if ($bloxCanvas) {
         // 与 blox_editor.php 的协议：iframe 点击段落 → parent 收 ykPick；
-        // parent 发 ykHighlight → 选中描边并滚动到可见。空段落（白底无内容）
-        // 在画布上不可见，编辑态补一块虚线占位——只存在于画布，不进保存的 HTML。
+        // parent 发 ykHighlight 恢复选中描边，只有 ykScroll=true 才主动定位。
+        // 空段落（白底无内容）在画布上不可见，编辑态补一块虚线占位——只存在于画布，不进保存的 HTML。
         $bloxInject = <<<'HTML'
 <style>
 [data-yk-sec]{position:relative;cursor:pointer}
 [data-yk-sec]:hover{outline:2px dashed #93c5fd;outline-offset:-2px}
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
+[data-yk-con]{position:relative;cursor:pointer}
+[data-yk-con]:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
+[data-yk-con].yk-con-selected{outline:2px solid #f59e0b;outline-offset:-2px}
+[data-yk-col]{position:relative;cursor:pointer;min-height:56px;border-radius:8px;outline:1px dashed rgba(34,197,94,.32);outline-offset:-2px}
+[data-yk-col]:empty:before{content:'\5217';position:absolute;inset:8px;border-radius:6px;background:rgba(34,197,94,.06);display:flex;align-items:center;justify-content:center;color:#86efac;font:12px/1.4 system-ui,sans-serif}
+[data-yk-col]:hover{outline:2px dashed #22c55e;outline-offset:-2px}
+[data-yk-col].yk-col-selected{outline:2px solid #22c55e;outline-offset:-2px;background:rgba(34,197,94,.04)}
 .yk-edit-el{cursor:pointer}
+[data-yk-sec-field]{cursor:text}
+[data-yk-sec-field]:hover{outline:2px dashed #60a5fa;outline-offset:4px;border-radius:4px}
+.yk-inline-editing{outline:2px solid #2563eb!important;outline-offset:4px;border-radius:4px;cursor:text!important;caret-color:#2563eb}
+.yk-inline-editing:focus{box-shadow:0 0 0 4px rgba(37,99,235,.12)}
 .yk-pick-overlay{position:fixed;z-index:2147483646;pointer-events:none;border:2px solid #3b82f6;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.8),0 6px 18px rgba(37,99,235,.18)}
 .yk-pick-label{position:fixed;z-index:2147483647;pointer-events:none;background:#2563eb;color:#fff;font:12px/1.4 system-ui,sans-serif;padding:2px 6px;border-radius:4px;box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.yk-drop-line{position:fixed;z-index:2147483645;display:none;height:3px;min-width:36px;background:#2563eb;border-radius:999px;box-shadow:0 0 0 2px rgba(255,255,255,.9),0 2px 8px rgba(37,99,235,.35);pointer-events:none}
+.yk-drop-line:before,.yk-drop-line:after{content:'';position:absolute;top:50%;width:8px;height:8px;background:#2563eb;border-radius:50%;transform:translateY(-50%)}
+.yk-drop-line:before{left:-2px}.yk-drop-line:after{right:-2px}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
 </style>
@@ -105,15 +177,196 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'previ
     label.style.display = 'none';
     document.body.appendChild(overlay);
     document.body.appendChild(label);
+    var dropLine = document.createElement('div');
+    dropLine.className = 'yk-drop-line';
+    dropLine.style.display = 'none';
+    document.body.appendChild(dropLine);
+    var inlineEdit = null;
+    var dropState = null;
+    var dropSequence = 0;
+
+    function pathParts(path) {
+        var parts = String(path || '').split('.').map(function (n) { return parseInt(n, 10); });
+        return parts.every(function (n) { return !isNaN(n); }) ? parts : [];
+    }
+    function sectionFieldParts(value) {
+        var match = String(value || '').match(/^(\d+)\.(title|subtitle)$/);
+        return match ? { si: parseInt(match[1], 10), field: match[2] } : null;
+    }
+    function inlineValue(node, format) {
+        if (format === 'plain') {
+            return String(node.innerText || '').replace(/\r/g, '')
+                .replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').trim();
+        }
+        return String(node.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+    function isPlainTextBody(node) {
+        if (!node) return false;
+        var descendants = node.querySelectorAll('*');
+        for (var i = 0; i < descendants.length; i++) {
+            if (descendants[i].tagName !== 'P' && descendants[i].tagName !== 'BR') return false;
+        }
+        return true;
+    }
+    function inlineElementTarget(wrapper) {
+        var type = wrapper ? (wrapper.getAttribute('data-yk-el-type') || '') : '';
+        if (type === 'heading') {
+            var heading = wrapper.querySelector('h1,h2,h3,h4');
+            return heading ? { node: heading, field: 'text', format: 'text', singleLine: true } : null;
+        }
+        if (type === 'text') {
+            var body = wrapper.firstElementChild;
+            return isPlainTextBody(body)
+                ? { node: body, field: 'html', format: 'plain', singleLine: false }
+                : null;
+        }
+        if (type === 'button') {
+            var button = wrapper.querySelector('a');
+            return button ? { node: button, field: 'text', format: 'text', singleLine: true } : null;
+        }
+        return null;
+    }
+    function restoreInlineLabel(payload) {
+        if (payload.kind === 'sectionField') {
+            label.textContent = payload.field === 'subtitle' ? '副标题' : '区块标题';
+        } else {
+            label.textContent = 'Element ' + payload.path;
+        }
+    }
+    function finishInlineEdit(save) {
+        var state = inlineEdit;
+        if (!state) return;
+        inlineEdit = null;
+        state.node.removeEventListener('keydown', state.onKeydown);
+        state.node.removeEventListener('blur', state.onBlur);
+        state.node.removeAttribute('contenteditable');
+        state.node.removeAttribute('spellcheck');
+        state.node.classList.remove('yk-inline-editing');
+        if (!save) state.node.innerHTML = state.originalHtml;
+        var value = inlineValue(state.node, state.payload.format);
+        restoreInlineLabel(state.payload);
+        syncOverlay();
+        if (save && value !== state.originalValue) {
+            var message = {};
+            Object.keys(state.payload).forEach(function (key) { message[key] = state.payload[key]; });
+            message.value = value;
+            parent.postMessage({ ykInlineEdit: message }, '*');
+        }
+    }
+    function beginInlineEdit(node, payload, singleLine) {
+        if (!node) return false;
+        if (inlineEdit && inlineEdit.node === node) return true;
+        if (inlineEdit) finishInlineEdit(true);
+        var state = {
+            node: node,
+            payload: payload,
+            originalHtml: node.innerHTML,
+            originalValue: inlineValue(node, payload.format)
+        };
+        state.onKeydown = function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                finishInlineEdit(false);
+                return;
+            }
+            if (e.key === 'Enter' && (singleLine || e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                e.stopPropagation();
+                finishInlineEdit(true);
+            }
+        };
+        state.onBlur = function () {
+            setTimeout(function () {
+                if (inlineEdit === state) finishInlineEdit(true);
+            }, 0);
+        };
+        inlineEdit = state;
+        node.setAttribute('contenteditable', singleLine ? 'plaintext-only' : 'true');
+        node.setAttribute('spellcheck', 'true');
+        node.classList.add('yk-inline-editing');
+        activeEl = node;
+        label.textContent = '文字编辑';
+        syncOverlay();
+        startOverlayTracking();
+        node.addEventListener('keydown', state.onKeydown);
+        node.addEventListener('blur', state.onBlur);
+        node.focus();
+        return true;
+    }
+    function contextTargetFromEvent(e) {
+        var field = e.target.closest('[data-yk-sec-field]');
+        if (field) {
+            var fieldTarget = sectionFieldParts(field.getAttribute('data-yk-sec-field'));
+            if (fieldTarget) return { kind: 'sectionField', target: fieldTarget };
+        }
+
+        var el = e.target.closest('[data-yk-el]');
+        if (el) {
+            var path = el.getAttribute('data-yk-el') || '';
+            var parts = pathParts(path);
+            if (parts.length >= 4) return { kind: 'child', target: { si: parts[0], ci: parts[1], ei: parts[2], cei: parts[3] }, path: path };
+            if (parts.length >= 3) return { kind: 'element', target: { si: parts[0], ci: parts[1], ei: parts[2] }, path: path };
+        }
+        var col = e.target.closest('[data-yk-col]');
+        if (col) {
+            var cp = pathParts(col.getAttribute('data-yk-col') || '');
+            if (cp.length >= 2) return { kind: 'column', target: { si: cp[0], ci: cp[1] }, col: col.getAttribute('data-yk-col') || '' };
+        }
+        var con = e.target.closest('[data-yk-con]');
+        if (con) {
+            var csi = parseInt(con.getAttribute('data-yk-con'), 10);
+            if (!isNaN(csi)) return { kind: 'container', target: { si: csi } };
+        }
+        var sec = e.target.closest('[data-yk-sec]');
+        if (sec) {
+            var si = parseInt(sec.getAttribute('data-yk-sec'), 10);
+            if (!isNaN(si)) return { kind: 'section', target: { si: si } };
+        }
+        return null;
+    }
+
+    document.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) return;
+        var field = e.target.closest('[data-yk-sec-field]');
+        if (!field) return;
+        var fieldTarget = sectionFieldParts(field.getAttribute('data-yk-sec-field'));
+        if (!fieldTarget) return;
+        highlightSectionField(fieldTarget.si, fieldTarget.field);
+        parent.postMessage({ ykPickSectionField: fieldTarget }, '*');
+    }, true);
 
     document.addEventListener('click', function (e) {
         var a = e.target.closest('a');
         if (a) e.preventDefault(); // 画布内不跳转，链接编辑去设置面板
+        var field = e.target.closest('[data-yk-sec-field]');
+        if (field) {
+            var fieldTarget = sectionFieldParts(field.getAttribute('data-yk-sec-field'));
+            if (fieldTarget) {
+                highlightSectionField(fieldTarget.si, fieldTarget.field);
+                parent.postMessage({ ykPickSectionField: fieldTarget }, '*');
+                return;
+            }
+        }
         var el = e.target.closest('[data-yk-el]');
         if (el) {
             var path = el.getAttribute('data-yk-el') || '';
             highlightEl(path);
             parent.postMessage({ ykPickEl: path }, '*');
+            return;
+        }
+        var col = e.target.closest('[data-yk-col]');
+        if (col) {
+            var cp = col.getAttribute('data-yk-col') || '';
+            highlightColumn(cp);
+            parent.postMessage({ ykPickCol: cp }, '*');
+            return;
+        }
+        var con = e.target.closest('[data-yk-con]');
+        if (con) {
+            var ci = parseInt(con.getAttribute('data-yk-con'), 10);
+            highlightContainer(ci);
+            parent.postMessage({ ykPickCon: ci }, '*');
             return;
         }
         var s = e.target.closest('[data-yk-sec]');
@@ -123,24 +376,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'previ
         parent.postMessage({ ykPick: i }, '*');
     }, true);
 
+    document.addEventListener('contextmenu', function (e) {
+        var hit = contextTargetFromEvent(e);
+        if (!hit) hit = { kind: 'canvas', target: {} };
+        e.preventDefault();
+        if (hit.path) highlightEl(hit.path);
+        else if (hit.col) highlightColumn(hit.col);
+        else if (hit.kind === 'container') highlightContainer(hit.target.si);
+        else if (hit.kind === 'sectionField') highlightSectionField(hit.target.si, hit.target.field);
+        else if (hit.kind === 'section') highlightSection(hit.target.si);
+        parent.postMessage({ ykContext: { kind: hit.kind, target: hit.target, x: e.clientX, y: e.clientY } }, '*');
+    }, true);
+
+    document.addEventListener('dblclick', function (e) {
+        var field = e.target.closest('[data-yk-sec-field]');
+        if (field) {
+            var fieldTarget = sectionFieldParts(field.getAttribute('data-yk-sec-field'));
+            if (fieldTarget) {
+                highlightSectionField(fieldTarget.si, fieldTarget.field);
+                if (beginInlineEdit(field, {
+                    kind: 'sectionField', si: fieldTarget.si, field: fieldTarget.field, format: 'text'
+                }, true)) {
+                    e.stopPropagation();
+                    return;
+                }
+                parent.postMessage({ ykEditSectionField: fieldTarget }, '*');
+                return;
+            }
+        }
+        var el = e.target.closest('[data-yk-el]');
+        if (!el) return;
+        var path = el.getAttribute('data-yk-el') || '';
+        if (!pathParts(path).length) return;
+        highlightEl(path);
+        var editable = inlineElementTarget(el);
+        if (editable && beginInlineEdit(editable.node, {
+            kind: 'element', path: path, field: editable.field, format: editable.format
+        }, editable.singleLine)) {
+            e.stopPropagation();
+            return;
+        }
+        e.preventDefault();
+        parent.postMessage({ ykEditEl: path }, '*');
+    }, true);
+
     window.addEventListener('message', function (e) {
         var d = e.data || {};
+        var shouldScroll = d.ykScroll === true;
+        if (d.ykHighlightSectionField && typeof d.ykHighlightSectionField.si === 'number') {
+            highlightSectionField(d.ykHighlightSectionField.si, d.ykHighlightSectionField.field || 'title');
+            var fieldTarget = document.querySelector('[data-yk-sec-field="' + d.ykHighlightSectionField.si + '.' + cssEscape(d.ykHighlightSectionField.field || 'title') + '"]');
+            if (shouldScroll && fieldTarget) fieldTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
         if (typeof d.ykHighlightEl === 'string') {
             highlightEl(d.ykHighlightEl);
-            scrollToPath(d.ykHighlightEl);
+            if (shouldScroll) scrollToPath(d.ykHighlightEl);
+            return;
+        }
+        if (typeof d.ykHighlightCon === 'number') {
+            highlightContainer(d.ykHighlightCon);
+            var c = document.querySelector('[data-yk-con="' + d.ykHighlightCon + '"]');
+            if (shouldScroll && c) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        if (typeof d.ykHighlightCol === 'string') {
+            highlightColumn(d.ykHighlightCol);
+            var col = document.querySelector('[data-yk-col="' + cssEscape(d.ykHighlightCol) + '"]');
+            if (shouldScroll && col) col.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
         if (typeof d.ykHighlight === 'number') {
             highlightSection(d.ykHighlight);
             var t = document.querySelector('[data-yk-sec="' + d.ykHighlight + '"]');
-            if (t) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (shouldScroll && t) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     });
 
     window.addEventListener('scroll', syncOverlay, true);
+    document.addEventListener('scroll', syncOverlay, true);
     window.addEventListener('resize', syncOverlay);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', syncOverlay);
 
     var activeEl = null;
+    var overlayRaf = 0;
     function rectFor(node) {
         if (!node) return null;
         var rects = Array.prototype.slice.call(node.getClientRects ? node.getClientRects() : []);
@@ -149,81 +468,248 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'previ
         var child = node.firstElementChild;
         return child ? rectFor(child) : null;
     }
+    function viewportSize() {
+        return {
+            w: window.innerWidth || document.documentElement.clientWidth || 0,
+            h: window.innerHeight || document.documentElement.clientHeight || 0
+        };
+    }
     function syncOverlay() {
         if (!activeEl) return;
+        if (!document.documentElement.contains(activeEl)) { clearElementOverlay(); return; }
         var r = rectFor(activeEl);
-        if (!r) { overlay.style.display = 'none'; label.style.display = 'none'; return; }
+        var vp = viewportSize();
+        if (!r || r.bottom < 0 || r.right < 0 || r.top > vp.h || r.left > vp.w) {
+            overlay.style.display = 'none';
+            label.style.display = 'none';
+            return;
+        }
         overlay.style.display = 'block';
-        overlay.style.left = Math.max(0, r.left - 2) + 'px';
-        overlay.style.top = Math.max(0, r.top - 2) + 'px';
+        overlay.style.left = (r.left - 2) + 'px';
+        overlay.style.top = (r.top - 2) + 'px';
         overlay.style.width = Math.max(0, r.width + 4) + 'px';
         overlay.style.height = Math.max(0, r.height + 4) + 'px';
         label.style.display = 'block';
         label.style.left = Math.max(0, r.left) + 'px';
         label.style.top = Math.max(0, r.top - 24) + 'px';
     }
+    function trackOverlay() {
+        if (!activeEl) { overlayRaf = 0; return; }
+        syncOverlay();
+        overlayRaf = requestAnimationFrame(trackOverlay);
+    }
+    function startOverlayTracking() {
+        if (!overlayRaf) overlayRaf = requestAnimationFrame(trackOverlay);
+    }
     function clearElementOverlay() {
         activeEl = null;
+        if (overlayRaf) cancelAnimationFrame(overlayRaf);
+        overlayRaf = 0;
         overlay.style.display = 'none';
         label.style.display = 'none';
     }
+    function clearLayerSelections() {
+        document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
+        document.querySelectorAll('[data-yk-con].yk-con-selected').forEach(function (el) { el.classList.remove('yk-con-selected'); });
+        document.querySelectorAll('[data-yk-col].yk-col-selected').forEach(function (el) { el.classList.remove('yk-col-selected'); });
+    }
     function highlightSection(i) {
         clearElementOverlay();
-        document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
+        clearLayerSelections();
         var t = document.querySelector('[data-yk-sec="' + i + '"]');
         if (t) t.classList.add('yk-selected');
     }
-    function highlightEl(path) {
-        document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
-        activeEl = document.querySelector('[data-yk-el="' + cssEscape(path) + '"]');
-        label.textContent = '元素 ' + path;
+    function highlightContainer(i) {
+        clearElementOverlay();
+        clearLayerSelections();
+        var t = document.querySelector('[data-yk-con="' + i + '"]');
+        if (t) t.classList.add('yk-con-selected');
+    }
+    function highlightColumn(path) {
+        clearElementOverlay();
+        clearLayerSelections();
+        var t = document.querySelector('[data-yk-col="' + cssEscape(path) + '"]');
+        if (t) t.classList.add('yk-col-selected');
+    }
+    function highlightSectionField(si, field) {
+        clearLayerSelections();
+        activeEl = document.querySelector('[data-yk-sec-field="' + si + '.' + cssEscape(field) + '"]');
+        label.textContent = field === 'subtitle' ? '副标题' : '区块标题';
         syncOverlay();
+        startOverlayTracking();
+    }
+    function highlightEl(path) {
+        clearLayerSelections();
+        activeEl = document.querySelector('[data-yk-el="' + cssEscape(path) + '"]');
+        label.textContent = 'Element ' + path;
+        syncOverlay();
+        startOverlayTracking();
     }
     function scrollToPath(path) {
         var t = document.querySelector('[data-yk-el="' + cssEscape(path) + '"]');
-        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (!t) return;
+        // data-yk-el wrapper uses display:contents, so scroll the rendered child box instead.
+        var target = boxNode(t) || t;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    }
+    function boxNode(node) {
+        if (!node) return null;
+        var r = node.getBoundingClientRect ? node.getBoundingClientRect() : null;
+        if (r && r.width > 0 && r.height > 0) return node;
+        for (var i = 0; i < node.children.length; i++) {
+            var found = boxNode(node.children[i]);
+            if (found) return found;
+        }
+        return null;
     }
     function cssEscape(v) {
         if (window.CSS && CSS.escape) return CSS.escape(v);
         return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
 
-    // Allow palette tiles to be dropped onto the canvas section.
+    function hideDropLine() {
+        dropState = null;
+        dropLine.style.display = 'none';
+    }
+    function dataTransferType(e) {
+        var transfer = e && e.dataTransfer;
+        if (!transfer) return '';
+        var raw = '';
+        try { raw = transfer.getData('application/x-yikai-blox'); } catch (err) {}
+        if (raw) {
+            try {
+                var payload = JSON.parse(raw);
+                if (payload && payload.source === 'palette' && payload.version === 1 && payload.type) return String(payload.type);
+            } catch (err2) {}
+        }
+        try { return transfer.getData('text/plain') || ''; } catch (err3) { return ''; }
+    }
+    function columnForTarget(section, target) {
+        var col = target && target.closest ? target.closest('[data-yk-col]') : null;
+        if (col && section.contains(col)) return col;
+        var grid = section.querySelector(':scope > div > .grid');
+        if (!grid) return null;
+        var kids = Array.prototype.slice.call(grid.children);
+        for (var i = 0; i < kids.length; i++) {
+            if (kids[i] === target || kids[i].contains(target)) return kids[i];
+        }
+        return kids[0] || null;
+    }
+    function dropTargetFromEvent(e, section) {
+        var el = e.target && e.target.closest ? e.target.closest('[data-yk-el]') : null;
+        if (el && section.contains(el)) {
+            var path = el.getAttribute('data-yk-el') || '';
+            var parts = pathParts(path);
+            var box = boxNode(el);
+            if (parts.length >= 3 && box) {
+                var rect = box.getBoundingClientRect();
+                var computed = window.getComputedStyle(el);
+                var horizontal = computed && computed.display === 'flex' && String(computed.flexDirection || '').indexOf('row') === 0;
+                var before = horizontal
+                    ? e.clientX < rect.left + rect.width / 2
+                    : e.clientY < rect.top + rect.height / 2;
+                return {
+                    kind: 'element',
+                    path: path,
+                    position: before ? 'before' : 'after',
+                    sec: parts[0],
+                    col: parts[1]
+                };
+            }
+        }
+        var column = columnForTarget(section, e.target);
+        if (!column) return null;
+        var colPath = column.getAttribute('data-yk-col') || '';
+        var colParts = pathParts(colPath);
+        return {
+            kind: 'column',
+            sec: colParts.length >= 1 ? colParts[0] : parseInt(section.getAttribute('data-yk-sec'), 10),
+            col: colParts.length >= 2 ? colParts[1] : 0,
+            position: 'end'
+        };
+    }
+    function showDropLine(target) {
+        if (!target) { hideDropLine(); return; }
+        var node = null;
+        if (target.kind === 'element') node = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
+        else if (target.kind === 'column') node = document.querySelector('[data-yk-col="' + cssEscape(String(target.sec) + '.' + String(target.col)) + '"]');
+        var box = boxNode(node);
+        if (!box) { hideDropLine(); return; }
+        var rect = box.getBoundingClientRect();
+        var top = target.kind === 'element' && target.position === 'before' ? rect.top : rect.bottom;
+        if (target.kind === 'column' && rect.height <= 56) top = rect.top + 12;
+        dropLine.style.left = Math.max(0, Math.round(rect.left)) + 'px';
+        dropLine.style.top = Math.max(0, Math.round(top - 1.5)) + 'px';
+        dropLine.style.width = Math.max(36, Math.round(rect.width)) + 'px';
+        dropLine.style.display = 'block';
+        dropState = target;
+    }
+
+    // Palette tiles use a versioned payload. The target is either a column end or an element before/after position.
     document.addEventListener('dragover', function (e) {
         var s = e.target.closest('[data-yk-sec]');
-        if (!s) return;
+        if (!s || !dataTransferType(e)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
-        highlightSection(parseInt(s.getAttribute('data-yk-sec'), 10));
+        var target = dropTargetFromEvent(e, s);
+        if (!target) return;
+        if (target.kind === 'element') highlightEl(target.path);
+        else highlightColumn(String(target.sec) + '.' + String(target.col));
+        showDropLine(target);
     });
     document.addEventListener('drop', function (e) {
         var s = e.target.closest('[data-yk-sec]');
-        if (!s) return;
+        if (!s || !dataTransferType(e)) return;
         e.preventDefault();
-        var type = e.dataTransfer.getData('text/plain');
+        var type = dataTransferType(e);
         if (!type) return;
-        var col = 0;
-        var grid = s.querySelector(':scope > div > .grid');
-        if (grid) {
-            var kids = Array.prototype.slice.call(grid.children);
-            for (var i = 0; i < kids.length; i++) {
-                if (kids[i] === e.target || kids[i].contains(e.target)) { col = i; break; }
-            }
-        }
-        parent.postMessage({ ykDrop: { sec: parseInt(s.getAttribute('data-yk-sec'), 10), col: col, type: type } }, '*');
+        var target = dropTargetFromEvent(e, s) || dropState;
+        hideDropLine();
+        if (!target) return;
+        parent.postMessage({ ykDrop: {
+            version: 1,
+            source: 'palette',
+            dropId: 'drop_' + Date.now() + '_' + (++dropSequence),
+            sec: parseInt(s.getAttribute('data-yk-sec'), 10),
+            col: parseInt(target.col, 10) || 0,
+            type: type,
+            target: target
+        } }, '*');
     });
+    document.addEventListener('dragend', hideDropLine, true);
+    document.addEventListener('dragleave', function (e) {
+        if (e.target === document.documentElement || e.target === document.body) hideDropLine();
+    }, true);
+    // 编辑画布也运行一次前台入场动画，样式变更刷新后可直接预览。
+    var animatedNodes = document.querySelectorAll('[data-animate], [data-stagger]');
+    if (animatedNodes.length) {
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            animatedNodes.forEach(function (node) { node.classList.add('animated'); });
+        } else {
+            var animationObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('animated');
+                    animationObserver.unobserve(entry.target);
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -24px 0px' });
+            animatedNodes.forEach(function (node) { animationObserver.observe(node); });
+        }
+    }
+
     // 先标空容器（白底空 flex 在画布上不可见），再标空区块；
     // 含容器的区块不算「空区块」——它的空态由容器占位表达
-    document.querySelectorAll('.yk-container').forEach(function (c) {
+    document.querySelectorAll('.yk-container, .yk-div').forEach(function (c) {
         if ((c.innerText || '').trim() !== '') return;
         if (c.querySelector('img,svg,iframe,video,picture')) return;
         var d = document.createElement('div');
         d.className = 'yk-empty-hint yk-empty-hint-sm';
-        d.textContent = '空容器 —— 在结构树选中它，再从「＋ 元素」添加子元素';
+        d.textContent = c.classList.contains('yk-div') ? '空 Div —— 在结构树选中它，再从「＋ 元素」添加子元素' : '空容器 —— 在结构树选中它，再从「＋ 元素」添加子元素';
         c.appendChild(d);
     });
     document.querySelectorAll('[data-yk-sec]').forEach(function (sec) {
-        if (sec.querySelector('.yk-container')) return;
+        if (sec.querySelector('.yk-container, .yk-div')) return;
         if ((sec.innerText || '').trim() !== '') return;
         if (sec.querySelector('img,svg,iframe,video,picture')) return;
         var n = parseInt(sec.getAttribute('data-yk-sec'), 10) + 1;
@@ -240,7 +726,8 @@ HTML;
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="' . htmlspecialchars(siteLang()) . '"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        . '<link rel="stylesheet" href="/assets/css/tailwind.css">'
+        . '<link rel="stylesheet" href="' . assetVer('/assets/css/tailwind.css') . '">'
+        . '<link rel="stylesheet" href="' . assetVer('/assets/css/style.css') . '">'
         . '<link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">'
         . '<base target="_blank">'
         . '<style>body{margin:0;background:#fff}</style></head><body>'
@@ -304,6 +791,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($isHomeLayout) {
+        // 首页发布 / 回退。排版编辑器是免费能力，因此这条链路自成闭环，
+        // 不依赖需要授权的 Blox 编辑器；权限已在页首收紧为 *。
+
+        $homeAction = (string) ($_POST['home_action'] ?? '');
+        if ($homeAction === 'publish' || $homeAction === 'rollback') {
+            try {
+                $result = $homeAction === 'publish'
+                    ? HomeLayoutDocument::publishDraft()
+                    : HomeLayoutDocument::rollbackToLegacy();
+                adminLog('home', $homeAction, $homeAction === 'publish' ? 'publish home layout' : 'rollback to legacy home');
+                success($result);
+            } catch (Throwable $e) {
+                error($e->getMessage());
+            }
+        }
+
+        // 基线比对：打开本页后若别处（Blox 编辑器/另一个标签页）保存过同一份首页草稿，
+        // 直接写入会把对方的改动整份吞掉。此时拒绝保存并提示重载，不做自动合并。
+        $postedBase = (int) ($_POST['home_base_updated_at'] ?? 0);
+        $currentBase = (int) (HomeLayoutDocument::load()['updated_at'] ?? 0);
+        if ($postedBase > 0 && $currentBase > 0 && $postedBase !== $currentBase) {
+            error(__('home_layout_conflict'));
+        }
+
+        try {
+            $saved = HomeLayoutDocument::saveDraft((string) ($_POST['blocks_data'] ?? '[]'));
+            adminLog('home', 'edit', 'save homepage layout draft');
+            success(['home_base_updated_at' => (int) ($saved['updated_at'] ?? 0)]);
+        } catch (Throwable $e) {
+            error($e->getMessage());
+        }
+    }
+
     $slug = resolveSlug(post('slug'), post('name'), 'channels', $id);
 
     $postBlocksData = $_POST['blocks_data'] ?? '[]';
@@ -371,7 +892,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success();
 }
 
-$pageTitle = '排版编辑 - ' . $page['name'];
+$pageTitle = ($isHomeLayout ? __('page_mode_blocks_edit') : '排版编辑') . ' - ' . $page['name'];
 $currentMenu = 'page';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -383,24 +904,50 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php echo __('page_back_to_list'); ?>
     </a>
     <div class="flex items-center gap-2">
-        <?php // Blox 全屏编辑器（实验）：Bricks 式三栏，编辑的是同一份 blocks_data ?>
-        <a href="/admin/blox_editor.php?id=<?php echo $id; ?>"
+        <?php // Blox 全屏编辑器（实验 / 授权功能）：默认隐藏，见 bloxEditorEnabled() ?>
+        <?php if (bloxEditorEnabled()): ?>
+        <a href="<?php echo $isHomeLayout ? '/admin/blox_editor.php?home=1' : '/admin/blox_editor.php?id=' . $id; ?>"
            class="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1.5 cursor-pointer transition"
            title="<?php echo e(__('page_mode_blox_tip')); ?>">
             <i class="ti ti-stack-2 text-base text-blue-400"></i>
             <?php echo __('page_mode_blox'); ?>
             <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?php echo __('label_experimental'); ?></span>
         </a>
+        <?php endif; ?>
+        <?php if ($isHomeLayout): ?>
+        <a href="/admin/setting_home.php" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+            <i class="ti ti-settings text-base"></i>
+            <?php echo __('admin_setting_home'); ?>
+        </a>
+        <?php else: ?>
         <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
             <i class="ti ti-pencil text-base"></i>
             <?php echo __('page_switch_simple'); ?>
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
+<?php if (!$isHomeLayout): ?>
 <?php $childEditBase = '/admin/page_edit_advance.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>
+<?php endif; ?>
 
-<form id="editForm" class="space-y-6" x-data="pageBuilder()" x-init="init()">
+<form id="editForm" class="space-y-6" x-data="pageBuilder()" x-init="init()"
+      @layout-save-started.window="saving = true"
+      @layout-saved.window="markSaved()"
+      @layout-save-finished.window="saving = false">
+<?php if ($isHomeLayout): ?>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 text-sm text-blue-900">
+        <div class="flex items-start gap-3">
+            <i class="ti ti-home text-base mt-0.5 shrink-0"></i>
+            <div>
+                <p class="font-semibold"><?php echo e(__('home_layout_editor_title')); ?></p>
+                <p class="mt-1 leading-relaxed"><?php echo e(__('home_layout_editor_help')); ?></p>
+                <p class="mt-1 text-blue-700"><?php echo e(__('home_layout_editor_banner_note')); ?></p>
+            </div>
+        </div>
+    </div>
+<?php else: ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('admin_basic_info'); ?></h2>
@@ -442,13 +989,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
     </div>
-
+<?php endif; ?>
     <!-- 排版编辑器 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between gap-3">
-            <h2 class="font-bold text-gray-800"><?php echo __('label_layout_content'); ?></h2>
+            <div class="flex items-center gap-2">
+                <h2 class="font-bold text-gray-800"><?php echo __('label_layout_content'); ?></h2>
+                <span class="text-xs text-gray-400" x-text="sections.length + ' <?php echo e(__('home_layout_section_unit')); ?>'"></span>
+            </div>
             <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-400 hidden md:inline">拖拽区块排序 / 每个区块可设置列数、背景、间距</span>
+                <button type="button" @click="expandAllSections()"
+                        class="text-xs text-gray-500 hover:text-primary cursor-pointer"><?php echo __('home_layout_expand_all'); ?></button>
+                <button type="button" @click="collapseAllSections()"
+                        class="text-xs text-gray-500 hover:text-primary cursor-pointer"><?php echo __('home_layout_collapse_all'); ?></button>
                 <button type="button" @click="togglePreview()"
                         class="text-sm border px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap"
                         :class="showPreview ? 'border-primary bg-primary text-white' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'">
@@ -473,13 +1026,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <template x-for="(section, si) in sections" :key="section.id">
                     <div class="border border-gray-200 rounded-lg mb-4 group/section hover:border-blue-300 transition" :data-si="si">
                         <!-- 区块工具栏 -->
-                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-t-lg border-b">
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-t-lg" :class="isSectionOpen(section.id) ? 'border-b' : ''">
                             <div class="flex items-center gap-2">
                                 <span class="section-drag-handle cursor-grab text-gray-300 hover:text-gray-500">
                                     <i class="ti ti-menu-2 text-base"></i>
                                 </span>
-                                <span class="text-sm font-medium text-gray-600" x-text="'区块 ' + (si + 1)"></span>
-                                <span class="text-xs text-gray-400" x-show="!section.library_id" x-text="section.columns.length + ' 列'"></span>
+                                <button type="button" @click="toggleSection(section.id)"
+                                        class="min-w-0 text-left inline-flex items-center gap-2 cursor-pointer">
+                                    <i class="ti text-gray-400" :class="isSectionOpen(section.id) ? 'ti-chevron-down' : 'ti-chevron-right'"></i>
+                                    <span class="text-sm font-medium text-gray-700" x-text="sectionLabel(section, si)"></span>
+                                </button>
+                                <span class="text-xs text-gray-400" x-show="!section.library_id" x-text="sectionColumnLabel(section)"></span>
+                                <span class="text-xs text-gray-400" x-show="!isSectionOpen(section.id)" x-text="sectionElementCount(section) + ' <?php echo e(__('home_layout_element_unit')); ?>'"></span>
                                 <template x-if="section.library_id">
                                     <span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
                                         <i class="ti ti-link"></i><span x-text="'引用：' + (section.library_name || ('#' + section.library_id))"></span>
@@ -524,7 +1082,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                         <!-- 引用块：内容在块库中维护，此处只显示占位 -->
                         <template x-if="section.library_id">
-                            <div class="p-4">
+                            <div class="p-4" x-show="isSectionOpen(section.id)" x-cloak>
                                 <div class="text-center py-6 text-sm text-purple-500 bg-purple-50/50 rounded border border-dashed border-purple-200">
                                     <i class="ti ti-library text-2xl block mb-1"></i>
                                     引用块内容在块库中统一维护，修改后所有引用页面同步生效
@@ -533,7 +1091,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </div>
                         </template>
                         <!-- 列内容 -->
-                        <div class="p-4" x-show="!section.library_id">
+                        <div class="p-4" x-show="!section.library_id && isSectionOpen(section.id)" x-cloak>
                             <div class="grid gap-4" :class="section.columns.length > 1 ? 'grid-cols-' + section.columns.length : ''">
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
                                     <div class="border rounded-lg p-3 min-h-[100px]"
@@ -811,18 +1369,357 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 通用 schema 表单：无手写 UI 的元素（新/插件元素）据 controls() 自动生成设置 -->
+                                                <!-- 通用 schema 表单：controls() 是唯一字段来源，required 决定当前来源可见项 -->
                                                 <template x-if="!hasCustomUI(el.type)">
                                                     <div class="space-y-2">
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded inline-block" x-text="elementLabel(el.type)"></span>
-                                                        <?php // 容器：子元素这边不可编辑（数据保存时原样保留），指去 Blox ?>
-                                                        <template x-if="(BUILDER_ELEMENTS[el.type] || {}).container">
+                                                        <div class="flex items-center justify-between gap-2">
+                                                            <span class="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block" x-text="elementLabel(el.type)"></span>
+                                                            <span x-show="isHomeBlock(el)" class="text-[11px] text-blue-600" x-text="homeBlockSourceLabel(el)"></span>
+                                                        </div>
+
+                                                        <template x-if="isHomeBannerBlock(el)">
+                                                            <div class="border border-blue-200 bg-blue-50/60 px-3 py-3">
+                                                                <div class="flex items-center justify-between gap-3 flex-wrap">
+                                                                    <div class="min-w-0">
+                                                                        <div class="text-xs text-gray-500 mb-1"><?php echo e(__('home_layout_banner_shortcode')); ?></div>
+                                                                        <code class="inline-block bg-white border border-blue-200 text-blue-700 px-2 py-1 text-sm select-all">[banner-home]</code>
+                                                                    </div>
+                                                                    <a href="/admin/banner.php" class="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                                                        <i class="ti ti-photo"></i><?php echo e(__('home_layout_edit_banner')); ?>
+                                                                    </a>
+                                                                </div>
+                                                                <p class="mt-2 text-[11px] leading-relaxed text-gray-500"><?php echo e(__('home_layout_banner_help')); ?></p>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomeAboutBlock(el)">
+                                                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 border border-gray-200 bg-gray-50/60 p-4">
+                                                                <div class="space-y-2" :class="el.data.override_layout === 'image_left' ? 'lg:order-1' : 'lg:order-2'">
+                                                                    <div class="relative aspect-[4/3] overflow-hidden bg-white border border-gray-200 flex items-center justify-center">
+                                                                        <img x-show="String(el.data.override_image || '').trim()" :src="el.data.override_image" alt="" class="w-full h-full object-cover">
+                                                                        <div x-show="!String(el.data.override_image || '').trim()" class="text-gray-300 text-center">
+                                                                            <i class="ti ti-photo text-3xl"></i>
+                                                                        </div>
+                                                                        <div x-show="String(el.data.override_tag_title || '').trim() || String(el.data.override_tag_description || '').trim()"
+                                                                             class="absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] bg-primary text-white px-3 py-2 shadow-lg">
+                                                                            <div x-show="String(el.data.override_tag_title || '').trim()" x-text="el.data.override_tag_title" class="font-bold text-sm"></div>
+                                                                            <div x-show="String(el.data.override_tag_description || '').trim()" x-text="el.data.override_tag_description" class="text-xs opacity-90 mt-0.5"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <label class="text-xs text-gray-500 block"><?php echo e(__('blox_home_override_image')); ?></label>
+                                                                    <div class="flex gap-1.5">
+                                                                        <input type="text" x-model="el.data.override_image" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm">
+                                                                        <button type="button" @click="pickSchemaImage(el, 'override_image')" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer"><?php echo e(__('admin_media_library')); ?></button>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_about_tag_title')); ?></label>
+                                                                            <input type="text" x-model="el.data.override_tag_title" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        </div>
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_about_tag_description')); ?></label>
+                                                                            <input type="text" x-model="el.data.override_tag_description" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="space-y-3" :class="el.data.override_layout === 'image_left' ? 'lg:order-2' : 'lg:order-1'">
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_about_layout')); ?></label>
+                                                                        <select x-model="el.data.override_layout" class="w-full border rounded px-2 py-1 text-sm">
+                                                                            <option value="text_left"><?php echo e(__('blox_home_about_text_left')); ?></option>
+                                                                            <option value="image_left"><?php echo e(__('blox_home_about_image_left')); ?></option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_title')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_title" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_content')); ?></label>
+                                                                        <textarea x-model="el.data.override_content" rows="5" class="w-full border rounded px-2 py-1 text-sm"></textarea>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_button_text')); ?></label>
+                                                                            <input type="text" x-model="el.data.override_button_text" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        </div>
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_button_url')); ?></label>
+                                                                            <input type="text" x-model="el.data.override_button_url" placeholder="/about.html" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomeStatsBlock(el)">
+                                                            <div x-init="ensureStatsItems(el)" class="space-y-3 border border-gray-200 bg-gray-50/60 p-4">
+                                                                <div class="relative overflow-hidden min-h-56 bg-gray-100" :style="String(el.data.bg_color || '').trim() ? 'background:' + el.data.bg_color : ''">
+                                                                    <img x-show="String(el.data.override_background || '').trim()" :src="el.data.override_background" alt="" class="absolute inset-0 w-full h-full object-cover">
+                                                                    <div class="absolute inset-0 bg-white/75"></div>
+                                                                    <div class="relative grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
+                                                                        <template x-for="(item, statIndex) in el.data.stats_items" :key="statIndex">
+                                                                            <div class="bg-white/90 border border-gray-200 p-3 text-center shadow-sm backdrop-blur-sm">
+                                                                                <label class="text-[11px] text-gray-500 block mb-1"><?php echo e(__('blox_home_stats_icon')); ?></label>
+                                                                                <button type="button" @click="statIconPick = statIconPick === (el.id + ':' + statIndex) ? '' : (el.id + ':' + statIndex)" class="mx-auto w-11 h-11 border border-primary/20 bg-primary text-white flex items-center justify-center cursor-pointer hover:bg-secondary" :title="'<?php echo e(__('blox_home_stats_icon')); ?>'">
+                                                                                    <i class="ti text-3xl" :class="item.icon && item.icon !== 'none' ? 'ti-' + item.icon : 'ti-ban'"></i>
+                                                                                </button>
+                                                                                <div x-show="statIconPick === (el.id + ':' + statIndex)" x-cloak class="mt-2 grid grid-cols-5 gap-1.5 border border-gray-200 bg-white/95 p-2 shadow-sm">
+                                                                                    <template x-for="icon in HOME_STATS_ICONS" :key="icon">
+                                                                                        <button type="button" @click="item.icon = icon; statIconPick = ''" class="w-8 h-8 border flex items-center justify-center cursor-pointer" :class="item.icon === icon ? 'bg-primary text-white border-primary' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-blue-50 hover:text-primary'" :title="icon">
+                                                                                            <i class="ti text-lg" :class="icon === 'none' ? 'ti-ban' : 'ti-' + icon"></i>
+                                                                                        </button>
+                                                                                    </template>
+                                                                                </div>
+                                                                                <label class="text-[11px] text-gray-500 block mt-3 mb-1"><?php echo e(__('blox_home_stats_number')); ?></label>
+                                                                                <input type="text" x-model="item.number" class="w-full border border-gray-200 bg-white text-gray-900 rounded px-2 py-1 text-lg font-bold text-center">
+                                                                                <label class="text-[11px] text-gray-500 block mt-2 mb-1"><?php echo e(__('blox_home_stats_label')); ?></label>
+                                                                                <input type="text" x-model="item.label" class="w-full border border-gray-200 bg-white text-gray-900 rounded px-2 py-1 text-xs text-center">
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_stats_background')); ?></label>
+                                                                    <div class="flex gap-1.5">
+                                                                        <input type="text" x-model="el.data.override_background" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm">
+                                                                        <button type="button" @click="pickSchemaImage(el, 'override_background')" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer"><?php echo e(__('admin_media_library')); ?></button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isProductCarouselBlock(el)">
+                                                            <div x-init="ensureProductCarousel(el)" class="space-y-3 border border-gray-200 bg-gray-50/60 p-4">
+                                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_product_title')); ?></label>
+                                                                        <input type="text" x-model="el.data.title" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_product_per_row')); ?></label>
+                                                                        <input type="number" min="1" max="6" x-model.number="el.data.per_row" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_product_autoplay')); ?></label>
+                                                                        <input type="number" min="0" max="30" x-model.number="el.data.autoplay" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        <p class="text-[11px] text-gray-400 mt-1"><?php echo e(__('blox_home_product_autoplay_help')); ?></p>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                                                        <label class="text-xs text-gray-500"><?php echo e(__('blox_home_product_selected')); ?> (<span x-text="el.data.product_ids.length"></span>)</label>
+                                                                        <select @change="addCarouselProduct(el, $event.target.value); $event.target.value=''" class="border rounded px-2 py-1 text-xs bg-white max-w-xs">
+                                                                            <option value=""><?php echo e(__('blox_home_product_add')); ?></option>
+                                                                            <template x-for="product in HOME_PRODUCT_OPTIONS" :key="product.id">
+                                                                                <option :value="product.id" x-text="product.title" :disabled="el.data.product_ids.map(Number).indexOf(Number(product.id)) !== -1"></option>
+                                                                            </template>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                                        <template x-for="(productId, productIndex) in el.data.product_ids" :key="productId">
+                                                                            <div class="flex items-center gap-1.5 bg-white border rounded px-2 py-2 text-xs">
+                                                                                <span class="w-5 h-5 bg-blue-50 text-primary flex items-center justify-center shrink-0" x-text="productIndex + 1"></span>
+                                                                                <span class="min-w-0 flex-1 truncate" x-text="carouselProductName(productId)"></span>
+                                                                                <button type="button" @click="moveCarouselProduct(el, productIndex, -1)" :disabled="productIndex === 0" class="text-gray-400 hover:text-gray-700 disabled:opacity-30"><i class="ti ti-chevron-up"></i></button>
+                                                                                <button type="button" @click="moveCarouselProduct(el, productIndex, 1)" :disabled="productIndex === el.data.product_ids.length - 1" class="text-gray-400 hover:text-gray-700 disabled:opacity-30"><i class="ti ti-chevron-down"></i></button>
+                                                                                <button type="button" @click="removeCarouselProduct(el, productIndex)" class="text-red-400 hover:text-red-600"><i class="ti ti-x"></i></button>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                    <p x-show="el.data.product_ids.length === 0" class="text-xs text-gray-400 py-3 text-center"><?php echo e(__('blox_home_product_empty')); ?></p>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomeChannelBlock(el)">
+                                                            <div class="space-y-3 border border-gray-200 bg-gray-50/60 p-4">
+                                                                <div class="flex items-center justify-between gap-3">
+                                                                    <div>
+                                                                        <div class="text-sm font-medium text-gray-700" x-text="homeBlockSourceLabel(el)"></div>
+                                                                        <p class="text-[11px] text-gray-400 mt-0.5"><?php echo e(__('blox_home_channel_live_help')); ?></p>
+                                                                    </div>
+                                                                    <a href="/admin/channel.php" class="text-xs text-primary hover:underline inline-flex items-center gap-1"><i class="ti ti-list-details"></i><?php echo e(__('blox_home_manage_channel')); ?></a>
+                                                                </div>
+                                                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                                                    <div class="md:col-span-2">
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_title')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_title" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_limit')); ?></label>
+                                                                        <input type="number" min="1" max="24" x-model.number="el.data.limit" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_columns')); ?></label>
+                                                                        <input type="number" min="1" max="8" x-model.number="el.data.per_row" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_sort')); ?></label>
+                                                                        <select x-model="el.data.sort" class="w-full border rounded px-2 py-1 text-sm">
+                                                                            <option value="inherit"><?php echo e(__('blox_home_inherit')); ?></option>
+                                                                            <option value="recommend"><?php echo e(__('blox_home_sort_recommend')); ?></option>
+                                                                            <option value="latest"><?php echo e(__('blox_home_sort_latest')); ?></option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_button_text')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_button_text" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div class="md:col-span-2">
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_button_url')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_button_url" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomeAdvantageBlock(el)">
+                                                            <div x-init="ensureAdvantageItems(el)" class="space-y-3 border border-gray-200 bg-gray-900 p-4" :style="String(el.data.bg_color || '').trim() ? 'background:' + el.data.bg_color : ''">
+                                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label class="text-xs text-white/70 block mb-0.5"><?php echo e(__('blox_home_override_title')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_title" class="w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-white/70 block mb-0.5"><?php echo e(__('blox_home_override_description')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_description" class="w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                                    <template x-for="(item, advantageIndex) in el.data.advantage_items" :key="advantageIndex">
+                                                                        <div class="border border-white/20 bg-white/10 p-3 text-center">
+                                                                            <i class="ti text-3xl text-white" :class="'ti-' + item.icon"></i>
+                                                                            <input type="text" x-model="item.icon" :placeholder="'<?php echo e(__('blox_home_advantage_icon')); ?>'" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-xs text-center">
+                                                                            <input type="text" x-model="item.title" :placeholder="'<?php echo e(__('blox_home_advantage_item_title')); ?>'" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-sm font-medium text-center">
+                                                                            <textarea x-model="item.description" rows="3" :placeholder="'<?php echo e(__('blox_home_advantage_item_description')); ?>'" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-xs"></textarea>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomeCtaBlock(el)">
+                                                            <div x-init="ensureCtaSettings(el)" class="overflow-hidden border border-gray-200 bg-white">
+                                                                <div class="relative min-h-52 flex items-center justify-center px-6 py-10 text-center text-white bg-primary"
+                                                                     :style="ctaPreviewStyle(el)">
+                                                                    <div class="relative z-10 max-w-2xl">
+                                                                        <h3 class="text-2xl md:text-3xl font-bold leading-tight" x-text="el.data.override_title || '<?php echo e(__('home_cta_title')); ?>'"></h3>
+                                                                        <p class="mt-3 text-sm md:text-base text-white/85" x-text="el.data.override_description || '<?php echo e(__('home_cta_desc')); ?>'"></p>
+                                                                        <span class="mt-6 inline-flex items-center gap-2 bg-white text-primary px-5 py-2.5 rounded font-medium shadow-sm">
+                                                                            <span x-text="el.data.override_button_text || '<?php echo e(__('detail_consult')); ?>'"></span>
+                                                                            <i class="ti ti-arrow-right"></i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="space-y-4 p-4">
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('blox_home_override_title')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_title" class="w-full border border-gray-200 bg-white text-gray-900 rounded px-3 py-2 text-base font-semibold">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('blox_home_override_description')); ?></label>
+                                                                        <textarea x-model="el.data.override_description" rows="2" class="w-full border border-gray-200 bg-white text-gray-800 rounded px-3 py-2 text-sm"></textarea>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('blox_home_override_button_text')); ?></label>
+                                                                            <input type="text" x-model="el.data.override_button_text" class="w-full border border-gray-200 bg-white text-gray-800 rounded px-3 py-2 text-sm">
+                                                                        </div>
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('blox_home_override_button_url')); ?></label>
+                                                                            <input type="text" x-model="el.data.override_button_url" placeholder="/contact.html" class="w-full border border-gray-200 bg-white text-gray-800 rounded px-3 py-2 text-sm">
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="border-t border-gray-100 pt-4 space-y-3">
+                                                                        <div class="flex items-center justify-between gap-3">
+                                                                            <span class="text-xs font-medium text-gray-600"><?php echo e(__('blox_home_cta_background')); ?></span>
+                                                                            <button type="button" @click="resetCtaBackground(el)" class="text-xs text-gray-400 hover:text-gray-700 cursor-pointer"><?php echo e(__('blox_home_cta_background_reset')); ?></button>
+                                                                        </div>
+                                                                        <div class="flex items-center gap-2">
+                                                                            <button type="button" @click="setCtaBackground(el, '')" class="w-8 h-8 border border-gray-300 bg-white cursor-pointer" title="<?php echo e(__('home_bg_default')); ?>"><i class="ti ti-color-swatch text-gray-400"></i></button>
+                                                                            <button type="button" @click="setCtaBackground(el, '#2563eb')" class="w-8 h-8 border border-blue-700 bg-blue-600 cursor-pointer" title="#2563eb"></button>
+                                                                            <button type="button" @click="setCtaBackground(el, '#0f172a')" class="w-8 h-8 border border-slate-900 bg-slate-900 cursor-pointer" title="#0f172a"></button>
+                                                                            <button type="button" @click="setCtaBackground(el, '#0f766e')" class="w-8 h-8 border border-teal-800 bg-teal-700 cursor-pointer" title="#0f766e"></button>
+                                                                            <input type="color" :value="ctaColorValue(el)" @input="setCtaBackground(el, $event.target.value)" class="w-9 h-8 border border-gray-300 bg-white cursor-pointer" title="<?php echo e(__('home_bg_color_label')); ?>">
+                                                                            <input type="text" x-model="el.data.bg_color" placeholder="#2563eb" class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs font-mono">
+                                                                        </div>
+                                                                        <div>
+                                                                            <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('blox_home_cta_background_image')); ?></label>
+                                                                            <div class="flex gap-2">
+                                                                                <input type="text" x-model="el.data.bg_image" placeholder="https://..." class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs">
+                                                                                <button type="button" @click="pickCtaBackground(el)" class="shrink-0 border border-gray-200 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded text-xs text-gray-700 cursor-pointer"><i class="ti ti-photo mr-1"></i><?php echo e(__('admin_media_library')); ?></button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div x-show="String(el.data.bg_image || '').trim()" x-cloak>
+                                                                            <div class="flex items-center justify-between mb-1">
+                                                                                <label class="text-xs text-gray-500"><?php echo e(__('blox_home_cta_overlay')); ?></label>
+                                                                                <span class="text-xs text-gray-400" x-text="Number(el.data.bg_opacity ?? 55) + '%'"></span>
+                                                                            </div>
+                                                                            <input type="range" min="0" max="90" step="5" x-model.number="el.data.bg_opacity" class="w-full cursor-pointer">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomePartnersBlock(el)">
+                                                            <div class="space-y-3 border border-gray-200 bg-gray-50/60 p-4">
+                                                                <div class="flex items-center justify-between gap-3">
+                                                                    <div>
+                                                                        <div class="text-sm font-medium text-gray-700"><?php echo e(__('blox_home_source_partners')); ?></div>
+                                                                        <p class="text-[11px] text-gray-400 mt-0.5"><?php echo e(__('blox_home_partners_live_help')); ?></p>
+                                                                    </div>
+                                                                    <a href="/admin/link.php" class="text-xs text-primary hover:underline inline-flex items-center gap-1"><i class="ti ti-link"></i><?php echo e(__('blox_home_manage_partners')); ?></a>
+                                                                </div>
+                                                                <div>
+                                                                    <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_title')); ?></label>
+                                                                    <input type="text" x-model="el.data.override_title" class="w-full border rounded px-2 py-1 text-sm">
+                                                                </div>
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="isHomeTestimonialsBlock(el)">
+                                                            <div x-init="ensureTestimonialItems(el)" class="space-y-3 border border-gray-200 bg-gray-50/60 p-4">
+                                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_title')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_title" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                    <div>
+                                                                        <label class="text-xs text-gray-500 block mb-0.5"><?php echo e(__('blox_home_override_description')); ?></label>
+                                                                        <input type="text" x-model="el.data.override_description" class="w-full border rounded px-2 py-1 text-sm">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                                                                    <template x-for="(item, testimonialIndex) in el.data.testimonial_items" :key="testimonialIndex">
+                                                                        <div class="bg-white border p-3 space-y-2">
+                                                                            <div class="flex items-center gap-2">
+                                                                                <i class="ti ti-quote text-2xl text-primary"></i>
+                                                                                <input type="text" x-model="item.name" :placeholder="'<?php echo e(__('blox_home_testimonial_name')); ?>'" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm font-medium">
+                                                                                <button type="button" @click="moveTestimonialItem(el, testimonialIndex, -1)" :disabled="testimonialIndex === 0" class="text-gray-400 hover:text-gray-700 disabled:opacity-30"><i class="ti ti-chevron-up"></i></button>
+                                                                                <button type="button" @click="moveTestimonialItem(el, testimonialIndex, 1)" :disabled="testimonialIndex === el.data.testimonial_items.length - 1" class="text-gray-400 hover:text-gray-700 disabled:opacity-30"><i class="ti ti-chevron-down"></i></button>
+                                                                            </div>
+                                                                            <input type="text" x-model="item.company" :placeholder="'<?php echo e(__('blox_home_testimonial_company')); ?>'" class="w-full border rounded px-2 py-1 text-xs">
+                                                                            <textarea x-model="item.content" rows="3" :placeholder="'<?php echo e(__('blox_home_testimonial_content')); ?>'" class="w-full border rounded px-2 py-1 text-xs"></textarea>
+                                                                            <div class="flex gap-1.5">
+                                                                                <input type="text" x-model="item.avatar" :placeholder="'<?php echo e(__('blox_home_testimonial_avatar')); ?>'" class="min-w-0 flex-1 border rounded px-2 py-1 text-xs">
+                                                                                <button type="button" @click="pickObjectImage(item, 'avatar')" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer"><?php echo e(__('admin_media_library')); ?></button>
+                                                                                <button type="button" @click="removeTestimonialItem(el, testimonialIndex)" class="px-2 border rounded text-xs text-red-500 bg-white cursor-pointer" title="<?php echo e(__('admin_delete')); ?>"><i class="ti ti-trash"></i></button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                                <button type="button" @click="addTestimonialItem(el)" :disabled="el.data.testimonial_items.length >= 12" class="inline-flex items-center gap-1 px-3 py-1.5 border rounded text-xs text-primary bg-white cursor-pointer disabled:opacity-40"><i class="ti ti-plus"></i><?php echo e(__('blox_home_testimonial_add')); ?></button>
+                                                            </div>
+                                                        </template>
+                                                        <?php // 普通容器的子元素继续交给 Blox；首页动态区块在本页有专用轻量管理。 ?>
+                                                        <template x-if="(BUILDER_ELEMENTS[el.type] || {}).container && !isHomeBlock(el)">
                                                             <p class="text-[11px] text-amber-600 bg-amber-50 rounded px-2 py-1.5 leading-relaxed">
-                                                                容器内含 <span x-text="(el.data.children || []).length"></span> 个子元素，
-                                                                请在 Blox 编辑器中管理；此处仅可调容器样式，保存不影响子元素。
+                                                                容器内含 <span x-text="(el.data.children || []).length"></span> 个子元素，请在 Blox 编辑器中管理；此处仅可调容器样式，保存不影响子元素。
                                                             </p>
                                                         </template>
-                                                        <template x-for="ctrl in elementControls(el.type)" :key="ctrl.key">
+                                                        <template x-for="ctrl in visibleElementControls(el)" :key="ctrl.key">
                                                             <div>
                                                                 <template x-if="ctrl.type !== 'checkbox'">
                                                                     <label class="text-xs text-gray-500 block mb-0.5" x-text="ctrl.label"></label>
@@ -837,28 +1734,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                     <input type="number" x-model="el.data[ctrl.key]" :min="ctrl.min" :max="ctrl.max" class="w-full border rounded px-2 py-1 text-sm">
                                                                 </template>
                                                                 <template x-if="ctrl.type === 'select' && !ctrl.responsive">
-                                                                    <select x-model="el.data[ctrl.key]" class="w-full border rounded px-2 py-1 text-sm">
-                                                                        <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" x-text="lbl"></option></template>
+                                                                    <select @change="el.data[ctrl.key] = $event.target.value" class="w-full border rounded px-2 py-1 text-sm">
+                                                                        <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" :selected="String(el.data[ctrl.key] === undefined ? (ctrl.default || '') : el.data[ctrl.key]) === String(val)" x-text="lbl"></option></template>
                                                                     </select>
                                                                 </template>
-                                                                <!-- responsive 控件：可按 桌面/平板/手机 分档存值（schema 加 'responsive'=>true 即启用） -->
                                                                 <template x-if="ctrl.type === 'select' && ctrl.responsive">
                                                                     <div class="flex items-center gap-1.5">
-                                                                        <select x-effect="$el.value = respGet(el, ctrl.key, ctrl.default || '')"
-                                                                                @change="respSet(el, ctrl.key, $event.target.value, ctrl.default || '')"
-                                                                                class="flex-1 border rounded px-2 py-1 text-sm">
+                                                                        <select x-effect="$el.value = respGet(el, ctrl.key, ctrl.default || '')" @change="respSet(el, ctrl.key, $event.target.value, ctrl.default || '')" class="flex-1 border rounded px-2 py-1 text-sm">
                                                                             <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" x-text="lbl"></option></template>
                                                                         </select>
                                                                         <div class="flex gap-0.5">
-                                                                            <button type="button" @click="setRespDev(el, 'd')" title="桌面"
-                                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
-                                                                                    :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
-                                                                            <button type="button" @click="setRespDev(el, 't')" title="平板"
-                                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
-                                                                                    :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
-                                                                            <button type="button" @click="setRespDev(el, 'm')" title="手机"
-                                                                                    class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
-                                                                                    :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 'd')" title="桌面" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 't')" title="平板" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 'm')" title="手机" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
                                                                         </div>
                                                                         <span x-show="respIsSplit(el, ctrl.key)" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded">已分档</span>
                                                                     </div>
@@ -869,33 +1757,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 <template x-if="ctrl.type === 'checkbox'">
                                                                     <label class="inline-flex items-center gap-1 text-sm text-gray-600"><input type="checkbox" x-model="el.data[ctrl.key]"> <span x-text="ctrl.label"></span></label>
                                                                 </template>
-                                                                <!-- icon：预览 + 手填 + 精选集选择器（与图标元素的专用 UI 同一套精选集） -->
+                                                                <template x-if="ctrl.type === 'image'">
+                                                                    <div class="flex gap-1.5"><input type="text" x-model="el.data[ctrl.key]" :placeholder="ctrl.placeholder || ''" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm"><button type="button" @click="pickSchemaImage(el, ctrl.key)" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer">媒体库</button></div>
+                                                                </template>
                                                                 <template x-if="ctrl.type === 'icon'">
                                                                     <div x-data="{ pick: false }">
                                                                         <div class="flex items-center gap-2">
-                                                                            <span class="w-8 h-8 border rounded flex items-center justify-center bg-gray-50 shrink-0">
-                                                                                <i class="ti text-lg" :class="'ti-' + (el.data[ctrl.key] || 'star')"></i>
-                                                                            </span>
+                                                                            <span class="w-8 h-8 border rounded flex items-center justify-center bg-gray-50 shrink-0"><i class="ti text-lg" :class="'ti-' + (el.data[ctrl.key] || 'star')"></i></span>
                                                                             <input type="text" x-model="el.data[ctrl.key]" placeholder="Tabler 图标名" class="flex-1 border rounded px-2 py-1 text-sm">
-                                                                            <button type="button" @click="pick = !pick"
-                                                                                    class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? '收起' : '选择'"></button>
+                                                                            <button type="button" @click="pick = !pick" class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? '收起' : '选择'"></button>
                                                                         </div>
                                                                         <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mt-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
                                                                             <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
-                                                                                <button type="button" @click="el.data[ctrl.key] = ic; pick = false"
-                                                                                        class="w-8 h-8 flex items-center justify-center border rounded text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer"
-                                                                                        :class="el.data[ctrl.key] === ic ? 'bg-primary text-white border-primary' : 'bg-white'">
-                                                                                    <i class="ti text-base" :class="'ti-' + ic"></i>
-                                                                                </button>
+                                                                                <button type="button" @click="el.data[ctrl.key] = ic; pick = false" class="w-8 h-8 flex items-center justify-center border rounded text-gray-600 hover:bg-primary hover:text-white transition cursor-pointer" :class="el.data[ctrl.key] === ic ? 'bg-primary text-white border-primary' : 'bg-white'"><i class="ti text-base" :class="'ti-' + ic"></i></button>
                                                                             </template>
                                                                         </div>
                                                                     </div>
                                                                 </template>
+                                                                <p x-show="ctrl.help" class="mt-1 text-[11px] leading-relaxed text-gray-400" x-text="ctrl.help"></p>
                                                             </div>
                                                         </template>
                                                     </div>
-                                                </template>
-                                            </div>
+                                                </template>                                            </div>
                                         </template>
 
                                         <!-- 添加元素 -->
@@ -1061,7 +1944,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <!-- hidden -->
     <input type="hidden" name="blocks_data" :value="JSON.stringify(sections)">
-
+<?php if (!$isHomeLayout): ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('admin_seo_settings'); ?></h2>
@@ -1083,12 +1966,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
     </div>
+<?php endif; ?>
 
-    <div class="bg-white rounded-lg shadow p-6 flex items-center gap-4">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
-            <i class="ti ti-check text-base"></i>
-            <?php echo __("btn_save"); ?>
+    <div class="bg-white rounded-lg shadow p-6 flex flex-wrap items-center gap-3">
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
+            <i class="ti ti-device-floppy text-base"></i>
+            <?php echo e($isHomeLayout ? __('home_layout_save_draft') : __('btn_save')); ?>
         </button>
+        <?php if ($isHomeLayout): ?>
+        <button id="homePublishBtn" type="button"
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="ti ti-world-upload text-base"></i>
+            <?php echo e(__('home_layout_publish')); ?>
+        </button>
+        <button id="homeRollbackBtn" type="button"
+                <?php echo !($homeDocument['active'] ?? false) ? 'disabled' : ''; ?>
+                class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="ti ti-history text-base"></i>
+            <?php echo e(__('home_layout_rollback')); ?>
+        </button>
+        <span class="text-xs px-2.5 py-1 rounded <?php echo ($homeDocument['active'] ?? false) ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'; ?>">
+            <?php echo e(($homeDocument['active'] ?? false) ? __('home_layout_state_active') : __('home_layout_state_legacy')); ?>
+        </span>
+        <span id="homeActionMsg" class="text-xs hidden"></span>
+        <?php endif; ?>
         <span id="saveMsg" class="text-sm hidden"></span>
     </div>
 </form>
@@ -1235,15 +2136,36 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 富文本编辑弹窗 -->
 <div id="textEditorModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 flex flex-col" style="max-height: calc(100vh - 3rem)">
-        <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
+        <div class="px-6 py-4 border-b flex items-center justify-between gap-4 shrink-0">
             <h3 class="font-bold text-gray-800">编辑富文本内容</h3>
-            <button type="button" onclick="closeTextEditor()" class="text-gray-400 hover:text-gray-600">
-                <i class="ti ti-x text-xl"></i>
-            </button>
+            <div class="flex items-center gap-3">
+                <div class="inline-flex rounded border border-gray-200 bg-gray-100 p-0.5" aria-label="编辑模式">
+                    <button type="button" id="textEditorVisualBtn" onclick="setTextEditorMode('visual')"
+                            class="px-3 py-1.5 rounded-sm bg-white text-gray-800 shadow-sm text-xs font-medium cursor-pointer">
+                        <i class="ti ti-eye mr-1"></i>可视化
+                    </button>
+                    <button type="button" id="textEditorSourceBtn" onclick="setTextEditorMode('source')"
+                            class="px-3 py-1.5 rounded-sm text-gray-500 text-xs font-medium cursor-pointer">
+                        <i class="ti ti-code mr-1"></i>HTML 源码
+                    </button>
+                </div>
+                <button type="button" onclick="closeTextEditor()" class="text-gray-400 hover:text-gray-600" title="关闭">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
         </div>
         <div class="flex-1 overflow-y-auto p-6">
-            <div id="modal-toolbar" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
-            <div id="modal-editor" class="border rounded-b-lg" style="min-height: 300px;"></div>
+            <div id="textEditorVisualPane">
+                <div id="modal-toolbar" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
+                <div id="modal-editor" class="border rounded-b-lg" style="min-height: 300px;"></div>
+            </div>
+            <div id="textEditorSourcePane" class="hidden">
+                <label for="textEditorSource" class="sr-only">HTML 源码</label>
+                <textarea id="textEditorSource" spellcheck="false"
+                          class="w-full min-h-80 border border-gray-300 rounded px-4 py-3 font-mono text-sm leading-6 text-gray-800 bg-gray-50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                          placeholder="在这里编辑 HTML 源码"></textarea>
+                <p class="mt-2 text-xs text-gray-500">切回可视化模式时会应用当前源码。</p>
+            </div>
         </div>
         <div class="px-6 py-3 border-t flex justify-end gap-2 shrink-0">
             <button type="button" onclick="closeTextEditor()" class="px-4 py-2 border rounded hover:bg-gray-100 text-sm cursor-pointer"><?php echo __('admin_cancel'); ?></button>
@@ -1425,6 +2347,31 @@ document.getElementById('settingBgOpacity').addEventListener('input', function()
 // ===== 富文本弹窗 =====
 var _modalEditor = null;
 var _editingPath = null;
+var _textEditorMode = 'visual';
+function setTextEditorMode(mode) {
+    if (mode !== 'visual' && mode !== 'source') return;
+    var visualPane = document.getElementById('textEditorVisualPane');
+    var sourcePane = document.getElementById('textEditorSourcePane');
+    var source = document.getElementById('textEditorSource');
+    var visualBtn = document.getElementById('textEditorVisualBtn');
+    var sourceBtn = document.getElementById('textEditorSourceBtn');
+    if (mode === 'source' && _modalEditor) source.value = _modalEditor.getHtml();
+    if (mode === 'visual' && _textEditorMode === 'source' && _modalEditor) {
+        _modalEditor.setHtml(source.value || '<p><br></p>');
+    }
+    _textEditorMode = mode;
+    visualPane.classList.toggle('hidden', mode !== 'visual');
+    sourcePane.classList.toggle('hidden', mode !== 'source');
+    visualBtn.classList.toggle('bg-white', mode === 'visual');
+    visualBtn.classList.toggle('text-gray-800', mode === 'visual');
+    visualBtn.classList.toggle('shadow-sm', mode === 'visual');
+    visualBtn.classList.toggle('text-gray-500', mode !== 'visual');
+    sourceBtn.classList.toggle('bg-white', mode === 'source');
+    sourceBtn.classList.toggle('text-gray-800', mode === 'source');
+    sourceBtn.classList.toggle('shadow-sm', mode === 'source');
+    sourceBtn.classList.toggle('text-gray-500', mode !== 'source');
+    if (mode === 'source') source.focus();
+}
 function closeTextEditor() {
     var m = document.getElementById('textEditorModal');
     m.classList.add('hidden'); m.classList.remove('flex');
@@ -1432,7 +2379,10 @@ function closeTextEditor() {
 function saveTextEditor() {
     if (_modalEditor && _editingPath) {
         var data = Alpine.$data(document.getElementById('editForm'));
-        data.sections[_editingPath.si].columns[_editingPath.ci].elements[_editingPath.ei].data.html = _modalEditor.getHtml();
+        var html = _textEditorMode === 'source'
+            ? document.getElementById('textEditorSource').value
+            : _modalEditor.getHtml();
+        data.sections[_editingPath.si].columns[_editingPath.ci].elements[_editingPath.ei].data.html = html;
     }
     closeTextEditor();
 }
@@ -1463,16 +2413,44 @@ if ($autoConvert && $htmlContent) {
     $initBlocks = json_encode($autoSection, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 }
 
-$extraJs = '<script>
+$extraJs = '<scr' . 'ipt>
 // 预设库（区块预设 + 整页模板，见 includes/builder/presets.php；插件可用 builder_presets 过滤器扩展）
 var BUILDER_PRESETS = ' . json_encode(builderPresets(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
 // 元素元数据（由 BuilderRegistry 生成）：palette + 新元素设置表单据此驱动，加元素即插即用
 var BUILDER_ELEMENTS = ' . json_encode(BuilderRegistry::meta(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ';
 // 已有手写设置 UI 的元素（保留其精细编辑器）；其余（新/插件元素）走通用 schema 表单
 var BUILDER_CUSTOM_UI = ["heading","text","image","button","icon","divider","code","spacer","list-dynamic","banner","nav"];
+var HOME_LAYOUT_MODE = ' . ($isHomeLayout ? 'true' : 'false') . ';
+var HOME_PRODUCT_OPTIONS = ' . json_encode($homeProductOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
+var HOME_ADVANTAGE_DEFAULTS = ' . json_encode([
+    ['icon' => 'check-circle', 'title' => __('home_adv_1_title'), 'description' => __('home_adv_1_desc')],
+    ['icon' => 'academic-cap', 'title' => __('home_adv_2_title'), 'description' => __('home_adv_2_desc')],
+    ['icon' => 'briefcase', 'title' => __('home_adv_3_title'), 'description' => __('home_adv_3_desc')],
+    ['icon' => 'users', 'title' => __('home_adv_4_title'), 'description' => __('home_adv_4_desc')],
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
+var HOME_STATS_DEFAULTS = ' . json_encode([
+    ['icon' => 'award', 'number' => '10+', 'label' => __('home_stat_1')],
+    ['icon' => 'users', 'number' => '1000+', 'label' => __('home_stat_2')],
+    ['icon' => 'briefcase', 'number' => '50+', 'label' => __('home_stat_3')],
+    ['icon' => 'thumb-up', 'number' => '100%', 'label' => __('home_stat_4')],
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
+var HOME_STATS_ICONS = ["award","users","briefcase","thumb-up","star","heart","target","shield-check","trending-up","world","building","calendar","clock","rocket","trophy","chart-bar","headset","check","none"];
+var HOME_BANNER_SEEDS = ' . json_encode($homeBannerSeeds, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) . ';
+var HOME_BANNER_TEXT = {
+    newTitle: ' . json_encode(__('blox_home_banner_new_title'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) . ',
+    restoreConfirm: ' . json_encode(__('blox_home_banner_restore_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) . '
+};
 function pageBuilder() {
     return {
         sections: ' . $initBlocks . ',
+        homeBannerSeeds: HOME_BANNER_SEEDS,
+        homeBannerOpen: {},
+        homeBannerItemOpen: {},
+        statIconPick: "",
+        openSections: {},
+        isDirty: false,
+        saving: false,
+        savedSnapshot: "",
 
         // === 实时预览 ===
         showPreview: false,
@@ -1524,9 +2502,10 @@ function pageBuilder() {
         elementsByCategory() {
             var groups = {};
             for (var t of Object.keys(BUILDER_ELEMENTS)) {
-                // 容器元素不进本编辑器的插入面板：子元素只能在 Blox 里管理，
-                // 在这边插入等于造一个改不了内容的空壳。已有的容器卡片正常显示与保存。
-                if (BUILDER_ELEMENTS[t].container) continue;
+                if (t === "home-banner-item") continue;
+                if (t === "home-block" && !HOME_LAYOUT_MODE) continue;
+                // 首页排版允许插入动态区块；其余容器仍由 Blox 管理子元素。
+                if (BUILDER_ELEMENTS[t].container && !(HOME_LAYOUT_MODE && t === "home-block")) continue;
                 var c = BUILDER_ELEMENTS[t].category || "basic";
                 (groups[c] = groups[c] || []).push(BUILDER_ELEMENTS[t]);
             }
@@ -1538,6 +2517,135 @@ function pageBuilder() {
         hasCustomUI(type) { return BUILDER_CUSTOM_UI.indexOf(type) !== -1; },
         elementControls(type) { return (BUILDER_ELEMENTS[type] || {}).controls || []; },
         elementLabel(type) { return (BUILDER_ELEMENTS[type] || {}).label || type; },
+        controlRequirementMet(el, ctrl) {
+            var rule = ctrl.required;
+            if (!Array.isArray(rule) || rule.length < 3) return true;
+            var actual = (el.data || {})[rule[0]];
+            if (actual === undefined) actual = ((BUILDER_ELEMENTS[el.type] || {}).defaults || {})[rule[0]];
+            var expected = Array.isArray(rule[2]) ? rule[2] : [rule[2]];
+            var matched = expected.map(String).indexOf(String(actual)) !== -1;
+            return rule[1] === "!=" ? !matched : matched;
+        },
+        visibleElementControls(el) {
+            var self = this;
+            return this.elementControls(el.type).filter(function(ctrl) {
+                if (self.isHomeBannerBlock(el) && ctrl.key !== "enabled") return false;
+                if (self.isHomeAboutBlock(el) && ["override_layout","override_title","override_content","override_image","override_tag_title","override_tag_description","override_button_text","override_button_url"].indexOf(ctrl.key) !== -1) return false;
+                if (self.isHomeStatsBlock(el) && ctrl.key === "override_background") return false;
+                if (self.isHomeChannelBlock(el) && ["override_title","override_button_text","override_button_url","limit","sort","per_row"].indexOf(ctrl.key) !== -1) return false;
+                if ((self.isHomeAdvantageBlock(el) || self.isHomeCtaBlock(el)) && ["override_title","override_description","override_button_text","override_button_url"].indexOf(ctrl.key) !== -1) return false;
+                if (self.isHomePartnersBlock(el) && ctrl.key === "override_title") return false;
+                if (self.isHomeTestimonialsBlock(el) && ["override_title","override_description"].indexOf(ctrl.key) !== -1) return false;
+                return self.controlRequirementMet(el, ctrl);
+            });
+        },
+        isHomeBlock(el) { return !!(HOME_LAYOUT_MODE && el && el.type === "home-block"); },
+        isHomeBannerBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "banner"); },
+        isHomeAboutBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "about"); },
+        isHomeStatsBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "stats"); },
+        isProductCarouselBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "product_carousel"); },
+        isHomeChannelBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "").indexOf("channel:") === 0); },
+        isHomeAdvantageBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "advantage"); },
+        isHomeCtaBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "cta"); },
+        ensureCtaSettings(el) {
+            if (el.data.bg_opacity === undefined || el.data.bg_opacity === null) el.data.bg_opacity = 55;
+            if (el.data.text_light === undefined) el.data.text_light = true;
+        },
+        ctaColorValue(el) {
+            var color = String((el.data || {}).bg_color || "").trim();
+            return /^#[0-9a-f]{6}$/i.test(color) ? color : "#2563eb";
+        },
+        ctaPreviewStyle(el) {
+            var data = el.data || {};
+            var color = String(data.bg_color || "").trim() || "#2563eb";
+            var image = Array.from(String(data.bg_image || "").trim()).filter(function(character) {
+                return [10, 13, 34, 40, 41, 92].indexOf(character.charCodeAt(0)) === -1;
+            }).join("");
+            if (!image) return "background:" + color;
+            var opacity = Math.max(0, Math.min(90, Number(data.bg_opacity ?? 55))) / 100;
+            var hex = /^#([0-9a-f]{6})$/i.exec(color);
+            var overlay = "rgba(15,23,42," + opacity + ")";
+            if (hex) {
+                var value = parseInt(hex[1], 16);
+                overlay = "rgba(" + ((value >> 16) & 255) + "," + ((value >> 8) & 255) + "," + (value & 255) + "," + opacity + ")";
+            }
+            return "background-image:linear-gradient(" + overlay + "," + overlay + "),url(" + image + ");background-size:cover;background-position:center";
+        },
+        setCtaBackground(el, color) {
+            el.data.bg_color = color;
+            el.data.text_light = true;
+        },
+        resetCtaBackground(el) {
+            el.data.bg_color = "";
+            el.data.bg_image = "";
+            el.data.bg_opacity = 55;
+            el.data.text_light = true;
+        },
+        pickCtaBackground(el) {
+            openMediaPicker(function(url) {
+                el.data.bg_image = url;
+                if (!String(el.data.bg_color || "").trim()) el.data.bg_color = "#0f172a";
+                if (el.data.bg_opacity === undefined || el.data.bg_opacity === null) el.data.bg_opacity = 55;
+                el.data.text_light = true;
+            });
+        },
+        isHomePartnersBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "partners"); },
+        isHomeTestimonialsBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "testimonials"); },
+        ensureTestimonialItems(el) {
+            if (!Array.isArray(el.data.testimonial_items)) el.data.testimonial_items = [];
+            el.data.testimonial_items = el.data.testimonial_items.slice(0, 12);
+        },
+        addTestimonialItem(el) {
+            this.ensureTestimonialItems(el);
+            if (el.data.testimonial_items.length < 12) el.data.testimonial_items.push({ avatar: "", name: "", company: "", content: "" });
+        },
+        removeTestimonialItem(el, index) { el.data.testimonial_items.splice(index, 1); },
+        moveTestimonialItem(el, index, direction) {
+            var target = index + direction;
+            if (target < 0 || target >= el.data.testimonial_items.length) return;
+            var item = el.data.testimonial_items.splice(index, 1)[0];
+            el.data.testimonial_items.splice(target, 0, item);
+        },
+        ensureAdvantageItems(el) {
+            var defaults = JSON.parse(JSON.stringify(HOME_ADVANTAGE_DEFAULTS));
+            if (!Array.isArray(el.data.advantage_items)) el.data.advantage_items = [];
+            while (el.data.advantage_items.length < 4) el.data.advantage_items.push(defaults[el.data.advantage_items.length]);
+            if (el.data.advantage_items.length > 4) el.data.advantage_items = el.data.advantage_items.slice(0, 4);
+        },
+        ensureProductCarousel(el) {
+            if (!Array.isArray(el.data.product_ids)) el.data.product_ids = [];
+            el.data.product_ids = el.data.product_ids.map(Number).filter(function(id, index, ids) {
+                return id > 0 && ids.indexOf(id) === index;
+            });
+            el.data.per_row = Math.max(1, Math.min(6, Number(el.data.per_row) || 4));
+            el.data.autoplay = Math.max(0, Math.min(30, Number(el.data.autoplay) || 0));
+        },
+        carouselProductName(id) {
+            var product = HOME_PRODUCT_OPTIONS.find(function(item) { return Number(item.id) === Number(id); });
+            return product ? product.title : ("#" + id);
+        },
+        addCarouselProduct(el, id) {
+            id = Number(id);
+            if (id > 0 && el.data.product_ids.map(Number).indexOf(id) === -1) el.data.product_ids.push(id);
+        },
+        removeCarouselProduct(el, index) { el.data.product_ids.splice(index, 1); },
+        moveCarouselProduct(el, index, direction) {
+            var target = index + direction;
+            if (target < 0 || target >= el.data.product_ids.length) return;
+            var item = el.data.product_ids.splice(index, 1)[0];
+            el.data.product_ids.splice(target, 0, item);
+        },
+        ensureStatsItems(el) {
+            var defaults = JSON.parse(JSON.stringify(HOME_STATS_DEFAULTS));
+            if (!Array.isArray(el.data.stats_items)) el.data.stats_items = [];
+            while (el.data.stats_items.length < 4) el.data.stats_items.push(defaults[el.data.stats_items.length]);
+            if (el.data.stats_items.length > 4) el.data.stats_items = el.data.stats_items.slice(0, 4);
+        },
+        homeBlockSourceLabel(el) {
+            var source = this.elementControls("home-block").find(function(ctrl) { return ctrl.key === "block_type"; });
+            var type = String((el.data || {}).block_type || "");
+            return source && source.options && source.options[type] ? source.options[type] : type;
+        },
 
         // === 响应式三档（元素级）：值标量=全设备统一，{d,t,m}=分档；respDev 记录每个元素当前编辑档 ===
         respDev: {},
@@ -1617,6 +2725,16 @@ function pageBuilder() {
             }).catch(function() { showMessage("请求失败", "error"); });
         },
 
+        // 深拷贝元素并递归刷新子元素 id，避免复制含 Banner 子项的模板后产生重复定位键。
+        freshElement(e) {
+            var self = this;
+            var data = JSON.parse(JSON.stringify(e.data || {}));
+            if (Array.isArray(data.children)) {
+                data.children = data.children.map(function(child) { return self.freshElement(child); });
+            }
+            return { id: self.uid("e"), type: e.type, data: data };
+        },
+
         // 深拷贝 section 并重生成各级 id（块库副本/模板插入共用）
         freshSection(s) {
             var self = this;
@@ -1627,9 +2745,7 @@ function pageBuilder() {
                 columns: (s.columns || []).map(function(c) {
                     return {
                         id: self.uid("c"),
-                        elements: (c.elements || []).map(function(e) {
-                            return { id: self.uid("e"), type: e.type, data: e.data };
-                        })
+                        elements: (c.elements || []).map(function(e) { return self.freshElement(e); })
                     };
                 })
             };
@@ -1637,11 +2753,74 @@ function pageBuilder() {
 
         init() {
             var self = this;
+            this.savedSnapshot = JSON.stringify(this.sections);
             this.$nextTick(function() { self.initSortable(); });
-            // 区块变化 → 防抖刷新预览
-            this.$watch("sections", function() { self.schedulePreview(); });
+            // 区块变化同时驱动未保存状态与实时预览。
+            this.$watch("sections", function() {
+                self.isDirty = JSON.stringify(self.sections) !== self.savedSnapshot;
+                self.schedulePreview();
+            });
+            window.addEventListener("beforeunload", function(e) {
+                if (!self.isDirty) return;
+                e.preventDefault();
+                e.returnValue = "";
+            });
+            document.addEventListener("keydown", function(e) {
+                if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === "s") {
+                    e.preventDefault();
+                    document.getElementById("editForm").requestSubmit();
+                }
+            });
             // 前台就地编辑深链：?focus=N → 滚动到并高亮第 N 个区块
             this.$nextTick(function() { self.focusSection(); });
+        },
+
+        markSaved() {
+            this.savedSnapshot = JSON.stringify(this.sections);
+            this.isDirty = false;
+        },
+
+        isSectionOpen(id) { return this.openSections[id] === true; },
+        toggleSection(id) {
+            this.openSections[id] = !this.isSectionOpen(id);
+            var self = this;
+            this.$nextTick(function() { self.initSortable(); });
+        },
+        expandAllSections() {
+            for (var section of this.sections) this.openSections[section.id] = true;
+            var self = this;
+            this.$nextTick(function() { self.initSortable(); });
+        },
+        collapseAllSections() { this.openSections = {}; },
+        sectionElementCount(section) {
+            return (section.columns || []).reduce(function(total, column) {
+                return total + (column.elements || []).length;
+            }, 0);
+        },
+        sectionColumnLabel(section) {
+            for (var column of (section.columns || [])) {
+                for (var el of (column.elements || [])) {
+                    if (this.isHomeAboutBlock(el)) return "2 列";
+                    if (this.isHomeStatsBlock(el)) return "4 列";
+                    if (this.isProductCarouselBlock(el)) return (Math.max(1, Math.min(6, Number((el.data || {}).per_row) || 4))) + " 列";
+                    if (this.isHomeChannelBlock(el)) return (Math.max(1, Math.min(8, Number((el.data || {}).per_row) || 4))) + " 列";
+                    if (this.isHomeAdvantageBlock(el)) return "4 列";
+                    if (this.isHomeTestimonialsBlock(el)) return "3 列";
+                }
+            }
+            return (section.columns || []).length + " 列";
+        },
+        sectionLabel(section, si) {
+            if (section.library_id) return section.library_name || ("#" + section.library_id);
+            var title = String((section.settings || {}).title || "").trim();
+            if (title) return title;
+            for (var column of (section.columns || [])) {
+                for (var el of (column.elements || [])) {
+                    if (this.isHomeBlock(el)) return String((el.data || {}).label || this.homeBlockSourceLabel(el) || ("区块 " + (si + 1)));
+                    if (el.type === "heading" && String((el.data || {}).text || "").trim()) return String(el.data.text).trim();
+                }
+            }
+            return "区块 " + (si + 1);
         },
 
         // 定位 URL ?focus=N 指定的区块（前台悬停编辑跳转而来）
@@ -1650,6 +2829,8 @@ function pageBuilder() {
             if (m === null || m === "") return;
             var el = document.querySelector("[data-si=\"" + parseInt(m, 10) + "\"]");
             if (!el) return;
+            var section = this.sections[parseInt(m, 10)];
+            if (section) this.openSections[section.id] = true;
             el.scrollIntoView({ behavior: "smooth", block: "center" });
             el.style.transition = "box-shadow .3s, border-color .3s";
             el.style.boxShadow = "0 0 0 4px rgba(37,99,235,.35)";
@@ -1668,6 +2849,7 @@ function pageBuilder() {
                 settings: { bg_color: "", bg_image: "", padding: "md", max_width: "default", align_items: "stretch", justify_items: "stretch", gap: "lg" },
                 columns: cols
             });
+            this.openSections[this.sections[this.sections.length - 1].id] = true;
             var self = this;
             this.$nextTick(function() { self.initSortable(); });
         },
@@ -1685,6 +2867,7 @@ function pageBuilder() {
                 if (!confirm("将整页模板追加到当前内容末尾？")) return;
             }
             this.sections = this.sections.concat(fresh);
+            for (var section of fresh) this.openSections[section.id] = true;
             this.showPresets = false;
             this.$nextTick(function() { self.initSortable(); });
         },
@@ -1732,6 +2915,10 @@ function pageBuilder() {
             // 默认 data 来自元素 schema（BuilderRegistry），新增元素无需在此登记
             var meta = BUILDER_ELEMENTS[type] || {};
             var data = JSON.parse(JSON.stringify(meta.defaults || {}));
+            if (type === "home-block") {
+                data.items_mode = "inherit";
+                data.children = [];
+            }
             this.sections[si].columns[ci].elements.push({
                 id: this.uid("e"),
                 type: type,
@@ -1755,6 +2942,7 @@ function pageBuilder() {
 
         editText(si, ci, ei) {
             _editingPath = { si: si, ci: ci, ei: ei };
+            _textEditorMode = "visual";
             var el = this.sections[si].columns[ci].elements[ei];
             var m = document.getElementById("textEditorModal");
             m.classList.remove("hidden"); m.classList.add("flex");
@@ -1768,6 +2956,7 @@ function pageBuilder() {
             } else {
                 _modalEditor.setHtml(el.data.html || "<p><br></p>");
             }
+            setTextEditorMode("visual");
         },
 
         pickImage(si, ci, ei) {
@@ -1775,6 +2964,90 @@ function pageBuilder() {
             openMediaPicker(function(url) {
                 self.sections[si].columns[ci].elements[ei].data.src = url;
             });
+        },
+
+        pickSchemaImage(node, key) {
+            openMediaPicker(function(url) { node.data[key] = url; });
+        },
+
+        pickObjectImage(item, key) {
+            openMediaPicker(function(url) { item[key] = url; });
+        },
+
+        toggleHomeBanner(el) {
+            this.homeBannerOpen[el.id] = !this.homeBannerOpen[el.id];
+            var self = this;
+            this.$nextTick(function() { self.initSortable(); });
+        },
+
+        toggleHomeBannerItem(child) {
+            this.homeBannerItemOpen[child.id] = !this.homeBannerItemOpen[child.id];
+        },
+
+        homeBannerIsCustom(el) {
+            return !!(this.isHomeBannerBlock(el) && (el.data || {}).items_mode === "custom");
+        },
+
+        homeBannerCount(el) {
+            return el && el.data && Array.isArray(el.data.children) ? el.data.children.length : 0;
+        },
+
+        adoptHomeBanner(el) {
+            if (!this.isHomeBannerBlock(el)) return;
+            var self = this;
+            el.data.items_mode = "custom";
+            el.data.children = this.homeBannerSeeds.map(function(item) {
+                return { id: self.uid("e"), type: "home-banner-item", data: JSON.parse(JSON.stringify(item)) };
+            });
+            if (el.data.children.length === 0) this.addHomeBannerItem(el);
+            this.homeBannerOpen[el.id] = true;
+            if (el.data.children[0]) this.homeBannerItemOpen[el.data.children[0].id] = true;
+            this.$nextTick(function() { self.initSortable(); });
+        },
+
+        addHomeBannerItem(el) {
+            if (!this.isHomeBannerBlock(el)) return;
+            el.data.items_mode = "custom";
+            el.data.children = Array.isArray(el.data.children) ? el.data.children : [];
+            var defaults = JSON.parse(JSON.stringify(((BUILDER_ELEMENTS["home-banner-item"] || {}).defaults || {})));
+            defaults.title = defaults.title || HOME_BANNER_TEXT.newTitle;
+            var child = { id: this.uid("e"), type: "home-banner-item", data: defaults };
+            el.data.children.push(child);
+            this.homeBannerOpen[el.id] = true;
+            this.homeBannerItemOpen[child.id] = true;
+            var self = this;
+            this.$nextTick(function() { self.initSortable(); });
+        },
+
+        restoreHomeBanner(el) {
+            if (!this.isHomeBannerBlock(el)) return;
+            if (this.homeBannerCount(el) && !confirm(HOME_BANNER_TEXT.restoreConfirm)) return;
+            el.data.items_mode = "inherit";
+            el.data.children = [];
+            this.homeBannerOpen[el.id] = false;
+        },
+
+        moveHomeBannerItem(el, index, direction) {
+            var children = el.data.children || [];
+            var next = index + direction;
+            if (next < 0 || next >= children.length) return;
+            var item = children.splice(index, 1)[0];
+            children.splice(next, 0, item);
+        },
+
+        removeHomeBannerItem(el, index) {
+            (el.data.children || []).splice(index, 1);
+        },
+
+        findElementById(id) {
+            for (var section of this.sections) {
+                for (var column of (section.columns || [])) {
+                    for (var el of (column.elements || [])) {
+                        if (el.id === id) return el;
+                    }
+                }
+            }
+            return null;
         },
 
         // === SortableJS ===
@@ -1812,6 +3085,23 @@ function pageBuilder() {
                         }
                     });
                 });
+                document.querySelectorAll("[data-sortable-home-banner]").forEach(function(el) {
+                    if (el._sortable) el._sortable.destroy();
+                    el._sortable = new Sortable(el, {
+                        handle: ".home-banner-drag-handle",
+                        draggable: "[data-home-banner-item]",
+                        animation: 150,
+                        ghostClass: "opacity-30",
+                        onEnd: function(evt) {
+                            var host = self.findElementById(el.dataset.bannerParentId || "");
+                            if (!host || !host.data || !Array.isArray(host.data.children)) return;
+                            var oldIndex = evt.oldDraggableIndex === undefined ? evt.oldIndex : evt.oldDraggableIndex;
+                            var newIndex = evt.newDraggableIndex === undefined ? evt.newIndex : evt.newDraggableIndex;
+                            var item = host.data.children.splice(oldIndex, 1)[0];
+                            host.data.children.splice(newIndex, 0, item);
+                        }
+                    });
+                });
             });
         }
     };
@@ -1820,14 +3110,21 @@ function pageBuilder() {
 // === 表单提交 ===
 document.getElementById("editForm").addEventListener("submit", async function(e) {
     e.preventDefault();
+    window.dispatchEvent(new CustomEvent("layout-save-started"));
     var formData = new FormData(this);
     var msgEl = document.getElementById("saveMsg");
     try {
         var response = await fetch("", { method: "POST", body: formData });
         var result = await safeJson(response);
         if (result.code === 0) {
+            // 首页草稿：把基线推进到本次保存的时间戳，否则连续保存会被自己的旧基线判成冲突
+            var baseEl = this.querySelector("input[name=home_base_updated_at]");
+            if (baseEl && result.data && result.data.home_base_updated_at) {
+                baseEl.value = result.data.home_base_updated_at;
+            }
             msgEl.textContent = "保存成功";
             msgEl.className = "text-sm text-green-600";
+            window.dispatchEvent(new CustomEvent("layout-saved"));
         } else {
             msgEl.textContent = result.msg || "保存失败";
             msgEl.className = "text-sm text-red-600";
@@ -1836,9 +3133,61 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
         msgEl.textContent = "请求失败";
         msgEl.className = "text-sm text-red-600";
     }
+    window.dispatchEvent(new CustomEvent("layout-save-finished"));
     setTimeout(function() { msgEl.className = "text-sm hidden"; }, 3000);
 });
-</script>';
+
+// === 首页发布 / 回退（仅首页模式存在这两个按钮）===
+(function () {
+    var pubBtn = document.getElementById("homePublishBtn");
+    var backBtn = document.getElementById("homeRollbackBtn");
+    if (!pubBtn && !backBtn) return;
+    var form = document.getElementById("editForm");
+    var msgEl = document.getElementById("homeActionMsg");
+
+    function say(text, ok) {
+        msgEl.textContent = text;
+        msgEl.className = "text-xs " + (ok ? "text-green-700" : "text-red-600");
+    }
+
+    async function run(action, confirmText, btn) {
+        if (confirmText && !confirm(confirmText)) return;
+        btn.disabled = true;
+        try {
+            // 发布前先把当前编辑内容存成草稿，避免发布的是上一次保存的旧版本
+            if (action === "publish") {
+                var saveBody = new FormData(form);
+                var saveResp = await fetch("", { method: "POST", body: saveBody });
+                var saveResult = await safeJson(saveResp);
+                if (saveResult.code !== 0) { say(saveResult.msg || "保存失败", false); return; }
+                var baseEl = form.querySelector("input[name=home_base_updated_at]");
+                if (baseEl && saveResult.data && saveResult.data.home_base_updated_at) {
+                    baseEl.value = saveResult.data.home_base_updated_at;
+                }
+            }
+            // CSRF 由 footer 的 fetch 包装器自动附加到 FormData
+            var body = new FormData();
+            body.append("home_action", action);
+            var resp = await fetch("", { method: "POST", body: body });
+            var result = await safeJson(resp);
+            if (result.code === 0) {
+                say(action === "publish" ? "已发布到线上首页" : "已回退到旧首页", true);
+                setTimeout(function () { location.reload(); }, 900);
+            } else {
+                say(result.msg || "操作失败", false);
+            }
+        } catch (err) {
+            say("请求失败", false);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    if (pubBtn) pubBtn.addEventListener("click", function () { run("publish", "确定用当前排版替换线上首页？", pubBtn); });
+    if (backBtn) backBtn.addEventListener("click", function () { run("rollback", "确定回退到旧版首页？草稿会保留。", backBtn); });
+})();
+
+</scr' . 'ipt>';
 
 // 历史版本面板（仅已保存单页）
 if ($id > 0) {
