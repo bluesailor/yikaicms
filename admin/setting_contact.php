@@ -105,6 +105,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('contact_info_title'); ?></h2>
+            <?php // 短码提示：这几块内容除了联系页，也能放进任意文章/单页/区块 ?>
+            <p class="text-xs text-gray-500 mt-1">
+                页面调用短码：<code class="bg-gray-100 px-1 rounded select-all">[contact-cards]</code>
+                联系卡片（可加 <code class="bg-gray-100 px-1 rounded">cols="3"</code> 指定列数）、
+                <code class="bg-gray-100 px-1 rounded select-all">[map]</code> 地图/二维码、
+                <code class="bg-gray-100 px-1 rounded select-all">[form-contact]</code> 留言表单
+                —— 粘到任意文章、单页正文或排版区块里即可调用。
+            </p>
         </div>
         <div class="p-6 space-y-4">
             <?php foreach ($infoSettings as $item): ?>

@@ -54,6 +54,9 @@ final class BlockRenderer
      */
     public static int $editChannelId = 0;
 
+    /** 编辑器画布/预览专用：为 true 时隐藏的区块也渲染（前台永远不渲染，含登录管理员）。 */
+    public static bool $showHidden = false;
+
     public static function render(string $blocksJson): string
     {
         $sections = json_decode($blocksJson, true);
@@ -77,6 +80,14 @@ final class BlockRenderer
                 $section = $lib;
             }
             $settings = $section['settings'] ?? [];
+
+            // 隐藏区块：前台不输出，后台编辑器里仍可见可恢复（比删掉再重建友好）。
+            // 可选键，缺省即显示——老数据没有此键，渲染结果不变。
+            // 编辑态（后台预览/画布）照常渲染，否则隐藏的区块在编辑器里就成了空白。
+            if (!empty($settings['hidden']) && !self::$showHidden) {
+                continue;
+            }
+
             $padding = AbstractElement::respClasses($settings['padding'] ?? 'md', self::PADDING_MAP, 'md');
             $maxWidth = self::MAXWIDTH_MAP[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';
 

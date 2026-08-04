@@ -2385,6 +2385,32 @@ function parseShortcodes(string $content): string
         return function_exists('timelineBlock') ? timelineBlock($opts) : '';
     }, $content);
 
+    // 地图短码：[map] —— 联系我们设置里的地图/二维码，可放进任意正文、单页、区块
+    $content = preg_replace_callback('/\[map\]/', static function () {
+        require_once __DIR__ . '/contact_parts.php';
+        return renderContactMapHtml();
+    }, $content);
+
+    // 联系卡片短码：[contact-cards] / [contact-cards cols="3"]（cols 支持 2/3/4，缺省按卡片数自适应）
+    $content = preg_replace_callback('/\[contact-cards(\s+[^\]]*)?\]/', static function ($m) {
+        require_once __DIR__ . '/contact_parts.php';
+        $cards = contactCardsData();
+        if (empty($cards)) {
+            return '';
+        }
+        $cols = '';
+        if (!empty($m[1]) && preg_match('/cols\s*=\s*"(\d+)"/', $m[1], $mm)) {
+            $cols = $mm[1];
+        }
+        $grid = match ($cols) {
+            '2' => 'md:grid-cols-2',
+            '3' => 'md:grid-cols-3',
+            '4' => 'md:grid-cols-2 lg:grid-cols-4',
+            default => contactGridCols(count($cards)),
+        };
+        return renderContactCardsHtml($cards, $grid);
+    }, $content);
+
     // 相册短码：[album-12] 在正文内内嵌一个相册网格 + 灯箱
     $content = preg_replace_callback('/\[album-(\d+)\]/', function ($matches) {
         return renderAlbumShortcode((int)$matches[1]);

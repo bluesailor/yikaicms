@@ -317,6 +317,27 @@ $channels = array_values(array_filter(
 // 后台用：不过滤 status，所有栏目都显示；只保留默认语言的源行
 $channelTree = $_filterByLang(channelModel()->getTreeAll());
 
+// 单页的编辑入口要按内容实际形态走：排版页必须进排版编辑器——
+// 普通富文本编辑器一保存就会清掉 blocks_data（单页管理里已有同款判断）。
+// 一次性取回全部单页的 content_type，避免逐行查询。
+$__pageModes = [];
+// 注意：单页内容行的 type 未必是 'page'（历史数据多为 'article'），
+// 因此按「所属栏目是单页」来取，而不是按内容自身的 type。
+foreach (db()->fetchAll(
+    "SELECT c.channel_id, c.content_type
+       FROM " . DB_PREFIX . "contents c
+       JOIN " . DB_PREFIX . "channels ch ON ch.id = c.channel_id
+      WHERE ch.type = 'page' AND c.deleted_at IS NULL"
+) as $__r) {
+    $__pageModes[(int) $__r['channel_id']] = (string) ($__r['content_type'] ?? 'html');
+}
+/** 单页编辑地址：排版页 → 排版编辑器，其余 → 富文本编辑器 */
+$__pageEditUrl = static function (int $channelId) use ($__pageModes): string {
+    return (($__pageModes[$channelId] ?? 'html') === 'blocks'
+        ? '/admin/page_edit_advance.php?id='
+        : '/admin/page_edit.php?id=') . $channelId;
+};
+
 // 产品分类：始终用源语言（zh-CN）的树结构作为主干（id / parent_id 都从源行取），
 // view-lang 不是源时，再把 name 用对应翻译行覆盖（没翻译则保留源 name + 徽标提示缺译）。
 // 这样切到 en/ja 不会因为没有翻译就把整个分类树清空。
@@ -558,6 +579,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-xs text-gray-400"><?php echo __('admin_label_fixed'); ?></span>
                         <?php echo renderEyeToggle("toggleHomeShow('{$_viewLang}', " . ($_viewHomeShow === '1' ? 0 : 1) . ")", $_viewHomeShow === '1', ($_langLabels[$_viewLang] ?? $_viewLang) . '「首页」'); ?>
                         <a href="/admin/setting_home.php" class="text-primary hover:underline text-sm"><?php echo __('admin_edit'); ?></a>
+                        <?php // 首页同样支持排版编辑：区块拖拽、发布/回退都在这里，与单页一致 ?>
+                        <a href="/admin/page_edit_advance.php?home=1"
+                           class="inline-flex items-center gap-1 text-primary hover:underline text-sm"
+                           title="<?php echo e(__('page_mode_blocks_tip')); ?>">
+                            <i class="ti ti-layout-board text-base"></i><?php echo __('page_mode_blocks_edit'); ?>
+                        </a>
                         <?php if (bloxEditorEnabled()): ?>
                         <button type="button" data-home-editor-trigger class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm" title="<?php echo e(__('page_mode_blox')); ?>"><i class="ti ti-stack-2 text-base"></i><span>Blox</span></button>
                         <?php endif; ?>
@@ -586,7 +613,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
                                 <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
                                 <?php else: ?>
-                                <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
+                                <a href="<?php echo $__pageEditUrl((int) $ch['id']); ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
@@ -610,7 +637,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <?php if (($child['slug'] ?? '') === 'contact'): ?>
                                         <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
                                         <?php else: ?>
-                                        <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
+                                        <a href="<?php echo $__pageEditUrl((int) $child['id']); ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                         <?php endif; ?>
                                         <?php endif; ?>
                                         <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
@@ -710,7 +737,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
                                 <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
                                 <?php else: ?>
-                                <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
+                                <a href="<?php echo $__pageEditUrl((int) $ch['id']); ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
@@ -757,7 +784,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
                                 <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
                                 <?php else: ?>
-                                <a href="/admin/page_edit.php?id=<?php echo $ch['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
+                                <a href="<?php echo $__pageEditUrl((int) $ch['id']); ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <?php echo renderEyeToggle("toggleField({$ch['id']}, 'status', " . ($ch['status'] ? 0 : 1) . ")", (bool)$ch['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
@@ -777,7 +804,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <?php if (($child['slug'] ?? '') === 'contact'): ?>
                                     <a href="/admin/setting_contact.php" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_setting_contact'); ?></a>
                                     <?php else: ?>
-                                    <a href="/admin/page_edit.php?id=<?php echo $child['id']; ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
+                                    <a href="<?php echo $__pageEditUrl((int) $child['id']); ?>" class="text-gray-500 hover:text-primary text-sm"><?php echo __('admin_content_edit'); ?></a>
                                     <?php endif; ?>
                                     <?php endif; ?>
                                     <?php echo renderEyeToggle("toggleField({$child['id']}, 'status', " . ($child['status'] ? 0 : 1) . ")", (bool)$child['status'], $_langLabels[$_viewLang] ?? $_viewLang); ?>
@@ -1079,7 +1106,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php echo __('admin_setting_contact'); ?>
                 </a>
                 <?php else: ?>
-                <a href="/admin/page_edit.php?id=<?php echo $editChannel['id']; ?>"
+                <a href="<?php echo $__pageEditUrl((int) $editChannel['id']); ?>"
                    class="block w-full text-center bg-gray-700 hover:bg-gray-800 text-white py-2 rounded transition inline-flex items-center justify-center gap-1">
                     <i class="ti ti-pencil text-base"></i>
                     <?php echo __('admin_content_edit'); ?>

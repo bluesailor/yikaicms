@@ -293,6 +293,16 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                             <i class="ti ti-<?php echo $__isBlocks ? 'layout-board' : 'pencil'; ?> text-sm"></i>
                             <?php echo $__isBlocks ? __('page_mode_blocks_edit') : __('admin_content_edit'); ?>
                         </a>
+                        <?php // 联系页：卡片/表单/地图在「联系我们设置」里，这里额外给排版入口，
+                              // 用于在其下方追加区块（交通指引、团队介绍等）。 ?>
+                        <?php if (!$__isBlocks && ($item['slug'] ?? '') === 'contact'): ?>
+                        <a href="/admin/page_edit_advance.php?id=<?php echo $item['id']; ?>"
+                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
+                           title="<?php echo e(__('page_contact_blocks_notice')); ?>">
+                            <i class="ti ti-layout-board text-sm"></i>
+                            <?php echo __('page_mode_blocks_edit'); ?>
+                        </a>
+                        <?php endif; ?>
                         <?php if ($__isBlocks): ?>
                         <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
                               title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
