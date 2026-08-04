@@ -272,9 +272,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </span>
                             <?php endif; ?>
                             <div class="min-w-0">
-                                <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-800 hover:text-primary font-medium line-clamp-1">
-                                    <?php echo e($item['title']); ?>
-                                </a>
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <a href="/admin/article_edit.php?id=<?php echo $item['id']; ?>" class="text-gray-800 hover:text-primary font-medium line-clamp-1">
+                                        <?php echo e($item['title']); ?>
+                                    </a>
+                                    <?php // 草稿在前台不可访问，标题旁直接标明，避免点「查看」得到 404 ?>
+                                    <?php if (empty($item['status'])): ?>
+                                    <span class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700"
+                                          title="<?php echo e(__('admin_draft_not_public')); ?>"><?php echo __('admin_draft'); ?></span>
+                                    <?php endif; ?>
+                                </div>
                                 <?php // 行内操作（借鉴 WordPress）：桌面端悬停显现，移动端常驻；
                                       // 始终占位，避免悬停时行高跳动 ?>
                                 <div class="row-actions mt-1 flex items-center gap-2 text-sm text-gray-600 opacity-100 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100 transition-opacity">
@@ -284,7 +291,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <span class="text-gray-300">|</span>
                                     <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_move_to_trash'); ?></button>
                                     <span class="text-gray-300">|</span>
+                                    <?php if (empty($item['status'])): ?>
+                                    <?php // 草稿前台不可访问，给「预览」：带签名 token，仅签发者本人可看 ?>
+                                    <a href="<?php echo e(contentUrl($item)); ?><?php echo (str_contains(contentUrl($item), '?') ? '&' : '?'); ?>preview=<?php echo e(contentPreviewToken((int) $item['id'])); ?>"
+                                       target="_blank" rel="noopener" class="text-amber-600 hover:text-amber-700 hover:underline"
+                                       title="<?php echo e(__('admin_draft_not_public')); ?>"><?php echo __('admin_preview'); ?></a>
+                                    <?php else: ?>
                                     <a href="<?php echo e(contentUrl($item)); ?>" target="_blank" rel="noopener" class="hover:text-primary hover:underline"><?php echo __('admin_view'); ?></a>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

@@ -8,7 +8,7 @@
  *
  * 免费：文字/图片生成 favicon.ico 并直接应用为站点图标（写主机根目录，不提供下载）、
  *       LOGO PNG 下载、LOGO 一键设为站点 LOGO。
- * 专业版（license_has_module('icon-maker')）：全套图标包（iOS/Android/PWA）、
+ * 全套能力（自 2026-08-04 起免费）：全套图标包（iOS/Android/PWA）、
  *       一键应用到本站（写根目录 + 前台 head 注入）、LOGO SVG 导出。
  */
 
@@ -18,7 +18,8 @@ if (!defined('ROOT_PATH')) {
 
 require_once __DIR__ . '/lib.php';   // im_scaled / im_png / im_ico（纯 GD，无 CMS 依赖）
 
-$imHasPro = function_exists('license_has_module') && license_has_module('icon-maker');
+// 2026-08-04：图标工坊全部功能免费开放，不再按授权分层（保留变量以免大改模板分支）
+$imHasPro = true;
 
 // ============================================================
 // 服务端：请求解析与打包

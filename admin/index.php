@@ -238,7 +238,8 @@ $__recent = array_values(array_filter(
     </div>
     <div id="quickGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <?php foreach ($__quick as [$url, $icon, $boxClass, $iconColor, $langKey]): ?>
-        <a href="<?php echo e($url); ?>" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group">
+        <a href="<?php echo e($url); ?>" data-qk="<?php echo e($url); ?>" draggable="false"
+           class="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 group cursor-move">
             <div class="w-10 h-10 <?php echo $boxClass; ?> rounded-lg flex items-center justify-center transition">
                 <i class="ti <?php echo e($icon); ?> text-lg <?php echo $iconColor; ?>"></i>
             </div>
@@ -279,7 +280,9 @@ $__recent = array_values(array_filter(
             var a = document.createElement('a');
             a.href = url;
             a.setAttribute('data-qk', url);
-            a.className = 'bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing';
+            a.className = 'bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col items-center gap-2 cursor-move';
+            // <a> 的原生链接拖拽会抢走指针，Sortable 就拖不动了
+            a.setAttribute('draggable', 'false');
             var box = document.createElement('span');
             box.className = 'w-10 h-10 ' + c[0] + ' rounded-lg flex items-center justify-center';
             var svg = src.querySelector('svg');
@@ -297,17 +300,33 @@ $__recent = array_values(array_filter(
             a.appendChild(t);
             grid.appendChild(a);
         });
-        if (typeof Sortable !== 'undefined' && !grid._srt) {
-            grid._srt = new Sortable(grid, {
-                animation: 150,
-                onEnd: function () {
-                    ykFav.save(Array.prototype.map.call(grid.children, function (el) { return el.getAttribute('data-qk'); }));
-                }
-            });
-        }
+        bindSort(grid);
+    }
+
+    // 拖拽排序：默认卡片与收藏卡片都要能拖，所以独立于 render 的早退分支
+    function bindSort(grid) {
+        if (!grid || typeof Sortable === 'undefined' || grid._srt) return;
+        grid._srt = new Sortable(grid, {
+            animation: 150,
+            draggable: '[data-qk]',
+            // 触屏上先长按再拖，避免与页面滚动冲突
+            delay: 120,
+            delayOnTouchOnly: true,
+            // 拖动全程锁定十字箭头光标：掠过其他元素时不会跳回默认指针
+            onStart: function () { document.body.style.cursor = 'move'; },
+            onEnd: function () {
+                document.body.style.cursor = '';
+                if (!window.ykFav) return;
+                var order = Array.prototype.map.call(grid.querySelectorAll('[data-qk]'), function (el) {
+                    return el.getAttribute('data-qk');
+                });
+                ykFav.save(order);
+            }
+        });
     }
     window.addEventListener('ykfav:change', render);
     render();
+    bindSort(document.getElementById('quickGrid'));
 })();
 </script>
 

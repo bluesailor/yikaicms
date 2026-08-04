@@ -938,6 +938,39 @@ function addDownloadCount(int $id): int
 }
 
 /**
+ * 草稿预览 token：签入内容 ID、管理员 ID 与时间片，**仅签发者本人**可用。
+ *
+ * 有效期 2 小时（跨时间片时向前兼容 1 片，避免整点前后失效）。
+ * 未登录或换个管理员账号都验不过——草稿不会因为链接外泄而公开。
+ */
+function contentPreviewToken(int $contentId, ?int $adminId = null, int $slot = 0): string
+{
+    $adminId = $adminId ?? (int) ($_SESSION['admin_id'] ?? 0);
+    $bucket  = (int) floor(time() / 7200) + $slot;
+    $secret  = defined('ENCRYPT_KEY') ? ENCRYPT_KEY : 'yk_fallback';
+    return $adminId . '-' . substr(hash_hmac('sha256', $contentId . '|' . $adminId . '|' . $bucket, $secret), 0, 24);
+}
+
+/** 校验草稿预览 token（当前时间片或上一片） */
+function contentPreviewTokenValid(int $contentId, string $token): bool
+{
+    if ($token === '' || !str_contains($token, '-')) {
+        return false;
+    }
+    [$adminId] = explode('-', $token, 2);
+    $adminId = (int) $adminId;
+    if ($adminId <= 0 || $adminId !== (int) ($_SESSION['admin_id'] ?? 0)) {
+        return false;   // 仅本人可见：必须是同一个已登录管理员
+    }
+    foreach ([0, -1] as $slot) {
+        if (hash_equals(contentPreviewToken($contentId, $adminId, $slot), $token)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * 获取内容URL（SEO友好）
  */
 function contentUrl(array $content): string

@@ -20,6 +20,17 @@ class AiService
 
     // 供应商配置表
     private const PROVIDERS = [
+        // 官方中转：不需要用户自备 Key，凭本站授权码调用，额度由授权等级决定。
+        // 请求发往 update.yikaicms.com，真实上游 Key 只存在于服务端。
+        'yikai' => [
+            'name'     => 'YikaiCMS 官方接口（需授权）',
+            'base_url' => 'https://update.yikaicms.com/api/ai',
+            // 可用模型由服务端下发（「同步最新模型」拉取），此处不写死型号，
+            // 免得客户端与服务端上游调整脱节、用户配到已下线的模型。
+            'models'   => [],
+            'default'  => '',
+            'format'   => 'openai',
+        ],
         'deepseek' => [
             'name'     => 'DeepSeek',
             'base_url' => 'https://api.deepseek.com/v1',
@@ -61,6 +72,12 @@ class AiService
     {
         $this->provider = $provider ?: config('ai_provider', 'deepseek');
         $this->apiKey   = $apiKey ?: self::decryptKey(config('ai_api_key', ''));
+
+        // 官方中转用授权码作凭据，用户无需自备 Key；未填授权码时留空，
+        // 调用会被服务端以「需要授权」拒绝，前台给出可读提示。
+        if ($this->provider === 'yikai' && $this->apiKey === '') {
+            $this->apiKey = function_exists('license_key') ? license_key() : '';
+        }
         $this->model    = $model ?: config('ai_model', '');
         $this->baseUrl  = config('ai_base_url', '');
 
@@ -104,6 +121,13 @@ class AiService
                 }
             }
         }
+
+        // 官方中转尚未开放（服务端接口与上游未定），默认隐藏，不进供应商下拉。
+        // 开启方式：设置 ai_official_enabled = 1（届时服务端下发的模型清单也会一并生效）。
+        if ((string) config('ai_official_enabled', '0') !== '1') {
+            unset($providers['yikai']);
+        }
+
         return $providers;
     }
 

@@ -6,7 +6,7 @@
  * apple-touch-icon / android-chrome / manifest 链接（favicon.ico 主题默认已输出）。
  *
  * 生成工具本体在 admin.php（/admin/plugin_page.php?plugin=icon-maker）。
- * 专业版能力凭 license_has_module('icon-maker') 解锁。
+ * 全套能力自 2026-08-04 起免费开放，无需授权。
  */
 
 if (!defined('ROOT_PATH')) {

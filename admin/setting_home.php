@@ -557,23 +557,27 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
             <!-- 卡片头部 -->
             <div class="flex items-center gap-3 px-4 py-3">
                 <!-- 拖拽手柄 -->
-                <div class="block-drag-handle cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0" title="拖拽排序">
+                <div class="block-drag-handle cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0" title="拖拽排序" @click.stop>
                     <i class="ti ti-grip-vertical text-lg"></i>
                 </div>
-                <!-- 图标 -->
-                <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <?php echo $meta['icon']; ?>
-                </svg>
-                <!-- 标题 -->
-                <span class="font-medium text-gray-800 flex-1"><?php echo $meta['title']; ?></span>
+                <!-- 图标 + 标题：整块可点，与右侧箭头等效（拖拽手柄与开关各自 stop） -->
+                <button type="button" class="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer group"
+                        @click="expanded = !expanded"
+                        :aria-expanded="expanded ? 'true' : 'false'">
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-gray-600 flex-shrink-0 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <?php echo $meta['icon']; ?>
+                    </svg>
+                    <span class="font-medium text-gray-800 group-hover:text-primary truncate transition"><?php echo $meta['title']; ?></span>
+                </button>
                 <!-- 开关 -->
                 <label class="inline-flex items-center cursor-pointer flex-shrink-0" @click.stop>
                     <input type="checkbox" class="block-toggle sr-only peer" <?php echo $enabled ? 'checked' : ''; ?>>
                     <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                 </label>
                 <!-- 展开/折叠 -->
-                <button type="button" class="text-gray-400 hover:text-gray-600 flex-shrink-0 p-1 transition" @click="expanded = !expanded">
-                    <i class="ti ti-chevron-down text-lg transition-transform"></i>
+                <button type="button" class="text-gray-400 hover:text-gray-600 flex-shrink-0 p-1 transition" @click="expanded = !expanded"
+                        :aria-expanded="expanded ? 'true' : 'false'" title="<?php echo e(__('admin_expand_collapse')); ?>">
+                    <i class="ti ti-chevron-down text-lg transition-transform" :class="expanded && 'rotate-180'"></i>
                 </button>
             </div>
 

@@ -123,12 +123,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php endforeach; ?>
                     </div>
                 </div>
-                <div>
+                <div id="apiKeyField">
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_api_key'); ?></label>
                     <input type="text" name="ai_api_key" id="aiApiKey" value="<?php echo e($maskedApiKey); ?>"
                            class="w-full border rounded-lg px-4 py-2.5 text-sm font-mono tracking-wide" placeholder="sk-..."
                            onfocus="if(this.value.indexOf('***')!==-1){this.value='';this.style.color=''}">
                     <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
+                </div>
+                <?php // 官方接口用授权码调用，无需填 Key；这里显示授权状态代替输入框 ?>
+                <div id="yikaiKeyInfo" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_official_credential'); ?></label>
+                    <?php
+                    $_licOk  = function_exists('license_valid') && license_valid();
+                    $_licKey = function_exists('license_key') ? license_key() : '';
+                    ?>
+                    <div class="border rounded-lg px-4 py-2.5 text-sm bg-gray-50 flex items-center gap-2">
+                        <i class="ti <?php echo $_licOk ? 'ti-circle-check text-green-600' : 'ti-alert-circle text-amber-600'; ?>"></i>
+                        <span class="<?php echo $_licOk ? 'text-green-700' : 'text-amber-700'; ?>">
+                            <?php echo $_licKey !== '' ? e(substr($_licKey, 0, 8)) . '••••' : __('ai_official_no_license'); ?>
+                        </span>
+                        <a href="/admin/license.php" class="ml-auto text-primary hover:underline text-xs"><?php echo __('admin_license'); ?> &raquo;</a>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo __('ai_official_hint'); ?></p>
                 </div>
                 <div>
                     <div class="flex items-center justify-between mb-2">
@@ -275,6 +291,21 @@ function syncModels(btn) {
         }
     }).catch(function(){ showMessage('同步失败', 'error'); btn.disabled = false; btn.innerHTML = old; });
 }
+
+// 官方接口不需要 API Key：切到 yikai 时隐藏 Key 输入、显示授权状态
+(function () {
+    var sel = document.querySelector('[name="ai_provider"]');
+    if (!sel) return;
+    function sync() {
+        var isOfficial = sel.value === 'yikai';
+        var kf = document.getElementById('apiKeyField');
+        var yi = document.getElementById('yikaiKeyInfo');
+        if (kf) kf.classList.toggle('hidden', isOfficial);
+        if (yi) yi.classList.toggle('hidden', !isOfficial);
+    }
+    sel.addEventListener('change', sync);
+    sync();
+})();
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

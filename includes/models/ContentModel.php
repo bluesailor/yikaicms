@@ -155,6 +155,23 @@ class ContentModel extends Model
     {
         $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
 
+        // 草稿预览：带 preview 参数时先按 slug 直取（不限 status），
+        // 真正的放行仍由 ContentDetailController 校验签名与管理员身份——
+        // 这里只是把 id 解析出来，否则草稿在 slug 这一步就 404，走不到校验。
+        if (trim((string) ($_GET['preview'] ?? '')) !== '') {
+            $draft = db()->fetchOne(
+                "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
+                 FROM {$this->tableName()} c
+                 LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
+                 WHERE c.slug = ? AND c.deleted_at IS NULL
+                 ORDER BY (c.lang = ?) DESC, c.id ASC LIMIT 1",
+                [$slug, $lang]
+            );
+            if ($draft) {
+                return $draft;
+            }
+        }
+
         // 直接尝试 slug + 当前语言（slug 可能已带语言后缀）
         $direct = db()->fetchOne(
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
