@@ -26,12 +26,31 @@ final class ContentDetailController extends DetailController
         }
 
         $content = contentModel()->getPublished($id);
+
+        // 草稿预览：带合法签名且是签发者本人时放行，否则维持 404。
+        // token 绑定管理员 ID + 2 小时时间片，链接外泄给他人也打不开。
+        $isPreview = false;
+        if (!$content) {
+            $token = trim((string) ($_GET['preview'] ?? ''));
+            if ($token !== ''
+                && function_exists('contentPreviewTokenValid')
+                && contentPreviewTokenValid($id, $token)) {
+                $content = contentModel()->find($id);
+                if ($content && empty($content['deleted_at'])) {
+                    $isPreview = true;
+                } else {
+                    $content = null;
+                }
+            }
+        }
         if (!$content) {
             return null;
         }
 
-        // Side effect: bump the view counter once per render.
-        contentModel()->incrementViews($id);
+        // Side effect: bump the view counter once per render.（预览不计入浏览量）
+        if (!$isPreview) {
+            contentModel()->incrementViews($id);
+        }
 
         $channelId = (int) $content['channel_id'];
         $channel   = getChannel($channelId);

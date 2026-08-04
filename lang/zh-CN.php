@@ -220,6 +220,7 @@ return [
 
     // 后台通用
     'admin_add' => '添加',
+    'admin_expand_collapse' => '展开 / 收起',
     'admin_edit' => '编辑',
     'admin_delete' => '删除',
     'admin_batch_delete' => '批量删除',
@@ -712,6 +713,7 @@ return [
     'admin_page_static' => '单页管理',
     'admin_template' => '模板',
     'admin_preview' => '预览',
+    'admin_draft_not_public' => '草稿状态，前台不可访问；预览链接仅本人可见',
     'admin_published' => '已发布',
     'admin_draft' => '草稿',
     'admin_scheduled' => '定时发布',
@@ -1304,6 +1306,9 @@ return [
     'ai_no_key' => '请先配置 API Key',
     'ai_api_key_hint' => '请填写 API Key',
     'ai_config_title' => 'AI 服务配置',
+    'ai_official_credential' => '调用凭据',
+    'ai_official_no_license' => '未填写授权码',
+    'ai_official_hint' => '官方接口使用本站授权码调用，无需自备 API Key；额度按授权等级分配，用尽后可切换为自有 Key。',
     'ai_api_key' => 'API Key',
     'ai_provider_label' => 'AI 供应商',
     'ai_test_connection' => '测试连接',

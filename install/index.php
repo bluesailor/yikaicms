@@ -586,6 +586,11 @@ $envAllPass = checkAllPass($envChecks);
                     'done'       => $L['quick_done'],
                     'account'    => $L['quick_account'],
                     'password'   => $L['quick_password'],
+                    'login_url'  => $L['quick_login_url'],
+                    'copy'       => $L['quick_copy'],
+                    'copied'     => $L['quick_copied'],
+                    'copy_fail'  => $L['quick_copy_fail'],
+                    'copy_all'   => $L['quick_copy_all'],
                     'warn'       => $L['quick_warn'],
                     'goto'       => $L['goto_admin'],
                     'fail'       => $L['install_fail'] ?? 'Install failed',
@@ -615,9 +620,20 @@ $envAllPass = checkAllPass($envChecks);
                             box.innerHTML =
                                 '<div class="text-green-700 font-bold mb-2">✓ ' + QL.done + '</div>' +
                                 '<div class="text-sm text-gray-700 mb-1">' + QL.account + '：<b>admin</b></div>' +
-                                '<div class="text-sm text-gray-700 mb-3">' + QL.password + '：<b style="color:#dc2626">' + pass + '</b></div>' +
+                                '<div class="text-sm text-gray-700 mb-1">' + QL.password + '：</div>' +
+                                // 密码只显示这一次：等宽字体避免 0/O、l/1 混淆；可整段选中；提供一键复制
+                                '<div class="flex items-stretch gap-2 mb-3">' +
+                                  '<input id="quickPass" type="text" readonly value="' + pass + '" onclick="this.select()"' +
+                                  ' class="flex-1 min-w-0 border border-gray-300 rounded px-3 py-2 text-sm bg-gray-50 text-red-600 font-bold select-all"' +
+                                  ' style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em">' +
+                                  '<button type="button" id="quickCopy" onclick="copyQuickPass()"' +
+                                  ' class="shrink-0 bg-gray-800 hover:bg-black text-white px-4 rounded text-sm font-medium">' + QL.copy + '</button>' +
+                                '</div>' +
                                 '<div class="text-xs text-amber-600 mb-3">' + QL.warn + '</div>' +
                                 '<a href="/admin/" class="inline-block bg-primary hover:bg-secondary text-white px-5 py-2 rounded text-sm font-medium">' + QL.goto + '</a>';
+                            // 直接选中，Ctrl+C 就能复制
+                            var pf = document.getElementById('quickPass');
+                            if (pf) { pf.focus(); pf.select(); }
                             box.classList.remove('hidden');
                             btn.style.display = 'none';
                         } else {
@@ -627,6 +643,35 @@ $envAllPass = checkAllPass($envChecks);
                     } catch (e) {
                         alert(QL.fail + ': ' + e.message);
                         btn.disabled = false; btn.textContent = QL.button;
+                    }
+                }
+
+                // 安装页常跑在 http 或局域网 IP 下，navigator.clipboard 不可用，故保留 execCommand 降级
+                function copyQuickPass() {
+                    var el = document.getElementById('quickPass');
+                    var btn = document.getElementById('quickCopy');
+                    if (!el) return;
+                    el.select();
+                    el.setSelectionRange(0, 99999);
+                    var ok = false;
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(el.value);
+                            ok = true;
+                        } else {
+                            ok = document.execCommand('copy');
+                        }
+                    } catch (e) { ok = false; }
+                    if (btn) {
+                        var old = btn.textContent;
+                        btn.textContent = ok ? QL.copied : QL.copy_fail;
+                        btn.classList.toggle('bg-green-600', ok);
+                        btn.classList.toggle('bg-gray-800', !ok);
+                        setTimeout(function () {
+                            btn.textContent = old;
+                            btn.classList.remove('bg-green-600');
+                            btn.classList.add('bg-gray-800');
+                        }, 1800);
                     }
                 }
                 </script>
