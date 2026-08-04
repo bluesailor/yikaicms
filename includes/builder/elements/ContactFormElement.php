@@ -1,0 +1,19 @@
+<?php
+/** 在线留言表单元素：渲染表单设计器里的表单模板。 */
+
+declare(strict_types=1);
+
+final class ContactFormElement extends AbstractElement
+{
+    public function type(): string { return 'contact_form'; }
+    public function label(): string { return '在线留言表单'; }
+    public function icon(): string { return 'mail-forward'; }
+
+    public function controls(): array { return []; }
+
+    public function render(array $data, string $children = ''): string
+    {
+        require_once ROOT_PATH . '/includes/contact_parts.php';
+        return renderContactFormHtml();
+    }
+}

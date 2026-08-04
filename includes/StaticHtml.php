@@ -324,12 +324,13 @@ final class StaticHtml
 // 失效钩子：内容/产品/设置变更后清空静态文件，回落到实时 PHP
 // ============================================================
 add_action('data_changed', function (string $table = '', $id = null): void {
-    if (StaticHtml::$mute || !StaticHtml::enabled()) return;
+    // 即使静态生成已关闭，也要清掉历史遗留文件；Web 服务器仍可能直出这些文件。
+    if (StaticHtml::$mute) return;
     static $skip = ['admin_logs', 'ai_logs', 'login_throttle', 'form_throttle', 'visits'];
     if (in_array($table, $skip, true)) return;
     StaticHtml::clearAll();
 });
 add_action('setting_saved', function (): void {
-    if (StaticHtml::$mute || !StaticHtml::enabled()) return;
+    if (StaticHtml::$mute) return;
     StaticHtml::clearAll();
 });

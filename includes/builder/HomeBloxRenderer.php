@@ -21,6 +21,12 @@ final class HomeBloxRenderer
                 continue;
             }
 
+            // 隐藏区块：与普通排版页同一约定（settings.hidden，可选键，缺省即显示）。
+            // 首页走的是本渲染器，不加这段则编辑器里的隐藏按钮在首页失效。
+            if (!empty($section['settings']['hidden']) && !BlockRenderer::$showHidden) {
+                continue;
+            }
+
             $renderSection = $section;
             $renderColumns = [];
             foreach (($section['columns'] ?? []) as $columnIndex => $column) {

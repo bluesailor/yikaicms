@@ -90,6 +90,10 @@ final class BuilderRegistry
             new NavElement(),
             new HomeBannerItemElement(),
             new HomeBlockElement(),
+            // 联系页组成部分（读「联系我们设置」/表单设计器的数据，可拖到任意位置）
+            new ContactCardsElement(),
+            new ContactFormElement(),
+            new ContactMapElement(),
         ] as $el) {
             self::register($el);
         }

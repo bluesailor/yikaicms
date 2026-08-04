@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/includes/HtmlCache.php';
 
 checkLogin();
 requirePermission('edit_page');
@@ -85,10 +86,26 @@ if ($isHomeLayout) {
         exit;
     }
 
-    if (($page['slug'] ?? '') === 'contact') {
-        header('Location: /admin/setting_contact.php');
-        exit;
+    // 父栏目若会自动跳到子栏目，这里编的内容前台根本看不到——必须在编辑器里说明，
+    // 否则用户改半天没效果还以为是 bug。redirect_type=url 同理。
+    $redirectNotice = '';
+    $redirectTarget = '';
+    $_rt = (string) ($page['redirect_type'] ?? 'auto');
+    if ($_rt === 'url' && trim((string) ($page['redirect_url'] ?? '')) !== '') {
+        $redirectNotice = 'url';
+        $redirectTarget = (string) $page['redirect_url'];
+    } elseif ($_rt === 'auto') {
+        $_kids = channelModel()->getByParent((int) $page['id'], true);
+        if (!empty($_kids[0])) {
+            $redirectNotice = 'auto';
+            $redirectTarget = (string) ($_kids[0]['name'] ?? '');
+        }
     }
+
+    // 联系页允许进排版编辑器：这里编的是「附加内容区块」（渲染在卡片/表单/地图下方），
+    // 卡片、表单、地图仍在「联系我们设置」里维护。进来时给出说明，避免误以为
+    // 在这儿能改联系方式。（原先无条件跳转到 setting_contact.php，等于无法排版。）
+    $isContactPage = ($page['slug'] ?? '') === 'contact';
 
     if (($page['slug'] ?? '') === 'history') {
         header('Location: /admin/timeline.php');
@@ -116,10 +133,26 @@ if ($isHomeLayout) {
     if ($contentType === 'html' && $htmlContent && !$blocksData) {
         $autoConvert = true;
     }
+
+    // 联系页尚未排版：画布按当前前台版式预置（卡片 + 表单/地图两列），打开即所见即所编，
+    // 不必先点按钮。此处只影响编辑器画布——未点保存前，库里仍是原样、前台仍走固定版式。
+    // 同时关掉 HTML 自动转换：联系页的 content 字段前台从不渲染，转出来的是一个看不见的死区块。
+    $contactSeeded = false;
+    if (!empty($isContactPage)) {
+        require_once ROOT_PATH . '/includes/contact_parts.php';
+        if (!$blocksData) {
+            $blocksData   = json_encode(contactSeedSections(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $autoConvert  = false;
+            $contactSeeded = true;
+        }
+    }
 }if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'preview') {
     // blox=1：Blox 画布请求。开编辑上下文让渲染器输出 data-yk-sec 定位标记，
     // 并注入点选/高亮/空区块占位脚本；排版编辑器的纯预览不带此参数，输出不变。
     $bloxCanvas = (($_POST['blox'] ?? '') === '1');
+    // 编辑器预览/画布里隐藏的区块照常显示（灰显标注），否则一隐藏就从画布消失、没法再点回来
+    require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+    BlockRenderer::$showHidden = true;
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
@@ -930,6 +963,45 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php if (!$isHomeLayout): ?>
 <?php $childEditBase = '/admin/page_edit_advance.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>
+
+<?php if (!empty($isContactPage)): ?>
+<div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 text-sm text-blue-900 flex items-start gap-3">
+    <i class="ti ti-info-circle text-base mt-0.5 shrink-0"></i>
+    <div class="space-y-1 flex-1">
+        <p class="font-medium"><?php echo __('page_contact_blocks_notice'); ?></p>
+        <p class="text-blue-700"><?php echo __('page_contact_blocks_hint'); ?>
+            <a href="/admin/setting_contact.php" class="underline hover:no-underline font-medium"><?php echo __('page_contact_settings_link'); ?></a>
+        </p>
+        <?php if (!empty($contactSeeded)): ?>
+        <p class="text-blue-700"><?php echo __('page_contact_seeded_note'); ?></p>
+        <?php endif; ?>
+        <p class="pt-1">
+            <button type="button" onclick="seedContactLayout()"
+                    class="inline-flex items-center gap-1 bg-white border border-blue-300 text-blue-800 hover:bg-blue-100 rounded px-3 py-1.5 text-sm font-medium transition">
+                <i class="ti ti-wand text-base"></i><?php echo __('page_contact_seed_reset'); ?>
+            </button>
+            <span class="text-blue-700 ml-2"><?php echo __('page_contact_seed_reset_hint'); ?></span>
+        </p>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php // 本页设置了跳转时，明确告知这里编辑的内容前台不会显示 ?>
+<?php if (!empty($redirectNotice)): ?>
+<div class="mb-6 bg-amber-50 border border-amber-200 rounded-lg px-5 py-4 text-sm text-amber-900 flex items-start gap-3">
+    <i class="ti ti-arrow-right-circle text-base mt-0.5 shrink-0"></i>
+    <div class="space-y-1 flex-1">
+        <p class="font-medium">
+            <?php echo $redirectNotice === 'auto'
+                ? sprintf(e(__('page_redirect_notice_auto')), '<strong>' . e($redirectTarget) . '</strong>')
+                : sprintf(e(__('page_redirect_notice_url')), '<strong>' . e($redirectTarget) . '</strong>'); ?>
+        </p>
+        <p class="text-amber-700"><?php echo __('page_redirect_notice_hint'); ?>
+            <a href="/admin/channel.php?edit=<?php echo (int) $id; ?>&tab=main" class="underline hover:no-underline font-medium"><?php echo __('admin_channel_edit'); ?></a>
+        </p>
+    </div>
+</div>
+<?php endif; ?>
 <?php endif; ?>
 
 <form id="editForm" class="space-y-6" x-data="pageBuilder()" x-init="init()"
@@ -1024,7 +1096,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 区块列表 -->
             <div x-ref="sectionsContainer">
                 <template x-for="(section, si) in sections" :key="section.id">
-                    <div class="border border-gray-200 rounded-lg mb-4 group/section hover:border-blue-300 transition" :data-si="si">
+                    <div class="border rounded-lg mb-4 group/section hover:border-blue-300 transition" :data-si="si"
+                         :class="section.settings && section.settings.hidden ? 'border-amber-200 bg-amber-50/40' : 'border-gray-200'">
                         <!-- 区块工具栏 -->
                         <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-t-lg" :class="isSectionOpen(section.id) ? 'border-b' : ''">
                             <div class="flex items-center gap-2">
@@ -1045,6 +1118,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </template>
                                 <template x-if="section.settings.bg_color">
                                     <span class="inline-block w-3 h-3 rounded-full border" :style="'background:' + section.settings.bg_color"></span>
+                                </template>
+                                <template x-if="section.settings && section.settings.hidden">
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 inline-flex items-center gap-1"
+                                          title="<?php echo e(__('page_section_hidden_tip')); ?>">
+                                        <i class="ti ti-eye-off text-xs"></i><?php echo __('page_section_hidden'); ?>
+                                    </span>
                                 </template>
                             </div>
                             <div class="flex items-center gap-1">
@@ -1074,6 +1153,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <i class="ti ti-settings text-base"></i>
                                     </button>
                                 </template>
+                                <button type="button" @click="toggleSectionHidden(si)"
+                                        class="p-1 cursor-pointer"
+                                        :class="section.settings && section.settings.hidden ? 'text-amber-500 hover:text-amber-600' : 'text-gray-400 hover:text-gray-600'"
+                                        :title="section.settings && section.settings.hidden ? '<?php echo e(__('page_section_show')); ?>' : '<?php echo e(__('page_section_hide')); ?>'">
+                                    <i class="ti text-base" :class="section.settings && section.settings.hidden ? 'ti-eye-off' : 'ti-eye'"></i>
+                                </button>
                                 <button type="button" @click="removeSection(si)"
                                         class="p-1 text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo __('admin_delete'); ?>">
                                     <i class="ti ti-trash text-base"></i>
@@ -1138,13 +1223,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                                                 <!-- 富文本 -->
                                                 <template x-if="el.type === 'text'">
-                                                    <div>
+                                                    <div x-data="{ full: false }">
                                                         <div class="flex items-center justify-between mb-1">
                                                             <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">富文本</span>
-                                                            <button type="button" @click="editText(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer">编辑内容</button>
+                                                            <div class="flex items-center gap-2">
+                                                                <?php // 长文默认限高，但要让人看得出「下面还有」，可一键展开 ?>
+                                                                <button type="button" @click="full = !full"
+                                                                        class="text-xs text-gray-400 hover:text-primary cursor-pointer inline-flex items-center gap-0.5">
+                                                                    <i class="ti text-sm" :class="full ? 'ti-chevrons-up' : 'ti-chevrons-down'"></i>
+                                                                    <span x-text="full ? '<?php echo e(__('admin_collapse')); ?>' : '<?php echo e(__('admin_expand')); ?>'"></span>
+                                                                </button>
+                                                                <button type="button" @click="editText(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer">编辑内容</button>
+                                                            </div>
                                                         </div>
-                                                        <div @dblclick="editText(si,ci,ei)" class="prose prose-sm max-w-none max-h-32 overflow-hidden text-gray-600 border-t pt-2 cursor-pointer"
-                                                             x-html="el.data.html || '<span class=\'text-gray-400 italic\'>双击或点击编辑添加内容</span>'"></div>
+                                                        <div class="relative">
+                                                            <div @dblclick="editText(si,ci,ei)"
+                                                                 class="prose prose-sm max-w-none overflow-hidden text-gray-600 border-t pt-2 cursor-pointer transition-all"
+                                                                 :class="full ? '' : 'max-h-32'"
+                                                                 x-html="el.data.html || '<span class=\'text-gray-400 italic\'>双击或点击编辑添加内容</span>'"></div>
+                                                            <!-- 未展开时底部渐隐，提示内容被截断 -->
+                                                            <div x-show="!full" class="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent"></div>
+                                                        </div>
                                                     </div>
                                                 </template>
 
@@ -1376,6 +1475,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                             <span class="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block" x-text="elementLabel(el.type)"></span>
                                                             <span x-show="isHomeBlock(el)" class="text-[11px] text-blue-600" x-text="homeBlockSourceLabel(el)"></span>
                                                         </div>
+
+                                                        <template x-if="contactElementManage(el.type)">
+                                                            <div class="flex items-center justify-between gap-3 border border-emerald-200 bg-emerald-50/70 px-3 py-2">
+                                                                <p class="text-[11px] leading-relaxed text-emerald-800"><?php echo e(__('page_contact_dynamic_source')); ?></p>
+                                                                <a :href="contactElementManage(el.type).url"
+                                                                   class="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline">
+                                                                    <i class="ti ti-settings"></i>
+                                                                    <span x-text="contactElementManage(el.type).label"></span>
+                                                                </a>
+                                                            </div>
+                                                        </template>
 
                                                         <template x-if="isHomeBannerBlock(el)">
                                                             <div class="border border-blue-200 bg-blue-50/60 px-3 py-3">
@@ -2348,14 +2458,21 @@ document.getElementById('settingBgOpacity').addEventListener('input', function()
 var _modalEditor = null;
 var _editingPath = null;
 var _textEditorMode = 'visual';
-function setTextEditorMode(mode) {
+function setTextEditorMode(mode, presetHtml) {
     if (mode !== 'visual' && mode !== 'source') return;
     var visualPane = document.getElementById('textEditorVisualPane');
     var sourcePane = document.getElementById('textEditorSourcePane');
     var source = document.getElementById('textEditorSource');
     var visualBtn = document.getElementById('textEditorVisualBtn');
     var sourceBtn = document.getElementById('textEditorSourceBtn');
-    if (mode === 'source' && _modalEditor) source.value = _modalEditor.getHtml();
+    if (mode === 'source') {
+        // TinyMCE 异步初始化：实例在渲染完成前就已注册，此时 getContent() 返回空串。
+        // 首次打开弹窗正好撞上这个窗口 → 源码框空白，一保存就把区块内容清掉。
+        // 故取空时回落到调用方传入的原始 HTML（元素数据本身），以数据为准。
+        var _h = _modalEditor ? _modalEditor.getHtml() : '';
+        if (_h === '' && typeof presetHtml === 'string') _h = presetHtml;
+        source.value = _h;
+    }
     if (mode === 'visual' && _textEditorMode === 'source' && _modalEditor) {
         _modalEditor.setHtml(source.value || '<p><br></p>');
     }
@@ -2372,6 +2489,18 @@ function setTextEditorMode(mode) {
     sourceBtn.classList.toggle('text-gray-500', mode !== 'source');
     if (mode === 'source') source.focus();
 }
+// 联系页「从当前版式开始」：把写死的版式还原成区块，客户在此基础上自由增删、
+// 调顺序、加别的元素。已有区块时先确认，避免误覆盖。
+function seedContactLayout() {
+    var d = Alpine.$data(document.getElementById('editForm'));
+    if (d.sections && d.sections.length > 0
+        && !confirm(<?php echo json_encode(__('page_contact_seed_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
+    d.sections = CONTACT_SEED_SECTIONS.map(function(section) {
+        return d.freshSection(section);
+    });
+    showMessage(<?php echo json_encode(__('page_contact_seed_done'), JSON_UNESCAPED_UNICODE); ?>, 'success');
+}
+
 function closeTextEditor() {
     var m = document.getElementById('textEditorModal');
     m.classList.add('hidden'); m.classList.remove('flex');
@@ -2379,10 +2508,17 @@ function closeTextEditor() {
 function saveTextEditor() {
     if (_modalEditor && _editingPath) {
         var data = Alpine.$data(document.getElementById('editForm'));
+        var el = data.sections[_editingPath.si].columns[_editingPath.ci].elements[_editingPath.ei];
         var html = _textEditorMode === 'source'
             ? document.getElementById('textEditorSource').value
             : _modalEditor.getHtml();
-        data.sections[_editingPath.si].columns[_editingPath.ci].elements[_editingPath.ei].data.html = html;
+        // 双保险：编辑器/源码框异常返回空，而元素原本有内容时不写入，
+        // 宁可这次编辑不生效，也不能静默清空已有内容（要清空请用删除元素）。
+        if (html === '' && (el.data.html || '') !== '') {
+            showMessage(<?php echo json_encode(__('page_text_editor_empty_guard'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            return;
+        }
+        el.data.html = html;
     }
     closeTextEditor();
 }
@@ -2420,6 +2556,12 @@ var BUILDER_PRESETS = ' . json_encode(builderPresets(), JSON_UNESCAPED_UNICODE |
 var BUILDER_ELEMENTS = ' . json_encode(BuilderRegistry::meta(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ';
 // 已有手写设置 UI 的元素（保留其精细编辑器）；其余（新/插件元素）走通用 schema 表单
 var BUILDER_CUSTOM_UI = ["heading","text","image","button","icon","divider","code","spacer","list-dynamic","banner","nav"];
+var CONTACT_SEED_SECTIONS = ' . json_encode(!empty($isContactPage) ? contactSeedSections() : [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
+var CONTACT_ELEMENT_MANAGE = {
+    contact_cards: { url: "/admin/setting_contact.php", label: ' . json_encode(__('page_contact_manage_cards'), JSON_UNESCAPED_UNICODE) . ' },
+    contact_form: { url: "/admin/form_design.php", label: ' . json_encode(__('page_contact_manage_form'), JSON_UNESCAPED_UNICODE) . ' },
+    contact_map: { url: "/admin/setting_contact.php#map", label: ' . json_encode(__('page_contact_manage_map'), JSON_UNESCAPED_UNICODE) . ' }
+};
 var HOME_LAYOUT_MODE = ' . ($isHomeLayout ? 'true' : 'false') . ';
 var HOME_PRODUCT_OPTIONS = ' . json_encode($homeProductOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
 var HOME_ADVANTAGE_DEFAULTS = ' . json_encode([
@@ -2517,6 +2659,7 @@ function pageBuilder() {
         hasCustomUI(type) { return BUILDER_CUSTOM_UI.indexOf(type) !== -1; },
         elementControls(type) { return (BUILDER_ELEMENTS[type] || {}).controls || []; },
         elementLabel(type) { return (BUILDER_ELEMENTS[type] || {}).label || type; },
+        contactElementManage(type) { return CONTACT_ELEMENT_MANAGE[type] || null; },
         controlRequirementMet(el, ctrl) {
             var rule = ctrl.required;
             if (!Array.isArray(rule) || rule.length < 3) return true;
@@ -2743,10 +2886,10 @@ function pageBuilder() {
                 id: self.uid("s"),
                 settings: s.settings || {},
                 columns: (s.columns || []).map(function(c) {
-                    return {
-                        id: self.uid("c"),
-                        elements: (c.elements || []).map(function(e) { return self.freshElement(e); })
-                    };
+                    var column = JSON.parse(JSON.stringify(c || {}));
+                    column.id = self.uid("c");
+                    column.elements = (c.elements || []).map(function(e) { return self.freshElement(e); });
+                    return column;
                 })
             };
         },
@@ -2872,6 +3015,18 @@ function pageBuilder() {
             this.$nextTick(function() { self.initSortable(); });
         },
 
+        // 隐藏/显示区块：前台不输出，编辑器里灰显保留，随时点回来。
+        // 比「删掉再重建」友好得多——季节性内容、临时下架的活动区块都用得上。
+        toggleSectionHidden(si) {
+            var sec = this.sections[si];
+            if (!sec.settings) sec.settings = {};
+            if (sec.settings.hidden) {
+                delete sec.settings.hidden;   // 显示态不留键，保持数据干净、与老数据一致
+            } else {
+                sec.settings.hidden = true;
+            }
+        },
+
         removeSection(si) {
             if (!confirm("确定删除此区块？")) return;
             this.sections.splice(si, 1);
@@ -2942,7 +3097,9 @@ function pageBuilder() {
 
         editText(si, ci, ei) {
             _editingPath = { si: si, ci: ci, ei: ei };
-            _textEditorMode = "visual";
+            // 默认进源码模式：排版编辑器里的富文本多是既有 HTML，
+            // 直接看源码比先渲染再猜结构更直观，也避免可视化编辑器改写标签。
+            _textEditorMode = "source";
             var el = this.sections[si].columns[ci].elements[ei];
             var m = document.getElementById("textEditorModal");
             m.classList.remove("hidden"); m.classList.add("flex");
@@ -2956,7 +3113,7 @@ function pageBuilder() {
             } else {
                 _modalEditor.setHtml(el.data.html || "<p><br></p>");
             }
-            setTextEditorMode("visual");
+            setTextEditorMode("source", el.data.html || "");
         },
 
         pickImage(si, ci, ei) {

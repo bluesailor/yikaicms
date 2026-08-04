@@ -130,6 +130,8 @@ return [
     'contact_qr_title' => '微信联系',
     'contact_wechat_scan' => '扫码添加',
     'contact_map_placeholder' => '暂未配置地图或二维码',
+    'contact_visit_title' => '到访信息',
+    'contact_visit_hint' => '地图尚未配置，您仍可按以下信息与我们联系或到访。',
     'contact_phone' => '联系电话',
     'contact_email' => '电子邮箱',
     'contact_address' => '公司地址',
@@ -155,6 +157,7 @@ return [
 
     // 面包屑
     'breadcrumb_home' => '首页',
+    'breadcrumb_nav' => '面包屑导航',
 
     // ============ 后台 ============
 
@@ -221,6 +224,8 @@ return [
     // 后台通用
     'admin_add' => '添加',
     'admin_expand_collapse' => '展开 / 收起',
+    'admin_expand' => '展开',
+    'admin_collapse' => '收起',
     'admin_edit' => '编辑',
     'admin_delete' => '删除',
     'admin_batch_delete' => '批量删除',
@@ -770,6 +775,28 @@ return [
     'admin_redirect_auto' => '自动跳转到第一个子栏目',
     'admin_redirect_auto_target' => '当前将跳转到：%s',
     'admin_redirect_auto_none' => '本栏目暂无子栏目，选「自动」时将直接显示本页内容',
+    'page_redirect_notice_auto' => '本页设置了「自动跳转到第一个子栏目」，前台访问会直接跳到 %s，下面编辑的内容不会显示。',
+    'page_redirect_notice_url' => '本页设置了跳转到 %s，前台访问会直接跳走，下面编辑的内容不会显示。',
+    'page_redirect_notice_hint' => '若希望本页内容正常展示，请把跳转方式改为「不跳转」：',
+    'page_text_editor_empty_guard' => '内容为空，未保存——编辑器可能尚未加载完成，请稍候重试；如需清空请删除该元素。',
+    'page_contact_blocks_notice' => '这里编排的是联系页完整主体，联系信息卡片、留言表单和地图都可独立排序与调整列宽。',
+    'page_contact_blocks_hint' => '卡片内容和地图参数来自：',
+    'page_contact_settings_link' => '联系我们设置',
+    'page_contact_seed_btn' => '从当前版式开始',
+    'page_contact_seed_hint' => '生成联系信息卡片 + 表单/地图 7:5 两栏，再自由增删调整。',
+    'page_contact_seed_confirm' => '当前已有区块，生成会覆盖现有排版，确定继续吗？',
+    'page_contact_seed_done' => '已生成，记得点保存。',
+    'page_contact_seeded_note' => '画布已预置联系卡片和表单/地图 7:5 两栏。可直接调整顺序、列宽和元素，保存后前台切换为此布局。',
+    'page_contact_seed_reset' => '恢复默认版式',
+    'page_contact_seed_reset_hint' => '重新生成适合桌面与手机的联系页结构。',
+    'page_section_hide' => '隐藏此区块（前台不显示）',
+    'page_section_show' => '显示此区块',
+    'page_section_hidden' => '已隐藏',
+    'page_section_hidden_tip' => '此区块仅在后台可见，前台不输出。随时可点眼睛图标恢复显示。',
+    'page_contact_dynamic_source' => '动态读取后台数据，保存排版不会复制联系方式。',
+    'page_contact_manage_cards' => '管理联系信息',
+    'page_contact_manage_form' => '管理表单',
+    'page_contact_manage_map' => '管理地图',
     'admin_redirect_none' => '不跳转',
     'admin_redirect_url' => '指定URL',
 
