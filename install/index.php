@@ -985,14 +985,102 @@ $envAllPass = checkAllPass($envChecks);
                         result.classList.remove('hidden');
 
                         if (data.success) {
-                            result.innerHTML = '<div class="bg-green-50 text-green-700 p-4 rounded"></div>';
-                            result.querySelector('div').textContent = data.message;
-                            setTimeout(() => { window.location.href = '?step=4&install_lang=<?php echo $lang; ?>'; }, 1500);
+                            // 就地渲染完成信息，不跳 ?step=4：安装成功的同时 installed.lock 已写入，
+                            // .htaccess/nginx 会立即封禁整个 install/ 目录（防重装绕过），
+                            // 此时跳转必然 403/404，完成页与登录信息根本显示不出来。
+                            showInstallDone(form);
                         } else {
                             result.innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded"></div>';
                             result.querySelector('div').textContent = data.message;
                             document.getElementById('stepButtons').classList.remove('hidden');
                         }
+                    function showInstallDone(f) {
+                        var user = (f.querySelector('[name=admin_user]') || {}).value || 'admin';
+                        var url = window.location.origin + '/admin/login.php';
+                        var L = <?php echo json_encode([
+                            'title'   => $L['install_complete'],
+                            'desc'    => $L['install_complete_desc'],
+                            'info'    => $L['login_info_title'],
+                            'url'     => $L['quick_login_url'],
+                            'account' => $L['quick_account'],
+                            'pass'    => $L['quick_password'],
+                            'passHint'=> $L['login_info_pass_hint'],
+                            'tip'     => $L['login_info_tip'],
+                            'copyAll' => $L['quick_copy_all'],
+                            'copied'  => $L['quick_copied'],
+                            'failed'  => $L['quick_copy_fail'],
+                            'goto'    => $L['goto_admin'],
+                            'sec'     => $L['security_tip'],
+                        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
+                        var wrap = document.createElement('div');
+                        wrap.className = 'text-center';
+                        var h = document.createElement('h2');
+                        h.className = 'text-2xl font-bold text-green-600 mb-2';
+                        h.textContent = L.title;
+                        var p = document.createElement('p');
+                        p.className = 'text-gray-600 mb-5';
+                        p.textContent = L.desc;
+                        var card = document.createElement('div');
+                        card.className = 'bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6 text-left';
+                        var head = document.createElement('div');
+                        head.className = 'flex items-center justify-between mb-3';
+                        var ht = document.createElement('h3');
+                        ht.className = 'font-bold text-blue-900 text-sm';
+                        ht.textContent = L.info;
+                        var cbtn = document.createElement('button');
+                        cbtn.type = 'button';
+                        cbtn.className = 'text-xs bg-white border border-blue-300 text-blue-700 hover:bg-blue-100 px-3 py-1 rounded transition';
+                        cbtn.textContent = L.copyAll;
+                        head.appendChild(ht); head.appendChild(cbtn);
+                        var dl = document.createElement('dl');
+                        dl.className = 'space-y-2 text-sm';
+                        function row(label, value, mono, muted) {
+                            var d = document.createElement('div');
+                            d.className = 'flex items-start gap-2';
+                            var dt = document.createElement('dt');
+                            dt.className = 'text-gray-500 w-20 shrink-0';
+                            dt.textContent = label;
+                            var dd = document.createElement('dd');
+                            dd.className = 'flex-1 break-all ' + (mono ? 'font-mono select-all ' : '') + (muted ? 'text-gray-500' : 'text-blue-800');
+                            dd.textContent = value;
+                            d.appendChild(dt); d.appendChild(dd); dl.appendChild(d);
+                        }
+                        row(L.url, url, true, false);
+                        row(L.account, user, true, false);
+                        row(L.pass, L.passHint, false, true);
+                        var tip = document.createElement('p');
+                        tip.className = 'text-xs text-blue-700 mt-3';
+                        tip.textContent = L.tip;
+                        card.appendChild(head); card.appendChild(dl); card.appendChild(tip);
+                        var go = document.createElement('a');
+                        go.href = '/admin/';
+                        go.className = 'inline-block bg-primary hover:bg-secondary text-white text-lg font-bold px-8 py-3 rounded-lg shadow transition';
+                        go.textContent = L.goto;
+                        var sec = document.createElement('div');
+                        sec.className = 'bg-yellow-50 text-yellow-700 p-4 rounded mt-6 text-sm';
+                        sec.textContent = L.sec;
+                        wrap.appendChild(h); wrap.appendChild(p); wrap.appendChild(card); wrap.appendChild(go); wrap.appendChild(sec);
+                        result.innerHTML = '';
+                        result.appendChild(wrap);
+                        document.getElementById('stepButtons').classList.add('hidden');
+
+                        // http / 局域网 IP 下 clipboard API 不可用，故保留 execCommand 降级
+                        cbtn.onclick = function () {
+                            var text = L.url + ': ' + url + '\n' + L.account + ': ' + user;
+                            var ok = function () { cbtn.textContent = L.copied; setTimeout(function () { cbtn.textContent = L.copyAll; }, 2000); };
+                            var fb = function () {
+                                var ta = document.createElement('textarea');
+                                ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px';
+                                document.body.appendChild(ta); ta.select();
+                                var done = false;
+                                try { done = document.execCommand('copy'); } catch (e) {}
+                                document.body.removeChild(ta);
+                                if (done) { ok(); } else { cbtn.textContent = L.failed; setTimeout(function () { cbtn.textContent = L.copyAll; }, 3000); }
+                            };
+                            if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(ok, fb); } else { fb(); }
+                        };
+                    }
+
                     } catch (e) {
                         document.getElementById('installProgress').classList.add('hidden');
                         const errResult = document.getElementById('installResult');
