@@ -1015,6 +1015,81 @@ $envAllPass = checkAllPass($envChecks);
                     <h2 class="text-2xl font-bold text-green-600 mb-4"><?php echo $L['install_complete']; ?></h2>
                     <p class="text-gray-600 mb-6"><?php echo $L['install_complete_desc']; ?></p>
 
+                    <?php
+                    // 登录信息卡：完成页只给一个「进入后台」按钮是不够的——装完要把网址发给客户、
+                    // 或换台机器登录时，没有可复制的网址和用户名。密码不显示（常规安装是用户自设的）。
+                    $__scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                    $__loginUrl = $__scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/admin/login.php';
+                    $__adminName = '';
+                    try {
+                        if (is_file(dirname(__DIR__) . '/config/config.php')) {
+                            require_once dirname(__DIR__) . '/config/config.php';
+                            require_once dirname(__DIR__) . '/includes/functions.php';
+                            require_once dirname(__DIR__) . '/includes/models/autoload.php';
+                            $__row = db()->fetchOne('SELECT username FROM ' . DB_PREFIX . 'admins ORDER BY id ASC LIMIT 1');
+                            $__adminName = (string) ($__row['username'] ?? '');
+                        }
+                    } catch (\Throwable $e) {
+                        $__adminName = '';   // 取不到就只显示网址，不影响完成页
+                    }
+                    ?>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6 text-left">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-blue-900 text-sm"><?php echo $L['login_info_title']; ?></h3>
+                            <button type="button" onclick="copyLoginInfo(this)"
+                                    class="text-xs bg-white border border-blue-300 text-blue-700 hover:bg-blue-100 px-3 py-1 rounded transition"><?php echo $L['quick_copy_all']; ?></button>
+                        </div>
+                        <dl class="space-y-2 text-sm">
+                            <div class="flex items-start gap-2">
+                                <dt class="text-gray-500 w-20 shrink-0"><?php echo $L['quick_login_url']; ?></dt>
+                                <dd class="flex-1 font-mono text-blue-800 break-all select-all" id="loginUrlText"><?php echo htmlspecialchars($__loginUrl, ENT_QUOTES, 'UTF-8'); ?></dd>
+                            </div>
+                            <?php if ($__adminName !== ''): ?>
+                            <div class="flex items-start gap-2">
+                                <dt class="text-gray-500 w-20 shrink-0"><?php echo $L['quick_account']; ?></dt>
+                                <dd class="flex-1 font-mono text-blue-800 select-all" id="loginUserText"><?php echo htmlspecialchars($__adminName, ENT_QUOTES, 'UTF-8'); ?></dd>
+                            </div>
+                            <?php endif; ?>
+                            <div class="flex items-start gap-2">
+                                <dt class="text-gray-500 w-20 shrink-0"><?php echo $L['quick_password']; ?></dt>
+                                <dd class="flex-1 text-gray-500"><?php echo $L['login_info_pass_hint']; ?></dd>
+                            </div>
+                        </dl>
+                        <p class="text-xs text-blue-700 mt-3"><?php echo $L['login_info_tip']; ?></p>
+                    </div>
+                    <script>
+                    // 安装页常跑在 http / 局域网 IP 下，navigator.clipboard 不可用，故保留 execCommand 降级
+                    function copyLoginInfo(btn) {
+                        var u = document.getElementById('loginUrlText');
+                        var n = document.getElementById('loginUserText');
+                        var text = <?php echo json_encode($L['quick_login_url'], JSON_UNESCAPED_UNICODE); ?> + ': ' + (u ? u.textContent : '');
+                        if (n) text += '\n' + <?php echo json_encode($L['quick_account'], JSON_UNESCAPED_UNICODE); ?> + ': ' + n.textContent;
+                        var old = btn.textContent;
+                        var done = function () {
+                            btn.textContent = <?php echo json_encode($L['quick_copied'], JSON_UNESCAPED_UNICODE); ?>;
+                            setTimeout(function () { btn.textContent = old; }, 2000);
+                        };
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+                        } else { fallback(); }
+                        function fallback() {
+                            var ta = document.createElement('textarea');
+                            ta.value = text;
+                            ta.style.cssText = 'position:fixed;left:-9999px';
+                            document.body.appendChild(ta);
+                            ta.select();
+                            var ok = false;
+                            try { ok = document.execCommand('copy'); } catch (e) {}
+                            document.body.removeChild(ta);
+                            if (ok) { done(); }
+                            else {
+                                btn.textContent = <?php echo json_encode($L['quick_copy_fail'], JSON_UNESCAPED_UNICODE); ?>;
+                                setTimeout(function () { btn.textContent = old; }, 3000);
+                            }
+                        }
+                    }
+                    </script>
+
                     <!-- 主 CTA：直达后台 -->
                     <div class="mb-8">
                         <a href="/admin/" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white text-lg font-bold px-8 py-3 rounded-lg shadow transition">
