@@ -1026,7 +1026,7 @@ $envAllPass = checkAllPass($envChecks);
                             require_once dirname(__DIR__) . '/config/config.php';
                             require_once dirname(__DIR__) . '/includes/functions.php';
                             require_once dirname(__DIR__) . '/includes/models/autoload.php';
-                            $__row = db()->fetchOne('SELECT username FROM ' . DB_PREFIX . 'admins ORDER BY id ASC LIMIT 1');
+                            $__row = db()->fetchOne('SELECT username FROM ' . DB_PREFIX . 'users ORDER BY id ASC LIMIT 1');
                             $__adminName = (string) ($__row['username'] ?? '');
                         }
                     } catch (\Throwable $e) {
