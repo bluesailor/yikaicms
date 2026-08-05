@@ -106,3 +106,21 @@ storage/parity-*.sqlite
 
 # release-precheck 的临时探测脚本（跑完即删，异常退出时可能残留）
 /.precheck_dbcount.php
+
+# ── 付费插件源码：不随本仓库分发（v1.16.0 起 Blox 转付费）────────────
+# 曾因 `git add -A` 连同数据库备份、config 备份一起被推到公开仓库（2026-08-05），
+# 故在此显式忽略，而不是依赖「记得别 add」。
+admin/blox_editor.php
+admin/blox_home_api.php
+themes/blox/
+tests/Unit/Blox*Test.php
+
+# ── 本地产物与备份：一律不得进版本库 ──────────────────────────────
+config/config.php.bak.*
+storage/backup_*.sql
+storage/*.sql
+# 只匹配仓库根目录：不加前导斜杠会匹配任意层级，
+# 将来的 api/v1/_helpers.php 之类会被静默忽略（已踩过「文件在本地不在包里」的坑）
+/_*.lftp
+/_*.html
+/_*.php

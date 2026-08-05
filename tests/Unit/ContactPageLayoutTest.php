@@ -50,7 +50,7 @@ final class ContactPageLayoutTest extends TestCase
     {
         $pageSource = (string) file_get_contents(ROOT_PATH . '/contact.php');
         $partsSource = (string) file_get_contents(ROOT_PATH . '/includes/contact_parts.php');
-        $heroSource = (string) file_get_contents(ROOT_PATH . '/themes/default/partials/contact-hero.php');
+        $heroSource = (string) file_get_contents(ROOT_PATH . '/includes/partials/contact-hero.php');
 
         self::assertStringContainsString("theme_path('partials/contact-hero.php')", $pageSource);
         self::assertStringContainsString("'tel:' . \$phoneTarget", $partsSource);
