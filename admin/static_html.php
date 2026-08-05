@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ============ GET：渲染页面 ============
-$enabled  = (string) config('static_html_enabled', '0') === '1';
+$enabled  = StaticHtml::enabled();
 $baseUrl  = trim((string) config('static_html_base_url', ''));
 $stats    = StaticHtml::stats();
 $hasCurl  = function_exists('curl_init');
