@@ -619,6 +619,7 @@ $envAllPass = checkAllPass($envChecks);
                             box.className = 'mt-4 bg-white border border-green-300 rounded-lg p-4';
                             box.innerHTML =
                                 '<div class="text-green-700 font-bold mb-2">✓ ' + QL.done + '</div>' +
+                                '<div class="text-sm text-gray-700 mb-1">' + QL.login_url + '：<b class="select-all" style="font-family:ui-monospace,Menlo,Consolas,monospace">' + window.location.origin + '/admin/login.php</b></div>' +
                                 '<div class="text-sm text-gray-700 mb-1">' + QL.account + '：<b>admin</b></div>' +
                                 '<div class="text-sm text-gray-700 mb-1">' + QL.password + '：</div>' +
                                 // 密码只显示这一次：等宽字体避免 0/O、l/1 混淆；可整段选中；提供一键复制
@@ -1045,9 +1046,12 @@ $envAllPass = checkAllPass($envChecks);
                             dd.textContent = value;
                             d.appendChild(dt); d.appendChild(dd); dl.appendChild(d);
                         }
+                        var pass = (f.querySelector('[name=admin_pass]') || {}).value || '';
                         row(L.url, url, true, false);
                         row(L.account, user, true, false);
-                        row(L.pass, L.passHint, false, true);
+                        // 密码就是用户上一步自己设的，此处回显 + 纳入复制，便于整段发给客户；
+                        // 取不到（理论上不会）则退回文字提示，不留空行。
+                        row(L.pass, pass || L.passHint, pass !== '', pass === '');
                         var tip = document.createElement('p');
                         tip.className = 'text-xs text-blue-700 mt-3';
                         tip.textContent = L.tip;
@@ -1066,7 +1070,8 @@ $envAllPass = checkAllPass($envChecks);
 
                         // http / 局域网 IP 下 clipboard API 不可用，故保留 execCommand 降级
                         cbtn.onclick = function () {
-                            var text = L.url + ': ' + url + '\n' + L.account + ': ' + user;
+                            var text = L.url + ': ' + url + '\n' + L.account + ': ' + user
+                                     + (pass ? '\n' + L.pass + ': ' + pass : '');
                             var ok = function () { cbtn.textContent = L.copied; setTimeout(function () { cbtn.textContent = L.copyAll; }, 2000); };
                             var fb = function () {
                                 var ta = document.createElement('textarea');
