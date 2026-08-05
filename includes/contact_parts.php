@@ -50,7 +50,9 @@ function contactGridCols(int $count): string
 /** 前台就地编辑标记；非管理员或不需要时返回空。 */
 function contactNoEditAttr(): callable
 {
-    return static function (string $url, string $label): string { return ''; };
+    // 不声明参数：调用方会传 (url, label)，PHP 允许多传实参并忽略；
+    // 声明后不用会被静态分析判为无用参数。
+    return static function (): string { return ''; };
 }
 
 /** 联系信息卡片区。 */

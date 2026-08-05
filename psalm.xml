@@ -7,6 +7,7 @@
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
     findUnusedBaselineEntry="false"
+    findUnusedIssueHandlerSuppression="false"
     findUnusedCode="true"
     errorBaseline="psalm-baseline.xml"
 >
@@ -52,5 +53,14 @@
                      会直接「Could not resolve config path」导致整个 CI 红。 -->
             </errorLevel>
         </MissingFile>
+        <!-- 下列公开方法的唯一调用方是 Blox 编辑器（admin/blox_editor.php、
+             admin/blox_home_api.php），该编辑器已转为付费插件、不随本仓库分发，
+             故在此判为「无人调用」。它们是对外 API，不是死代码，勿删。 -->
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <file name="includes/builder/HomeBloxDocument.php" />
+                <file name="includes/builder/DynamicLoopTemplateRenderer.php" />
+            </errorLevel>
+        </PossiblyUnusedMethod>
     </issueHandlers>
 </psalm>

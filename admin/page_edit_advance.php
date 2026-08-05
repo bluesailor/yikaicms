@@ -21,6 +21,8 @@ require_once ROOT_PATH . '/includes/builder/presets.php';
 
 $id = getInt('id');
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
+// 联系页标记：首页版式分支不会赋值，先给默认，避免下游用 empty() 判布尔
+$isContactPage = false;
 $homeProductOptions = [];
 
 if (!$id && !$isHomeLayout) {
@@ -148,7 +150,7 @@ if ($isHomeLayout) {
     // 不必先点按钮。此处只影响编辑器画布——未点保存前，库里仍是原样、前台仍走固定版式。
     // 同时关掉 HTML 自动转换：联系页的 content 字段前台从不渲染，转出来的是一个看不见的死区块。
     $contactSeeded = false;
-    if (!empty($isContactPage)) {
+    if ($isContactPage) {
         require_once ROOT_PATH . '/includes/contact_parts.php';
         if (!$blocksData) {
             $blocksData   = json_encode(contactSeedSections(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -968,7 +970,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         //   · 排版页（content_type=blocks）在普通编辑器里一保存就清掉 blocks_data，等于静默丢版式；
         //   · 联系页的 content 字段前台从不渲染（走 contact.php 模板），切过去编了也看不见。
         // 这两种情况不给入口——留着只会把人引到会丢数据的路上。
-        $showSimpleSwitch = ($contentType ?? 'html') !== 'blocks' && empty($isContactPage);
+        $showSimpleSwitch = ($contentType ?? 'html') !== 'blocks' && !$isContactPage;
         ?>
         <?php if ($showSimpleSwitch): ?>
         <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
@@ -983,7 +985,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php if (!$isHomeLayout): ?>
 <?php $childEditBase = '/admin/page_edit_advance.php'; require ROOT_PATH . '/admin/includes/parent_page_notice.php'; ?>
 
-<?php if (!empty($isContactPage)): ?>
+<?php if ($isContactPage): ?>
 <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 text-sm text-blue-900 flex items-start gap-3">
     <i class="ti ti-info-circle text-base mt-0.5 shrink-0"></i>
     <div class="space-y-1 flex-1">
@@ -2575,7 +2577,7 @@ var BUILDER_PRESETS = ' . json_encode(builderPresets(), JSON_UNESCAPED_UNICODE |
 var BUILDER_ELEMENTS = ' . json_encode(BuilderRegistry::meta(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . ';
 // 已有手写设置 UI 的元素（保留其精细编辑器）；其余（新/插件元素）走通用 schema 表单
 var BUILDER_CUSTOM_UI = ["heading","text","image","button","icon","divider","code","spacer","list-dynamic","banner","nav"];
-var CONTACT_SEED_SECTIONS = ' . json_encode(!empty($isContactPage) ? contactSeedSections() : [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
+var CONTACT_SEED_SECTIONS = ' . json_encode($isContactPage ? contactSeedSections() : [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
 var CONTACT_ELEMENT_MANAGE = {
     contact_cards: { url: "/admin/setting_contact.php", label: ' . json_encode(__('page_contact_manage_cards'), JSON_UNESCAPED_UNICODE) . ' },
     contact_form: { url: "/admin/form_design.php", label: ' . json_encode(__('page_contact_manage_form'), JSON_UNESCAPED_UNICODE) . ' },
