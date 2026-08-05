@@ -105,7 +105,17 @@ if ($isHomeLayout) {
     // 联系页允许进排版编辑器：这里编的是「附加内容区块」（渲染在卡片/表单/地图下方），
     // 卡片、表单、地图仍在「联系我们设置」里维护。进来时给出说明，避免误以为
     // 在这儿能改联系方式。（原先无条件跳转到 setting_contact.php，等于无法排版。）
+    // 联系页判定必须涵盖多语言版本：/en/contact-en.html、/ja/contact-ja.html 前台同样
+    // 委托 contact.php 渲染（判定逻辑见 page.php），其 content 字段一样是死数据。
+    // 只认 slug='contact' 会漏掉译版，把入口留在会误导人的地方。
     $isContactPage = ($page['slug'] ?? '') === 'contact';
+    if (!$isContactPage && !empty($page['translation_group_id'])) {
+        $__src = channelModel()->queryOne(
+            'SELECT slug FROM ' . channelModel()->tableName() . ' WHERE id = ? LIMIT 1',
+            [(int) $page['translation_group_id']]
+        );
+        $isContactPage = ($__src['slug'] ?? '') === 'contact';
+    }
 
     if (($page['slug'] ?? '') === 'history') {
         header('Location: /admin/timeline.php');
@@ -953,10 +963,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php echo __('admin_setting_home'); ?>
         </a>
         <?php else: ?>
+        <?php
+        // 切回普通编辑器只对「尚未排版的富文本页」有意义：
+        //   · 排版页（content_type=blocks）在普通编辑器里一保存就清掉 blocks_data，等于静默丢版式；
+        //   · 联系页的 content 字段前台从不渲染（走 contact.php 模板），切过去编了也看不见。
+        // 这两种情况不给入口——留着只会把人引到会丢数据的路上。
+        $showSimpleSwitch = ($contentType ?? 'html') !== 'blocks' && empty($isContactPage);
+        ?>
+        <?php if ($showSimpleSwitch): ?>
         <a href="/admin/page_edit.php?id=<?php echo $id; ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
             <i class="ti ti-pencil text-base"></i>
             <?php echo __('page_switch_simple'); ?>
         </a>
+        <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>
