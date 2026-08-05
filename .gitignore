@@ -119,6 +119,8 @@ tests/Unit/Blox*Test.php
 config/config.php.bak.*
 storage/backup_*.sql
 storage/*.sql
-_*.lftp
-_*.html
-_*.php
+# 只匹配仓库根目录：不加前导斜杠会匹配任意层级，
+# 将来的 api/v1/_helpers.php 之类会被静默忽略（已踩过「文件在本地不在包里」的坑）
+/_*.lftp
+/_*.html
+/_*.php
