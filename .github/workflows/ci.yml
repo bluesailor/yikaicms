@@ -192,6 +192,21 @@ jobs:
 
   # ─── lang key consistency: every __('xxx') / configLang(_, 'xxx') key must
   # ─── be defined in every enabled lang file (zh-CN / en / ja). Blocks merges.
+  js-tests:
+    name: JS Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # 浏览器端模块（预览客户端、模板库等）的零依赖回归测试。
+      # 注意用 glob 而非目录形式：node --test tests/js/ 会被当成模块路径解析并报
+      # Cannot find module；tests/js/**/*.test.js 才是正确写法。
+      - name: node --test
+        run: node --test "tests/js/**/*.test.js"
+
   lang-keys:
     name: Lang Key Consistency
     runs-on: ubuntu-latest
