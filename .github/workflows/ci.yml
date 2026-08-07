@@ -159,6 +159,92 @@ jobs:
           echo "=== storage/logs ==="; cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="; tail -50 /tmp/php-server.log 2>/dev/null || true
 
+  # Browser regression baseline for Blox. It is intentionally non-blocking until the suite proves stable.
+  e2e:
+    name: Blox Browser Regression
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Blox 编辑器源码属付费包，不随公开仓库分发（.gitignore 付费源码规则）。
+      # 干净 checkout 里没有它时，后续步骤全部跳过并显式标注 skipped——
+      # 「跳过」必须和「失败」长得不一样，否则这个 job 会永久红并被无视。
+      - name: Check Blox source presence
+        id: blox_src
+        run: |
+          if [ -f admin/blox_editor.php ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Blox browser baseline skipped::admin/blox_editor.php is not present in this checkout (paid-source distribution rules). Baseline SKIPPED, not failed. Inject the paid sources (private CI) to run it."
+          fi
+
+      - name: Setup PHP
+        if: steps.blox_src.outputs.present == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, curl, json, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        if: steps.blox_src.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install PHP dependencies
+        if: steps.blox_src.outputs.present == 'true'
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      - name: Install Node dependencies
+        if: steps.blox_src.outputs.present == 'true'
+        run: npm ci
+
+      - name: Install Chromium
+        if: steps.blox_src.outputs.present == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare disposable SQLite install
+        if: steps.blox_src.outputs.present == 'true'
+        run: php tests/smoke/setup.php
+
+      - name: Start PHP built-in server
+        if: steps.blox_src.outputs.present == 'true'
+        run: |
+          php -S 127.0.0.1:8080 -t . > /tmp/php-server.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/admin/login.php > /dev/null && break
+            sleep 0.5
+          done
+
+      - name: Run Blox browser regression
+        if: steps.blox_src.outputs.present == 'true'
+        run: npx playwright test --grep @ci
+
+      - name: Dump application logs on failure
+        if: failure() && steps.blox_src.outputs.present == 'true'
+        run: |
+          echo "=== storage/logs ==="
+          cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
+          echo "=== php server log ==="
+          tail -100 /tmp/php-server.log 2>/dev/null || true
+
+      - name: Upload Playwright diagnostics
+        if: failure() && steps.blox_src.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blox-playwright-diagnostics
+          path: |
+            test-results/e2e
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
   # ─── Psalm static analysis. Blocking: existing legacy noise is frozen in
   # ─── psalm-baseline.xml, so only NEW issues fail the build. Shrink the
   # ─── baseline over time (findUnusedBaselineEntry flags fixed entries).
@@ -201,11 +287,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      # 浏览器端模块（预览客户端、模板库等）的零依赖回归测试。
-      # 注意用 glob 而非目录形式：node --test tests/js/ 会被当成模块路径解析并报
-      # Cannot find module；tests/js/**/*.test.js 才是正确写法。
+      # Run inside the test directory so Node discovers *.test.js without shell globs or directory-argument assumptions.
       - name: node --test
-        run: node --test "tests/js/**/*.test.js"
+        working-directory: tests/js
+        run: node --test
 
   lang-keys:
     name: Lang Key Consistency

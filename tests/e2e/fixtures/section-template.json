@@ -1,0 +1,43 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "section",
+  "name": "E2E 本地区块",
+  "thumbnail": "",
+  "requires": {
+    "elements": ["heading", "text"],
+    "plugins": []
+  },
+  "document": [
+    {
+      "type": "section",
+      "settings": {
+        "padding": "md",
+        "max_width": "default",
+        "align_items": "stretch",
+        "justify_items": "stretch",
+        "gap": "md"
+      },
+      "columns": [
+        {
+          "span": 12,
+          "elements": [
+            {
+              "type": "heading",
+              "data": {
+                "text": "E2E 模板标题",
+                "level": "h2"
+              }
+            },
+            {
+              "type": "text",
+              "data": {
+                "html": "<p>E2E 本地模板正文</p>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
