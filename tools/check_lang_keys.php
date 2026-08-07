@@ -107,6 +107,36 @@ foreach ($LANGS as $code) {
     }
 }
 
+// ── 2b. 同文件重复 key 检测 ──
+// require 加载后「后者赢」，重复对运行不可见，但 Psalm DuplicateArrayKey 会红 CI，
+// 且重复本身通常意味着两处维护同一文案会漂移。token 级扫源码抓出来。
+$dupTotal = 0;
+foreach ($LANGS as $code) {
+    $seen = [];
+    foreach (token_get_all((string) file_get_contents("$ROOT/lang/$code.php")) as $token) {
+        if (!is_array($token) || $token[0] !== T_CONSTANT_ENCAPSED_STRING) {
+            continue;
+        }
+        // 只统计作为数组 key 出现的字符串：粗略以「行首缩进 + 'key' =>」判定成本高，
+        // 这里用简化策略：lang 文件里每行一个 'key' => 'value'，key 是该行第一个字符串。
+        [$id, $text, $line] = $token;
+        $bare = trim($text, "'\"");
+        if (!isset($seen['line:' . $line])) {
+            $seen['line:' . $line] = true; // 每行只取第一个字符串 = key
+            if (isset($seen[$bare])) {
+                echo "✗ lang/$code.php:$line 重复 key '$bare'（首见于 {$seen[$bare]} 行）\n";
+                $dupTotal++;
+            } else {
+                $seen[$bare] = $line;
+            }
+        }
+    }
+}
+if ($dupTotal > 0) {
+    echo "✗ 共 $dupTotal 处同文件重复 key——后者覆盖前者，且会触发 Psalm DuplicateArrayKey。\n";
+    exit(1);
+}
+
 // ── 3. 找出每个语言里缺的 key ──
 $missing = [];   // lang => [key => first-usage]
 foreach ($LANGS as $code) {
