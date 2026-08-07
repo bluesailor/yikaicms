@@ -122,6 +122,10 @@ function extFieldModel(): ExtFieldModel {
     static $i; return $i ??= new ExtFieldModel();
 }
 
+function bloxTemplateModel(): BloxTemplateModel {
+    static $i; return $i ??= new BloxTemplateModel();
+}
+
 function contentModelModel(): ContentModelModel {
     static $i; return $i ??= new ContentModelModel();
 }

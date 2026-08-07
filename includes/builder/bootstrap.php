@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../TagEngine.php';
 require_once __DIR__ . '/AbstractElement.php';
+require_once __DIR__ . '/BloxPluginRegistry.php';
+require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/HomeBloxBlockSchema.php';
 
@@ -16,6 +18,11 @@ foreach (glob(__DIR__ . '/elements/*.php') ?: [] as $__elFile) {
 }
 
 require_once __DIR__ . '/BuilderRegistry.php';
+require_once __DIR__ . '/BloxDocumentValidator.php';
+require_once __DIR__ . '/BloxDocumentPipeline.php';
+require_once __DIR__ . '/BloxTemplateImporter.php';
+require_once __DIR__ . '/BloxRemoteTemplateProvider.php';
+require_once __DIR__ . '/BloxTemplateCatalog.php';
 require_once __DIR__ . '/DynamicLoopTemplateRenderer.php';
 require_once __DIR__ . '/BlocksLibrary.php';
 require_once __DIR__ . '/HomeBloxDocument.php';
@@ -23,3 +30,5 @@ require_once __DIR__ . '/HomeLayoutDocument.php';
 require_once __DIR__ . '/HomeBloxRenderContext.php';
 require_once __DIR__ . '/BlockRenderer.php';
 require_once __DIR__ . '/HomeBloxRenderer.php';
+
+BloxAssetCollector::bootstrap();

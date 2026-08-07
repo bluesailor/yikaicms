@@ -59,6 +59,19 @@ if ($c !== 200 || stripos($dash, 'name="password"') !== false) {
 }
 echo "✓ 登录成功\n";
 
+// 模板解析会触发远程下载与审计，必须保持 POST + CSRF；先锁定无 token 必须被拒。
+[$csrfCode, $csrfBody] = req('POST', '/admin/blox_template_api.php', [
+    'action' => 'get',
+    'context' => 'page',
+    'key' => 'remote:pricing-3col',
+]);
+$csrfJson = json_decode($csrfBody, true);
+if ($csrfCode !== 200 || !is_array($csrfJson) || (int) ($csrfJson['code'] ?? 0) !== 403) {
+    fwrite(STDERR, "❌ Blox 模板解析端点未拒绝无 CSRF token 的 POST\n");
+    exit(2);
+}
+echo "✓ Blox 模板解析 CSRF 拒绝行为正常\n";
+
 $chId  = $fx['channel_list'] ?: ($fx['channel_any'] ?: 1);
 $pcId  = $fx['product_cat'] ?: 0;
 $dcId  = $fx['download_cat'] ?: 0;
