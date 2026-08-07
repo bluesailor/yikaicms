@@ -177,6 +177,27 @@ CREATE TABLE "yikai_blocks_library" (
   "updated_at" INTEGER NOT NULL DEFAULT 0
 );
 
+DROP TABLE IF EXISTS "yikai_blox_templates";
+CREATE TABLE "yikai_blox_templates" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "type" varchar(20) NOT NULL,
+  "name" varchar(150) NOT NULL,
+  "source" varchar(30) NOT NULL DEFAULT 'user',
+  "source_ref" varchar(100) NOT NULL DEFAULT '',
+  "schema_version" INTEGER NOT NULL DEFAULT 1,
+  "draft_data" longtext NOT NULL,
+  "published_data" longtext,
+  "requirements" longtext,
+  "thumbnail" varchar(500) NOT NULL DEFAULT '',
+  "status" INTEGER NOT NULL DEFAULT 0,
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0,
+  "published_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX "idx_blox_templates_type" ON "yikai_blox_templates" ("type", "status", "updated_at");
+CREATE INDEX "idx_blox_templates_source" ON "yikai_blox_templates" ("source");
+
 DROP TABLE IF EXISTS "yikai_content_revisions";
 CREATE TABLE "yikai_content_revisions" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
