@@ -14,18 +14,18 @@ final class IconElement extends AbstractElement
     private const SIZE_MAP = ['sm' => '24px', 'md' => '32px', 'lg' => '48px', 'xl' => '64px'];
 
     public function type(): string { return 'icon'; }
-    public function label(): string { return '图标'; }
+    public function label(): string { return __('blox_ctl_icon'); }
     public function icon(): string { return 'star'; }
 
     // icon 由构建器图标选择器接管（hasCustomUI），此处仅供默认值 / 元数据
     public function controls(): array
     {
         return [
-            ['key' => 'icon', 'type' => 'icon', 'label' => '图标', 'default' => 'star'],
-            ['key' => 'size', 'type' => 'select', 'label' => '大小', 'default' => 'md',
-                'options' => ['sm' => '小', 'md' => '中', 'lg' => '大', 'xl' => '超大']],
-            ['key' => 'color', 'type' => 'color', 'label' => '颜色', 'default' => ''],
-            ['key' => 'text', 'type' => 'text', 'label' => '文字', 'default' => ''],
+            ['key' => 'icon', 'type' => 'icon', 'label' => __('blox_ctl_icon'), 'default' => 'star'],
+            ['key' => 'size', 'type' => 'select', 'label' => __('blox_ctl_size'), 'default' => 'md',
+                'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            ['key' => 'color', 'type' => 'color', 'label' => __('blox_ctl_color'), 'default' => ''],
+            ['key' => 'text', 'type' => 'text', 'label' => __('blox_ctl_text'), 'default' => ''],
         ];
     }
 

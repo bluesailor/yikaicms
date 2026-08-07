@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class ContactFormElement extends AbstractElement
 {
     public function type(): string { return 'contact_form'; }
-    public function label(): string { return '在线留言表单'; }
+    public function label(): string { return __('blox_el_contact_form'); }
     public function icon(): string { return 'mail-forward'; }
     public function paletteVisible(string $context = 'page'): bool { return false; }
     public function supportsBoxStyles(): bool { return false; }

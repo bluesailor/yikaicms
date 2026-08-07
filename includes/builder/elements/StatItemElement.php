@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class StatItemElement extends AbstractElement
 {
     public function type(): string { return 'stat-item'; }
-    public function label(): string { return '统计项'; }
+    public function label(): string { return __('blox_el_stat_item'); }
     public function icon(): string { return 'number-123'; }
     public function category(): string { return 'advanced'; }
     public function paletteVisible(string $context = 'page'): bool { return false; }
@@ -16,12 +16,12 @@ final class StatItemElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'icon', 'type' => 'icon', 'label' => '图标', 'default' => 'chart-bar'],
-            ['key' => 'number', 'type' => 'text', 'label' => '数字', 'default' => '100+'],
-            ['key' => 'label', 'type' => 'text', 'label' => '说明文字', 'default' => '统计说明'],
-            ['key' => 'icon_color', 'type' => 'color', 'label' => '图标颜色', 'default' => '', 'tab' => 'style'],
-            ['key' => 'number_color', 'type' => 'color', 'label' => '数字颜色', 'default' => '', 'tab' => 'style'],
-            ['key' => 'label_color', 'type' => 'color', 'label' => '文字颜色', 'default' => '', 'tab' => 'style'],
+            ['key' => 'icon', 'type' => 'icon', 'label' => __('blox_ctl_icon'), 'default' => 'chart-bar'],
+            ['key' => 'number', 'type' => 'text', 'label' => __('blox_ctl_number'), 'default' => '100+'],
+            ['key' => 'label', 'type' => 'text', 'label' => __('blox_stat_caption'), 'default' => __('blox_stat_caption_seed')],
+            ['key' => 'icon_color', 'type' => 'color', 'label' => __('blox_icon_color'), 'default' => '', 'tab' => 'style'],
+            ['key' => 'number_color', 'type' => 'color', 'label' => __('blox_number_color'), 'default' => '', 'tab' => 'style'],
+            ['key' => 'label_color', 'type' => 'color', 'label' => __('blox_text_color'), 'default' => '', 'tab' => 'style'],
         ];
     }
 

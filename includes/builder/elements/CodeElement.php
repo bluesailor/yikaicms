@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class CodeElement extends AbstractElement
 {
     public function type(): string { return 'code'; }
-    public function label(): string { return '代码/HTML'; }
+    public function label(): string { return __('blox_el_code'); }
     public function icon(): string { return 'code'; }
     public function category(): string { return 'advanced'; }
     public function supportsBoxStyles(): bool { return false; }
@@ -14,8 +14,8 @@ final class CodeElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'html', 'type' => 'textarea', 'label' => 'HTML/短码', 'default' => '',
-                'placeholder' => '输入 HTML、短码 [form-xxx]、iframe 等...', 'rows' => 4],
+            ['key' => 'html', 'type' => 'textarea', 'label' => __('blox_html_shortcode'), 'default' => '',
+                'placeholder' => __('blox_html_ph'), 'rows' => 4],
         ];
     }
 

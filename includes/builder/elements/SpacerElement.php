@@ -14,7 +14,7 @@ final class SpacerElement extends AbstractElement
     ];
 
     public function type(): string { return 'spacer'; }
-    public function label(): string { return '间距'; }
+    public function label(): string { return __('blox_spacing'); }
     public function icon(): string { return 'arrow-autofit-height'; }
     public function category(): string { return 'layout'; }
     public function supportsBoxStyles(): bool { return false; }
@@ -22,8 +22,8 @@ final class SpacerElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'size', 'type' => 'select', 'label' => '高度', 'default' => 'md', 'responsive' => true,
-                'options' => ['sm' => '小 (16px)', 'md' => '中 (32px)', 'lg' => '大 (64px)', 'xl' => '超大 (96px)']],
+            ['key' => 'size', 'type' => 'select', 'label' => __('blox_ctl_height'), 'default' => 'md', 'responsive' => true,
+                'options' => ['sm' => __('blox_spacing_sm') . ' (16px)', 'md' => __('blox_spacing_md') . ' (32px)', 'lg' => __('blox_spacing_lg') . ' (64px)', 'xl' => __('blox_spacing_xl') . ' (96px)']],
         ];
     }
 

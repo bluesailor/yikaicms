@@ -59,6 +59,6 @@ final class HomeBloxDocumentTest extends TestCase
 
         $this->assertStringContainsString('data-home-block="custom:&lt;script&gt;"', $html);
         $this->assertStringContainsString('首页 &lt;区块&gt;', $html);
-        $this->assertStringContainsString('已停用', $html);
+        $this->assertStringContainsString('blox_home_disabled', $html);
     }
 }

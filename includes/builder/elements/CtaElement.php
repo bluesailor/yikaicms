@@ -6,16 +6,16 @@ declare(strict_types=1);
 final class CtaElement extends AbstractElement
 {
     public function type(): string { return 'cta'; }
-    public function label(): string { return '行动号召'; }
+    public function label(): string { return __('blox_el_cta'); }
     public function icon(): string { return 'speakerphone'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => ''],
-            ['key' => 'text', 'type' => 'textarea', 'label' => '副文', 'default' => '', 'rows' => 2],
-            ['key' => 'btn_text', 'type' => 'text', 'label' => '按钮文字', 'default' => '联系我们'],
-            ['key' => 'btn_url', 'type' => 'text', 'label' => '按钮链接', 'default' => '', 'placeholder' => '/contact.html'],
+            ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
+            ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_subtext'), 'default' => '', 'rows' => 2],
+            ['key' => 'btn_text', 'type' => 'text', 'label' => __('blox_ctl_btn_text'), 'default' => __('nav_contact')],
+            ['key' => 'btn_url', 'type' => 'text', 'label' => __('blox_ctl_btn_url'), 'default' => '', 'placeholder' => '/contact.html'],
             ...$this->animationControls(),
         ];
     }

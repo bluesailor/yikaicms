@@ -6,14 +6,14 @@ declare(strict_types=1);
 final class TextElement extends AbstractElement
 {
     public function type(): string { return 'text'; }
-    public function label(): string { return '文本'; }
+    public function label(): string { return __('blox_el_text'); }
     public function icon(): string { return 'align-left'; }
 
     // richtext 由构建器 wangEditor 弹窗接管（hasCustomUI），此处仅供默认值 / 元数据
     public function controls(): array
     {
         return [
-            ['key' => 'html', 'type' => 'richtext', 'label' => '正文', 'default' => ''],
+            ['key' => 'html', 'type' => 'richtext', 'label' => __('blox_ctl_body'), 'default' => ''],
             [
                 'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_text_binding'),
                 'default' => 'summary', 'loop_only' => true,

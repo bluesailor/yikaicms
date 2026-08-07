@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class ImageElement extends AbstractElement
 {
     public function type(): string { return 'image'; }
-    public function label(): string { return '图片'; }
+    public function label(): string { return __('blox_el_image'); }
     public function icon(): string { return 'photo'; }
     public function category(): string { return 'media'; }
 
@@ -14,8 +14,8 @@ final class ImageElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'src', 'type' => 'image', 'label' => '图片', 'default' => ''],
-            ['key' => 'alt', 'type' => 'text', 'label' => '描述', 'default' => ''],
+            ['key' => 'src', 'type' => 'image', 'label' => __('blox_el_image'), 'default' => ''],
+            ['key' => 'alt', 'type' => 'text', 'label' => __('blox_ctl_desc'), 'default' => ''],
             [
                 'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_image_binding'),
                 'default' => 'cover', 'loop_only' => true,
@@ -43,10 +43,10 @@ final class ImageElement extends AbstractElement
                     'product' => DynamicListItemSchema::fieldOptions('link', 'product'),
                 ],
             ],
-            ['key' => 'click_action', 'type' => 'select', 'label' => '点击', 'default' => '',
-                'options' => ['' => '无动作', 'lightbox' => '弹出大图', 'link' => '跳转链接']],
-            ['key' => 'link_url', 'type' => 'text', 'label' => '链接', 'default' => ''],
-            ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => '新窗口', 'default' => false],
+            ['key' => 'click_action', 'type' => 'select', 'label' => __('blox_click_action'), 'default' => '',
+                'options' => ['' => __('blox_click_none'), 'lightbox' => __('blox_click_lightbox'), 'link' => __('blox_click_link')]],
+            ['key' => 'link_url', 'type' => 'text', 'label' => __('blox_ctl_link'), 'default' => ''],
+            ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab_short'), 'default' => false],
             ...$this->animationControls(),
         ];
     }

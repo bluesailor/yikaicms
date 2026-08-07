@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class BannerElement extends AbstractElement
 {
     public function type(): string { return 'banner'; }
-    public function label(): string { return '轮播图'; }
+    public function label(): string { return __('blox_el_banner'); }
     public function icon(): string { return 'carousel-horizontal'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
@@ -16,7 +16,7 @@ final class BannerElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'group', 'type' => 'text', 'label' => '轮播分组', 'default' => '', 'placeholder' => 'banner group 标识'],
+            ['key' => 'group', 'type' => 'text', 'label' => __('blox_banner_group'), 'default' => '', 'placeholder' => __('blox_banner_group_ph')],
         ];
     }
 

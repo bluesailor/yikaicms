@@ -6,15 +6,15 @@ declare(strict_types=1);
 final class ButtonElement extends AbstractElement
 {
     public function type(): string { return 'button'; }
-    public function label(): string { return '按钮'; }
+    public function label(): string { return __('blox_el_button'); }
     public function icon(): string { return 'square-rounded'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'text', 'type' => 'text', 'label' => '按钮文字', 'default' => '按钮'],
-            ['key' => 'url', 'type' => 'text', 'label' => '链接地址', 'default' => '', 'placeholder' => 'https:// 或 /path'],
-            ['key' => 'new_tab', 'type' => 'checkbox', 'label' => '新窗口打开', 'default' => false],
+            ['key' => 'text', 'type' => 'text', 'label' => __('blox_ctl_btn_text'), 'default' => __('blox_el_button')],
+            ['key' => 'url', 'type' => 'text', 'label' => __('blox_ctl_link_url'), 'default' => '', 'placeholder' => __('blox_ctl_link_ph')],
+            ['key' => 'new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab'), 'default' => false],
             [
                 'key' => 'loop_text_field', 'type' => 'select', 'label' => __('blox_loop_button_text_binding'),
                 'default' => 'title', 'loop_only' => true,
@@ -34,8 +34,8 @@ final class ButtonElement extends AbstractElement
                 ],
             ],
             [
-                'key' => 'align', 'type' => 'select', 'label' => '水平位置', 'default' => 'left', 'tab' => 'style',
-                'options' => ['left' => '左对齐', 'center' => '居中', 'right' => '右对齐'],
+                'key' => 'align', 'type' => 'select', 'label' => __('blox_h_position'), 'default' => 'left', 'tab' => 'style',
+                'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')],
                 'option_icons' => ['left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right'],
             ],
             ...$this->animationControls(),

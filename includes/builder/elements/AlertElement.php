@@ -13,15 +13,15 @@ final class AlertElement extends AbstractElement
     ];
 
     public function type(): string { return 'alert'; }
-    public function label(): string { return '提示框'; }
+    public function label(): string { return __('blox_el_alert'); }
     public function icon(): string { return 'alert-circle'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'text', 'type' => 'textarea', 'label' => '内容', 'default' => '', 'rows' => 2],
-            ['key' => 'level', 'type' => 'select', 'label' => '类型', 'default' => 'info',
-                'options' => ['info' => '信息', 'success' => '成功', 'warning' => '警告', 'error' => '错误']],
+            ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_tab_content'), 'default' => '', 'rows' => 2],
+            ['key' => 'level', 'type' => 'select', 'label' => __('blox_tpl_col_type'), 'default' => 'info',
+                'options' => ['info' => __('blox_alert_info'), 'success' => __('blox_alert_success'), 'warning' => __('blox_alert_warning'), 'error' => __('blox_alert_error')]],
         ];
     }
 

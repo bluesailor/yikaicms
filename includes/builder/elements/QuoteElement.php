@@ -6,14 +6,14 @@ declare(strict_types=1);
 final class QuoteElement extends AbstractElement
 {
     public function type(): string { return 'quote'; }
-    public function label(): string { return '引用'; }
+    public function label(): string { return __('blox_el_quote'); }
     public function icon(): string { return 'quote'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'text', 'type' => 'textarea', 'label' => '引文', 'default' => '', 'rows' => 3],
-            ['key' => 'author', 'type' => 'text', 'label' => '署名', 'default' => ''],
+            ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_quote_text'), 'default' => '', 'rows' => 3],
+            ['key' => 'author', 'type' => 'text', 'label' => __('blox_quote_author'), 'default' => ''],
         ];
     }
 

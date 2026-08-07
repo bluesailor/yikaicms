@@ -8,13 +8,13 @@ final class HeadingElement extends AbstractElement
     private const SIZE_MAP = ['h1' => 'text-3xl', 'h2' => 'text-2xl', 'h3' => 'text-xl', 'h4' => 'text-lg'];
 
     public function type(): string { return 'heading'; }
-    public function label(): string { return '标题'; }
+    public function label(): string { return __('blox_field_title_short'); }
     public function icon(): string { return 'heading'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'text', 'type' => 'text', 'label' => '标题文字', 'default' => '', 'placeholder' => '输入标题...'],
+            ['key' => 'text', 'type' => 'text', 'label' => __('blox_seed_heading'), 'default' => '', 'placeholder' => __('blox_heading_ph')],
             [
                 'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_text_binding'),
                 'default' => 'title', 'loop_only' => true,
@@ -24,10 +24,10 @@ final class HeadingElement extends AbstractElement
                     'product' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('title', 'product'),
                 ],
             ],
-            ['key' => 'level', 'type' => 'select', 'label' => '级别', 'default' => 'h2',
+            ['key' => 'level', 'type' => 'select', 'label' => __('blox_ctl_level'), 'default' => 'h2',
                 'options' => ['h1' => 'H1', 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4']],
-            ['key' => 'align', 'type' => 'select', 'label' => '对齐', 'default' => 'left',
-                'options' => ['left' => '左对齐', 'center' => '居中', 'right' => '右对齐']],
+            ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left',
+                'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
             ...$this->animationControls(),
         ];
     }
