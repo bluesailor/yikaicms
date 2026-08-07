@@ -89,6 +89,14 @@ final class BloxTemplateImporter
             self::decodeStoredRequirements($template['requirements'] ?? null),
             self::inferRequirements($sections)
         );
+        // 文档级 settings（如 sticky）随包导出——document 输出 v1 信封；
+        // 无 settings 的存量文档仍导出裸 sections（包格式向后兼容，老版本可导入）
+        $docSettings = BloxDocumentPipeline::normalizeDocSettings(
+            is_array($decoded) ? ($decoded['settings'] ?? null) : null
+        );
+        $document = $docSettings !== []
+            ? ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $sections]
+            : $sections;
 
         return [
             'format' => self::FORMAT,
@@ -103,7 +111,7 @@ final class BloxTemplateImporter
                 'schema_version' => max(1, (int) ($template['schema_version'] ?? self::VERSION)),
                 'exported_at' => time(),
             ],
-            'document' => $sections,
+            'document' => $document,
         ];
     }
 
@@ -199,8 +207,12 @@ final class BloxTemplateImporter
         }
 
         $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
+        // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
+        $docSettings = BloxDocumentPipeline::normalizeDocSettings(
+            is_array($package['document']) ? ($package['document']['settings'] ?? null) : null
+        );
         $documentJson = json_encode(
-            $withoutIds,
+            ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $withoutIds],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
         $prefix = 'tpl_' . bin2hex(random_bytes(6));

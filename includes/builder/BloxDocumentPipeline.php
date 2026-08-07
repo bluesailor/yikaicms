@@ -1,5 +1,5 @@
 <?php
-/** Blox 文档统一输入管线：大小限制、解析、结构校验、ID 归一化与稳定编码。 */
+/** Blox 文档统一输入管线：大小限制、解析、schema 迁移、结构校验、ID 归一化与稳定编码。 */
 
 declare(strict_types=1);
 
@@ -8,7 +8,14 @@ final class BloxDocumentPipeline
     public const MAX_JSON_BYTES = 2_000_000;
     public const MAX_SECTIONS = 100;
 
-    /** @return array{sections:array<int,array<string,mixed>>,json:string} */
+    /**
+     * 文档信封 schema 版本（r10 起写入）。历史两形态（裸 sections 数组 /
+     * 无 schema 键的 {sections:[...]}）视为 v0，migrate() 载入时升级——
+     * 渲染器与保存端只面对最新格式，旧格式在入口处显式升级（惰性迁移，无需刷库）。
+     */
+    public const SCHEMA_VERSION = 1;
+
+    /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
     public static function process(
         string $json,
         string $idPrefix = 'blox',
@@ -31,7 +38,8 @@ final class BloxDocumentPipeline
             throw new RuntimeException(__('blox_doc_bad_sections'));
         }
 
-        $sections = self::extractSections($decoded);
+        $document = self::migrate($decoded);
+        $sections = $document['sections'];
         if (count($sections) > $maxSections) {
             throw new RuntimeException(__('blox_doc_too_many_sections', ['max' => $maxSections]));
         }
@@ -40,13 +48,64 @@ final class BloxDocumentPipeline
         $normalized = self::normalizeSections($sections, $idPrefix);
         BloxDocumentValidator::assertValidSections($normalized);
 
+        $envelope = [
+            'schema' => self::SCHEMA_VERSION,
+            'settings' => $document['settings'],
+            'sections' => $normalized,
+        ];
         return [
+            'schema' => self::SCHEMA_VERSION,
+            'settings' => $document['settings'],
             'sections' => $normalized,
             'json' => json_encode(
-                $normalized,
+                $envelope,
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             ),
         ];
+    }
+
+    /**
+     * schema 迁移管道（有序、纯函数式，Puck/Elementor V4/Gutenberg 同型）：
+     * v0（无 schema 键的历史两形态）→ v1 信封；未来 v1→v2 迁移按序排在此处。
+     * 高于当前版本一律拒绝（fail-closed：新版本文档在旧代码上报错，不静默丢数据）。
+     *
+     * @param array<string|int,mixed> $decoded
+     * @return array{schema:int,settings:array<string,mixed>,sections:array<int,mixed>}
+     */
+    public static function migrate(array $decoded): array
+    {
+        if (isset($decoded['schema'])) {
+            $schema = (int) $decoded['schema'];
+            if ($schema > self::SCHEMA_VERSION) {
+                throw new RuntimeException(__('blox_doc_schema_too_new', [
+                    'found' => $schema,
+                    'supported' => self::SCHEMA_VERSION,
+                ]));
+            }
+        }
+        return [
+            'schema' => self::SCHEMA_VERSION,
+            'settings' => self::normalizeDocSettings($decoded['settings'] ?? null),
+            'sections' => self::extractSections($decoded),
+        ];
+    }
+
+    /**
+     * 文档级 settings 白名单（fail-closed：未知键丢弃，不入库）。
+     * 当前仅 sticky（header 模板吸顶开关）。
+     *
+     * @return array<string,mixed>
+     */
+    public static function normalizeDocSettings(mixed $settings): array
+    {
+        if (!is_array($settings)) {
+            return [];
+        }
+        $clean = [];
+        if (array_key_exists('sticky', $settings)) {
+            $clean['sticky'] = !empty($settings['sticky']);
+        }
+        return $clean;
     }
 
     /** @param array<string|int,mixed> $document @return array<int,mixed> */

@@ -70,8 +70,17 @@ final class BlockRenderer
 
     public static function render(string $blocksJson): string
     {
-        $sections = json_decode($blocksJson, true);
-        if (!is_array($sections) || empty($sections)) {
+        $decoded = json_decode($blocksJson, true);
+        if (!is_array($decoded) || empty($decoded)) {
+            return '';
+        }
+        // v1 信封 {schema,settings,sections} 与存量裸数组共存：渲染端宽容解包
+        //（保存端 BloxDocumentPipeline::migrate 严格迁移；文档级 settings 由壳层
+        //  bloxAreaHtml() 消费，渲染器只关心 sections）
+        $sections = isset($decoded['sections']) && is_array($decoded['sections'])
+            ? array_values($decoded['sections'])
+            : $decoded;
+        if (empty($sections)) {
             return '';
         }
 

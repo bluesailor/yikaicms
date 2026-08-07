@@ -134,7 +134,67 @@ final class BuilderPluginPipelineTest extends TestCase
             'test_e_0_0_0_0',
             $sections[0]['columns'][0]['elements'][0]['data']['children'][0]['id']
         );
-        $this->assertSame($sections, json_decode($processed['json'], true));
+        // r10 起 json 输出 v1 信封（schema/settings/sections）
+        $this->assertSame(
+            ['schema' => 1, 'settings' => [], 'sections' => $sections],
+            json_decode($processed['json'], true)
+        );
+    }
+
+    // ── r10：文档 schema 信封与迁移管道 ──────────────────────────
+
+    /** v0 历史两形态（裸数组 / 无 schema 的 {sections}）→ 同一 v1 信封（惰性迁移） */
+    public function testMigrateUpgradesLegacyShapesToEnvelope(): void
+    {
+        $bare = BloxDocumentPipeline::process('[{"columns":[]}]', 'test');
+        $wrapped = BloxDocumentPipeline::process('{"sections":[{"columns":[]}]}', 'test');
+        $this->assertSame(1, $bare['schema']);
+        $this->assertSame([], $bare['settings']);
+        $this->assertSame($bare['json'], $wrapped['json']);
+        $this->assertStringStartsWith('{"schema":1,', $bare['json']);
+    }
+
+    /** v1 信封 round-trip：settings 保留，重处理输出不变（幂等） */
+    public function testEnvelopeRoundTripIsIdempotent(): void
+    {
+        $first = BloxDocumentPipeline::process('{"schema":1,"settings":{"sticky":true},"sections":[{"columns":[]}]}', 'test');
+        $second = BloxDocumentPipeline::process($first['json'], 'test');
+        $this->assertSame(['sticky' => true], $first['settings']);
+        $this->assertSame($first['json'], $second['json']);
+    }
+
+    /** 高于当前版本 fail-closed 拒绝（新版本文档不在旧代码上静默丢数据） */
+    public function testNewerSchemaIsRejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('blox_doc_schema_too_new');
+        BloxDocumentPipeline::process('{"schema":99,"sections":[]}', 'test');
+    }
+
+    /** 文档级 settings 白名单：sticky 布尔化，未知键丢弃不入库 */
+    public function testDocSettingsWhitelist(): void
+    {
+        $this->assertSame(['sticky' => true], BloxDocumentPipeline::normalizeDocSettings(['sticky' => 1, 'evil' => 'x']));
+        $this->assertSame(['sticky' => false], BloxDocumentPipeline::normalizeDocSettings(['sticky' => 0]));
+        $this->assertSame([], BloxDocumentPipeline::normalizeDocSettings(['unknown' => 'y']));
+        $this->assertSame([], BloxDocumentPipeline::normalizeDocSettings('junk'));
+    }
+
+    /** 渲染黄金对拍：信封输入与裸数组输入输出逐字节一致（settings 不影响 sections 渲染） */
+    public function testRendererOutputIdenticalForEnvelopeAndBareArray(): void
+    {
+        $sections = [[
+            'id' => 's1',
+            'settings' => [],
+            'columns' => [['id' => 'c1', 'elements' => [['id' => 'e1', 'type' => 'heading', 'data' => ['text' => '标题']]]]],
+        ]];
+        $bareHtml = BlockRenderer::render((string) json_encode($sections, JSON_UNESCAPED_UNICODE));
+        $envelopeHtml = BlockRenderer::render((string) json_encode(
+            ['schema' => 1, 'settings' => ['sticky' => true], 'sections' => $sections],
+            JSON_UNESCAPED_UNICODE
+        ));
+        $this->assertNotSame('', $bareHtml);
+        $this->assertSame($bareHtml, $envelopeHtml);
     }
 
     public function testPipelineRejectsOversizedDocuments(): void
