@@ -14,7 +14,7 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
         <div class="mb-16" data-animate="fade-up">
             <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($tmTitle); ?></h2>
-            <div class="w-12 h-px bg-gray-900 mt-4"></div>
+            <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
             <?php if ($tmDesc): ?>
             <p class="mt-6 text-gray-500 max-w-xl text-sm leading-relaxed"><?php echo e($tmDesc); ?></p>
             <?php endif; ?>

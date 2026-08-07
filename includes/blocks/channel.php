@@ -16,7 +16,7 @@ $contents = $hChannel['contents'];
             <h2 class="text-3xl font-bold text-dark mb-2">
                 <span class="text-primary"><?php echo e(mb_substr($hChannel['name'], 0, 2)); ?></span><?php echo e(mb_substr($hChannel['name'], 2)); ?>
             </h2>
-            <span class="section-title-bar"></span>
+            <?php echo homeTitleDeco(); ?>
             <?php if ($hChannel['description']): ?>
             <p class="text-gray-500"><?php echo e($hChannel['description']); ?></p>
             <?php endif; ?>

@@ -20,7 +20,7 @@ $isDark = str_contains($sectionBg, 'dark');
         <div class="flex items-end justify-between mb-12" data-animate="fade-up">
             <div>
                 <h2 class="text-3xl font-bold <?php echo $isDark ? 'text-white' : 'text-dark'; ?> mb-3"><?php echo e($hChannel['name']); ?></h2>
-                <img src="/themes/business/images/divide.png" alt="" class="mb-2">
+                <?php echo homeTitleDeco($isDark, '', '<img src="/themes/business/images/divide.png" alt="" class="mb-2">'); ?>
                 <?php if ($hChannel['description']): ?>
                 <p class="mt-2 <?php echo $isDark ? 'text-gray-400' : 'text-gray-500'; ?>"><?php echo e($hChannel['description']); ?></p>
                 <?php endif; ?>

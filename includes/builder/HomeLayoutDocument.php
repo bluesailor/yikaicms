@@ -143,26 +143,13 @@ public static function isActive(): bool
      */
     public static function saveDraft(string $blocksJson): array
     {
-        if (strlen($blocksJson) > self::MAX_JSON_BYTES) {
-            throw new RuntimeException('首页布局数据过大');
-        }
-
-        $decoded = json_decode($blocksJson, true);
-        if (!is_array($decoded)) {
-            throw new RuntimeException('首页布局数据不是有效 JSON');
-        }
-
-        $sections = self::extractSections($decoded);
-        if (count($sections) > 100) {
-            throw new RuntimeException('首页区块数量不能超过 100 个');
-        }
-
+        $processed = BloxDocumentPipeline::process($blocksJson, 'home');
         $document = [
             'version'    => self::VERSION,
             'source'     => 'layout',
             'active'     => self::isActive(),
             'updated_at' => time(),
-            'sections'   => self::normalizeSections($sections),
+            'sections'   => $processed['sections'],
         ];
 
         settingModel()->set(
@@ -499,6 +486,13 @@ public static function isActive(): bool
                 config('home_stat_bg', '')
                 ?: 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80'
             );
+            $data['counter_enabled'] = (string) config('home_stat_counter_enabled', '1') !== '0';
+            $data['counter_start'] = max(0, min(1000000, (int) config('home_stat_counter_start', 0)));
+            $data['counter_duration'] = max(0, min(5000, (int) config('home_stat_counter_duration', 0)));
+            $mobileColumns = (string) config('home_stat_mobile_columns', '2');
+            $data['stats_mobile_columns'] = in_array($mobileColumns, ['1', '2'], true) ? $mobileColumns : '2';
+            $tabletColumns = (string) config('home_stat_tablet_columns', '4');
+            $data['stats_tablet_columns'] = in_array($tabletColumns, ['2', '4'], true) ? $tabletColumns : '4';
             $data['stats_items'] = [];
             for ($index = 1; $index <= 4; $index++) {
                 $data['stats_items'][] = [
@@ -521,6 +515,9 @@ public static function isActive(): bool
 
         $layout = (string) config('home_about_layout', 'text_left');
         $data['override_layout'] = $layout === 'image_left' ? 'image_left' : 'text_left';
+        $ratio = (string) config('home_about_ratio', '1_1');
+        $data['override_ratio'] = in_array($ratio, ['1_1', '5_7', '7_5', '1_2', '2_1'], true) ? $ratio : '1_1';
+        $data['override_breakpoint'] = (string) config('home_about_breakpoint', 'lg') === 'md' ? 'md' : 'lg';
         $data['override_title'] = $title;
         $data['override_content'] = configLang('home_about_content', 'home_about_default');
         $data['override_image'] = (string) config(

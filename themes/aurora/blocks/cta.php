@@ -7,6 +7,9 @@ $ctaDesc = configLang('home_cta_desc', 'home_cta_desc');
 $ctaButton = config('home_cta_button', '') ?: __('detail_consult');
 $ctaLink = config('home_cta_link', '') ?: '/contact.html';
 $ctaHasCustomBg = !empty($block['bg_image']) || !empty($block['bg_color']);
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 $bg = getBlockBg($block ?? [], '');
 ?>
 <section class="py-24 relative overflow-hidden">
@@ -21,15 +24,16 @@ $bg = getBlockBg($block ?? [], '');
             <?php echo $bg['overlay']; ?>
 
             <div class="relative <?php echo $bg['content']; ?> px-8 md:px-16 py-16 md:py-20 text-center max-w-3xl mx-auto">
-                <h2 class="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
+                <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
                     <?php echo e($ctaTitle); ?>
                 </h2>
+                <?php echo homeTitleDeco(true, '', ''); ?>
                 <?php if ($ctaDesc): ?>
-                <p class="mt-5 text-base md:text-lg text-white/80 leading-relaxed">
+                <p<?php echo $_homeFieldAttr('override_description'); ?> class="mt-5 text-base md:text-lg text-white/80 leading-relaxed">
                     <?php echo e($ctaDesc); ?>
                 </p>
                 <?php endif; ?>
-                <a href="<?php echo e($ctaLink); ?>"
+                <a<?php echo $_homeFieldAttr('override_button_text'); ?> href="<?php echo e($ctaLink); ?>"
                    class="group inline-flex items-center gap-2 mt-10 px-8 py-3.5 rounded-xl bg-white text-slate-900 font-semibold shadow-2xl shadow-black/30 hover:shadow-black/50 hover:-translate-y-0.5 transition-all">
                     <?php echo e($ctaButton); ?>
                     <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>

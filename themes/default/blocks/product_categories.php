@@ -27,7 +27,7 @@ $pcColClass = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-10" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2"><?php echo e($pcTitle); ?></h2>
-            <span class="section-title-bar"></span>
+            <?php echo homeTitleDeco(); ?>
         </div>
 
         <?php if ($pcSearch): ?>

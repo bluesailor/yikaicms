@@ -25,7 +25,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             </div>
             <div>
                 <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
-                <div class="w-12 h-px bg-gray-900 mt-4"></div>
+                <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>
@@ -39,7 +39,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <!-- Text Left (default) -->
             <div>
                 <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
-                <div class="w-12 h-px bg-gray-900 mt-4"></div>
+                <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>

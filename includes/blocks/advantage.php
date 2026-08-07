@@ -16,7 +16,7 @@ $advDefaults = [
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold mb-2"><?php echo __('home_our_advantage'); ?></h2>
-            <span class="section-title-bar section-title-bar-light"></span>
+            <?php echo homeTitleDeco(true); ?>
             <p class="text-gray-400 mt-4"><?php echo e(config('home_advantage_desc', '专业团队，优质服务，值得信赖')); ?></p>
         </div>
 

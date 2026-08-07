@@ -32,7 +32,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <h2 class="text-3xl font-bold text-dark mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
                 </h2>
-                <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
+                <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">
                     <?php echo e(config('home_about_content', config('site_description', '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。'))); ?>
                 </p>
@@ -48,7 +48,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <h2 class="text-3xl font-bold text-dark mb-2">
                     <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
                 </h2>
-                <span class="section-title-bar" style="margin: 0.75rem 0 0;"></span>
+                <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">
                     <?php echo e(config('home_about_content', config('site_description', '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。'))); ?>
                 </p>

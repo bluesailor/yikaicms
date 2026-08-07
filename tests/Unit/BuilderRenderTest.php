@@ -182,6 +182,22 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center', $out);
     }
 
+    public function testMultiColumnCanStackAtTabletWithoutChangingLegacyDefault(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => ['gap' => 'md', 'tablet_stack' => true],
+            'columns'  => [
+                ['span' => 5, 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => 7, 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        $this->assertStringContainsString('grid grid-cols-1 lg:grid-cols-12 gap-4', $out);
+        $this->assertStringContainsString('class="lg:col-span-5"', $out);
+        $this->assertStringContainsString('class="lg:col-span-7"', $out);
+        $this->assertStringNotContainsString('md:grid-cols-12', $out);
+    }
+
     // ---- P2 响应式三档：{d,t,m} → 基类 + md:/lg: 前缀（mobile-first：m=基类 t=md d=lg） ----
 
     public function testResponsivePaddingThreeTiers(): void
@@ -466,6 +482,57 @@ final class BuilderRenderTest extends TestCase
         // 默认值：纵向、中间距、无对齐/内边距/圆角/背景；无 children 输出空容器
         $out = $this->inner($this->oneEl(['type' => 'container', 'data' => []]));
         $this->assertSame('<div class="yk-container flex flex-col gap-4"></div>', $out);
+    }
+
+    public function testReusableStatsGroupRendersResponsiveSelectableItems(): void
+    {
+        $group = BuilderRegistry::get('stats-group');
+        $this->assertNotNull($group);
+        $this->assertTrue($group->isContainer());
+        $this->assertCount(4, $group->defaults()['children']);
+
+        $out = BlockRenderer::renderElementNode([
+            'type' => 'stats-group',
+            'data' => [
+                'mobile_columns' => '1',
+                'tablet_columns' => '3',
+                'desktop_columns' => '5',
+                'gap' => 'lg',
+                'counter_enabled' => true,
+                'counter_start' => 5,
+                'counter_duration' => 1800,
+                'children' => [[
+                    'type' => 'stat-item',
+                    'data' => [
+                        'icon' => 'rocket<script>',
+                        'number' => '128+',
+                        'label' => '项目 <完成>',
+                        'number_color' => '#123ABC',
+                    ],
+                ]],
+            ],
+        ], 0, true, [0, 0, 0]);
+
+        $this->assertStringContainsString(
+            'class="yk-stats-group grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-12"',
+            $out
+        );
+        $this->assertStringContainsString('data-blox-counter="{&quot;enabled&quot;:true,&quot;start&quot;:5,&quot;duration&quot;:1800}"', $out);
+        $this->assertStringContainsString('data-yk-el="0.0.0.0" data-yk-el-type="stat-item"', $out);
+        $this->assertStringContainsString('ti ti-rocketscript', $out);
+        $this->assertStringContainsString('data-count="128+" style="color:#123abc;"', $out);
+        $this->assertStringContainsString('项目 &lt;完成&gt;', $out);
+    }
+
+    public function testReusableStatsGroupClampsCounterSettings(): void
+    {
+        $out = $this->inner($this->oneEl(['type' => 'stats-group', 'data' => [
+            'counter_enabled' => false,
+            'counter_start' => -20,
+            'counter_duration' => 9000,
+            'children' => [],
+        ]]));
+        $this->assertStringContainsString('data-blox-counter="{&quot;enabled&quot;:false,&quot;start&quot;:0,&quot;duration&quot;:5000}"', $out);
     }
 
     public function testDivRendersAsBlockOrFlexWrapper(): void

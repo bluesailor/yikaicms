@@ -12,6 +12,9 @@ if (empty($items)) {
         ['number' => '15', 'suffix' => '+', 'label' => __('home_stats_years')],
     ];
 }
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="py-20 relative overflow-hidden">
     <!-- 渐变分隔条 -->
@@ -23,9 +26,9 @@ if (empty($items)) {
 
     <div class="container mx-auto px-6 lg:px-8 relative">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <?php foreach ($items as $stat): ?>
+            <?php foreach ($items as $index => $stat): ?>
             <div class="text-center group">
-                <div class="text-4xl md:text-5xl font-bold tracking-tight">
+                <div<?php echo $_homeFieldAttr('stats_items.' . $index . '.number'); ?> class="text-4xl md:text-5xl font-bold tracking-tight">
                     <span class="bg-gradient-to-br from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
                         <?php echo e((string)($stat['number'] ?? '0')); ?>
                     </span>
@@ -33,7 +36,7 @@ if (empty($items)) {
                     <span class="text-indigo-400/80 text-3xl"><?php echo e($stat['suffix']); ?></span>
                     <?php endif; ?>
                 </div>
-                <div class="mt-2 text-sm text-slate-400 tracking-wide">
+                <div<?php echo $_homeFieldAttr('stats_items.' . $index . '.label'); ?> class="mt-2 text-sm text-slate-400 tracking-wide">
                     <?php echo e($stat['label'] ?? ''); ?>
                 </div>
             </div>

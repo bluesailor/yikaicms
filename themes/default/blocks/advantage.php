@@ -10,14 +10,17 @@ $advLangKeys = [
     ['icon' => 'briefcase',    'title' => 'home_adv_3_title', 'desc' => 'home_adv_3_desc'],
     ['icon' => 'users',        'title' => 'home_adv_4_title', 'desc' => 'home_adv_4_desc'],
 ];
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="blk-title blk-title--light mb-2"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
+            <h2<?php echo $_homeFieldAttr('override_title'); ?> class="blk-title blk-title--light mb-2"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
             <?php echo homeTitleDeco(true); ?>
-            <p class="text-gray-400 mt-4"><?php echo e(configLang('home_advantage_desc', 'home_advantage_desc')); ?></p>
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="text-gray-400 mt-4"><?php echo e(configLang('home_advantage_desc', 'home_advantage_desc')); ?></p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" data-stagger>
@@ -27,11 +30,11 @@ $advLangKeys = [
                 $iconSvg = $advIcons[$iconKey]['svg'] ?? $advIcons['check-circle']['svg'];
             ?>
             <div class="u-feature text-center">
-                <div class="u-icon-badge w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-5">
+                <div<?php echo $_homeFieldAttr('advantage_items.' . $i . '.icon'); ?> class="u-icon-badge w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-5">
                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><?php echo $iconSvg; ?></svg>
                 </div>
-                <h3 class="text-xl font-bold mb-2"><?php echo e(configLang("home_adv_{$n}_title", $advLangKeys[$i]['title'])); ?></h3>
-                <p class="text-gray-400 text-sm"><?php echo e(configLang("home_adv_{$n}_desc", $advLangKeys[$i]['desc'])); ?></p>
+                <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-xl font-bold mb-2"><?php echo e(configLang("home_adv_{$n}_title", $advLangKeys[$i]['title'])); ?></h3>
+                <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="text-gray-400 text-sm"><?php echo e(configLang("home_adv_{$n}_desc", $advLangKeys[$i]['desc'])); ?></p>
             </div>
             <?php endfor; ?>
         </div>

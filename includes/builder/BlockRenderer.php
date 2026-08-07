@@ -39,10 +39,19 @@ final class BlockRenderer
         2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3', 4 => 'md:grid-cols-4',
         5 => 'md:grid-cols-5', 6 => 'md:grid-cols-6', 12 => 'md:grid-cols-12',
     ];
+    private const GRIDCOL_DESKTOP_MAP = [
+        2 => 'lg:grid-cols-2', 3 => 'lg:grid-cols-3', 4 => 'lg:grid-cols-4',
+        5 => 'lg:grid-cols-5', 6 => 'lg:grid-cols-6', 12 => 'lg:grid-cols-12',
+    ];
     private const COLSPAN_MAP = [
         1 => 'md:col-span-1', 2 => 'md:col-span-2', 3 => 'md:col-span-3', 4 => 'md:col-span-4',
         5 => 'md:col-span-5', 6 => 'md:col-span-6', 7 => 'md:col-span-7', 8 => 'md:col-span-8',
         9 => 'md:col-span-9', 10 => 'md:col-span-10', 11 => 'md:col-span-11', 12 => 'md:col-span-12',
+    ];
+    private const COLSPAN_DESKTOP_MAP = [
+        1 => 'lg:col-span-1', 2 => 'lg:col-span-2', 3 => 'lg:col-span-3', 4 => 'lg:col-span-4',
+        5 => 'lg:col-span-5', 6 => 'lg:col-span-6', 7 => 'lg:col-span-7', 8 => 'lg:col-span-8',
+        9 => 'lg:col-span-9', 10 => 'lg:col-span-10', 11 => 'lg:col-span-11', 12 => 'lg:col-span-12',
     ];
     private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
@@ -141,7 +150,8 @@ final class BlockRenderer
             $gap = AbstractElement::respClasses($settings['gap'] ?? 'lg', self::GAP_MAP, 'lg');
             $gridClass = '';
             if ($colCount > 1) {
-                $gridClass = 'grid grid-cols-1 ' . ($useCustomSpans ? self::GRIDCOL_MAP[12] : (self::GRIDCOL_MAP[$colCount] ?? self::GRIDCOL_MAP[12])) . ' ' . $gap;
+                $gridMap = !empty($settings['tablet_stack']) ? self::GRIDCOL_DESKTOP_MAP : self::GRIDCOL_MAP;
+                $gridClass = 'grid grid-cols-1 ' . ($useCustomSpans ? $gridMap[12] : ($gridMap[$colCount] ?? $gridMap[12])) . ' ' . $gap;
                 if (!empty(self::ALIGN_ITEMS_MAP[$settings['align_items'] ?? ''])) {
                     $gridClass .= ' ' . self::ALIGN_ITEMS_MAP[$settings['align_items']];
                 }
@@ -211,8 +221,15 @@ final class BlockRenderer
             $colCard = $colCount > 1 && !empty($settings['col_card']);
             foreach ($columns as $ci => $col) {
                 if ($colCount > 1) {
-                    $spanClass = $useCustomSpans && is_array($col) ? self::colSpanClass($col['span'] ?? 0) : '';
-                    $colEditAttr = $editMode ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '"' : '';
+                    $spanClass = $useCustomSpans && is_array($col)
+                        ? self::colSpanClass($col['span'] ?? 0, !empty($settings['tablet_stack']))
+                        : '';
+                    $editSpan = $useCustomSpans
+                        ? max(1, (int) ($col['span'] ?? 1))
+                        : intdiv(12, $colCount) + ($ci < (12 % $colCount) ? 1 : 0);
+                    $colEditAttr = $editMode
+                        ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '" data-yk-col-span="' . $editSpan . '"'
+                        : '';
                     if ($colCard) {
                         // Column card background highlights a specific column without affecting other columns.
                         $cbg = isset($col['card_bg']) && (string) $col['card_bg'] !== '' ? (string) $col['card_bg'] : '';
@@ -265,13 +282,14 @@ final class BlockRenderer
      * 深度上限 3 防坏数据画圈（编辑器只允许一层，这里是兜底不是约束）。
      * 未注册 type 静默跳过（与旧 switch default 行为一致）。
      */
-    private static function colSpanClass(mixed $span): string
+    private static function colSpanClass(mixed $span, bool $desktopOnly = false): string
     {
         $span = (int) $span;
         if ($span < 1 || $span > 12) {
             return '';
         }
-        return self::COLSPAN_MAP[$span] ?? '';
+        $map = $desktopOnly ? self::COLSPAN_DESKTOP_MAP : self::COLSPAN_MAP;
+        return $map[$span] ?? '';
     }
 
     private static function applyElementBoxStyle(string $html, array $data, string $type): string
@@ -301,10 +319,24 @@ final class BlockRenderer
 
     private static function renderElement(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
     {
-        $element = BuilderRegistry::get((string) ($el['type'] ?? ''));
+        $type = trim((string) ($el['type'] ?? ''));
+        $element = BuilderRegistry::get($type);
         if ($element === null) {
-            return '';
+            $missing = BloxPluginRegistry::declaration($type);
+            if (!$editMode || $missing === null) {
+                return '';
+            }
+            $pathAttr = htmlspecialchars(implode('.', array_map('strval', $path)), ENT_QUOTES);
+            $typeAttr = htmlspecialchars($type, ENT_QUOTES);
+            $label = htmlspecialchars($missing['label'], ENT_QUOTES);
+            return '<div class="yk-edit-el yk-missing-element" data-yk-el="' . $pathAttr
+                . '" data-yk-el-type="' . $typeAttr . '"><div class="border-2 border-dashed border-amber-300'
+                . ' bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
+                . '<strong>' . $label . '</strong><br>所需插件未启用，节点数据已保留</div></div>';
         }
+        $data = is_array($el['data'] ?? null) ? $el['data'] : [];
+        BloxAssetCollector::collectElement($element, $data);
+
         $children = '';
         if ($element->isContainer() && !$element->rendersOwnChildren() && $depth < 3) {
             foreach ((array) ($el['data']['children'] ?? []) as $childIndex => $child) {
@@ -315,7 +347,6 @@ final class BlockRenderer
                 }
             }
         }
-        $data = is_array($el['data'] ?? null) ? $el['data'] : [];
         $html = $element->renderWithContext($data, $children, [
             'edit_mode' => $editMode,
             'path' => $path,

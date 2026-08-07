@@ -143,26 +143,13 @@ public static function isActive(): bool
      */
     public static function saveDraft(string $blocksJson): array
     {
-        if (strlen($blocksJson) > self::MAX_JSON_BYTES) {
-            throw new RuntimeException('首页布局数据过大');
-        }
-
-        $decoded = json_decode($blocksJson, true);
-        if (!is_array($decoded)) {
-            throw new RuntimeException('首页布局数据不是有效 JSON');
-        }
-
-        $sections = self::extractSections($decoded);
-        if (count($sections) > 100) {
-            throw new RuntimeException('首页区块数量不能超过 100 个');
-        }
-
+        $processed = BloxDocumentPipeline::process($blocksJson, 'home');
         $document = [
             'version'    => self::VERSION,
             'source'     => 'blox',
             'active'     => self::isActive(),
             'updated_at' => time(),
-            'sections'   => self::normalizeSections($sections),
+            'sections'   => $processed['sections'],
         ];
 
         settingModel()->set(
