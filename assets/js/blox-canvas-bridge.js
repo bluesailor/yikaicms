@@ -136,6 +136,7 @@
         this.onPickColumn = options.onPickColumn || noop;
         this.onPickContainer = options.onPickContainer || noop;
         this.onPickSection = options.onPickSection || noop;
+        this.onClear = options.onClear || noop;
         this.lastDropId = "";
         this.started = false;
         this.boundMessage = this.handleMessage.bind(this);
@@ -238,6 +239,10 @@
         }
         if (isIndex(data.ykPick)) {
             this.onPickSection(data.ykPick);
+            return true;
+        }
+        if (data.ykClear === true) {
+            this.onClear();
             return true;
         }
         return false;

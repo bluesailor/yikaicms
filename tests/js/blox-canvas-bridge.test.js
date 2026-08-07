@@ -91,6 +91,14 @@ test("拖放只接受 v1 且按 dropId 去重", function () {
     assert.deepEqual(current.calls, [["drop", "drop-1"]]);
 });
 
+test('ykClear 路由到 onClear，非 true 形态不路由', function () {
+    let cleared = 0;
+    const current = fixture({ onClear: function () { cleared += 1; } });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykClear: true } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykClear: 'yes' } }), false);
+    assert.equal(cleared, 1);
+});
+
 test("内联编辑限制体积，发送与生命周期保持幂等", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykInlineEdit: { kind: "element", path: "0.0.0", field: "text", format: "text", value: "ok" } } }), true);

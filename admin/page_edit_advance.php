@@ -715,7 +715,14 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             return;
         }
         var s = e.target.closest('[data-yk-sec]');
-        if (!s) return;
+        if (!s) {
+            // 点空白 = 取消选择（Bricks/Elementor 同款 UX）：清本地描边并通知编辑器
+            document.querySelectorAll('.yk-selected, .yk-con-selected, .yk-col-selected, .yk-el-selected').forEach(function (node) {
+                node.classList.remove('yk-selected', 'yk-con-selected', 'yk-col-selected', 'yk-el-selected');
+            });
+            postToEditor({ ykClear: true });
+            return;
+        }
         var i = parseInt(s.getAttribute('data-yk-sec'), 10);
         highlightSection(i);
         postToEditor({ ykPick: i });
