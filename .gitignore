@@ -128,3 +128,5 @@ storage/*.sql
 tests/e2e/.auth/
 test-results/
 playwright-report/
+# 冒烟装机生成的运行时清单（setup.php 落盘，admin_crud.php 消费）
+tests/smoke/fixtures.json
