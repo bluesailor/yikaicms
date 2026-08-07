@@ -61,7 +61,7 @@ final class BloxDocumentValidator
         }
         $elementCount++;
         if ($elementCount > self::MAX_ELEMENTS) {
-            throw new RuntimeException('排版元素数量不能超过 ' . self::MAX_ELEMENTS . ' 个');
+            throw new RuntimeException(__('blox_doc_too_many_elements', ['max' => self::MAX_ELEMENTS]));
         }
 
         $type = trim((string) ($node['type'] ?? ''));
@@ -124,7 +124,7 @@ final class BloxDocumentValidator
             return;
         }
         if (isset($ids[$id])) {
-            throw new RuntimeException('排版节点 ID“' . $id . '”重复：' . $ids[$id] . ' 与 ' . $path);
+            throw new RuntimeException(__('blox_doc_dup_id', ['id' => $id, 'a' => $ids[$id], 'b' => $path]));
         }
         $ids[$id] = $path;
     }

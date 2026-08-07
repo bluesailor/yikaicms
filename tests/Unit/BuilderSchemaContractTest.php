@@ -127,7 +127,7 @@ final class BuilderSchemaContractTest extends TestCase
     public function testDuplicateNodeIdsAreRejectedAcrossTheDocument(): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('ID“duplicate”重复');
+        $this->expectExceptionMessage('duplicate');
 
         BloxDocumentValidator::assertValidSections($this->sections([
             ['id' => 'duplicate', 'type' => 'heading', 'data' => ['text' => '一']],

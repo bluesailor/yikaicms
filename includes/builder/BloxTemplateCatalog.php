@@ -98,22 +98,22 @@ final class BloxTemplateCatalog
             return (new BloxRemoteTemplateProvider())->resolve($match[1], $context);
         }
 
-        throw new RuntimeException('无效的模板标识');
+        throw new RuntimeException(__('blox_tpl_bad_key'));
     }
 
     /** @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>} */
     private static function resolveLocal(int $id, string $key): array
     {
         if (!db()->tableExists('blox_templates')) {
-            throw new RuntimeException('模板库尚未初始化');
+            throw new RuntimeException(__('blox_tpl_lib_uninit'));
         }
         $row = bloxTemplateModel()->findPublishedForEditor($id);
         if (!$row) {
-            throw new RuntimeException('模板不存在或尚未发布');
+            throw new RuntimeException(__('blox_tpl_not_published'));
         }
 
         if (!self::requirementsAvailable($row['requirements'] ?? null)) {
-            throw new RuntimeException('模板依赖的元素或插件当前不可用');
+            throw new RuntimeException(__('blox_tpl_deps_unavailable'));
         }
 
         $validated = BloxDocumentPipeline::process((string) ($row['published_data'] ?? ''), 'template_validate');
@@ -161,7 +161,7 @@ final class BloxTemplateCatalog
             ];
         }
 
-        throw new RuntimeException('插件模板不存在或插件未启用');
+        throw new RuntimeException(__('blox_tpl_plugin_missing'));
     }
 
     /** @param array<string,mixed> $template @return array<int,mixed> */
@@ -169,7 +169,7 @@ final class BloxTemplateCatalog
     {
         $document = $template['sections'] ?? $template['document'] ?? $template['data'] ?? [];
         if (!is_array($document)) {
-            throw new RuntimeException('插件模板结构无效');
+            throw new RuntimeException(__('blox_tpl_plugin_invalid'));
         }
         if ($type === 'section' && array_key_exists('columns', $document)) {
             return [$document];
@@ -190,7 +190,7 @@ final class BloxTemplateCatalog
     private static function assertContext(string $context): void
     {
         if (!in_array($context, self::CONTEXTS, true)) {
-            throw new InvalidArgumentException('无效的模板上下文');
+            throw new InvalidArgumentException(__('blox_tpl_bad_context'));
         }
     }
 

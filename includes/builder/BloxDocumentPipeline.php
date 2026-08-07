@@ -16,24 +16,24 @@ final class BloxDocumentPipeline
         int $maxSections = self::MAX_SECTIONS
     ): array {
         if (strlen($json) > $maxBytes) {
-            throw new RuntimeException('排版数据超过允许大小');
+            throw new RuntimeException(__('blox_doc_too_large'));
         }
 
         try {
             $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            throw new RuntimeException('排版数据不是有效 JSON');
+            throw new RuntimeException(__('blox_doc_invalid_json'));
         }
         if (!is_array($decoded)) {
-            throw new RuntimeException('排版数据不是有效 JSON');
+            throw new RuntimeException(__('blox_doc_invalid_json'));
         }
         if (array_key_exists('sections', $decoded) && !is_array($decoded['sections'])) {
-            throw new RuntimeException('排版文档 sections 结构无效');
+            throw new RuntimeException(__('blox_doc_bad_sections'));
         }
 
         $sections = self::extractSections($decoded);
         if (count($sections) > $maxSections) {
-            throw new RuntimeException('排版区块数量不能超过 ' . $maxSections . ' 个');
+            throw new RuntimeException(__('blox_doc_too_many_sections', ['max' => $maxSections]));
         }
 
         BloxDocumentValidator::assertValidSections($sections);

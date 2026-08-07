@@ -140,7 +140,7 @@ final class BuilderPluginPipelineTest extends TestCase
     public function testPipelineRejectsOversizedDocuments(): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('超过允许大小');
+        $this->expectExceptionMessage('blox_doc_too_large');
         BloxDocumentPipeline::process('[] ', 'test', 2);
     }
 

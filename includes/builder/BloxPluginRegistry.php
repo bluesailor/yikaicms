@@ -42,7 +42,7 @@ final class BloxPluginRegistry
     public static function registerElement(string $slug, AbstractElement $element): void
     {
         if (!self::validType($slug, $element->type())) {
-            throw new InvalidArgumentException('插件元素类型必须使用“' . $slug . '/element-name”命名空间');
+            throw new InvalidArgumentException(__('blox_plugin_bad_type', ['slug' => $slug]));
         }
         self::$activeTypes[$element->type()] = true;
         self::$elements[$element->type()] = [
@@ -157,7 +157,7 @@ final class BloxPluginRegistry
     private static function assertSlug(string $slug): void
     {
         if (preg_match('/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', $slug) !== 1) {
-            throw new InvalidArgumentException('无效的插件标识：' . $slug);
+            throw new InvalidArgumentException(__('blox_plugin_bad_slug', ['slug' => $slug]));
         }
     }
 }

@@ -145,28 +145,28 @@ final class BloxTemplateImporter
     public static function prepare(string $json): array
     {
         if (strlen($json) > self::MAX_BYTES) {
-            throw new RuntimeException('模板文件不能超过 2MB');
+            throw new RuntimeException(__('blox_tpl_too_large'));
         }
         try {
             $package = json_decode($json, true, 128, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            throw new RuntimeException('模板文件不是有效 JSON');
+            throw new RuntimeException(__('blox_tpl_invalid_json'));
         }
         if (!is_array($package)) {
-            throw new RuntimeException('模板文件不是有效 JSON 对象');
+            throw new RuntimeException(__('blox_tpl_not_object'));
         }
         self::assertEnvelope($package);
 
         $type = trim((string) $package['type']);
         $name = trim((string) $package['name']);
         if (!BloxTemplateModel::validType($type)) {
-            throw new RuntimeException('模板类型只允许 section、page、header、footer');
+            throw new RuntimeException(__('blox_tpl_bad_type'));
         }
         if ($name === '' || mb_strlen($name) > 150) {
-            throw new RuntimeException('模板名称长度必须为 1-150 个字符');
+            throw new RuntimeException(__('blox_tpl_bad_name'));
         }
         if (!is_array($package['document'])) {
-            throw new RuntimeException('模板 document 结构无效');
+            throw new RuntimeException(__('blox_tpl_bad_document'));
         }
 
         $rawSections = BloxDocumentPipeline::extractSections($package['document']);
@@ -178,7 +178,7 @@ final class BloxTemplateImporter
         sort($requiredTypes);
 
         if (in_array('code', $requiredTypes, true)) {
-            throw new RuntimeException('免费版模板导入不允许 code 元素');
+            throw new RuntimeException(__('blox_tpl_code_locked'));
         }
         $missingElements = [];
         foreach ($requiredTypes as $elementType) {
@@ -187,7 +187,7 @@ final class BloxTemplateImporter
             }
         }
         if ($missingElements !== []) {
-            throw new RuntimeException('模板缺少已启用元素：' . implode('、', $missingElements));
+            throw new RuntimeException(__('blox_tpl_missing_elements', ['list' => implode('、', $missingElements)]));
         }
 
         $pluginOwners = self::pluginOwners($requiredTypes);
@@ -195,7 +195,7 @@ final class BloxTemplateImporter
         $missingPlugins = array_values(array_diff($declared['plugins'], $activePlugins));
         if ($missingPlugins !== []) {
             sort($missingPlugins);
-            throw new RuntimeException('模板缺少已启用插件：' . implode('、', $missingPlugins));
+            throw new RuntimeException(__('blox_tpl_missing_plugins', ['list' => implode('、', $missingPlugins)]));
         }
 
         $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
@@ -227,19 +227,19 @@ final class BloxTemplateImporter
     {
         foreach (['php', 'javascript', 'scripts', 'files', 'server_path'] as $dangerousKey) {
             if (array_key_exists($dangerousKey, $package)) {
-                throw new RuntimeException('模板包包含不允许的可执行字段：' . $dangerousKey);
+                throw new RuntimeException(__('blox_tpl_dangerous_field', ['key' => $dangerousKey]));
             }
         }
         foreach (['format', 'version', 'type', 'name', 'document'] as $key) {
             if (!array_key_exists($key, $package)) {
-                throw new RuntimeException('模板缺少必填字段：' . $key);
+                throw new RuntimeException(__('blox_tpl_missing_field', ['key' => $key]));
             }
         }
         if ((string) $package['format'] !== self::FORMAT) {
-            throw new RuntimeException('不支持的模板格式');
+            throw new RuntimeException(__('blox_tpl_bad_format'));
         }
         if ((int) $package['version'] !== self::VERSION) {
-            throw new RuntimeException('只支持 Blox 模板 JSON v1');
+            throw new RuntimeException(__('blox_tpl_v1_only'));
         }
     }
 
@@ -250,7 +250,7 @@ final class BloxTemplateImporter
             return ['elements' => [], 'plugins' => []];
         }
         if (!is_array($requires)) {
-            throw new RuntimeException('模板 requires 结构无效');
+            throw new RuntimeException(__('blox_tpl_bad_requires'));
         }
         return [
             'elements' => self::stringList($requires['elements'] ?? []),
@@ -262,12 +262,12 @@ final class BloxTemplateImporter
     private static function stringList(mixed $items): array
     {
         if (!is_array($items)) {
-            throw new RuntimeException('模板依赖列表结构无效');
+            throw new RuntimeException(__('blox_tpl_bad_dep_list'));
         }
         $result = [];
         foreach ($items as $item) {
             if (!is_string($item) || trim($item) === '') {
-                throw new RuntimeException('模板依赖项必须是非空字符串');
+                throw new RuntimeException(__('blox_tpl_bad_dep_item'));
             }
             $result[] = trim($item);
         }
@@ -355,7 +355,7 @@ final class BloxTemplateImporter
     {
         foreach ($sections as $section) {
             if (is_array($section) && (int) ($section['library_id'] ?? 0) > 0) {
-                throw new RuntimeException('模板导入不支持跨站可复用区块引用');
+                throw new RuntimeException(__('blox_tpl_cross_site_ref'));
             }
         }
     }

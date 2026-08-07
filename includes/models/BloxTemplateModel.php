@@ -33,10 +33,10 @@ final class BloxTemplateModel extends Model
         $type = trim($type);
         $name = trim($name);
         if (!self::validType($type)) {
-            throw new InvalidArgumentException('无效的模板类型');
+            throw new InvalidArgumentException(__('blox_tpl_bad_type_short'));
         }
         if ($name === '' || mb_strlen($name) > 150) {
-            throw new InvalidArgumentException('模板名称长度必须为 1-150 个字符');
+            throw new InvalidArgumentException(__('blox_tpl_bad_name'));
         }
         if (!in_array($source, self::SOURCES, true)) {
             $source = 'user';
@@ -68,7 +68,7 @@ final class BloxTemplateModel extends Model
     public function catalog(?string $type = null): array
     {
         if ($type !== null && !self::validType($type)) {
-            throw new InvalidArgumentException('无效的模板类型');
+            throw new InvalidArgumentException(__('blox_tpl_bad_type_short'));
         }
         try {
             if ($type === null) {
@@ -136,7 +136,7 @@ final class BloxTemplateModel extends Model
     {
         $row = $this->find($id);
         if (!$row || trim((string) ($row['draft_data'] ?? '')) === '') {
-            throw new RuntimeException('模板草稿不存在');
+            throw new RuntimeException(__('blox_tpl_draft_missing'));
         }
         $now = time();
         $this->updateById($id, [
@@ -150,7 +150,7 @@ final class BloxTemplateModel extends Model
     public function unpublish(int $id): void
     {
         if (!$this->find($id)) {
-            throw new RuntimeException('模板不存在');
+            throw new RuntimeException(__('blox_tpl_not_found'));
         }
         $this->updateById($id, [
             'status' => 0,

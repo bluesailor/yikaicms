@@ -59,7 +59,21 @@ if (!function_exists('config')) {
     }
 }
 if (!function_exists('__')) {
-    function __(string $key, string $default = ''): string { return $default !== '' ? $default : $key; }
+    // 与产线 __() 同构：第二参是参数数组（str_replace :param）。旧桩曾是 string $default，
+    // 会掩盖「把默认值当第二参传」的 TypeError（历史上导致过整页 500）。
+    // 键名上没有占位符的参数以「 [k=v]」追加，保证测试仍能断言参数值。
+    function __(string $key, array $params = []): string {
+        $text = $key;
+        foreach ($params as $name => $value) {
+            $placeholder = ':' . $name;
+            if (str_contains($text, $placeholder)) {
+                $text = str_replace($placeholder, (string) $value, $text);
+            } else {
+                $text .= ' [' . $name . '=' . $value . ']';
+            }
+        }
+        return $text;
+    }
 }
 if (!function_exists('getDefaults')) {
     // 镜像 includes/functions.php 的 getDefaults()：从 config/defaults.php 读默认设置。
