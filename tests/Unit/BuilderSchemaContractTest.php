@@ -66,7 +66,7 @@ final class BuilderSchemaContractTest extends TestCase
     public function testUnknownElementIsRejected(): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('未知元素类型');
+        $this->expectExceptionMessage('blox_doc_unknown_type');
 
         BloxDocumentValidator::assertValidSections($this->sections([
             ['id' => 'missing-1', 'type' => 'plugin-removed', 'data' => []],
@@ -76,7 +76,7 @@ final class BuilderSchemaContractTest extends TestCase
     public function testNonContainerChildrenAreRejected(): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('非容器元素');
+        $this->expectExceptionMessage('blox_doc_leaf_has_children');
 
         BloxDocumentValidator::assertValidSections($this->sections([
             [
@@ -93,7 +93,7 @@ final class BuilderSchemaContractTest extends TestCase
     public function testIllegalDirectChildIsRejected(): void
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('不能直接放入“stats-group”');
+        $this->expectExceptionMessage('[parent=stats-group]');
 
         BloxDocumentValidator::assertValidSections($this->sections([
             [
@@ -120,7 +120,7 @@ final class BuilderSchemaContractTest extends TestCase
 
         $valid[0]['columns'][0]['elements'][0]['data']['block_type'] = 'about';
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('不能直接放入“home-block”');
+        $this->expectExceptionMessage('[parent=home-block]');
         BloxDocumentValidator::assertValidSections($valid);
     }
 

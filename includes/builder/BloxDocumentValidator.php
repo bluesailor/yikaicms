@@ -13,29 +13,29 @@ final class BloxDocumentValidator
         $ids = [];
         $elementCount = 0;
         foreach ($sections as $sectionIndex => $section) {
-            $sectionPath = '区块 ' . ($sectionIndex + 1);
+            $sectionPath = __('blox_section_word', ['n' => $sectionIndex + 1]);
             if (!is_array($section)) {
-                throw new RuntimeException($sectionPath . ' 结构无效');
+                throw new RuntimeException(__('blox_doc_node_invalid', ['path' => $sectionPath]));
             }
             self::rememberId($section['id'] ?? null, $sectionPath, $ids);
             $columns = $section['columns'] ?? [];
             if (!is_array($columns)) {
-                throw new RuntimeException($sectionPath . ' 的列结构无效');
+                throw new RuntimeException(__('blox_doc_cols_invalid', ['path' => $sectionPath]));
             }
             foreach (array_values($columns) as $columnIndex => $column) {
-                $columnPath = $sectionPath . ' / 列 ' . ($columnIndex + 1);
+                $columnPath = $sectionPath . ' / ' . __('blox_col_word', ['n' => $columnIndex + 1]);
                 if (!is_array($column)) {
-                    throw new RuntimeException($columnPath . ' 结构无效');
+                    throw new RuntimeException(__('blox_doc_node_invalid', ['path' => $columnPath]));
                 }
                 self::rememberId($column['id'] ?? null, $columnPath, $ids);
                 $elements = $column['elements'] ?? [];
                 if (!is_array($elements)) {
-                    throw new RuntimeException($columnPath . ' 的元素结构无效');
+                    throw new RuntimeException(__('blox_doc_els_invalid', ['path' => $columnPath]));
                 }
                 foreach (array_values($elements) as $elementIndex => $element) {
                     self::assertValidElement(
                         $element,
-                        $columnPath . ' / 元素 ' . ($elementIndex + 1),
+                        $columnPath . ' / ' . __('blox_element_word', ['n' => $elementIndex + 1]),
                         null,
                         $ids,
                         $elementCount
@@ -57,7 +57,7 @@ final class BloxDocumentValidator
         int &$elementCount
     ): void {
         if (!is_array($node)) {
-            throw new RuntimeException($path . ' 结构无效');
+            throw new RuntimeException(__('blox_doc_node_invalid', ['path' => $path]));
         }
         $elementCount++;
         if ($elementCount > self::MAX_ELEMENTS) {
@@ -68,13 +68,13 @@ final class BloxDocumentValidator
         $element = $type !== '' ? BuilderRegistry::get($type) : null;
         $declaration = $element === null ? BloxPluginRegistry::declaration($type) : null;
         if ($element === null && $declaration === null) {
-            throw new RuntimeException($path . ' 使用未知元素类型“' . ($type !== '' ? $type : '(空)') . '”');
+            throw new RuntimeException(__('blox_doc_unknown_type', ['path' => $path, 'type' => $type !== '' ? $type : __('blox_doc_empty_type')]));
         }
 
         self::rememberId($node['id'] ?? null, $path, $ids);
         $data = $node['data'] ?? [];
         if (!is_array($data)) {
-            throw new RuntimeException($path . ' 的 data 结构无效');
+            throw new RuntimeException(__('blox_doc_data_invalid', ['path' => $path]));
         }
 
         $isContainer = $element?->isContainer() ?? (bool) ($declaration['container'] ?? false);
@@ -86,16 +86,16 @@ final class BloxDocumentValidator
             $direct = in_array($type, $allowed, true);
             $wildcard = in_array('*', $allowed, true) && !$isContainer && $genericChild;
             if (!$direct && !$wildcard) {
-                throw new RuntimeException($path . ' 的“' . $type . '”不能直接放入“' . $parentRule['type'] . '”');
+                throw new RuntimeException(__('blox_doc_child_not_allowed', ['path' => $path, 'type' => $type, 'parent' => $parentRule['type']]));
             }
         }
 
         $children = $data['children'] ?? [];
         if (!is_array($children)) {
-            throw new RuntimeException($path . ' 的 children 结构无效');
+            throw new RuntimeException(__('blox_doc_children_invalid', ['path' => $path]));
         }
         if (!$isContainer && $children !== []) {
-            throw new RuntimeException($path . ' 的非容器元素“' . $type . '”不能包含子元素');
+            throw new RuntimeException(__('blox_doc_leaf_has_children', ['path' => $path, 'type' => $type]));
         }
         if (!$isContainer) {
             return;
@@ -105,7 +105,7 @@ final class BloxDocumentValidator
         foreach (array_values($children) as $childIndex => $child) {
             self::assertValidElement(
                 $child,
-                $path . ' / 子元素 ' . ($childIndex + 1),
+                $path . ' / ' . __('blox_child_word', ['n' => $childIndex + 1]),
                 $childParentRule,
                 $ids,
                 $elementCount
