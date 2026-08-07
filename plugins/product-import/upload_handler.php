@@ -26,8 +26,12 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         UPLOAD_ERR_FORM_SIZE  => '文件超过表单限制',
         UPLOAD_ERR_PARTIAL    => '文件上传不完整',
         UPLOAD_ERR_NO_FILE    => '未选择文件',
+        UPLOAD_ERR_NO_TMP_DIR => '服务器缺少临时目录',
+        UPLOAD_ERR_CANT_WRITE => '服务器写入失败',
+        UPLOAD_ERR_EXTENSION  => '上传被服务器扩展拦截',
     ];
-    $msg = $errors[$file['error']] ?? '上传错误码: ' . $file['error'];
+    $errCode = (int) $file['error'];
+    $msg = array_key_exists($errCode, $errors) ? $errors[$errCode] : '上传错误码: ' . $errCode;
     echo json_encode(['code' => 1, 'msg' => $msg], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -96,7 +100,7 @@ $totalRows = count($rows);
 $previewRows = array_slice($rows, 0, 10);
 $previewRows = array_map(function ($row) use ($headers) {
     $out = [];
-    foreach ($headers as $i => $h) {
+    foreach (array_keys($headers) as $i) {
         $out[] = mb_substr((string) ($row[$i] ?? ''), 0, 200);
     }
     return $out;

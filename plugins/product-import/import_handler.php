@@ -108,7 +108,6 @@ if (empty($allRows)) {
 }
 
 $totalRows = count($allRows);
-$endRow    = min($batch + $batchSize, $totalRows);
 $batchRows = array_slice($allRows, $batch, $batchSize);
 
 [$catSlugMap, $catNameMap] = buildCategoryMaps($inputLang);
@@ -238,14 +237,12 @@ foreach ($batchRows as $rowIdx => $cols) {
                 [$candidate, $record['lang']]
             );
             if (!$hit) {
-                $slug = $candidate;
                 $record['slug'] = $candidate;
                 $exist = null;
                 $resolved = true;
                 break;
             }
             if ((string) $hit['title'] === $title) {
-                $slug = $candidate;
                 $record['slug'] = $candidate;
                 $exist = $hit;
                 $resolved = true;
