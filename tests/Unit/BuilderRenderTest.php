@@ -578,6 +578,18 @@ final class BuilderRenderTest extends TestCase
         $n = (new \NavElement())->buildMarkup(['parent' => 'about']);
         $this->assertStringContainsString('{yk:nav parent=about}', $n);
         $this->assertStringContainsString('{yk:field name=url /}', $n); // 默认模板
+        $this->assertStringNotContainsString('{yk:subnav', $n); // 未开下拉 → 无子级标签（单层零额外查询）
+    }
+
+    public function testNavDropdownMarkup(): void
+    {
+        $n = (new \NavElement())->buildMarkup(['dropdown' => true]);
+        $this->assertStringContainsString('{yk:subnav wrap=ul', $n);
+        $this->assertStringContainsString('group-hover/nav:block', $n); // CSS hover 展开
+        $this->assertStringContainsString('{yk:if field=has_children op=eq value=1}', $n); // 叶子项无箭头
+        // 自定义子模板优先于下拉默认模板
+        $c = (new \NavElement())->buildMarkup(['dropdown' => true, 'template' => [['type' => 'heading', 'data' => ['text' => 'X']]]]);
+        $this->assertStringNotContainsString('{yk:subnav', $c);
     }
 
     public function testDynamicElementsMarkedDynamic(): void

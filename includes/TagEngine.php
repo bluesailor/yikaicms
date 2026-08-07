@@ -160,6 +160,7 @@ final class TagEngine
 
         self::register('list', [self::class, 'tagList'], true);
         self::register('nav', [self::class, 'tagNav'], true);
+        self::register('subnav', [self::class, 'tagSubnav'], true);
         self::register('if', [self::class, 'tagIf'], true);
         self::register('field', [self::class, 'tagField']);
         self::register('channel', [self::class, 'tagChannel']);
@@ -306,12 +307,63 @@ final class TagEngine
             return isset($attrs['empty']) ? e((string) $attrs['empty']) : '';
         }
 
-        $items = getChannels($parentId, $navOnly);
-        // 多语言站点：只保留当前语言的栏目，避免菜单里混语言
-        if (function_exists('isMultiLangEnabled') && isMultiLangEnabled('channels')) {
-            $lang = function_exists('siteLang') ? siteLang() : '';
-            $items = array_values(array_filter($items, fn($c) => ($c['lang'] ?? $lang) === $lang));
+        $items = self::filterNavLang(getChannels($parentId, $navOnly));
+        if ($limit > 0) {
+            $items = array_slice($items, 0, $limit);
         }
+        if ($items === []) {
+            return isset($attrs['empty']) ? e((string) $attrs['empty']) : '';
+        }
+
+        // 多级下拉：内层模板用到 {yk:subnav} 或 has_children 字段时才预取子级
+        // （普通单层导航零额外查询，输出不变）。预取结果塞 _children 供 {yk:subnav} 直接吃。
+        $needChildren = strpos($inner, '{yk:subnav') !== false || strpos($inner, 'has_children') !== false;
+
+        $out = '';
+        foreach (array_values($items) as $i => $item) {
+            $item['_type'] = 'channel';
+            $item['_index'] = $i + 1;
+            if ($needChildren) {
+                $kids = self::filterNavLang(getChannels((int) ($item['id'] ?? 0), $navOnly));
+                $item['has_children'] = $kids === [] ? 0 : 1;
+                $item['_children'] = $kids;
+            }
+            self::pushContext($item);
+            try {
+                $out .= self::render($inner);
+            } finally {
+                self::popContext();
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * {yk:subnav}...{/yk:subnav} — 当前循环栏目的子栏目循环（配合 {yk:nav} 做多级下拉菜单）。
+     * 块标签同名不可自嵌套（渲染正则约束），故子级循环用独立标签而非 {yk:nav} 套 {yk:nav}。
+     * 仅在栏目上下文（{yk:nav} 循环内）有效；attrs：
+     *   nav_only（默认 1）、limit、empty、
+     *   wrap=ul class="..."（非空时用该标签+class 包裹输出；无子级则连包裹一起省略，
+     *   悬停下拉不会出现空面板）。
+     * 搭配 {yk:if field=has_children op=eq value=1} 可条件渲染下拉箭头。
+     * @psalm-suppress PossiblyUnusedReturnValue （handler 经 callable 动态调用）
+     */
+    public static function tagSubnav(array $attrs, ?string $inner): string
+    {
+        $inner = (string) $inner;
+        $ctx = self::currentContext();
+        $parentId = (int) ($ctx['id'] ?? 0);
+        if ($ctx === null || $parentId <= 0 || ($ctx['_type'] ?? '') !== 'channel') {
+            return isset($attrs['empty']) ? e((string) $attrs['empty']) : '';
+        }
+        $navOnly = ($attrs['nav_only'] ?? '1') !== '0';
+        $limit = max(0, min(self::MAX_LIMIT, (int) ($attrs['limit'] ?? 0)));
+
+        // {yk:nav} 预取过且未显式改 nav_only 时直接吃缓存（预取按 nav 的 nav_only 算），
+        // 否则自己查（显式覆盖 nav_only 的场景）
+        $items = (!isset($attrs['nav_only']) && is_array($ctx['_children'] ?? null))
+            ? $ctx['_children']
+            : self::filterNavLang(getChannels($parentId, $navOnly));
         if ($limit > 0) {
             $items = array_slice($items, 0, $limit);
         }
@@ -330,7 +382,23 @@ final class TagEngine
                 self::popContext();
             }
         }
+
+        $wrap = strtolower(trim((string) ($attrs['wrap'] ?? '')));
+        if ($wrap !== '' && preg_match('/^[a-z][a-z0-9]*$/', $wrap) === 1) {
+            $cls = trim((string) ($attrs['class'] ?? ''));
+            return '<' . $wrap . ($cls !== '' ? ' class="' . e($cls) . '"' : '') . '>' . $out . '</' . $wrap . '>';
+        }
         return $out;
+    }
+
+    /** 多语言站点：只保留当前语言的栏目，避免菜单里混语言（{yk:nav}/{yk:subnav} 共用） */
+    private static function filterNavLang(array $items): array
+    {
+        if (function_exists('isMultiLangEnabled') && isMultiLangEnabled('channels')) {
+            $lang = function_exists('siteLang') ? siteLang() : '';
+            $items = array_values(array_filter($items, fn($c) => ($c['lang'] ?? $lang) === $lang));
+        }
+        return $items;
     }
 
     /**

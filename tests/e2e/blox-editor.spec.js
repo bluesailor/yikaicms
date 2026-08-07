@@ -310,6 +310,45 @@ test('template mode edits header draft with dimmed context @ci', async ({ page }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
 });
 
+// ── 模板模式（r9）：预览上下文选择器——换正文 + Resolver 命中上报 ──
+test('template mode context selector swaps body and reports resolver hit @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_header_template,
+    { waitUntil: 'domcontentloaded' });
+  const canvasReady = () => page.waitForFunction(() => {
+    const f = document.querySelector('[data-testid="blox-canvas"]');
+    return f && f.contentDocument && f.contentDocument.readyState === 'complete'
+      && f.contentDocument.querySelector('[data-yk-area]') !== null;
+  });
+  await canvasReady();
+
+  // 头尾模板独有：上下文 select 在场，默认首页；命中 id 由画布上报（属性契约）
+  const ctxSelect = page.getByTestId('blox-ctx-select');
+  await expect(ctxSelect).toBeVisible();
+  await expect(ctxSelect).toHaveValue('home');
+  let contentFrame = await frame(page);
+  await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
+
+  // 切到第二个选项（真实栏目/单页）→ 画布重载：正文换上下文、灰罩契约不变、命中标记仍在
+  const second = await ctxSelect.locator('option').nth(1).getAttribute('value');
+  expect(second).toBeTruthy();
+  await ctxSelect.selectOption(second);
+  await canvasReady();
+  contentFrame = await frame(page);
+  await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
+  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
+  expect(await contentFrame.locator('.yk-ctx-dim [data-yk-sec]').count(),
+    'context body must not be editable').toBe(0);
+
+  // 切回首页 → 同契约
+  await ctxSelect.selectOption('home');
+  await canvasReady();
+  contentFrame = await frame(page);
+  await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
+});
+
 // ── 点空白取消选择（用户报告的回归，2026-08-08）──
 test('clicking blank canvas deselects tree selection @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');

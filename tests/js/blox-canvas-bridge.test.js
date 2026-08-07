@@ -99,6 +99,17 @@ test('ykClear 路由到 onClear，非 true 形态不路由', function () {
     assert.equal(cleared, 1);
 });
 
+test('ykAreaHit 只接受非负整数（r9 上下文命中上报）', function () {
+    const hits = [];
+    const current = fixture({ onAreaHit: function (id) { hits.push(id); } });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaHit: 0 } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaHit: 12 } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaHit: -1 } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaHit: 1.5 } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaHit: "3" } }), false);
+    assert.deepEqual(hits, [0, 12]);
+});
+
 test("内联编辑限制体积，发送与生命周期保持幂等", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykInlineEdit: { kind: "element", path: "0.0.0", field: "text", format: "text", value: "ok" } } }), true);
