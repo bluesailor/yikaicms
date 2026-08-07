@@ -115,7 +115,13 @@ storage/parity-*.sqlite
 admin/blox_editor.php
 admin/blox_home_api.php
 themes/blox/
-tests/Unit/Blox*Test.php
+# 付费契约测试是固定清单（见私库 BLOX-README.md），显式列出——
+# Blox*Test.php 通配曾误伤公开类的新测试（BloxAreaResolverTest, 2026-08-07）
+tests/Unit/BloxEditorHistoryContractTest.php
+tests/Unit/BloxEditorPreviewContractTest.php
+tests/Unit/BloxRemoteTemplateProviderTest.php
+tests/Unit/BloxTemplateCatalogTest.php
+tests/Unit/BloxTemplateImporterTest.php
 .git-blox/
 /BLOX-README.md
 

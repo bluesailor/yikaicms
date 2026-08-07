@@ -63,9 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $prepared = BloxTemplateImporter::prepare($json);
-            if (!BloxTemplateCatalog::supportsEditorType($prepared['type'])) {
-                throw new RuntimeException(__('blox_template_type_not_ready'));
-            }
+            // r6：四类模板均可导入管理。header/footer 经激活条件在前台生效，画布插入目录仍只 section/page。
             $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0));
             adminLog(
                 'blox_template',

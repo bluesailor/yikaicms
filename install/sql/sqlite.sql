@@ -188,6 +188,7 @@ CREATE TABLE "yikai_blox_templates" (
   "draft_data" longtext NOT NULL,
   "published_data" longtext,
   "requirements" longtext,
+  "conditions" longtext,
   "thumbnail" varchar(500) NOT NULL DEFAULT '',
   "status" INTEGER NOT NULL DEFAULT 0,
   "admin_id" INTEGER NOT NULL DEFAULT 0,

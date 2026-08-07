@@ -301,6 +301,53 @@ function config(string $key, mixed $default = ''): mixed
  * 本机开发（DEBUG=true）跳过授权检查，便于无授权环境继续开发；
  * 该常量只能由 config/config.php 设置，改得动它的人本来就控制了整站。
  */
+/**
+ * Blox 头尾区域前台渲染（r6 渲染契约）。
+ *
+ * 无发布的头/尾模板时返回 ''——主题壳据此走原 PHP 模板（黄金对拍：
+ * 未启用新能力时输出逐字节不变；逐主题接入，未接入主题天然回退）。
+ * 激活裁决见 BloxAreaResolver（特异性评分，无条件模板=全站兜底）。
+ *
+ * 上下文来源：入口脚本作用域的 $currentChannelId / $page（经 $GLOBALS 读取），
+ * 首页 = 入口为根 index.php。头尾模板与授权无关——发布后前台永远渲染
+ * （已购内容不因授权过期消失，与 Blox 首页同一原则）。
+ */
+function bloxAreaHtml(string $area): string
+{
+    if (!in_array($area, ['header', 'footer'], true)) {
+        return '';
+    }
+    try {
+        if (!db()->tableExists('blox_templates')) {
+            return '';
+        }
+        $templates = bloxTemplateModel()->publishedAreaTemplates($area);
+        if ($templates === []) {
+            return '';
+        }
+        $script = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $context = [
+            'home' => $script === 'index.php',
+            'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
+            'page_id' => (int) (is_array($GLOBALS['page'] ?? null) ? ($GLOBALS['page']['id'] ?? 0) : 0),
+        ];
+        $row = BloxAreaResolver::resolve($templates, $context);
+        if ($row === null) {
+            return '';
+        }
+        $body = BlockRenderer::render((string) ($row['published_data'] ?? ''));
+        if ($body === '') {
+            return '';
+        }
+        $tag = $area === 'header' ? 'header' : 'footer';
+        $idAttr = $area === 'header' ? ' id="siteHeader"' : '';
+        return '<' . $tag . $idAttr . ' class="yk-blox-area yk-blox-' . $area . '">' . $body . '</' . $tag . '>';
+    } catch (Throwable $e) {
+        error_log('[bloxAreaHtml] ' . $e->getMessage());
+        return ''; // 任何异常回退旧模板，头尾故障不白屏
+    }
+}
+
 function bloxEditorEnabled(): bool
 {
     if ((string) config('blox_editor_enabled', '0') !== '1') {

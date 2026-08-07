@@ -118,6 +118,10 @@ if ($footerBgImage) {
     <?php do_action('ik_footer_before'); ?>
 
     <!-- footer -->
+    <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
+    <?php if ($ykBloxFooter !== ''): ?>
+    <?php echo $ykBloxFooter; // Blox 尾模板接管；无发布模板时走下方原生尾 ?>
+    <?php else: ?>
     <footer class="mt-auto" style="<?php echo $footerBgStyle; ?> color: <?php echo e($footerTextColor); ?>"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-footer'; ?>>
         <div class="container mx-auto px-4 py-12">
             <?php if (!empty($footerColumns)): ?>
@@ -235,6 +239,7 @@ if ($footerBgImage) {
             </div>
         </div>
     </footer>
+    <?php endif; ?>
 
     <script>
         // 移动端菜单切换
