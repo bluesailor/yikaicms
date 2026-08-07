@@ -138,6 +138,7 @@
         this.onPickSection = options.onPickSection || noop;
         this.onClear = options.onClear || noop;
         this.onAreaHit = options.onAreaHit || noop;
+        this.onEmptyAction = options.onEmptyAction || noop;
         this.lastDropId = "";
         this.started = false;
         this.boundMessage = this.handleMessage.bind(this);
@@ -248,6 +249,10 @@
         }
         if (typeof data.ykAreaHit === "number" && Number.isInteger(data.ykAreaHit) && data.ykAreaHit >= 0) {
             this.onAreaHit(data.ykAreaHit);
+            return true;
+        }
+        if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {
+            this.onEmptyAction(data.ykEmptyAction);
             return true;
         }
         return false;

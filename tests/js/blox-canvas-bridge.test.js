@@ -110,6 +110,16 @@ test('ykAreaHit 只接受非负整数（r9 上下文命中上报）', function (
     assert.deepEqual(hits, [0, 12]);
 });
 
+test('ykEmptyAction 白名单：templates/section 过，其余拒', function () {
+    const actions = [];
+    const current = fixture({ onEmptyAction: function (a) { actions.push(a); } });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEmptyAction: 'templates' } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEmptyAction: 'section' } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEmptyAction: 'evil' } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEmptyAction: true } }), false);
+    assert.deepEqual(actions, ['templates', 'section']);
+});
+
 test("内联编辑限制体积，发送与生命周期保持幂等", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykInlineEdit: { kind: "element", path: "0.0.0", field: "text", format: "text", value: "ok" } } }), true);
