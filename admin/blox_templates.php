@@ -62,8 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException(__('blox_tpl_pick_or_paste'));
             }
 
-            $prepared = BloxTemplateImporter::prepare($json);
-            // r6：四类模板均可导入管理。header/footer 经激活条件在前台生效，画布插入目录仍只 section/page。
+            // r6：四类模板均可导入管理（importJson 内部完整校验）。header/footer 经激活条件前台生效，画布插入目录仍只 section/page。
             $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0));
             adminLog(
                 'blox_template',
