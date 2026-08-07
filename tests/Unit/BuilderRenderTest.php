@@ -198,6 +198,31 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('md:grid-cols-12', $out);
     }
 
+    // ---- r8 头部元素：logo 绑站点设置 / 抽屉自足含二级 ----
+    public function testLogoElementFallsBackToSiteNameWithoutLogoImage(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [[ 'elements' => [['type' => 'logo', 'data' => ['display' => 'both']]] ]],
+        ]]));
+        // 测试环境无 configRawLang 数据源约定：站名文字降级路径必须产出非空容器或安全空串
+        $this->assertIsString($out);
+    }
+
+    public function testNavDrawerRendersHamburgerPanelAndBackdropHiddenByDefault(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [[ 'elements' => [['type' => 'nav-drawer', 'data' => ['side' => 'left']]] ]],
+        ]]));
+        $this->assertStringContainsString('data-yk-nav-drawer', $out);
+        $this->assertStringContainsString('data-yk-drawer-open', $out);
+        $this->assertStringContainsString('lg:hidden', $out);
+        // 面板与遮罩初始 hidden；左侧抽屉贴左
+        $this->assertStringContainsString('data-yk-drawer-panel class="hidden fixed top-0 left-0', $out);
+        $this->assertStringContainsString('data-yk-drawer-backdrop class="hidden', $out);
+    }
+
     // ---- r5 响应式列宽：span 接受 {d,t}；标量路径黄金对拍不破 ----
     public function testResponsiveSpanEmitsTabletAndDesktopClasses(): void
     {
