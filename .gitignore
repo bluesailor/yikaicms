@@ -125,6 +125,10 @@ tests/Unit/BloxTemplateImporterTest.php
 .git-blox/
 /BLOX-README.md
 
+# 本地 AI 工具配置（OpenCode 等），不入库
+.opencode/
+opencode.json
+
 # ── 本地产物与备份：一律不得进版本库 ──────────────────────────────
 config/config.php.bak.*
 storage/backup_*.sql
