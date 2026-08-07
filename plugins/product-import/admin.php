@@ -22,6 +22,25 @@ if ($handler === 'import') {
     return;
 }
 
+if ($handler === 'sample') {
+    // 样例 CSV：表头与字段中文名完全一致——上传后自动映射全部命中。
+    // UTF-8 BOM 保证 Excel 双击打开不乱码；规格参数演示单元格内换行（key:value 每行一条）。
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="product-import-sample.csv"');
+    $rows = [
+        ['产品名称', '所属分类', '产品型号', '售价', '市场价', '封面图片', '产品图集', '摘要', '详情内容', '规格参数', '标签', '状态(1上架/0下架)', '排序'],
+        ['示例产品：智能网关 X1', '', 'GW-X1', '1299', '1599', '/uploads/images/demo1.jpg', '/uploads/images/a.jpg,/uploads/images/b.jpg', '一句话卖点摘要', '<p>详情支持 HTML。</p>', "接口:RS485×2\n电源:DC 12-24V\n防护:IP30", '网关,工业', '1', '0'],
+        ['示例产品：温湿度传感器 T2', '', 'TH-T2', '399', '', '', '', '第二行示例：非必填列可留空', '', '量程:-40~85℃', '传感器', '1', '0'],
+    ];
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    foreach ($rows as $r) {
+        fputcsv($out, str_replace('\\n', "\n", $r));
+    }
+    fclose($out);
+    return;
+}
+
 // ── 产品字段定义 ──
 $productFields = [
     ['key' => '_ignore',   'label' => '-- 忽略此列 --'],
@@ -77,6 +96,31 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </template>
                 </div>
             </template>
+        </div>
+    </div>
+
+    <!-- 使用说明 + 样例下载 -->
+    <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6" x-data="{ helpOpen: false }">
+        <div class="flex items-center justify-between">
+            <button type="button" @click="helpOpen = !helpOpen" class="text-sm font-medium text-blue-700 inline-flex items-center gap-1">
+                <i class="ti" :class="helpOpen ? 'ti-chevron-down' : 'ti-chevron-right'"></i>使用说明与字段格式
+            </button>
+            <a href="?plugin=product-import&handler=sample"
+               class="text-sm text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 inline-flex items-center gap-1">
+                <i class="ti ti-file-download"></i>下载样例表格（CSV，Excel 可直接编辑）
+            </a>
+        </div>
+        <div x-show="helpOpen" x-collapse class="mt-3 text-sm text-gray-600 space-y-2">
+            <p><b>步骤</b>：下载样例 → 用 Excel 填写（另存时保持 CSV 格式即可）→ 上传 → 核对字段映射（样例表头会自动全部识别）→ 选择重复策略 → 开始导入。</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <li><b>产品名称</b>为必填；其余列可留空或整列删除。</li>
+                <li><b>所属分类 / 品牌</b>：填后台已存在的分类/品牌<b>名称</b>或别名，找不到时归入未分类。</li>
+                <li><b>产品图集</b>：多张图用英文逗号分隔；<b>标签</b>同样逗号分隔，不存在的标签会自动创建。</li>
+                <li><b>规格参数</b>：单元格内每行一条「名称:值」（Excel 中用 Alt+Enter 换行）。</li>
+                <li><b>状态</b>：1=上架、0=下架，留空默认上架；<b>价格</b>留空按 0 处理。</li>
+                <li><b>重复策略</b>：按「同语言 + 相同名称」判定已存在——「跳过」保持原数据不动，「更新」用表格覆盖已映射的列。重复导入同一文件是安全的。</li>
+                <li>大文件自动分批写入（默认每批 50 条），导入过程中请勿关闭页面。</li>
+            </ul>
         </div>
     </div>
 

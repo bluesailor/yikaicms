@@ -282,7 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             if ($ok) {
                 adminLog('plugin', 'market_install', '市场安装插件: ' . $pluginSlug . ' v' . ($item['version'] ?? ''));
             }
-            echo json_encode(['code' => $ok ? 0 : 1, 'msg' => $msg]);
+            echo json_encode(['code' => $ok ? 0 : 1, 'msg' => $msg, 'slug' => $ok ? $pluginSlug : '']);
             break;
 
         default:
@@ -647,7 +647,14 @@ function pluginMarket() {
                 var data = await resp.json();
                 if (data.code === 0) {
                     showMessage(data.msg);
-                    setTimeout(function() { location.reload(); }, 900);
+                    // 装完即问启用：免去用户去已安装列表里找启用按钮（2026-08-08 用户反馈）
+                    if (data.slug && confirm('安装成功，立即启用「' + p.name + '」？')) {
+                        var act = new URLSearchParams();
+                        act.set('action', 'activate');
+                        act.set('slug', data.slug);
+                        try { await fetch('', { method: 'POST', body: act }); } catch (e) {}
+                    }
+                    setTimeout(function() { location.reload(); }, 400);
                 } else {
                     showMessage(data.msg, 'error');
                 }
