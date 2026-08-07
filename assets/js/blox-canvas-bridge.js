@@ -137,6 +137,7 @@
         this.onPickContainer = options.onPickContainer || noop;
         this.onPickSection = options.onPickSection || noop;
         this.onClear = options.onClear || noop;
+        this.onAreaHit = options.onAreaHit || noop;
         this.lastDropId = "";
         this.started = false;
         this.boundMessage = this.handleMessage.bind(this);
@@ -243,6 +244,10 @@
         }
         if (data.ykClear === true) {
             this.onClear();
+            return true;
+        }
+        if (typeof data.ykAreaHit === "number" && Number.isInteger(data.ykAreaHit) && data.ykAreaHit >= 0) {
+            this.onAreaHit(data.ykAreaHit);
             return true;
         }
         return false;

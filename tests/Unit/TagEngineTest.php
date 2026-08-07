@@ -333,6 +333,72 @@ final class TagEngineTest extends TestCase
         $this->assertSame('无', $out);
     }
 
+    // ---- {yk:subnav} 多级下拉（r9）----
+
+    /** 建两层树：产品(1){子类A(2),子类B(3)} + 关于(4，叶子) */
+    private function seedNavTree(): void
+    {
+        $this->insertRow('channels', ['name' => '产品', 'slug' => 'product', 'type' => 'product', 'is_nav' => 1]);
+        $this->insertRow('channels', ['name' => '子类A', 'slug' => 'cat-a', 'parent_id' => 1, 'is_nav' => 1]);
+        $this->insertRow('channels', ['name' => '子类B', 'slug' => 'cat-b', 'parent_id' => 1, 'is_nav' => 1]);
+        $this->insertRow('channels', ['name' => '关于', 'slug' => 'about', 'type' => 'page', 'is_nav' => 1]);
+    }
+
+    /** 黄金对拍：不含 {yk:subnav}/has_children 的单层模板，输出与 r8 前逐字节一致（子级不泄漏） */
+    public function testNavSingleLevelOutputUnchangedOnTree(): void
+    {
+        $this->seedNavTree();
+        $out = TagEngine::render('{yk:nav}<a href="{yk:field name=url /}">{yk:field name=name /}</a>{/yk:nav}');
+        $this->assertSame('<a href="/product.html">产品</a><a href="/about.html">关于</a>', $out);
+    }
+
+    public function testSubnavLoopsChildrenInsideNav(): void
+    {
+        $this->seedNavTree();
+        $out = TagEngine::render('{yk:nav}<li>{yk:field name=name /}{yk:subnav wrap=ul class="dd"}<i>{yk:field name=name /}</i>{/yk:subnav}</li>{/yk:nav}');
+        $this->assertSame('<li>产品<ul class="dd"><i>子类A</i><i>子类B</i></ul></li><li>关于</li>', $out);
+    }
+
+    /** 叶子栏目：连 wrap 包裹一起省略（悬停下拉不出空面板） */
+    public function testSubnavLeafOmitsWrapper(): void
+    {
+        $this->insertRow('channels', ['name' => '关于', 'slug' => 'about', 'is_nav' => 1]);
+        $out = TagEngine::render('{yk:nav}{yk:subnav wrap=ul class="dd"}x{/yk:subnav}{/yk:nav}');
+        $this->assertSame('', $out);
+    }
+
+    public function testNavHasChildrenConditionalCaret(): void
+    {
+        $this->seedNavTree();
+        $out = TagEngine::render('{yk:nav}[{yk:field name=name /}{yk:if field=has_children op=eq value=1}▾{/yk:if}]{/yk:nav}');
+        $this->assertSame('[产品▾][关于]', $out);
+    }
+
+    /** subnav 显式 nav_only=0 时不吃 nav 的预取缓存，重查全部子级 */
+    public function testSubnavNavOnlyOverrideBypassesCache(): void
+    {
+        $this->seedNavTree();
+        $this->insertRow('channels', ['name' => '隐藏子类', 'slug' => 'cat-c', 'parent_id' => 1, 'is_nav' => 0]);
+        $out = TagEngine::render('{yk:nav parent=0 limit=1}{yk:subnav nav_only=0}[{yk:field name=name /}]{/yk:subnav}{/yk:nav}');
+        $this->assertSame('[子类A][子类B][隐藏子类]', $out);
+    }
+
+    public function testSubnavLimit(): void
+    {
+        $this->seedNavTree();
+        $out = TagEngine::render('{yk:nav limit=1}{yk:subnav limit=1}[{yk:field name=name /}]{/yk:subnav}{/yk:nav}');
+        $this->assertSame('[子类A]', $out);
+    }
+
+    /** 非栏目上下文（文章正文里误用）安全空输出 */
+    public function testSubnavOutsideChannelContextEmpty(): void
+    {
+        TagEngine::setItem(['id' => 5, 'title' => 'A'], 'content');
+        $out = TagEngine::render('{yk:subnav empty="无"}x{/yk:subnav}');
+        $this->assertSame('无', $out);
+        TagEngine::setItem(null);
+    }
+
     // ---- 自定义模型：{yk:list type=<key>} 过滤 + {yk:field} meta 回退 ----
 
     public function testListFiltersByCustomModelType(): void
