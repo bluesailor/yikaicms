@@ -48,13 +48,17 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <?php foreach ($items as $i => $item): ?>
-            <?php $iconKey = $item['icon'] ?? 'sparkles'; ?>
+            <?php $iconKey = $item['icon'] ?? 'sparkles'; $iconData = BloxIcon::parse($iconKey, 'sparkles'); ?>
             <div class="group relative p-7 rounded-2xl aurora-glass aurora-glass-hover transition">
                 <!-- Icon -->
                 <div<?php echo $_homeFieldAttr('advantage_items.' . $i . '.icon'); ?> class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center mb-5 group-hover:shadow-lg group-hover:shadow-indigo-500/20 transition">
+                    <?php if ($iconData['library'] === 'bootstrap'): ?>
+                    <i class="<?php echo e(BloxIcon::classes($iconData['value'])); ?> text-2xl text-indigo-300"></i>
+                    <?php else: ?>
                     <svg class="w-6 h-6 text-indigo-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <?php echo $icons[$iconKey] ?? $icons['sparkles']; ?>
                     </svg>
+                    <?php endif; ?>
                 </div>
                 <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-lg font-semibold text-slate-100 mb-2">
                     <?php echo e($item['title'] ?? ''); ?>

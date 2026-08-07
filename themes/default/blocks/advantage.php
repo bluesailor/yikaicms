@@ -27,11 +27,16 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
             <?php for ($i = 0; $i < 4; $i++):
                 $n = $i + 1;
                 $iconKey = config("home_adv_{$n}_icon", $advLangKeys[$i]['icon']);
+                $iconData = BloxIcon::parse($iconKey, 'check-circle');
                 $iconSvg = $advIcons[$iconKey]['svg'] ?? $advIcons['check-circle']['svg'];
             ?>
             <div class="u-feature text-center">
                 <div<?php echo $_homeFieldAttr('advantage_items.' . $i . '.icon'); ?> class="u-icon-badge w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-5">
+                    <?php if ($iconData['library'] === 'bootstrap'): ?>
+                    <i class="<?php echo e(BloxIcon::classes($iconData['value'])); ?> text-3xl text-white"></i>
+                    <?php else: ?>
                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><?php echo $iconSvg; ?></svg>
+                    <?php endif; ?>
                 </div>
                 <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-xl font-bold mb-2"><?php echo e(configLang("home_adv_{$n}_title", $advLangKeys[$i]['title'])); ?></h3>
                 <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="text-gray-400 text-sm"><?php echo e(configLang("home_adv_{$n}_desc", $advLangKeys[$i]['desc'])); ?></p>

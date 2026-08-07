@@ -31,19 +31,26 @@ final class IconElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $iconName = $data['icon'] ?? 'star';
-        $iconName = self::FEATHER_ALIAS[$iconName] ?? $iconName;
-        $iconName = preg_replace('/[^a-z0-9-]/', '', (string) $iconName) ?: 'star';
+        $iconValue = strtolower(trim((string) ($data['icon'] ?? 'star')));
+        if (!str_contains($iconValue, ':')) {
+            $iconValue = self::FEATHER_ALIAS[$iconValue] ?? $iconValue;
+        }
         $iconSize = self::SIZE_MAP[$data['size'] ?? 'md'] ?? '32px';
         $iconColor = htmlspecialchars($data['color'] ?? '');
         $style = 'font-size:' . $iconSize . ';line-height:1;' . ($iconColor ? 'color:' . $iconColor . ';' : '');
         $iconText = htmlspecialchars($data['text'] ?? '');
         $html = '<div class="text-center my-2">';
-        $html .= '<i class="ti ti-' . $iconName . ' inline-block" style="' . $style . '"></i>';
+        $html .= '<i class="' . BloxIcon::classes($iconValue) . ' inline-block" style="' . $style . '"></i>';
         if ($iconText) {
             $html .= '<div class="mt-1 text-sm">' . $iconText . '</div>';
         }
         $html .= '</div>';
         return $html;
+    }
+
+    public function stylesFor(array $data): array
+    {
+        $stylesheet = BloxIcon::stylesheet($data['icon'] ?? null);
+        return $stylesheet === null ? [] : [$stylesheet];
     }
 }

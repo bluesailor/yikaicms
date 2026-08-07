@@ -60,6 +60,7 @@ $isTransparentHeader = !empty($isHomePage);
     <meta property="og:url" content="<?php echo e($canonicalUrl); ?>">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
+    <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <style>
     :root { --color-primary: <?php echo $primaryColor; ?>; --color-secondary: <?php echo config('secondary_color', '#2554d4'); ?>; }

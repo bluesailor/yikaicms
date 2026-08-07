@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../TagEngine.php';
 require_once __DIR__ . '/AbstractElement.php';
+require_once __DIR__ . '/BloxIcon.php';
 require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';

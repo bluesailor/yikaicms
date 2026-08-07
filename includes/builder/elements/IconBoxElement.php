@@ -22,11 +22,11 @@ final class IconBoxElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $icon = preg_replace('/[^a-z0-9-]/', '', (string) ($data['icon'] ?? 'star')) ?: 'star';
+        $icon = $data['icon'] ?? 'star';
         $title = htmlspecialchars($data['title'] ?? '');
         $text = htmlspecialchars($data['text'] ?? '');
         $html = '<div class="text-center px-4 py-6"' . $this->animationAttrs($data) . '>';
-        $html .= '<i class="ti ti-' . $icon . ' inline-block text-primary" style="font-size:40px;line-height:1"></i>';
+        $html .= '<i class="' . BloxIcon::classes($icon) . ' inline-block text-primary" style="font-size:40px;line-height:1"></i>';
         if ($title !== '') {
             $html .= '<h3 class="text-lg font-semibold mt-3 mb-1">' . $title . '</h3>';
         }
@@ -34,5 +34,11 @@ final class IconBoxElement extends AbstractElement
             $html .= '<p class="text-sm text-gray-500">' . $text . '</p>';
         }
         return $html . '</div>';
+    }
+
+    public function stylesFor(array $data): array
+    {
+        $stylesheet = BloxIcon::stylesheet($data['icon'] ?? null);
+        return $stylesheet === null ? [] : [$stylesheet];
     }
 }
