@@ -637,7 +637,7 @@ final class HomeBloxBlockSchema
             }
             $icon = strtolower(trim((string) ($item['icon'] ?? $statDefaults[$index]['icon'])));
             $stats[] = [
-                'icon' => preg_match('/^(?:none|[a-z0-9-]{1,60})$/', $icon) === 1 ? $icon : $statDefaults[$index]['icon'],
+                'icon' => preg_match('/^(?:none|(?:bi:)?[a-z0-9-]{1,60})$/', $icon) === 1 ? $icon : $statDefaults[$index]['icon'],
                 'number' => mb_substr(trim(strip_tags((string) ($item['number'] ?? $statDefaults[$index]['number']))), 0, 50),
                 'label' => mb_substr(trim(strip_tags((string) ($item['label'] ?? $statDefaults[$index]['label']))), 0, 100),
             ];
@@ -662,7 +662,7 @@ final class HomeBloxBlockSchema
             }
             $icon = strtolower(trim((string) ($item['icon'] ?? $advantageDefaults[$index]['icon'])));
             $advantages[] = [
-                'icon' => preg_match('/^[a-z0-9-]{1,60}$/', $icon) === 1 ? $icon : $advantageDefaults[$index]['icon'],
+                'icon' => preg_match('/^(?:bi:)?[a-z0-9-]{1,60}$/', $icon) === 1 ? $icon : $advantageDefaults[$index]['icon'],
                 'title' => mb_substr(trim(strip_tags((string) ($item['title'] ?? $advantageDefaults[$index]['title']))), 0, 100),
                 'description' => mb_substr(trim(strip_tags((string) ($item['description'] ?? $advantageDefaults[$index]['description']))), 0, 300),
             ];

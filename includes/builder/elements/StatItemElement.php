@@ -27,7 +27,7 @@ final class StatItemElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $icon = preg_replace('/[^a-z0-9-]/', '', (string) ($data['icon'] ?? 'chart-bar')) ?: 'chart-bar';
+        $icon = $data['icon'] ?? 'chart-bar';
         $number = htmlspecialchars((string) ($data['number'] ?? ''), ENT_QUOTES);
         $label = htmlspecialchars((string) ($data['label'] ?? ''), ENT_QUOTES);
         $iconStyle = self::colorStyle($data['icon_color'] ?? null);
@@ -35,12 +35,18 @@ final class StatItemElement extends AbstractElement
         $labelStyle = self::colorStyle($data['label_color'] ?? null);
 
         $html = '<div class="yk-stat-item text-center px-2 py-3">';
-        if ($icon !== 'none') {
-            $html .= '<i class="ti ti-' . $icon . ' inline-block text-4xl text-primary mb-2 leading-none"' . $iconStyle . '></i>';
+        if (!BloxIcon::isNone($icon)) {
+            $html .= '<i class="' . BloxIcon::classes($icon, 'chart-bar') . ' inline-block text-4xl text-primary mb-2 leading-none"' . $iconStyle . '></i>';
         }
         $html .= '<div class="stat-number text-3xl font-bold text-gray-900 mb-1" data-count="' . $number . '"' . $numberStyle . '>' . $number . '</div>';
         $html .= '<div class="text-sm text-gray-500"' . $labelStyle . '>' . $label . '</div>';
         return $html . '</div>';
+    }
+
+    public function stylesFor(array $data): array
+    {
+        $stylesheet = BloxIcon::stylesheet($data['icon'] ?? null);
+        return $stylesheet === null ? [] : [$stylesheet];
     }
 
     private static function colorStyle(mixed $value): string

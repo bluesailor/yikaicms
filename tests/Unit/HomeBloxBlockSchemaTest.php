@@ -189,17 +189,17 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $normalized = HomeBloxBlockSchema::normalize([
             'block_type' => 'advantage',
             'advantage_items' => [
-                ['icon' => 'Shield-Check', 'title' => '<b>Quality</b>', 'description' => '<i>Strict control</i>'],
+                ['icon' => 'BI:Shield-Check', 'title' => '<b>Quality</b>', 'description' => '<i>Strict control</i>'],
             ],
         ]);
 
         $this->assertCount(4, $normalized['advantage_items']);
-        $this->assertSame('shield-check', $normalized['advantage_items'][0]['icon']);
+        $this->assertSame('bi:shield-check', $normalized['advantage_items'][0]['icon']);
         $this->assertSame('Quality', $normalized['advantage_items'][0]['title']);
         $this->assertSame('Strict control', $normalized['advantage_items'][0]['description']);
 
         $overrides = HomeBloxBlockSchema::runtimeConfigOverrides($normalized);
-        $this->assertSame('shield-check', $overrides['home_adv_1_icon']);
+        $this->assertSame('bi:shield-check', $overrides['home_adv_1_icon']);
         $this->assertSame('Quality', $overrides['home_adv_1_title']);
         $this->assertSame('Quality', $overrides['home_adv_1_title_' . siteLang()]);
         $this->assertSame('Strict control', $overrides['home_adv_1_desc_' . siteLang()]);
@@ -234,7 +234,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
             'stats_items' => [
                 ['icon' => 'Award', 'number' => '<b>12+</b>', 'label' => '<i>Years</i>'],
                 ['icon' => 'bad icon!', 'number' => '200', 'label' => 'Clients'],
-                ['icon' => 'briefcase', 'number' => '30', 'label' => 'Team'],
+                ['icon' => 'BI:Briefcase', 'number' => '30', 'label' => 'Team'],
                 ['icon' => 'none', 'number' => '99%', 'label' => 'Satisfied'],
                 ['icon' => 'star', 'number' => '5', 'label' => 'Ignored'],
             ],
@@ -251,6 +251,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('12+', $normalized['stats_items'][0]['number']);
         $this->assertSame('Years', $normalized['stats_items'][0]['label']);
         $this->assertSame('users', $normalized['stats_items'][1]['icon']);
+        $this->assertSame('bi:briefcase', $normalized['stats_items'][2]['icon']);
 
         $overrides = HomeBloxBlockSchema::runtimeConfigOverrides($normalized);
         $this->assertSame('https://example.com/stats.jpg', $overrides['home_stat_bg']);
@@ -267,6 +268,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('12+', $overrides['home_stat_1_num']);
         $this->assertSame('Years', $overrides['home_stat_1_text']);
         $this->assertSame('Years', $overrides['home_stat_1_text_' . siteLang()]);
+        $this->assertSame('bi:briefcase', $overrides['home_stat_3_icon']);
     }
 
     public function testTestimonialItemsAreBoundedSanitizedAndRenderedLocally(): void
