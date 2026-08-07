@@ -368,3 +368,29 @@ test('clicking blank canvas deselects tree selection @ci', async ({ page }, test
   await page.getByTestId('blox-canvas-host').click({ position: { x: 4, y: 4 } });
   await expect(page.getByTestId('blox-clear-selection')).toBeHidden();
 });
+
+// ── Bootstrap Icons：双图库选择、搜索、预览资源加载 ──
+test('Bootstrap icon picker selects and renders without reload @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const originalURL = page.url();
+  const { sectionIndex } = await addTemporaryHeading(page);
+
+  await page.getByTestId('blox-library-open').click();
+  await page.getByTestId('blox-add-element-icon').click();
+  await expect(page.getByTestId('blox-icon-value')).toBeVisible();
+  await page.getByTestId('blox-icon-library-toggle').click();
+  await page.getByTestId('blox-icon-provider-bootstrap').click();
+  await page.getByTestId('blox-icon-search').fill('house-door');
+  await expect(page.getByTestId('blox-icon-option-bi-house-door')).toBeVisible();
+
+  await performPreviewUpdate(page, () => page.getByTestId('blox-icon-option-bi-house-door').click());
+  await expect(page.getByTestId('blox-icon-value')).toHaveValue('bi:house-door');
+  const contentFrame = await frame(page);
+  const icon = contentFrame.locator(`[data-yk-el="${sectionIndex}.0.1"] i.bi.bi-house-door`);
+  await expect(icon).toHaveCount(1);
+  const fontFamily = await icon.evaluate((element) => getComputedStyle(element, '::before').fontFamily);
+  expect(fontFamily.toLowerCase()).toContain('bootstrap-icons');
+  expect(page.url()).toBe(originalURL);
+
+  await restoreClean(page);
+});
