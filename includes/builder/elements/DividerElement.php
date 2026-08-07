@@ -8,18 +8,18 @@ final class DividerElement extends AbstractElement
     private const SPACING_MAP = ['sm' => 'my-2', 'md' => 'my-4', 'lg' => 'my-8'];
 
     public function type(): string { return 'divider'; }
-    public function label(): string { return '分隔线'; }
+    public function label(): string { return __('blox_el_divider'); }
     public function icon(): string { return 'separator-horizontal'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'style', 'type' => 'select', 'label' => '线型', 'default' => 'solid',
-                'options' => ['solid' => '实线', 'dashed' => '虚线', 'dotted' => '点线']],
-            ['key' => 'width', 'type' => 'number', 'label' => '粗细(px)', 'default' => 1, 'min' => 1, 'max' => 3],
-            ['key' => 'color', 'type' => 'color', 'label' => '颜色', 'default' => '#e5e7eb'],
-            ['key' => 'spacing', 'type' => 'select', 'label' => '上下间距', 'default' => 'md',
-                'options' => ['sm' => '小', 'md' => '中', 'lg' => '大']],
+            ['key' => 'style', 'type' => 'select', 'label' => __('blox_line_style'), 'default' => 'solid',
+                'options' => ['solid' => __('blox_line_solid'), 'dashed' => __('blox_line_dashed'), 'dotted' => __('blox_line_dotted')]],
+            ['key' => 'width', 'type' => 'number', 'label' => __('blox_thickness_px'), 'default' => 1, 'min' => 1, 'max' => 3],
+            ['key' => 'color', 'type' => 'color', 'label' => __('blox_ctl_color'), 'default' => '#e5e7eb'],
+            ['key' => 'spacing', 'type' => 'select', 'label' => __('blox_section_spacing'), 'default' => 'md',
+                'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg')]],
         ];
     }
 

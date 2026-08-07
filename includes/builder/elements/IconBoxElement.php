@@ -6,16 +6,16 @@ declare(strict_types=1);
 final class IconBoxElement extends AbstractElement
 {
     public function type(): string { return 'icon-box'; }
-    public function label(): string { return '图标框'; }
+    public function label(): string { return __('blox_el_icon_box'); }
     public function icon(): string { return 'box'; }
 
     public function controls(): array
     {
         return [
             // type=icon：编辑器渲染成带图标库选择器的控件（blox 全量库 / 排版编辑器精选集）
-            ['key' => 'icon', 'type' => 'icon', 'label' => '图标', 'default' => 'star'],
-            ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => ''],
-            ['key' => 'text', 'type' => 'textarea', 'label' => '描述', 'default' => '', 'rows' => 2],
+            ['key' => 'icon', 'type' => 'icon', 'label' => __('blox_ctl_icon'), 'default' => 'star'],
+            ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
+            ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2],
             ...$this->animationControls(),
         ];
     }

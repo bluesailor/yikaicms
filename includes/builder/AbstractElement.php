@@ -50,15 +50,15 @@ abstract class AbstractElement
     {
         return [
             [
-                'key' => 'animation', 'type' => 'select', 'label' => '入场动画', 'default' => '', 'tab' => 'style',
+                'key' => 'animation', 'type' => 'select', 'label' => __('blox_anim'), 'default' => '', 'tab' => 'style',
                 'options' => [
-                    '' => '无动画',
-                    'fade' => '淡入',
-                    'fade-up' => '向上淡入',
-                    'fade-down' => '向下淡入',
-                    'fade-left' => '从左进入',
-                    'fade-right' => '从右进入',
-                    'zoom-in' => '缩放进入',
+                    '' => __('blox_anim_none'),
+                    'fade' => __('blox_anim_fade'),
+                    'fade-up' => __('blox_anim_fade_up'),
+                    'fade-down' => __('blox_anim_fade_down'),
+                    'fade-left' => __('blox_anim_fade_left'),
+                    'fade-right' => __('blox_anim_fade_right'),
+                    'zoom-in' => __('blox_anim_zoom'),
                 ],
                 'option_icons' => [
                     '' => 'ban',
@@ -71,12 +71,12 @@ abstract class AbstractElement
                 ],
             ],
             [
-                'key' => 'animation_speed', 'type' => 'select', 'label' => '动画速度', 'default' => 'normal', 'tab' => 'style',
-                'options' => ['normal' => '标准', 'fast' => '快速', 'slow' => '舒缓'],
+                'key' => 'animation_speed', 'type' => 'select', 'label' => __('blox_anim_speed'), 'default' => 'normal', 'tab' => 'style',
+                'options' => ['normal' => __('blox_anim_normal'), 'fast' => __('blox_anim_fast'), 'slow' => __('blox_anim_slow')],
             ],
             [
-                'key' => 'animation_delay', 'type' => 'select', 'label' => '延迟出现', 'default' => 'none', 'tab' => 'style',
-                'options' => ['none' => '无延迟', 'short' => '0.15 秒', 'medium' => '0.3 秒', 'long' => '0.6 秒'],
+                'key' => 'animation_delay', 'type' => 'select', 'label' => __('blox_anim_delay'), 'default' => 'none', 'tab' => 'style',
+                'options' => ['none' => __('blox_anim_delay_none'), 'short' => __('blox_anim_delay_short'), 'medium' => __('blox_anim_delay_medium'), 'long' => __('blox_anim_delay_long')],
             ],
         ];
     }

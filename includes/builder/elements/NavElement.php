@@ -10,7 +10,7 @@ declare(strict_types=1);
 final class NavElement extends AbstractElement
 {
     public function type(): string { return 'nav'; }
-    public function label(): string { return '导航菜单'; }
+    public function label(): string { return __('blox_el_nav'); }
     public function icon(): string { return 'menu-2'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
@@ -19,8 +19,8 @@ final class NavElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'parent', 'type' => 'text', 'label' => '父栏目 slug/id', 'default' => '', 'placeholder' => '留空=顶级'],
-            ['key' => 'nav_only', 'type' => 'checkbox', 'label' => '仅导航栏目', 'default' => true],
+            ['key' => 'parent', 'type' => 'text', 'label' => __('blox_nav_parent'), 'default' => '', 'placeholder' => __('blox_empty_top_level')],
+            ['key' => 'nav_only', 'type' => 'checkbox', 'label' => __('blox_nav_only'), 'default' => true],
         ];
     }
 

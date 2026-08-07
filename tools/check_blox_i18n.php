@@ -34,8 +34,6 @@ $sentinels = ['首页区块'];
  */
 $elementFileGrace = in_array('--allow-element-labels', $argv ?? [], true);
 $graceFiles = [
-    '/includes/builder/elements/',
-    '/includes/builder/AbstractElement.php',
     '/includes/builder/presets.php',
     '/includes/builder/BlocksLibrary.php',
     '/includes/builder/DynamicListItemSchema.php',

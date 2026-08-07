@@ -11,17 +11,17 @@ declare(strict_types=1);
 final class AccordionElement extends AbstractElement
 {
     public function type(): string { return 'accordion'; }
-    public function label(): string { return '折叠面板(FAQ)'; }
+    public function label(): string { return __('blox_el_accordion'); }
     public function icon(): string { return 'chevrons-down'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'items', 'type' => 'textarea', 'label' => '问答条目（每行一条：问题|答案）', 'rows' => 8,
-             'default' => "如何购买你们的产品？|您可以通过在线表单留言或直接电话联系我们，客服会在一个工作日内回复。\n是否提供售后服务？|提供。所有产品均含一年质保，终身技术支持。",
-             'placeholder' => "问题|答案\n问题|答案"],
-            ['key' => 'open_first', 'type' => 'checkbox', 'label' => '默认展开第一条', 'default' => true],
-            ['key' => 'seo_schema', 'type' => 'checkbox', 'label' => '输出 FAQ 结构化数据（搜索富摘要）', 'default' => true],
+            ['key' => 'items', 'type' => 'textarea', 'label' => __('blox_faq_items'), 'rows' => 8,
+             'default' => __('blox_faq_seed_q1') . '|' . __('blox_faq_seed_a1') . "\n" . __('blox_faq_seed_q2') . '|' . __('blox_faq_seed_a2'),
+             'placeholder' => __('blox_faq_ph') . "\n" . __('blox_faq_ph')],
+            ['key' => 'open_first', 'type' => 'checkbox', 'label' => __('blox_faq_open_first'), 'default' => true],
+            ['key' => 'seo_schema', 'type' => 'checkbox', 'label' => __('blox_faq_schema'), 'default' => true],
         ];
     }
 

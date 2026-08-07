@@ -89,7 +89,7 @@ final class BuilderRenderTest extends TestCase
         $alignControl = array_values(array_filter($controls, static fn(array $control): bool => ($control['key'] ?? '') === 'align'));
         $this->assertCount(1, $alignControl);
         $this->assertSame('style', $alignControl[0]['tab']);
-        $this->assertSame(['left' => '左对齐', 'center' => '居中', 'right' => '右对齐'], $alignControl[0]['options']);
+        $this->assertSame(['left' => 'blox_align_left', 'center' => 'blox_align_center', 'right' => 'blox_align_right'], $alignControl[0]['options']);
     }
 
     public function testIconWithFeatherAlias(): void

@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class ContactCardsElement extends AbstractElement
 {
     public function type(): string { return 'contact_cards'; }
-    public function label(): string { return '联系信息卡片'; }
+    public function label(): string { return __('blox_el_contact_cards'); }
     public function icon(): string { return 'address-book'; }
     public function paletteVisible(string $context = 'page'): bool { return false; }
     public function supportsBoxStyles(): bool { return false; }
@@ -14,8 +14,8 @@ final class ContactCardsElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'cols', 'type' => 'select', 'label' => '每行列数', 'default' => 'auto',
-                'options' => ['auto' => '自动（按卡片数）', '2' => '2 列', '3' => '3 列', '4' => '4 列']],
+            ['key' => 'cols', 'type' => 'select', 'label' => __('blox_cols_per_row'), 'default' => 'auto',
+                'options' => ['auto' => __('blox_cols_auto'), '2' => __('blox_n_cols', ['n' => 2]), '3' => __('blox_n_cols', ['n' => 3]), '4' => __('blox_n_cols', ['n' => 4])]],
         ];
     }
 

@@ -6,17 +6,17 @@ declare(strict_types=1);
 final class CardElement extends AbstractElement
 {
     public function type(): string { return 'card'; }
-    public function label(): string { return '卡片'; }
+    public function label(): string { return __('blox_el_card'); }
     public function icon(): string { return 'square-rounded'; }
     public function category(): string { return 'media'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'image', 'type' => 'text', 'label' => '图片 URL', 'default' => ''],
-            ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => ''],
-            ['key' => 'text', 'type' => 'textarea', 'label' => '描述', 'default' => '', 'rows' => 2],
-            ['key' => 'link', 'type' => 'text', 'label' => '链接', 'default' => '', 'placeholder' => '留空=不可点'],
+            ['key' => 'image', 'type' => 'text', 'label' => __('blox_image_url'), 'default' => ''],
+            ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
+            ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2],
+            ['key' => 'link', 'type' => 'text', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_empty_unclickable')],
             ...$this->animationControls(),
         ];
     }

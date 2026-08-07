@@ -7,7 +7,7 @@ final class StatsGroupElement extends AbstractElement
 {
 
     public function type(): string { return 'stats-group'; }
-    public function label(): string { return '数据统计'; }
+    public function label(): string { return __('blox_el_stats_group'); }
     public function icon(): string { return 'chart-bar'; }
     public function category(): string { return 'advanced'; }
     public function isContainer(): bool { return true; }
@@ -16,19 +16,19 @@ final class StatsGroupElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'mobile_columns', 'type' => 'select', 'label' => '手机列数', 'default' => '2', 'tab' => 'style',
-                'options' => ['1' => '1 列', '2' => '2 列'],
+            ['key' => 'mobile_columns', 'type' => 'select', 'label' => __('blox_cols_mobile'), 'default' => '2', 'tab' => 'style',
+                'options' => ['1' => __('blox_n_cols', ['n' => 1]), '2' => __('blox_n_cols', ['n' => 2])],
                 'option_icons' => ['1' => 'rectangle', '2' => 'columns-2']],
-            ['key' => 'tablet_columns', 'type' => 'select', 'label' => '平板列数', 'default' => '4', 'tab' => 'style',
-                'options' => ['2' => '2 列', '3' => '3 列', '4' => '4 列']],
-            ['key' => 'desktop_columns', 'type' => 'select', 'label' => '桌面列数', 'default' => '4', 'tab' => 'style',
-                'options' => ['2' => '2 列', '3' => '3 列', '4' => '4 列', '5' => '5 列', '6' => '6 列']],
-            ['key' => 'gap', 'type' => 'select', 'label' => '项目间距', 'default' => 'md', 'tab' => 'style',
-                'options' => ['sm' => '小', 'md' => '中', 'lg' => '大']],
-            ['key' => 'counter_enabled', 'type' => 'checkbox', 'label' => '进入屏幕时数字滚动', 'default' => true],
-            ['key' => 'counter_start', 'type' => 'number', 'label' => '动画起始数字', 'default' => 0, 'min' => 0, 'max' => 999999],
-            ['key' => 'counter_duration', 'type' => 'number', 'label' => '动画时长（毫秒）', 'default' => 0, 'min' => 0, 'max' => 5000, 'step' => 100,
-                'placeholder' => '0 = 自动'],
+            ['key' => 'tablet_columns', 'type' => 'select', 'label' => __('blox_cols_tablet'), 'default' => '4', 'tab' => 'style',
+                'options' => ['2' => __('blox_n_cols', ['n' => 2]), '3' => __('blox_n_cols', ['n' => 3]), '4' => __('blox_n_cols', ['n' => 4])]],
+            ['key' => 'desktop_columns', 'type' => 'select', 'label' => __('blox_cols_desktop'), 'default' => '4', 'tab' => 'style',
+                'options' => ['2' => __('blox_n_cols', ['n' => 2]), '3' => __('blox_n_cols', ['n' => 3]), '4' => __('blox_n_cols', ['n' => 4]), '5' => __('blox_n_cols', ['n' => 5]), '6' => __('blox_n_cols', ['n' => 6])]],
+            ['key' => 'gap', 'type' => 'select', 'label' => __('blox_item_gap'), 'default' => 'md', 'tab' => 'style',
+                'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg')]],
+            ['key' => 'counter_enabled', 'type' => 'checkbox', 'label' => __('blox_counter_on_view'), 'default' => true],
+            ['key' => 'counter_start', 'type' => 'number', 'label' => __('blox_counter_start'), 'default' => 0, 'min' => 0, 'max' => 999999],
+            ['key' => 'counter_duration', 'type' => 'number', 'label' => __('blox_counter_duration'), 'default' => 0, 'min' => 0, 'max' => 5000, 'step' => 100,
+                'placeholder' => __('blox_zero_auto')],
         ];
     }
 
@@ -47,10 +47,10 @@ final class StatsGroupElement extends AbstractElement
     public function defaultChildren(): array
     {
         return [
-            ['type' => 'stat-item', 'data' => ['icon' => 'award', 'number' => '10+', 'label' => '年行业经验']],
-            ['type' => 'stat-item', 'data' => ['icon' => 'users', 'number' => '1000+', 'label' => '服务客户']],
-            ['type' => 'stat-item', 'data' => ['icon' => 'briefcase', 'number' => '50+', 'label' => '完成项目']],
-            ['type' => 'stat-item', 'data' => ['icon' => 'thumb-up', 'number' => '100%', 'label' => '专注服务']],
+            ['type' => 'stat-item', 'data' => ['icon' => 'award', 'number' => '10+', 'label' => __('blox_stat_seed_years')]],
+            ['type' => 'stat-item', 'data' => ['icon' => 'users', 'number' => '1000+', 'label' => __('home_stat_1')]],
+            ['type' => 'stat-item', 'data' => ['icon' => 'briefcase', 'number' => '50+', 'label' => __('blox_stat_seed_projects')]],
+            ['type' => 'stat-item', 'data' => ['icon' => 'thumb-up', 'number' => '100%', 'label' => __('blox_stat_seed_service')]],
         ];
     }
 

@@ -6,14 +6,14 @@ declare(strict_types=1);
 final class VideoElement extends AbstractElement
 {
     public function type(): string { return 'video'; }
-    public function label(): string { return '视频'; }
+    public function label(): string { return __('blox_el_video'); }
     public function icon(): string { return 'player-play'; }
     public function category(): string { return 'media'; }
 
     public function controls(): array
     {
         return [
-            ['key' => 'url', 'type' => 'text', 'label' => '视频地址', 'default' => '', 'placeholder' => 'YouTube/Bilibili 链接或 .mp4 直链'],
+            ['key' => 'url', 'type' => 'text', 'label' => __('blox_video_url'), 'default' => '', 'placeholder' => __('blox_video_ph')],
         ];
     }
 

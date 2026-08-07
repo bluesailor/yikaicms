@@ -20,7 +20,7 @@ final class ContainerElement extends AbstractElement
     private const JUSTIFY_MAP = ['start' => '', 'center' => 'justify-center', 'end' => 'justify-end', 'between' => 'justify-between', 'around' => 'justify-around', 'evenly' => 'justify-evenly'];
 
     public function type(): string { return 'container'; }
-    public function label(): string { return '容器'; }
+    public function label(): string { return __('blox_tree_container'); }
     public function icon(): string { return 'box-margin'; }
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
@@ -33,24 +33,24 @@ final class ContainerElement extends AbstractElement
         // option_icons：编辑器把该 select 显示为图标按钮组（键与 options 对应，
         // 值为 Tabler 图标名）；不认识此键的编辑器仍按普通下拉渲染，向后兼容
         return [
-            ['key' => 'direction', 'type' => 'select', 'label' => '排列方向', 'default' => 'column', 'tab' => 'style',
-                'options' => ['column' => '纵向（上下堆叠）', 'row' => '横向（并排，可换行）'],
+            ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style',
+                'options' => ['column' => __('blox_dir_column_stack'), 'row' => __('blox_dir_row_wrap')],
                 'option_icons' => ['column' => 'layout-list', 'row' => 'layout-columns']],
             ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
-            ['key' => 'gap', 'type' => 'select', 'label' => '子元素间距', 'default' => 'md', 'tab' => 'style',
-                'options' => ['none' => '无', 'sm' => '小', 'md' => '中', 'lg' => '大', 'xl' => __('blox_spacing_xl')]],
-            ['key' => 'align', 'type' => 'select', 'label' => '交叉轴对齐', 'default' => 'stretch', 'tab' => 'style',
-                'options' => ['stretch' => '拉伸', 'start' => '起点', 'center' => '居中', 'end' => '终点', 'baseline' => __('blox_flex_align_baseline')],
+            ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style',
+                'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
+                'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')],
                 'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'baseline' => 'align-box-bottom-center']],
-            ['key' => 'justify', 'type' => 'select', 'label' => '主轴分布', 'default' => 'start', 'tab' => 'style',
-                'options' => ['start' => '起点', 'center' => '居中', 'end' => '终点', 'between' => '两端', 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')],
+            ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style',
+                'options' => ['start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')],
                 'option_icons' => ['start' => 'align-left', 'center' => 'align-center', 'end' => 'align-right', 'between' => 'align-justified', 'around' => 'spacing-horizontal', 'evenly' => 'space']],
-            ['key' => 'bg_color', 'type' => 'color', 'label' => '背景颜色', 'default' => '', 'tab' => 'style'],
-            ['key' => 'padding', 'type' => 'select', 'label' => '内边距', 'default' => 'none', 'tab' => 'style',
-                'options' => ['none' => '无', 'sm' => '小', 'md' => '中', 'lg' => '大', 'xl' => __('blox_spacing_xl')]],
-            ['key' => 'radius', 'type' => 'select', 'label' => '圆角', 'default' => 'none', 'tab' => 'style',
-                'options' => ['none' => '无', 'md' => '中', 'xl' => '大']],
+            ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style'],
+            ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style',
+                'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
+                'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
         ];
     }
 

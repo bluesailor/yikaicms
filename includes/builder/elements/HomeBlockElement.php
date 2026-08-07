@@ -55,14 +55,14 @@ final class HomeBlockElement extends AbstractElement
         if ($label === '') {
             $label = HomeBloxDocument::legacyLabel($type !== '' ? $type : 'home-block');
         }
-        $status = !empty($data['enabled']) ? '草稿区块' : '已停用';
+        $status = !empty($data['enabled']) ? __('blox_home_draft_block') : __('blox_home_disabled');
 
         return '<section class="yk-home-block-preview border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl px-6 py-10 text-center" data-home-block="'
             . htmlspecialchars($type, ENT_QUOTES) . '">'
             . '<div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-slate-200 text-blue-500 mb-3">'
             . '<i class="ti ti-layout-dashboard text-2xl"></i></div>'
             . '<h2 class="text-lg font-semibold text-slate-700">' . htmlspecialchars($label, ENT_QUOTES) . '</h2>'
-            . '<p class="text-xs text-slate-400 mt-2">' . htmlspecialchars($status, ENT_QUOTES) . ' · 下一阶段接入动态渲染</p>'
+            . '<p class="text-xs text-slate-400 mt-2">' . htmlspecialchars($status, ENT_QUOTES) . ' · ' . __('blox_home_next_phase') . '</p>'
             . '</section>';
     }
 }
