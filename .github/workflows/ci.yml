@@ -231,7 +231,7 @@ jobs:
   e2e:
     name: Blox Browser Regression
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # r8–r10 观察期多轮全绿，r11 起转强制门禁（与单测同级，红了就不能发）
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
