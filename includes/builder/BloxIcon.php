@@ -14,7 +14,6 @@ final class BloxIcon
     {
         $raw = is_string($value) ? strtolower(trim($value)) : '';
         $library = 'tabler';
-        $name = $raw;
 
         if (str_starts_with($raw, 'bi:')) {
             $library = 'bootstrap';
@@ -50,6 +49,7 @@ final class BloxIcon
         ];
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod 公开值协议 API（编辑器/插件/测试消费） */
     public static function normalize(mixed $value, string $fallback = 'star'): string
     {
         return self::parse($value, $fallback)['value'];
