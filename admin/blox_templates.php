@@ -12,7 +12,7 @@ checkLogin();
 requirePermission('*');
 
 if (!bloxEditorEnabled()) {
-    error('功能未启用');
+    error(__('blox_feature_disabled'));
 }
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) post('action', '');
     try {
         if (!$tableReady) {
-            throw new RuntimeException('模板表尚未创建，请先运行数据库升级');
+            throw new RuntimeException(__('blox_tpl_table_missing'));
         }
 
         if ($action === 'import') {
@@ -42,24 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $file = $_FILES['template_file'] ?? null;
             if (is_array($file) && (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                 if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                    throw new RuntimeException('模板文件上传失败');
+                    throw new RuntimeException(__('blox_tpl_upload_failed'));
                 }
                 if ((int) ($file['size'] ?? 0) > BloxTemplateImporter::MAX_BYTES) {
-                    throw new RuntimeException('模板文件不能超过 2MB');
+                    throw new RuntimeException(__('blox_tpl_too_large'));
                 }
                 $originalName = (string) ($file['name'] ?? '');
                 if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'json') {
-                    throw new RuntimeException('只允许上传 JSON 模板文件');
+                    throw new RuntimeException(__('blox_tpl_json_only'));
                 }
                 $tmpName = (string) ($file['tmp_name'] ?? '');
                 $uploaded = $tmpName !== '' ? file_get_contents($tmpName) : false;
                 if (!is_string($uploaded)) {
-                    throw new RuntimeException('无法读取上传的模板文件');
+                    throw new RuntimeException(__('blox_tpl_unreadable'));
                 }
                 $json = $uploaded;
             }
             if ($json === '') {
-                throw new RuntimeException('请选择模板文件或粘贴模板 JSON');
+                throw new RuntimeException(__('blox_tpl_pick_or_paste'));
             }
 
             $prepared = BloxTemplateImporter::prepare($json);
@@ -91,17 +91,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = max(0, (int) post('id', 0));
             $row = bloxTemplateModel()->find($id);
             if (!$row) {
-                throw new RuntimeException('模板不存在');
+                throw new RuntimeException(__('blox_tpl_not_found'));
             }
             if (!in_array((string) ($row['source'] ?? ''), ['user', 'import'], true)) {
-                throw new RuntimeException('内置或插件模板不能在这里删除');
+                throw new RuntimeException(__('blox_tpl_provider_undeletable'));
             }
             bloxTemplateModel()->deleteById($id);
             adminLog('blox_template', 'delete', '删除 Blox 模板草稿 #' . $id);
             redirect('/admin/blox_templates.php?deleted=1');
         }
 
-        throw new RuntimeException('无效操作');
+        throw new RuntimeException(__('blox_invalid_action'));
     } catch (Throwable $e) {
         $errorMessage = $e->getMessage();
     }
@@ -110,12 +110,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Collect template providers after Builder plugin registration.
 if ((string) get('action', '') === 'export') {
     if (!$tableReady) {
-        error('模板表尚未创建，请先运行数据库升级');
+        error(__('blox_tpl_table_missing'));
     }
     $id = max(0, (int) get('id', 0));
     $template = bloxTemplateModel()->findForExport($id);
     if (!$template) {
-        error('模板不存在');
+        error(__('blox_tpl_not_found'));
     }
     try {
         $json = BloxTemplateImporter::exportJson($template);
@@ -144,16 +144,16 @@ if (db()->tableExists('blocks_library')) {
 }
 
 $typeLabels = [
-    'section' => '区块',
-    'page' => '整页',
-    'header' => '网页头',
-    'footer' => '网页尾',
+    'section' => __('blox_template_type_section'),
+    'page' => __('blox_template_type_page'),
+    'header' => __('blox_tpl_type_header'),
+    'footer' => __('blox_tpl_type_footer'),
 ];
 $sourceLabels = [
-    'user' => '我的模板',
-    'import' => '导入',
-    'builtin' => '内置',
-    'plugin' => '插件',
+    'user' => __('blox_tpl_source_user'),
+    'import' => __('blox_tpl_source_import'),
+    'builtin' => __('blox_tpl_source_builtin'),
+    'plugin' => __('blox_template_source_plugin'),
 ];
 
 $GLOBALS['pageTitle'] = __('admin_blox_templates');
@@ -165,7 +165,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('admin_blox_templates')); ?></h1>
-            <p class="mt-1 text-sm text-gray-500">当前支持区块和整页模板；网页头、网页尾将在渲染契约完成后开放</p>
+            <p class="mt-1 text-sm text-gray-500"><?php echo __('blox_tpl_page_intro'); ?></p>
         </div>
         <a href="/admin/blox_editor.php?home=1"
            class="inline-flex items-center gap-2 rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700">
@@ -187,26 +187,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 
     <div class="grid grid-cols-2 gap-px overflow-hidden border border-gray-200 bg-gray-200 md:grid-cols-4">
-        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500">我的模板</div><div class="mt-1 text-xl font-semibold"><?php echo count($storedTemplates); ?></div></div>
-        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500">内置 / 插件</div><div class="mt-1 text-xl font-semibold"><?php echo count($providerTemplates); ?></div></div>
-        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500">可复用区块</div><div class="mt-1 text-xl font-semibold"><?php echo count($libraryBlocks); ?></div></div>
-        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500">模板格式</div><div class="mt-1 text-xl font-semibold">JSON v1</div></div>
+        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_source_user'); ?></div><div class="mt-1 text-xl font-semibold"><?php echo count($storedTemplates); ?></div></div>
+        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_builtin_plugin'); ?></div><div class="mt-1 text-xl font-semibold"><?php echo count($providerTemplates); ?></div></div>
+        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_reusable_blocks'); ?></div><div class="mt-1 text-xl font-semibold"><?php echo count($libraryBlocks); ?></div></div>
+        <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_format'); ?></div><div class="mt-1 text-xl font-semibold">JSON v1</div></div>
     </div>
 
     <section class="border-y border-gray-200 bg-white">
         <div class="px-5 py-4 border-b border-gray-200">
-            <h2 class="font-semibold text-gray-900">导入模板</h2>
+            <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_import_title'); ?></h2>
         </div>
         <form method="post" enctype="multipart/form-data" class="grid gap-4 p-5 lg:grid-cols-[minmax(0,320px)_1fr_auto] lg:items-end">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="import">
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">JSON 文件</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700"><?php echo __('blox_tpl_json_file'); ?></label>
                 <input type="file" name="template_file" accept=".json,application/json"
                        class="block w-full border border-gray-300 bg-white px-3 py-2 text-sm">
             </div>
             <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">或粘贴 JSON</label>
+                <label class="mb-1 block text-sm font-medium text-gray-700"><?php echo __('blox_tpl_paste_json'); ?></label>
                 <textarea name="template_json" rows="3"
                           class="block w-full border border-gray-300 px-3 py-2 font-mono text-xs"
                           placeholder='{"format":"yikaicms-blox-template","version":1,...}'></textarea>
@@ -220,14 +220,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </section>
 
     <section class="border-y border-gray-200 bg-white">
-        <div class="px-5 py-4 border-b border-gray-200"><h2 class="font-semibold text-gray-900">我的模板</h2></div>
+        <div class="px-5 py-4 border-b border-gray-200"><h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_source_user'); ?></h2></div>
         <?php if ($storedTemplates === []): ?>
-            <div class="px-5 py-10 text-center text-sm text-gray-400">暂无模板草稿</div>
+            <div class="px-5 py-10 text-center text-sm text-gray-400"><?php echo __('blox_tpl_none'); ?></div>
         <?php else: ?>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-gray-50 text-xs text-gray-500">
-                        <tr><th class="px-5 py-3">名称</th><th class="px-4 py-3">类型</th><th class="px-4 py-3">来源</th><th class="px-4 py-3">状态</th><th class="px-4 py-3">更新时间</th><th class="px-5 py-3 text-right">操作</th></tr>
+                        <tr><th class="px-5 py-3"><?php echo __('blox_tpl_col_name'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_type'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_source'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_status'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_updated'); ?></th><th class="px-5 py-3 text-right"><?php echo __('blox_tpl_col_actions'); ?></th></tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                     <?php foreach ($storedTemplates as $template): ?>
@@ -235,7 +235,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <td class="px-5 py-3 font-medium text-gray-900"><?php echo e((string) $template['name']); ?></td>
                             <td class="px-4 py-3"><?php echo e($typeLabels[(string) $template['type']] ?? (string) $template['type']); ?></td>
                             <td class="px-4 py-3 text-gray-500"><?php echo e($sourceLabels[(string) $template['source']] ?? (string) $template['source']); ?></td>
-                            <td class="px-4 py-3"><?php echo (int) $template['status'] === 1 ? '已发布' : '草稿'; ?></td>
+                            <td class="px-4 py-3"><?php echo (int) $template['status'] === 1 ? __('blox_tpl_published') : __('blox_tpl_draft'); ?></td>
                             <td class="px-4 py-3 text-gray-500"><?php echo date('Y-m-d H:i', (int) $template['updated_at']); ?></td>
                             <td class="px-5 py-3 text-right">
                                 <a href="/admin/blox_templates.php?action=export&amp;id=<?php echo (int) $template['id']; ?>"
@@ -246,7 +246,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="<?php echo (int) $template['status'] === 1 ? 'unpublish' : 'publish'; ?>">
                                     <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">
-                                    <button type="submit" class="text-blue-600 hover:text-blue-800" title="<?php echo (int) $template['status'] === 1 ? '取消发布' : '发布草稿'; ?>">
+                                    <button type="submit" class="text-blue-600 hover:text-blue-800" title="<?php echo (int) $template['status'] === 1 ? __('blox_tpl_unpublish') : __('blox_tpl_publish_draft'); ?>">
                                         <i class="ti <?php echo (int) $template['status'] === 1 ? 'ti-player-pause' : 'ti-send'; ?>"></i>
                                     </button>
                                 </form>
@@ -266,14 +266,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </section>
 
     <section class="border-y border-gray-200 bg-white">
-        <div class="px-5 py-4 border-b border-gray-200"><h2 class="font-semibold text-gray-900">内置与插件模板</h2></div>
+        <div class="px-5 py-4 border-b border-gray-200"><h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_provider_title'); ?></h2></div>
         <?php if ($providerTemplates === []): ?>
-            <div class="px-5 py-10 text-center text-sm text-gray-400">当前没有启用的模板提供者</div>
+            <div class="px-5 py-10 text-center text-sm text-gray-400"><?php echo __('blox_tpl_no_providers'); ?></div>
         <?php else: ?>
             <div class="divide-y divide-gray-100">
                 <?php foreach ($providerTemplates as $template): ?>
                     <div class="flex items-center justify-between gap-4 px-5 py-3">
-                        <div><div class="font-medium text-gray-900"><?php echo e((string) ($template['name'] ?? '未命名模板')); ?></div><div class="mt-1 text-xs text-gray-500"><?php echo e((string) ($template['plugin'] ?? 'builtin')); ?></div></div>
+                        <div><div class="font-medium text-gray-900"><?php echo e((string) ($template['name'] ?? __('blox_tpl_unnamed'))); ?></div><div class="mt-1 text-xs text-gray-500"><?php echo e((string) ($template['plugin'] ?? 'builtin')); ?></div></div>
                         <span class="bg-gray-100 px-2 py-1 text-xs text-gray-600"><?php echo e($typeLabels[(string) ($template['type'] ?? '')] ?? (string) ($template['type'] ?? '')); ?></span>
                     </div>
                 <?php endforeach; ?>
@@ -283,11 +283,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <section class="border-y border-gray-200 bg-white">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-            <h2 class="font-semibold text-gray-900">可复用区块</h2>
-            <a href="/admin/page_edit_advance.php?home=1" class="text-sm text-blue-600 hover:text-blue-800">排版编辑器</a>
+            <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_reusable_blocks'); ?></h2>
+            <a href="/admin/page_edit_advance.php?home=1" class="text-sm text-blue-600 hover:text-blue-800"><?php echo __('blox_tpl_layout_editor'); ?></a>
         </div>
         <?php if ($libraryBlocks === []): ?>
-            <div class="px-5 py-10 text-center text-sm text-gray-400">暂无可复用区块</div>
+            <div class="px-5 py-10 text-center text-sm text-gray-400"><?php echo __('blox_tpl_no_reusable'); ?></div>
         <?php else: ?>
             <div class="divide-y divide-gray-100">
                 <?php foreach ($libraryBlocks as $block): ?>

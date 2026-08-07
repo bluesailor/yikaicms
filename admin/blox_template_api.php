@@ -12,7 +12,7 @@ checkLogin();
 requirePermission('edit_page');
 
 if (!bloxEditorEnabled()) {
-    error('功能未启用');
+    error(__('blox_feature_disabled'));
 }
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
@@ -47,7 +47,7 @@ try {
         }
         success(['template' => $template]);
     }
-    error('无效操作');
+    error(__('blox_invalid_action'));
 } catch (Throwable $e) {
     error($e->getMessage());
 }
