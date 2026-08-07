@@ -305,3 +305,9 @@ jobs:
           coverage: none
       - name: Run lang key check
         run: php tools/check_lang_keys.php
+
+      # Blox 三语化门禁：\uXXXX 转义与硬编码中文回潮即红。
+      # --allow-element-labels = 元素/Schema 标签层过渡豁免（「元素层 i18n」专项
+      # 清零后移除该参数收紧）。付费源码不在公开 checkout 时自动跳过对应文件。
+      - name: Blox i18n regression gate
+        run: php tools/check_blox_i18n.php --allow-element-labels

@@ -87,7 +87,7 @@ final class BuilderPluginPipelineTest extends TestCase
         $this->assertFalse($meta['paletteVisible']);
 
         $html = BlockRenderer::renderElementNode($sections[0]['columns'][0]['elements'][0], 0, true, [0, 0, 0]);
-        $this->assertStringContainsString('所需插件未启用，节点数据已保留', $html);
+        $this->assertStringContainsString('blox_plugin_missing_front', $html);
         $this->assertSame('', BlockRenderer::renderElementNode(
             $sections[0]['columns'][0]['elements'][0],
             0,

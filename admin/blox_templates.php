@@ -21,13 +21,13 @@ $errorMessage = '';
 $notice = '';
 
 if (isset($_GET['imported'])) {
-    $notice = '模板已导入为草稿，编号 #' . max(0, (int) $_GET['imported']);
+    $notice = __('blox_tpl_imported_msg') . ' #' . max(0, (int) $_GET['imported']);
 }
 if (isset($_GET['deleted'])) {
-    $notice = '模板草稿已删除';
+    $notice = __('blox_tpl_deleted_msg');
 }
 if (isset($_GET['status'])) {
-    $notice = '模板发布状态已更新';
+    $notice = __('blox_tpl_status_updated_msg');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -170,13 +170,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <a href="/admin/blox_editor.php?home=1"
            class="inline-flex items-center gap-2 rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700">
             <i class="ti ti-layout-dashboard"></i>
-            首页 Blox
+            <?php echo __('blox_tpl_home_badge'); ?>
         </a>
     </div>
 
     <?php if (!$tableReady): ?>
         <div class="border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            模板表尚未创建。请先到“系统 → 升级管理”执行数据库升级。
+            <?php echo __('blox_tpl_table_missing_hint'); ?>
         </div>
     <?php endif; ?>
     <?php if ($notice !== ''): ?>
@@ -214,7 +214,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <button type="submit" <?php echo $tableReady ? '' : 'disabled'; ?>
                     class="inline-flex h-10 items-center justify-center gap-2 bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300">
                 <i class="ti ti-file-import"></i>
-                导入区块/整页草稿
+                <?php echo __('blox_tpl_import_hint'); ?>
             </button>
         </form>
     </section>
@@ -239,7 +239,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <td class="px-4 py-3 text-gray-500"><?php echo date('Y-m-d H:i', (int) $template['updated_at']); ?></td>
                             <td class="px-5 py-3 text-right">
                                 <a href="/admin/blox_templates.php?action=export&amp;id=<?php echo (int) $template['id']; ?>"
-                                   class="mr-3 text-gray-600 hover:text-gray-900" title="导出 JSON">
+                                   class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_json')); ?>">
                                     <i class="ti ti-download"></i>
                                 </a>
                                 <form method="post" class="mr-3 inline">
@@ -250,11 +250,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <i class="ti <?php echo (int) $template['status'] === 1 ? 'ti-player-pause' : 'ti-send'; ?>"></i>
                                     </button>
                                 </form>
-                                <form method="post" class="inline" onsubmit="return confirm('确定删除这个模板草稿？');">
+                                <form method="post" class="inline" onsubmit="return confirm('<?php echo e(__('blox_tpl_delete_confirm')); ?>');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">
-                                    <button type="submit" class="text-red-600 hover:text-red-800" title="删除"><i class="ti ti-trash"></i></button>
+                                    <button type="submit" class="text-red-600 hover:text-red-800" title="<?php echo e(__('delete')); ?>"><i class="ti ti-trash"></i></button>
                                 </form>
                             </td>
                         </tr>
