@@ -2525,7 +2525,6 @@ return [
     'blox_home_cta_overlay' => '背景叠加强度',
     'blox_home_cta_background_reset' => '恢复主题默认',
     'blox_home_stats_icon' => '图标名',
-    'blox_icon_library' => '图标库',
     'blox_icon_library_close' => '收起',
     'blox_icon_search_placeholder' => '搜索图标（英文名）',
     'blox_icon_recommended' => '推荐图标',

@@ -107,6 +107,16 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
+  <file src="admin/blox_template_api.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+  </file>
+  <file src="admin/blox_templates.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+  </file>
   <file src="admin/banner.php">
     <MissingFile>
       <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>

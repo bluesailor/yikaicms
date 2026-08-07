@@ -2595,7 +2595,6 @@ return [
     'blox_home_cta_overlay' => '背景オーバーレイ強度',
     'blox_home_cta_background_reset' => 'テーマ既定に戻す',
     'blox_home_stats_icon' => 'アイコン名',
-    'blox_icon_library' => 'アイコンライブラリ',
     'blox_icon_library_close' => '閉じる',
     'blox_icon_search_placeholder' => '英語名でアイコンを検索',
     'blox_icon_recommended' => 'おすすめアイコン',
