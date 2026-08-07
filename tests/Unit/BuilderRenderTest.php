@@ -198,6 +198,116 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('md:grid-cols-12', $out);
     }
 
+    // ---- r5 响应式列宽：span 接受 {d,t}；标量路径黄金对拍不破 ----
+    public function testResponsiveSpanEmitsTabletAndDesktopClasses(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['span' => ['d' => 4, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => ['d' => 8, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        $this->assertStringContainsString('class="md:col-span-6 lg:col-span-4"', $out);
+        $this->assertStringContainsString('class="md:col-span-6 lg:col-span-8"', $out);
+    }
+
+    public function testResponsiveSpanWithEqualBreakpointsMatchesScalarOutput(): void
+    {
+        $payload = static fn (mixed $spanA, mixed $spanB): string => json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['span' => $spanA, 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => $spanB, 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]);
+        // {d:N}（t 继承 d）与标量 N 输出逐字节一致——对象形态不引入多余类
+        $this->assertSame(
+            BlockRenderer::render($payload(5, 7)),
+            BlockRenderer::render($payload(['d' => 5], ['d' => 7]))
+        );
+    }
+
+    public function testResponsiveSpanUnderTabletStackUsesDesktopOnly(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => ['tablet_stack' => true],
+            'columns'  => [
+                ['span' => ['d' => 4, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => ['d' => 8, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        // 平板堆叠时平板档无意义：只输出桌面档
+        $this->assertStringContainsString('class="lg:col-span-4"', $out);
+        $this->assertStringNotContainsString('md:col-span-6', $out);
+    }
+
+    // ---- r5 断点可见性：hide_on 前台输出隐藏类，编辑态输出标记 ----
+    public function testHideOnEmitsBreakpointClassesOnFrontend(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => ['hide_on' => ['m']],
+            'columns'  => [[
+                'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]],
+            ]],
+        ]]));
+
+        $this->assertStringContainsString('max-md:hidden', $out);
+        $this->assertStringNotContainsString('data-yk-hide-on', $out);
+    }
+
+    public function testHideOnColumnAndInvalidKeysAreFiltered(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['hide_on' => ['t', 'bogus'], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        $this->assertStringContainsString('md:max-lg:hidden', $out);
+        $this->assertStringNotContainsString('bogus', $out);
+    }
+
+    public function testHideOnEditModeEmitsMarkerInsteadOfHiding(): void
+    {
+        BlockRenderer::$editChannelId = 9;
+        $_SESSION['admin_id'] = 1; // editMode = editChannelId>0 且已登录管理员
+        try {
+            $out = BlockRenderer::render(json_encode([[
+                'settings' => ['hide_on' => ['m', 'd']],
+                'columns'  => [[
+                    'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]],
+                ]],
+            ]]));
+        } finally {
+            BlockRenderer::$editChannelId = 0;
+            unset($_SESSION['admin_id']);
+        }
+
+        $this->assertStringContainsString('data-yk-hide-on="m,d"', $out);
+        $this->assertStringNotContainsString('max-md:hidden', $out);
+        $this->assertStringNotContainsString('lg:hidden', $out);
+    }
+
+    public function testNoHideOnKeyKeepsLegacyOutputByteIdentical(): void
+    {
+        $payload = static fn (array $settings): string => json_encode([[
+            'settings' => $settings,
+            'columns'  => [[
+                'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]],
+            ]],
+        ]]);
+        // 未设 hide_on 与设空数组输出一致——新键不影响存量
+        $this->assertSame(
+            BlockRenderer::render($payload([])),
+            BlockRenderer::render($payload(['hide_on' => []]))
+        );
+    }
+
     // ---- P2 响应式三档：{d,t,m} → 基类 + md:/lg: 前缀（mobile-first：m=基类 t=md d=lg） ----
 
     public function testResponsivePaddingThreeTiers(): void
