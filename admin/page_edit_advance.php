@@ -303,6 +303,14 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 .yk-drop-line.yk-drop-invalid:before,.yk-drop-line.yk-drop-invalid:after{background:#dc2626;content:'\00d7';width:auto;height:auto;font:700 12px/1 system-ui;color:#dc2626;background:transparent;top:-14px}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
+.yk-empty-doc{margin:48px auto;max-width:520px;padding:48px 24px}
+.yk-empty-doc p{margin:0 0 18px;font-size:14px}
+.yk-empty-btn{display:inline-flex;align-items:center;margin:0 6px;padding:7px 16px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;font:500 13px/1.4 system-ui,sans-serif;cursor:pointer;transition:border-color .15s,color .15s}
+.yk-empty-btn:hover{border-color:#94a3b8;color:#1e293b}
+.yk-empty-btn-primary{border-color:#2563eb;background:#2563eb;color:#fff}
+.yk-empty-btn-primary:hover{border-color:#1d4ed8;background:#1d4ed8;color:#fff}
+.yk-empty-hint .yk-empty-btn{margin-left:8px;padding:4px 12px;font-size:12px}
+.yk-empty-doc .yk-empty-btn{margin:0 6px;padding:7px 16px;font-size:13px}
 .banner-swiper{height:min(52vw,520px)}
 @media(max-width:767px){.banner-swiper{height:300px}}
 </style>
@@ -1235,6 +1243,33 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             if (!node.classList.contains('animated')) animationObserver.observe(node);
         });
     }
+    function emptyActionButton(action, label, primary) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'yk-empty-btn' + (primary ? ' yk-empty-btn-primary' : '');
+        b.textContent = label;
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            postToEditor({ ykEmptyAction: action });
+        });
+        return b;
+    }
+    function setupEmptyDocHint() {
+        // 文档级空态：一个区块都没有时画布纯空白，给「从零搭建 / 模板库起步」双入口。
+        // 每次预览更新先清旧卡再按需重建（删光区块要出现、插入内容要消失）。
+        var exist = document.querySelector('.yk-empty-doc');
+        if (exist) exist.remove();
+        if (document.querySelectorAll('[data-yk-sec]').length > 0) return;
+        var host = document.querySelector('[data-yk-area]') || document.body;
+        var d = document.createElement('div');
+        d.className = 'yk-empty-hint yk-empty-doc';
+        var p = document.createElement('p');
+        p.textContent = '画布还是空的 —— 从模板库一键起步，或从空白区块开始';
+        d.appendChild(p);
+        d.appendChild(emptyActionButton('templates', '从模板库导入', true));
+        d.appendChild(emptyActionButton('section', '＋ 添加空白区块', false));
+        host.appendChild(d);
+    }
     function setupEmptyHints(root) {
         // 先标空容器（白底空 flex 在画布上不可见），再标空区块；
         // 含容器的区块不算「空区块」——它的空态由容器占位表达
@@ -1250,12 +1285,15 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             if (sec.querySelector('.yk-container, .yk-div')) return;
             if ((sec.innerText || '').trim() !== '') return;
             if (sec.querySelector('img,svg,iframe,video,picture')) return;
+            if (sec.querySelector('.yk-empty-hint')) return; // 预览局部补丁重跑时防重复
             var n = parseInt(sec.getAttribute('data-yk-sec'), 10) + 1;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint';
-            d.textContent = '空区块 ' + n + ' —— 点选后从左侧「元素库」添加内容';
+            d.textContent = '空区块 ' + n + ' —— 点选后从左侧「元素库」添加内容，或';
+            d.appendChild(emptyActionButton('templates', '从模板库导入', false));
             sec.appendChild(d);
         });
+        setupEmptyDocHint();
     }
     function setupCanvasContent(root) {
         setupColumnResizers();
