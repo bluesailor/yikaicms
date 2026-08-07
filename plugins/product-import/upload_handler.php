@@ -47,6 +47,14 @@ if ($file['size'] > 10 * 1024 * 1024) {
     exit;
 }
 
+// 过期清理：上传后从未导入的临时目录会永久残留（导入完成才自清），
+// 每次新上传顺手清掉 24 小时前的旧目录，防共享主机磁盘慢性泄漏。
+foreach (glob(ROOT_PATH . '/storage/temp/import_*') ?: [] as $oldDir) {
+    if (is_dir($oldDir) && filemtime($oldDir) < time() - 86400) {
+        cleanupTempDir($oldDir);
+    }
+}
+
 $sessionId = session_id();
 $fileId = substr(md5($sessionId . time() . rand()), 0, 16);
 $extDir = ROOT_PATH . '/storage/temp/import_' . $fileId;

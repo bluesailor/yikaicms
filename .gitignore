@@ -6,6 +6,7 @@ installed.lock
 storage/database.sqlite
 storage/logs/*.log
 storage/cache/*
+storage/temp/
 storage/login_throttle/*
 storage/cron/*
 !storage/logs/.gitkeep
