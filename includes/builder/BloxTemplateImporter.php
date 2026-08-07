@@ -314,6 +314,17 @@ final class BloxTemplateImporter
     }
 
     /** @param array<int,mixed> $sections @return array{elements:list<string>,plugins:list<string>} */
+    /**
+     * 从实际文档推导依赖（编辑器模板模式存草稿时刷新 requirements 用）。
+     *
+     * @param array<int,mixed> $sections
+     * @return array{elements:list<string>,plugins:list<string>}
+     */
+    public static function deriveRequirements(array $sections): array
+    {
+        return self::inferRequirements($sections);
+    }
+
     private static function inferRequirements(array $sections): array
     {
         $elements = self::collectElementTypes($sections);

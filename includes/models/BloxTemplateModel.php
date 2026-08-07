@@ -95,7 +95,7 @@ final class BloxTemplateModel extends Model
         }
 
         return db()->fetchOne(
-            'SELECT id,type,name,source,source_ref,schema_version,draft_data,published_data,requirements,thumbnail,status,updated_at,published_at'
+            'SELECT id,type,name,source,source_ref,schema_version,draft_data,published_data,requirements,conditions,thumbnail,status,updated_at,published_at'
             . ' FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?',
             [$id]
         );
@@ -152,6 +152,39 @@ final class BloxTemplateModel extends Model
             . ' WHERE id = ? AND status = 1 AND type IN (?, ?) AND published_data IS NOT NULL',
             [$id, 'section', 'page']
         );
+    }
+
+    /** 保存草稿正文（编辑器模板模式）；requirements 由重扫推导保持最新。 */
+    public function updateDraft(int $id, string $sectionsJson, array $requirements): void
+    {
+        $affected = db()->execute(
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET draft_data = ?, requirements = ?, updated_at = ? WHERE id = ?',
+            [
+                $sectionsJson,
+                json_encode($requirements, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                time(),
+                $id,
+            ]
+        );
+        if ($affected < 1) {
+            throw new RuntimeException(__('blox_tpl_draft_missing'));
+        }
+    }
+
+    /** 保存激活条件（已经 BloxAreaResolver::parse 净化后的结构）。 */
+    public function saveConditions(int $id, array $conditions): void
+    {
+        $affected = db()->execute(
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET conditions = ?, updated_at = ? WHERE id = ?',
+            [
+                $conditions === [] ? null : json_encode($conditions, JSON_UNESCAPED_UNICODE),
+                time(),
+                $id,
+            ]
+        );
+        if ($affected < 1) {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
     }
 
     public function publishDraft(int $id): void

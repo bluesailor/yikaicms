@@ -29,6 +29,26 @@ try {
             'remote_error' => BloxTemplateCatalog::remoteError(),
         ]);
     }
+    if ($action === 'save_draft' && $method === 'POST') {
+        verifyCsrf();
+        $id = (int) post('id', '0');
+        $row = bloxTemplateModel()->findForExport($id);
+        if (!$row) {
+            error(__('blox_tpl_not_found'));
+        }
+        $processed = BloxDocumentPipeline::process((string) post('blocks_data', '[]'), 'tpl' . $id);
+        $requirements = BloxTemplateImporter::deriveRequirements($processed['sections']);
+        bloxTemplateModel()->updateDraft($id, $processed['json'], $requirements);
+        adminLog('blox_template', 'save_draft', '保存 Blox 模板草稿 #' . $id);
+        success(['id' => $id]);
+    }
+    if ($action === 'publish' && $method === 'POST') {
+        verifyCsrf();
+        $id = (int) post('id', '0');
+        bloxTemplateModel()->publishDraft($id);
+        adminLog('blox_template', 'publish', '发布 Blox 模板 #' . $id);
+        success(['id' => $id]);
+    }
     if ($action === 'get' && $method === 'POST') {
         verifyCsrf();
         $context = (string) post('context', 'page');

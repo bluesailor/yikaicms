@@ -249,3 +249,48 @@ test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
   await page.reload();
   await expect(page.getByTestId('blox-tree')).toBeVisible();
 });
+
+// ── 模板模式（r7）：头模板草稿编辑 = 可编辑区 + 首页正文只读灰罩上下文 ──
+test('template mode edits header draft with dimmed context @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_header_template,
+    { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+  await expect(page.getByTestId('blox-tree')).toBeAttached();
+  await page.waitForFunction(() => {
+    const frame = document.querySelector('[data-testid="blox-canvas"]');
+    return frame && frame.contentDocument && frame.contentDocument.readyState === 'complete'
+      && frame.contentDocument.querySelectorAll('[data-yk-sec]').length > 0;
+  });
+
+  // 画布合成契约：可编辑模板段 + 灰罩上下文（上下文不带编辑标记）
+  const contentFrame = await frame(page);
+  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
+  const dimEditable = await contentFrame.locator('.yk-ctx-dim [data-yk-sec]').count();
+  expect(dimEditable, 'context body must not be editable').toBe(0);
+
+  // 模板模式工具栏：发布模板按钮在场；首页发布/回退不在场
+  await expect(page.getByTestId('blox-publish-template')).toBeAttached();
+  await expect(page.getByTestId('blox-publish')).toHaveCount(0);
+  await expect(page.getByTestId('blox-rollback')).toHaveCount(0);
+
+  // 编辑 → 存草稿 → 重载持久化断言。只加空区块（不用 addTemporaryHeading：
+  // 其「全画布 heading 恰 1」断言对累积草稿脆弱）。不做复原：CI 每次全新装机，
+  // 本地重跑 setup.php 即复位；一次性库允许种子随跑次增长。
+  const before = await countSections(page);
+  await page.getByTestId('blox-add-section-1').click();
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  const saveResponse = page.waitForResponse((r) => {
+    const url = new URL(r.url());
+    return r.request().method() === 'POST' && url.pathname === '/admin/blox_template_api.php';
+  });
+  await page.getByTestId('blox-save').click();
+  const res = await saveResponse;
+  expect((await res.json()).code).toBe(0);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+});

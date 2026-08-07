@@ -76,6 +76,21 @@ $templateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/sect
 $template = BloxTemplateImporter::importJson($templateJson, 1, 'import', 'e2e-local-section');
 bloxTemplateModel()->publishDraft($template['id']);
 
+// 5b) 头模板草稿（不发布、无条件）：供编辑器模板模式（?template=N）浏览器用例使用。
+// 种子用 text 元素而非 heading——e2e 助手断言画布 heading 恰 1 个，别撞计数。
+$headerTemplateJson = json_encode([
+    'format' => BloxTemplateImporter::FORMAT,
+    'version' => BloxTemplateImporter::VERSION,
+    'type' => 'header',
+    'name' => 'E2E Header Draft',
+    'document' => [[
+        'type' => 'section',
+        'settings' => ['padding' => 'sm'],
+        'columns' => [[ 'elements' => [[ 'type' => 'text', 'data' => ['html' => '<p>E2E-HEADER-SEED</p>'] ]] ]],
+    ]],
+], JSON_UNESCAPED_UNICODE);
+$headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'import', 'e2e-header-draft');
+
 // 6) 报告可用的 parent id（供冒烟客户端引用）
 $out = [
     'channel_list' => (int) $pdo->query("SELECT id FROM yikai_channels WHERE type='list' LIMIT 1")->fetchColumn(),
@@ -84,6 +99,7 @@ $out = [
     'download_cat' => (int) ($pdo->query("SELECT id FROM yikai_download_categories LIMIT 1")->fetchColumn() ?: 0),
     'tables'       => (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")->fetchColumn(),
     'blox_template' => (int) $template['id'],
+    'blox_header_template' => (int) $headerTemplate['id'],
 ];
 file_put_contents(__DIR__ . '/fixtures.json', json_encode($out));
 echo "SMOKE SETUP OK: " . json_encode($out) . "\n";
