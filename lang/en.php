@@ -2440,7 +2440,6 @@ return [
     'blox_home_cta_overlay' => 'Background overlay strength',
     'blox_home_cta_background_reset' => 'Restore theme default',
     'blox_home_stats_icon' => 'Icon name',
-    'blox_icon_library' => 'Icon library',
     'blox_icon_library_close' => 'Collapse',
     'blox_icon_search_placeholder' => 'Search icons by English name',
     'blox_icon_recommended' => 'Recommended icons',

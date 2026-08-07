@@ -467,7 +467,10 @@ final class HomeBloxBlockSchema
     }
 
 
-    /** @return list<array{icon:string,number:string,label:string}> */
+    /**
+     * @return list<array{icon:string,number:string,label:string}>
+     * @psalm-suppress PossiblyUnusedMethod 调用方在付费 blox_editor.php（CI 公开扫描不含该文件）。
+     */
     public static function statsSeedItems(): array
     {
         $defaults = [
@@ -495,7 +498,10 @@ final class HomeBloxBlockSchema
         return $items;
     }
 
-    /** @return list<array{icon:string,title:string,description:string}> */
+    /**
+     * @return list<array{icon:string,title:string,description:string}>
+     * @psalm-suppress PossiblyUnusedMethod 调用方在付费 blox_editor.php（CI 公开扫描不含该文件）。
+     */
     public static function advantageSeedItems(): array
     {
         $defaults = [
