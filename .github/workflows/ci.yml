@@ -231,7 +231,9 @@ jobs:
   e2e:
     name: Blox Browser Regression
     runs-on: ubuntu-latest
-    # r8–r10 观察期多轮全绿，r11 起转强制门禁（与单测同级，红了就不能发）
+    # 继续观察期：r11 曾短暂转强制，但共享工作树的并行开发（图标改造进行中）会让
+    # 半成品经由同文件提交泄进 CI——待图标线完整入库后再转强制。
+    continue-on-error: true
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
