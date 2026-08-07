@@ -1,3 +1,21 @@
+# ── 行尾规范化 ──────────────────────────────────────────────
+# 仓库内一律存 LF。Windows 侧工具（PowerShell WriteAllText 等）写出的
+# CRLF 会在 commit 时被归一化，避免"只改几行却整文件 diff"导致无法评审。
+# 存量文件需一次性执行：git add --renormalize .
+* text=auto eol=lf
+
+# Windows 批处理必须保留 CRLF，否则部分 cmd.exe 版本解析异常
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制资源不做任何行尾转换（.svg 是文本，故不在此列）
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff2 binary
+*.zip  binary
+
+# ── Composer dist 归档排除 ──────────────────────────────────
 # Exclude from Composer dist archives
 /.gitattributes  export-ignore
 /.gitignore      export-ignore
