@@ -26,6 +26,7 @@ final class ListDynamicElement extends AbstractElement
     public function isDynamic(): bool { return true; }
     public function isContainer(): bool { return true; }
     public function rendersOwnChildren(): bool { return true; }
+    public function allowedChildren(array $data = []): array { return DynamicLoopTemplateRenderer::allowedTypes(); }
 
     public function controls(): array
     {

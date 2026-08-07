@@ -17,6 +17,31 @@ final class HomeBlockElement extends AbstractElement
     public function isDynamic(): bool { return true; }
     public function isContainer(): bool { return true; }
     public function rendersOwnChildren(): bool { return true; }
+    public function paletteVisible(string $context = 'page'): bool { return $context === 'home'; }
+    public function supportsBoxStyles(): bool { return false; }
+
+    public function allowedChildren(array $data = []): array
+    {
+        return (string) ($data['block_type'] ?? '') === 'banner' ? ['home-banner-item'] : [];
+    }
+
+    public function childRules(): array
+    {
+        return [[
+            'field' => 'block_type',
+            'operator' => '=',
+            'value' => 'banner',
+            'allowedChildren' => ['home-banner-item'],
+        ]];
+    }
+
+    public function scriptsFor(array $data): array
+    {
+        $counterEnabled = !array_key_exists('counter_enabled', $data) || !empty($data['counter_enabled']);
+
+        return (string) ($data['block_type'] ?? '') === 'stats' && $counterEnabled
+            ? ['/assets/js/blox-counter.js'] : [];
+    }
 
     public function controls(): array
     {

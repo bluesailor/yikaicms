@@ -8,6 +8,8 @@ final class ContactCardsElement extends AbstractElement
     public function type(): string { return 'contact_cards'; }
     public function label(): string { return '联系信息卡片'; }
     public function icon(): string { return 'address-book'; }
+    public function paletteVisible(string $context = 'page'): bool { return false; }
+    public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array
     {

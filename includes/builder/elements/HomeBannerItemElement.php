@@ -8,6 +8,10 @@ final class HomeBannerItemElement extends AbstractElement
     public function label(): string { return __('blox_home_banner_item'); }
     public function icon(): string { return 'photo'; }
     public function category(): string { return 'dynamic'; }
+    public function paletteVisible(string $context = 'page'): bool { return false; }
+    public function canBeGenericChild(): bool { return false; }
+    public function supportsBoxStyles(): bool { return false; }
+    public function treeLabelField(): ?string { return 'title'; }
 
     public function controls(): array
     {

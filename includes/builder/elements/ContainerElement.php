@@ -24,6 +24,7 @@ final class ContainerElement extends AbstractElement
     public function icon(): string { return 'box-margin'; }
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
+    public function allowedChildren(array $data = []): array { return ['*']; }
 
     public function controls(): array
     {

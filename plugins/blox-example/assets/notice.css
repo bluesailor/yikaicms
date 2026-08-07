@@ -1,0 +1,12 @@
+.blox-example-notice {
+    border: 1px solid #93c5fd;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    padding: 12px 16px;
+}
+.blox-example-notice--success {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #14532d;
+}

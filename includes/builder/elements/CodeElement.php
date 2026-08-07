@@ -9,6 +9,7 @@ final class CodeElement extends AbstractElement
     public function label(): string { return '代码/HTML'; }
     public function icon(): string { return 'code'; }
     public function category(): string { return 'advanced'; }
+    public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array
     {

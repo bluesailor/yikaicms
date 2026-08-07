@@ -10,6 +10,8 @@ final class BannerElement extends AbstractElement
     public function icon(): string { return 'carousel-horizontal'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
+    public function paletteVisible(string $context = 'page'): bool { return false; }
+    public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array
     {

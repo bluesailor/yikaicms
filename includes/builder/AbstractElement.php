@@ -183,6 +183,9 @@ abstract class AbstractElement
                 $d[$c['key']] = $c['default'] ?? '';
             }
         }
+        if ($this->isContainer()) {
+            $d['children'] = $this->defaultChildren();
+        }
         return $d;
     }
 
@@ -218,6 +221,87 @@ abstract class AbstractElement
 
     /** 容器是否自行渲染 data.children；默认仍由 BlockRenderer 递归。 */
     public function rendersOwnChildren(): bool
+    {
+        return false;
+    }
+
+    /** 是否显示在指定编辑器场景的根级元素库；内部子元素可返回 false。 */
+    public function paletteVisible(string $context = 'page'): bool
+    {
+        return true;
+    }
+
+    /**
+     * 容器可直接接收的元素类型。`*` 表示任意可作为通用子元素的非容器元素。
+     *
+     * @return list<string>
+     */
+    public function allowedChildren(array $data = []): array
+    {
+        return [];
+    }
+
+    /**
+     * 由父元素数据决定的子元素规则，供浏览器端复现 allowedChildren()。
+     *
+     * @return list<array{field:string,operator:string,value:mixed,allowedChildren:list<string>}>
+     */
+    public function childRules(): array
+    {
+        return [];
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function defaultChildren(): array
+    {
+        return [];
+    }
+
+    /** `allowedChildren = ['*']` 时是否允许作为通用叶子节点。 */
+    public function canBeGenericChild(): bool
+    {
+        return true;
+    }
+
+    /** 是否在编辑器样式面板显示通用 margin / padding 盒模型。 */
+    public function supportsBoxStyles(): bool
+    {
+        return true;
+    }
+
+    /** @return list<string> 元素前台运行所需的本地脚本路径。 */
+    public function scripts(): array
+    {
+        return [];
+    }
+
+    /** @return list<string> 元素前台运行所需的本地样式路径。 */
+    public function styles(): array
+    {
+        return [];
+    }
+
+    /** @param array<string,mixed> $data @return list<string> */
+    public function scriptsFor(array $data): array
+    {
+        return $this->scripts();
+    }
+
+    /** @param array<string,mixed> $data @return list<string> */
+    public function stylesFor(array $data): array
+    {
+        unset($data);
+        return $this->styles();
+    }
+
+    /** 结构树优先读取的数据字段；null 时使用编辑器的通用文本字段。 */
+    public function treeLabelField(): ?string
+    {
+        return null;
+    }
+
+    /** 已废弃元素仍可渲染已有数据，但不应再允许新增。 */
+    public function deprecated(): bool
     {
         return false;
     }

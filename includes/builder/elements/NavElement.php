@@ -14,6 +14,7 @@ final class NavElement extends AbstractElement
     public function icon(): string { return 'menu-2'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
+    public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array
     {
