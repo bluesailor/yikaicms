@@ -535,24 +535,24 @@ public static function isActive(): bool
     public static function legacyLabel(string $type): string
     {
         $labels = [
-            'banner'       => 'Banner 轮播图',
-            'about'        => '关于我们',
-            'stats'        => '数据统计',
-            'channels'     => '栏目内容',
-            'testimonials' => '客户评价',
-            'advantage'    => '我们的优势',
-            'cta'          => '行动号召',
-            'partners'     => '合作伙伴',
-            'product_categories' => '产品分类',
+            'banner'       => __('blox_hb_banner'),
+            'about'        => __('blox_hb_about'),
+            'stats'        => __('blox_hb_stats'),
+            'channels'     => __('blox_hb_channels'),
+            'testimonials' => __('blox_hb_testimonials'),
+            'advantage'    => __('blox_hb_advantage'),
+            'cta'          => __('blox_el_cta'),
+            'partners'     => __('blox_hb_partners'),
+            'product_categories' => __('blox_hb_product_categories'),
         ];
         if (isset($labels[$type])) {
             return $labels[$type];
         }
         if (str_starts_with($type, 'channel:')) {
-            return '栏目内容 #' . substr($type, 8);
+            return __('blox_hb_channels') . ' #' . substr($type, 8);
         }
         if (str_starts_with($type, 'custom:')) {
-            return '自定义版块 #' . substr($type, 7);
+            return __('blox_hb_custom') . ' #' . substr($type, 7);
         }
         return $type;
     }

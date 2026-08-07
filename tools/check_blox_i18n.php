@@ -10,7 +10,7 @@
  *
  * 白名单：存量数据兼容哨兵（如「首页区块」旧文档标签比较），见 $sentinels。
  * CI 干净 checkout 缺付费源码文件时自动跳过对应文件（guard 同款语义：跳过≠失败）。
- * 用法：php tools/check_blox_i18n.php [--allow-element-labels]   退出码 0=通过 1=违规
+ * 用法：php tools/check_blox_i18n.php   退出码 0=通过 1=违规
  */
 
 declare(strict_types=1);
@@ -27,23 +27,7 @@ $scope = array_merge(
 /** 存量数据兼容哨兵：比较旧文档里已存储的标签，不是 UI 文案，本地化会破坏旧数据识别。 */
 $sentinels = ['首页区块'];
 
-/**
- * 元素/Schema 标签层的过渡豁免（--allow-element-labels）：
- * label()/controls()/预设名等存量中文属「元素层 i18n」专项，清零后从此列表删除对应文件收紧。
- * 注意用 CLI 参数而非环境变量——本仓库常在 WSL 下调 Windows php.exe，env 不透传。
- */
-$elementFileGrace = in_array('--allow-element-labels', $argv ?? [], true);
-$graceFiles = [
-    '/includes/builder/presets.php',
-    '/includes/builder/BlocksLibrary.php',
-    '/includes/builder/DynamicListItemSchema.php',
-    '/includes/builder/HomeBloxBlockSchema.php',
-    '/includes/builder/HomeBloxRenderContext.php',
-    '/includes/builder/HomeBloxDocument.php',
-    '/includes/builder/HomeLayoutDocument.php',
-    '/includes/builder/BloxDocumentValidator.php',
-    '/includes/builder/DynamicLoopTemplateRenderer.php',
-];
+// 过渡豁免机制已随「元素层 i18n」2026-08-07 清零而退役：全范围严格。
 
 $cjk = '/[\x{4E00}-\x{9FFF}\x{3040}-\x{30FF}]/u';
 $cjkPunctOnly = '/^[\x{3000}-\x{303F}\x{FF00}-\x{FFEF}\s]+$/u'; // 、。「」（）等纯标点
@@ -64,14 +48,6 @@ foreach ($scope as $file) {
         foreach ($m[0] as [$hit, $off]) {
             $line = substr_count(substr($src, 0, $off), "\n") + 1;
             $violations[] = "$rel:$line \\uXXXX 转义「{$hit}」——请改用 lang key（\$jt/ctxText/uiText 模式）";
-        }
-    }
-
-    $isElementFile = false;
-    foreach ($graceFiles as $graceMark) {
-        if (str_contains(str_replace('\\', '/', $file), $graceMark)) {
-            $isElementFile = true;
-            break;
         }
     }
 
@@ -105,9 +81,6 @@ foreach ($scope as $file) {
             }
             if (in_array($inner, $sentinels, true)) {
                 continue;
-            }
-            if ($isElementFile && $elementFileGrace) {
-                continue; // 元素/Schema 标签存量：过渡期豁免（--allow-element-labels）
             }
             $violations[] = "$rel:$line PHP 字符串含中文「" . mb_substr($inner, 0, 24) . "」——请走 __() + 三语 lang key";
         }

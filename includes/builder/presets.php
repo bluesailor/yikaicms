@@ -17,103 +17,103 @@ function builderPresets(): array
         // ---- 区块级预设：单区块一键插入 ----
         'sections' => [
             [
-                'key' => 'hero', 'label' => 'Hero 主视觉', 'icon' => 'layout-navbar',
-                'desc' => '大标题 + 副文 + 按钮',
+                'key' => 'hero', 'label' => __('blox_ps_hero'), 'icon' => 'layout-navbar',
+                'desc' => __('blox_ps_hero_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'xl', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'lg'],
                     'columns' => [[
                         'id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '值得信赖的合作伙伴', 'level' => 'h1']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">一句话说清你的核心价值——为谁、解决什么问题、凭什么选择你。</p>']],
-                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '了解更多', 'url' => '/about.html', 'new_tab' => false]],
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_hero_h1'), 'level' => 'h1']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_hero_p') . '</p>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('home_learn_more'), 'url' => '/about.html', 'new_tab' => false]],
                         ],
                     ]],
                 ]],
             ],
             [
-                'key' => 'features', 'label' => '特性三栏', 'icon' => 'layout-grid',
-                'desc' => '图标盒 × 3（卡片）',
+                'key' => 'features', 'label' => __('blox_ps_features'), 'icon' => 'layout-grid',
+                'desc' => __('blox_ps_features_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg', 'col_card' => true],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'award', 'title' => '专业可靠', 'text' => '经验丰富的团队，为您提供全流程支持。']],
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'award', 'title' => __('blox_ps_f1_t'), 'text' => __('blox_ps_f1_x')]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'shield', 'title' => '品质保证', 'text' => '严格的品质管理体系，每个环节值得信赖。']],
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'shield', 'title' => __('blox_ps_f2_t'), 'text' => __('blox_ps_f2_x')]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'headset', 'title' => '贴心服务', 'text' => '快速响应的售前售后，与您携手创造价值。']],
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'headset', 'title' => __('blox_ps_f3_t'), 'text' => __('blox_ps_f3_x')]],
                         ]],
                     ],
                 ]],
             ],
             [
-                'key' => 'pricing', 'label' => '价格表三栏', 'icon' => 'currency-yen',
-                'desc' => '总标题 + 3 档定价卡片（加宽）',
+                'key' => 'pricing', 'label' => __('blox_ps_pricing'), 'icon' => 'currency-yen',
+                'desc' => __('blox_ps_pricing_d'),
                 'sections' => [
                     ['id' => 's',
-                    'settings' => ['title' => '价格方案', 'subtitle' => '选择最适合你的套餐，随时可升级', 'bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'gap' => 'md', 'col_card' => true],
+                    'settings' => ['title' => __('blox_ps_pricing_t'), 'subtitle' => __('blox_ps_pricing_s'), 'bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'gap' => 'md', 'col_card' => true],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '基础版', 'level' => 'h3']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥99</span> <span style="color:#888">/ 月</span></p>']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>核心功能</li><li>5 个项目</li><li>邮件支持</li></ul>']],
-                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '选择基础版', 'url' => '/contact.html', 'new_tab' => false]],
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_plan_basic'), 'level' => 'h3']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥99</span> <span style="color:#888">/ ' . __('blox_ps_per_month') . '</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>' . __('blox_ps_pb_1') . '</li><li>' . __('blox_ps_pb_2') . '</li><li>' . __('blox_ps_pb_3') . '</li></ul>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('blox_ps_pick_basic'), 'url' => '/contact.html', 'new_tab' => false]],
                         ]],
                         ['id' => 'c', 'card_bg' => '#fffbeb', 'elements' => [
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div style="text-align:center;margin-bottom:6px"><span style="display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px">★ 推荐</span></div>']],
-                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '专业版', 'level' => 'h3']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700;color:#4f46e5">¥299</span> <span style="color:#888">/ 月</span></p>']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>全部基础功能</li><li>无限项目</li><li>优先支持</li><li>数据分析</li></ul>']],
-                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '选择专业版', 'url' => '/contact.html', 'new_tab' => false]],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div style="text-align:center;margin-bottom:6px"><span style="display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px">★ ' . __('blox_ps_recommended') . '</span></div>']],
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_plan_pro'), 'level' => 'h3']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700;color:#4f46e5">¥299</span> <span style="color:#888">/ ' . __('blox_ps_per_month') . '</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>' . __('blox_ps_pp_1') . '</li><li>' . __('blox_ps_pp_2') . '</li><li>' . __('blox_ps_pp_3') . '</li><li>' . __('blox_ps_pp_4') . '</li></ul>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('blox_ps_pick_pro'), 'url' => '/contact.html', 'new_tab' => false]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '旗舰版', 'level' => 'h3']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥999</span> <span style="color:#888">/ 月</span></p>']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>全部专业功能</li><li>专属客户经理</li><li>定制开发</li><li>SLA 保障</li></ul>']],
-                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => '联系销售', 'url' => '/contact.html', 'new_tab' => false]],
+                            ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_plan_flagship'), 'level' => 'h3']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥999</span> <span style="color:#888">/ ' . __('blox_ps_per_month') . '</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>' . __('blox_ps_pf_1') . '</li><li>' . __('blox_ps_pf_2') . '</li><li>' . __('blox_ps_pf_3') . '</li><li>' . __('blox_ps_pf_4') . '</li></ul>']],
+                            ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('blox_ps_contact_sales'), 'url' => '/contact.html', 'new_tab' => false]],
                         ]],
                     ],
                 ]],
             ],
             [
-                'key' => 'cta', 'label' => '行动号召', 'icon' => 'speakerphone',
-                'desc' => 'CTA 横幅 + 按钮',
+                'key' => 'cta', 'label' => __('blox_el_cta'), 'icon' => 'speakerphone',
+                'desc' => __('blox_ps_cta_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'md', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
                     'columns' => [[
                         'id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'cta', 'data' => ['title' => '想进一步了解我们？', 'text' => '欢迎随时联系，专业团队竭诚为您提供咨询与解决方案。', 'btn_text' => '立即联系', 'btn_url' => '/contact.html']],
+                            ['id' => 'e', 'type' => 'cta', 'data' => ['title' => __('blox_ps_cta_t'), 'text' => __('blox_ps_cta_x'), 'btn_text' => __('blox_ps_contact_now'), 'btn_url' => '/contact.html']],
                         ],
                     ]],
                 ]],
             ],
             [
-                'key' => 'team', 'label' => '团队成员', 'icon' => 'users',
-                'desc' => '头像卡片 × 3',
+                'key' => 'team', 'label' => __('blox_ps_team'), 'icon' => 'users',
+                'desc' => __('blox_ps_team_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg'],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/uploads/images/case-demo.jpg', 'title' => '张三 · 创始人', 'text' => '15 年行业经验，负责整体战略。', 'link' => '']],
+                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/uploads/images/case-demo.jpg', 'title' => __('blox_ps_m1_t'), 'text' => __('blox_ps_m1_x'), 'link' => '']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/uploads/images/case-demo.jpg', 'title' => '李四 · 技术总监', 'text' => '架构与研发团队负责人。', 'link' => '']],
+                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/uploads/images/case-demo.jpg', 'title' => __('blox_ps_m2_t'), 'text' => __('blox_ps_m2_x'), 'link' => '']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/uploads/images/case-demo.jpg', 'title' => '王五 · 客户成功', 'text' => '让每一位客户用得顺手。', 'link' => '']],
+                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/uploads/images/case-demo.jpg', 'title' => __('blox_ps_m3_t'), 'text' => __('blox_ps_m3_x'), 'link' => '']],
                         ]],
                     ],
                 ]],
             ],
             [
-                'key' => 'gallery', 'label' => '图片画廊', 'icon' => 'photo',
-                'desc' => '图片 × 3（点击放大）',
+                'key' => 'gallery', 'label' => __('blox_ps_gallery'), 'icon' => 'photo',
+                'desc' => __('blox_ps_gallery_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
@@ -131,54 +131,54 @@ function builderPresets(): array
                 ]],
             ],
             [
-                'key' => 'stats', 'label' => '数据亮点', 'icon' => 'chart-bar',
-                'desc' => '数字 × 4',
+                'key' => 'stats', 'label' => __('blox_ps_stats'), 'icon' => 'chart-bar',
+                'desc' => __('blox_ps_stats_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '#0f172a', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg'],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">10+</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">行业经验（年）</div></div>']],
+                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">10+</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">' . __('blox_ps_s1') . '</div></div>']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">500+</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">服务客户</div></div>']],
+                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">500+</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">' . __('home_stat_1') . '</div></div>']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">98%</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">客户满意度</div></div>']],
+                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">98%</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">' . __('blox_ps_s3') . '</div></div>']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">24h</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">响应时效</div></div>']],
+                            ['id' => 'e', 'type' => 'code', 'data' => ['html' => '<div class="text-center"><div style="color:#fff" class="text-4xl font-bold">24h</div><div style="color:rgba(255,255,255,.6)" class="text-sm mt-1">' . __('blox_ps_s4') . '</div></div>']],
                         ]],
                     ],
                 ]],
             ],
             [
-                'key' => 'testimonial', 'label' => '客户评价', 'icon' => 'message-star',
-                'desc' => '引文 + 署名',
+                'key' => 'testimonial', 'label' => __('blox_hb_testimonials'), 'icon' => 'message-star',
+                'desc' => __('blox_ps_quote_d'),
                 'sections' => [[
                     'id' => 's',
                     'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'narrow', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'md'],
                     'columns' => [[
                         'id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'quote', 'data' => ['text' => '合作非常顺畅，交付质量超出预期，是可以长期信赖的伙伴。', 'author' => '某客户 · 项目负责人']],
+                            ['id' => 'e', 'type' => 'quote', 'data' => ['text' => __('blox_ps_quote_x'), 'author' => __('blox_ps_quote_a')]],
                         ],
                     ]],
                 ]],
             ],
             [
-                'key' => 'faq', 'label' => '常见问题 FAQ', 'icon' => 'help-circle',
-                'desc' => '折叠问答 × 4（含 SEO 结构化数据）',
+                'key' => 'faq', 'label' => __('blox_ps_faq'), 'icon' => 'help-circle',
+                'desc' => __('blox_ps_faq_d'),
                 'sections' => [[
                     'id' => 's',
                     // 用 section 级标题（blk-title + 装饰条），与首页其它版块标题风格统一
-                    'settings' => ['title' => '常见问题', 'subtitle' => '为您解答购买、售后与定制的常见疑问', 'bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
+                    'settings' => ['title' => __('blox_ps_faq_t'), 'subtitle' => __('blox_ps_faq_s'), 'bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
                     'columns' => [[
                         'id' => 'c', 'elements' => [
                             ['id' => 'e', 'type' => 'accordion', 'data' => [
-                                'items' => "如何购买你们的产品？|您可以通过在线表单留言或直接电话联系我们，客服会在一个工作日内回复您。\n"
-                                    . "是否提供售后服务？|提供。所有产品均含一年质保与终身技术支持，让您没有后顾之忧。\n"
-                                    . "可以定制吗？|支持。请把您的需求告诉我们，我们会评估后给出方案与报价。\n"
-                                    . "发货周期是多久？|常规产品 3 个工作日内发货，定制类产品以合同约定为准。",
+                                'items' => __('blox_faq_seed_q1') . '|' . __('blox_ps_faq_a1') . "\n"
+                                    . __('blox_faq_seed_q2') . '|' . __('blox_ps_faq_a2') . "\n"
+                                    . __('blox_ps_faq_q3') . '|' . __('blox_ps_faq_a3') . "\n"
+                                    . __('blox_ps_faq_q4') . '|' . __('blox_ps_faq_a4'),
                                 'open_first' => true,
                                 'seo_schema' => true,
                             ]],
@@ -191,15 +191,15 @@ function builderPresets(): array
         // ---- 整页模板：一键插入整套区块 ----
         'pages' => [
             [
-                'key' => 'company_intro', 'label' => '公司介绍', 'icon' => 'file-text',
-                'desc' => '简介 + 图文 + 优势 + CTA',
+                'key' => 'company_intro', 'label' => __('blox_ps_company'), 'icon' => 'file-text',
+                'desc' => __('blox_ps_company_d'),
                 'sections' => [
                     [
                         'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'lg'],
                         'columns' => [[
                             'id' => 'c', 'elements' => [
-                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '公司简介', 'level' => 'h2']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。</p>']],
+                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_co_t'), 'level' => 'h2']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_co_p') . '</p>']],
                             ],
                         ]],
                     ],
@@ -207,12 +207,12 @@ function builderPresets(): array
                         'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'stretch', 'gap' => 'lg'],
                         'columns' => [
                             ['id' => 'c', 'elements' => [
-                                ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/uploads/images/case-demo.jpg', 'alt' => '公司环境 / 团队照片', 'click_action' => '', 'link_url' => '', 'link_new_tab' => false]],
+                                ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/uploads/images/case-demo.jpg', 'alt' => __('blox_ps_co_alt'), 'click_action' => '', 'link_url' => '', 'link_new_tab' => false]],
                             ]],
                             ['id' => 'c', 'elements' => [
-                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '我们的故事', 'level' => 'h3']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p>多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。</p><p>未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。</p>']],
-                                ['id' => 'e', 'type' => 'button', 'data' => ['text' => '了解更多', 'url' => '#', 'new_tab' => false]],
+                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_story_t'), 'level' => 'h3']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p>' . __('blox_ps_story_p1') . '</p><p>' . __('blox_ps_story_p2') . '</p>']],
+                                ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('home_learn_more'), 'url' => '#', 'new_tab' => false]],
                             ]],
                         ],
                     ],
@@ -221,18 +221,18 @@ function builderPresets(): array
                         'columns' => [
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'award', 'size' => 'lg', 'color' => '', 'text' => '']],
-                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '专业团队', 'level' => 'h4']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">经验丰富的专业团队，为您提供全流程的贴心支持。</p>']],
+                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('home_adv_1_title'), 'level' => 'h4']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_a1') . '</p>']],
                             ]],
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'shield', 'size' => 'lg', 'color' => '', 'text' => '']],
-                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '品质保证', 'level' => 'h4']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">严格的品质管理体系，确保每一个环节都值得信赖。</p>']],
+                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_f2_t'), 'level' => 'h4']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_a2') . '</p>']],
                             ]],
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'users', 'size' => 'lg', 'color' => '', 'text' => '']],
-                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '贴心服务', 'level' => 'h4']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">快速响应的售前售后服务，与您携手共创价值。</p>']],
+                                ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_f3_t'), 'level' => 'h4']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_a3') . '</p>']],
                             ]],
                         ],
                     ],
@@ -242,9 +242,9 @@ function builderPresets(): array
                             'id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'code', 'data' => ['html' =>
                                     '<div style="background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))" class="rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl">'
-                                    . '<div style="color:#fff" class="text-2xl md:text-4xl font-bold mb-3">想进一步了解我们？</div>'
-                                    . '<div style="color:rgba(255,255,255,.9)" class="text-base md:text-lg mb-8 max-w-2xl mx-auto">欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。</div>'
-                                    . '<a href="/contact.html" style="background:#fff;color:var(--color-primary);text-decoration:none" class="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition">立即联系我们 <i class="ti ti-arrow-right text-lg"></i></a>'
+                                    . '<div style="color:#fff" class="text-2xl md:text-4xl font-bold mb-3">' . __('blox_ps_cta_t') . '</div>'
+                                    . '<div style="color:rgba(255,255,255,.9)" class="text-base md:text-lg mb-8 max-w-2xl mx-auto">' . __('blox_ps_cta_x2') . '</div>'
+                                    . '<a href="/contact.html" style="background:#fff;color:var(--color-primary);text-decoration:none" class="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition">' . __('blox_ps_contact_us_now') . ' <i class="ti ti-arrow-right text-lg"></i></a>'
                                     . '</div>',
                                 ]],
                             ],
