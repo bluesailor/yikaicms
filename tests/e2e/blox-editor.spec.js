@@ -276,21 +276,36 @@ test('template mode edits header draft with dimmed context @ci', async ({ page }
   await expect(page.getByTestId('blox-publish')).toHaveCount(0);
   await expect(page.getByTestId('blox-rollback')).toHaveCount(0);
 
-  // 编辑 → 存草稿 → 重载持久化断言。只加空区块（不用 addTemporaryHeading：
-  // 其「全画布 heading 恰 1」断言对累积草稿脆弱）。不做复原：CI 每次全新装机，
-  // 本地重跑 setup.php 即复位；一次性库允许种子随跑次增长。
+  // 编辑 → 存草稿 → 重载持久化 → API 复位种子（幂等：无论此前状态如何，
+  // 结束时草稿 = fixture 单源内容；审计指出「接受种子增长」违背可重复基线）。
+  const seedDoc = JSON.stringify(JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, 'fixtures/header-template.json'), 'utf8')).document);
   const before = await countSections(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
-  const saveResponse = page.waitForResponse((r) => {
-    const url = new URL(r.url());
-    return r.request().method() === 'POST' && url.pathname === '/admin/blox_template_api.php';
-  });
+  const savePair = Promise.all([
+    page.waitForRequest((r) => r.method() === 'POST' && new URL(r.url()).pathname === '/admin/blox_template_api.php'),
+    page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/admin/blox_template_api.php'),
+  ]);
   await page.getByTestId('blox-save').click();
-  const res = await saveResponse;
-  expect((await res.json()).code).toBe(0);
+  const [saveReq, saveRes] = await savePair;
+  expect((await saveRes.json()).code).toBe(0);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+
+  // 复位：CSRF 从真实保存请求捕获，API 直写种子文档（不走 UI，无脆弱定位）
+  const token = new URLSearchParams(saveReq.postData() || '').get('_token');
+  const restore = await page.request.post('/admin/blox_template_api.php', {
+    form: {
+      action: 'save_draft',
+      id: String(fixtures.blox_header_template),
+      blocks_data: seedDoc,
+      _token: token || '',
+    },
+  });
+  expect((await restore.json()).code).toBe(0);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
 });

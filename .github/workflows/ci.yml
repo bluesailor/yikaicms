@@ -153,6 +153,11 @@ jobs:
       - name: Permission matrix（角色 × 端点 × 方法）
         run: php tests/smoke/permission_matrix.php
 
+      # Blox 头尾激活生命周期（r7.1）：home/单页/exclude/footer/fail-closed/旧主题回退。
+      # 前身是一次性验证脚本——审计指出这些路径在 CI 零覆盖后转为常驻。
+      - name: Blox area activation lifecycle
+        run: php tests/smoke/blox_area_activation.php
+
       - name: Dump error logs on failure（ErrorHandler 落盘的真实堆栈）
         if: failure()
         run: |

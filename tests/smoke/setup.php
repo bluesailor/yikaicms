@@ -77,18 +77,8 @@ $template = BloxTemplateImporter::importJson($templateJson, 1, 'import', 'e2e-lo
 bloxTemplateModel()->publishDraft($template['id']);
 
 // 5b) 头模板草稿（不发布、无条件）：供编辑器模板模式（?template=N）浏览器用例使用。
-// 种子用 text 元素而非 heading——e2e 助手断言画布 heading 恰 1 个，别撞计数。
-$headerTemplateJson = json_encode([
-    'format' => BloxTemplateImporter::FORMAT,
-    'version' => BloxTemplateImporter::VERSION,
-    'type' => 'header',
-    'name' => 'E2E Header Draft',
-    'document' => [[
-        'type' => 'section',
-        'settings' => ['padding' => 'sm'],
-        'columns' => [[ 'elements' => [[ 'type' => 'text', 'data' => ['html' => '<p>E2E-HEADER-SEED</p>'] ]] ]],
-    ]],
-], JSON_UNESCAPED_UNICODE);
+// 种子内容与 e2e 复位共用同一 fixture 文件（单源），保证测试幂等复位有据可依。
+$headerTemplateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/header-template.json');
 $headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'import', 'e2e-header-draft');
 
 // 6) 报告可用的 parent id（供冒烟客户端引用）

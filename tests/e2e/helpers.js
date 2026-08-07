@@ -12,14 +12,22 @@ function observeConsole(page) {
 }
 
 function observeUnsafeWrites(page) {
+  // 危险写清单（P1-c，2026-08-07 审计）：不止首页 API——模板 publish 会改前台激活态，
+  // 同样属于危险写。save_draft 是模板用例的预期写入（一次性库草稿），显式放行。
   const entries = [];
   page.on('request', (request) => {
     if (request.method() !== 'POST') return;
     const url = new URL(request.url());
-    if (url.pathname !== '/admin/blox_home_api.php') return;
     const body = new URLSearchParams(request.postData() || '');
-    const action = body.get('action') || 'save';
-    if (action !== 'preview') entries.push(action);
+    if (url.pathname === '/admin/blox_home_api.php') {
+      const action = body.get('action') || 'save';
+      if (action !== 'preview') entries.push('home:' + action);
+      return;
+    }
+    if (url.pathname === '/admin/blox_template_api.php') {
+      const action = body.get('action') || '';
+      if (action !== 'save_draft' && action !== 'get') entries.push('template:' + action);
+    }
   });
   return entries;
 }

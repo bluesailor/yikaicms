@@ -329,7 +329,7 @@ function bloxAreaHtml(string $area): string
         $context = [
             'home' => $script === 'index.php',
             'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
-            'page_id' => (int) (is_array($GLOBALS['page'] ?? null) ? ($GLOBALS['page']['id'] ?? 0) : 0),
+            'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
         ];
         $row = BloxAreaResolver::resolve($templates, $context);
         if ($row === null) {

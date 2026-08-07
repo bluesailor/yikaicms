@@ -83,6 +83,30 @@ final class BloxAreaResolverTest extends TestCase
         $this->assertNull(BloxAreaResolver::resolve($templates, self::CHANNEL_5));
     }
 
+    public function testAllInvalidConditionsFailClosedInsteadOfSiteWideTakeover(): void
+    {
+        // P1 回归（2026-08-07 审计）：条件字段有输入但全部无效时，模板必须不激活——
+        // 此前退化为「无条件 = 全站兜底 0 分」，一条坏数据即可误接管全站头尾。
+        $templates = [
+            ['id' => 1, 'conditions' => '[{"main":"bogus"}]'],
+            ['id' => 2, 'conditions' => 'not-json'],
+        ];
+        $this->assertNull(BloxAreaResolver::resolve($templates, self::HOME));
+
+        // 「从未设置」仍享受兜底语义（null / '' / '[]' 都算未设置）
+        foreach ([null, '', '[]', 'null'] as $unset) {
+            $this->assertFalse(BloxAreaResolver::hasConditionInput($unset));
+        }
+        $this->assertSame(
+            3,
+            BloxAreaResolver::resolve([['id' => 3, 'conditions' => null]], self::HOME)['id']
+        );
+        // 部分无效仍按有效条目评分（单条容错不变）
+        $mixed = [['id' => 4, 'conditions' => '[{"main":"bogus"},{"main":"home"}]']];
+        $this->assertSame(4, BloxAreaResolver::resolve($mixed, self::HOME)['id']);
+        $this->assertNull(BloxAreaResolver::resolve($mixed, self::CHANNEL_5));
+    }
+
     public function testMalformedInputIsSilentlyDropped(): void
     {
         $this->assertSame([], BloxAreaResolver::parse('not-json'));
