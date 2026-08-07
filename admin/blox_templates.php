@@ -98,6 +98,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/admin/blox_templates.php?deleted=1');
         }
 
+        if ($action === 'save_conditions') {
+            $id = max(0, (int) post('id', 0));
+            $raw = (string) post('conditions_json', '[]');
+            // 经 Resolver::parse 净化：未知 main / 非法 ids 单条丢弃，存规范化 JSON
+            $conditions = BloxAreaResolver::parse($raw);
+            bloxTemplateModel()->saveConditions($id, $conditions);
+            adminLog('blox_template', 'conditions', '更新 Blox 模板激活条件 #' . $id);
+            redirect('/admin/blox_templates.php?status=1');
+        }
+
         throw new RuntimeException(__('blox_invalid_action'));
     } catch (Throwable $e) {
         $errorMessage = $e->getMessage();
@@ -157,6 +167,11 @@ $GLOBALS['pageTitle'] = __('admin_blox_templates');
 $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+<script>
+function condForm(initial) {
+    return { rows: Array.isArray(initial) ? initial : [] };
+}
+</script>
 
 <div class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -226,7 +241,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <thead class="bg-gray-50 text-xs text-gray-500">
                         <tr><th class="px-5 py-3"><?php echo __('blox_tpl_col_name'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_type'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_source'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_status'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_updated'); ?></th><th class="px-5 py-3 text-right"><?php echo __('blox_tpl_col_actions'); ?></th></tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100" x-data="{ condOpen: 0 }">
                     <?php foreach ($storedTemplates as $template): ?>
                         <tr>
                             <td class="px-5 py-3 font-medium text-gray-900"><?php echo e((string) $template['name']); ?></td>
@@ -235,6 +250,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <td class="px-4 py-3"><?php echo (int) $template['status'] === 1 ? __('blox_tpl_published') : __('blox_tpl_draft'); ?></td>
                             <td class="px-4 py-3 text-gray-500"><?php echo date('Y-m-d H:i', (int) $template['updated_at']); ?></td>
                             <td class="px-5 py-3 text-right">
+                                <a href="/admin/blox_editor.php?template=<?php echo (int) $template['id']; ?>"
+                                   class="mr-3 text-blue-600 hover:text-blue-800" title="<?php echo e(__('blox_tpl_open_editor')); ?>">
+                                    <i class="ti ti-edit"></i>
+                                </a>
+                                <?php if (in_array((string) $template['type'], ['header', 'footer'], true)): ?>
+                                <button type="button" class="mr-3 text-indigo-600 hover:text-indigo-800"
+                                        @click="condOpen = condOpen === <?php echo (int) $template['id']; ?> ? 0 : <?php echo (int) $template['id']; ?>"
+                                        title="<?php echo e(__('blox_tpl_conditions')); ?>">
+                                    <i class="ti ti-adjustments-alt"></i>
+                                </button>
+                                <?php endif; ?>
                                 <a href="/admin/blox_templates.php?action=export&amp;id=<?php echo (int) $template['id']; ?>"
                                    class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_json')); ?>">
                                     <i class="ti ti-download"></i>
@@ -255,6 +281,50 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </form>
                             </td>
                         </tr>
+                        <?php if (in_array((string) $template['type'], ['header', 'footer'], true)): ?>
+                        <tr x-show="condOpen === <?php echo (int) $template['id']; ?>" x-cloak>
+                            <td colspan="6" class="px-5 py-4 bg-indigo-50/50">
+                                <form method="post"
+                                      x-data='condForm(<?php echo json_encode(BloxAreaResolver::parse($template['conditions'] ?? null), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS); ?>)'>
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="save_conditions">
+                                    <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">
+                                    <input type="hidden" name="conditions_json" :value="JSON.stringify(rows)">
+                                    <div class="mb-2 text-xs text-gray-500"><?php echo __('blox_tpl_conditions_hint'); ?></div>
+                                    <template x-for="(row, i) in rows" :key="'c' + i">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <select x-model="row.main" class="border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                                <option value="any"><?php echo e(__('blox_cond_any')); ?></option>
+                                                <option value="home"><?php echo e(__('blox_cond_home')); ?></option>
+                                                <option value="channel"><?php echo e(__('blox_cond_channel')); ?></option>
+                                                <option value="page"><?php echo e(__('blox_cond_page')); ?></option>
+                                            </select>
+                                            <input type="text" x-show="row.main === 'channel' || row.main === 'page'"
+                                                   :value="row.ids.join(',')"
+                                                   @input="row.ids = $event.target.value.split(',').map(function(v){return parseInt(v,10);}).filter(function(v){return v>0;})"
+                                                   placeholder="<?php echo e(__('blox_cond_ids_ph')); ?>"
+                                                   class="w-40 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                            <label class="inline-flex items-center gap-1 text-xs text-gray-600">
+                                                <input type="checkbox" x-model="row.exclude"><?php echo e(__('blox_cond_exclude')); ?>
+                                            </label>
+                                            <button type="button" @click="rows.splice(i, 1)" class="text-red-500 hover:text-red-700"
+                                                    title="<?php echo e(__('delete')); ?>"><i class="ti ti-x"></i></button>
+                                        </div>
+                                    </template>
+                                    <div class="flex items-center gap-3">
+                                        <button type="button" @click="rows.push({main:'any', ids:[], exclude:false})"
+                                                class="text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 rounded px-2 py-1">
+                                            + <?php echo e(__('blox_cond_add')); ?>
+                                        </button>
+                                        <button type="submit" class="text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded px-3 py-1.5">
+                                            <?php echo e(__('save')); ?>
+                                        </button>
+                                        <span class="text-[11px] text-gray-400"><?php echo __('blox_cond_empty_hint'); ?></span>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                     </tbody>
                 </table>

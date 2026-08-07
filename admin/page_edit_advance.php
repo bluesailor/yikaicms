@@ -170,7 +170,22 @@ if ($isHomeLayout) {
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
         BlockRenderer::$editChannelId = $isHomeLayout ? 1 : $id;
     }
-    if ($isHomeLayout) {
+    // 头尾模板画布：可编辑模板段 + 首页正文只读上下文（灰罩不可选）。
+    $templateArea = (string) ($_GET['template_area'] ?? '');
+    if ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
+        $editableArea = BlockRenderer::render((string) ($_POST['blocks_data'] ?? '[]'));
+
+        // 上下文正文：无编辑标记（editChannelId 归零后再渲染），画布上不可点选
+        $savedEditChannel = BlockRenderer::$editChannelId;
+        BlockRenderer::$editChannelId = 0;
+        $homeDoc = HomeBloxDocument::load();
+        $ctxContext = HomeBloxRenderContext::fromCurrentSite(false);
+        $contextBody = HomeBloxRenderer::render($homeDoc['sections'], [$ctxContext, 'renderLegacyBlock']);
+        BlockRenderer::$editChannelId = $savedEditChannel;
+
+        $dim = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>';
+        $body = $templateArea === 'header' ? $editableArea . $dim : $dim . $editableArea;
+    } elseif ($isHomeLayout) {
         $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
         if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
             $previewSections = $previewSections['sections'];
@@ -192,6 +207,8 @@ if ($isHomeLayout) {
 [data-yk-sec]{position:relative;cursor:pointer}
 [data-yk-sec]:hover{outline:2px dashed #93c5fd;outline-offset:-2px}
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
+.yk-ctx-dim{opacity:.42;pointer-events:none;user-select:none;filter:grayscale(.35);position:relative}
+.yk-ctx-dim:before{content:'';position:absolute;inset:0;z-index:20;background:repeating-linear-gradient(135deg,transparent 0 14px,rgba(100,116,139,.05) 14px 28px)}
 [data-yk-hide-on]{position:relative}
 [data-yk-hide-on]:before{content:'\2298 ' attr(data-yk-hide-on);position:absolute;z-index:28;top:4px;left:4px;padding:2px 7px;border-radius:4px;background:#64748b;color:#fff;font:700 10px/1.4 system-ui,sans-serif;pointer-events:none;opacity:.85}
 [data-yk-con]{position:relative;cursor:pointer;outline:1px dashed rgba(245,158,11,.55);outline-offset:-3px;box-shadow:inset 0 0 0 1px rgba(245,158,11,.08)}
