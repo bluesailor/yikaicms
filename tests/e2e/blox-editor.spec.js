@@ -309,3 +309,23 @@ test('template mode edits header draft with dimmed context @ci', async ({ page }
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
 });
+
+// ── 点空白取消选择（用户报告的回归，2026-08-08）──
+test('clicking blank canvas deselects tree selection @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  // 结构树选中首个区块 → 左栏出现「取消选中（改为插入到末尾）」提示按钮
+  await page.getByTestId('blox-tree-section').first().click();
+  await expect(page.getByTestId('blox-clear-selection')).toBeVisible();
+
+  // 点画布内空白 → 选择清除。首页画布内容从 y=0 铺满（真实空白只在内容间隙/尾部），
+  // 坐标点击会命中 section——用合成 body 点击验证「未命中 yk 目标 → ykClear」链路。
+  const contentFrame = await frame(page);
+  await contentFrame.locator('body').evaluate((body) => body.click());
+  await expect(page.getByTestId('blox-clear-selection')).toBeHidden();
+
+  // 再选中一次，点画布宿主空白（iframe 外灰底）→ 同样清除
+  await page.getByTestId('blox-tree-section').first().click();
+  await expect(page.getByTestId('blox-clear-selection')).toBeVisible();
+  await page.getByTestId('blox-canvas-host').click({ position: { x: 4, y: 4 } });
+  await expect(page.getByTestId('blox-clear-selection')).toBeHidden();
+});
