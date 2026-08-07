@@ -21,6 +21,7 @@ final class DivElement extends AbstractElement
     public function icon(): string { return 'square'; }
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
+    public function allowedChildren(array $data = []): array { return ['*']; }
 
     public function controls(): array
     {

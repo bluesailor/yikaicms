@@ -1,0 +1,17 @@
+{
+  "name": "Blox Example",
+  "version": "1.0.0",
+  "description": "Blox 插件元素、模板来源和本地资源声明示例",
+  "author": "Yikai CMS",
+  "requires_php": "8.2",
+  "blox": {
+    "elements": [
+      {
+        "type": "blox-example/notice",
+        "label": "插件提示条",
+        "container": false,
+        "genericChild": true
+      }
+    ]
+  }
+}

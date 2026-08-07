@@ -36,23 +36,53 @@ final class BuilderRegistry
      * 元素元数据（label/category/icon/controls/defaults/dynamic），供后台构建器 JS 生成
      * palette 与设置表单。加了元素类即自动出现在后台，无需手写 UI（简单控件）。
      */
-    public static function meta(): array
+    public static function meta(string $context = 'page'): array
     {
         self::boot();
         $out = [];
         foreach (self::$elements as $type => $el) {
+            $childRules = $el->childRules();
+            $defaults = $el->defaults();
             $out[$type] = [
                 'type'      => $type,
                 'label'     => $el->label(),
                 'category'  => $el->category(),
                 'icon'      => $el->icon(),
                 'controls'  => $el->controls(),
-                'defaults'  => $el->defaults(),
+                'defaults'  => $defaults,
                 'dynamic'   => $el->isDynamic(),
                 'container' => $el->isContainer(),
+                'paletteVisible' => $el->paletteVisible($context),
+                'allowedChildren' => $childRules === [] ? $el->allowedChildren($defaults) : [],
+                'childRules' => $childRules,
+                'genericChild' => $el->canBeGenericChild(),
+                'supportsBoxStyles' => $el->supportsBoxStyles(),
+                'scripts' => $el->scripts(),
+                'styles' => $el->styles(),
+                'treeLabelField' => $el->treeLabelField(),
+                'deprecated' => $el->deprecated(),
+                'missing' => false,
+                'plugin' => BloxPluginRegistry::ownerOf($type),
             ];
         }
+        foreach (BloxPluginRegistry::missingElementMeta(array_keys(self::$elements)) as $type => $meta) {
+            $out[$type] = $meta;
+        }
         return $out;
+    }
+
+    /** @param array<string,mixed> $parentData */
+    /** @psalm-suppress PossiblyUnusedMethod Public child-policy contract for plugins and editor adapters. */
+    public static function allowsChild(AbstractElement $parent, AbstractElement $child, array $parentData = []): bool
+    {
+        $allowed = $parent->allowedChildren($parentData);
+        if (in_array($child->type(), $allowed, true)) {
+            return true;
+        }
+
+        return in_array('*', $allowed, true)
+            && !$child->isContainer()
+            && $child->canBeGenericChild();
     }
 
     /** 注册内置元素（幂等），随后广播 builder_register_element 让插件扩展 */
@@ -81,9 +111,11 @@ final class BuilderRegistry
             new VideoElement(),
             new IconBoxElement(),
             new AccordionElement(),
+            new StatItemElement(),
             // 布局容器（一层嵌套；子元素在 data.children）
             new ContainerElement(),
             new DivElement(),
+            new StatsGroupElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new BannerElement(),

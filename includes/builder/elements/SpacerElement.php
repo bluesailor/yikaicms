@@ -17,6 +17,7 @@ final class SpacerElement extends AbstractElement
     public function label(): string { return '间距'; }
     public function icon(): string { return 'arrow-autofit-height'; }
     public function category(): string { return 'layout'; }
+    public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array
     {
