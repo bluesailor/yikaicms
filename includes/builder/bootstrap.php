@@ -23,6 +23,7 @@ require_once __DIR__ . '/BloxDocumentPipeline.php';
 require_once __DIR__ . '/BloxTemplateImporter.php';
 require_once __DIR__ . '/BloxRemoteTemplateProvider.php';
 require_once __DIR__ . '/BloxTemplateCatalog.php';
+require_once __DIR__ . '/BloxAreaResolver.php';
 require_once __DIR__ . '/DynamicLoopTemplateRenderer.php';
 require_once __DIR__ . '/BlocksLibrary.php';
 require_once __DIR__ . '/HomeBloxDocument.php';

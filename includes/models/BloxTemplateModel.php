@@ -102,6 +102,28 @@ final class BloxTemplateModel extends Model
     }
 
     /** @return list<array<string,mixed>> */
+    /**
+     * 指定区域（header/footer）的已发布候选模板（供激活裁决）。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function publishedAreaTemplates(string $area): array
+    {
+        if (!in_array($area, ['header', 'footer'], true)) {
+            return [];
+        }
+        try {
+            return db()->fetchAll(
+                'SELECT id,name,published_data,conditions FROM ' . DB_PREFIX . 'blox_templates'
+                . ' WHERE status = 1 AND type = ? AND published_data IS NOT NULL'
+                . ' ORDER BY id ASC',
+                [$area]
+            );
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
     public function publishedEditorCatalog(): array
     {
         try {

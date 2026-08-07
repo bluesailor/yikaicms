@@ -180,6 +180,10 @@ function getChannelUrl(array $channel): string {
     <?php endif; ?>
 
     <!-- Top navigation -->
+    <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
+    <?php if ($ykBloxHeader !== ''): ?>
+    <?php echo $ykBloxHeader; // Blox 头模板接管；无发布模板时走下方原生头（逐主题回退，红线 5） ?>
+    <?php else: ?>
     <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
         <?php if ($headerNavLayout === 'below'): ?>
         <!-- Layout: Logo on top, full-width banner below navigation -->
@@ -379,6 +383,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>
 
