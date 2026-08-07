@@ -160,6 +160,69 @@ jobs:
           echo "=== php server log ==="; tail -50 /tmp/php-server.log 2>/dev/null || true
 
   # Browser regression baseline for Blox. It is intentionally non-blocking until the suite proves stable.
+
+  # ─── Blox 付费套件（注入后全量 PHPUnit）：付费源码与公开代码的契约测试
+  # ─── （BloxEditor*Contract / TemplateImporter / Catalog / RemoteProvider，
+  # ─── 55 tests）只有注入后才存在。secret 不在场 → guard 显式 skip，不假红。
+  # ─── 与 e2e 不同：单测确定性高，本 job 为强制门禁（无 continue-on-error）。
+  blox-suite:
+    name: Blox Suite (injected)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 付费源码注入：BLOX_DEPLOY_KEY（deploy key 私钥，只读授权 yikaicms-blox）
+      # 在场时浅克隆私库并覆盖进构建树；不在场（fork / 无权环境）时静默跳过，
+      # 由后续 presence guard 显式标注 skipped。密钥用完即删。
+      - name: Inject Blox paid sources
+        env:
+          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
+        run: |
+          if [ -z "$BLOX_DEPLOY_KEY" ]; then
+            echo "::notice::BLOX_DEPLOY_KEY absent; paid sources not injected."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BLOX_DEPLOY_KEY" > ~/.ssh/blox_key
+          chmod 600 ~/.ssh/blox_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/blox_key -o IdentitiesOnly=yes" \
+            git clone --depth 1 git@github.com:bluesailor/yikaicms-blox.git /tmp/blox-src
+          rsync -a --exclude .git --exclude BLOX-README.md /tmp/blox-src/ ./
+          rm -rf /tmp/blox-src ~/.ssh/blox_key
+          echo "Injected: $(ls admin/blox_editor.php 2>/dev/null || echo FAILED)"
+
+      - name: Check Blox source presence
+        id: blox_src
+        run: |
+          if [ -f admin/blox_editor.php ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Blox suite skipped::paid sources not injected (no BLOX_DEPLOY_KEY). SKIPPED, not failed."
+          fi
+
+      - name: Setup PHP
+        if: steps.blox_src.outputs.present == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, json, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: composer install
+        if: steps.blox_src.outputs.present == 'true'
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run PHPUnit (full suite incl. Blox contracts)
+        if: steps.blox_src.outputs.present == 'true'
+        run: vendor/bin/phpunit --colors=never
+
+      - name: Blox i18n gate (strict scope incl. paid sources)
+        if: steps.blox_src.outputs.present == 'true'
+        run: php tools/check_blox_i18n.php --allow-element-labels
+
   e2e:
     name: Blox Browser Regression
     runs-on: ubuntu-latest
@@ -167,6 +230,27 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      # 付费源码注入：BLOX_DEPLOY_KEY（deploy key 私钥，只读授权 yikaicms-blox）
+      # 在场时浅克隆私库并覆盖进构建树；不在场（fork / 无权环境）时静默跳过，
+      # 由后续 presence guard 显式标注 skipped。密钥用完即删。
+      - name: Inject Blox paid sources
+        env:
+          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
+        run: |
+          if [ -z "$BLOX_DEPLOY_KEY" ]; then
+            echo "::notice::BLOX_DEPLOY_KEY absent; paid sources not injected."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BLOX_DEPLOY_KEY" > ~/.ssh/blox_key
+          chmod 600 ~/.ssh/blox_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/blox_key -o IdentitiesOnly=yes" \
+            git clone --depth 1 git@github.com:bluesailor/yikaicms-blox.git /tmp/blox-src
+          rsync -a --exclude .git --exclude BLOX-README.md /tmp/blox-src/ ./
+          rm -rf /tmp/blox-src ~/.ssh/blox_key
+          echo "Injected: $(ls admin/blox_editor.php 2>/dev/null || echo FAILED)"
 
       # Blox 编辑器源码属付费包，不随公开仓库分发（.gitignore 付费源码规则）。
       # 干净 checkout 里没有它时，后续步骤全部跳过并显式标注 skipped——

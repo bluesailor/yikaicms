@@ -1,0 +1,5 @@
+#!/bin/sh
+# Blox 付费源码就地仓库（.git-blox）的 git 包装：单一物理工作树，与主仓库共存。
+# 用法：bin/blox-git status / add -f <file> / commit / push …（详见私库 BLOX-README.md）
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec git --git-dir="$ROOT/.git-blox" --work-tree="$ROOT" "$@"

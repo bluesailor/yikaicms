@@ -110,10 +110,14 @@ storage/parity-*.sqlite
 # ── 付费插件源码：不随本仓库分发（v1.16.0 起 Blox 转付费）────────────
 # 曾因 `git add -A` 连同数据库备份、config 备份一起被推到公开仓库（2026-08-05），
 # 故在此显式忽略，而不是依赖「记得别 add」。
+# 2026-08-07 起这些文件由私有仓库 yikaicms-blox 经 .git-blox 就地跟踪
+# （bin/blox-git 操作；CI 用 deploy key 注入），本仓库继续排除。
 admin/blox_editor.php
 admin/blox_home_api.php
 themes/blox/
 tests/Unit/Blox*Test.php
+.git-blox/
+/BLOX-README.md
 
 # ── 本地产物与备份：一律不得进版本库 ──────────────────────────────
 config/config.php.bak.*
