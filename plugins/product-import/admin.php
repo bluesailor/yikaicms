@@ -72,8 +72,8 @@ $productFields = [
 
 $fieldJson = json_encode($productFields, JSON_UNESCAPED_UNICODE);
 
-$pageTitle = '产品导入';
-$currentMenu = 'product';
+$GLOBALS['pageTitle'] = '产品导入';
+$GLOBALS['currentMenu'] = 'product';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
