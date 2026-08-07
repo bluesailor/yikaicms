@@ -219,3 +219,33 @@ test('real remote template channel @local', async ({ page }, testInfo) => {
   const remote = page.getByTestId('blox-template-item').filter({ has: page.locator('[class*="ti-cloud-download"]') }).first();
   await expect(remote).toBeVisible();
 });
+
+// ── 语言档：编辑器 chrome 三语化验收 ──────────────────────────────
+// en：chrome（顶栏+元素库面板）不得含 CJK。ja 无法用「无 CJK」断言——日语汉字
+// 与中文同在 CJK 统一表意区间——改为断言日语标记文案已生效。
+// 结构树/画布不在断言范围：它们显示用户文档内容（中文示例数据），属合法中文。
+const { execFileSync } = require('child_process');
+const setAdminLang = (lang) => execFileSync('php', ['tests/e2e/set-lang.php', lang], { cwd: require('path').resolve(__dirname, '../..') });
+
+test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  try {
+    setAdminLang('en');
+    await page.reload();
+    await expect(page.getByTestId('blox-tree')).toBeVisible();
+    const headerText = await page.locator('.blox-editor-header').innerText();
+    expect(headerText, 'en header must not contain CJK').not.toMatch(/[\u4e00-\u9fff]/);
+    // 元素库面板默认展开，直接断言其标题与分类已英语化
+    await expect(page.getByText('Element library').first()).toBeVisible();
+
+    setAdminLang('ja');
+    await page.reload();
+    await expect(page.getByTestId('blox-tree')).toBeVisible();
+    await expect(page).toHaveTitle(/エディター/);
+    await expect(page.getByText('要素ライブラリ').first()).toBeVisible();
+  } finally {
+    setAdminLang('zh-CN');
+  }
+  await page.reload();
+  await expect(page.getByTestId('blox-tree')).toBeVisible();
+});
