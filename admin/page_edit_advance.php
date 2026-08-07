@@ -183,6 +183,8 @@ if ($isHomeLayout) {
         $contextBody = HomeBloxRenderer::render($homeDoc['sections'], [$ctxContext, 'renderLegacyBlock']);
         BlockRenderer::$editChannelId = $savedEditChannel;
 
+        // data-yk-area：区域契约标记——画布侧点选/拖放的作用域边界（编辑器据此圈定可编辑区）
+        $editableArea = '<div data-yk-area="' . htmlspecialchars($templateArea, ENT_QUOTES) . '">' . $editableArea . '</div>';
         $dim = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>';
         $body = $templateArea === 'header' ? $editableArea . $dim : $dim . $editableArea;
     } elseif ($isHomeLayout) {

@@ -42,7 +42,14 @@ final class BloxAreaResolver
             if (!is_array($row)) {
                 continue;
             }
-            $score = self::score(self::parse($row['conditions'] ?? null), $context);
+            $raw = $row['conditions'] ?? null;
+            $parsed = self::parse($raw);
+            if ($parsed === [] && self::hasConditionInput($raw)) {
+                // fail-closed：条件字段有内容但全部解析失败（损坏/未知类型）。
+                // 若按「无条件」计 0 分，一条坏数据会让定向模板意外接管全站——宁可不激活。
+                continue;
+            }
+            $score = self::score($parsed, $context);
             if ($score === null) {
                 continue;
             }
@@ -96,6 +103,16 @@ final class BloxAreaResolver
             }
         }
         return $max;
+    }
+
+    /** 条件字段是否存在实际输入（区别于「从未设置」——后者才享受无条件兜底语义）。 */
+    public static function hasConditionInput(mixed $raw): bool
+    {
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+            return $trimmed !== '' && $trimmed !== '[]' && $trimmed !== 'null';
+        }
+        return is_array($raw) && $raw !== [];
     }
 
     /**

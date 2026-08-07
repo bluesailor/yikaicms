@@ -1,0 +1,15 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "header",
+  "name": "E2E Header Draft",
+  "document": [
+    {
+      "type": "section",
+      "settings": { "padding": "sm" },
+      "columns": [
+        { "elements": [ { "type": "text", "data": { "html": "<p>E2E-HEADER-SEED</p>" } } ] }
+      ]
+    }
+  ]
+}

@@ -176,6 +176,9 @@ $pageTitle = $channel['seo_title'] ?: $channel['name'];
 $pageKeywords = $channel['seo_keywords'] ?: configJsonLang('site_keywords');
 $pageDescription = $channel['seo_description'] ?: configJsonLang('site_description');
 $currentChannelId = $channelId;
+// Blox 头尾激活的单页上下文：本 CMS 的「单页」即 type=page 的栏目，身份就是其栏目 id。
+// bloxAreaHtml() 读该显式全局判定 page 条件（此前误读不存在的 $GLOBALS['page']，单页条件在真实 page.php 上永不命中）。
+$GLOBALS['ykBloxPageId'] = (int) ($channel['id'] ?? 0);
 
 // 获取侧边栏栏目（同级栏目或子栏目，不限制is_nav）
 $sidebarChannels = [];
