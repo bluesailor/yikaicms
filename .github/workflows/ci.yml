@@ -231,9 +231,8 @@ jobs:
   e2e:
     name: Blox Browser Regression
     runs-on: ubuntu-latest
-    # 继续观察期：r11 曾短暂转强制，但共享工作树的并行开发（图标改造进行中）会让
-    # 半成品经由同文件提交泄进 CI——待图标线完整入库后再转强制。
-    continue-on-error: true
+    # 强制门禁（与单测同级）：r8–r10 观察期全绿；r11 首次转强制被并行图标线的
+    # 半成品 404 击穿后回退，图标专项原子入库（icon-library-integration 轮）后恢复。
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
