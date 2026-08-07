@@ -15,7 +15,7 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
             <h2 class="text-3xl font-bold text-dark mb-2">
                 <span class="text-primary"><?php echo e(mb_substr($tmTitle, 0, 2)); ?></span><?php echo e(mb_substr($tmTitle, 2)); ?>
             </h2>
-            <span class="section-title-bar"></span>
+            <?php echo homeTitleDeco(); ?>
             <p class="text-gray-500 mt-4"><?php echo e($tmDesc); ?></p>
         </div>
         <?php $tmSlider = count($testimonials) > 3; ?>

@@ -5,6 +5,9 @@
  * 只用大数字 + 细线 + 小说明文字，无图标无背景图。
  */
 $bg = getBlockBg($block ?? [], 'bg-white');
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -12,12 +15,12 @@ $bg = getBlockBg($block ?? [], 'bg-white');
         <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200" data-stagger>
             <?php for ($i = 1; $i <= 4; $i++): ?>
             <div class="px-6 first:pl-0 last:pr-0">
-                <div class="text-4xl md:text-5xl font-light text-gray-900 tracking-tight stat-number"
+                <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.number'); ?> class="text-4xl md:text-5xl font-light text-gray-900 tracking-tight stat-number"
                      data-count="<?php echo e(config("home_stat_{$i}_num", '10+')); ?>">
                     <?php echo e(config("home_stat_{$i}_num", '10+')); ?>
                 </div>
                 <div class="w-8 h-px bg-gray-900 my-4"></div>
-                <div class="text-xs text-gray-500 tracking-widest uppercase">
+                <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.label'); ?> class="text-xs text-gray-500 tracking-widest uppercase">
                     <?php echo e(configLang("home_stat_{$i}_text", "home_stat_{$i}")); ?>
                 </div>
             </div>

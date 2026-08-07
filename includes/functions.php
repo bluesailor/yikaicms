@@ -1333,22 +1333,68 @@ function homeTitleInner(string $title): string
 }
 
 /**
- * 首页版块标题下方装饰，按 home_title_style：
- *   underline / split → 实心短线；dot → 圆点；plain → 无。
- * $light=true 用于深色底（advantage / cta）。
+ * 首页版块标题下方装饰。
+ *
+ * 装饰不读取全站标题文字设置；Blox 可按版块覆盖样式、对齐、颜色、尺寸和间距。
+ * $light=true 用于深色底（advantage / cta）；$inheritHtml 可保留主题自己的默认装饰。
  */
-function homeTitleDeco(bool $light = false, string $extra = ''): string
+function homeTitleDeco(bool $light = false, string $extra = '', ?string $inheritHtml = null): string
 {
-    $style = config('home_title_style', 'underline');
-    if ($style === 'plain') {
+    $decorStyle = (string) config('home_title_decor_style', 'inherit');
+    if (!in_array($decorStyle, ['inherit', 'line', 'dot', 'none'], true)) {
+        $decorStyle = 'inherit';
+    }
+    if ($decorStyle === 'inherit' && $inheritHtml !== null) {
+        return $inheritHtml;
+    }
+    if ($decorStyle === 'inherit') {
+        $decorStyle = 'line';
+    }
+    if ($decorStyle === 'none') {
         return '';
     }
-    $lc = $light ? ' section-title-bar-light' : '';
-    $ex = $extra !== '' ? ' ' . $extra : '';
-    if ($style === 'dot') {
-        return '<span class="section-title-dot' . $lc . $ex . '"></span>';
+
+    $class = $decorStyle === 'dot' ? 'section-title-dot' : 'section-title-bar';
+    if ($light) {
+        $class .= ' section-title-bar-light';
     }
-    return '<span class="section-title-bar' . $lc . $ex . '"></span>';
+    if ($extra !== '') {
+        $class .= ' ' . trim($extra);
+    }
+
+    $inline = [];
+    $align = (string) config('home_title_decor_align', 'inherit');
+    if ($align === 'left') {
+        $inline[] = 'margin-left:0';
+        $inline[] = 'margin-right:auto';
+    } elseif ($align === 'center') {
+        $inline[] = 'margin-left:auto';
+        $inline[] = 'margin-right:auto';
+    } elseif ($align === 'right') {
+        $inline[] = 'margin-left:auto';
+        $inline[] = 'margin-right:0';
+    }
+
+    $color = strtolower(trim((string) config('home_title_decor_color', '')));
+    if (preg_match('/^#[0-9a-f]{6}$/', $color) === 1) {
+        $inline[] = 'background:' . $color;
+    }
+
+    $width = max(0, min(240, (int) config('home_title_decor_width', 0)));
+    if ($width > 0) {
+        $inline[] = 'width:' . $width . 'px';
+        if ($decorStyle === 'dot') {
+            $inline[] = 'height:' . $width . 'px';
+        }
+    }
+
+    $gap = max(0, min(80, (int) config('home_title_decor_gap', 0)));
+    if ($gap > 0) {
+        $inline[] = 'margin-top:' . $gap . 'px';
+    }
+
+    $styleAttr = $inline === [] ? '' : ' style="' . implode(';', $inline) . '"';
+    return '<span class="' . $class . '"' . $styleAttr . '></span>';
 }
 
 // ============================================================

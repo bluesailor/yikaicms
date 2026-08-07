@@ -13,6 +13,9 @@ if (!$bg['style'] && !$bg['overlay']) {
         'container' => $bg['container'],
     ];
 }
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="py-12 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -25,10 +28,10 @@ if (!$bg['style'] && !$bg['overlay']) {
             ?>
             <div>
                 <?php if ($statIcon !== '' && $statIcon !== 'none'): ?>
-                <i class="ti ti-<?php echo e($statIcon); ?> text-5xl md:text-6xl text-white/90 mb-3 inline-block leading-none"></i>
+                <i<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.icon'); ?> class="ti ti-<?php echo e($statIcon); ?> text-5xl md:text-6xl text-white/90 mb-3 inline-block leading-none"></i>
                 <?php endif; ?>
-                <div class="text-4xl font-bold text-white mb-2 stat-number" data-count="<?php echo e($statNum); ?>"><?php echo e($statNum); ?></div>
-                <div class="text-gray-300"><?php echo e(configLang('home_stat_' . $i . '_text', 'home_stat_' . $i)); ?></div>
+                <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.number'); ?> class="text-4xl font-bold text-white mb-2 stat-number" data-count="<?php echo e($statNum); ?>"><?php echo e($statNum); ?></div>
+                <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.label'); ?> class="text-gray-300"><?php echo e(configLang('home_stat_' . $i . '_text', 'home_stat_' . $i)); ?></div>
             </div>
             <?php endfor; ?>
         </div>

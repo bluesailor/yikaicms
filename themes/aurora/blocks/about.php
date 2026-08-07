@@ -24,6 +24,7 @@ if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('
                 <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
                     <?php echo e($aboutTitle); ?>
                 </h2>
+                <?php echo homeTitleDeco(true, '', ''); ?>
                 <p class="text-slate-400 leading-relaxed mt-6 text-base">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>
@@ -43,6 +44,7 @@ if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('
                 <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
                     <?php echo e($aboutTitle); ?>
                 </h2>
+                <?php echo homeTitleDeco(true, '', ''); ?>
                 <p class="text-slate-400 leading-relaxed mt-6 text-base">
                     <?php echo e(config('home_about_content', config('site_description', ''))); ?>
                 </p>

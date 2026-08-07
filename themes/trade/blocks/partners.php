@@ -12,7 +12,7 @@ $bg = getBlockBg($block ?? [], '@auto');
     <div class="container mx-auto px-4">
         <div class="text-center mb-8" data-animate="fade-up">
             <h2 class="blk-title mb-2"><?php echo configLang('home_links_title', 'footer_partners'); ?></h2>
-            <span class="section-title-bar"></span>
+            <?php echo homeTitleDeco(); ?>
         </div>
         <div class="flex flex-wrap justify-center items-center gap-x-8 gap-y-5">
             <?php foreach ($links as $link): ?>

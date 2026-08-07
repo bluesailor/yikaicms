@@ -232,8 +232,26 @@ final class HomeBloxRenderContext
         }
 
         if ($emptyStateConfigured && $sourceIsEmpty) {
-            return $this->withEditMarker($this->emptyStateHtml($block), $type);
+            return $this->withEditMarker(
+                $this->emptyStateHtml($block),
+                $type,
+                trim((string) ($data['_blox_path'] ?? ''))
+            );
         }
+
+        $path = $this->editMode ? trim((string) ($data['_blox_path'] ?? '')) : '';
+        $ykHomeFieldAttr = static function (string $field) use ($path, $type): string {
+            if ($path === '' || !HomeBloxBlockSchema::isEditableFieldPath($type, $field)) {
+                return '';
+            }
+            return ' data-yk-home-path="' . self::escape($path) . '" data-yk-home-field="' . self::escape($field) . '"';
+        };
+        $stats = $type === 'stats' && array_key_exists('stats_items', $data)
+            ? (is_array($block['stats_items'] ?? null) ? $block['stats_items'] : [])
+            : null;
+        $advantages = $type === 'advantage' && array_key_exists('advantage_items', $data)
+            ? (is_array($block['advantage_items'] ?? null) ? $block['advantage_items'] : [])
+            : null;
 
         $renderVars = [
             'block' => $block,
@@ -242,7 +260,11 @@ final class HomeBloxRenderContext
             'banners' => $banners,
             'aboutChannel' => $aboutChannel,
             'testimonials' => $testimonials,
+            'stats' => $stats,
+            'advantages' => $advantages,
             'ykHomeEdit' => $ykHomeEdit,
+            'ykHomePath' => $path,
+            'ykHomeFieldAttr' => $ykHomeFieldAttr,
             'currentChannel' => $currentChannel,
         ];
 
@@ -286,7 +308,7 @@ final class HomeBloxRenderContext
         if ($emptyStateConfigured && trim($html) === '') {
             $html = $this->emptyStateHtml($block);
         }
-        return $this->withEditMarker($html, $type);
+        return $this->withEditMarker($html, $type, trim((string) ($data['_blox_path'] ?? '')));
     }
 
     /**
@@ -348,15 +370,87 @@ final class HomeBloxRenderContext
         return $channel;
     }
 
-    private function withEditMarker(string $html, string $type): string
+    private function withEditMarker(string $html, string $type, string $path = ''): string
     {
         if (!$this->editMode || $html === '') {
             return $html;
         }
-        if (str_starts_with($type, 'custom:')) {
-            return (string) preg_replace('/<section\b/', '<section data-yk-home="' . e($type) . '"', $html);
+        if ($type === 'about' && $path !== '') {
+            $html = $this->withAboutFieldMarkers($html, $path);
         }
-        return (string) preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $html, 1);
+        if ($path !== '' && HomeBloxBlockSchema::supportsTitleDecoration($type)) {
+            foreach (['SPAN', 'IMG', 'DIV'] as $tag) {
+                $rewriter = new HtmlTagRewriter($html);
+                while ($rewriter->nextTag($tag)) {
+                    $className = (string) ($rewriter->getAttribute('class') ?? '');
+                    $src = (string) ($rewriter->getAttribute('src') ?? '');
+                    $isDecoration = ($tag === 'SPAN'
+                            && (str_contains($className, 'section-title-bar')
+                                || str_contains($className, 'section-title-dot')))
+                        || ($tag === 'IMG' && str_ends_with($src, '/images/divide.png'))
+                        || ($tag === 'DIV' && str_contains($className, 'w-12 h-px'));
+                    if (!$isDecoration) {
+                        continue;
+                    }
+                    $rewriter->setAttribute('data-yk-home-path', $path);
+                    $rewriter->setAttribute('data-yk-home-field', 'title_decor_style');
+                    $html = $rewriter->getUpdatedHtml();
+                    break 2;
+                }
+            }
+        }
+        if (str_starts_with($type, 'custom:')) {
+            return (string) preg_replace('/<section\b/', '<section data-yk-home="' . self::escape($type) . '"', $html);
+        }
+        return (string) preg_replace('/<(\w+)/', '<$1 data-yk-home="' . self::escape($type) . '"', $html, 1);
+    }
+
+    private function withAboutFieldMarkers(string $html, string $path): string
+    {
+        $markers = [
+            'H2' => 'override_title',
+            'P' => 'override_content',
+            'A' => 'override_button_text',
+        ];
+        foreach ($markers as $tag => $field) {
+            $rewriter = new HtmlTagRewriter($html);
+            if (!$rewriter->nextTag($tag)) {
+                continue;
+            }
+            $rewriter->setAttribute('data-yk-home-path', $path);
+            $rewriter->setAttribute('data-yk-home-field', $field);
+            $html = $rewriter->getUpdatedHtml();
+        }
+
+        foreach ([
+            'font-bold text-lg' => 'override_tag_title',
+            'text-sm opacity-90' => 'override_tag_description',
+        ] as $classNeedle => $field) {
+            $rewriter = new HtmlTagRewriter($html);
+            while ($rewriter->nextTag('DIV')) {
+                $className = $rewriter->getAttribute('class');
+                if (!is_string($className) || !str_contains($className, $classNeedle)) {
+                    continue;
+                }
+                $rewriter->setAttribute('data-yk-home-path', $path);
+                $rewriter->setAttribute('data-yk-home-field', $field);
+                $html = $rewriter->getUpdatedHtml();
+                break;
+            }
+        }
+
+        $rewriter = new HtmlTagRewriter($html);
+        while ($rewriter->nextTag('IMG')) {
+            if ($rewriter->getAttribute('loading') === null) {
+                continue;
+            }
+            $rewriter->setAttribute('data-yk-home-path', $path);
+            $rewriter->setAttribute('data-yk-home-field', 'override_image');
+            $html = $rewriter->getUpdatedHtml();
+            break;
+        }
+
+        return $html;
     }
 
     /** @param array<string, mixed> $block */
@@ -376,7 +470,12 @@ final class HomeBloxRenderContext
 
         return '<section class="py-10"><div class="container mx-auto px-4">'
             . '<div class="border border-dashed border-gray-300 bg-gray-50 text-gray-500 text-sm text-center py-8 px-4 rounded-lg">'
-            . e($text) . '</div></div></section>';
+            . self::escape($text) . '</div></div></section>';
+    }
+
+    private static function escape(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
     /** @return array<int, array<string, mixed>> */
     private static function configuredBlocks(): array

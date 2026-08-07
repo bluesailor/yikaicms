@@ -9,13 +9,16 @@ $advDefaults = [
     ['icon' => 'briefcase',    'title' => __('home_adv_3_title'), 'desc' => __('home_adv_3_desc')],
     ['icon' => 'users',        'title' => __('home_adv_4_title'), 'desc' => __('home_adv_4_desc')],
 ];
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="py-20 section-dark">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12" data-animate="fade-up">
-            <h2 class="text-3xl font-bold text-white mb-4"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
-            <img src="/themes/business/images/divide.png" alt="" class="mx-auto mb-4">
-            <p class="text-gray-400"><?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?></p>
+            <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-3xl font-bold text-white mb-4"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
+            <?php echo homeTitleDeco(true, '', '<img src="/themes/business/images/divide.png" alt="" class="mx-auto mb-4">'); ?>
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="text-gray-400"><?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?></p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" data-stagger>
             <?php for ($i = 0; $i < 4; $i++):
@@ -24,11 +27,11 @@ $advDefaults = [
                 $iconSvg = $advIcons[$iconKey]['svg'] ?? $advIcons['check-circle']['svg'];
             ?>
             <div class="text-center p-6 bg-slate-800 rounded-xl hover:bg-slate-700 transition">
-                <div class="w-14 h-14 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <div<?php echo $_homeFieldAttr('advantage_items.' . $i . '.icon'); ?> class="w-14 h-14 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20"><?php echo $iconSvg; ?></svg>
                 </div>
-                <h3 class="text-lg font-bold text-white mb-2"><?php echo e(config("home_adv_{$n}_title", $advDefaults[$i]['title'])); ?></h3>
-                <p class="text-gray-400 text-sm"><?php echo e(config("home_adv_{$n}_desc", $advDefaults[$i]['desc'])); ?></p>
+                <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-lg font-bold text-white mb-2"><?php echo e(config("home_adv_{$n}_title", $advDefaults[$i]['title'])); ?></h3>
+                <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="text-gray-400 text-sm"><?php echo e(config("home_adv_{$n}_desc", $advDefaults[$i]['desc'])); ?></p>
             </div>
             <?php endfor; ?>
         </div>

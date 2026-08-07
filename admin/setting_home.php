@@ -97,6 +97,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ── 删除自定义版块 ──
+    // 前台就地操作会带 ajax=1：返回 JSON 而不是跳转，供悬停浮条调用。
+    // 鉴权与 CSRF 已由 admin/includes/auth.php 统一处理（含演示模式拦截），此处不再重复。
+    $__ajax = ($_POST['ajax'] ?? '') === '1';
+    $__done = static function (string $msg = 'ok') use ($__ajax): void {
+        if ($__ajax) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'message' => $msg], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        redirect('/admin/setting_home.php');
+    };
+
     if (($_POST['action'] ?? '') === 'del_custom') {
         $N = (int) ($_POST['n'] ?? 0);
         if ($N > 0) {
@@ -105,7 +117,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             settingModel()->set('home_blocks_config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
             settingModel()->set('home_custom_' . $N, '');
         }
-        redirect('/admin/setting_home.php');
+        $__done();
+    }
+
+    // 显示/隐藏任意首页版块（系统自带与自定义通用）。
+    // 只改 enabled 标志，不删数据——隐藏后仍能在首页设置里点回来。
+    if (($_POST['action'] ?? '') === 'toggle_block') {
+        $type = trim((string) ($_POST['type'] ?? ''));
+        if ($type !== '') {
+            $cfg = json_decode((string) config('home_blocks_config', ''), true) ?: [];
+            $hit = false;
+            foreach ($cfg as &$b) {
+                if ((string) ($b['type'] ?? '') === $type) {
+                    $b['enabled'] = ($_POST['enabled'] ?? '') === '1';
+                    $hit = true;
+                    break;
+                }
+            }
+            unset($b);
+            // 配置里没有该类型（如 index.php 运行时补进来的 partners）→ 追加一条
+            if (!$hit) {
+                $cfg[] = ['type' => $type, 'enabled' => ($_POST['enabled'] ?? '') === '1'];
+            }
+            settingModel()->set('home_blocks_config', json_encode($cfg, JSON_UNESCAPED_UNICODE));
+        }
+        $__done();
     }
 
     $settings = $_POST['settings'] ?? [];
@@ -495,18 +531,16 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 
-    <!-- 全局：版块标题样式 -->
+    <!-- 全局只控制标题文字；装饰由 Blox 各版块独立设置 -->
     <div class="bg-white rounded-lg shadow p-5 mb-3">
         <div class="flex items-center gap-3 flex-wrap">
-            <label class="font-medium text-gray-800 whitespace-nowrap">版块标题样式</label>
+            <label class="font-medium text-gray-800 whitespace-nowrap">版块标题文字</label>
             <select name="settings[home_title_style]" class="border rounded px-3 py-1.5 text-sm bg-white">
                 <?php
-                $__ts = config('home_title_style', 'underline');
+                $__ts = config('home_title_style', 'underline') === 'split' ? 'split' : 'underline';
                 foreach ([
-                    'underline' => '整体同色 + 下方短线（默认）',
-                    'split'     => '前两字主题色 + 下方短线',
-                    'dot'       => '整体同色 + 主题色圆点',
-                    'plain'     => '整体同色，无装饰',
+                    'underline' => '整体同色（默认）',
+                    'split'     => '前两字主题色',
                 ] as $k => $label): ?>
                 <option value="<?php echo $k; ?>" <?php echo $__ts === $k ? 'selected' : ''; ?>><?php echo $label; ?></option>
                 <?php endforeach; ?>

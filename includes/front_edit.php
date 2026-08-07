@@ -43,6 +43,12 @@ function renderFrontEdit(): void
       .yk-logo-btn:hover { background: #1d4ed8; color: #fff; }
       .yk-logo-btn--make { background: #7c3aed; }
       .yk-logo-btn--make:hover { background: #6d28d9; }
+      .yk-edit-extra { margin-left: 6px; background: #475569; color: #fff; font-size: 12px; line-height: 1;
+        font-weight: 600; padding: 5px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+        text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+      .yk-edit-extra:hover { background: #334155; color: #fff; }
+      .yk-edit-extra--danger { background: #dc2626; }
+      .yk-edit-extra--danger:hover { background: #b91c1c; }
       @media print { #yk-edit-outline, .yk-logo-btns { display: none !important; } }
     </style>
     <script>
@@ -52,12 +58,65 @@ function renderFrontEdit(): void
       var bloxOn = <?php echo bloxEditorEnabled() ? 'true' : 'false'; ?>;
       var current = null, hideTimer = null;
 
+      // 首页版块的就地「隐藏 / 删除」需要提交到后台，故带上 CSRF token。
+      // 这段脚本只对已登录管理员输出，token 不会暴露给访客。
+      var csrf = <?php echo json_encode(function_exists('csrfToken') ? csrfToken() : (string) ($_SESSION['_token'] ?? ''), JSON_UNESCAPED_SLASHES); ?>;
+
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
       var btn = document.createElement('a');
       btn.id = 'yk-edit-btn';
       btn.innerHTML = '✎ 编辑此区块'; // ✎ 编辑此区块
       box.appendChild(btn);
+
+      // 首页版块专用：隐藏（系统自带与自定义通用）/ 删除（仅自定义）
+      var btnHide = document.createElement('a');
+      btnHide.id = 'yk-hide-btn';
+      btnHide.className = 'yk-edit-extra';
+      btnHide.textContent = '⃠ 隐藏';
+      btnHide.style.display = 'none';
+      box.appendChild(btnHide);
+
+      var btnDel = document.createElement('a');
+      btnDel.id = 'yk-del-btn';
+      btnDel.className = 'yk-edit-extra yk-edit-extra--danger';
+      btnDel.textContent = '✕ 删除';
+      btnDel.style.display = 'none';
+      box.appendChild(btnDel);
+
+      function homePost(action, data, okMsg) {
+        var fd = new FormData();
+        fd.append('action', action);
+        fd.append('ajax', '1');
+        fd.append('_token', csrf);
+        Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
+        return fetch('/admin/setting_home.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function (r) { return r.json().catch(function () { return { success: false, message: '服务器返回异常' }; }); })
+          .then(function (j) {
+            if (j && j.success) { location.reload(); }
+            else { alert((j && j.message) || '操作失败'); }
+          })
+          .catch(function (e) { alert('请求失败：' + e.message); });
+      }
+
+      btnHide.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!current) return;
+        var type = current.getAttribute('data-yk-home') || '';
+        if (!type) return;
+        if (!confirm('隐藏此版块？前台将不再显示，可在「首页设置」里重新启用。')) return;
+        homePost('toggle_block', { type: type, enabled: '0' });
+      });
+
+      btnDel.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!current) return;
+        var type = current.getAttribute('data-yk-home') || '';
+        if (type.indexOf('custom:') !== 0) return;
+        if (!confirm('删除此自定义版块？内容将一并删除，不可恢复。')) return;
+        homePost('del_custom', { n: type.slice(7) });
+      });
+
       document.body.appendChild(box);
 
       function hide() { box.style.display = 'none'; current = null; }
@@ -103,6 +162,13 @@ function renderFrontEdit(): void
         box.style.height = r.height + 'px';
         btn.href = editUrl(sec);
         btn.textContent = editLabel(sec);
+
+        // 按元素类型决定附加动作：
+        //   隐藏 → 仅首页版块（系统自带与自定义通用，只改 enabled 不删数据）
+        //   删除 → 仅自定义版块（custom:N，内容一并删除）
+        var homeType = sec.getAttribute('data-yk-home') || '';
+        btnHide.style.display = homeType ? 'inline-block' : 'none';
+        btnDel.style.display  = homeType.indexOf('custom:') === 0 ? 'inline-block' : 'none';
       }
 
       function attach(sec) {

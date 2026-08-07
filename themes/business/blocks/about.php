@@ -11,7 +11,7 @@ if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('
     <div class="container mx-auto px-4">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-4"><?php echo e($aboutTitle); ?></h2>
-            <img src="/themes/business/images/divide.png" alt="" class="mx-auto">
+            <?php echo homeTitleDeco(false, '', '<img src="/themes/business/images/divide.png" alt="" class="mx-auto">'); ?>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div data-animate="fade-right">

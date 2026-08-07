@@ -10,7 +10,7 @@ $tmDesc = config('home_testimonials_desc', '') ?: __('home_testimonials_desc');
     <div class="container mx-auto px-4">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-4"><?php echo e($tmTitle); ?></h2>
-            <img src="/themes/business/images/divide.png" alt="" class="mx-auto mb-4">
+            <?php echo homeTitleDeco(false, '', '<img src="/themes/business/images/divide.png" alt="" class="mx-auto mb-4">'); ?>
             <p class="text-gray-500"><?php echo e($tmDesc); ?></p>
         </div>
         <?php $tmSlider = count($testimonials) > 3; ?>

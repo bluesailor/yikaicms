@@ -25,6 +25,9 @@ $icons = [
     'globe'    => '<path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
     'users'    => '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>',
 ];
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="py-24 relative">
     <div class="container mx-auto px-6 lg:px-8">
@@ -32,11 +35,12 @@ $icons = [
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 mb-5">
                 FEATURES
             </div>
-            <h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight">
+            <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-3xl md:text-4xl font-bold text-white tracking-tight">
                 <?php echo e(configLang('home_advantage_title', 'home_advantage_title')); ?>
             </h2>
+            <?php echo homeTitleDeco(true, '', ''); ?>
             <?php if ($_advDesc = config('home_advantage_desc', '')): ?>
-            <p class="text-slate-400 mt-4 text-base leading-relaxed">
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="text-slate-400 mt-4 text-base leading-relaxed">
                 <?php echo e($_advDesc); ?>
             </p>
             <?php endif; ?>
@@ -47,15 +51,15 @@ $icons = [
             <?php $iconKey = $item['icon'] ?? 'sparkles'; ?>
             <div class="group relative p-7 rounded-2xl aurora-glass aurora-glass-hover transition">
                 <!-- Icon -->
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center mb-5 group-hover:shadow-lg group-hover:shadow-indigo-500/20 transition">
+                <div<?php echo $_homeFieldAttr('advantage_items.' . $i . '.icon'); ?> class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center mb-5 group-hover:shadow-lg group-hover:shadow-indigo-500/20 transition">
                     <svg class="w-6 h-6 text-indigo-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <?php echo $icons[$iconKey] ?? $icons['sparkles']; ?>
                     </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-slate-100 mb-2">
+                <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-lg font-semibold text-slate-100 mb-2">
                     <?php echo e($item['title'] ?? ''); ?>
                 </h3>
-                <p class="text-sm text-slate-400 leading-relaxed">
+                <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="text-sm text-slate-400 leading-relaxed">
                     <?php echo e($item['description'] ?? ($item['desc'] ?? '')); ?>
                 </p>
                 <!-- decorative corner -->

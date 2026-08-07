@@ -10,6 +10,9 @@ $ctaTitle = configLang('home_cta_title', 'home_cta_title');
 $ctaDesc  = configLang('home_cta_desc',  'home_cta_desc');
 $ctaBtn   = config('home_cta_button', '') ?: __('detail_consult');
 $ctaLink  = config('home_cta_link',  '') ?: '/contact.html';
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 $bg = getBlockBg($block ?? [], 'bg-gray-50');
 ?>
 <section class="py-28 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
@@ -19,13 +22,14 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
             <div class="text-xs text-gray-400 font-mono tracking-widest uppercase mb-4">
                 — <?php echo 'Get in touch'; ?>
             </div>
-            <h2 class="text-3xl md:text-5xl font-light text-gray-900 leading-tight tracking-tight">
+            <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-3xl md:text-5xl font-light text-gray-900 leading-tight tracking-tight">
                 <?php echo e($ctaTitle); ?>
             </h2>
-            <p class="mt-8 text-gray-500 text-base leading-relaxed max-w-xl">
+            <?php echo homeTitleDeco(false, '', ''); ?>
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="mt-8 text-gray-500 text-base leading-relaxed max-w-xl">
                 <?php echo e($ctaDesc); ?>
             </p>
-            <a href="<?php echo e($ctaLink); ?>"
+            <a<?php echo $_homeFieldAttr('override_button_text'); ?> href="<?php echo e($ctaLink); ?>"
                class="inline-flex items-center gap-3 mt-10 text-sm tracking-wide text-gray-900
                       border-b border-gray-900 pb-2 hover:gap-5 transition-all duration-300">
                 <?php echo e($ctaBtn); ?>

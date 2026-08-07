@@ -11,14 +11,17 @@ $advLangKeys = [
     ['title' => 'home_adv_4_title', 'desc' => 'home_adv_4_desc'],
 ];
 $bg = getBlockBg($block ?? [], 'bg-white');
+$_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr
+    : static fn (string $field): string => '';
 ?>
 <section class="py-24 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
         <div class="mb-16" data-animate="fade-up">
-            <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
-            <div class="w-12 h-px bg-gray-900 mt-4"></div>
-            <p class="mt-6 text-gray-500 max-w-xl text-sm leading-relaxed">
+            <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
+            <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="mt-6 text-gray-500 max-w-xl text-sm leading-relaxed">
                 <?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?>
             </p>
         </div>
@@ -33,11 +36,11 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <div class="text-xs text-gray-300 font-mono mb-6 tracking-widest">
                     0<?php echo $n; ?> /04
                 </div>
-                <h3 class="text-base text-gray-900 mb-3 group-hover:translate-x-1 transition duration-300">
+                <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-base text-gray-900 mb-3 group-hover:translate-x-1 transition duration-300">
                     <?php echo e($title); ?>
                 </h3>
                 <div class="w-6 h-px bg-gray-900 mb-4 group-hover:w-12 transition-all duration-300"></div>
-                <p class="text-gray-500 text-sm leading-relaxed">
+                <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="text-gray-500 text-sm leading-relaxed">
                     <?php echo e($desc); ?>
                 </p>
             </div>

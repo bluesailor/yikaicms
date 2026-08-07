@@ -19,7 +19,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
         <!-- Section Title -->
         <div class="mb-16">
             <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($hChannel['name']); ?></h2>
-            <div class="w-12 h-px bg-gray-900 mt-4"></div>
+            <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
             <?php if ($hChannel['description']): ?>
             <p class="text-gray-400 text-sm mt-4 max-w-xl"><?php echo e($hChannel['description']); ?></p>
             <?php endif; ?>
