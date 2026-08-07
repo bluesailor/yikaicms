@@ -192,6 +192,8 @@ if ($isHomeLayout) {
 [data-yk-sec]{position:relative;cursor:pointer}
 [data-yk-sec]:hover{outline:2px dashed #93c5fd;outline-offset:-2px}
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
+[data-yk-hide-on]{position:relative}
+[data-yk-hide-on]:before{content:'\2298 ' attr(data-yk-hide-on);position:absolute;z-index:28;top:4px;left:4px;padding:2px 7px;border-radius:4px;background:#64748b;color:#fff;font:700 10px/1.4 system-ui,sans-serif;pointer-events:none;opacity:.85}
 [data-yk-con]{position:relative;cursor:pointer;outline:1px dashed rgba(245,158,11,.55);outline-offset:-3px;box-shadow:inset 0 0 0 1px rgba(245,158,11,.08)}
 [data-yk-con]:hover{outline:2px dashed #f59e0b;outline-offset:-2px}
 [data-yk-con].yk-con-selected{outline:2px solid #f59e0b;outline-offset:-2px}
@@ -228,6 +230,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 .yk-drop-line{position:fixed;z-index:2147483645;display:none;height:3px;min-width:36px;background:#2563eb;border-radius:999px;box-shadow:0 0 0 2px rgba(255,255,255,.9),0 2px 8px rgba(37,99,235,.35);pointer-events:none}
 .yk-drop-line:before,.yk-drop-line:after{content:'';position:absolute;top:50%;width:8px;height:8px;background:#2563eb;border-radius:50%;transform:translateY(-50%)}
 .yk-drop-line:before{left:-2px}.yk-drop-line:after{right:-2px}
+.yk-drop-line.yk-drop-invalid{background:#dc2626}
+.yk-drop-line.yk-drop-invalid:before,.yk-drop-line.yk-drop-invalid:after{background:#dc2626;content:'\00d7';width:auto;height:auto;font:700 12px/1 system-ui;color:#dc2626;background:transparent;top:-14px}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
 .banner-swiper{height:min(52vw,520px)}
@@ -764,9 +768,13 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         postToEditor({ ykEditEl: path });
     }, true);
 
+    var ykDragRules = null;   // {containers:{type:[childTypes]}, isContainer:{type:bool}, generic:{type:bool}}
+    var ykDragType = '';      // 编辑器 palette dragstart 广播的当前拖拽类型（dragend 清空）
     window.addEventListener('message', function (e) {
         var d = e.data || {};
         var shouldScroll = d.ykScroll === true;
+        if (d.ykDragRules && typeof d.ykDragRules === 'object') { ykDragRules = d.ykDragRules; return; }
+        if ('ykDragType' in d) { ykDragType = typeof d.ykDragType === 'string' ? d.ykDragType : ''; return; }
         if (Number.isInteger(d.ykBannerSlide)) {
             var bannerNode = document.querySelector('.banner-swiper');
             var bannerSwiper = bannerNode ? (bannerNode._ykSwiper || bannerNode.swiper) : null;
@@ -1044,17 +1052,40 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         dropState = target;
     }
 
+    // 拖放目标合法性：容器一层嵌套 + 容器 allowedChildren（如 stats-group 只收 stat-item）。
+    // Chrome 在 dragover 期禁读 dataTransfer.getData，类型由编辑器 dragstart 经 postMessage 广播。
+    function dropTargetValid(target) {
+        if (!ykDragRules || !ykDragType) return true; // 规则未下发时不拦（编辑器端仍会校验）
+        var draggedIsContainer = !!(ykDragRules.isContainer || {})[ykDragType];
+        if (target.kind === 'element') {
+            var parts = pathParts(target.path);
+            if (parts.length >= 4) { // 目标在容器内：插入的是该容器的子元素
+                var parentNode = document.querySelector('[data-yk-el="' + parts.slice(0, 3).join('.') + '"]');
+                var parentType = parentNode ? (parentNode.getAttribute('data-yk-el-type') || '') : '';
+                var allowed = (ykDragRules.containers || {})[parentType];
+                if (Array.isArray(allowed)) {
+                    if (allowed.indexOf(ykDragType) !== -1) return true;
+                    return allowed.indexOf('*') !== -1 && !draggedIsContainer && (ykDragRules.generic || {})[ykDragType] !== false;
+                }
+                return !draggedIsContainer;
+            }
+        }
+        return true; // 列级/顶级元素前后：任何元素均可
+    }
+
     // Palette tiles use a versioned payload. The target is either a column end or an element before/after position.
     document.addEventListener('dragover', function (e) {
         var s = e.target.closest('[data-yk-sec]');
         if (!s || !dataTransferType(e)) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
         var target = dropTargetFromEvent(e, s);
         if (!target) return;
+        var valid = dropTargetValid(target);
+        e.dataTransfer.dropEffect = valid ? 'copy' : 'none';
         if (target.kind === 'element') highlightEl(target.path);
         else highlightColumn(String(target.sec) + '.' + String(target.col));
         showDropLine(target);
+        dropLine.classList.toggle('yk-drop-invalid', !valid);
     });
     document.addEventListener('drop', function (e) {
         var s = e.target.closest('[data-yk-sec]');
@@ -1064,7 +1095,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         if (!type) return;
         var target = dropTargetFromEvent(e, s) || dropState;
         hideDropLine();
-        if (!target) return;
+        dropLine.classList.remove('yk-drop-invalid');
+        if (!target || !dropTargetValid(target)) return;
         postToEditor({ ykDrop: {
             version: 1,
             source: 'palette',

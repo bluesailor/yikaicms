@@ -53,6 +53,8 @@ final class BlockRenderer
         5 => 'lg:col-span-5', 6 => 'lg:col-span-6', 7 => 'lg:col-span-7', 8 => 'lg:col-span-8',
         9 => 'lg:col-span-9', 10 => 'lg:col-span-10', 11 => 'lg:col-span-11', 12 => 'lg:col-span-12',
     ];
+    /** 断点隐藏类（前台输出；编辑态改打 data-yk-hide-on 标记以便画布仍可选中）。类名字面量供 Tailwind 扫描。 */
+    private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden'];
     private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
     private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];
@@ -142,7 +144,7 @@ final class BlockRenderer
             foreach ($columns as $col) {
                 if (is_array($col) && isset($col['span'])) {
                     $hasCustomSpans = true;
-                    $spanTotal += max(0, (int) $col['span']);
+                    $spanTotal += max(0, self::spanValue($col['span'], 'd'));
                 }
             }
             $useCustomSpans = $hasCustomSpans && $spanTotal > 0 && $spanTotal <= 12;
@@ -161,7 +163,8 @@ final class BlockRenderer
             }
 
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
-            $html .= '<section class="' . $padding . '"' . $styleAttr . $editAttr . '>';
+            [$secHideCls, $secHideAttr] = self::hideOn($settings['hide_on'] ?? null, $editMode);
+            $html .= '<section class="' . $padding . $secHideCls . '"' . $styleAttr . $editAttr . $secHideAttr . '>';
 
             // ── 容器层：宽度自定义 px + 独立背景/内边距/圆角。全部是新增可选键，
             //    一个不设时输出仍为 <div class="max-w-* mx-auto px-4">（黄金对拍不破）──
@@ -225,11 +228,14 @@ final class BlockRenderer
                         ? self::colSpanClass($col['span'] ?? 0, !empty($settings['tablet_stack']))
                         : '';
                     $editSpan = $useCustomSpans
-                        ? max(1, (int) ($col['span'] ?? 1))
+                        ? max(1, self::spanValue($col['span'] ?? 1, 'd'))
                         : intdiv(12, $colCount) + ($ci < (12 % $colCount) ? 1 : 0);
                     $colEditAttr = $editMode
                         ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '" data-yk-col-span="' . $editSpan . '"'
                         : '';
+                    [$colHideCls, $colHideAttr] = self::hideOn(is_array($col) ? ($col['hide_on'] ?? null) : null, $editMode);
+                    $spanClass = trim($spanClass . $colHideCls);
+                    $colEditAttr .= $colHideAttr;
                     if ($colCard) {
                         // Column card background highlights a specific column without affecting other columns.
                         $cbg = isset($col['card_bg']) && (string) $col['card_bg'] !== '' ? (string) $col['card_bg'] : '';
@@ -284,12 +290,70 @@ final class BlockRenderer
      */
     private static function colSpanClass(mixed $span, bool $desktopOnly = false): string
     {
+        // 响应式跨度：{d:桌面, t:平板}。手机始终单列是既有产品决策，故无 m 轴。
+        // tablet_stack（平板堆叠）时平板档无意义，只输出桌面档。
+        if (is_array($span)) {
+            $d = self::spanValue($span, 'd');
+            $t = self::spanValue($span, 't');
+            if ($d < 1) {
+                return '';
+            }
+            if ($desktopOnly) {
+                return self::COLSPAN_DESKTOP_MAP[$d] ?? '';
+            }
+            if ($t === $d) {
+                return self::COLSPAN_MAP[$d] ?? '';
+            }
+            return trim((self::COLSPAN_MAP[$t] ?? '') . ' ' . (self::COLSPAN_DESKTOP_MAP[$d] ?? ''));
+        }
         $span = (int) $span;
         if ($span < 1 || $span > 12) {
             return '';
         }
         $map = $desktopOnly ? self::COLSPAN_DESKTOP_MAP : self::COLSPAN_MAP;
         return $map[$span] ?? '';
+    }
+
+    /** {d,t} 或标量 → 指定断点的跨度值；t 缺省继承 d。超界返回 0。 */
+    private static function spanValue(mixed $span, string $breakpoint): int
+    {
+        if (is_array($span)) {
+            $d = (int) ($span['d'] ?? 0);
+            $v = $breakpoint === 't' ? (int) ($span['t'] ?? $d) : $d;
+        } else {
+            $v = (int) $span;
+        }
+        return $v >= 1 && $v <= 12 ? $v : 0;
+    }
+
+    /**
+     * 断点可见性：hide_on = ['m','t','d'] 子集（数组或逗号串）。
+     * 前台输出隐藏类；编辑态输出 data-yk-hide-on 标记（画布保持可见可选中）。
+     * 返回 [附加类串（前导空格）, 附加属性串]。
+     *
+     * @return array{0:string,1:string}
+     */
+    private static function hideOn(mixed $hideOn, bool $editMode): array
+    {
+        $raw = is_string($hideOn) ? explode(',', $hideOn) : (is_array($hideOn) ? $hideOn : []);
+        $keys = [];
+        foreach ($raw as $k) {
+            $k = trim((string) $k);
+            if (isset(self::HIDE_ON_MAP[$k]) && !in_array($k, $keys, true)) {
+                $keys[] = $k;
+            }
+        }
+        if ($keys === []) {
+            return ['', ''];
+        }
+        if ($editMode) {
+            return ['', ' data-yk-hide-on="' . implode(',', $keys) . '"'];
+        }
+        $classes = '';
+        foreach ($keys as $k) {
+            $classes .= ' ' . self::HIDE_ON_MAP[$k];
+        }
+        return [$classes, ''];
     }
 
     private static function applyElementBoxStyle(string $html, array $data, string $type): string
