@@ -124,3 +124,7 @@ storage/*.sql
 /_*.lftp
 /_*.html
 /_*.php
+# Playwright browser regression artifacts
+tests/e2e/.auth/
+test-results/
+playwright-report/
