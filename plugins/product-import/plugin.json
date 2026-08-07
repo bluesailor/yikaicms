@@ -1,0 +1,12 @@
+{
+    "name": "产品导入",
+    "name_en": "Product Import",
+    "name_ja": "商品インポート",
+    "version": "1.0.0",
+    "description": "从 CSV / Excel 批量导入产品数据，支持字段映射、数据预览校验、分批写入",
+    "description_en": "Batch import products from CSV/Excel with field mapping, data preview & validation",
+    "description_ja": "CSV / Excel から商品を一括インポート。フィールドマッピング、プレビュー検証、分割書込対応",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.10.0"
+}
