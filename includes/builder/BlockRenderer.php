@@ -332,7 +332,7 @@ final class BlockRenderer
             return '<div class="yk-edit-el yk-missing-element" data-yk-el="' . $pathAttr
                 . '" data-yk-el-type="' . $typeAttr . '"><div class="border-2 border-dashed border-amber-300'
                 . ' bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
-                . '<strong>' . $label . '</strong><br>所需插件未启用，节点数据已保留</div></div>';
+                . '<strong>' . $label . '</strong><br>' . __('blox_plugin_missing_front') . '</div></div>';
         }
         $data = is_array($el['data'] ?? null) ? $el['data'] : [];
         BloxAssetCollector::collectElement($element, $data);
