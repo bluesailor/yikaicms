@@ -39,18 +39,22 @@ function fetch(string $path): string
     return (string) @file_get_contents($BASE . $path . (str_contains($path, '?') ? '&' : '?') . '_t=' . microtime(true));
 }
 
-function makeTemplate(string $type, string $marker, ?string $conditions): int
+function makeTemplate(string $type, string $marker, ?string $conditions, ?array $docSettings = null): int
 {
+    $section = [
+        'type' => 'section',
+        'settings' => ['padding' => 'sm'],
+        'columns' => [[ 'elements' => [[ 'type' => 'heading', 'data' => ['text' => $marker, 'level' => 'h2'] ]] ]],
+    ];
     $json = json_encode([
         'format' => BloxTemplateImporter::FORMAT,
         'version' => BloxTemplateImporter::VERSION,
         'type' => $type,
         'name' => 'smoke-' . $marker,
-        'document' => [[
-            'type' => 'section',
-            'settings' => ['padding' => 'sm'],
-            'columns' => [[ 'elements' => [[ 'type' => 'heading', 'data' => ['text' => $marker, 'level' => 'h2'] ]] ]],
-        ]],
+        // docSettings 非空时 document 走 v1 信封（r10 sticky 等文档级设置随包进出）
+        'document' => $docSettings !== null
+            ? ['schema' => 1, 'settings' => $docSettings, 'sections' => [$section]]
+            : [$section],
     ], JSON_UNESCAPED_UNICODE);
     $result = BloxTemplateImporter::importJson($json, 1);
     if ($conditions !== null) {
@@ -120,6 +124,17 @@ $idFooter = makeTemplate('footer', 'SMK-FOOTER', '[{"main":"any"}]');
 $homeF = fetch('/');
 check('footer：全站接管', str_contains($homeF, 'SMK-FOOTER') && str_contains($homeF, 'yk-blox-footer'));
 check('footer：原生 footer 让位（data-yk-footer 消失）', !str_contains($homeF, 'data-yk-footer'));
+
+// 5.5) sticky（r10）：文档 settings.sticky → 壳类 + 前台脚本；不开则两者都不出现
+$idSticky = makeTemplate('header', 'SMK-STICKY', '[{"main":"home"}]', ['sticky' => true]);
+$homeS = fetch('/');
+check('sticky：壳带 yk-sticky-header 类', str_contains($homeS, 'yk-sticky-header'));
+check('sticky：前台注入 blox-sticky-header.js', str_contains($homeS, 'blox-sticky-header.js'));
+dropTemplate($idSticky);
+$idPlainH = makeTemplate('header', 'SMK-PLAIN', '[{"main":"home"}]');
+$homeP = fetch('/');
+check('sticky 关：无壳类无脚本', !str_contains($homeP, 'yk-sticky-header') && !str_contains($homeP, 'blox-sticky-header.js'));
+dropTemplate($idPlainH);
 
 // 6) 旧主题回退：非 default 主题未挂壳 → 即使有已发布模板也走原生（红线 5 实证）
 $settings = new SettingModel();

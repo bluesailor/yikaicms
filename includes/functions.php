@@ -339,9 +339,18 @@ function bloxAreaHtml(string $area): string
         if ($body === '') {
             return '';
         }
+        // 文档级 settings（v1 信封）：sticky 吸顶只对 header 有意义。
+        // 壳层消费 settings，渲染器只管 sections——存量裸数组文档无 settings，自然不吸顶。
+        $doc = json_decode((string) ($row['published_data'] ?? ''), true);
+        $docSettings = is_array($doc) && is_array($doc['settings'] ?? null) ? $doc['settings'] : [];
+        $sticky = $area === 'header' && !empty($docSettings['sticky']);
+        if ($sticky && class_exists('BloxAssetCollector')) {
+            BloxAssetCollector::addScript('/assets/js/blox-sticky-header.js');
+        }
         $tag = $area === 'header' ? 'header' : 'footer';
         $idAttr = $area === 'header' ? ' id="siteHeader"' : '';
-        return '<' . $tag . $idAttr . ' class="yk-blox-area yk-blox-' . $area . '">' . $body . '</' . $tag . '>';
+        $cls = 'yk-blox-area yk-blox-' . $area . ($sticky ? ' yk-sticky-header' : '');
+        return '<' . $tag . $idAttr . ' class="' . $cls . '">' . $body . '</' . $tag . '>';
     } catch (Throwable $e) {
         error_log('[bloxAreaHtml] ' . $e->getMessage());
         return ''; // 任何异常回退旧模板，头尾故障不白屏
