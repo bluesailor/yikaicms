@@ -27,7 +27,9 @@ module.exports = async function globalSetup(config) {
     await page.locator('input[name="username"]').fill('admin');
     await page.locator('input[name="password"]').fill('smoke@Test123');
     await Promise.all([
-      page.waitForURL((url) => !url.pathname.endsWith('/admin/login.php')),
+      // waitUntil domcontentloaded：登录成功与否不依赖仪表盘全部资源加载完成。
+      // CI 冷启动曾因默认 'load' 等待慢资源 30s 超时（2026-08-07 观察期首个抖动签名）。
+      page.waitForURL((url) => !url.pathname.endsWith('/admin/login.php'), { waitUntil: 'domcontentloaded' }),
       page.locator('button[type="submit"]').click(),
     ]);
     await context.storageState({ path: storageState });
