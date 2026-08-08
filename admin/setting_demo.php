@@ -73,7 +73,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex justify-end">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-2">
                 <i class="ti ti-check text-base"></i>
-                保存
+                <?php echo e(__('admin_save')); ?>
             </button>
         </div>
     </form>

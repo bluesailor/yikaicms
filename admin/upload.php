@@ -15,7 +15,7 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    error('非法请求');
+    error(__('admin_illegal_request'));
 }
 
 // 权限按上传类型分档，而不是一个「能不能上传」的总闸：

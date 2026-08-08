@@ -36,27 +36,27 @@ final class Cron
         }
         self::$booted = true;
 
-        self::register('publish_sweep', '定时内容上线', 60, function (): string {
+        self::register('publish_sweep', __('cron_publish_sweep'), 60, function (): string {
             $n = contentModel()->promoteDue();
-            return $n > 0 ? "上线 {$n} 篇定时内容" : '无到点内容';
+            return $n > 0 ? str_replace(':n', (string) $n, __('cron_published_n')) : __('cron_nothing_due');
         });
 
-        self::register('recycle_purge', '清理回收站（30 天前）', 86400, function (): string {
+        self::register('recycle_purge', __('cron_recycle_purge'), 86400, function (): string {
             $days = (int) config('recycle_keep_days', 30);
             $total = 0;
             foreach ([contentModel(), productModel(), albumModel(), downloadModel(), jobModel()] as $m) {
                 $total += $m->purgeTrashedOlderThan($days);
             }
-            return "彻底删除 {$total} 项（超过 {$days} 天）";
+            return str_replace([':n', ':days'], [(string) $total, (string) $days], __('cron_purged_n'));
         });
 
-        self::register('backup', '数据库自动备份', 86400, function (): string {
+        self::register('backup', __('cron_backup'), 86400, function (): string {
             require_once ROOT_PATH . '/includes/Backup.php';
             $tables = Backup::listPrefixedTables();
             $sql = Backup::generateSql($tables, true, true);
             $path = Backup::writeToBackupsDir($sql, 'auto_' . date('Ymd_His') . '.sql');
             $kept = self::pruneBackups((int) config('backup_keep', 7));
-            return '已备份 ' . basename($path) . "，保留最近 {$kept} 份";
+            return str_replace([':file', ':n'], [basename($path), (string) $kept], __('cron_backup_done'));
         });
 
         if (function_exists('do_action')) {

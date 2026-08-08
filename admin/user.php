@@ -29,12 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = postInt('status', 1);
 
         if (empty($username)) {
-            error('请输入用户名');
+            error(__('user_name_required'));
         }
 
         // 检查用户名重复
         if (!userModel()->isUsernameUnique($username, $id)) {
-            error('用户名已存在');
+            error(__('user_name_taken'));
         }
 
         $data = [
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id > 0) {
             if (!empty($password)) {
                 if (strlen($password) < 8 || !preg_match('/[a-zA-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
-                    error('密码至少8位，且必须包含字母和数字');
+                    error(__('profile_pwd_rule'));
                 }
                 $data['password'] = password_hash($password, PASSWORD_BCRYPT);
             }
@@ -57,10 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('user', 'update', "更新用户ID: $id");
         } else {
             if (empty($password)) {
-                error('请输入密码');
+                error(__('user_pwd_required'));
             }
             if (strlen($password) < 8 || !preg_match('/[a-zA-Z]/', $password) || !preg_match('/[0-9]/', $password)) {
-                error('密码至少8位，且必须包含字母和数字');
+                error(__('profile_pwd_rule'));
             }
             $data['password'] = password_hash($password, PASSWORD_BCRYPT);
             $data['created_at'] = time();
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
 
         if ($id === (int)$_SESSION['admin_id']) {
-            error('不能删除当前登录用户');
+            error(__('user_cannot_delete_self'));
         }
 
         userModel()->deleteById($id);
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
 
         if ($id === (int)$_SESSION['admin_id']) {
-            error('不能禁用当前登录用户');
+            error(__('user_cannot_disable_self'));
         }
 
         $newStatus = userModel()->toggle($id, 'status');
@@ -107,7 +107,7 @@ foreach ($roles as $role) {
 // 获取用户列表
 $users = userModel()->all('id ASC');
 
-$pageTitle = '管理员';
+$pageTitle = __('admin_admins');
 $currentMenu = 'user';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -126,7 +126,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <i class="ti ti-plus text-base"></i>
-            添加管理员
+            <?php echo e(__('user_add')); ?>
         </button>
     </div>
 </div>
@@ -156,14 +156,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-sm"><?php echo e($item['email'] ?: '-'); ?></td>
                     <td class="px-4 py-3 text-center">
                         <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                            <?php echo $roleMap[$item['role_id']] ?? '未知'; ?>
+                            <?php echo $roleMap[$item['role_id']] ?? __('admin_unknown'); ?>
                         </span>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>"
                                 <?php echo $item['id'] === (int)$_SESSION['admin_id'] ? 'disabled' : ''; ?>>
-                            <?php echo $item['status'] ? '正常' : '禁用'; ?>
+                            <?php echo $item['status'] ? __('user_status_ok') : __('user_status_disabled'); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center text-sm text-gray-500">
@@ -201,12 +201,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="editId" value="0">
 
             <div>
-                <label class="block text-gray-700 mb-1">用户名 <span class="text-red-500">*</span></label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_username')); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="username" id="editUsername" required class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">密码 <span id="pwdRequired" class="text-red-500">*</span></label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_password')); ?> <span id="pwdRequired" class="text-red-500">*</span></label>
                 <div class="relative pwd-toggle">
                     <input type="password" name="password" id="editPassword" class="w-full border rounded px-4 py-2 pr-10" minlength="6">
                     <button type="button" onclick="togglePassword(this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -214,7 +214,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <i class="ti ti-eye-off text-lg eye-closed"></i>
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 mt-1" id="pwdHint">至少6位</p>
+                <p class="text-xs text-gray-400 mt-1" id="pwdHint"><?php echo e(__('user_pwd_min')); ?></p>
             </div>
 
             <div>
@@ -258,7 +258,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 function openEditModal(item = null) {
     const isEdit = !!item;
-    document.getElementById('modalTitle').textContent = isEdit ? '编辑管理员' : '添加管理员';
+    document.getElementById('modalTitle').textContent = isEdit ? <?php echo json_encode(__('user_edit'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('user_add'), JSON_UNESCAPED_UNICODE); ?>;
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editUsername').value = item?.username || '';
     document.getElementById('editPassword').value = '';
@@ -270,7 +270,7 @@ function openEditModal(item = null) {
     // 编辑时密码非必填
     document.getElementById('pwdRequired').style.display = isEdit ? 'none' : 'inline';
     document.getElementById('editPassword').required = !isEdit;
-    document.getElementById('pwdHint').textContent = isEdit ? '留空则不修改密码' : '至少6位';
+    document.getElementById('pwdHint').textContent = isEdit ? <?php echo json_encode(__('user_pwd_keep'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('user_pwd_min'), JSON_UNESCAPED_UNICODE); ?>;
 
     document.getElementById('editModal').classList.remove('hidden');
 }
@@ -301,7 +301,7 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '正常';
+            btn.textContent = <?php echo json_encode(__('user_status_ok'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
             btn.textContent = '<?php echo __('admin_disabled'); ?>';
@@ -312,7 +312,7 @@ async function toggleStatus(id, btn) {
 }
 
 async function deleteUser(id) {
-    if (!confirm('确定要删除该用户吗？')) return;
+    if (!confirm(<?php echo json_encode(__('user_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);

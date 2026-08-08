@@ -131,7 +131,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php endforeach; ?>
                             <option value="custom" <?php echo !isset($ttlPresets[$ttl]) ? 'selected' : ''; ?>><?php echo e(__('scache_custom')); ?>…</option>
                         </select>
-                        <input type="number" id="ttl_custom" value="<?php echo $ttl; ?>" min="60" max="86400" step="60" class="w-28 border rounded px-3 py-2 <?php echo isset($ttlPresets[$ttl]) ? 'hidden' : ''; ?>" placeholder="秒">
+                        <input type="number" id="ttl_custom" value="<?php echo $ttl; ?>" min="60" max="86400" step="60" class="w-28 border rounded px-3 py-2 <?php echo isset($ttlPresets[$ttl]) ? 'hidden' : ''; ?>" placeholder="<?php echo e(__('unit_second')); ?>">
                         <span id="ttl_custom_unit" class="text-sm text-gray-500 <?php echo isset($ttlPresets[$ttl]) ? 'hidden' : ''; ?>"><?php echo e(__('scache_custom_unit')); ?></span>
                     </div>
                     <div class="text-xs text-gray-500 mt-1"><?php echo e(__('scache_ttl_tip')); ?></div>

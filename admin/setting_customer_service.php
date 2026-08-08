@@ -170,7 +170,7 @@ function csRender(){
             </select>
             <input type="text" placeholder="<?php echo e(__('cs_label_ph')); ?>" value="${(it.label||'').replace(/"/g,'&quot;')}" oninput="csUpdate(${idx},'label',this.value)" class="border rounded px-3 py-1.5 text-sm flex-1 min-w-[120px]">
             <input type="text" placeholder="${(CS_TYPES.find(t=>t.value===it.type)||{}).valueHint||''}" value="${(it.value||'').replace(/"/g,'&quot;')}" oninput="csUpdate(${idx},'value',this.value)" class="border rounded px-3 py-1.5 text-sm flex-[2] min-w-[150px]">
-            ${(it.type==='wechat-qr'||it.type==='work-wechat') ? `<button type="button" onclick="csPickValueImage(${idx})" class="text-xs text-blue-600 hover:underline">选图</button>` : ''}
+            ${(it.type==='wechat-qr'||it.type==='work-wechat') ? `<button type="button" onclick="csPickValueImage(${idx})" class="text-xs text-blue-600 hover:underline"><?php echo e(__('admin_select_image')); ?></button>` : ''}
             <label class="inline-flex items-center gap-1 text-xs">
                 <input type="checkbox" ${it.enabled?'checked':''} onchange="csUpdate(${idx},'enabled',this.checked)" class="w-3.5 h-3.5"> <?php echo e(__('admin_enabled')); ?>
             </label>

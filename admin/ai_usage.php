@@ -96,7 +96,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm"><?php echo e(__('aiu_by_provider')); ?></div>
         <div class="p-4 space-y-2">
             <?php if (empty($providerStats)): ?>
-            <p class="text-gray-400 text-sm text-center py-4">暂无数据</p>
+            <p class="text-gray-400 text-sm text-center py-4"><?php echo e(__('admin_no_data')); ?></p>
             <?php else: foreach ($providerStats as $ps):
                 $pct = $total > 0 ? round((int)$ps['calls'] / $total * 100) : 0;
             ?>
@@ -118,7 +118,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm"><?php echo e(__('aiu_daily')); ?></div>
         <div class="p-4 overflow-x-auto">
             <?php if (empty($dailyStats)): ?>
-            <p class="text-gray-400 text-sm text-center py-4">暂无数据</p>
+            <p class="text-gray-400 text-sm text-center py-4"><?php echo e(__('admin_no_data')); ?></p>
             <?php else: ?>
             <div class="flex items-end gap-1 h-32">
                 <?php
@@ -138,7 +138,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-4">
     <div class="px-4 py-3 flex items-center gap-4 flex-wrap">
         <span class="text-sm text-gray-500"><?php echo e(__('aiu_filter')); ?></span>
-        <a href="/admin/ai_usage.php" class="text-sm <?php echo (!$filterProvider && !$filterDate) ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>">全部</a>
+        <a href="/admin/ai_usage.php" class="text-sm <?php echo (!$filterProvider && !$filterDate) ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>"><?php echo e(__('admin_all')); ?></a>
         <?php foreach ($providerStats as $ps): ?>
         <a href="?provider=<?php echo e($ps['provider']); ?>" class="text-sm <?php echo $filterProvider === $ps['provider'] ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>"><?php echo e($ps['provider']); ?></a>
         <?php endforeach; ?>
