@@ -69,15 +69,33 @@ async function canvasScrollTop(page) {
   return (await frame(page)).evaluate(() => window.scrollY || document.documentElement.scrollTop || 0);
 }
 
+/**
+ * 等预览"settle"（r17 审计方案）：最新 generation 已应用且滚动恢复完成时
+ * preview client 在编辑器 window 派发 blox:preview-settled。若当前没有在途/
+ * 防抖中的预览（快路径），200ms 内无请求发起则直接放行。
+ */
+async function waitPreviewSettled(page, timeoutMs = 5000) {
+  await page.evaluate((timeout) => new Promise((resolve) => {
+    let requestSeen = false;
+    const done = () => { cleanup(); resolve(); };
+    const onSettle = () => done();
+    const cleanup = () => window.removeEventListener('blox:preview-settled', onSettle);
+    window.addEventListener('blox:preview-settled', onSettle);
+    // 防抖窗口(300ms)+余量内没有 settle 事件——认为无在途预览
+    setTimeout(() => { if (!requestSeen) done(); }, 450);
+    setTimeout(done, timeout); // 兜底
+    // 有 fetch 在途的近似信号：settle 事件本身；requestSeen 仅由事件置位
+    window.addEventListener('blox:preview-settled', () => { requestSeen = true; }, { once: true });
+  }), timeoutMs);
+}
+
 async function scrollCanvasToBottom(page) {
-  // 重试式：滚动后跨过预览防抖+恢复窗口（~300ms）再读——若被在途预览响应的
-  // 滚动恢复清零（CI 慢机实证：scrollBefore 读到假 0）则重滚，直到值稳定为正。
+  // 采样前先等预览 settle（最新 generation 已应用+滚动恢复完成）——不再猜测
+  // 预览往返时序；随后滚动一次并确认生效。
   const contentFrame = await frame(page);
-  await expect.poll(async () => {
-    await contentFrame.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(350);
-    return canvasScrollTop(page);
-  }, { timeout: 10000 }).toBeGreaterThan(0);
+  await waitPreviewSettled(page);
+  await contentFrame.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => canvasScrollTop(page)).toBeGreaterThan(0);
 }
 
 async function clearSelection(page) {
@@ -137,6 +155,7 @@ async function dragElement(source, target, page) {
 module.exports = {
   addTemporaryHeading,
   canvasScrollTop,
+  waitPreviewSettled,
   countCanvasSections,
   countDynamicHomeBlocks,
   countSections,

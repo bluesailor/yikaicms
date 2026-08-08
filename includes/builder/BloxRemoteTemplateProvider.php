@@ -78,7 +78,10 @@ final class BloxRemoteTemplateProvider
      */
     public function installable(bool $forceRefresh = false): array
     {
-        $catalog = $this->catalog($forceRefresh);
+        // 审计 r17-2：目录携带 entitled/locked 授权态——安装场景用 60 秒短 TTL 复验
+        // （新授权用户不再最长 7 天看到锁定态）；编辑器插入目录 items() 的 7 天
+        // 元数据缓存不受影响。forceRefresh 供管理页「刷新授权状态」按钮直穿。
+        $catalog = $this->catalog($forceRefresh, self::ENTITLEMENT_TTL);
         $items = [];
         foreach ($catalog['templates'] as $raw) {
             $item = $this->normalizeItem($raw, $catalog['updated_at'], true);
@@ -182,10 +185,20 @@ final class BloxRemoteTemplateProvider
         } catch (JsonException) {
             throw new RuntimeException(__('blox_template_remote_invalid'));
         }
+        // 审计 r17-4/5：两项一致性下沉到共用安检段（resolve 与安装真正同一段）——
+        // ① 包内 source_ref 必填且必须等于目录 slug（此前空值放行，打包错误无法在
+        //    客户端稳定发现；存量 9 包已核验全部携带，必填化无兼容代价）；
+        // ② 包声明的业务 type 必须等于目录声明的 type（签名只证明"包由服务器签发"，
+        //    不证明 registry 与包的业务字段一致——registry 写 header、包内误写 page
+        //    此前会以 page 落库）。
         $sourceRef = is_array($envelope) && is_array($envelope['meta'] ?? null)
             ? trim((string) ($envelope['meta']['source_ref'] ?? ''))
             : '';
-        if ($sourceRef !== '' && $sourceRef !== $slug) {
+        if ($sourceRef !== $slug) {
+            throw new RuntimeException(__('blox_template_remote_invalid'));
+        }
+        $packageType = is_array($envelope) ? trim((string) ($envelope['type'] ?? '')) : '';
+        if ($packageType !== (string) $item['type']) {
             throw new RuntimeException(__('blox_template_remote_invalid'));
         }
 

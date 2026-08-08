@@ -2420,6 +2420,7 @@ return [
     'blox_tpl_installed' => '已安装',
     'blox_tpl_locked' => '需要授权',
     'blox_tpl_install' => '安装',
+    'blox_tpl_official_refresh' => '刷新授权状态',
     'blox_ctx_label' => '预览上下文',
     'blox_ctx_home' => '首页',
     'blox_ctx_hit_none' => '此上下文未命中任何已发布模板',
