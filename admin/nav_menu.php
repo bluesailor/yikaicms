@@ -38,7 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? 'save_nav');
     $backLang = $_viewLang !== $_defaultLang ? '&lang=' . urlencode($_viewLang) : '';
 
-    if ($action !== 'save_nav' && !$navMenusReady) {
+    $groupActions = ['create_group', 'rename_group', 'delete_group', 'save_group'];
+    if (in_array($action, $groupActions, true) && !$navMenusReady) {
         header('Location: /admin/nav_menu.php');
         exit;
     }
@@ -55,6 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id > 0) {
             channelModel()->updateById($id, ['is_nav' => postInt('val') === 1 ? 1 : 0]);
         }
+        success();
+    }
+
+    if ($action === 'toggle_home_nav') {
+        $homeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
+        $homeShow = postInt('val') === 1 ? '1' : '0';
+        settingModel()->set($homeShowKey, $homeShow);
+        adminLog('setting', 'nav_home_show', '切换 ' . $homeShowKey . ' = ' . $homeShow);
         success();
     }
 
@@ -177,7 +186,25 @@ $typeLabels = [
     'page' => __('channel_type_page'),
     'list' => __('channel_type_list'),
     'product' => __('channel_type_product'),
+    'album' => __('channel_type_album'),
+    'case' => __('channel_type_case'),
+    'download' => __('channel_type_download'),
+    'job' => __('channel_type_job'),
 ];
+$homeTextKey = $_viewLang === $_defaultLang ? 'nav_home_text' : 'nav_home_text_' . $_viewLang;
+$homeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
+$homeName = trim((string) config($homeTextKey, ''));
+if ($homeName === '') {
+    $viewLangFile = ROOT_PATH . '/lang/' . basename($_viewLang) . '.php';
+    $viewLangData = is_file($viewLangFile) ? require $viewLangFile : [];
+    $homeName = is_array($viewLangData) && isset($viewLangData['nav_home'])
+        ? (string) $viewLangData['nav_home']
+        : __('nav_home');
+}
+$homeVisible = (string) config($homeShowKey, '1') !== '0';
+$totalChannels = count($rows) + 1;
+$visibleChannels = count(array_filter($rows, static fn (array $row): bool => (int) $row['is_nav'] === 1))
+    + ($homeVisible ? 1 : 0);
 
 $pageTitle = __('admin_nav_menu');
 $currentMenu = 'nav_menu';
@@ -247,12 +274,61 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php if ($activeGroup === 0 || $editGroup === null): ?>
 <!-- ============ 默认导航：栏目投影（拖拽排序 + 即时显隐） ============ -->
-<div class="bg-white rounded-lg shadow">
-    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 class="font-medium text-gray-800"><?php echo e(__('nav_menu_default_tab')); ?></h2>
-        <span class="text-xs text-gray-400"><?php echo e(__('nav_menu_drag_hint')); ?></span>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" data-nm-default>
+    <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <h2 class="font-semibold text-gray-800"><?php echo e(__('nav_menu_default_tab')); ?></h2>
+            <p class="mt-1 text-xs text-gray-500"><?php echo e(__('nav_menu_default_desc')); ?></p>
+        </div>
+        <div class="flex items-center gap-2 text-xs" aria-label="<?php echo e(__('nav_menu_summary')); ?>">
+            <span class="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-gray-600">
+                <?php echo e(__('nav_menu_total_count', ['n' => $totalChannels])); ?>
+            </span>
+            <span class="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">
+                <?php echo e(__('nav_menu_visible_count', ['n' => $visibleChannels])); ?>
+            </span>
+        </div>
     </div>
-    <div class="px-5 py-4">
+
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/70 flex items-center gap-2 flex-wrap" data-nm-toolbar>
+        <label class="relative flex-1 min-w-[14rem] max-w-md">
+            <span class="sr-only"><?php echo e(__('nav_menu_search')); ?></span>
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+            <input type="search" data-nm-search placeholder="<?php echo e(__('nav_menu_search_placeholder')); ?>"
+                   class="w-full h-9 rounded border border-gray-200 bg-white pl-9 pr-8 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15">
+            <button type="button" data-nm-search-clear class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 items-center justify-center rounded text-gray-400 hover:text-gray-700" title="<?php echo e(__('clear')); ?>" aria-label="<?php echo e(__('clear')); ?>">
+                <i class="ti ti-x"></i>
+            </button>
+        </label>
+        <div class="inline-flex h-9 rounded border border-gray-200 bg-white p-0.5" role="group" aria-label="<?php echo e(__('nav_menu_filter')); ?>">
+            <button type="button" data-nm-filter="all" aria-pressed="true" class="nm-filter-btn rounded px-3 text-xs bg-gray-800 text-white"><?php echo e(__('all')); ?></button>
+            <button type="button" data-nm-filter="visible" aria-pressed="false" class="nm-filter-btn rounded px-3 text-xs text-gray-500 hover:text-gray-800"><?php echo e(__('nav_menu_filter_visible')); ?></button>
+            <button type="button" data-nm-filter="hidden" aria-pressed="false" class="nm-filter-btn rounded px-3 text-xs text-gray-500 hover:text-gray-800"><?php echo e(__('nav_menu_filter_hidden')); ?></button>
+        </div>
+        <button type="button" data-nm-collapse-all class="h-9 rounded border border-gray-200 bg-white px-3 text-xs text-gray-600 hover:border-gray-300 inline-flex items-center gap-1.5">
+            <i class="ti ti-arrows-minimize"></i><span><?php echo e(__('nav_menu_collapse_all')); ?></span>
+        </button>
+        <span class="ml-auto min-w-[7rem] text-right text-xs text-gray-500" data-nm-result-count aria-live="polite"></span>
+        <span class="hidden items-center gap-1.5 text-xs" data-nm-status role="status" aria-live="polite"></span>
+    </div>
+
+    <div class="px-5 py-4" data-nm-tree>
+        <div class="nm-home-item mb-1" data-name="<?php echo e(mb_strtolower($homeName)); ?>" data-visible="<?php echo $homeVisible ? '1' : '0'; ?>" data-testid="nav-menu-home-row">
+            <div class="nm-item-row nm-home-row min-h-11 flex items-center gap-2 rounded border border-blue-200 px-2.5 py-1.5 bg-blue-50/60 hover:bg-blue-50 transition <?php echo $homeVisible ? '' : 'opacity-60'; ?>">
+                <span class="w-7 h-7 text-blue-400 inline-flex items-center justify-center rounded" aria-hidden="true"><i class="ti ti-home"></i></span>
+                <span class="w-7 h-7" aria-hidden="true"></span>
+                <span class="min-w-0 text-sm font-semibold text-gray-800 truncate"><?php echo e($homeName); ?></span>
+                <span class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600"><?php echo e(__('nav_menu_home_fixed')); ?></span>
+                <span class="ml-auto flex items-center gap-1 shrink-0">
+                    <label class="relative inline-flex items-center gap-2 cursor-pointer px-1.5" title="<?php echo e(__('nav_menu_show')); ?>">
+                        <input type="checkbox" class="nm-home-toggle sr-only peer" aria-label="<?php echo e(__('nav_menu_show_item', ['name' => $homeName])); ?>" <?php echo $homeVisible ? 'checked' : ''; ?>>
+                        <span class="relative w-9 h-5 rounded-full bg-gray-200 transition peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></span>
+                        <span class="hidden xl:inline text-xs text-gray-500"><?php echo e(__('nav_menu_show')); ?></span>
+                    </label>
+                    <a href="/admin/setting_home.php" class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-100 hover:text-primary" title="<?php echo e(__('edit')); ?>" aria-label="<?php echo e(__('nav_menu_edit_item', ['name' => $homeName])); ?>"><i class="ti ti-pencil"></i></a>
+                </span>
+            </div>
+        </div>
         <?php
         /** @param array<int,array<int,array<string,mixed>>> $byParent */
         function ykRenderNavTree(array $byParent, int $parentId, int $level, array $typeLabels): void
@@ -261,25 +337,43 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             if ($rows === [] && $level > 0) {
                 return;
             }
-            echo '<div class="nm-nav-sort space-y-1' . ($level > 0 ? ' ml-8 mt-1' : '') . '" data-nm-parent="' . $parentId . '">';
+            $treeClass = $level > 0
+                ? ' ml-5 pl-5 mt-1 border-l border-gray-200'
+                : '';
+            echo '<div class="nm-nav-sort space-y-1' . $treeClass . '" data-nm-parent="' . $parentId . '"' . ($level > 0 ? ' data-nm-children' : '') . '>';
             foreach ($rows as $row) {
                 $id = (int) $row['id'];
+                $name = (string) $row['name'];
+                $isVisible = (int) $row['is_nav'] === 1;
+                $hasChildren = ($byParent[$id] ?? []) !== [];
+                $rowBorder = $level === 0 ? 'border-gray-200' : 'border-gray-100';
                 ?>
-                <div class="nm-nav-item" data-id="<?php echo $id; ?>" data-testid="nav-menu-row">
-                    <div class="flex items-center gap-2 rounded-lg border border-gray-100 px-3 py-2 hover:bg-gray-50/60 bg-white">
-                        <span class="nm-drag cursor-grab text-gray-300 hover:text-gray-500 px-1"><i class="ti ti-grip-vertical"></i></span>
-                        <span class="text-sm text-gray-800"><?php echo e((string) $row['name']); ?></span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-400"><?php echo e($typeLabels[(string) $row['type']] ?? (string) $row['type']); ?></span>
-                        <?php if ((string) $row['type'] === 'product'): ?>
-                        <a href="/admin/product_category.php" class="text-[10px] text-gray-300 hover:text-primary" title="<?php echo e(__('nav_menu_product_hint')); ?>"><i class="ti ti-info-circle"></i></a>
+                <div class="nm-nav-item" data-id="<?php echo $id; ?>" data-name="<?php echo e(mb_strtolower($name)); ?>" data-visible="<?php echo $isVisible ? '1' : '0'; ?>" data-level="<?php echo $level; ?>" data-testid="nav-menu-row">
+                    <div class="nm-item-row nm-nav-row min-h-11 flex items-center gap-2 rounded border <?php echo $rowBorder; ?> px-2.5 py-1.5 hover:border-gray-300 hover:bg-gray-50/70 bg-white transition <?php echo $isVisible ? '' : 'opacity-60'; ?>">
+                        <span class="nm-drag w-7 h-7 cursor-grab text-gray-300 hover:text-gray-600 inline-flex items-center justify-center rounded hover:bg-gray-100" title="<?php echo e(__('nav_menu_drag_handle')); ?>">
+                            <i class="ti ti-grip-vertical"></i>
+                        </span>
+                        <?php if ($hasChildren): ?>
+                        <button type="button" class="nm-node-toggle w-7 h-7 inline-flex items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-expanded="true" title="<?php echo e(__('nav_menu_toggle_children')); ?>">
+                            <i class="ti ti-chevron-down transition-transform"></i>
+                        </button>
+                        <?php else: ?>
+                        <span class="w-7 h-7" aria-hidden="true"></span>
                         <?php endif; ?>
-                        <span class="ml-auto flex items-center gap-3">
-                            <label class="inline-flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer">
-                                <input type="checkbox" class="nm-nav-toggle rounded border-gray-300 text-primary focus:ring-primary"
-                                       data-id="<?php echo $id; ?>" <?php echo ((int) $row['is_nav']) === 1 ? 'checked' : ''; ?>>
-                                <?php echo e(__('nav_menu_show')); ?>
+                        <span class="min-w-0 text-sm font-medium text-gray-800 truncate"><?php echo e($name); ?></span>
+                        <span class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"><?php echo e($typeLabels[(string) $row['type']] ?? (string) $row['type']); ?></span>
+                        <?php if ((string) $row['type'] === 'product'): ?>
+                        <a href="/admin/product_category.php" class="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-50 hover:text-primary" title="<?php echo e(__('nav_menu_product_hint')); ?>" aria-label="<?php echo e(__('nav_menu_product_hint')); ?>"><i class="ti ti-category"></i></a>
+                        <?php endif; ?>
+                        <span class="ml-auto flex items-center gap-1 shrink-0">
+                            <label class="relative inline-flex items-center gap-2 cursor-pointer px-1.5" title="<?php echo e(__('nav_menu_show')); ?>">
+                                <input type="checkbox" class="nm-nav-toggle sr-only peer" data-id="<?php echo $id; ?>" aria-label="<?php echo e(__('nav_menu_show_item', ['name' => $name])); ?>" <?php echo $isVisible ? 'checked' : ''; ?>>
+                                <span class="relative w-9 h-5 rounded-full bg-gray-200 transition peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></span>
+                                <span class="hidden xl:inline text-xs text-gray-500"><?php echo e(__('nav_menu_show')); ?></span>
                             </label>
-                            <a href="/admin/channel.php?edit=<?php echo $id; ?>" class="text-xs text-gray-400 hover:text-primary"><?php echo e(__('edit')); ?></a>
+                            <button type="button" class="nm-move w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25" data-dir="-1" title="<?php echo e(__('nav_menu_move_up')); ?>" aria-label="<?php echo e(__('nav_menu_move_up_item', ['name' => $name])); ?>"><i class="ti ti-arrow-up"></i></button>
+                            <button type="button" class="nm-move w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25" data-dir="1" title="<?php echo e(__('nav_menu_move_down')); ?>" aria-label="<?php echo e(__('nav_menu_move_down_item', ['name' => $name])); ?>"><i class="ti ti-arrow-down"></i></button>
+                            <a href="/admin/channel.php?edit=<?php echo $id; ?>" class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-50 hover:text-primary" title="<?php echo e(__('edit')); ?>" aria-label="<?php echo e(__('nav_menu_edit_item', ['name' => $name])); ?>"><i class="ti ti-pencil"></i></a>
                         </span>
                     </div>
                     <?php ykRenderNavTree($byParent, $id, $level + 1, $typeLabels); ?>
@@ -290,40 +384,264 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         }
         ykRenderNavTree($byParent, 0, 0, $typeLabels);
         ?>
+        <div class="hidden py-12 text-center text-sm text-gray-500" data-nm-empty>
+            <i class="ti ti-search-off block text-2xl text-gray-300 mb-2"></i>
+            <?php echo e(__('nav_menu_no_results')); ?>
+        </div>
     </div>
-    <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-        <?php echo e(__('nav_menu_levels_hint')); ?>
+    <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-500 bg-gray-50/50">
+        <i class="ti ti-info-circle mr-1"></i><?php echo e(__('nav_menu_levels_hint')); ?>
     </div>
 </div>
 <script>
 (function () {
+    var root = document.querySelector('[data-nm-default]');
+    if (!root) return;
+
     var csrf = <?php echo json_encode(csrfToken()); ?>;
+    var ui = <?php echo json_encode([
+        'saving' => __('nav_menu_saving'),
+        'saved' => __('nav_menu_update_success'),
+        'failed' => __('nav_menu_update_failed'),
+        'collapse' => __('nav_menu_collapse_all'),
+        'expand' => __('nav_menu_expand_all'),
+        'results' => __('nav_menu_result_count'),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    var search = root.querySelector('[data-nm-search]');
+    var searchClear = root.querySelector('[data-nm-search-clear]');
+    var filterButtons = Array.prototype.slice.call(root.querySelectorAll('[data-nm-filter]'));
+    var collapseButton = root.querySelector('[data-nm-collapse-all]');
+    var resultCount = root.querySelector('[data-nm-result-count]');
+    var status = root.querySelector('[data-nm-status]');
+    var empty = root.querySelector('[data-nm-empty]');
+    var homeItem = root.querySelector('.nm-home-item');
+    var currentFilter = 'all';
+    var statusTimer = 0;
+
+    function setStatus(kind, message) {
+        window.clearTimeout(statusTimer);
+        status.className = 'inline-flex items-center gap-1.5 text-xs ' + (kind === 'error' ? 'text-red-600' : (kind === 'success' ? 'text-emerald-600' : 'text-gray-500'));
+        status.innerHTML = '<i class="ti ' + (kind === 'error' ? 'ti-alert-circle' : (kind === 'success' ? 'ti-check' : 'ti-loader-2 animate-spin')) + '"></i><span></span>';
+        status.querySelector('span').textContent = message;
+        if (kind !== 'loading') {
+            statusTimer = window.setTimeout(function () { status.classList.add('hidden'); }, 2400);
+        }
+    }
+
     function post(fields) {
         var fd = new FormData();
         fd.append('_token', csrf);
-        Object.keys(fields).forEach(function (k) {
-            if (Array.isArray(fields[k])) fields[k].forEach(function (v) { fd.append(k + '[]', v); });
-            else fd.append(k, fields[k]);
+        Object.keys(fields).forEach(function (key) {
+            if (Array.isArray(fields[key])) {
+                fields[key].forEach(function (value) { fd.append(key + '[]', value); });
+            } else {
+                fd.append(key, fields[key]);
+            }
         });
-        return fetch('/admin/nav_menu.php', { method: 'POST', body: fd });
+        return fetch('/admin/nav_menu.php', { method: 'POST', body: fd })
+            .then(function (response) {
+                return response.json().catch(function () { return null; }).then(function (payload) {
+                    if (!response.ok || !payload || payload.code !== 0) throw new Error('save failed');
+                    return payload;
+                });
+            });
     }
-    document.querySelectorAll('.nm-nav-sort').forEach(function (el) {
-        new Sortable(el, {
+
+    function directItems(list) {
+        return Array.prototype.filter.call(list.children, function (node) { return node.classList.contains('nm-nav-item'); });
+    }
+
+    function childList(item) {
+        return Array.prototype.find.call(item.children, function (node) { return node.matches && node.matches('.nm-nav-sort[data-nm-children]'); }) || null;
+    }
+
+    function setExpanded(item, expanded) {
+        var list = childList(item);
+        var button = item.querySelector(':scope > .nm-nav-row .nm-node-toggle');
+        if (!list || !button) return;
+        list.classList.toggle('hidden', !expanded);
+        button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        var icon = button.querySelector('i');
+        if (icon) icon.classList.toggle('-rotate-90', !expanded);
+    }
+
+    function updateMoveButtons(list) {
+        var items = directItems(list);
+        items.forEach(function (item, index) {
+            var buttons = item.querySelectorAll(':scope > .nm-nav-row .nm-move');
+            if (buttons[0]) buttons[0].disabled = index === 0;
+            if (buttons[1]) buttons[1].disabled = index === items.length - 1;
+        });
+    }
+
+    function updateAllMoveButtons() {
+        root.querySelectorAll('.nm-nav-sort').forEach(updateMoveButtons);
+    }
+
+    function applyFilter() {
+        var query = (search.value || '').trim().toLocaleLowerCase();
+        var ownMatches = 0;
+        var rootList = root.querySelector('.nm-nav-sort[data-nm-parent="0"]');
+
+        if (homeItem) {
+            var homeNameMatch = query === '' || (homeItem.dataset.name || '').indexOf(query) !== -1;
+            var homeStateMatch = currentFilter === 'all'
+                || (currentFilter === 'visible' && homeItem.dataset.visible === '1')
+                || (currentFilter === 'hidden' && homeItem.dataset.visible === '0');
+            var homeMatch = homeNameMatch && homeStateMatch;
+            homeItem.classList.toggle('hidden', !homeMatch);
+            if (homeMatch) ownMatches++;
+        }
+
+        function visit(item) {
+            var list = childList(item);
+            var childMatch = false;
+            if (list) {
+                directItems(list).forEach(function (child) {
+                    if (visit(child)) childMatch = true;
+                });
+            }
+            var nameMatch = query === '' || (item.dataset.name || '').indexOf(query) !== -1;
+            var stateMatch = currentFilter === 'all'
+                || (currentFilter === 'visible' && item.dataset.visible === '1')
+                || (currentFilter === 'hidden' && item.dataset.visible === '0');
+            var ownMatch = nameMatch && stateMatch;
+            if (ownMatch) ownMatches++;
+            var show = ownMatch || childMatch;
+            item.classList.toggle('hidden', !show);
+            if (childMatch && query !== '') setExpanded(item, true);
+            return show;
+        }
+
+        directItems(rootList).forEach(visit);
+        var total = root.querySelectorAll('.nm-nav-item').length + (homeItem ? 1 : 0);
+        resultCount.textContent = ui.results.replace(':shown', String(ownMatches)).replace(':total', String(total));
+        empty.classList.toggle('hidden', ownMatches !== 0);
+        searchClear.classList.toggle('hidden', query === '');
+        searchClear.classList.toggle('inline-flex', query !== '');
+    }
+
+    function orderOf(list) {
+        return directItems(list).map(function (item) { return item.dataset.id; });
+    }
+
+    function restoreOrder(list, ids) {
+        ids.forEach(function (id) {
+            var item = directItems(list).find(function (candidate) { return candidate.dataset.id === id; });
+            if (item) list.appendChild(item);
+        });
+        updateMoveButtons(list);
+    }
+
+    function saveOrder(list, before) {
+        setStatus('loading', ui.saving);
+        return post({ action: 'sort_nav', ids: orderOf(list) })
+            .then(function () {
+                setStatus('success', ui.saved);
+                updateMoveButtons(list);
+            })
+            .catch(function () {
+                restoreOrder(list, before);
+                setStatus('error', ui.failed);
+            });
+    }
+
+    root.querySelectorAll('.nm-nav-sort').forEach(function (list) {
+        var before = [];
+        new Sortable(list, {
             handle: '.nm-drag',
-            animation: 200,
+            animation: 180,
             ghostClass: 'opacity-30',
             chosenClass: 'shadow-lg',
-            onEnd: function () {
-                var ids = Array.prototype.map.call(el.querySelectorAll(':scope > .nm-nav-item'), function (n) { return n.dataset.id; });
-                post({ action: 'sort_nav', ids: ids });
+            onStart: function () { before = orderOf(list); },
+            onEnd: function (event) {
+                if (event.oldIndex === event.newIndex) return;
+                saveOrder(list, before);
             }
         });
     });
-    document.querySelectorAll('.nm-nav-toggle').forEach(function (cb) {
-        cb.addEventListener('change', function () {
-            post({ action: 'toggle_nav', id: cb.dataset.id, val: cb.checked ? 1 : 0 });
+
+    root.querySelectorAll('.nm-node-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var item = button.closest('.nm-nav-item');
+            setExpanded(item, button.getAttribute('aria-expanded') !== 'true');
         });
     });
+
+    root.querySelectorAll('.nm-move').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var item = button.closest('.nm-nav-item');
+            var list = item.parentElement;
+            var before = orderOf(list);
+            var sibling = Number(button.dataset.dir) < 0 ? item.previousElementSibling : item.nextElementSibling;
+            if (!sibling || !sibling.classList.contains('nm-nav-item')) return;
+            if (Number(button.dataset.dir) < 0) list.insertBefore(item, sibling);
+            else list.insertBefore(sibling, item);
+            saveOrder(list, before);
+        });
+    });
+
+    function bindVisibilityToggle(checkbox, row, fields) {
+        if (!checkbox || !row) return;
+        checkbox.addEventListener('change', function () {
+            var previous = !checkbox.checked;
+            checkbox.disabled = true;
+            setStatus('loading', ui.saving);
+            post(Object.assign({}, fields, { val: checkbox.checked ? 1 : 0 }))
+                .then(function () {
+                    row.dataset.visible = checkbox.checked ? '1' : '0';
+                    var rowContent = row.querySelector(':scope > .nm-item-row');
+                    if (rowContent) rowContent.classList.toggle('opacity-60', !checkbox.checked);
+                    setStatus('success', ui.saved);
+                    applyFilter();
+                })
+                .catch(function () {
+                    checkbox.checked = previous;
+                    setStatus('error', ui.failed);
+                })
+                .finally(function () { checkbox.disabled = false; });
+        });
+    }
+
+    root.querySelectorAll('.nm-nav-toggle').forEach(function (checkbox) {
+        bindVisibilityToggle(checkbox, checkbox.closest('.nm-nav-item'), {
+            action: 'toggle_nav',
+            id: checkbox.dataset.id
+        });
+    });
+    bindVisibilityToggle(root.querySelector('.nm-home-toggle'), homeItem, {
+        action: 'toggle_home_nav'
+    });
+
+    filterButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            currentFilter = button.dataset.nmFilter;
+            filterButtons.forEach(function (candidate) {
+                var active = candidate === button;
+                candidate.setAttribute('aria-pressed', active ? 'true' : 'false');
+                candidate.classList.toggle('bg-gray-800', active);
+                candidate.classList.toggle('text-white', active);
+                candidate.classList.toggle('text-gray-500', !active);
+            });
+            applyFilter();
+        });
+    });
+
+    search.addEventListener('input', applyFilter);
+    searchClear.addEventListener('click', function () { search.value = ''; search.focus(); applyFilter(); });
+    collapseButton.addEventListener('click', function () {
+        var lists = Array.prototype.slice.call(root.querySelectorAll('[data-nm-children]'));
+        var shouldCollapse = lists.some(function (list) { return !list.classList.contains('hidden'); });
+        root.querySelectorAll('.nm-nav-item').forEach(function (item) {
+            if (childList(item)) setExpanded(item, !shouldCollapse);
+        });
+        collapseButton.querySelector('span').textContent = shouldCollapse ? ui.expand : ui.collapse;
+        var icon = collapseButton.querySelector('i');
+        icon.className = 'ti ' + (shouldCollapse ? 'ti-arrows-maximize' : 'ti-arrows-minimize');
+    });
+
+    updateAllMoveButtons();
+    applyFilter();
 })();
 </script>
 
@@ -368,25 +686,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="px-5 py-4">
         <!-- 添加项 -->
-        <div class="flex items-center gap-2 flex-wrap mb-4 pb-4 border-b border-gray-100">
-            <select x-model="addChannelId" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm max-w-[14rem]" data-testid="nav-menu-add-channel">
-                <option value="0"><?php echo e(__('nav_menu_pick_channel')); ?></option>
-                <template x-for="c in channels" :key="c.id">
-                    <option :value="c.id" x-text="c.name"></option>
-                </template>
-            </select>
-            <button type="button" @click="addChannel()" class="text-sm text-primary px-2 py-1.5" data-testid="nav-menu-add-channel-btn">
-                <i class="ti ti-plus"></i> <?php echo e(__('nav_menu_add_channel')); ?>
-            </button>
-            <span class="text-gray-200">|</span>
-            <input type="text" x-model="addLabel" placeholder="<?php echo e(__('nav_menu_custom_label')); ?>" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-28">
-            <input type="text" x-model="addUrl" placeholder="https://" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-44">
-            <button type="button" @click="addLink()" class="text-sm text-primary px-2 py-1.5" data-testid="nav-menu-add-link-btn">
-                <i class="ti ti-link"></i> <?php echo e(__('nav_menu_add_link')); ?>
-            </button>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100" data-nm-add-items>
+            <div data-nm-add-channel>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5"><?php echo e(__('nav_menu_add_channel')); ?></label>
+                <div class="flex items-center gap-2">
+                    <select x-model="addChannelId" class="min-w-0 flex-1 h-9 border border-gray-200 rounded px-3 text-sm bg-white" data-testid="nav-menu-add-channel">
+                        <option value="0"><?php echo e(__('nav_menu_pick_channel')); ?></option>
+                        <template x-for="c in channels" :key="c.id">
+                            <option :value="c.id" x-text="c.name"></option>
+                        </template>
+                    </select>
+                    <button type="button" @click="addChannel()" class="h-9 shrink-0 rounded bg-gray-800 hover:bg-gray-700 text-white text-sm px-3 inline-flex items-center gap-1.5" data-testid="nav-menu-add-channel-btn">
+                        <i class="ti ti-plus"></i><span><?php echo e(__('nav_menu_add')); ?></span>
+                    </button>
+                </div>
+            </div>
+            <div class="lg:border-l lg:border-gray-200 lg:pl-4" data-nm-add-link>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5"><?php echo e(__('nav_menu_add_link')); ?></label>
+                <div class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto] gap-2">
+                    <input type="text" x-model="addLabel" placeholder="<?php echo e(__('nav_menu_custom_label')); ?>" class="col-span-2 sm:col-span-1 min-w-0 h-9 border border-gray-200 rounded px-3 text-sm">
+                    <input type="text" inputmode="url" autocomplete="url" x-model="addUrl" placeholder="<?php echo e(__('nav_menu_url_placeholder')); ?>" class="min-w-0 h-9 border border-gray-200 rounded px-3 text-sm">
+                    <button type="button" @click="addLink()" class="w-9 h-9 rounded border border-gray-200 text-gray-600 hover:border-primary hover:text-primary inline-flex items-center justify-center" data-testid="nav-menu-add-link-btn" title="<?php echo e(__('nav_menu_add_link')); ?>" aria-label="<?php echo e(__('nav_menu_add_link')); ?>">
+                        <i class="ti ti-link-plus"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-
-        <!-- 项树（三级递归模板） -->
+        <div x-show="_pendingParent" x-cloak class="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 flex items-center gap-2" role="status" data-testid="nav-menu-child-target">
+            <i class="ti ti-corner-down-right shrink-0"></i>
+            <span class="min-w-0 flex-1" x-text="pendingChildText()"></span>
+            <button type="button" @click="cancelChild()" class="w-7 h-7 rounded inline-flex items-center justify-center hover:bg-blue-100" title="<?php echo e(__('cancel')); ?>" aria-label="<?php echo e(__('cancel')); ?>"><i class="ti ti-x"></i></button>
+        </div>
         <p x-show="items.length === 0" class="text-sm text-gray-400 py-6 text-center"><?php echo e(__('nav_menu_group_empty')); ?></p>
         <ul class="space-y-1" data-testid="nav-menu-group-items" data-nm-sort="" x-init="initSortable()">
             <template x-for="(item, i) in items" :key="i">
@@ -398,13 +728,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="text" x-model="item.label" placeholder="<?php echo e(__('nav_menu_label_override')); ?>"
                                class="border border-gray-100 rounded px-2 py-0.5 text-xs w-28 text-gray-500">
                         <label x-show="item.channel_id === 0" class="text-[11px] text-gray-400 inline-flex items-center gap-1">
-                            <input type="checkbox" :checked="item.target === '_blank'" @change="item.target = $event.target.checked ? '_blank' : ''" class="rounded border-gray-300">_blank
+                            <input type="checkbox" :checked="item.target === '_blank'" @change="item.target = $event.target.checked ? '_blank' : ''" class="rounded border-gray-300"> <?php echo e(__('nav_menu_new_window')); ?>
                         </label>
                         <span class="ml-auto flex items-center gap-1 text-gray-300">
-                            <button type="button" @click="move(items, i, -1)" class="hover:text-gray-600 px-1"><i class="ti ti-arrow-up"></i></button>
-                            <button type="button" @click="move(items, i, 1)" class="hover:text-gray-600 px-1"><i class="ti ti-arrow-down"></i></button>
-                            <button type="button" @click="addChildTo(item, 2)" class="hover:text-primary px-1" title="<?php echo e(__('nav_menu_add_child')); ?>"><i class="ti ti-corner-down-right"></i></button>
-                            <button type="button" @click="items.splice(i, 1)" class="hover:text-red-500 px-1"><i class="ti ti-x"></i></button>
+                            <button type="button" @click="move(items, i, -1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_up')); ?>" aria-label="<?php echo e(__('nav_menu_move_up')); ?>"><i class="ti ti-arrow-up"></i></button>
+                            <button type="button" @click="move(items, i, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_down')); ?>" aria-label="<?php echo e(__('nav_menu_move_down')); ?>"><i class="ti ti-arrow-down"></i></button>
+                            <button type="button" @click="addChildTo(item, 2)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-blue-50 hover:text-primary" title="<?php echo e(__('nav_menu_add_child')); ?>" aria-label="<?php echo e(__('nav_menu_add_child')); ?>"><i class="ti ti-corner-down-right"></i></button>
+                            <button type="button" @click="items.splice(i, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-red-50 hover:text-red-500" title="<?php echo e(__('nav_menu_remove_item')); ?>" aria-label="<?php echo e(__('nav_menu_remove_item')); ?>"><i class="ti ti-x"></i></button>
                         </span>
                     </div>
                     <ul class="ml-8 mt-1 space-y-1" :data-nm-sort="String(i)">
@@ -417,10 +747,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <input type="text" x-model="kid.label" placeholder="<?php echo e(__('nav_menu_label_override')); ?>"
                                            class="border border-gray-100 rounded px-2 py-0.5 text-xs w-24 text-gray-500">
                                     <span class="ml-auto flex items-center gap-1 text-gray-300">
-                                        <button type="button" @click="move(item.children, j, -1)" class="hover:text-gray-600 px-1"><i class="ti ti-arrow-up"></i></button>
-                                        <button type="button" @click="move(item.children, j, 1)" class="hover:text-gray-600 px-1"><i class="ti ti-arrow-down"></i></button>
-                                        <button type="button" @click="addChildTo(kid, 3)" class="hover:text-primary px-1" title="<?php echo e(__('nav_menu_add_child')); ?>"><i class="ti ti-corner-down-right"></i></button>
-                                        <button type="button" @click="item.children.splice(j, 1)" class="hover:text-red-500 px-1"><i class="ti ti-x"></i></button>
+                                        <button type="button" @click="move(item.children, j, -1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_up')); ?>" aria-label="<?php echo e(__('nav_menu_move_up')); ?>"><i class="ti ti-arrow-up"></i></button>
+                                        <button type="button" @click="move(item.children, j, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_down')); ?>" aria-label="<?php echo e(__('nav_menu_move_down')); ?>"><i class="ti ti-arrow-down"></i></button>
+                                        <button type="button" @click="addChildTo(kid, 3)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-blue-50 hover:text-primary" title="<?php echo e(__('nav_menu_add_child')); ?>" aria-label="<?php echo e(__('nav_menu_add_child')); ?>"><i class="ti ti-corner-down-right"></i></button>
+                                        <button type="button" @click="item.children.splice(j, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-red-50 hover:text-red-500" title="<?php echo e(__('nav_menu_remove_item')); ?>" aria-label="<?php echo e(__('nav_menu_remove_item')); ?>"><i class="ti ti-x"></i></button>
                                     </span>
                                 </div>
                                 <ul class="ml-8 mt-1 space-y-1" :data-nm-sort="i + '.' + j">
@@ -430,9 +760,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                             <i class="ti text-gray-300 text-sm" :class="g.channel_id > 0 ? 'ti-sitemap' : 'ti-link'"></i>
                                             <span class="text-xs text-gray-600" x-text="displayName(g)"></span>
                                             <span class="ml-auto flex items-center gap-1 text-gray-300">
-                                                <button type="button" @click="move(kid.children, k, -1)" class="hover:text-gray-600 px-1"><i class="ti ti-arrow-up"></i></button>
-                                                <button type="button" @click="move(kid.children, k, 1)" class="hover:text-gray-600 px-1"><i class="ti ti-arrow-down"></i></button>
-                                                <button type="button" @click="kid.children.splice(k, 1)" class="hover:text-red-500 px-1"><i class="ti ti-x"></i></button>
+                                                <button type="button" @click="move(kid.children, k, -1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_up')); ?>" aria-label="<?php echo e(__('nav_menu_move_up')); ?>"><i class="ti ti-arrow-up"></i></button>
+                                                <button type="button" @click="move(kid.children, k, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_down')); ?>" aria-label="<?php echo e(__('nav_menu_move_down')); ?>"><i class="ti ti-arrow-down"></i></button>
+                                                <button type="button" @click="kid.children.splice(k, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-red-50 hover:text-red-500" title="<?php echo e(__('nav_menu_remove_item')); ?>" aria-label="<?php echo e(__('nav_menu_remove_item')); ?>"><i class="ti ti-x"></i></button>
                                             </span>
                                         </li>
                                     </template>
@@ -484,7 +814,7 @@ function ykMenuGroupEditor(boot) {
             if (id <= 0) return;
             this._receiver().push({ channel_id: id, label: "", url: "", target: "", children: [] });
             this.addChannelId = 0;
-            this._pendingParent = null;
+            this.cancelChild();
             this.initSortable();
         },
         addLink() {
@@ -492,12 +822,28 @@ function ykMenuGroupEditor(boot) {
             if (!label || !url) return;
             this._receiver().push({ channel_id: 0, label: label, url: url, target: "", children: [] });
             this.addLabel = ""; this.addUrl = "";
-            this._pendingParent = null;
+            this.cancelChild();
             this.initSortable();
         },
         addChildTo(node, depth) {
             this._pendingParent = node;
             this._pendingDepth = depth;
+            this.$nextTick(() => {
+                var select = this.$root.querySelector('[data-nm-add-channel] select');
+                if (select) {
+                    select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    select.focus();
+                }
+            });
+        },
+        cancelChild() {
+            this._pendingParent = null;
+            this._pendingDepth = 1;
+        },
+        pendingChildText() {
+            if (!this._pendingParent) return '';
+            return <?php echo json_encode(__('nav_menu_child_target'), JSON_UNESCAPED_UNICODE); ?>
+                .replace(':name', this.displayName(this._pendingParent));
         },
         initSortable() {
             var self = this;
