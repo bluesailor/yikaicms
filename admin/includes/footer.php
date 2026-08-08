@@ -351,12 +351,12 @@
         <div class="absolute inset-0 bg-black/50" onclick="_mpClose()"></div>
         <div class="relative mx-auto my-6 bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col" style="max-height:calc(100vh - 3rem)">
             <div class="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
-                <h3 class="font-bold text-gray-800">选择媒体文件</h3>
+                <h3 class="font-bold text-gray-800"><?php echo e(__('mp_pick_title')); ?></h3>
                 <button onclick="_mpClose()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
             <div class="px-6 py-3 border-b flex flex-wrap gap-3 items-center flex-shrink-0">
-                <input type="text" id="mpKeyword" class="border rounded px-3 py-1.5 text-sm w-48" placeholder="搜索文件名..." onkeydown="if(event.key==='Enter'){event.preventDefault();_mpLoad(1)}">
-                <button onclick="_mpLoad(1)" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm">搜索</button>
+                <input type="text" id="mpKeyword" class="border rounded px-3 py-1.5 text-sm w-48" placeholder="<?php echo e(__('mp_search_ph')); ?>" onkeydown="if(event.key==='Enter'){event.preventDefault();_mpLoad(1)}">
+                <button onclick="_mpLoad(1)" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm"><?php echo e(__('admin_search')); ?></button>
                 <div class="flex-1"></div>
                 <button onclick="document.getElementById('mpFileInput').click()" class="bg-primary hover:bg-secondary text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
                     <i class="ti ti-upload text-base"></i>
