@@ -38,6 +38,7 @@
         <UnusedVariable>
             <errorLevel type="suppress">
                 <file name="admin/article_edit.php" />
+                <file name="admin/nav_menu.php" />
                 <file name="admin/page_edit.php" />
                 <file name="admin/page_edit_advance.php" />
                 <file name="plugins/seo/admin.php" />
@@ -48,6 +49,7 @@
         <MissingFile>
             <errorLevel type="suppress">
                 <file name="plugins/seo/ai.php" />
+                <file name="admin/nav_menu.php" />
                 <!-- 不要在此登记 admin/blox_editor.php 等不随仓库分发的文件：
                      Psalm 在解析配置时就要求 <file> 路径真实存在，文件不在仓库里
                      会直接「Could not resolve config path」导致整个 CI 红。 -->
