@@ -2307,6 +2307,7 @@ return [
     'nav_menu_need_upgrade' => 'Menu groups need a database upgrade first:',
     'nav_menu_go_upgrade' => 'Go to system upgrade',
     'nav_menu_drag_hint' => 'Drag to reorder; toggles save instantly',
+    'clear' => 'Clear',
     'nav_menu_default_desc' => 'Choose whether Home and channels appear in the default navigation, and reorder channels at the same level. Home is fixed first; hierarchy comes from Channels.',
     'nav_menu_home_fixed' => 'Fixed first',
     'nav_menu_summary' => 'Navigation channel summary',

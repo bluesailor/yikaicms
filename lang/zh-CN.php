@@ -2376,6 +2376,7 @@ return [
     'nav_menu_need_upgrade' => '菜单组功能需要先完成数据库升级：',
     'nav_menu_go_upgrade' => '前往系统升级',
     'nav_menu_drag_hint' => '拖动手柄排序，开关即时保存',
+    'clear' => '清除',
     'nav_menu_default_desc' => '控制首页和栏目是否出现在默认导航，并调整同级栏目顺序。首页固定为第一项，栏目层级来自栏目管理。',
     'nav_menu_home_fixed' => '固定第一项',
     'nav_menu_summary' => '导航栏目统计',
