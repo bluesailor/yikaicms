@@ -35,6 +35,12 @@ final class BuilderRegistry
     /**
      * 元素元数据（label/category/icon/controls/defaults/dynamic），供后台构建器 JS 生成
      * palette 与设置表单。加了元素类即自动出现在后台，无需手写 UI（简单控件）。
+     *
+     * 调用方：admin/blox_editor.php（付费文件，CI 的 Psalm 任务里不存在）、
+     * admin/page_edit_advance.php（调用点埋在 $extraJs 拼接串里，Psalm 认不出）、
+     * 以及 tests/（psalm.xml 未纳入分析）——三者都躲开了未使用检查。
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public static function meta(string $context = 'page'): array
     {
