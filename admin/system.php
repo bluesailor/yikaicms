@@ -51,10 +51,12 @@ if ($tab === 'log') {
     $logs = $logResult['items'];
     $logModules = adminLogModel()->getModules();
     $moduleNames = [
-        'login' => '登录', 'content' => '内容', 'channel' => '栏目',
-        'banner' => '轮播图', 'link' => '友链', 'media' => '媒体',
-        'form' => '表单', 'setting' => '设置', 'user' => '用户',
-        'profile' => '个人', 'log' => '日志', 'upgrade' => '升级',
+        'login' => __('log_mod_login'), 'content' => __('log_mod_content'),
+        'channel' => __('log_mod_channel'), 'banner' => __('log_mod_banner'),
+        'link' => __('log_mod_link'), 'media' => __('log_mod_media'),
+        'form' => __('log_mod_form'), 'setting' => __('log_mod_setting'),
+        'user' => __('log_mod_user'), 'profile' => __('log_mod_profile'),
+        'log' => __('log_mod_log'), 'upgrade' => __('log_mod_upgrade'),
     ];
 }
 
@@ -151,7 +153,7 @@ if ($tab === 'info') {
     $siteDomain = $siteUrl ? parse_url($siteUrl, PHP_URL_HOST) : ($_SERVER['HTTP_HOST'] ?? '-');
 }
 
-$pageTitle = '系统管理';
+$pageTitle = __('sys_title');
 $currentMenu = in_array($tab, ['log', 'errorlog'], true) ? 'system_log' : 'system';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -199,14 +201,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php if ($siteUrl): ?>
                             <a href="<?php echo e($siteUrl); ?>" target="_blank" class="text-primary hover:underline"><?php echo e($siteDomain); ?></a>
                             <?php else: ?>
-                            <span class="text-yellow-600">未设置</span>
-                            <a href="/admin/setting.php" class="text-primary text-xs ml-2 hover:underline">去设置</a>
+                            <span class="text-yellow-600"><?php echo e(__('admin_not_set')); ?></span>
+                            <a href="/admin/setting.php" class="text-primary text-xs ml-2 hover:underline"><?php echo e(__('sys_go_setting')); ?></a>
                             <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_site_url'); ?></td>
-                        <td class="py-3 text-gray-800 font-mono text-xs"><?php echo e($siteUrl ?: '未设置'); ?></td>
+                        <td class="py-3 text-gray-800 font-mono text-xs"><?php echo e($siteUrl ?: __('admin_not_set')); ?></td>
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_current_url'); ?></td>
@@ -278,7 +280,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_max_exec'); ?></td>
-                        <td class="py-3 text-gray-800"><?php echo ini_get('max_execution_time'); ?> 秒</td>
+                        <td class="py-3 text-gray-800"><?php echo ini_get('max_execution_time'); ?> <?php echo e(__('unit_second')); ?></td>
                     </tr>
                     <tr>
                         <td class="py-3 text-gray-500"><?php echo __('sys_gd'); ?></td>
@@ -336,7 +338,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if ($diskTotal): ?>
                     <tr>
                         <td class="py-3 text-gray-500 w-48"><?php echo __('sys_disk_space'); ?></td>
-                        <td class="py-3 text-gray-800"><?php echo formatBytes($diskFree); ?> 可用 / <?php echo formatBytes($diskTotal); ?> 总计</td>
+                        <td class="py-3 text-gray-800"><?php echo formatBytes($diskFree); ?> <?php echo e(__('sys_free')); ?> / <?php echo formatBytes($diskTotal); ?> <?php echo e(__('sys_total')); ?></td>
                     </tr>
                     <?php endif; ?>
                     <tr>
@@ -361,10 +363,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <?php
                 $tableNames = [
-                    'channels' => '栏目', 'contents' => '单页内容',
-                    'products' => '产品', 'cases' => '案例', 'albums' => '相册',
-                    'forms' => '表单', 'admin_users' => '管理员', 'settings' => '设置项',
-                    'admin_logs' => '操作日志',
+                    'channels' => __('admin_channel'), 'contents' => __('sys_tbl_pages'),
+                    'products' => __('admin_product'), 'cases' => __('admin_case'),
+                    'albums' => __('admin_album'), 'forms' => __('admin_form'),
+                    'admin_users' => __('sys_tbl_admins'), 'settings' => __('sys_tbl_settings'),
+                    'admin_logs' => __('sys_tbl_logs'),
                 ];
                 foreach ($tableStats as $table => $count):
                 ?>
@@ -386,7 +389,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form class="flex flex-wrap gap-3 items-center">
             <input type="hidden" name="tab" value="log">
             <select name="module" class="border rounded px-3 py-2">
-                <option value="">全部模块</option>
+                <option value=""><?php echo e(__('log_all_modules')); ?></option>
                 <?php foreach ($logModules as $m): ?>
                 <option value="<?php echo e($m['module']); ?>" <?php echo $logModule === $m['module'] ? 'selected' : ''; ?>>
                     <?php echo $moduleNames[$m['module']] ?? $m['module']; ?>
@@ -395,7 +398,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </select>
 
             <input type="text" name="admin_name" value="<?php echo e($logAdminName); ?>"
-                   class="border rounded px-3 py-2" placeholder="操作人...">
+                   class="border rounded px-3 py-2" placeholder="<?php echo e(__('log_operator_ph')); ?>">
 
             <input type="date" name="date_from" value="<?php echo e($logDateFrom); ?>"
                    class="border rounded px-3 py-2">
@@ -410,7 +413,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <button type="button" onclick="clearOldLogs()" class="border px-4 py-2 rounded hover:bg-gray-100 ml-auto inline-flex items-center gap-1">
                 <i class="ti ti-trash text-base"></i>
-                清除30天前日志
+                <?php echo e(__('log_clear_30d')); ?>
             </button>
         </form>
     </div>
@@ -423,10 +426,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作人</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('log_operator')); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('sys_module'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('sys_action_type'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_description')); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
                 </tr>
@@ -453,7 +456,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($logs)): ?>
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无日志</td>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo e(__('log_empty')); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -463,7 +466,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 分页 -->
     <?php if ($logTotal > $logPerPage): ?>
     <div class="px-6 py-4 border-t flex items-center justify-between">
-        <span class="text-sm text-gray-500">共 <?php echo $logTotal; ?> 条</span>
+        <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $logTotal, e(__('admin_total_n'))); ?></span>
         <div class="flex items-center gap-2">
             <?php
             $totalPages = (int)ceil($logTotal / $logPerPage);
@@ -481,7 +484,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <i class="ti ti-chevron-left text-base"></i>
                 <?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
-            <span class="text-sm">第 <?php echo $logPage; ?>/<?php echo $totalPages; ?> 页</span>
+            <span class="text-sm"><?php echo str_replace([':p', ':t'], [(string) $logPage, (string) $totalPages], e(__('admin_page_of'))); ?></span>
             <?php if ($logPage < $totalPages): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $logPage + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <?php echo __('list_next_page'); ?>
@@ -495,7 +498,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <script>
 async function clearOldLogs() {
-    if (!confirm('确定要清除30天前的日志吗？此操作不可恢复。')) return;
+    if (!confirm(<?php echo json_encode(__('log_clear_30d_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
 
     const formData = new FormData();
     formData.append('action', 'clear_old');
@@ -504,7 +507,7 @@ async function clearOldLogs() {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('清除成功');
+        showMessage(<?php echo json_encode(__('log_cleared'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

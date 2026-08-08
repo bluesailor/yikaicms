@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         $_SESSION['admin_nickname'] = $nickname;
-        $message = '资料更新成功';
+        $message = __('profile_updated');
         $admin = userModel()->find($adminId);
     }
 
@@ -49,25 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $setupSecret = (string) ($_SESSION['totp_setup_secret'] ?? '');
         $code = post('totp_code');
         if ($setupSecret === '') {
-            $error = '绑定会话已失效，请重新开始';
+            $error = __('totp_session_expired');
         } elseif (!Totp::verify($setupSecret, $code)) {
-            $error = '验证码不正确，请确认验证器已扫码并输入最新 6 位码';
+            $error = __('totp_code_invalid');
         } else {
             userModel()->updateById($adminId, ['totp_secret' => $setupSecret, 'updated_at' => time()]);
             unset($_SESSION['totp_setup_secret']);
             adminLog('profile', 'totp_enable', '启用两步验证');
-            $message = '两步验证已启用，下次登录需输入验证器 6 位码';
+            $message = __('totp_enabled_msg');
             $admin = userModel()->find($adminId);
         }
     }
 
     if ($action === 'totp_disable') {
         if (!password_verify(post('current_password'), $admin['password'])) {
-            $error = '当前密码错误，无法关闭两步验证';
+            $error = __('totp_pwd_wrong');
         } else {
             userModel()->updateById($adminId, ['totp_secret' => '', 'updated_at' => time()]);
             adminLog('profile', 'totp_disable', '关闭两步验证');
-            $message = '两步验证已关闭';
+            $message = __('totp_disabled_msg');
             $admin = userModel()->find($adminId);
         }
     }
@@ -78,20 +78,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirmPassword = post('confirm_password');
 
         if (!password_verify($oldPassword, $admin['password'])) {
-            $error = '当前密码错误';
+            $error = __('profile_pwd_wrong');
         } elseif (strlen($newPassword) < 8 || !preg_match('/[a-zA-Z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
-            $error = '新密码至少8位，且必须包含字母和数字';
+            $error = __('profile_pwd_rule');
         } elseif ($newPassword !== $confirmPassword) {
-            $error = '两次密码不一致';
+            $error = __('profile_pwd_mismatch');
         } else {
             userModel()->setPassword($adminId, $newPassword);
             adminLog('profile', 'change_password', '修改密码');
-            $message = '密码修改成功';
+            $message = __('profile_pwd_changed');
         }
     }
 }
 
-$pageTitle = '个人设置';
+$pageTitle = __('profile_title');
 $currentMenu = '';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -116,19 +116,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="action" value="update_info">
 
             <div>
-                <label class="block text-gray-700 mb-1">用户名</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_username')); ?></label>
                 <input type="text" value="<?php echo e($admin['username']); ?>" disabled
                        class="w-full border rounded px-4 py-2 bg-gray-100">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">昵称</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_nickname')); ?></label>
                 <input type="text" name="nickname" value="<?php echo e($admin['nickname']); ?>"
                        class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">邮箱</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_email')); ?></label>
                 <input type="email" name="email" value="<?php echo e($admin['email']); ?>"
                        class="w-full border rounded px-4 py-2">
             </div>
@@ -187,7 +187,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
                 <i class="ti ti-key text-base"></i>
-                修改密码
+                <?php echo e(__('profile_change_pwd')); ?>
             </button>
         </form>
     </div>
@@ -204,43 +204,43 @@ if ($setupSecret !== '') {
 ?>
 <div class="bg-white rounded-lg shadow mt-6">
     <div class="px-6 py-4 border-b flex items-center justify-between">
-        <h2 class="font-bold text-gray-800">两步验证（2FA）</h2>
+        <h2 class="font-bold text-gray-800"><?php echo e(__('totp_title')); ?></h2>
         <span class="text-xs px-2 py-1 rounded <?php echo $totpEnabled ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-            <?php echo $totpEnabled ? '已启用' : '未启用'; ?>
+            <?php echo $totpEnabled ? __('totp_on') : __('totp_off'); ?>
         </span>
     </div>
     <div class="p-6">
         <?php if ($totpEnabled): ?>
-        <p class="text-gray-600 text-sm mb-4">已绑定验证器。登录时在账号密码之后需输入验证器生成的 6 位码。</p>
-        <form method="post" class="flex items-end gap-3" onsubmit="return confirm('确定关闭两步验证？账号安全性将下降。');">
+        <p class="text-gray-600 text-sm mb-4"><?php echo e(__('totp_bound_desc')); ?></p>
+        <form method="post" class="flex items-end gap-3" onsubmit="return confirm(<?php echo json_encode(__('totp_disable_confirm'), JSON_UNESCAPED_UNICODE); ?>);">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="totp_disable">
             <div>
-                <label class="block text-gray-700 mb-1 text-sm">当前密码</label>
+                <label class="block text-gray-700 mb-1 text-sm"><?php echo e(__('profile_current_pwd')); ?></label>
                 <input type="password" name="current_password" required class="border rounded px-4 py-2">
             </div>
             <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition cursor-pointer">
-                关闭两步验证
+                <?php echo e(__('totp_disable')); ?>
             </button>
         </form>
         <?php elseif ($setupSecret !== ''): ?>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <p class="text-gray-600 text-sm mb-3">1. 用验证器 App（Google Authenticator / Microsoft Authenticator / 1Password 等）扫描二维码，或点击下方链接：</p>
+                <p class="text-gray-600 text-sm mb-3"><?php echo e(__('totp_step1')); ?></p>
                 <div id="totpQr" class="inline-block p-3 bg-white border rounded"></div>
                 <p class="mt-3 text-sm">
-                    <a href="<?php echo e($otpauthUri); ?>" class="text-primary hover:underline">在本机验证器中打开</a>
+                    <a href="<?php echo e($otpauthUri); ?>" class="text-primary hover:underline"><?php echo e(__('totp_open_local')); ?></a>
                 </p>
-                <p class="mt-2 text-xs text-gray-400 break-all">手动输入密钥：<code class="bg-gray-50 px-1"><?php echo e($setupSecret); ?></code></p>
+                <p class="mt-2 text-xs text-gray-400 break-all"><?php echo e(__('totp_manual_key')); ?><code class="bg-gray-50 px-1"><?php echo e($setupSecret); ?></code></p>
             </div>
             <form method="post" class="space-y-4">
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="totp_enable">
-                <p class="text-gray-600 text-sm">2. 输入验证器显示的 6 位码完成绑定：</p>
+                <p class="text-gray-600 text-sm"><?php echo e(__('totp_step2')); ?></p>
                 <input type="text" name="totp_code" required inputmode="numeric" autocomplete="one-time-code" maxlength="7"
                        class="w-full border rounded px-4 py-3 text-center text-2xl tracking-[0.5em]" placeholder="000000" autofocus>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition cursor-pointer">
-                    确认绑定
+                    <?php echo e(__('totp_confirm_bind')); ?>
                 </button>
             </form>
         </div>
@@ -254,13 +254,13 @@ if ($setupSecret !== '') {
         })();
         </script>
         <?php else: ?>
-        <p class="text-gray-600 text-sm mb-4">绑定验证器 App 后，登录后台除密码外还需输入动态 6 位码，可有效防止密码泄露导致的入侵。</p>
+        <p class="text-gray-600 text-sm mb-4"><?php echo e(__('totp_intro')); ?></p>
         <form method="post">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="totp_setup">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-1 cursor-pointer">
                 <i class="ti ti-shield-lock text-base"></i>
-                启用两步验证
+                <?php echo e(__('totp_enable')); ?>
             </button>
         </form>
         <?php endif; ?>
@@ -270,20 +270,20 @@ if ($setupSecret !== '') {
 <!-- 登录信息 -->
 <div class="bg-white rounded-lg shadow mt-6">
     <div class="px-6 py-4 border-b">
-        <h2 class="font-bold text-gray-800">登录信息</h2>
+        <h2 class="font-bold text-gray-800"><?php echo e(__('profile_login_info')); ?></h2>
     </div>
     <div class="p-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-                <span class="text-gray-500">最后登录：</span>
+                <span class="text-gray-500"><?php echo e(__('profile_last_login')); ?></span>
                 <span class="text-gray-800"><?php echo $admin['last_login_time'] ? date('Y-m-d H:i:s', (int)$admin['last_login_time']) : '-'; ?></span>
             </div>
             <div>
-                <span class="text-gray-500">登录IP：</span>
+                <span class="text-gray-500"><?php echo e(__('profile_login_ip')); ?></span>
                 <span class="text-gray-800"><?php echo e($admin['last_login_ip'] ?: '-'); ?></span>
             </div>
             <div>
-                <span class="text-gray-500">登录次数：</span>
+                <span class="text-gray-500"><?php echo e(__('profile_login_count')); ?></span>
                 <span class="text-gray-800"><?php echo number_format((int)$admin['login_count']); ?></span>
             </div>
         </div>

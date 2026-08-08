@@ -353,7 +353,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <?php if ($total > $perPage): ?>
         <div class="flex items-center gap-2 text-sm">
-            <span class="text-gray-400">共 <?php echo $total; ?> 条</span>
+            <span class="text-gray-400"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
             <?php
             $totalPages = (int)ceil($total / $perPage);
             $qstr = http_build_query(array_filter(['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword]));

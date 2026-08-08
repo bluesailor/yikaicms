@@ -33,14 +33,8 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
     }
 }
 
-// 后台品牌文字（左上角 Logo / 页面标题）：默认「后台管理」按后台语言本地化，
-// 英文→Admin Panel、日语→管理画面；管理员自定义了 admin_title 则原样显示。
-$adminBrand = trim((string) config('admin_title', ''));
-if ($adminBrand === '后台管理') {
-    $adminBrand = __('admin_title_default');
-} elseif ($adminBrand === '') {
-    $adminBrand = config('site_name', 'YikaiCMS');
-}
+// 后台品牌文字（左上角 Logo / 页面标题）——页脚共用同一函数，见 adminBrandName()。
+$adminBrand = adminBrandName();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang(); ?>">

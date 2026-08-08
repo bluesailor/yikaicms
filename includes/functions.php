@@ -789,6 +789,21 @@ function _e(string $key, array $params = []): string
  * 格式化文件大小
  */
 /**
+ * 后台品牌名（左上角 Logo / 页面标题 / 页脚版权）。
+ * admin_title 仍是出厂默认「后台管理」时按后台语言本地化（en=Admin Panel、
+ * ja=管理画面）；管理员自定义过则原样显示；为空回落站点名。
+ * 头部与页脚必须共用本函数——曾出现头部已本地化而页脚仍直读 config 的分叉。
+ */
+function adminBrandName(): string
+{
+    $brand = trim((string) config('admin_title', ''));
+    if ($brand === '后台管理') {
+        return __('admin_title_default');
+    }
+    return $brand !== '' ? $brand : (string) config('site_name', 'YikaiCMS');
+}
+
+/**
  * 价格显示：货币符号与小数位随站点语言（lang 键 currency_symbol / currency_decimals）。
  * 多语言站点产品是 per-lang 行，各语言版本价格由站长按对应币种填写——
  * 本函数只管展示（zh ¥2位 / en \$2位 / ja ¥0位——日元无辅币），不做汇率换算。
