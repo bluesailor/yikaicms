@@ -630,9 +630,9 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     }
     function restoreInlineLabel(payload) {
         if (payload.kind === 'sectionField') {
-            label.textContent = payload.field === 'subtitle' ? <?php echo json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE); ?>;
+            label.textContent = payload.field === 'subtitle' ? @@pea_subtitle@@ : @@pea_section_title@@;
         } else if (payload.kind === 'homeField') {
-            label.textContent = <?php echo json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE); ?>;
+            label.textContent = @@pea_home_field@@;
         } else {
             label.textContent = 'Element ' + payload.path;
         }
@@ -690,7 +690,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         node.setAttribute('spellcheck', 'true');
         node.classList.add('yk-inline-editing');
         activeEl = node;
-        label.textContent = <?php echo json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE); ?>;
+        label.textContent = @@pea_text_edit@@;
         syncOverlay();
         startOverlayTracking();
         node.addEventListener('keydown', state.onKeydown);
@@ -1016,7 +1016,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     function highlightSectionField(si, field) {
         clearLayerSelections();
         activeEl = document.querySelector('[data-yk-sec-field="' + si + '.' + cssEscape(field) + '"]');
-        label.textContent = field === 'subtitle' ? <?php echo json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE); ?>;
+        label.textContent = field === 'subtitle' ? @@pea_subtitle@@ : @@pea_section_title@@;
         syncOverlay();
         startOverlayTracking();
     }
@@ -1026,7 +1026,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             '[data-yk-home-path="' + cssEscape(path) + '"]' +
             '[data-yk-home-field="' + cssEscape(field) + '"]'
         );
-        label.textContent = <?php echo json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE); ?>;
+        label.textContent = @@pea_home_field@@;
         syncOverlay();
         startOverlayTracking();
     }
@@ -1037,8 +1037,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             '[data-yk-home-column="' + cssEscape(column) + '"]'
         );
         label.textContent = activeEl
-            ? (activeEl.getAttribute('data-yk-home-column-label') || <?php echo json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE); ?>)
-            : <?php echo json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE); ?>;
+            ? (activeEl.getAttribute('data-yk-home-column-label') || @@pea_column@@)
+            : @@pea_column@@;
         syncOverlay();
         startOverlayTracking();
     }
@@ -1290,10 +1290,10 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var d = document.createElement('div');
         d.className = 'yk-empty-hint yk-empty-doc';
         var p = document.createElement('p');
-        p.textContent = <?php echo json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE); ?>;
+        p.textContent = @@pea_canvas_empty@@;
         d.appendChild(p);
-        d.appendChild(emptyActionButton('templates', <?php echo json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE); ?>, true));
-        d.appendChild(emptyActionButton('section', <?php echo json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE); ?>, false));
+        d.appendChild(emptyActionButton('templates', @@pea_import_template@@, true));
+        d.appendChild(emptyActionButton('section', @@pea_add_blank_section@@, false));
         host.appendChild(d);
     }
     function setupEmptyHints(root) {
@@ -1304,7 +1304,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             if (c.querySelector('img,svg,iframe,video,picture')) return;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint yk-empty-hint-sm';
-            d.textContent = c.classList.contains('yk-div') ? <?php echo json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE); ?>;
+            d.textContent = c.classList.contains('yk-div') ? @@pea_empty_div@@ : @@pea_empty_container@@;
             c.appendChild(d);
         });
         contentNodes(root, '[data-yk-sec]').forEach(function (sec) {
@@ -1315,8 +1315,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             var n = parseInt(sec.getAttribute('data-yk-sec'), 10) + 1;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint';
-            d.textContent = <?php echo json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', n);
-            d.appendChild(emptyActionButton('templates', <?php echo json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE); ?>, false));
+            d.textContent = @@pea_empty_section@@.replace(':n', n);
+            d.appendChild(emptyActionButton('templates', @@pea_import_template@@, false));
             sec.appendChild(d);
         });
         setupEmptyDocHint();
@@ -1334,7 +1334,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'yk-insert-pop-btn';
-            b.title = <?php echo json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', spans.length);
+            b.title = @@pea_n_columns@@.replace(':n', spans.length);
             var bars = document.createElement('span');
             bars.className = 'yk-insert-pop-bars';
             spans.forEach(function () {
@@ -1352,7 +1352,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var tpl = document.createElement('button');
         tpl.type = 'button';
         tpl.className = 'yk-insert-pop-btn yk-insert-pop-tpl';
-        tpl.textContent = <?php echo json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE); ?>;
+        tpl.textContent = @@pea_template_library@@;
         tpl.addEventListener('click', function (e) {
             e.stopPropagation();
             pop.remove();
@@ -1375,7 +1375,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'yk-insert-btn';
-        btn.textContent = mode === 'tail' ? <?php echo json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE); ?> : '＋';
+        btn.textContent = mode === 'tail' ? @@pea_add_section@@ : '＋';
         btn.setAttribute('data-yk-insert', String(index));
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -1415,6 +1415,13 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 })();
 </script>
 HTML;
+        // nowdoc 里 <?php 不解析，会原样进浏览器（曾整块画布脚本语法报错）——
+        // 文案改用 @@key@@ 占位，在这里换成 JSON 字面量。
+        $bloxInject = str_replace(
+            ['@@pea_add_blank_section@@', '@@pea_add_section@@', '@@pea_canvas_empty@@', '@@pea_column@@', '@@pea_empty_container@@', '@@pea_empty_div@@', '@@pea_empty_section@@', '@@pea_home_field@@', '@@pea_import_template@@', '@@pea_n_columns@@', '@@pea_section_title@@', '@@pea_subtitle@@', '@@pea_template_library@@', '@@pea_text_edit@@'],
+            [json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE)],
+            $bloxInject
+        );
         $bloxInject = strtr($bloxInject, [
             '__YK_COLUMN_RESIZE_LABEL__' => json_encode(__('blox_canvas_column_resize'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '__YK_COLUMN_RESIZE_HINT__' => json_encode(__('blox_canvas_column_resize_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
