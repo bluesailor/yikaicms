@@ -107,8 +107,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form class="flex flex-wrap gap-3 items-center">
             <select name="status" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
-                <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>>招聘中</option>
-                <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>>已关闭</option>
+                <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo e(__('job_status_open')); ?></option>
+                <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo e(__('job_status_closed')); ?></option>
             </select>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
@@ -137,11 +137,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left"><input type="checkbox" id="checkAll"></th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('label_job_title'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_job_location'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">薪资</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('job_salary')); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_date'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translation')); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -158,11 +158,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                <?php echo e($item['location'] ?: '不限'); ?>
+                                <?php echo e($item['location'] ?: __('job_location_any')); ?>
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-orange-600 font-medium">
-                            <?php echo e($item['salary'] ?: '面议'); ?>
+                            <?php echo e($item['salary'] ?: __('job_salary_negotiable')); ?>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
                         <td class="px-4 py-3 text-center">
@@ -191,7 +191,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($items)): ?>
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无职位数据</td></tr>
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo e(__('job_empty')); ?></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -214,7 +214,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if ($page > 1): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100"><?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
-                <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+                <span class="text-sm"><?php echo str_replace([':p', ':t'], [(string) $page, (string) $totalPages], e(__('admin_page_of'))); ?></span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100"><?php echo __('list_next_page'); ?></a>
                 <?php endif; ?>

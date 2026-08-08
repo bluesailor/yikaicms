@@ -31,11 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (empty($data['name'])) {
-            error('请输入链接名称');
+            error(__('link_name_required'));
         }
 
         if (empty($data['url'])) {
-            error('请输入链接地址');
+            error(__('link_url_required'));
         }
 
         // 自动添加协议
@@ -98,7 +98,7 @@ $transStatus = loadTransStatus('links');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php echo renderAdminLangSwitcher($_viewLang, '提示：每个合作伙伴独立 lang 字段；切换语言后看到的是该语言下的记录'); ?>
+<?php echo renderAdminLangSwitcher($_viewLang, __('link_lang_hint')); ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -119,7 +119,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('link_logo'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_name'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">链接</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('link_url')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
@@ -184,14 +184,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="editId" value="0">
 
             <div>
-                <label class="block text-gray-700 mb-1">名称 <span class="text-red-500">*</span></label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_name')); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="name" id="editName" required class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">链接 <span class="text-red-500">*</span></label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('link_url')); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="url" id="editUrl" required class="w-full border rounded px-4 py-2" placeholder="https://example.com">
-                <p class="text-xs text-gray-400 mt-1">请输入完整链接，包含 http:// 或 https://</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('link_url_hint')); ?></p>
             </div>
 
             <div>
@@ -205,7 +205,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">描述</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_description')); ?></label>
                 <input type="text" name="description" id="editDescription" class="w-full border rounded px-4 py-2">
             </div>
 
@@ -288,10 +288,10 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '显示';
+            btn.textContent = <?php echo json_encode(__('admin_show'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '隐藏';
+            btn.textContent = <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>;
         }
     }
 }

@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $before = time() - ($days * 86400);
         $deleted = adminLogModel()->clearBefore($before);
         adminLog('setting', 'clear_logs', '清理' . $days . '天前的日志，删除' . $deleted . '条');
-        success([], '已清理 ' . $deleted . ' 条日志');
+        success([], str_replace(':n', (string) $deleted, __('sec_logs_cleaned')));
     }
 
     // 清理登录限流文件
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         adminLog('setting', 'clear_throttle', '清除限流记录' . $count . '条');
-        success([], '已清除 ' . $count . ' 条限流记录');
+        success([], str_replace(':n', (string) $count, __('sec_throttle_cleared')));
     }
 
     $settings = $_POST['settings'] ?? [];
@@ -106,7 +106,7 @@ if ($tab === 'logs') {
     if (is_dir($dir2)) $throttleCount += count(glob($dir2 . '*.json'));
 }
 
-$pageTitle = '安全设置';
+$pageTitle = __('sec_title');
 $currentMenu = 'setting_security';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -263,15 +263,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <thead>
                     <tr class="bg-gray-50 text-left">
                         <th class="px-6 py-3 font-medium text-gray-500"><?php echo __('admin_created_at'); ?></th>
-                        <th class="px-6 py-3 font-medium text-gray-500">用户</th>
+                        <th class="px-6 py-3 font-medium text-gray-500"><?php echo e(__('admin_user')); ?></th>
                         <th class="px-6 py-3 font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
-                        <th class="px-6 py-3 font-medium text-gray-500">IP 地址</th>
-                        <th class="px-6 py-3 font-medium text-gray-500">浏览器</th>
+                        <th class="px-6 py-3 font-medium text-gray-500"><?php echo e(__('sec_ip')); ?></th>
+                        <th class="px-6 py-3 font-medium text-gray-500"><?php echo e(__('sec_browser')); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     <?php if (empty($loginLogs)): ?>
-                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">暂无登录记录</td></tr>
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400"><?php echo e(__('sec_no_logins')); ?></td></tr>
                     <?php else: ?>
                     <?php foreach ($loginLogs as $log): ?>
                     <tr class="hover:bg-gray-50">
@@ -288,17 +288,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             if ($action === 'login'): ?>
                                 <span class="inline-flex items-center gap-1 text-green-600">
                                     <i class="ti ti-check text-base"></i>
-                                    登录成功
+                                    <?php echo e(__('sec_login_ok')); ?>
                                 </span>
                             <?php elseif ($action === 'logout'): ?>
                                 <span class="inline-flex items-center gap-1 text-gray-500">
                                     <i class="ti ti-logout text-base"></i>
-                                    退出登录
+                                    <?php echo e(__('sec_logout')); ?>
                                 </span>
                             <?php elseif ($action === 'login_fail'): ?>
                                 <span class="inline-flex items-center gap-1 text-red-500">
                                     <i class="ti ti-x text-base"></i>
-                                    登录失败
+                                    <?php echo e(__('sec_login_fail')); ?>
                                 </span>
                             <?php else: ?>
                                 <span class="text-gray-600"><?php echo e($desc ?: $action); ?></span>
@@ -348,13 +348,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">上传限制</h2>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('sec_upload_limits')); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    最大文件大小（MB）
-                    <span class="text-gray-400 text-sm block">单个文件上传大小上限</span>
+                    <?php echo e(__('sec_max_filesize')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_max_filesize_tip')); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[upload_max_size_mb]"
@@ -362,14 +362,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            min="1" max="100"
                            class="w-full border rounded px-4 py-2">
                     <div class="text-xs text-gray-400 mt-1">
-                        默认 10MB。注意：还受 PHP 配置 upload_max_filesize（当前：<?php echo ini_get('upload_max_filesize'); ?>）和 post_max_size（当前：<?php echo ini_get('post_max_size'); ?>）限制
+                        <?php echo str_replace([':upload', ':post'], [(string) ini_get('upload_max_filesize'), (string) ini_get('post_max_size')], e(__('sec_max_filesize_note'))); ?>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    允许的图片类型
+                    <?php echo e(__('sec_image_types')); ?>
                     <span class="text-gray-400 text-sm block">英文逗号分隔</span>
                 </label>
                 <div class="md:col-span-3">
@@ -382,7 +382,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    允许的文件类型
+                    <?php echo e(__('sec_file_types')); ?>
                     <span class="text-gray-400 text-sm block">英文逗号分隔</span>
                 </label>
                 <div class="md:col-span-3">
@@ -397,12 +397,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">安全机制说明</h2>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('sec_mechanisms')); ?></h2>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 class="font-bold text-green-700 mb-2">已启用的保护</h4>
+                    <h4 class="font-bold text-green-700 mb-2"><?php echo e(__('sec_enabled_protections')); ?></h4>
                     <ul class="text-green-600 space-y-1">
                         <li>&#10003; 文件扩展名白名单校验</li>
                         <li>&#10003; MIME 类型验证（防伪造扩展名）</li>
@@ -435,21 +435,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">操作日志统计</h2>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('sec_log_stats')); ?></h2>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-gray-50 rounded-lg p-4 text-center">
                     <div class="text-3xl font-bold text-primary"><?php echo number_format($logTotal); ?></div>
-                    <div class="text-gray-500 text-sm mt-1">日志总数</div>
+                    <div class="text-gray-500 text-sm mt-1"><?php echo e(__('sec_log_total')); ?></div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4 text-center">
                     <div class="text-3xl font-bold text-gray-700"><?php echo $logOldest; ?></div>
-                    <div class="text-gray-500 text-sm mt-1">最早记录</div>
+                    <div class="text-gray-500 text-sm mt-1"><?php echo e(__('sec_log_earliest')); ?></div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4 text-center">
                     <div class="text-3xl font-bold text-orange-500"><?php echo $throttleCount; ?></div>
-                    <div class="text-gray-500 text-sm mt-1">限流记录文件</div>
+                    <div class="text-gray-500 text-sm mt-1"><?php echo e(__('sec_throttle_files')); ?></div>
                 </div>
             </div>
         </div>
@@ -457,41 +457,41 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">日志清理</h2>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('sec_log_cleanup')); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <label class="text-gray-700">
-                    清理操作日志
-                    <span class="text-gray-400 text-sm block">删除指定天数之前的记录</span>
+                    <?php echo e(__('sec_clean_logs')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_clean_logs_tip')); ?></span>
                 </label>
                 <div class="md:col-span-3 flex items-center gap-4">
-                    <span class="text-gray-500">清理</span>
+                    <span class="text-gray-500"><?php echo e(__('sec_clean_prefix')); ?></span>
                     <select id="clearDays" class="border rounded px-4 py-2">
-                        <option value="90">90 天</option>
-                        <option value="60">60 天</option>
-                        <option value="30">30 天</option>
-                        <option value="7">7 天</option>
+                        <option value="90"><?php echo str_replace(':n', '90', e(__('sec_n_days'))); ?></option>
+                        <option value="60"><?php echo str_replace(':n', '60', e(__('sec_n_days'))); ?></option>
+                        <option value="30"><?php echo str_replace(':n', '30', e(__('sec_n_days'))); ?></option>
+                        <option value="7"><?php echo str_replace(':n', '7', e(__('sec_n_days'))); ?></option>
                     </select>
-                    <span class="text-gray-500">前的日志</span>
+                    <span class="text-gray-500"><?php echo e(__('sec_clean_suffix')); ?></span>
                     <button type="button" onclick="clearLogs()"
                             class="border border-red-300 text-red-600 hover:bg-red-500 hover:border-red-500 hover:text-white px-6 py-2 rounded transition">
-                        执行清理
+                        <?php echo e(__('sec_run_cleanup')); ?>
                     </button>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <label class="text-gray-700">
-                    清除限流记录
-                    <span class="text-gray-400 text-sm block">登录限流和表单限流文件</span>
+                    <?php echo e(__('sec_clear_throttle')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_throttle_tip')); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <button type="button" onclick="clearThrottle()"
                             class="border border-gray-300 text-gray-700 hover:bg-gray-100 px-6 py-2 rounded transition">
-                        清除全部限流记录 (<?php echo $throttleCount; ?> 个)
+                        <?php echo str_replace(':n', (string) $throttleCount, e(__('sec_clear_all_throttle'))); ?>
                     </button>
-                    <span class="text-xs text-gray-400 ml-2">如有用户被误锁定，可清除后重试登录</span>
+                    <span class="text-xs text-gray-400 ml-2"><?php echo e(__('sec_throttle_unlock_tip')); ?></span>
                 </div>
             </div>
         </div>
@@ -499,7 +499,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <div class="bg-white rounded-lg shadow p-6">
         <a href="/admin/system.php?tab=log" class="text-primary hover:underline">
-            查看详细操作日志 &rarr;
+            <?php echo e(__('sec_view_logs')); ?> &rarr;
         </a>
     </div>
 </div>
@@ -519,14 +519,14 @@ document.getElementById('settingForm')?.addEventListener('submit', async functio
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 
 // 清理日志
 async function clearLogs() {
     const days = document.getElementById('clearDays')?.value || 90;
-    if (!confirm('确定要清理 ' + days + ' 天前的操作日志吗？此操作不可恢复。')) return;
+    if (!confirm(<?php echo json_encode(__('sec_clean_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', days))) return;
 
     const formData = new FormData();
     formData.append('action', 'clear_logs');
@@ -542,13 +542,13 @@ async function clearLogs() {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
 // 清除限流记录
 async function clearThrottle() {
-    if (!confirm('确定要清除所有限流记录吗？')) return;
+    if (!confirm(<?php echo json_encode(__('sec_clear_throttle_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
 
     const formData = new FormData();
     formData.append('action', 'clear_throttle');
@@ -563,7 +563,7 @@ async function clearThrottle() {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 </script>
