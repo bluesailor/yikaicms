@@ -2472,6 +2472,7 @@ return [
     'blox_menu_source_default' => 'デフォルトナビ（チャンネル投影）',
     'nav_menu_need_upgrade' => 'メニューグループにはデータベースのアップグレードが必要です：',
     'nav_menu_go_upgrade' => 'システムアップグレードへ',
+    'nav_menu_drag_hint' => 'ハンドルをドラッグして並べ替え。チェックは即時反映',
     'blox_mega_show_desc' => 'チャンネル説明を表示',
     'blox_mega_full_width' => 'パネルを全幅表示',
     'blox_ctx_label' => 'プレビューコンテキスト',

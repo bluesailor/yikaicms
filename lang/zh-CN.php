@@ -2371,6 +2371,7 @@ return [
     'blox_menu_source_default' => '默认导航（栏目投影）',
     'nav_menu_need_upgrade' => '菜单组功能需要先完成数据库升级：',
     'nav_menu_go_upgrade' => '前往系统升级',
+    'nav_menu_drag_hint' => '拖动手柄排序，勾选即时生效',
     'blox_mega_show_desc' => '显示栏目描述',
     'blox_mega_full_width' => '面板通栏',
     'blox_ctx_label' => '预览上下文',
