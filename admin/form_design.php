@@ -50,9 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // slug 始终基于源记录验证（非默认语言下 slug 不可改，且新建必须先建源行）
         if ($isLangEdit) {
-            if ($id <= 0) error('请先在 zh-CN 视图新增表单，然后切到 EN/JA 翻译');
+            if ($id <= 0) error(__('fd_add_in_source_first'));
             $src = formTemplateModel()->findById($id);
-            if (!$src) error('源记录不存在');
+            if (!$src) error(__('admin_source_missing'));
             $slug = (string) $src['slug'];  // 强制保留源 slug
             // 翻译版只校验 name 与 fields；slug 用源行保留
             if (empty($name)) error(__('fd_err_name_required'));
@@ -197,10 +197,10 @@ require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
 if ($_i18nReady) {
-    echo renderAdminLangSwitcher($_viewLang, '提示：表单名称、字段模板、成功提示 按语言独立保存；slug/状态 全局共享。新建表单只能在 zh-CN，再切到 EN/JA 录翻译');
+    echo renderAdminLangSwitcher($_viewLang, __('fd_lang_hint'));
 } else {
     echo '<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg px-4 py-3 mb-4 text-sm">'
-       . '<strong>多语言未启用：</strong>表单模板的 EN/JA 列尚未添加。请到 <a href="/admin/upgrade.php" class="underline">系统升级</a> 应用 "表单模板：加 EN/JA 列" 升级项。'
+       . str_replace(':link', '<a href="/admin/upgrade.php" class="underline">' . e(__('admin_system_upgrade')) . '</a>', e(__('fd_i18n_not_ready')))
        . '</div>';
 }
 ?>
@@ -226,7 +226,7 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
             <?php echo __('fd_btn_add'); ?>
         </button>
         <?php else: ?>
-        <span class="text-xs text-gray-400">仅源语言（zh-CN）可新增；当前为翻译视图</span>
+        <span class="text-xs text-gray-400"><?php echo e(__('fd_source_only_add')); ?></span>
         <?php endif; ?>
     </div>
 </div>
@@ -255,9 +255,9 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
                     <td class="px-4 py-3 font-medium">
                         <?php echo e($item['_view_name']); ?>
                         <?php if ($_viewLang !== $_defaultLang && !$item['_translated']): ?>
-                        <span class="ml-2 inline-block bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded">未翻译</span>
+                        <span class="ml-2 inline-block bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded"><?php echo e(__('tp_untranslated')); ?></span>
                         <?php elseif ($_viewLang !== $_defaultLang): ?>
-                        <span class="ml-2 inline-block bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded">已翻译</span>
+                        <span class="ml-2 inline-block bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded"><?php echo e(__('tp_translated_short')); ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3">
@@ -315,7 +315,7 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
 
             <?php if ($_viewLang !== $_defaultLang): ?>
             <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded px-3 py-2 text-xs">
-                当前编辑 <strong><?php echo e($_viewLang); ?></strong> 翻译；只允许修改名称、字段模板、成功提示。slug 由源记录决定，不可修改。
+                <?php echo str_replace(':lang', '<strong>' . e($_viewLang) . '</strong>', e(__('fd_editing_translation'))); ?>
             </div>
             <?php endif; ?>
 
@@ -342,9 +342,9 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
             <div class="mt-3">
                 <label class="inline-flex items-center gap-2 cursor-pointer text-sm">
                     <input type="checkbox" name="captcha" value="1" id="editCaptcha" class="rounded">
-                    <span class="text-gray-700">启用图形验证码 / Enable captcha</span>
+                    <span class="text-gray-700"><?php echo e(__('fd_enable_captcha')); ?></span>
                 </label>
-                <p class="text-xs text-gray-400 mt-1 ml-6">关闭时已有蜜罐+频率限制等无感防护;被刷时再开。验证码为模板全局设置(不分语言)。</p>
+                <p class="text-xs text-gray-400 mt-1 ml-6"><?php echo e(__('fd_captcha_tip')); ?></p>
             </div>
 
             <!-- 标签生成器工具栏 -->
