@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     if (empty($data['title'])) {
-        error('请输入产品名称');
+        error(__('prod_name_required'));
     }
 
     // 仅在开启价格显示时更新价格字段
@@ -124,7 +124,7 @@ $recentTags = $allTags;
 usort($recentTags, fn($a, $b) => $b['latest'] - $a['latest']);
 $recentTags = array_slice($recentTags, 0, 10);
 
-$pageTitle = $product ? '编辑产品' : '添加产品';
+$pageTitle = $product ? __('prod_edit') : __('prod_add');
 $currentMenu = 'product';
 
 $langSwitcher['item']     = $product;
@@ -144,7 +144,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_product_name'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($product['title'] ?? ''); ?>" required
-                               class="w-full border rounded px-4 py-2 text-lg" placeholder="请输入产品名称">
+                               class="w-full border rounded px-4 py-2 text-lg" placeholder="<?php echo e(__('prod_name_ph')); ?>">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -163,7 +163,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_product_summary'); ?></label>
                         <textarea name="summary" rows="3" class="w-full border rounded px-4 py-2"
-                                  placeholder="产品简介，用于列表展示"><?php echo e($product['summary'] ?? ''); ?></textarea>
+                                  placeholder="<?php echo e(__('prod_summary_ph')); ?>"><?php echo e($product['summary'] ?? ''); ?></textarea>
                     </div>
 
                     <div>
@@ -191,7 +191,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     ?>
                     <details class="group border rounded-lg"<?php echo $__specsFilled > 0 ? ' open' : ''; ?>>
                         <summary class="flex items-center justify-between px-4 py-3 cursor-pointer list-none text-gray-700 hover:text-primary transition">
-                            <span><?php echo __('admin_product_specs') ?: '规格参数'; ?>
+                            <span><?php echo __('admin_product_specs'); ?>
                                 <span id="specsCount" class="text-xs text-gray-400 ml-1"><?php echo $__specsFilled > 0 ? "（{$__specsFilled}）" : ''; ?></span>
                             </span>
                             <i class="ti ti-chevron-down text-gray-400 transition-transform group-open:rotate-180"></i>
@@ -199,7 +199,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="px-4 pb-4">
                             <input type="hidden" name="specs" id="specsInput" value="<?php echo e($__specsInit); ?>">
                             <div id="specsList" class="space-y-2 mb-3"></div>
-                            <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec') ?: '添加参数'; ?></button>
+                            <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec'); ?></button>
                             <?php if ($specPresets): ?>
                             <button type="button" onclick="fillSpecPresets()" class="text-sm text-primary hover:underline ml-3"><i class="ti ti-list-check"></i> <?php echo __('admin_spec_fill_preset'); ?></button>
                             <?php endif; ?>
@@ -210,20 +210,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 图片画廊（多图，lightbox 前端展示） -->
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-2">图片画廊</h3>
-                <p class="text-xs text-gray-500 mb-3">除封面外的附加展示图，前台详情页会以画廊形式呈现。鼠标悬停可排序/删除，支持拖拽排序。</p>
+                <h3 class="font-bold text-gray-800 mb-2"><?php echo e(__('prod_gallery')); ?></h3>
+                <p class="text-xs text-gray-500 mb-3"><?php echo e(__('prod_gallery_tip')); ?></p>
                 <input type="hidden" name="images" id="imagesInput" value="<?php echo e($product['images'] ?? ''); ?>">
                 <div id="galleryPreview" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-3"></div>
                 <div class="flex gap-2">
                     <button type="button" onclick="uploadGalleryImage()"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <i class="ti ti-plus text-base"></i>
-                        <?php echo __('admin_upload_image') ?: '上传图片'; ?>（可多选）
+                        <?php echo e(__('admin_upload_image')); ?><?php echo e(__('prod_multi_select')); ?>
                     </button>
                     <button type="button" onclick="pickGalleryFromMedia()"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <i class="ti ti-photo text-base"></i>
-                        <?php echo __('admin_media_library') ?: '媒体库'; ?>
+                        <?php echo __('admin_media_library'); ?>
                     </button>
                 </div>
             </div>
@@ -274,7 +274,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                         <input type="text" name="slug" value="<?php echo e($product['slug'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="如：iot-gateway，留空自动生成">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('prod_slug_ph')); ?>">
                     </div>
 
                     <?php if (getLang() === 'ja'): /* 日语版专用：商品类型 / 素材 / 使用场景 */ ?>
@@ -286,14 +286,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <input type="radio" name="product_type" value="standard" class="mt-1" <?php echo $ptype === 'standard' ? 'checked' : ''; ?>>
                                 <div>
                                     <div class="text-sm font-medium text-gray-800">標準製品</div>
-                                    <div class="text-xs text-gray-500 mt-0.5">既製品・定型文言、直接下单</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">既製品・定型文言。そのまま注文できます</div>
                                 </div>
                             </label>
                             <label class="flex items-start gap-2 border rounded-lg p-3 cursor-pointer hover:bg-gray-50 <?php echo $ptype === 'custom' ? 'border-primary bg-blue-50' : 'border-gray-200'; ?>">
                                 <input type="radio" name="product_type" value="custom" class="mt-1" <?php echo $ptype === 'custom' ? 'checked' : ''; ?>>
                                 <div>
                                     <div class="text-sm font-medium text-gray-800">オーダー製作</div>
-                                    <div class="text-xs text-gray-500 mt-0.5">定制品・文字/尺寸可协商</div>
+                                    <div class="text-xs text-gray-500 mt-0.5">オーダー品。文字・サイズをご相談いただけます</div>
                                 </div>
                             </label>
                         </div>
@@ -313,7 +313,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <option value="<?php echo e($opt); ?>">
                             <?php endforeach; ?>
                         </datalist>
-                        <p class="text-xs text-gray-400 mt-1">用于前台"素材で絞り込み"筛选，可自由填写或从候选中选</p>
+                        <p class="text-xs text-gray-400 mt-1">公開サイトの「素材で絞り込み」に使用します。自由入力も候補からの選択も可能です</p>
                     </div>
 
                     <div>
@@ -330,7 +330,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <option value="<?php echo e($opt); ?>">
                             <?php endforeach; ?>
                         </datalist>
-                        <p class="text-xs text-gray-400 mt-1">前台「使用シーンで絞り込み」フィルタ用</p>
+                        <p class="text-xs text-gray-400 mt-1">公開サイトの「使用シーンで絞り込み」に使用します</p>
                     </div>
                     <?php endif; /* lang === ja */ ?>
 
@@ -369,17 +369,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php if (config('show_price', '0') === '1'): ?>
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">价格设置</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('prod_price_settings')); ?></h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">销售价</label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('prod_price')); ?></label>
                         <input type="number" step="0.01" name="price" value="<?php echo $product['price'] ?? ''; ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="0表示面议">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('prod_price_ph')); ?>">
                     </div>
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_market_price'); ?></label>
                         <input type="number" step="0.01" name="market_price" value="<?php echo $product['market_price'] ?? ''; ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="可选，用于对比">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('prod_market_price_ph')); ?>">
                     </div>
                 </div>
             </div>
@@ -389,7 +389,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_images'); ?></h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">封面图</label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_cover')); ?></label>
                         <input type="text" name="cover" id="coverInput"
                                value="<?php echo e($product['cover'] ?? ''); ?>"
                                class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo __('label_image_url'); ?>">
@@ -422,7 +422,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div id="selectedTags" class="flex flex-wrap gap-1.5"></div>
                     <?php if (!empty($hotTags)): ?>
                     <div>
-                        <p class="text-xs text-gray-400 mb-1.5">热门标签</p>
+                        <p class="text-xs text-gray-400 mb-1.5"><?php echo e(__('prod_hot_tags')); ?></p>
                         <div class="flex flex-wrap gap-1.5">
                             <?php foreach ($hotTags as $t): ?>
                             <button type="button" onclick="toggleTag(this)" data-tag="<?php echo e($t['tag']); ?>"
@@ -440,7 +440,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     ?>
                     <?php if (!empty($uniqueRecent)): ?>
                     <div>
-                        <p class="text-xs text-gray-400 mb-1.5">最近使用</p>
+                        <p class="text-xs text-gray-400 mb-1.5"><?php echo e(__('prod_recent_tags')); ?></p>
                         <div class="flex flex-wrap gap-1.5">
                             <?php foreach ($uniqueRecent as $t): ?>
                             <button type="button" onclick="toggleTag(this)" data-tag="<?php echo e($t['tag']); ?>"
@@ -460,7 +460,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 底部 sticky 操作栏 -->
     <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
         <div class="flex gap-3 justify-end items-center">
-            <span class="text-xs text-gray-400 mr-auto hidden sm:inline">请确认后保存</span>
+            <span class="text-xs text-gray-400 mr-auto hidden sm:inline"><?php echo e(__('prod_confirm_before_save')); ?></span>
             <a href="/admin/product.php" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
                 <i class="ti ti-arrow-left text-base"></i>
                 <?php echo __('admin_back'); ?>
@@ -545,7 +545,7 @@ function renderGallery() {
     var box = document.getElementById('galleryPreview');
     if (!box) return;
     if (galleryImages.length === 0) {
-        box.innerHTML = '<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded"><?php echo __('admin_gallery_empty') ?: '暂无图片，点击下方按钮添加'; ?></div>';
+        box.innerHTML = '<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded"><?php echo __('admin_gallery_empty'); ?></div>';
         return;
     }
     box.innerHTML = galleryImages.map(function(url, i) {
@@ -553,8 +553,8 @@ function renderGallery() {
         return '<div class="relative group aspect-square bg-gray-100 rounded overflow-hidden" draggable="true" data-index="' + i + '">' +
                '  <img src="' + safe + '" class="w-full h-full object-cover pointer-events-none">' +
                '  <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">' +
-               (i > 0 ? '    <button type="button" onclick="galleryMove(' + i + ',-1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="左移">←</button>' : '') +
-               (i < galleryImages.length - 1 ? '    <button type="button" onclick="galleryMove(' + i + ',1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="右移">→</button>' : '') +
+               (i > 0 ? '    <button type="button" onclick="galleryMove(' + i + ',-1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="<?php echo e(__('admin_move_left')); ?>">←</button>' : '') +
+               (i < galleryImages.length - 1 ? '    <button type="button" onclick="galleryMove(' + i + ',1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="<?php echo e(__('admin_move_right')); ?>">→</button>' : '') +
                '    <button type="button" onclick="removeGalleryImage(' + i + ')" class="text-white bg-red-500 hover:bg-red-600 rounded w-7 h-7 text-sm" title="<?php echo __('btn_delete'); ?>">×</button>' +
                '  </div>' +
                '  <div class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded pointer-events-none">' + (i + 1) + '</div>' +
@@ -611,7 +611,7 @@ function uploadGalleryImage() {
                 var data = await safeJson(response);
                 if (data.code === 0) addGalleryImage(data.data.url);
                 else showMessage(data.msg, 'error');
-            } catch (err) { showMessage('<?php echo __('admin_upload_failed') ?: '上传失败'; ?>', 'error'); }
+            } catch (err) { showMessage('<?php echo __('admin_upload_failed'); ?>', 'error'); }
         }
     };
     input.click();
@@ -630,15 +630,15 @@ try { specsData = JSON.parse(document.getElementById('specsInput').value || '{}'
 
 // 规格键名标签映射
 var specLabels = {
-    'material': '<?php echo __("spec_material") ?: "素材分类"; ?>',
-    'material_label': '<?php echo __("spec_material_label") ?: "素材名称"; ?>',
-    'scene': '<?php echo __("spec_scene") ?: "使用场景"; ?>',
-    'size': '<?php echo __("spec_size") ?: "サイズ"; ?>',
-    'method': '<?php echo __("spec_method") ?: "工法"; ?>',
-    'finish': '<?php echo __("spec_finish") ?: "仕上げ"; ?>',
-    'mount': '<?php echo __("spec_mount") ?: "取付方法"; ?>',
-    'use': '<?php echo __("spec_use") ?: "用途"; ?>',
-    'corner': '<?php echo __("spec_corner") ?: "角丸"; ?>',
+    'material': '<?php echo __("spec_material"); ?>',
+    'material_label': '<?php echo __("spec_material_label"); ?>',
+    'scene': '<?php echo __("spec_scene"); ?>',
+    'size': '<?php echo __("spec_size"); ?>',
+    'method': '<?php echo __("spec_method"); ?>',
+    'finish': '<?php echo __("spec_finish"); ?>',
+    'mount': '<?php echo __("spec_mount"); ?>',
+    'use': '<?php echo __("spec_use"); ?>',
+    'corner': '<?php echo __("spec_corner"); ?>',
 };
 // 预置参数（产品设置配置）：显示名并入标签映射；「从预置补齐」按缺哪补哪，不覆盖已填值
 var specPresets = <?php echo json_encode($specPresets, JSON_UNESCAPED_UNICODE); ?>;
@@ -658,24 +658,24 @@ function renderSpecs() {
     var presetOrder = Object.keys(specPresets).filter(function (k) { return specsData.hasOwnProperty(k); });
     var customKeys = Object.keys(specsData).filter(function (k) { return !specPresets.hasOwnProperty(k); });
     if (presetOrder.length + customKeys.length === 0) {
-        list.innerHTML = '<div class="text-sm text-gray-400 py-2"><?php echo __("admin_no_specs") ?: "暂无参数"; ?></div>';
+        list.innerHTML = '<div class="text-sm text-gray-400 py-2"><?php echo __("admin_no_specs"); ?></div>';
         return;
     }
     presetOrder.forEach(function (key) {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
         div.innerHTML = '<span class="w-32 text-sm text-gray-600 px-1 truncate" title="' + escapeAttr(specPresets[key].label) + '">' + escapeAttr(specPresets[key].label) + '</span>' +
-            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __("admin_spec_val_ph") ?: "留空则前台不显示该项"; ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
-            '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold" title="移除">&times;</button>';
+            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __("admin_spec_val_ph"); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
+            '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold" title="<?php echo e(__('admin_remove')); ?>">&times;</button>';
         list.appendChild(div);
     });
     customKeys.forEach(function(key) {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
         var label = specLabels[key] || key;
-        div.innerHTML = '<input type="text" value="' + escapeAttr(key) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="键" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
+        div.innerHTML = '<input type="text" value="' + escapeAttr(key) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="<?php echo e(__('admin_spec_key')); ?>" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
             '<span class="text-gray-300">:</span>' +
-            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="值" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
+            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo e(__('admin_spec_value')); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
             '<span class="text-xs text-gray-400 w-16 truncate" title="' + escapeAttr(label) + '">' + escapeAttr(label) + '</span>' +
             '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold">&times;</button>';
         list.appendChild(div);
@@ -692,10 +692,10 @@ function syncSpecs() {
 }
 
 function addSpecRow() {
-    var key = prompt('<?php echo __("admin_spec_key_prompt") ?: "参数名（英文键名，如 size、method）"; ?>');
+    var key = prompt('<?php echo __("admin_spec_key_prompt"); ?>');
     if (!key) return;
     key = key.trim();
-    if (specsData.hasOwnProperty(key)) { alert('<?php echo __("admin_spec_exists") ?: "该参数已存在"; ?>'); return; }
+    if (specsData.hasOwnProperty(key)) { alert('<?php echo __("admin_spec_exists"); ?>'); return; }
     specsData[key] = '';
     syncSpecs();
     // 聚焦到新行的值输入框
@@ -707,7 +707,7 @@ function updateSpecKey(el) {
     var oldKey = el.dataset.old;
     var newKey = el.value.trim();
     if (!newKey || newKey === oldKey) return;
-    if (specsData.hasOwnProperty(newKey)) { alert('<?php echo __("admin_spec_exists") ?: "该参数已存在"; ?>'); el.value = oldKey; return; }
+    if (specsData.hasOwnProperty(newKey)) { alert('<?php echo __("admin_spec_exists"); ?>'); el.value = oldKey; return; }
     specsData[newKey] = specsData[oldKey];
     delete specsData[oldKey];
     syncSpecs();
@@ -874,7 +874,7 @@ $productContent = json_encode($product['content'] ?? '', JSON_UNESCAPED_UNICODE 
 $extraJs = '<script>
 try {
     var editor = initWangEditor("#toolbar-container", "#editor-container", {
-        placeholder: "请输入产品详情...",
+        placeholder: ' . json_encode(__('prod_content_ph'), JSON_UNESCAPED_UNICODE) . ',
         html: ' . $productContent . ',
         uploadUrl: "/admin/upload.php",
         onChange: function(editor) {

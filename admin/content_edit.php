@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($data['title'])) {
-        error('请输入标题');
+        error(__('admin_title_required'));
     }
 
     if ($id > 0) {
@@ -146,8 +146,8 @@ if ($content) {
     }
 }
 
-$typeLabels = ['article' => '文章', 'product' => '产品', 'case' => '案例', 'download' => '下载', 'faq' => 'FAQ'];
-$pageTitle = $content ? __('admin_content_edit') : ($urlType && isset($typeLabels[$urlType]) ? '发布' . $typeLabels[$urlType] : __('admin_add'));
+$typeLabels = ['article' => __('admin_article'), 'product' => __('admin_product'), 'case' => __('admin_case'), 'download' => __('admin_download'), 'faq' => 'FAQ'];
+$pageTitle = $content ? __('admin_content_edit') : ($urlType && isset($typeLabels[$urlType]) ? str_replace(':type', $typeLabels[$urlType], __('admin_publish_type')) : __('admin_add'));
 $currentMenu = 'content';
 
 // widget 用：把当前编辑行 + URL 信息塞进早先设的 $langSwitcher
@@ -168,7 +168,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">标题 <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_title')); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($content['title'] ?? ''); ?>" required
                                class="w-full border rounded px-4 py-2 text-lg">
                     </div>
@@ -185,7 +185,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">内容</label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_content')); ?></label>
                         <input type="hidden" name="content" id="contentInput">
                         <div id="toolbar-container" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
                         <div id="editor-container" class="border rounded-b-lg" style="min-height: 400px;"></div>
@@ -215,15 +215,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 产品字段 -->
             <div id="productFields" class="bg-white rounded-lg shadow p-6 hidden">
-                <h3 class="font-bold text-gray-800 mb-4">产品信息</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('admin_product_info')); ?></h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">价格</label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_price')); ?></label>
                         <input type="number" name="price" value="<?php echo $content['price'] ?? ''; ?>" step="0.01"
                                class="w-full border rounded px-4 py-2">
                     </div>
                     <div>
-                        <label class="block text-gray-700 mb-1">规格参数 (JSON)</label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_specs')); ?> (JSON)</label>
                         <input type="text" name="specs" value="<?php echo e($content['specs'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2" placeholder='{"key":"value"}'>
                     </div>
@@ -232,12 +232,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 下载字段 -->
             <div id="downloadFields" class="bg-white rounded-lg shadow p-6 hidden">
-                <h3 class="font-bold text-gray-800 mb-4">下载信息</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('admin_download_info')); ?></h3>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_attachment'); ?></label>
                     <div class="flex gap-2">
                         <input type="text" name="attachment" id="attachmentInput" value="<?php echo e($content['attachment'] ?? ''); ?>"
-                               class="flex-1 border rounded px-4 py-2" placeholder="附件URL">
+                               class="flex-1 border rounded px-4 py-2" placeholder="<?php echo e(__('admin_attachment_url')); ?>">
                         <button type="button" onclick="uploadAttachment()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                             <i class="ti ti-folder text-base"></i>
                             <?php echo __('admin_choose_file'); ?>
@@ -260,7 +260,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_seo_title'); ?></label>
                         <input type="text" name="seo_title" value="<?php echo e($content['seo_title'] ?? ''); ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="留空使用标题">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('admin_blank_use_title')); ?>">
                     </div>
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_seo_keywords'); ?></label>
@@ -282,7 +282,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-1">栏目 <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_channel')); ?> <span class="text-red-500">*</span></label>
                         <?php if ($lockedChannelId): ?>
                         <input type="hidden" name="channel_id" value="<?php echo $lockedChannelId; ?>">
                         <?php endif; ?>
@@ -295,7 +295,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         ?>
                         <select id="channelSelect" <?php echo $lockedChannelId ? '' : 'name="channel_id"'; ?> class="w-full border rounded px-4 py-2 <?php echo $lockedChannelId ? 'bg-gray-100 text-gray-500' : ''; ?>" <?php echo $lockedChannelId ? 'disabled' : 'required'; ?>>
                             <?php if (!$lockedType): ?>
-                            <option value="">请选择栏目</option>
+                            <option value=""><?php echo e(__('admin_pick_channel')); ?></option>
                             <?php endif; ?>
                             <?php foreach ($filteredChannels as $ch): ?>
                             <option value="<?php echo $ch['id']; ?>" data-type="<?php echo $ch['type']; ?>"
@@ -307,15 +307,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 mb-1">内容类型</label>
+                        <label class="block text-gray-700 mb-1"><?php echo e(__('admin_content_type')); ?></label>
                         <?php if ($lockedType): ?>
                         <input type="hidden" name="type" value="<?php echo e($lockedType); ?>">
                         <?php endif; ?>
                         <select id="typeSelect" <?php echo $lockedType ? '' : 'name="type"'; ?> class="w-full border rounded px-4 py-2 <?php echo $lockedType ? 'bg-gray-100 text-gray-500' : ''; ?>" <?php echo $lockedType ? 'disabled' : ''; ?>>
-                            <option value="article" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'article' ? 'selected' : ''; ?>>文章</option>
-                            <option value="product" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'product' ? 'selected' : ''; ?>>产品</option>
-                            <option value="case" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'case' ? 'selected' : ''; ?>>案例</option>
-                            <option value="download" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'download' ? 'selected' : ''; ?>>下载</option>
+                            <option value="article" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'article' ? 'selected' : ''; ?>><?php echo e(__('admin_article')); ?></option>
+                            <option value="product" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'product' ? 'selected' : ''; ?>><?php echo e(__('admin_product')); ?></option>
+                            <option value="case" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'case' ? 'selected' : ''; ?>><?php echo e(__('admin_case')); ?></option>
+                            <option value="download" <?php echo ($lockedType ?: ($content['type'] ?? '')) === 'download' ? 'selected' : ''; ?>><?php echo e(__('admin_download')); ?></option>
                         </select>
                     </div>
 
@@ -373,7 +373,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 封面图 -->
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">封面图</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('admin_cover')); ?></h3>
                 <div id="coverPreview" class="mb-4 <?php echo empty($content['cover']) ? 'hidden' : ''; ?>">
                     <img src="<?php echo e($content['cover'] ?? ''); ?>" class="w-full rounded">
                 </div>
@@ -392,8 +392,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 图集（多图） -->
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-1">图集（多图）</h3>
-                <p class="text-xs text-gray-400 mb-3">可选。除封面外的多张图片，前台文章页以图集展示，可拖动排序。</p>
+                <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__('admin_gallery')); ?></h3>
+                <p class="text-xs text-gray-400 mb-3"><?php echo e(__('admin_gallery_tip')); ?></p>
                 <input type="hidden" name="images" id="imagesInput" value="<?php echo e(is_string($content['images'] ?? '') ? ($content['images'] ?? '') : ''); ?>">
                 <div id="galleryGrid" class="grid grid-cols-3 gap-2 mb-3"></div>
                 <div class="flex gap-2">
@@ -553,7 +553,7 @@ var _galDrag = null;
 function gallerySync() {
     document.getElementById('imagesInput').value = JSON.stringify(galleryImages);
     var g = document.getElementById('galleryGrid');
-    if (!galleryImages.length) { g.innerHTML = '<div class="col-span-3 text-xs text-gray-300 py-4 text-center border border-dashed rounded">暂无图片</div>'; return; }
+    if (!galleryImages.length) { g.innerHTML = '<div class="col-span-3 text-xs text-gray-300 py-4 text-center border border-dashed rounded">' + <?php echo json_encode(__('admin_gallery_none'), JSON_UNESCAPED_UNICODE); ?> + '</div>'; return; }
     g.innerHTML = galleryImages.map(function (url, i) {
         return '<div class="relative group border rounded overflow-hidden cursor-move" draggable="true" data-i="' + i + '">'
             + '<img src="' + url.replace(/"/g, '&quot;') + '" class="w-full h-24 object-cover pointer-events-none">'

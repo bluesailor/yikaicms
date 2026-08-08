@@ -26,14 +26,14 @@ require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 // 栏目类型
 $channelTypes = [
-    'list' => __('admin_article_list') ?: '文章列表',
-    'page' => __('admin_page_static') ?: '单页',
-    'product' => __('admin_product') ?: '产品',
-    'case' => __('admin_case') ?: '案例',
-    'download' => __('admin_download') ?: '下载',
-    'job' => __('admin_job') ?: '招聘',
-    'album' => __('admin_album') ?: '相册',
-    'link' => __('admin_link') ?: '链接',
+    'list' => __('admin_article_list'),
+    'page' => __('admin_page_static'),
+    'product' => __('admin_product'),
+    'case' => __('admin_case'),
+    'download' => __('admin_download'),
+    'job' => __('admin_job'),
+    'album' => __('admin_album'),
+    'link' => __('admin_link'),
 ];
 // 追加已注册的自定义内容模型（type = model_key，内容进 contents 表）
 foreach (contentModelModel()->allActive() as $_m) {

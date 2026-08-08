@@ -528,7 +528,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 style="background:<?php echo $colorHex[$key] ?? '#3b82f6'; ?>"></button>
                         <?php endforeach; ?>
                         <label class="inline-flex items-center gap-1 text-xs text-gray-500 cursor-pointer ml-1" title="<?php echo __('timeline_color'); ?>">
-                            <span><?php echo __('admin_custom') ?: '自定义'; ?></span>
+                            <span><?php echo __('admin_custom'); ?></span>
                             <input type="color" id="editColorCustom" value="#3b82f6" onchange="pickTimelineColor(this.value)"
                                    class="w-7 h-7 p-0 border rounded cursor-pointer bg-white">
                         </label>

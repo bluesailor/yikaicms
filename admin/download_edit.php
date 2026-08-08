@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     if (empty($data['title'])) {
-        error('请输入文件名称');
+        error(__('dl_name_required'));
     }
 
     if ($isEdit) {
@@ -90,19 +90,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_file_name'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($download['title'] ?? ''); ?>" required
-                               class="w-full border rounded px-4 py-2" placeholder="如：产品使用手册 V2.0">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('dl_name_ph')); ?>">
                     </div>
 
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_file_desc'); ?></label>
                         <textarea name="description" rows="3" class="w-full border rounded px-4 py-2"
-                                  placeholder="简要描述文件内容..."><?php echo e($download['description'] ?? ''); ?></textarea>
+                                  placeholder="<?php echo e(__('dl_desc_ph')); ?>"><?php echo e($download['description'] ?? ''); ?></textarea>
                     </div>
 
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_cover_image'); ?></label>
                         <input type="text" name="cover" id="coverInput" value="<?php echo e($download['cover'] ?? ''); ?>"
-                               class="w-full border rounded px-3 py-2 text-sm mb-2" placeholder="可选，用于列表展示">
+                               class="w-full border rounded px-3 py-2 text-sm mb-2" placeholder="<?php echo e(__('admin_optional_for_list')); ?>">
                         <div class="flex gap-2">
                             <button type="button" onclick="uploadCover()"
                                     class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
@@ -144,8 +144,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer"
                              onclick="document.getElementById('fileInput').click()">
                             <i class="ti ti-cloud-upload text-5xl mx-auto text-gray-400 mb-4"></i>
-                            <p class="text-gray-500 mb-2">点击或拖拽文件到此处上传</p>
-                            <p class="text-xs text-gray-400">支持 ZIP, RAR, PDF, DOC, XLS, PPT 等格式，最大 50MB</p>
+                            <p class="text-gray-500 mb-2"><?php echo e(__('dl_drop_hint')); ?></p>
+                            <p class="text-xs text-gray-400"><?php echo e(__('dl_format_hint')); ?></p>
                         </div>
                         <input type="file" id="fileInput" class="hidden"
                                accept=".zip,.rar,.7z,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.exe,.msi">
@@ -180,22 +180,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <!-- 外部链接区域 -->
                     <div id="externalArea" class="<?php echo empty($download['is_external']) ? 'hidden' : ''; ?>">
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">下载地址</label>
+                            <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('dl_url')); ?></label>
                             <input type="text" id="externalUrl" value="<?php echo !empty($download['is_external']) ? e($download['file_url']) : ''; ?>"
                                    class="w-full border rounded px-4 py-2" placeholder="https://example.com/file.zip"
                                    onchange="updateExternalUrl()">
                         </div>
                         <div class="grid grid-cols-2 gap-4 mt-4">
                             <div>
-                                <label class="block text-sm text-gray-700 mb-1">文件名</label>
+                                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('dl_filename')); ?></label>
                                 <input type="text" id="externalFileName"
                                        value="<?php echo !empty($download['is_external']) ? e($download['file_name']) : ''; ?>"
                                        class="w-full border rounded px-4 py-2" placeholder="file.zip">
                             </div>
                             <div>
-                                <label class="block text-sm text-gray-700 mb-1">文件类型</label>
+                                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('dl_filetype')); ?></label>
                                 <select id="externalFileExt" class="w-full border rounded px-4 py-2">
-                                    <option value="">选择类型</option>
+                                    <option value=""><?php echo e(__('dl_pick_type')); ?></option>
                                     <option value="pdf" <?php echo ($download['file_ext'] ?? '') === 'pdf' ? 'selected' : ''; ?>>PDF</option>
                                     <option value="zip" <?php echo ($download['file_ext'] ?? '') === 'zip' ? 'selected' : ''; ?>>ZIP</option>
                                     <option value="rar" <?php echo ($download['file_ext'] ?? '') === 'rar' ? 'selected' : ''; ?>>RAR</option>
@@ -226,7 +226,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_category'); ?></label>
                         <select name="category_id" class="w-full border rounded px-4 py-2">
-                            <option value="0">未分类</option>
+                            <option value="0"><?php echo e(__('admin_uncategorized')); ?></option>
                             <?php foreach ($categories as $cat): ?>
                             <option value="<?php echo $cat['id']; ?>"
                                 <?php echo ($download['category_id'] ?? 0) == $cat['id'] ? 'selected' : ''; ?>>
@@ -239,7 +239,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                         <input type="number" name="sort_order" value="<?php echo $download['sort_order'] ?? 0; ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="数字越大越靠前">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('admin_sort_hint')); ?>">
                     </div>
 
                     <div>
@@ -340,7 +340,7 @@ document.getElementById('fileInput').addEventListener('change', async function()
     const maxSize = 50 * 1024 * 1024; // 50MB
 
     if (file.size > maxSize) {
-        showMessage('文件大小不能超过50MB', 'error');
+        showMessage(<?php echo json_encode(__('dl_too_large'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         return;
     }
 
@@ -454,7 +454,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 </script>
