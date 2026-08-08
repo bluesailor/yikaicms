@@ -17,11 +17,11 @@ if (!hasAnyContentPerm()) requirePermission('edit_article');
 
 // 内容类型
 $contentTypes = [
-    'article' => '文章',
-    'product' => '产品',
-    'case' => '案例',
-    'download' => '下载',
-    'job' => '招聘',
+    'article' => __('admin_article'),
+    'product' => __('admin_product'),
+    'case' => __('bn_pos_case'),
+    'download' => __('admin_download'),
+    'job' => __('admin_job'),
 ];
 
 // 处理 AJAX 请求
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $value = postInt('value');
 
         if (!in_array($field, ['status', 'is_top', 'is_recommend', 'is_hot'])) {
-            error('非法操作');
+            error(__('blox_invalid_action'));
         }
 
         contentModel()->updateById($id, [$field => $value]);
@@ -206,7 +206,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translate')); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                     </tr>
@@ -231,10 +231,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <?php echo e($item['title']); ?>
                                     </a>
                                     <?php if ($item['is_recommend']): ?>
-                                    <span class="text-xs bg-blue-100 text-blue-600 px-1 rounded ml-1">荐</span>
+                                    <span class="text-xs bg-blue-100 text-blue-600 px-1 rounded ml-1"><?php echo e(__('ct_recommend_short')); ?></span>
                                     <?php endif; ?>
                                     <?php if ($item['is_hot']): ?>
-                                    <span class="text-xs bg-red-100 text-red-600 px-1 rounded ml-1">热</span>
+                                    <span class="text-xs bg-red-100 text-red-600 px-1 rounded ml-1"><?php echo e(__('ct_hot_short')); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -306,7 +306,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
+                <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $queryString = http_build_query(array_filter([
                     'channel_id' => $channelId,
@@ -322,7 +322,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <i class="ti ti-chevron-left text-base"></i>
                     <?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
-                <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+                <span class="text-sm"><?php echo str_replace([':p', ':t'], [(string) $page, (string) $totalPages], e(__('admin_page_of'))); ?></span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                     <?php echo __('list_next_page'); ?>

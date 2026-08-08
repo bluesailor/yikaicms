@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     if (empty($data['name'])) {
-        error('相册名称不能为空');
+        error(__('albume_name_required'));
     }
 
     $data['slug'] = resolveSlug($data['slug'] ?? '', $data['name'], 'albums', $id);
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success(['id' => $id]);
 }
 
-$pageTitle = $album ? '编辑相册' : '新建相册';
+$pageTitle = $album ? __('albume_edit') : __('albume_new');
 $currentMenu = 'album';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -98,11 +98,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 相册名称 -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                    相册名称 <span class="text-red-500">*</span>
+                    <?php echo e(__('albume_name')); ?> <span class="text-red-500">*</span>
                 </label>
                 <input type="text" name="name" value="<?php echo e($album['name'] ?? ''); ?>" required
                        class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                       placeholder="如：荣誉资质、企业环境">
+                       placeholder="<?php echo e(__('albume_name_ph')); ?>">
             </div>
 
             <!-- URL别名 -->
@@ -110,8 +110,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('admin_slug'); ?></label>
                 <input type="text" name="slug" value="<?php echo e($album['slug'] ?? ''); ?>"
                        class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                       placeholder="留空自动生成，如：honor">
-                <p class="text-xs text-gray-400 mt-1">用于前台URL，仅支持字母、数字、横杠</p>
+                       placeholder="<?php echo e(__('albume_slug_ph')); ?>">
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('albume_slug_tip')); ?></p>
             </div>
 
             <!-- 封面图 -->
@@ -132,28 +132,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <button type="button" onclick="document.getElementById('coverFile').click()"
                                     class="border px-4 py-2 rounded hover:bg-gray-50 inline-flex items-center gap-2">
                                 <i class="ti ti-upload text-base"></i>
-                                上传封面
+                                <?php echo e(__('albume_upload_cover')); ?>
                             </button>
                             <?php if ($album && count($photos) > 0): ?>
                             <button type="button" onclick="openPhotoSelector()"
                                     class="border px-4 py-2 rounded hover:bg-gray-50 inline-flex items-center gap-2 text-primary border-primary">
                                 <i class="ti ti-photo text-base"></i>
-                                从相册选择
+                                <?php echo e(__('albume_pick_from_album')); ?>
                             </button>
                             <?php endif; ?>
-                            <button type="button" onclick="clearCover()" class="text-gray-500 hover:text-red-500 px-2">清除</button>
+                            <button type="button" onclick="clearCover()" class="text-gray-500 hover:text-red-500 px-2"><?php echo e(__('clear')); ?></button>
                         </div>
-                        <p class="text-xs text-gray-400 mt-2">不设置则自动使用第一张图片</p>
+                        <p class="text-xs text-gray-400 mt-2"><?php echo e(__('albume_cover_tip')); ?></p>
                     </div>
                 </div>
             </div>
 
             <!-- 相册描述 -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">相册描述</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('albume_desc')); ?></label>
                 <textarea name="description" rows="3"
                           class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                          placeholder="简单描述相册内容..."><?php echo e($album['description'] ?? ''); ?></textarea>
+                          placeholder="<?php echo e(__('albume_desc_ph')); ?>"><?php echo e($album['description'] ?? ''); ?></textarea>
             </div>
 
             <!-- 排序和状态 -->
@@ -162,7 +162,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" value="<?php echo $album['sort_order'] ?? 0; ?>"
                            class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <p class="text-xs text-gray-400 mt-1">数字越大越靠前</p>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('dcat_sort_tip')); ?></p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_status'); ?></label>
@@ -175,13 +175,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 展示模式 -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">展示模式</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('albume_layout')); ?></label>
                 <?php $__layout = $album['layout'] ?? 'grid'; ?>
                 <select name="layout" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="grid" <?php echo $__layout === 'grid' ? 'selected' : ''; ?>>网格 —— 等比方形缩略图，整齐划一</option>
-                    <option value="masonry" <?php echo $__layout === 'masonry' ? 'selected' : ''; ?>>流布局 —— 瀑布流，保留图片原始比例</option>
+                    <option value="grid" <?php echo $__layout === 'grid' ? 'selected' : ''; ?>><?php echo e(__('albume_layout_grid')); ?></option>
+                    <option value="masonry" <?php echo $__layout === 'masonry' ? 'selected' : ''; ?>><?php echo e(__('albume_layout_masonry')); ?><span class="hidden">片原始比例</option>
                 </select>
-                <p class="text-xs text-gray-400 mt-1">前台通过 <code>[album-<?php echo (int)($album['id'] ?? 0); ?>]</code> 短码或相册栏目调用时按此模式展示</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo str_replace(':code', '<code>[album-<?php echo (int)($album[\'id\'] ?? 0); ?>]</code>', e(__('albume_shortcode_tip'))); ?></p>
             </div>
         </div>
 
@@ -209,7 +209,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="photoSelectorModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col">
         <div class="px-6 py-4 border-b flex items-center justify-between flex-shrink-0">
-            <h3 class="text-lg font-medium">选择封面图片</h3>
+            <h3 class="text-lg font-medium"><?php echo e(__('albume_pick_cover')); ?></h3>
             <button onclick="closePhotoSelector()" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-lg"></i>
             </button>
@@ -228,7 +228,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
         </div>
         <div class="px-6 py-4 border-t bg-gray-50 flex justify-end rounded-b-lg flex-shrink-0">
-            <button type="button" onclick="closePhotoSelector()" class="px-4 py-2 border rounded hover:bg-gray-100">关闭</button>
+            <button type="button" onclick="closePhotoSelector()" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo e(__('blox_template_close')); ?></button>
         </div>
     </div>
 </div>
@@ -255,9 +255,9 @@ document.getElementById('coverFile').addEventListener('change', async function()
             uploadedImg.src = result.data.url;
             uploadedImg.className = 'w-full h-full object-cover';
             document.getElementById('coverPreview').appendChild(uploadedImg);
-            showMessage('封面上传成功');
+            showMessage(<?php echo json_encode(__('albume_cover_uploaded'), JSON_UNESCAPED_UNICODE); ?>);
         } else {
-            showMessage(result.msg || '上传失败', 'error');
+            showMessage(result.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (e) {
         showMessage('<?php echo __('admin_fail'); ?>', 'error');
@@ -294,7 +294,7 @@ function selectCover(url) {
     selectedImg.className = 'w-full h-full object-cover';
     document.getElementById('coverPreview').appendChild(selectedImg);
     closePhotoSelector();
-    showMessage('已选择封面');
+    showMessage(<?php echo json_encode(__('albume_cover_picked'), JSON_UNESCAPED_UNICODE); ?>);
 }
 
 photoModal.addEventListener('click', function(e) {
@@ -325,10 +325,10 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
                 <?php endif; ?>
             }, 1000);
         } else {
-            showMessage(result.msg || '保存失败', 'error');
+            showMessage(result.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (e) {
-        showMessage('保存失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 </script>

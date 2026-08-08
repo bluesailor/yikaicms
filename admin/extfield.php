@@ -43,19 +43,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (!in_array($data['owner_type'], extFieldOwnerTypes(), true)) {
-            error('非法的 owner_type');
+            error(__('ef_bad_owner'));
         }
         if (!preg_match('/^[a-z][a-z0-9_]{1,63}$/', $data['field_key'])) {
-            error('字段标识必须以小写字母开头，仅允许小写字母/数字/下划线，长度 2-64');
+            error(__('ef_key_format'));
         }
         if (empty($data['field_name'])) {
-            error('请输入字段名称');
+            error(__('ef_name_required'));
         }
         if (!array_key_exists($data['field_type'], ExtFieldModel::TYPES)) {
-            error('非法的字段类型');
+            error(__('ef_bad_type'));
         }
         if (!extFieldModel()->isFieldKeyUnique($data['owner_type'], $data['field_key'], $id)) {
-            error('字段标识已存在');
+            error(__('ef_key_exists'));
         }
 
         if ($id > 0) {
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $fields = extFieldModel()->getByOwner($ownerType, false);
-$pageTitle = '扩展字段';
+$pageTitle = __('ef_title');
 $currentMenu = 'extfield';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -101,7 +101,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <i class="ti ti-plus text-base"></i>
-            添加字段
+            <?php echo e(__('ef_add')); ?>
         </button>
     </div>
 </div>
@@ -113,12 +113,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('label_sort_order'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标识</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">必填</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">状态</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('bn_slug')); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('label_name')); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('scontact_col_type')); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('ef_required')); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('label_status')); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_actions')); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -128,16 +128,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 font-mono text-sm"><?php echo e($f['field_key']); ?></td>
                     <td class="px-4 py-3"><?php echo e($f['field_name']); ?></td>
                     <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600"><?php echo e(ExtFieldModel::TYPES[$f['field_type']] ?? $f['field_type']); ?></span></td>
-                    <td class="px-4 py-3 text-center"><?php echo $f['is_required'] ? '<span class="text-red-500">是</span>' : '否'; ?></td>
+                    <td class="px-4 py-3 text-center"><?php echo $f['is_required'] ? '<span class="text-red-500">' . e(__('setting_yes')) . '</span>' : '否'; ?></td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo (int)$f['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $f['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $f['status'] ? '启用' : '停用'; ?>
+                            <?php echo $f['status'] ? e(__('admin_enabled')) : e(__('ef_disabled')); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <button onclick='openEditModal(<?php echo json_encode($f, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)' class="text-primary hover:underline text-sm mr-2">编辑</button>
-                        <button onclick="deleteField(<?php echo (int)$f['id']; ?>)" class="text-red-600 hover:underline text-sm">删除</button>
+                        <button onclick='openEditModal(<?php echo json_encode($f, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)' class="text-primary hover:underline text-sm mr-2"><?php echo e(__('edit')); ?></button>
+                        <button onclick="deleteField(<?php echo (int)$f['id']; ?>)" class="text-red-600 hover:underline text-sm"><?php echo e(__('admin_delete')); ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -154,7 +154,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div class="px-6 py-4 border-b flex justify-between items-center">
-            <h3 class="font-bold text-gray-800" id="modalTitle">添加扩展字段</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo e(__('ef_add')); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
@@ -166,11 +166,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('extfield_key'); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="field_key" id="editKey" required class="w-full border rounded px-4 py-2 font-mono" placeholder="e.g. material">
-                    <p class="text-xs text-gray-400 mt-1">小写字母开头，字母/数字/下划线</p>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('ef_key_tip')); ?></p>
                 </div>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('extfield_name'); ?> <span class="text-red-500">*</span></label>
-                    <input type="text" name="field_name" id="editName" required class="w-full border rounded px-4 py-2" placeholder="e.g. 材质">
+                    <input type="text" name="field_name" id="editName" required class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('ef_name_ph')); ?>">
                 </div>
             </div>
 
@@ -184,8 +184,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">选项 (select/multi_select 专用)</label>
-                <textarea name="options" id="editOptions" rows="3" class="w-full border rounded px-4 py-2 font-mono text-xs" placeholder='JSON 格式: {"red":"红色","blue":"蓝色"} 或每行 key|label'></textarea>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('ef_options')); ?></label>
+                <textarea name="options" id="editOptions" rows="3" class="w-full border rounded px-4 py-2 font-mono text-xs" placeholder='<?php echo e(__('ef_options_ph')); ?>' ></textarea>
             </div>
 
             <div>
@@ -194,7 +194,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">说明文字</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('ef_help_text')); ?></label>
                 <input type="text" name="help_text" id="editHelp" class="w-full border rounded px-4 py-2">
             </div>
 
@@ -204,24 +204,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="number" name="sort_order" id="editSort" value="0" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">必填</label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('ef_required')); ?></label>
                     <select name="is_required" id="editRequired" class="w-full border rounded px-4 py-2">
-                        <option value="0">否</option>
-                        <option value="1">是</option>
+                        <option value="0"><?php echo e(__('setting_no')); ?></option>
+                        <option value="1"><?php echo e(__('setting_yes')); ?></option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">状态</label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('label_status')); ?></label>
                     <select name="status" id="editStatus" class="w-full border rounded px-4 py-2">
-                        <option value="1">启用</option>
-                        <option value="0">停用</option>
+                        <option value="1"><?php echo e(__('admin_enabled')); ?></option>
+                        <option value="0"><?php echo e(__('ef_disabled')); ?></option>
                     </select>
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 pt-4 border-t">
-                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100">取消</button>
-                <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded">保存</button>
+                <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo e(__('cancel')); ?></button>
+                <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded"><?php echo e(__('btn_save')); ?></button>
             </div>
         </form>
     </div>
@@ -229,7 +229,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <script>
 function openEditModal(item) {
-    document.getElementById('modalTitle').textContent = item ? '编辑扩展字段' : '添加扩展字段';
+    document.getElementById('modalTitle').textContent = item ? <?php echo json_encode(__('ef_edit'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('ef_add'), JSON_UNESCAPED_UNICODE); ?>;
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editKey').value = item?.field_key || '';
     document.getElementById('editName').value = item?.field_name || '';
@@ -253,7 +253,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('保存成功');
+        showMessage(<?php echo json_encode(__('save_success'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(() => location.reload(), 800);
     } else {
         showMessage(data.msg, 'error');
@@ -269,23 +269,23 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '启用';
+            btn.textContent = <?php echo json_encode(__('admin_enabled'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '停用';
+            btn.textContent = <?php echo json_encode(__('ef_disabled'), JSON_UNESCAPED_UNICODE); ?>;
         }
     }
 }
 
 async function deleteField(id) {
-    if (!confirm('确定要删除该扩展字段吗？已保存的字段值不会被删除。')) return;
+    if (!confirm(<?php echo json_encode(__('ef_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('删除成功');
+        showMessage(<?php echo json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(() => location.reload(), 800);
     } else {
         showMessage(data.msg, 'error');
