@@ -198,6 +198,16 @@ CREATE TABLE "yikai_blox_templates" (
 CREATE INDEX "idx_blox_templates_type" ON "yikai_blox_templates" ("type", "status", "updated_at");
 CREATE INDEX "idx_blox_templates_source" ON "yikai_blox_templates" ("source");
 
+DROP TABLE IF EXISTS "yikai_nav_menus";
+CREATE TABLE "yikai_nav_menus" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "name" varchar(100) NOT NULL,
+  "items" longtext,
+  "sort_order" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+
 DROP TABLE IF EXISTS "yikai_content_revisions";
 CREATE TABLE "yikai_content_revisions" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

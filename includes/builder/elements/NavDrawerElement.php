@@ -26,6 +26,8 @@ final class NavDrawerElement extends AbstractElement
             ['key' => 'side', 'type' => 'select', 'label' => __('blox_drawer_side'), 'default' => 'right',
                 'options' => ['left' => __('blox_align_left'), 'right' => __('blox_align_right')]],
             ['key' => 'show_logo', 'type' => 'checkbox', 'label' => __('blox_drawer_show_logo'), 'default' => true],
+            ['key' => 'menu_group', 'type' => 'select', 'label' => __('blox_menu_source'), 'default' => 0,
+                'options' => [0 => __('blox_menu_source_default')] + NavMegaElement::menuGroupOptions()],
         ];
     }
 
@@ -37,7 +39,7 @@ final class NavDrawerElement extends AbstractElement
     public function render(array $data, string $children = ''): string
     {
         $side = ($data['side'] ?? 'right') === 'left' ? 'left' : 'right';
-        $channels = function_exists('getNavChannels') ? getNavChannels() : [];
+        $channels = NavMegaElement::navTree($data);
         $siteName = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
 
         $items = '';

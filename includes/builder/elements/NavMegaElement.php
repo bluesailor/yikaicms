@@ -29,14 +29,46 @@ final class NavMegaElement extends AbstractElement
     public function controls(): array
     {
         return [
+            ['key' => 'menu_group', 'type' => 'select', 'label' => __('blox_menu_source'), 'default' => 0,
+                'options' => [0 => __('blox_menu_source_default')] + self::menuGroupOptions()],
             ['key' => 'show_desc', 'type' => 'checkbox', 'label' => __('blox_mega_show_desc'), 'default' => false],
             ['key' => 'full_width', 'type' => 'checkbox', 'label' => __('blox_mega_full_width'), 'default' => true],
         ];
     }
 
+    /** 菜单组下拉（导航元素共用）；无表/无库环境安全空集 */
+    public static function menuGroupOptions(): array
+    {
+        try {
+            return function_exists('navMenuModel') ? navMenuModel()->asMap() : [];
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /** 数据源：选了菜单组走组树（NavMenuModel::treeFor，与栏目投影同构），否则栏目投影 */
+    public static function navTree(array $data): array
+    {
+        $groupId = (int) ($data['menu_group'] ?? 0);
+        if ($groupId > 0 && function_exists('navMenuModel')) {
+            try {
+                return navMenuModel()->treeFor($groupId);
+            } catch (Throwable) {
+                return [];
+            }
+        }
+        return function_exists('getNavChannels') ? getNavChannels() : [];
+    }
+
+    /** 组树自定义链接可配 _blank（栏目投影节点无此键=空串） */
+    public static function targetAttr(array $node): string
+    {
+        return ($node['link_target'] ?? '') === '_blank' ? ' target="_blank" rel="noopener"' : '';
+    }
+
     public function render(array $data, string $children = ''): string
     {
-        $channels = function_exists('getNavChannels') ? getNavChannels() : [];
+        $channels = self::navTree($data);
         if ($channels === []) {
             return '';
         }
@@ -56,7 +88,7 @@ final class NavMegaElement extends AbstractElement
             $kids = is_array($channel['children'] ?? null) ? array_values(array_filter($channel['children'], 'is_array')) : [];
 
             if ($kids === []) {
-                $items .= '<li><a href="' . $url . '" class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . $name . '</a></li>';
+                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . $name . '</a></li>';
                 continue;
             }
 
@@ -92,7 +124,7 @@ final class NavMegaElement extends AbstractElement
         $grand = is_array($kid['children'] ?? null) ? array_values(array_filter($kid['children'], 'is_array')) : [];
 
         $html = '<div class="min-w-0">'
-            . '<a href="' . $url . '" class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . $name . '</a>';
+            . '<a href="' . $url . '"' . self::targetAttr($kid) . ' class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . $name . '</a>';
         if ($showDesc && trim((string) ($kid['description'] ?? '')) !== '') {
             $html .= '<p class="mt-1 text-xs text-gray-400 line-clamp-2">'
                 . htmlspecialchars((string) $kid['description'], ENT_QUOTES) . '</p>';
@@ -101,7 +133,7 @@ final class NavMegaElement extends AbstractElement
             $html .= '<ul class="mt-3 space-y-2 border-t border-gray-50 pt-3">';
             foreach ($grand as $g) {
                 $html .= '<li><a href="' . htmlspecialchars($this->channelHref($g), ENT_QUOTES)
-                    . '" class="block text-sm text-gray-500 hover:text-primary no-underline">'
+                    . '"' . self::targetAttr($g) . ' class="block text-sm text-gray-500 hover:text-primary no-underline">'
                     . htmlspecialchars((string) ($g['name'] ?? ''), ENT_QUOTES) . '</a></li>';
             }
             $html .= '</ul>';
