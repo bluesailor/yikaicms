@@ -66,7 +66,15 @@ foreach ([
     'SELECT nickname FROM ' . DB_PREFIX . 'users',
     'SELECT name FROM ' . DB_PREFIX . 'blox_templates',
     'SELECT title FROM ' . DB_PREFIX . 'timelines',
-    'SELECT description FROM ' . DB_PREFIX . 'timelines',
+    'SELECT content FROM ' . DB_PREFIX . 'timelines',
+    'SELECT title FROM ' . DB_PREFIX . 'products',
+    'SELECT subtitle FROM ' . DB_PREFIX . 'products',
+    'SELECT summary FROM ' . DB_PREFIX . 'products',
+    'SELECT subtitle FROM ' . DB_PREFIX . 'contents',
+    'SELECT summary FROM ' . DB_PREFIX . 'contents',
+    // settings.value = 站长自己填的站点内容（站点名/口号/简介…），属数据；
+    // settings.name / tip / options 才是 UI，走 setting_* / setting_opt_* 键。
+    'SELECT value FROM ' . DB_PREFIX . 'settings',
     'SELECT title FROM ' . DB_PREFIX . 'jobs',
     'SELECT name FROM ' . DB_PREFIX . 'links',
     'SELECT name FROM ' . DB_PREFIX . 'brands',

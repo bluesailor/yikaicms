@@ -33,13 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $robotsContent = $_POST['robots_content'] ?? '';
         file_put_contents(ROOT_PATH . '/robots.txt', $robotsContent);
         adminLog('setting', 'update', '更新 robots.txt');
-        success([], 'robots.txt 已更新');
+        success([], __('seo_robots_saved'));
     }
 
     if ($action === 'clear_sitemap_cache') {
         cacheDelete('sitemap_xml');
         adminLog('setting', 'update', '清除 Sitemap 缓存');
-        success([], 'Sitemap 缓存已清除');
+        success([], __('seo_sitemap_cache_cleared'));
     }
 
     // 保存 SEO 设置：lang-able 字段按当前视图 lang 写到 <key>_<lang>
@@ -89,13 +89,13 @@ if (file_exists($robotsPath)) {
     $robotsContent = file_get_contents($robotsPath);
 }
 
-$pageTitle = 'SEO 设置';
+$pageTitle = __('seo_title');
 $currentMenu = 'setting_seo';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
-echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG 图按语言独立保存（key_' . $_viewLang . '）；验证码/Sitemap 等全局共享');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('seo_lang_hint')));
 ?>
 
 <?php if (in_array('seo', getActivePlugins(), true)): ?>
@@ -128,43 +128,43 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    首页 SEO 标题
+                    <?php echo e(__('seo_home_title')); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('seo_home_title_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[seo_title]"
                            value="<?php echo e($seoConfig['seo_title']); ?>"
-                           placeholder="例：公司名称 - 核心业务关键词"
+                           placeholder="<?php echo e(__('seo_home_title_ph')); ?>"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">建议 30 字以内，搜索结果标题显示上限约 30 个中文字符</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo e(__('seo_home_title_tip')); ?></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    全站关键词
+                    <?php echo e(__('seo_keywords')); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('seo_keywords_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[site_keywords]"
                            value="<?php echo e($seoConfig['site_keywords']); ?>"
-                           placeholder="关键词1,关键词2,关键词3"
+                           placeholder="<?php echo e(__('seo_keywords_ph')); ?>"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">建议 3-8 个核心关键词</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo e(__('seo_keywords_tip')); ?></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    全站描述
+                    <?php echo e(__('seo_description')); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('seo_description_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <textarea name="settings[site_description]" rows="3"
-                              placeholder="简要描述网站的核心内容和价值"
+                              placeholder="<?php echo e(__('seo_description_ph')); ?>"
                               class="w-full border rounded px-4 py-2"><?php echo e($seoConfig['site_description']); ?></textarea>
                     <div class="text-xs text-gray-400 mt-1">
-                        当前 <span id="descCount"><?php echo mb_strlen($seoConfig['site_description']); ?></span> 字，建议 80-160 字
+                        <?php echo str_replace(':n', '<span id="descCount">' . mb_strlen($seoConfig['site_description']) . '</span>', e(__('seo_desc_count'))); ?>
                     </div>
                 </div>
             </div>
@@ -186,7 +186,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    默认分享图片
+                    <?php echo e(__('seo_share_image')); ?>
                     <span class="text-gray-400 text-sm block"><?php echo __('seo_og_image_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
@@ -197,13 +197,13 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
                                class="flex-1 border rounded px-4 py-2">
                         <button type="button" onclick="selectMedia('ogImageInput')"
                                 class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded transition">
-                            选择图片
+                            <?php echo e(__('admin_select_image')); ?>
                         </button>
                     </div>
-                    <div class="text-xs text-gray-400 mt-1">建议尺寸 1200×630 像素，用于微信/微博/Facebook/Twitter 分享预览</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo e(__('seo_share_image_tip')); ?></div>
                     <?php if ($seoConfig['seo_og_image']): ?>
                     <div class="mt-3 p-3 bg-gray-50 rounded-lg">
-                        <div class="text-xs text-gray-500 mb-2">预览：</div>
+                        <div class="text-xs text-gray-500 mb-2"><?php echo e(__('admin_preview')); ?></div>
                         <img src="<?php echo e($seoConfig['seo_og_image']); ?>" alt="OG Image" class="h-24 rounded border">
                     </div>
                     <?php endif; ?>
@@ -212,8 +212,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
 
             <div class="border-t pt-4">
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-                    <strong>说明：</strong>系统已自动为所有页面生成 OpenGraph 和 Twitter Card 标签。
-                    文章、产品等页面会自动使用各自的封面图，此处设置的图片仅作为没有封面图时的默认回退。
+                    <strong><?php echo e(__('admin_note_label')); ?></strong><?php echo e(__('seo_og_note')); ?>
                 </div>
             </div>
         </div>
@@ -234,23 +233,23 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    百度站长验证码
-                    <span class="text-gray-400 text-sm block">百度搜索资源平台</span>
+                    <?php echo e(__('seo_baidu_code')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('seo_baidu_platform')); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[seo_baidu_verify]"
                            value="<?php echo e($seoConfig['seo_baidu_verify']); ?>"
-                           placeholder="如：codeva-xxxxxxxxxxxx"
+                           placeholder="<?php echo e(__('seo_baidu_ph')); ?>"
                            class="w-full border rounded px-4 py-2">
                     <div class="text-xs text-gray-400 mt-1">
-                        在 <a href="https://ziyuan.baidu.com/" target="_blank" class="text-primary hover:underline">百度搜索资源平台</a> 添加站点后，选择 HTML 标签验证方式获取
+                        <?php echo str_replace(':site', '<a href="https://ziyuan.baidu.com/" target="_blank" class="text-primary hover:underline">' . e(__('seo_baidu_platform')) . '</a>', e(__('seo_baidu_hint'))); ?>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    Google 验证码
+                    <?php echo e(__('seo_google_code')); ?>
                     <span class="text-gray-400 text-sm block">Google Search Console</span>
                 </label>
                 <div class="md:col-span-3">
@@ -259,14 +258,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
                            placeholder="如：xxxxxxxxxxxxxxxxxxxxxxxxx"
                            class="w-full border rounded px-4 py-2">
                     <div class="text-xs text-gray-400 mt-1">
-                        在 <a href="https://search.google.com/search-console" target="_blank" class="text-primary hover:underline">Google Search Console</a> 添加站点后获取
+                        <?php echo str_replace(':site', '<a href="https://search.google.com/search-console" target="_blank" class="text-primary hover:underline">Google Search Console</a>', e(__('seo_verify_hint'))); ?>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    Bing 验证码
+                    <?php echo e(__('seo_bing_code')); ?>
                     <span class="text-gray-400 text-sm block">Bing Webmaster Tools</span>
                 </label>
                 <div class="md:col-span-3">
@@ -275,7 +274,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
                            placeholder="如：XXXXXXXXXXXXXXXXXXXXXXXX"
                            class="w-full border rounded px-4 py-2">
                     <div class="text-xs text-gray-400 mt-1">
-                        在 <a href="https://www.bing.com/webmasters" target="_blank" class="text-primary hover:underline">Bing Webmaster Tools</a> 添加站点后获取
+                        <?php echo str_replace(':site', '<a href="https://www.bing.com/webmasters" target="_blank" class="text-primary hover:underline">Bing Webmaster Tools</a>', e(__('seo_verify_hint'))); ?>
                     </div>
                 </div>
             </div>
@@ -292,13 +291,13 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">Sitemap 设置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('seo_sitemap_settings')); ?></h2>
         </div>
         <div class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    启用 Sitemap
-                    <span class="text-gray-400 text-sm block">自动生成 XML 网站地图</span>
+                    <?php echo e(__('seo_sitemap_enable')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('seo_sitemap_enable_tip')); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <select name="settings[seo_sitemap_enabled]" class="w-full border rounded px-4 py-2">
@@ -310,27 +309,27 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    缓存时间
-                    <span class="text-gray-400 text-sm block">单位：秒</span>
+                    <?php echo e(__('seo_cache_ttl')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('seo_unit_seconds')); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="number" name="settings[seo_sitemap_ttl]"
                            value="<?php echo e($seoConfig['seo_sitemap_ttl']); ?>"
                            min="0" max="86400"
                            class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1">默认 600 秒（10 分钟），设为 0 则不缓存</div>
+                    <div class="text-xs text-gray-400 mt-1"><?php echo e(__('seo_cache_ttl_tip')); ?></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">Sitemap 地址</label>
+                <label class="text-gray-700 pt-2"><?php echo e(__('seo_sitemap_url')); ?></label>
                 <div class="md:col-span-3">
                     <div class="flex items-center gap-4">
                         <code class="bg-gray-100 px-3 py-2 rounded text-sm flex-1"><?php echo e(rtrim(config('site_url', SITE_URL), '/')); ?>/sitemap.xml</code>
-                        <a href="/sitemap.xml" target="_blank" class="text-sm text-primary hover:underline">查看</a>
+                        <a href="/sitemap.xml" target="_blank" class="text-sm text-primary hover:underline"><?php echo e(__('admin_view')); ?></a>
                         <button type="button" onclick="clearSitemapCache()"
                                 class="text-sm bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded transition border border-orange-200">
-                            刷新缓存
+                            <?php echo e(__('seo_refresh_cache')); ?>
                         </button>
                     </div>
                 </div>
@@ -338,8 +337,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
 
             <div class="border-t pt-4">
                 <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-700">
-                    <strong>自动收录内容：</strong>首页、所有栏目页、文章详情、产品详情、案例、下载、招聘等已发布内容，
-                    各类型最多收录 5000 条。Sitemap 地址已在 robots.txt 中声明。
+                    <strong><?php echo e(__('seo_sitemap_covers')); ?></strong><?php echo e(__('seo_sitemap_covers_note')); ?>
                 </div>
             </div>
         </div>
@@ -355,24 +353,23 @@ echo renderAdminLangSwitcher($_viewLang, '提示：标题/关键词/描述/OG �
 <div class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800">robots.txt 编辑</h2>
-            <a href="/robots.txt" target="_blank" class="text-sm text-primary hover:underline">查看当前文件</a>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('seo_robots_edit')); ?></h2>
+            <a href="/robots.txt" target="_blank" class="text-sm text-primary hover:underline"><?php echo e(__('seo_view_current_file')); ?></a>
         </div>
         <div class="p-6">
             <textarea id="robotsContent" rows="16"
                       class="w-full border rounded px-4 py-2 font-mono text-sm leading-relaxed"
                       placeholder="User-agent: *&#10;Allow: /"><?php echo e($robotsContent); ?></textarea>
             <div class="flex items-center justify-between mt-4">
-                <span class="text-xs text-gray-400">直接编辑网站根目录的 robots.txt 文件，修改后立即生效</span>
+                <span class="text-xs text-gray-400"><?php echo e(__('seo_robots_tip')); ?></span>
                 <button type="button" onclick="saveRobots()"
                         class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
-                    保存 robots.txt
+                    <?php echo e(__('seo_save_robots')); ?>
                 </button>
             </div>
 
             <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700">
-                <strong>提示：</strong>robots.txt 用于告诉搜索引擎哪些页面可以抓取、哪些不可以。
-                修改前请确认规则正确，错误的配置可能导致网站从搜索结果中消失。
+                <strong><?php echo e(__('admin_tip_label')); ?></strong><?php echo e(__('seo_robots_note')); ?>
             </div>
         </div>
     </div>
@@ -394,7 +391,7 @@ async function saveRobots() {
         robots_content: document.getElementById('robotsContent').value,
     }, {
         successMsg: false,  // 用服务端返回的 msg
-        onSuccess: (d) => showMessage(d.msg || '已保存'),
+        onSuccess: (d) => showMessage(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>),
     });
 }
 
@@ -402,7 +399,7 @@ async function saveRobots() {
 async function clearSitemapCache() {
     return adminSave({ action: 'clear_sitemap_cache' }, {
         successMsg: false,
-        onSuccess: (d) => showMessage(d.msg || '缓存已清除'),
+        onSuccess: (d) => showMessage(d.msg || <?php echo json_encode(__('seo_cache_cleared'), JSON_UNESCAPED_UNICODE); ?>),
     });
 }
 

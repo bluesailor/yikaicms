@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success();
 }
 
-$pageTitle = '产品设置';
+$pageTitle = __('psetting_title');
 $currentMenu = 'product_setting';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -47,15 +47,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form id="settingForm" class="space-y-6 max-w-xl">
             <!-- 产品列表版式 -->
             <div>
-                <label class="font-medium text-gray-800">产品列表版式</label>
-                <p class="text-sm text-gray-500 mt-1 mb-3">选择产品中心页面的展示方式</p>
+                <label class="font-medium text-gray-800"><?php echo e(__('psetting_layout')); ?></label>
+                <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('psetting_layout_tip')); ?></p>
                 <?php $currentLayout = config('product_layout', 'sidebar'); ?>
                 <div class="grid grid-cols-2 gap-4" id="layoutPicker">
                     <label class="relative cursor-pointer layout-option" data-value="sidebar">
                         <input type="radio" name="product_layout" value="sidebar" class="hidden" <?php echo $currentLayout === 'sidebar' ? 'checked' : ''; ?>>
                         <div class="border-2 rounded-lg p-4 transition <?php echo $currentLayout === 'sidebar' ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-gray-300'; ?>">
                             <div class="flex gap-2 mb-2 h-16">
-                                <div class="w-1/4 bg-gray-300 rounded text-[10px] flex items-center justify-center text-gray-500">分类</div>
+                                <div class="w-1/4 bg-gray-300 rounded text-[10px] flex items-center justify-center text-gray-500"><?php echo e(__('admin_category')); ?></div>
                                 <div class="flex-1 grid grid-cols-3 gap-1">
                                     <div class="bg-gray-200 rounded"></div>
                                     <div class="bg-gray-200 rounded"></div>
@@ -65,7 +65,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <div class="bg-gray-200 rounded"></div>
                                 </div>
                             </div>
-                            <div class="text-sm font-medium text-center <?php echo $currentLayout === 'sidebar' ? 'text-primary' : 'text-gray-700'; ?>">侧栏模式</div>
+                            <div class="text-sm font-medium text-center <?php echo $currentLayout === 'sidebar' ? 'text-primary' : 'text-gray-700'; ?>"><?php echo e(__('psetting_layout_sidebar')); ?></div>
                         </div>
                     </label>
                     <label class="relative cursor-pointer layout-option" data-value="top">
@@ -85,7 +85,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <div class="bg-gray-200 rounded h-full"></div>
                                 </div>
                             </div>
-                            <div class="text-sm font-medium text-center <?php echo $currentLayout === 'top' ? 'text-primary' : 'text-gray-700'; ?>">顶栏模式</div>
+                            <div class="text-sm font-medium text-center <?php echo $currentLayout === 'top' ? 'text-primary' : 'text-gray-700'; ?>"><?php echo e(__('psetting_layout_top')); ?></div>
                         </div>
                     </label>
                 </div>
@@ -96,8 +96,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 显示产品价格 -->
             <div class="flex items-center justify-between">
                 <div>
-                    <label class="font-medium text-gray-800">显示产品价格</label>
-                    <p class="text-sm text-gray-500 mt-1">开启后前台将展示产品价格信息</p>
+                    <label class="font-medium text-gray-800"><?php echo e(__('psetting_show_price')); ?></label>
+                    <p class="text-sm text-gray-500 mt-1"><?php echo e(__('psetting_show_price_tip')); ?></p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="hidden" name="show_price" value="0">
@@ -115,10 +115,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <label class="font-medium text-gray-800"><?php echo __('admin_spec_presets'); ?></label>
                 <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo __('admin_spec_presets_tip'); ?></p>
                 <textarea name="product_spec_presets" rows="7" class="w-full border rounded px-4 py-2 font-mono text-sm"
-                          placeholder="size|尺寸|100×60mm
-material|材质
-weight|重量
-voltage|电压|220V"><?php echo e((string) config('product_spec_presets', '')); ?></textarea>
+                          placeholder="<?php echo e(__('psetting_spec_ph')); ?>"><?php echo e((string) config('product_spec_presets', '')); ?></textarea>
                 <p class="text-xs text-gray-400 mt-2"><?php echo __('admin_spec_presets_fmt'); ?></p>
             </div>
 
@@ -127,7 +124,7 @@ voltage|电压|220V"><?php echo e((string) config('product_spec_presets', '')); 
             <div class="flex justify-end">
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
                     <i class="ti ti-check text-base"></i>
-                    保存设置
+                    <?php echo e(__('admin_save_settings')); ?>
                 </button>
             </div>
         </form>
@@ -167,7 +164,7 @@ document.getElementById('settingForm').addEventListener('submit', async function
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 </script>

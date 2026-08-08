@@ -17,7 +17,7 @@ checkLogin();
 requirePermission('*');
 
 $currentMenu = 'setting_ai';
-$pageTitle = 'AI 设置';
+$pageTitle = __('ai_setting_title');
 $providers = AiService::getProviders();
 
 // 保存 / 测试
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         settingModel()->set('ai_model', $_POST['ai_model'] ?? '');
         settingModel()->set('ai_base_url', $_POST['ai_base_url'] ?? '');
         adminLog('setting', 'ai', '更新 AI 设置');
-        echo json_encode(['code' => 0, 'msg' => '设置已保存']);
+        echo json_encode(['code' => 0, 'msg' => __('admin_saved')]);
         exit;
     }
 
@@ -54,23 +54,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errMsg = curl_error($ch);
             curl_close($ch);
             if ($json === '' || $code >= 400) {
-                echo json_encode(['code' => 1, 'msg' => '拉取失败：' . ($errMsg ?: ('HTTP ' . $code))]);
+                echo json_encode(['code' => 1, 'msg' => str_replace(':err', $errMsg ?: ('HTTP ' . $code), __('ai_sync_fetch_failed'))]);
                 exit;
             }
         } else {
             $json = (string) @file_get_contents($url);
-            if ($json === '') { echo json_encode(['code' => 1, 'msg' => '拉取失败（服务器无 curl / allow_url_fopen）']); exit; }
+            if ($json === '') { echo json_encode(['code' => 1, 'msg' => __('ai_sync_no_http')]); exit; }
         }
         $data = json_decode($json, true);
         if (!is_array($data) || empty($data['providers']) || !is_array($data['providers'])) {
-            echo json_encode(['code' => 1, 'msg' => '中心源返回数据无效']);
+            echo json_encode(['code' => 1, 'msg' => __('ai_sync_bad_source')]);
             exit;
         }
         settingModel()->set('ai_models_override', json_encode($data['providers'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         settingModel()->set('ai_models_synced_at', (string) time());
         $cnt = count($data['providers']);
         adminLog('setting', 'ai_sync', "同步AI模型：{$cnt} 个厂商");
-        echo json_encode(['code' => 0, 'msg' => "已同步 {$cnt} 个厂商的最新模型", 'updated_at' => $data['updated_at'] ?? '']);
+        echo json_encode(['code' => 0, 'msg' => str_replace(':n', (string) $cnt, __('ai_sync_done')), 'updated_at' => $data['updated_at'] ?? '']);
         exit;
     }
 
@@ -151,10 +151,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <label class="block text-sm font-medium text-gray-700"><?php echo __('ai_model_label'); ?></label>
                         <div class="flex items-center gap-2">
                             <?php $syncedAt = (int) config('ai_models_synced_at', 0); ?>
-                            <span class="text-xs text-gray-400"><?php echo $syncedAt ? ('上次同步 ' . date('Y-m-d H:i', $syncedAt)) : '尚未同步'; ?></span>
+                            <span class="text-xs text-gray-400"><?php echo $syncedAt ? str_replace(':time', date('Y-m-d H:i', $syncedAt), __('ai_synced_at')) : __('ai_never_synced'); ?></span>
                             <button type="button" onclick="syncModels(this)" class="text-xs border rounded px-3 py-1.5 text-gray-600 hover:bg-gray-50 inline-flex items-center gap-1">
                                 <i class="ti ti-refresh text-sm"></i>
-                                同步最新模型
+                                <?php echo e(__('ai_sync_models')); ?>
                             </button>
                         </div>
                     </div>
@@ -162,9 +162,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">自定义 API 地址 <span class="font-normal text-gray-400">（可选）</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_custom_base_url')); ?> <span class="font-normal text-gray-400"><?php echo e(__('admin_optional_paren')); ?></span></label>
                     <input type="text" name="ai_base_url" id="aiBaseUrl" value="<?php echo e($currentBaseUrl); ?>"
-                           class="w-full border rounded-lg px-4 py-2.5 text-sm" placeholder="留空使用官方地址">
+                           class="w-full border rounded-lg px-4 py-2.5 text-sm" placeholder="<?php echo e(__('ai_base_url_ph')); ?>">
                 </div>
             </div>
         </div>
@@ -185,7 +185,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="mt-6 bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('ai_usage_stats'); ?></h2>
-            <a href="/admin/ai_usage.php" class="text-sm text-primary hover:underline">用量详情 &raquo;</a>
+            <a href="/admin/ai_usage.php" class="text-sm text-primary hover:underline"><?php echo e(__('aiu_title')); ?> &raquo;</a>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-3 gap-4">
@@ -215,8 +215,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p><strong>OpenAI：</strong><a href="https://platform.openai.com/api-keys" target="_blank" class="text-primary hover:underline">platform.openai.com</a></p>
             <p><strong>Claude：</strong><a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-primary hover:underline">console.anthropic.com</a></p>
             <p><strong>DeepSeek：</strong><a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-primary hover:underline">platform.deepseek.com</a></p>
-            <p><strong>通义千问：</strong><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-primary hover:underline">dashscope.console.aliyun.com</a></p>
-            <p><strong>智谱AI：</strong><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" class="text-primary hover:underline">open.bigmodel.cn</a></p>
+            <p><strong><?php echo e(__('ai_provider_qwen')); ?></strong><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-primary hover:underline">dashscope.console.aliyun.com</a></p>
+            <p><strong><?php echo e(__('ai_provider_zhipu')); ?></strong><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" class="text-primary hover:underline">open.bigmodel.cn</a></p>
         </div>
     </div>
 </div>
@@ -248,48 +248,48 @@ function onProviderChange() {
     var p = getProvider(), cfg = providers[p];
     var grid = document.getElementById('aiModelGrid'); grid.innerHTML = '';
     var defBtn = document.createElement('button'); defBtn.type = 'button'; defBtn.dataset.model = '';
-    defBtn.textContent = '默认 (' + cfg['default'] + ')'; defBtn.onclick = function(){ selectModel(''); }; grid.appendChild(defBtn);
+    defBtn.textContent = <?php echo json_encode(__('ai_default_model'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', cfg['default']); defBtn.onclick = function(){ selectModel(''); }; grid.appendChild(defBtn);
     cfg.models.forEach(function(m) {
         var b = document.createElement('button'); b.type = 'button'; b.dataset.model = m;
         b.textContent = m; b.onclick = function(){ selectModel(m); }; grid.appendChild(b);
     });
     grid.querySelectorAll('button').forEach(function(b){ b.className = 'model-btn'; });
     selectModel(currentModel); updateProviderStyle();
-    document.getElementById('aiBaseUrl').placeholder = '留空使用：' + cfg.base_url;
+    document.getElementById('aiBaseUrl').placeholder = <?php echo json_encode(__('ai_base_url_default'), JSON_UNESCAPED_UNICODE); ?>.replace(':url', cfg.base_url);
 }
 onProviderChange();
 
 function saveAiSettings() {
     var fd = new FormData(document.getElementById('aiForm')); fd.append('action', 'save');
-    fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){ alert(d.msg || '已保存'); });
+    fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){ alert(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>); });
 }
 
 function testAiConn() {
     var btn = document.getElementById('testBtn'), result = document.getElementById('testResult');
-    btn.disabled = true; btn.textContent = '测试中...';
+    btn.disabled = true; btn.textContent = <?php echo json_encode(__('ai_testing'), JSON_UNESCAPED_UNICODE); ?>;
     result.className = 'mt-4 px-4 py-3 rounded-lg text-sm bg-gray-50 text-gray-500';
-    result.textContent = '正在连接...'; result.classList.remove('hidden');
+    result.textContent = <?php echo json_encode(__('ai_connecting'), JSON_UNESCAPED_UNICODE); ?>; result.classList.remove('hidden');
     var fd = new FormData(document.getElementById('aiForm')); fd.append('action', 'test');
     fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){
         result.className = 'mt-4 px-4 py-3 rounded-lg text-sm ' + (d.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200');
-        result.textContent = d.success ? '连接成功！回复：' + d.content : '失败：' + d.error;
-    }).catch(function(){ result.textContent = '请求失败'; }).finally(function(){ btn.disabled = false; btn.textContent = '<?php echo __('ai_test_connection'); ?>'; });
+        result.textContent = d.success ? <?php echo json_encode(__('ai_conn_ok'), JSON_UNESCAPED_UNICODE); ?>.replace(':reply', d.content) : <?php echo json_encode(__('ai_conn_fail'), JSON_UNESCAPED_UNICODE); ?>.replace(':err', d.error);
+    }).catch(function(){ result.textContent = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>; }).finally(function(){ btn.disabled = false; btn.textContent = '<?php echo __('ai_test_connection'); ?>'; });
 }
 
 // 从 update.yikaicms 同步最新模型清单
 function syncModels(btn) {
     var old = btn.innerHTML;
-    btn.disabled = true; btn.textContent = '同步中…';
+    btn.disabled = true; btn.textContent = <?php echo json_encode(__('ai_syncing'), JSON_UNESCAPED_UNICODE); ?>;
     var fd = new FormData(); fd.append('action', 'sync_models');
     fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){
         if (d.code === 0) {
-            showMessage(d.msg + (d.updated_at ? '（源 ' + d.updated_at + '）' : ''));
+            showMessage(d.msg + (d.updated_at ? <?php echo json_encode(__('ai_sync_source_at'), JSON_UNESCAPED_UNICODE); ?>.replace(':time', d.updated_at) : ''));
             setTimeout(function(){ location.reload(); }, 800);
         } else {
-            showMessage(d.msg || '同步失败', 'error');
+            showMessage(d.msg || <?php echo json_encode(__('ai_sync_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             btn.disabled = false; btn.innerHTML = old;
         }
-    }).catch(function(){ showMessage('同步失败', 'error'); btn.disabled = false; btn.innerHTML = old; });
+    }).catch(function(){ showMessage(<?php echo json_encode(__('ai_sync_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); btn.disabled = false; btn.innerHTML = old; });
 }
 
 // 官方接口不需要 API Key：切到 yikai 时隐藏 Key 输入、显示授权状态
