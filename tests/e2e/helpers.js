@@ -90,12 +90,16 @@ async function waitPreviewSettled(page, timeoutMs = 5000) {
 }
 
 async function scrollCanvasToBottom(page) {
-  // 采样前先等预览 settle（最新 generation 已应用+滚动恢复完成）——不再猜测
-  // 预览往返时序；随后滚动一次并确认生效。
+  // 两代方案融合（r16 重试式 + r17 settled 等待；CI 第 6 轮实证单用任一都会被
+  // 慢机的在途恢复清零击穿）：先等 settle，滚动后跨过恢复窗口读值，被清零则
+  // 重滚，直到稳定为正。
   const contentFrame = await frame(page);
   await waitPreviewSettled(page);
-  await contentFrame.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await expect.poll(() => canvasScrollTop(page)).toBeGreaterThan(0);
+  await expect.poll(async () => {
+    await contentFrame.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(400);
+    return canvasScrollTop(page);
+  }, { timeout: 15000 }).toBeGreaterThan(0);
 }
 
 async function clearSelection(page) {
