@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $validNames = array_column($allTables, 'name');
         $selectedTables = array_filter($selectedTables, fn($t) => in_array($t, $validNames));
-        if (empty($selectedTables)) { error('没有有效的表'); }
+        if (empty($selectedTables)) { error(__('db_no_valid_tables')); }
 
         $sql = generateBackupSql($selectedTables, $includeStructure, $includeData);
         $filename = 'backup_' . date('Ymd_His') . '.sql';
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file = basename(post('file'));
         $path = $backupDir . '/' . $file;
         if (!$file || !file_exists($path) || pathinfo($file, PATHINFO_EXTENSION) !== 'sql') {
-            error('文件不存在');
+            error(__('db_file_missing'));
         }
         header('Content-Type: application/sql; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $file . '"');
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file = basename(post('file'));
         $path = $backupDir . '/' . $file;
         if (!$file || !file_exists($path) || pathinfo($file, PATHINFO_EXTENSION) !== 'sql') {
-            error('备份文件不存在');
+            error(__('db_backup_missing'));
         }
         set_time_limit(600);
         ini_set('memory_limit', '256M');
@@ -166,7 +166,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         db()->execute('SET autocommit = 1');
 
         adminLog('database', 'restore', "恢复备份: {$file}, {$stmts}条成功, {$errors}条失败");
-        header('Location: /admin/database.php?tab=backup&restored=' . urlencode("恢复完成：{$stmts} 条语句" . ($errors ? "，{$errors} 条出错" : '')));
+        $restoredMsg = str_replace(':n', (string) $stmts, __('db_restore_done'))
+            . ($errors ? str_replace(':n', (string) $errors, __('db_errors_suffix')) : '');
+        header('Location: /admin/database.php?tab=backup&restored=' . urlencode($restoredMsg));
         exit;
     }
 
@@ -178,16 +180,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @unlink($path);
             adminLog('database', 'delete_backup', '删除备份: ' . $file);
         }
-        success(['msg' => '已删除']);
+        success(['msg' => __('admin_deleted')]);
     }
 
     // --- 导入恢复 ---
     if ($action === 'import') {
         if (empty($_FILES['sqlfile']['tmp_name']) || $_FILES['sqlfile']['error'] !== UPLOAD_ERR_OK) {
-            error('请选择 SQL 文件');
+            error(__('db_pick_sql'));
         }
         $ext = strtolower(pathinfo($_FILES['sqlfile']['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['sql', 'gz'])) { error('支持 .sql 和 .sql.gz 文件'); }
+        if (!in_array($ext, ['sql', 'gz'])) { error(__('db_sql_only')); }
 
         set_time_limit(600);
         ini_set('memory_limit', '256M');
@@ -244,8 +246,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         db()->execute('SET autocommit = 1');
 
         adminLog('database', 'import', "导入SQL: {$stmts}条成功, {$errors}条失败, 文件大小:" . round($fileSize/1024) . "KB");
-        $msg = "导入完成：执行 {$stmts} 条语句，文件 " . round($fileSize/1024) . " KB";
-        if ($errors) $msg .= "，{$errors} 条出错";
+        $msg = str_replace([':n', ':size'], [(string) $stmts, (string) round($fileSize / 1024)], __('db_import_done'));
+        if ($errors) { $msg .= str_replace(':n', (string) $errors, __('db_errors_suffix')); }
         success(['msg' => $msg, 'errors' => $errorMsgs]);
     }
 
@@ -268,10 +270,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cleared = (int)db()->fetchColumn("SELECT COUNT(*) FROM `{$t}`");
             db()->execute("TRUNCATE TABLE `{$t}`");
         } else {
-            error('无效的日志类型');
+            error(__('db_bad_log_type'));
         }
         adminLog('database', 'clear_logs', "清空日志: {$logType}, {$cleared}条");
-        success(['msg' => "已清空 {$cleared} 条记录"]);
+        success(['msg' => str_replace(':n', (string) $cleared, __('db_cleared_rows'))]);
     }
 
     // --- 优化表 ---
@@ -281,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db()->execute("OPTIMIZE TABLE `{$t}`");
         }
         adminLog('database', 'optimize', '优化所有表');
-        success(['msg' => '已优化 ' . count($tables) . ' 张表']);
+        success(['msg' => str_replace(':n', (string) count($tables), __('db_optimized'))]);
     }
 
 }
@@ -304,7 +306,7 @@ foreach ($files as $f) {
 $savedFile = get('saved', '');
 $restoredMsg = get('restored', '');
 
-$pageTitle = '数据库管理';
+$pageTitle = __('db_title');
 $currentMenu = 'database';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -324,17 +326,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 顶部：数据库概览（左）+ 一键备份（右） -->
 <div class="bg-white rounded-lg shadow mb-6 p-5 flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-x-6 gap-y-1">
-        <span class="text-sm text-gray-500"><?php echo count($allTables); ?> 张表 · <?php echo number_format($totalRows); ?> 条 · <?php echo round($totalSize / 1024 / 1024, 2); ?> MB · <?php echo e(DB_NAME); ?></span>
-        <span class="text-xs text-gray-400">已有 <?php echo count($backupFiles); ?> 个备份</span>
+        <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) count($allTables), e(__('db_n_tables'))); ?> · <?php echo str_replace(':n', number_format($totalRows), e(__('admin_total_n'))); ?> · <?php echo round($totalSize / 1024 / 1024, 2); ?> MB · <?php echo e(DB_NAME); ?></span>
+        <span class="text-xs text-gray-400"><?php echo str_replace(':n', (string) count($backupFiles), e(__('db_n_backups'))); ?></span>
     </div>
     <form method="post" class="inline">
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="backup">
         <input type="hidden" name="structure" value="1">
         <input type="hidden" name="data" value="1">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> 备份中...'">
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> <?php echo e(__('db_backing_up')); ?>'">
             <i class="ti ti-database text-lg"></i>
-            一键备份
+            <?php echo e(__('db_backup_now')); ?>
         </button>
     </form>
 </div>
@@ -350,7 +352,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center justify-between">
     <div class="flex items-center gap-2 text-sm text-green-700">
         <i class="ti ti-circle-check text-lg"></i>
-        备份成功：<?php echo e($savedFile); ?>
+        <?php echo str_replace(':file', e($savedFile), e(__('db_backup_ok'))); ?>
     </div>
     <form method="post" class="inline">
         <?php echo csrfField(); ?>
@@ -387,19 +389,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="hidden" name="file" value="<?php echo e($bf['name']); ?>">
                     <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-secondary text-white text-xs rounded transition">
                         <i class="ti ti-download text-sm"></i>
-                        下载
+                        <?php echo e(__('admin_download')); ?>
                     </button>
                 </form>
-                <form method="post" class="inline" onsubmit="return confirm('确定从此备份恢复？当前数据将被覆盖！')">
+                <form method="post" class="inline" onsubmit="return confirm(<?php echo json_encode(__('db_restore_confirm'), JSON_UNESCAPED_UNICODE); ?>)">
                     <?php echo csrfField(); ?>
                     <input type="hidden" name="action" value="restore">
                     <input type="hidden" name="file" value="<?php echo e($bf['name']); ?>">
                     <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-yellow-500 text-yellow-600 hover:bg-yellow-50 text-xs rounded transition">
                         <i class="ti ti-refresh text-sm"></i>
-                        恢复
+                        <?php echo e(__('db_restore')); ?>
                     </button>
                 </form>
-                <button onclick="deleteBackup('<?php echo e($bf['name']); ?>')" class="p-1.5 text-gray-400 hover:text-red-500 transition" title="删除">
+                <button onclick="deleteBackup('<?php echo e($bf['name']); ?>')" class="p-1.5 text-gray-400 hover:text-red-500 transition" title="<?php echo e(__('admin_delete')); ?>">
                     <i class="ti ti-trash text-base"></i>
                 </button>
             </div>
@@ -407,20 +409,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php endforeach; ?>
     </div>
 <?php else: ?>
-    <div class="px-6 py-8 text-center text-gray-400 text-sm">暂无备份记录，点击上方「一键备份」开始</div>
+    <div class="px-6 py-8 text-center text-gray-400 text-sm"><?php echo e(__('db_no_backups')); ?></div>
 <?php endif; ?>
 </div>
 
 <script>
 async function deleteBackup(file) {
-    if (!confirm('确定删除备份 ' + file + '？')) return;
+    if (!confirm(<?php echo json_encode(__('db_del_backup_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':file', file))) return;
     var fd = new FormData();
     fd.append('action', 'delete_backup');
     fd.append('file', file);
     fd.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo csrfToken(); ?>');
     var resp = await fetch('', { method: 'POST', body: fd });
     var data = await safeJson(resp);
-    if (data.code === 0) { showMessage('已删除'); setTimeout(() => location.reload(), 500); }
+    if (data.code === 0) { showMessage(<?php echo json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE); ?>); setTimeout(() => location.reload(), 500); }
     else { showMessage(data.msg, 'error'); }
 }
 </script>
@@ -434,10 +436,10 @@ async function deleteBackup(file) {
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('db_custom_export'); ?></h2>
             <div class="flex items-center gap-4">
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="structure" value="1" checked> 表结构</label>
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="data" value="1" checked> 表数据</label>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="structure" value="1" checked> <?php echo e(__('db_structure')); ?></label>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="data" value="1" checked> <?php echo e(__('db_rows')); ?></label>
                 <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=true)" class="text-xs text-primary hover:underline cursor-pointer"><?php echo __('btn_select_all'); ?></button>
-                <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=false)" class="text-xs text-gray-500 hover:underline cursor-pointer">全不选</button>
+                <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=false)" class="text-xs text-gray-500 hover:underline cursor-pointer"><?php echo e(__('admin_select_none')); ?></button>
             </div>
         </div>
         <div class="p-6 space-y-1 max-h-80 overflow-y-auto">
@@ -445,7 +447,7 @@ async function deleteBackup(file) {
             <label class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
                 <input type="checkbox" name="tables[]" value="<?php echo e($t['name']); ?>" checked class="tbl-check">
                 <span class="font-mono text-sm flex-1"><?php echo e($t['name']); ?></span>
-                <span class="text-xs text-gray-400"><?php echo number_format($t['rows']); ?> 行</span>
+                <span class="text-xs text-gray-400"><?php echo str_replace(':n', number_format($t['rows']), e(__('db_n_rows'))); ?></span>
                 <?php if ($t['size']): ?><span class="text-xs text-gray-400"><?php echo round($t['size']/1024); ?> KB</span><?php endif; ?>
             </label>
             <?php endforeach; ?>
@@ -453,9 +455,9 @@ async function deleteBackup(file) {
         <div class="px-6 py-4 border-t flex items-center gap-3">
             <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded transition inline-flex items-center gap-2 text-sm">
                 <i class="ti ti-file-download text-base"></i>
-                直接下载
+                <?php echo e(__('db_direct_download')); ?>
             </button>
-            <span class="text-xs text-gray-400">选择表后直接下载 SQL 文件（不保存到服务器）</span>
+            <span class="text-xs text-gray-400"><?php echo e(__('db_direct_download_tip')); ?></span>
         </div>
     </div>
 </form>
@@ -464,21 +466,21 @@ async function deleteBackup(file) {
 <!-- 导入恢复 -->
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="font-bold text-gray-800 mb-4">导入 SQL 文件</h2>
+        <h2 class="font-bold text-gray-800 mb-4"><?php echo e(__('db_import_sql')); ?></h2>
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 mb-4">
-            <strong>注意：</strong>导入操作可能覆盖现有数据。请确保已备份当前数据库。
+            <strong><?php echo e(__('admin_warning_label')); ?></strong><?php echo e(__('db_import_warning')); ?>
         </div>
         <form id="importForm" enctype="multipart/form-data">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="import">
             <label class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4 block cursor-pointer hover:border-primary hover:bg-blue-50/30 transition">
                 <i class="ti ti-cloud-upload text-5xl mx-auto text-gray-300 mb-3"></i>
-                <p class="text-sm text-gray-600 mb-2">点击选择 .sql 或 .sql.gz 文件</p>
+                <p class="text-sm text-gray-600 mb-2"><?php echo e(__('db_pick_file_hint')); ?></p>
                 <input type="file" name="sqlfile" accept=".sql,.gz" required class="text-sm" onchange="showFileInfo(this)">
                 <div id="fileInfo" class="mt-2 text-xs text-gray-500 hidden"></div>
             </label>
             <button type="submit" id="importBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
-                开始导入
+                <?php echo e(__('db_start_import')); ?>
             </button>
             <div id="importResult" class="mt-4 hidden"></div>
         </form>
@@ -491,7 +493,7 @@ function showFileInfo(input) {
         var f = input.files[0];
         var size = f.size > 1048576 ? (f.size/1048576).toFixed(1) + ' MB' : (f.size/1024).toFixed(0) + ' KB';
         var isGz = f.name.endsWith('.gz');
-        info.textContent = f.name + ' (' + size + ')' + (isGz ? ' — 压缩文件，导入时自动解压' : '');
+        info.textContent = f.name + ' (' + size + ')' + (isGz ? <?php echo json_encode(__('db_gz_note'), JSON_UNESCAPED_UNICODE); ?> : '');
         info.classList.remove('hidden');
     } else {
         info.classList.add('hidden');
@@ -501,18 +503,18 @@ document.getElementById('importForm').addEventListener('submit', async function(
     e.preventDefault();
     var btn = document.getElementById('importBtn');
     var result = document.getElementById('importResult');
-    btn.disabled = true; btn.textContent = '导入中...';
+    btn.disabled = true; btn.textContent = <?php echo json_encode(__('db_importing'), JSON_UNESCAPED_UNICODE); ?>;
     result.className = 'mt-4 hidden';
     try {
         var fd = new FormData(this);
         var resp = await fetch('', { method: 'POST', body: fd });
         var data = await safeJson(resp);
         result.className = 'mt-4 p-3 rounded text-sm ' + (data.code === 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700');
-        var msg = data.data?.msg || data.msg || '操作完成';
+        var msg = data.data?.msg || data.msg || <?php echo json_encode(__('admin_done'), JSON_UNESCAPED_UNICODE); ?>;
         if (data.data?.errors?.length) msg += '<br>' + data.data.errors.map(e => '<span class="text-xs">' + e + '</span>').join('<br>');
         result.innerHTML = msg;
-    } catch(e) { result.className = 'mt-4 p-3 rounded text-sm bg-red-50 text-red-700'; result.textContent = '请求失败'; }
-    btn.disabled = false; btn.textContent = '开始导入';
+    } catch(e) { result.className = 'mt-4 p-3 rounded text-sm bg-red-50 text-red-700'; result.textContent = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>; }
+    btn.disabled = false; btn.textContent = <?php echo json_encode(__('db_start_import'), JSON_UNESCAPED_UNICODE); ?>;
 });
 </script>
 

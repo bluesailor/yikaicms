@@ -86,10 +86,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
             <select name="type" class="border rounded px-3 py-2">
-                <option value="">全部类型</option>
-                <option value="image" <?php echo $type === 'image' ? 'selected' : ''; ?>>图片</option>
-                <option value="file" <?php echo $type === 'file' ? 'selected' : ''; ?>>文件</option>
-                <option value="video" <?php echo $type === 'video' ? 'selected' : ''; ?>>视频</option>
+                <option value=""><?php echo e(__('media_all_types')); ?></option>
+                <option value="image" <?php echo $type === 'image' ? 'selected' : ''; ?>><?php echo e(__('media_type_image')); ?></option>
+                <option value="file" <?php echo $type === 'file' ? 'selected' : ''; ?>><?php echo e(__('media_type_file')); ?></option>
+                <option value="video" <?php echo $type === 'video' ? 'selected' : ''; ?>><?php echo e(__('media_type_video')); ?></option>
             </select>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
@@ -103,9 +103,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div class="flex gap-2">
             <?php // 扫描入库：把 uploads/ 下未登记的历史文件（演示图、FTP 手传等）补进媒体表 ?>
-            <button onclick="scanMedia(this)" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1" title="把 uploads 目录里未登记的文件补进媒体库">
+            <button onclick="scanMedia(this)" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1" title="<?php echo e(__('media_scan_tip')); ?>">
                 <i class="ti ti-refresh text-base"></i>
-                扫描入库
+                <?php echo e(__('media_scan')); ?>
             </button>
             <button onclick="batchDelete()" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <i class="ti ti-trash text-base"></i>
@@ -197,7 +197,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <?php else: ?>
         <div class="text-center text-gray-500 py-12">
-            暂无媒体文件
+            <?php echo e(__('media_empty')); ?>
         </div>
         <?php endif; ?>
     </div>
@@ -217,7 +217,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <i class="ti ti-chevron-left text-base"></i>
                 <?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
-            <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+            <span class="text-sm"><?php echo str_replace([':p', ':t'], [(string) $page, (string) $totalPages], e(__('admin_page_of'))); ?></span>
             <?php if ($page < $totalPages): ?>
             <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <?php echo __('list_next_page'); ?>
@@ -240,8 +240,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6">
             <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer">
                 <div class="text-4xl text-gray-400 mb-4">📁</div>
-                <p class="text-gray-600 mb-2">拖拽文件到此处或点击上传</p>
-                <p class="text-sm text-gray-400">支持图片、文档等常见格式</p>
+                <p class="text-gray-600 mb-2"><?php echo e(__('media_drop_hint')); ?></p>
+                <p class="text-sm text-gray-400"><?php echo e(__('media_format_hint')); ?></p>
             </div>
             <input type="file" id="fileInput" multiple class="hidden">
             <div id="uploadProgress" class="mt-4 space-y-2"></div>
@@ -296,7 +296,7 @@ async function handleFiles(files) {
         item.className = 'flex items-center gap-3 p-2 bg-gray-50 rounded';
         item.innerHTML = `
             <span class="flex-1 text-sm truncate">${file.name}</span>
-            <span class="text-xs text-gray-400">上传中...</span>
+            <span class="text-xs text-gray-400"><?php echo e(__('media_uploading')); ?></span>
         `;
         progress.appendChild(item);
 
@@ -309,14 +309,14 @@ async function handleFiles(files) {
             const data = await safeJson(response);
 
             if (data.code === 0) {
-                item.querySelector('span:last-child').textContent = '完成';
+                item.querySelector('span:last-child').textContent = <?php echo json_encode(__('admin_done'), JSON_UNESCAPED_UNICODE); ?>;
                 item.querySelector('span:last-child').className = 'text-xs text-green-600';
             } else {
                 item.querySelector('span:last-child').textContent = data.msg;
                 item.querySelector('span:last-child').className = 'text-xs text-red-600';
             }
         } catch (err) {
-            item.querySelector('span:last-child').textContent = '失败';
+            item.querySelector('span:last-child').textContent = <?php echo json_encode(__('admin_failed'), JSON_UNESCAPED_UNICODE); ?>;
             item.querySelector('span:last-child').className = 'text-xs text-red-600';
         }
     }
@@ -353,7 +353,7 @@ function closePreview() {
 
 function copyUrl(url) {
     navigator.clipboard.writeText(url).then(() => {
-        showMessage('已复制到剪贴板');
+        showMessage(<?php echo json_encode(__('admin_copied'), JSON_UNESCAPED_UNICODE); ?>);
     });
 }
 
@@ -387,13 +387,13 @@ async function scanMedia(btn) {
         });
         var data = await resp.json();
         if (data.code === 0) {
-            alert('扫描完成：新增 ' + data.data.added + ' 个文件');
+            alert(<?php echo json_encode(__('media_scan_done'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', data.data.added));
             if (data.data.added > 0) location.reload();
         } else {
-            alert(data.msg || '扫描失败');
+            alert(data.msg || <?php echo json_encode(__('media_scan_failed'), JSON_UNESCAPED_UNICODE); ?>);
         }
     } catch (e) {
-        alert('扫描请求失败');
+        alert(<?php echo json_encode(__('media_scan_req_failed'), JSON_UNESCAPED_UNICODE); ?>);
     } finally {
         btn.disabled = false;
         icon.classList.remove('animate-spin');
@@ -403,11 +403,11 @@ async function scanMedia(btn) {
 async function batchDelete() {
     const checked = document.querySelectorAll('#mediaGrid input[name="ids[]"]:checked');
     if (checked.length === 0) {
-        showMessage('请选择要删除的文件', 'error');
+        showMessage(<?php echo json_encode(__('media_pick_to_delete'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         return;
     }
 
-    if (!confirm(`确定要删除选中的 ${checked.length} 个文件吗？`)) return;
+    if (!confirm(<?php echo json_encode(__('media_del_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', checked.length))) return;
 
     const formData = new FormData();
     formData.append('action', 'batch_delete');
