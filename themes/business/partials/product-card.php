@@ -55,9 +55,9 @@
 
         <?php if (config('show_price', '0') === '1' && $isProductType && !empty($item['price']) && (float)$item['price'] > 0): ?>
         <div class="mt-3 pt-3 border-t border-dashed border-slate-200 flex items-baseline gap-1">
-            <span class="text-xs text-slate-400">&yen;</span>
+            <span class="text-xs text-slate-400"><?php echo e(__('currency_symbol')); ?></span>
             <span class="text-primary font-bold text-lg tracking-tight">
-                <?php echo number_format((float)$item['price'], 2); ?>
+                <?php echo number_format((float)$item['price'], max(0, min(4, (int) __('currency_decimals')))); ?>
             </span>
         </div>
         <?php endif; ?>

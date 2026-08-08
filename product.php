@@ -170,9 +170,9 @@ require_once theme_path('layouts/header.php');
 
                     <?php if (config('show_price', '0') === '1' && $product['price'] > 0): ?>
                     <div class="mb-6">
-                        <span class="text-3xl font-bold text-primary">&yen;<?php echo number_format((float)$product['price'], 2); ?></span>
+                        <span class="text-3xl font-bold text-primary"><?php echo formatPrice($product['price']); ?></span>
                         <?php if ($product['market_price'] > $product['price']): ?>
-                        <span class="text-gray-400 line-through ml-2">&yen;<?php echo number_format((float)$product['market_price'], 2); ?></span>
+                        <span class="text-gray-400 line-through ml-2"><?php echo formatPrice($product['market_price']); ?></span>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
@@ -356,7 +356,7 @@ require_once theme_path('layouts/header.php');
                             <?php echo e($item['title']); ?>
                         </h3>
                         <?php if (config('show_price', '0') === '1' && $item['price'] > 0): ?>
-                        <div class="mt-2 text-primary font-bold">&yen;<?php echo number_format((float)$item['price'], 2); ?></div>
+                        <div class="mt-2 text-primary font-bold"><?php echo formatPrice($item['price']); ?></div>
                         <?php endif; ?>
                     </div>
                 </a>

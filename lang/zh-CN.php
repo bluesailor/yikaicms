@@ -2423,6 +2423,8 @@ return [
     'blox_tpl_official_refresh' => '刷新授权状态',
     'media_select_hint' => '选择模式：点击图片即选用并回填到原页面输入框。',
     'media_select_use' => '选用此图',
+    'currency_symbol' => '¥',
+    'currency_decimals' => '2',
     'media_select_copy_fallback' => '原页面已关闭，请手动复制此图片地址：',
     'blox_ctx_label' => '预览上下文',
     'blox_ctx_home' => '首页',

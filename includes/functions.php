@@ -788,6 +788,18 @@ function _e(string $key, array $params = []): string
 /**
  * 格式化文件大小
  */
+/**
+ * 价格显示：货币符号与小数位随站点语言（lang 键 currency_symbol / currency_decimals）。
+ * 多语言站点产品是 per-lang 行，各语言版本价格由站长按对应币种填写——
+ * 本函数只管展示（zh ¥2位 / en \$2位 / ja ¥0位——日元无辅币），不做汇率换算。
+ */
+function formatPrice(float|int|string $price): string
+{
+    $symbol = __('currency_symbol');
+    $decimals = max(0, min(4, (int) __('currency_decimals')));
+    return e($symbol) . number_format((float) $price, $decimals);
+}
+
 function formatFileSize(int $bytes): string
 {
     if ($bytes < 1024) {

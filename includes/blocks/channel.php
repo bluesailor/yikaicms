@@ -64,7 +64,7 @@ $contents = $hChannel['contents'];
                         <?php echo e($item['title']); ?>
                     </h3>
                     <?php if (config('show_price', '0') === '1' && !empty($item['price']) && $item['price'] > 0): ?>
-                    <div class="mt-2 text-primary font-bold text-sm">&yen;<?php echo number_format((float)$item['price'], 2); ?></div>
+                    <div class="mt-2 text-primary font-bold text-sm"><?php echo formatPrice($item['price']); ?></div>
                     <?php endif; ?>
                 </div>
             </a>

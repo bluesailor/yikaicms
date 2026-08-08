@@ -2524,6 +2524,8 @@ return [
     'blox_tpl_official_refresh' => 'ライセンス状態を更新',
     'media_select_hint' => '選択モード：画像をクリックすると元のページの入力欄に自動反映されます。',
     'media_select_use' => 'この画像を使用',
+    'currency_symbol' => '¥',
+    'currency_decimals' => '0',
     'media_select_copy_fallback' => '元のページが閉じられています。この画像 URL を手動でコピーしてください：',
     'blox_ctx_label' => 'プレビューコンテキスト',
     'blox_ctx_home' => 'ホームページ',

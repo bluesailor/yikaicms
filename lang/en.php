@@ -2354,6 +2354,8 @@ return [
     'blox_tpl_official_refresh' => 'Refresh entitlement',
     'media_select_hint' => 'Select mode: click an image to use it — the original field is filled automatically.',
     'media_select_use' => 'Use this image',
+    'currency_symbol' => '$',
+    'currency_decimals' => '2',
     'media_select_copy_fallback' => 'The opener page is gone. Copy this image URL manually:',
     'blox_ctx_label' => 'Preview context',
     'blox_ctx_home' => 'Homepage',

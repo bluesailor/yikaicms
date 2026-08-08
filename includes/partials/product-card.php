@@ -39,7 +39,7 @@
         <p class="text-xs text-gray-400 mt-1"><?php echo e($item['model']); ?></p>
         <?php endif; ?>
         <?php if (config('show_price', '0') === '1' && $isProductType && !empty($item['price']) && $item['price'] > 0): ?>
-        <div class="mt-2 text-primary font-bold">&yen;<?php echo number_format((float)$item['price'], 2); ?></div>
+        <div class="mt-2 text-primary font-bold"><?php echo formatPrice($item['price']); ?></div>
         <?php endif; ?>
     </div>
 </a>

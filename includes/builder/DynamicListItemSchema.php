@@ -159,7 +159,7 @@ final class DynamicListItemSchema
     {
         if ($field === 'price' || $field === 'market_price') {
             return '{yk:if field=' . $field . ' op=gt value=0}'
-                . '<div class="text-sm font-semibold text-primary mb-2">&yen;' . self::tag($field) . '</div>'
+                . '<div class="text-sm font-semibold text-primary mb-2">' . e(__('currency_symbol')) . self::tag($field) . '</div>'
                 . '{/yk:if}';
         }
         return '{yk:if field=model op=notempty}'
