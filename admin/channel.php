@@ -1000,7 +1000,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo e(__('ch_manage_images')); ?>
                         </a>
                     </div>
-                    <p class="text-xs text-gray-400 mt-1"><?= __('admin_album') ?>。选好相册后点右侧「管理图片」可直接进入相片管理页（新窗口打开）。</p>
+                    <p class="text-xs text-gray-400 mt-1"><?= __('admin_album') ?><?php echo e(__('ch_album_hint')); ?></p>
                 </div>
 
                 <div>
@@ -1031,7 +1031,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </div>
                             </label>
                         </div>
-                        <p class="text-xs text-gray-400 mt-1">「停用」= 前台不显示，收进列表「<?php echo __('admin_channel_hidden_tab'); ?>」页签，可随时恢复。</p>
+                        <p class="text-xs text-gray-400 mt-1"><?php echo str_replace(':tab', e(__('admin_channel_hidden_tab')), e(__('ch_disable_hint'))); ?></p>
                     </div>
                 </div>
 
