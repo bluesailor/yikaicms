@@ -2300,6 +2300,8 @@ return [
     'nav_menu_group_hint' => 'Items nest up to three levels (with Mega menu: children = panel columns, grandchildren = column links). Select this menu as "Menu source" on the Mega menu / mobile drawer element in the Blox header template.',
     'blox_menu_source' => 'Menu source',
     'blox_menu_source_default' => 'Default nav (channel projection)',
+    'nav_menu_need_upgrade' => 'Menu groups need a database upgrade first:',
+    'nav_menu_go_upgrade' => 'Go to system upgrade',
     'blox_mega_show_desc' => 'Show channel descriptions',
     'blox_mega_full_width' => 'Full-width panel',
     'blox_ctx_label' => 'Preview context',

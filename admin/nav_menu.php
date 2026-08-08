@@ -28,11 +28,20 @@ $_enabledList = $_lang['enabled'];
 
 $activeGroup = (int) ($_GET['group'] ?? 0);
 
+// 升级期守卫：文件已更新但迁移未跑（nav_menus 表缺）→ 菜单组功能降级隐藏，
+// 页面显示升级引导而不是 500（默认导航 Tab 只依赖 channels 表，照常可用）
+$navMenusReady = db()->tableExists('nav_menus');
+
 // ============ POST 分发 ============
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $action = (string) ($_POST['action'] ?? 'save_nav');
     $backLang = $_viewLang !== $_defaultLang ? '&lang=' . urlencode($_viewLang) : '';
+
+    if ($action !== 'save_nav' && !$navMenusReady) {
+        header('Location: /admin/nav_menu.php');
+        exit;
+    }
 
     if ($action === 'save_nav') {
         // 栏目投影：is_nav / sort_order 批量（仅这两个字段，白名单）
@@ -106,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ============ 数据 ============
-$groups = navMenuModel()->all();
+$groups = $navMenusReady ? navMenuModel()->all() : [];
 $editGroup = null;
 foreach ($groups as $g) {
     if ((int) $g['id'] === $activeGroup) {
@@ -245,6 +254,12 @@ function ykRenderNavRows(array $byParent, int $parentId, int $level, array $type
         <?php echo e((string) $g['name']); ?>
     </a>
     <?php endforeach; ?>
+    <?php if (!$navMenusReady): ?>
+    <span class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+        <i class="ti ti-alert-triangle"></i> <?php echo e(__('nav_menu_need_upgrade')); ?>
+        <a href="/admin/upgrade.php" class="underline font-medium"><?php echo e(__('nav_menu_go_upgrade')); ?></a>
+    </span>
+    <?php else: ?>
     <form method="post" class="inline-flex items-center gap-1">
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="create_group">
@@ -254,6 +269,7 @@ function ykRenderNavRows(array $byParent, int $parentId, int $level, array $type
             <i class="ti ti-plus"></i> <?php echo e(__('nav_menu_new_group')); ?>
         </button>
     </form>
+    <?php endif; ?>
 </div>
 
 <?php if ($activeGroup === 0): ?>

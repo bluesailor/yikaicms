@@ -2470,6 +2470,8 @@ return [
     'nav_menu_group_hint' => '項目は三階層までネスト可能（メガメニューでは子＝パネル列、孫＝列内リンク）。Blox ヘッダーテンプレートのメガメニュー／ドロワー要素で「メニューソース」にこのメニューを選択してください。',
     'blox_menu_source' => 'メニューソース',
     'blox_menu_source_default' => 'デフォルトナビ（チャンネル投影）',
+    'nav_menu_need_upgrade' => 'メニューグループにはデータベースのアップグレードが必要です：',
+    'nav_menu_go_upgrade' => 'システムアップグレードへ',
     'blox_mega_show_desc' => 'チャンネル説明を表示',
     'blox_mega_full_width' => 'パネルを全幅表示',
     'blox_ctx_label' => 'プレビューコンテキスト',
