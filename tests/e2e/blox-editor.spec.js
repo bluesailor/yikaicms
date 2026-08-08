@@ -79,6 +79,9 @@ test('inline edit patches preview and preserves scroll @ci', async ({ page }, te
   const heading = contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0"] h1, [data-yk-el="${sectionIndex}.0.0"] h2, [data-yk-el="${sectionIndex}.0.0"] h3, [data-yk-el="${sectionIndex}.0.0"] h4`).first();
   const originalText = await heading.innerText();
 
+  // 滚动前确认加区块那轮预览已落地（新元素可见）——否则慢环境下预览恰在
+  // 滚动之后完成，iframe 重建把 scrollTop 归零，scrollBefore 读到假 0（CI 实证）
+  await expect(heading).toBeVisible();
   await scrollCanvasToBottom(page);
   const scrollBefore = await canvasScrollTop(page);
   await heading.evaluate((element) => element.dispatchEvent(new element.ownerDocument.defaultView.MouseEvent('dblclick', {

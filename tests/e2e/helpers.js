@@ -70,9 +70,14 @@ async function canvasScrollTop(page) {
 }
 
 async function scrollCanvasToBottom(page) {
+  // 重试式：滚动后跨过预览防抖+恢复窗口（~300ms）再读——若被在途预览响应的
+  // 滚动恢复清零（CI 慢机实证：scrollBefore 读到假 0）则重滚，直到值稳定为正。
   const contentFrame = await frame(page);
-  await contentFrame.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await expect.poll(() => canvasScrollTop(page)).toBeGreaterThan(0);
+  await expect.poll(async () => {
+    await contentFrame.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(350);
+    return canvasScrollTop(page);
+  }, { timeout: 10000 }).toBeGreaterThan(0);
 }
 
 async function clearSelection(page) {
