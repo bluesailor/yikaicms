@@ -2369,6 +2369,8 @@ return [
     'nav_menu_group_hint' => '项支持三级嵌套（配 Mega 菜单：子=面板列、孙=列内链接）。在 Blox 头部模板中给 Mega 菜单/移动抽屉元素选择「菜单来源」即使用此菜单。',
     'blox_menu_source' => '菜单来源',
     'blox_menu_source_default' => '默认导航（栏目投影）',
+    'nav_menu_need_upgrade' => '菜单组功能需要先完成数据库升级：',
+    'nav_menu_go_upgrade' => '前往系统升级',
     'blox_mega_show_desc' => '显示栏目描述',
     'blox_mega_full_width' => '面板通栏',
     'blox_ctx_label' => '预览上下文',
