@@ -77,8 +77,8 @@
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error('JSON解析失败:', text);
-            return { code: -1, msg: '服务器返回异常' };
+            console.error('JSON parse failed:', text);
+            return { code: -1, msg: <?php echo json_encode(__('admin_server_error'), JSON_UNESCAPED_UNICODE); ?> };
         }
     }
 
@@ -161,7 +161,7 @@
             const data = await safeJson(response);
             if (data && data.code === 0) {
                 if (opts.successMsg !== false) {
-                    showMessage(opts.successMsg || (window._ADMIN_SAVED_MSG || '已保存'));
+                    showMessage(opts.successMsg || (window._ADMIN_SAVED_MSG || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>));
                 }
                 if (typeof opts.onSuccess === 'function') opts.onSuccess(data);
                 if (opts.reload) {
@@ -172,7 +172,7 @@
                 if (typeof opts.onError === 'function') {
                     opts.onError(data);
                 } else {
-                    showMessage((data && data.msg) || '保存失败', 'error');
+                    showMessage((data && data.msg) || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
                 }
             }
             return data;
@@ -181,7 +181,7 @@
             if (typeof opts.onError === 'function') {
                 opts.onError(err);
             } else {
-                showMessage((opts.errorMsg || '请求失败') + (err && err.message ? ': ' + err.message : ''), 'error');
+                showMessage((opts.errorMsg || <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>) + (err && err.message ? ': ' + err.message : ''), 'error');
             }
             return { code: -1, msg: err && err.message };
         } finally {
@@ -238,7 +238,7 @@
     }
 
     // 确认删除
-    function confirmDelete(message = '确定要删除吗？') {
+    function confirmDelete(message = <?php echo json_encode(__('admin_confirm_delete'), JSON_UNESCAPED_UNICODE); ?>) {
         return confirm(message);
     }
 
@@ -360,18 +360,18 @@
                 <div class="flex-1"></div>
                 <button onclick="document.getElementById('mpFileInput').click()" class="bg-primary hover:bg-secondary text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
                     <i class="ti ti-upload text-base"></i>
-                    上传新文件
+                    <?php echo e(__('mp_upload_new')); ?>
                 </button>
                 <input type="file" id="mpFileInput" class="hidden" accept="image/*" onchange="_mpUpload(this)">
             </div>
             <div class="flex-1 overflow-y-auto p-6" id="mpContent">
-                <div class="text-center text-gray-400 py-12">加载中...</div>
+                <div class="text-center text-gray-400 py-12"><?php echo e(__('admin_loading')); ?></div>
             </div>
             <div class="px-6 py-3 border-t flex items-center justify-between flex-shrink-0">
                 <div id="mpPager" class="flex items-center gap-2 text-sm text-gray-500"></div>
                 <div class="flex gap-2">
-                    <button onclick="_mpClose()" class="px-4 py-2 border rounded hover:bg-gray-100 text-sm">取消</button>
-                    <button onclick="_mpConfirm()" id="mpConfirmBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm disabled:opacity-50" disabled>确定选择</button>
+                    <button onclick="_mpClose()" class="px-4 py-2 border rounded hover:bg-gray-100 text-sm"><?php echo e(__('cancel')); ?></button>
+                    <button onclick="_mpConfirm()" id="mpConfirmBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm disabled:opacity-50" disabled><?php echo e(__('mp_confirm_pick')); ?></button>
                 </div>
             </div>
         </div>
@@ -410,16 +410,16 @@
                     + '&page=' + page
                     + (keyword ? '&keyword=' + encodeURIComponent(keyword) : '');
 
-            document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">加载中...</div>';
+            document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">' + <?php echo json_encode(__('admin_loading'), JSON_UNESCAPED_UNICODE); ?> + '</div>';
 
             try {
                 var resp = await fetch(url);
                 var data = await resp.json();
-                if (data.code !== 0) { document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">加载失败</div>'; return; }
+                if (data.code !== 0) { document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">' + <?php echo json_encode(__('admin_load_failed'), JSON_UNESCAPED_UNICODE); ?> + '</div>'; return; }
 
                 var items = data.data.items;
                 if (!items.length) {
-                    document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">暂无媒体文件</div>';
+                    document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">' + <?php echo json_encode(__('mp_empty'), JSON_UNESCAPED_UNICODE); ?> + '</div>';
                     _renderPager(data.data);
                     return;
                 }
@@ -451,17 +451,17 @@
                 document.getElementById('mpContent').innerHTML = html;
                 _renderPager(data.data);
             } catch (e) {
-                document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">请求失败</div>';
+                document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">' + <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + '</div>';
             }
         };
 
         function _renderPager(d) {
             var pager = document.getElementById('mpPager');
-            if (d.pages <= 1) { pager.innerHTML = '<span>共 ' + d.total + ' 个文件</span>'; return; }
-            var html = '<span>共 ' + d.total + ' 个</span>';
-            if (d.page > 1) html += '<button onclick="_mpLoad(' + (d.page - 1) + ')" class="px-2 py-1 border rounded hover:bg-gray-100 text-xs">上一页</button>';
+            if (d.pages <= 1) { pager.innerHTML = '<span>' + <?php echo json_encode(__('mp_total_files'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', d.total) + '</span>'; return; }
+            var html = '<span>' + <?php echo json_encode(__('mp_total_files'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', d.total) + '</span>';
+            if (d.page > 1) html += '<button onclick="_mpLoad(' + (d.page - 1) + ')" class="px-2 py-1 border rounded hover:bg-gray-100 text-xs">' + <?php echo json_encode(__('admin_prev_page'), JSON_UNESCAPED_UNICODE); ?> + '</button>';
             html += '<span class="text-xs">' + d.page + '/' + d.pages + '</span>';
-            if (d.page < d.pages) html += '<button onclick="_mpLoad(' + (d.page + 1) + ')" class="px-2 py-1 border rounded hover:bg-gray-100 text-xs">下一页</button>';
+            if (d.page < d.pages) html += '<button onclick="_mpLoad(' + (d.page + 1) + ')" class="px-2 py-1 border rounded hover:bg-gray-100 text-xs">' + <?php echo json_encode(__('admin_next_page'), JSON_UNESCAPED_UNICODE); ?> + '</button>';
             pager.innerHTML = html;
         }
 
@@ -510,13 +510,13 @@
                 if (data.code === 0) {
                     _mpSelected = data.data.url;
                     document.getElementById('mpConfirmBtn').disabled = false;
-                    showMessage('上传成功');
+                    showMessage(<?php echo json_encode(__('admin_upload_ok'), JSON_UNESCAPED_UNICODE); ?>);
                     _mpLoad(1);
                 } else {
-                    showMessage(data.msg || '上传失败', 'error');
+                    showMessage(data.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
                 }
             } catch (e) {
-                showMessage('上传失败', 'error');
+                showMessage(<?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             }
             input.value = '';
         };

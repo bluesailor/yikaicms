@@ -41,7 +41,11 @@ $stats = db()->fetchOne("SELECT COUNT(*) as total, SUM(total_tokens) as tokens, 
 $providerStats = db()->fetchAll("SELECT provider, COUNT(*) as calls, SUM(total_tokens) as tokens FROM {$logTable} {$where} GROUP BY provider ORDER BY calls DESC", $params);
 
 // 按日期分组统计（最近30天）
-$dailyStats = db()->fetchAll("SELECT DATE(created_at) as day, COUNT(*) as calls, SUM(total_tokens) as tokens FROM {$logTable} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY DATE(created_at) ORDER BY day DESC");
+$dailyStats = db()->fetchAll(
+    // DATE_SUB/NOW 是 MySQL 方言，SQLite 安装的站会 500——阈值在 PHP 侧算好传参，双方言通用
+    "SELECT DATE(created_at) as day, COUNT(*) as calls, SUM(total_tokens) as tokens FROM {$logTable} WHERE created_at >= ? GROUP BY DATE(created_at) ORDER BY day DESC",
+    [date('Y-m-d H:i:s', strtotime('-30 days'))]
+);
 
 // 分页
 $total = (int)($stats['total'] ?? 0);

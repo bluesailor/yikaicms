@@ -507,7 +507,7 @@ function themeManager() {
             body.set('q', this.q);
             try {
                 var resp = await fetch('', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body });
-                if (resp.status === 401) { this.error = '登录已过期，请刷新页面重新登录'; this.loading = false; return; }
+                if (resp.status === 401) { this.error = <?php echo json_encode(__('admin_session_expired'), JSON_UNESCAPED_UNICODE); ?>; this.loading = false; return; }
                 var data = await resp.json();
                 if (data.code === 0) {
                     this.items = (data.data && data.data.themes) || [];
@@ -543,7 +543,7 @@ function themeManager() {
             body.set('slug', t.slug);
             try {
                 var resp = await fetch('', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body });
-                if (resp.status === 401) { showMessage('登录已过期，请刷新页面重新登录', 'error'); this.installing = ''; return; }
+                if (resp.status === 401) { showMessage(<?php echo json_encode(__('admin_session_expired'), JSON_UNESCAPED_UNICODE); ?>, 'error'); this.installing = ''; return; }
                 var data = await resp.json();
                 if (data.code === 0) {
                     showMessage(data.msg);
