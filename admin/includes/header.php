@@ -432,7 +432,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                 </div>
                             </template>
                             <template x-if="query.trim() && results.length === 0">
-                                <div class="px-3 py-4 text-center text-xs text-gray-400">没有匹配「<span x-text="query"></span>」的页面<br>试试：logo / 联系 / 邮件 / 主题 / 升级</div>
+                                <div class="px-3 py-4 text-center text-xs text-gray-400"><?php echo str_replace(':q', '<span x-text="query"></span>', e(__('admin_search_no_match'))); ?><br><?php echo e(__('admin_search_try')); ?></div>
                             </template>
                             <template x-for="(r, i) in results" :key="r.url">
                                 <a :href="r.url" :class="i === selected ? 'bg-blue-50' : 'hover:bg-gray-50'"

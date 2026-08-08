@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'sort_order' => postInt('sort_order'),
             'status' => postInt('status', 1),
         ];
-        if (empty($data['name']) || empty($data['group_name'])) error('请填写标签组和名称');
+        if (empty($data['name']) || empty($data['group_name'])) error(__('ptag_group_name_required'));
 
         if ($id > 0) {
             db()->update('product_tags', $data, 'id = ?', [$id]);
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'add_group') {
         $groupName = post('group_name');
-        if (empty($groupName)) error('请输入标签组名称');
+        if (empty($groupName)) error(__('ptag_group_required'));
         success(['group_name' => $groupName]);
     }
 }
@@ -85,11 +85,11 @@ if ($editId > 0) {
     }
 }
 
-$pageTitle = '标签管理';
+$pageTitle = __('ptag_title');
 $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
-echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_viewLang . ' 语种标签');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('ptag_lang_tip')));
 ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
@@ -126,37 +126,37 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
         <?php endforeach; ?>
 
         <?php if (empty($groups)): ?>
-        <div class="bg-white rounded-lg shadow p-12 text-center text-gray-400">暂无标签，请在右侧添加</div>
+        <div class="bg-white rounded-lg shadow p-12 text-center text-gray-400"><?php echo e(__('ptag_empty')); ?></div>
         <?php endif; ?>
     </div>
 
     <!-- 添加/编辑 -->
     <div>
         <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="font-bold mb-4"><?php echo $editTag ? '编辑标签' : '添加标签'; ?></h3>
+            <h3 class="font-bold mb-4"><?php echo $editTag ? e(__('ptag_edit')) : e(__('ptag_add')); ?></h3>
             <form id="tagForm" class="space-y-4">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" value="<?php echo $editTag['id'] ?? 0; ?>">
                 <input type="hidden" name="lang" value="<?php echo e($editTag['lang'] ?? $_viewLang); ?>">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">标签组 *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('ptag_group')); ?> *</label>
                     <div class="flex gap-2">
                         <select name="group_name" id="groupSelect" class="flex-1 border rounded px-3 py-2 text-sm">
                             <?php foreach ($groupNames as $gn): ?>
                             <option value="<?php echo e($gn); ?>" <?php echo ($editTag['group_name'] ?? '') === $gn ? 'selected' : ''; ?>><?php echo e($gn); ?></option>
                             <?php endforeach; ?>
-                            <option value="__new__">+ 新建标签组</option>
+                            <option value="__new__">+ <?php echo e(__('ptag_new_group')); ?></option>
                         </select>
                     </div>
-                    <input type="text" id="newGroupInput" class="hidden w-full border rounded px-3 py-2 text-sm mt-2" placeholder="输入新标签组名称">
+                    <input type="text" id="newGroupInput" class="hidden w-full border rounded px-3 py-2 text-sm mt-2" placeholder="<?php echo e(__('ptag_new_group_required')); ?>">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">标签名 *</label>
-                    <input type="text" name="name" value="<?php echo e($editTag['name'] ?? ''); ?>" required class="w-full border rounded px-3 py-2 text-sm" placeholder="如：PU聚氨酯、食品级">
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('ptag_name')); ?> *</label>
+                    <input type="text" name="name" value="<?php echo e($editTag['name'] ?? ''); ?>" required class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('ptag_name_ph')); ?>">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                    <input type="text" name="slug" value="<?php echo e($editTag['slug'] ?? ''); ?>" class="w-full border rounded px-3 py-2 text-sm" placeholder="留空自动生成">
+                    <input type="text" name="slug" value="<?php echo e($editTag['slug'] ?? ''); ?>" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('ptag_slug_ph')); ?>">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -173,15 +173,15 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
                 </div>
                 <button type="button" onclick="saveTag()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded text-sm"><?php echo __('btn_save'); ?></button>
                 <?php if ($editTag): ?>
-                <a href="/admin/product_tag.php" class="block text-center text-gray-500 text-sm">取消编辑</a>
+                <a href="/admin/product_tag.php" class="block text-center text-gray-500 text-sm"><?php echo e(__('ptag_cancel_edit')); ?></a>
                 <?php endif; ?>
             </form>
         </div>
 
         <div class="bg-white rounded-lg shadow p-6 mt-4">
-            <h3 class="font-bold mb-3 text-sm">快速批量添加</h3>
-            <textarea id="batchTags" rows="4" class="w-full border rounded px-3 py-2 text-sm" placeholder="每行一个标签名&#10;会添加到选中的标签组"></textarea>
-            <button type="button" onclick="batchAddTags()" class="mt-2 w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded text-sm">批量添加</button>
+            <h3 class="font-bold mb-3 text-sm"><?php echo e(__('ptag_batch_title')); ?></h3>
+            <textarea id="batchTags" rows="4" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('ptag_batch_ph')); ?>"></textarea>
+            <button type="button" onclick="batchAddTags()" class="mt-2 w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded text-sm"><?php echo e(__('ptag_batch_btn')); ?></button>
         </div>
     </div>
 </div>
@@ -196,7 +196,7 @@ async function saveTag() {
     const groupSelect = document.getElementById('groupSelect');
     if (groupSelect.value === '__new__') {
         const newGroup = document.getElementById('newGroupInput').value.trim();
-        if (!newGroup) { showMessage('请输入新标签组名称', 'error'); return; }
+        if (!newGroup) { showMessage(<?php echo json_encode(__('ptag_new_group_required'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
         fd.set('group_name', newGroup);
     }
     const r = await fetch('', { method: 'POST', body: fd });
@@ -210,17 +210,17 @@ async function deleteTag(id) {
     const fd = new FormData(); fd.append('action', 'delete'); fd.append('id', id);
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('已删除'); setTimeout(() => location.reload(), 1000); }
+    if (d.code === 0) { showMessage(<?php echo json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE); ?>); setTimeout(() => location.reload(), 1000); }
 }
 
 async function batchAddTags() {
     const text = document.getElementById('batchTags').value.trim();
-    if (!text) { showMessage('请输入标签', 'error'); return; }
+    if (!text) { showMessage(<?php echo json_encode(__('ptag_input_required'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
     const groupSelect = document.getElementById('groupSelect');
     let groupName = groupSelect.value;
     if (groupName === '__new__') {
         groupName = document.getElementById('newGroupInput').value.trim();
-        if (!groupName) { showMessage('请选择或输入标签组', 'error'); return; }
+        if (!groupName) { showMessage(<?php echo json_encode(__('ptag_pick_group'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
     }
     const names = text.split('\n').map(s => s.trim()).filter(Boolean);
     for (const name of names) {
@@ -230,7 +230,7 @@ async function batchAddTags() {
         fd.append('slug', ''); fd.append('sort_order', '0'); fd.append('status', '1');
         await fetch('', { method: 'POST', body: fd });
     }
-    showMessage(`已添加 ${names.length} 个标签`);
+    showMessage(<?php echo json_encode(__('ptag_batch_done'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', names.length));
     setTimeout(() => location.reload(), 1000);
 }
 </script>
