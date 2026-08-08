@@ -349,6 +349,32 @@ test('template mode context selector swaps body and reports resolver hit @ci', a
   await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
 });
 
+// ── 画布插入轨道（r13）：区块边界精确插入 + 末尾常驻入口 ──
+test('canvas insert rails add section at exact boundary @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const before = await countSections(page);
+  expect(before).toBeGreaterThan(1);
+  const contentFrame = await frame(page);
+
+  // 第 2 个区块的上缘轨道：点「+」出快捷面板，选两列 → 新区块插在 index 1
+  const rail = contentFrame.locator('[data-yk-insert="1"]');
+  await rail.evaluate((el) => el.click());
+  const pop = contentFrame.locator('.yk-insert-pop');
+  await expect(pop).toBeVisible();
+  await pop.locator('.yk-insert-pop-btn').nth(1).evaluate((el) => el.click()); // 两列
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  // 插入即选中，且位置正确（selectedSi=1 → 结构树第 2 项高亮由选择态保证；直接断言画布新区块两列）
+  await expect(contentFrame.locator('[data-yk-sec="1"] [data-yk-col]')).toHaveCount(2);
+
+  // 一次 undo 完整撤销
+  await undo(page);
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  // 末尾常驻条在场（非空文档）
+  await expect(contentFrame.locator('.yk-insert-rail-tail .yk-insert-btn')).toBeVisible();
+});
+
 // ── 点空白取消选择（用户报告的回归，2026-08-08）──
 test('clicking blank canvas deselects tree selection @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');

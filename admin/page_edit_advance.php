@@ -303,6 +303,21 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 .yk-drop-line.yk-drop-invalid:before,.yk-drop-line.yk-drop-invalid:after{background:#dc2626;content:'\00d7';width:auto;height:auto;font:700 12px/1 system-ui;color:#dc2626;background:transparent;top:-14px}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
+.yk-insert-rail{position:absolute;top:-14px;left:0;right:0;height:28px;z-index:35;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s ease;pointer-events:auto}
+.yk-insert-rail:hover{opacity:1}
+.yk-insert-rail:before{content:'';position:absolute;left:8px;right:8px;top:50%;height:2px;background:#2563eb;border-radius:999px;transform:translateY(-50%)}
+.yk-insert-rail .yk-insert-btn{position:relative;z-index:1;width:26px;height:26px;border-radius:999px;border:none;background:#2563eb;color:#fff;font:700 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.35)}
+.yk-insert-rail-tail{position:static;height:auto;opacity:1;margin:10px 8px;padding:0}
+.yk-insert-rail-tail:before{display:none}
+.yk-insert-rail-tail .yk-insert-btn{width:auto;height:auto;border-radius:10px;border:2px dashed #cbd5e1;background:transparent;color:#94a3b8;font:500 13px/1.4 system-ui,sans-serif;padding:10px 0;display:block;width:100%;box-shadow:none}
+.yk-insert-rail-tail .yk-insert-btn:hover{border-color:#2563eb;color:#2563eb}
+.yk-insert-pop{position:fixed;z-index:2147483644;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px;box-shadow:0 10px 30px rgba(15,23,42,.16)}
+.yk-insert-pop-btn{display:flex;align-items:center;justify-content:center;min-width:44px;height:36px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;transition:border-color .12s}
+.yk-insert-pop-btn:hover{border-color:#2563eb}
+.yk-insert-pop-bars{display:flex;gap:2px}
+.yk-insert-pop-bars i{width:7px;height:18px;border-radius:2px;background:#cbd5e1}
+.yk-insert-pop-btn:hover .yk-insert-pop-bars i{background:#2563eb}
+.yk-insert-pop-tpl{padding:0 12px;font:500 12px/1 system-ui,sans-serif;color:#475569}
 .yk-empty-doc{margin:48px auto;max-width:520px;padding:48px 24px}
 .yk-empty-doc p{margin:0 0 18px;font-size:14px}
 .yk-empty-btn{display:inline-flex;align-items:center;margin:0 6px;padding:7px 16px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;font:500 13px/1.4 system-ui,sans-serif;cursor:pointer;transition:border-color .15s,color .15s}
@@ -1294,6 +1309,84 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             sec.appendChild(d);
         });
         setupEmptyDocHint();
+        setupInsertRails();
+    }
+    // ── r13 画布就地添加：section 边界插入轨道（VvvebJs NewSection 机制的 bridge 版）──
+    // 辅助节点只存在于画布，不进保存文档；动作经 ykInsertAt postMessage 白名单出画布。
+    function insertPopover(index, anchorRect) {
+        var old = document.querySelector('.yk-insert-pop');
+        if (old) old.remove();
+        var pop = document.createElement('div');
+        pop.className = 'yk-insert-pop';
+        var layouts = [[12], [6, 6], [4, 4, 4], [3, 3, 3, 3]];
+        layouts.forEach(function (spans) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'yk-insert-pop-btn';
+            b.title = spans.length + ' 列';
+            var bars = document.createElement('span');
+            bars.className = 'yk-insert-pop-bars';
+            spans.forEach(function () {
+                var i = document.createElement('i');
+                bars.appendChild(i);
+            });
+            b.appendChild(bars);
+            b.addEventListener('click', function (e) {
+                e.stopPropagation();
+                pop.remove();
+                postToEditor({ ykInsertAt: { index: index, kind: 'layout', spans: spans } });
+            });
+            pop.appendChild(b);
+        });
+        var tpl = document.createElement('button');
+        tpl.type = 'button';
+        tpl.className = 'yk-insert-pop-btn yk-insert-pop-tpl';
+        tpl.textContent = '模板库';
+        tpl.addEventListener('click', function (e) {
+            e.stopPropagation();
+            pop.remove();
+            postToEditor({ ykInsertAt: { index: index, kind: 'templates' } });
+        });
+        pop.appendChild(tpl);
+        pop.style.left = Math.max(8, anchorRect.left + anchorRect.width / 2 - 120) + 'px';
+        pop.style.top = Math.max(8, anchorRect.top + 18) + 'px';
+        document.body.appendChild(pop);
+        setTimeout(function () {
+            document.addEventListener('click', function close() {
+                pop.remove();
+                document.removeEventListener('click', close);
+            }, { once: true });
+        }, 0);
+    }
+    function makeRail(index, mode) {
+        var rail = document.createElement('div');
+        rail.className = 'yk-insert-rail' + (mode === 'tail' ? ' yk-insert-rail-tail' : '');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'yk-insert-btn';
+        btn.textContent = mode === 'tail' ? '＋ 添加区块' : '＋';
+        btn.setAttribute('data-yk-insert', String(index));
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            insertPopover(index, btn.getBoundingClientRect());
+        });
+        rail.appendChild(btn);
+        return rail;
+    }
+    function setupInsertRails() {
+        document.querySelectorAll('.yk-insert-rail, .yk-insert-pop').forEach(function (n) { n.remove(); });
+        var secs = Array.prototype.slice.call(document.querySelectorAll('[data-yk-sec]'));
+        if (secs.length === 0) return; // 空文档由 yk-empty-doc 双入口负责
+        secs.forEach(function (sec) {
+            var i = parseInt(sec.getAttribute('data-yk-sec'), 10);
+            if (isNaN(i)) return;
+            sec.appendChild(makeRail(i, 'edge')); // 上缘：插到该区块之前
+        });
+        // 末尾常驻条：插到最后
+        var last = secs[secs.length - 1];
+        var tail = makeRail(secs.length, 'tail');
+        if (last.nextSibling) last.parentNode.insertBefore(tail, last.nextSibling);
+        else last.parentNode.appendChild(tail);
     }
     function setupCanvasContent(root) {
         setupColumnResizers();

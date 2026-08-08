@@ -120,6 +120,22 @@ test('ykEmptyAction 白名单：templates/section 过，其余拒', function () 
     assert.deepEqual(actions, ['templates', 'section']);
 });
 
+test('ykInsertAt 白名单：index/kind/spans 全校验（r13 插入轨道）', function () {
+    const got = [];
+    const current = fixture({ onInsertAt: function (p) { got.push(p); } });
+    const ok = (d) => current.bridge.handleMessage({ source: current.frameWindow, data: { ykInsertAt: d } });
+    assert.equal(ok({ index: 0, kind: 'layout', spans: [6, 6] }), true);
+    assert.equal(ok({ index: 3, kind: 'templates' }), true);
+    assert.equal(ok({ index: 1, kind: 'blank' }), true);
+    assert.equal(ok({ index: -1, kind: 'blank' }), false);
+    assert.equal(ok({ index: 501, kind: 'blank' }), false);
+    assert.equal(ok({ index: 1, kind: 'evil' }), false);
+    assert.equal(ok({ index: 1, kind: 'layout', spans: [] }), false);
+    assert.equal(ok({ index: 1, kind: 'layout', spans: [13] }), false);
+    assert.equal(ok({ index: 1, kind: 'layout', spans: [1, 2, 3, 4, 5, 6, 7] }), false);
+    assert.deepEqual(got.map(function (p) { return p.kind; }), ['layout', 'templates', 'blank']);
+});
+
 test("内联编辑限制体积，发送与生命周期保持幂等", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykInlineEdit: { kind: "element", path: "0.0.0", field: "text", format: "text", value: "ok" } } }), true);

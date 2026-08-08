@@ -139,6 +139,7 @@
         this.onClear = options.onClear || noop;
         this.onAreaHit = options.onAreaHit || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
+        this.onInsertAt = options.onInsertAt || noop;
         this.lastDropId = "";
         this.started = false;
         this.boundMessage = this.handleMessage.bind(this);
@@ -253,6 +254,15 @@
         }
         if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {
             this.onEmptyAction(data.ykEmptyAction);
+            return true;
+        }
+        payload = data.ykInsertAt;
+        if (payload && typeof payload === "object"
+            && Number.isInteger(payload.index) && payload.index >= 0 && payload.index <= 500
+            && (payload.kind === "layout" || payload.kind === "templates" || payload.kind === "blank")
+            && (payload.spans === undefined || (Array.isArray(payload.spans) && payload.spans.length >= 1 && payload.spans.length <= 6
+                && payload.spans.every(function (n) { return Number.isInteger(n) && n >= 1 && n <= 12; })))) {
+            this.onInsertAt({ index: payload.index, kind: payload.kind, spans: payload.spans });
             return true;
         }
         return false;
