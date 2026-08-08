@@ -95,7 +95,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
     <div class="flex border-b">
         <a href="/admin/setting_contact.php<?php echo $_lang['qs']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_info_title'); ?></a>
         <a href="/admin/setting_contact.php?tab=form<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_form_config'); ?></a>
-        <a href="/admin/setting_contact.php?tab=map<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'map' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">地图 API</a>
+        <a href="/admin/setting_contact.php?tab=map<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'map' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo e(__('sc_tab_map')); ?></a>
     </div>
 </div>
 
@@ -122,9 +122,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             <?php $cardsData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
-                    <?php echo e($item['name']); ?>
-                    <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($item['tip']); ?></span>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
+                    <?php if ($__tip !== ''): ?>
+                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
                 </label>
                 <input type="hidden" name="settings[contact_cards]" id="contactCardsJson">
@@ -192,9 +193,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             <!-- 普通设置项 -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    <?php echo e($item['name']); ?>
-                    <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm block"><?php echo e($item['tip']); ?></span>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
+                    <?php if ($__tip !== ''): ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
                 </label>
                 <div class="md:col-span-3">
@@ -283,9 +285,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
-                    <?php echo e($item['name']); ?>
-                    <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($item['tip']); ?></span>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
+                    <?php if ($__tip !== ''): ?>
+                    <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
                 </label>
                 <input type="hidden" name="settings[contact_form_fields]" id="contactFormFieldsJson">
@@ -318,9 +321,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             <?php elseif ($item['type'] === 'textarea'): ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    <?php echo e($item['name']); ?>
-                    <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm block"><?php echo e($item['tip']); ?></span>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
+                    <?php if ($__tip !== ''): ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
                 </label>
                 <div class="md:col-span-3">
@@ -332,9 +336,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             <?php else: ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
-                    <?php echo e($item['name']); ?>
-                    <?php if ($item['tip']): ?>
-                    <span class="text-gray-400 text-sm block"><?php echo e($item['tip']); ?></span>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
+                    <?php if ($__tip !== ''): ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
                 </label>
                 <div class="md:col-span-3">

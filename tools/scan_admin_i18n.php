@@ -58,6 +58,11 @@ scan_req('/admin/login.php', ['username' => 'admin', 'password' => 'smoke@Test12
 $whitelist = ['中文', '日本語', '繁體中文', '한국어'];
 foreach ([
     'SELECT name FROM ' . DB_PREFIX . 'channels',
+    'SELECT description FROM ' . DB_PREFIX . 'channels',
+    'SELECT subtitle FROM ' . DB_PREFIX . 'banners',
+    'SELECT name FROM ' . DB_PREFIX . 'form_templates',
+    'SELECT name FROM ' . DB_PREFIX . 'plugins',
+    'SELECT description FROM ' . DB_PREFIX . 'plugins',
     'SELECT name FROM ' . DB_PREFIX . 'product_categories',
     'SELECT name FROM ' . DB_PREFIX . 'product_tags',
     'SELECT group_name FROM ' . DB_PREFIX . 'product_tags',
