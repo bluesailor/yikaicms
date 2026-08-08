@@ -39,14 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         settingModel()->set('show_lang_switcher', post('show_switcher', '0'));
 
         adminLog('setting', 'lang', '更新多语言设置');
-        success([], '保存成功');
+        success([], __('save_success'));
     }
 
     // 批量翻译栏目
     if ($action === 'translate_channels') {
         $targetLang = post('target_lang');
         if (!$targetLang || $targetLang === $defaultLang) {
-            error('请选择目标语言');
+            error(__('slang_pick_target'));
         }
 
         // 获取默认语言的所有栏目
@@ -109,11 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         adminLog('setting', 'translate_channels', "批量翻译栏目到 {$targetLang}: 创建 {$created}, 跳过 {$skipped}");
-        success([], "翻译完成：创建 {$created} 个栏目，跳过 {$skipped} 个已有栏目");
+        success([], str_replace([':c', ':s'], [(string) $created, (string) $skipped], __('slang_translate_done')));
     }
 }
 
-$pageTitle = '多语言设置';
+$pageTitle = __('slang_title');
 $currentMenu = 'setting_lang';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -129,8 +129,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <!-- 启用的语言 -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
-                <h2 class="font-bold text-gray-800">启用的语言</h2>
-                <p class="text-sm text-gray-500 mt-1">勾选要启用的语言，新增语言需先在 <code class="bg-gray-100 px-1 rounded">lang/</code> 目录添加语言包文件</p>
+                <h2 class="font-bold text-gray-800"><?php echo e(__('slang_enabled')); ?></h2>
+                <p class="text-sm text-gray-500 mt-1"><?php echo str_replace(':dir', '<code class="bg-gray-100 px-1 rounded">lang/</code>', e(__('slang_enabled_tip'))); ?></p>
             </div>
             <div class="p-6 space-y-3">
                 <?php foreach ($allLangs as $code => $label): ?>
@@ -146,7 +146,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <div class="flex items-center gap-2">
                         <?php if ($code === $defaultLang): ?>
-                        <span class="text-xs bg-primary text-white px-2 py-0.5 rounded">默认</span>
+                        <span class="text-xs bg-primary text-white px-2 py-0.5 rounded"><?php echo e(__('slang_default_badge')); ?></span>
                         <?php endif; ?>
                         <span class="text-xs text-gray-400">lang/<?php echo e($code); ?>.php</span>
                     </div>
@@ -154,7 +154,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
 
                 <?php if (empty($allLangs)): ?>
-                <p class="text-gray-400 text-sm text-center py-4">未找到语言包文件</p>
+                <p class="text-gray-400 text-sm text-center py-4"><?php echo e(__('slang_no_packs')); ?></p>
                 <?php endif; ?>
             </div>
         </div>
@@ -162,12 +162,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <!-- 默认语言 -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
-                <h2 class="font-bold text-gray-800">语言配置</h2>
+                <h2 class="font-bold text-gray-800"><?php echo e(__('slang_config')); ?></h2>
             </div>
             <div class="p-6 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">前台默认语言</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('slang_front_default')); ?></label>
                         <select name="default_lang" class="w-full border rounded px-4 py-2">
                             <?php foreach ($allLangs as $code => $label): ?>
                             <option value="<?php echo e($code); ?>" <?php echo $code === $defaultLang ? 'selected' : ''; ?>>
@@ -175,10 +175,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </option>
                             <?php endforeach; ?>
                         </select>
-                        <p class="text-xs text-gray-400 mt-1">访客首次访问时默认显示的语言</p>
+                        <p class="text-xs text-gray-400 mt-1"><?php echo e(__('slang_front_default_tip')); ?></p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">后台语言</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('slang_admin_lang')); ?></label>
                         <select name="admin_lang" class="w-full border rounded px-4 py-2">
                             <?php foreach ($allLangs as $code => $label): ?>
                             <option value="<?php echo e($code); ?>" <?php echo $code === $adminLang ? 'selected' : ''; ?>>
@@ -193,8 +193,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="flex items-center gap-3">
                         <input type="checkbox" name="show_switcher" value="1" <?php echo $showSwitcher === '1' ? 'checked' : ''; ?> class="w-4 h-4 rounded">
                         <div>
-                            <span class="font-medium text-gray-700">显示前台语言切换器</span>
-                            <p class="text-xs text-gray-400">在前台页面顶部显示语言切换下拉菜单（需启用 2 种以上语言）</p>
+                            <span class="font-medium text-gray-700"><?php echo e(__('slang_switcher')); ?></span>
+                            <p class="text-xs text-gray-400"><?php echo e(__('slang_switcher_tip')); ?></p>
                         </div>
                     </label>
                 </div>
@@ -205,15 +205,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <!-- 翻译工具（全宽） -->
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
-                <h2 class="font-bold text-gray-800">翻译工具</h2>
+                <h2 class="font-bold text-gray-800"><?php echo e(__('slang_tools')); ?></h2>
             </div>
             <div class="p-6 space-y-3">
                 <a href="/admin/setting_translate.php" class="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition">
                     <div class="flex items-center gap-3">
                         <i class="ti ti-language text-lg text-primary"></i>
                         <div>
-                            <span class="font-medium text-gray-700">界面翻译管理</span>
-                            <p class="text-xs text-gray-400">编辑语言包中的界面文案翻译</p>
+                            <span class="font-medium text-gray-700"><?php echo e(__('slang_ui_translate')); ?></span>
+                            <p class="text-xs text-gray-400"><?php echo e(__('slang_ui_translate_tip')); ?></p>
                         </div>
                     </div>
                     <i class="ti ti-chevron-right text-base text-gray-400"></i>
@@ -222,13 +222,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php
                 // 自动扫描所有词典文件
                 $dictFiles = glob(ROOT_PATH . '/lang/dict-*.php') ?: [];
-                $dictLabels = ['zh-en' => '中英词典', 'zh-ja' => '中日词典', 'zh-ko' => '中韩词典', 'zh-fr' => '中法词典', 'zh-de' => '中德词典', 'zh-es' => '中西词典'];
+                $dictLabels = ['zh-en' => __('slang_dict_zh_en'), 'zh-ja' => __('slang_dict_zh_ja'), 'zh-ko' => __('slang_dict_zh_ko'), 'zh-fr' => __('slang_dict_zh_fr'), 'zh-de' => __('slang_dict_zh_de'), 'zh-es' => __('slang_dict_zh_es')];
                 ?>
                 <?php if (!empty($dictFiles)): ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     <?php foreach ($dictFiles as $df):
                         $dictCode = str_replace(['dict-', '.php'], '', basename($df));
-                        $dictLabel = $dictLabels[$dictCode] ?? $dictCode . ' 词典';
+                        $dictLabel = $dictLabels[$dictCode] ?? $dictCode . ' ' . __('slang_dict_word');
                         $dictData = require $df;
                         $dictCount = count($dictData);
                     ?>
@@ -237,18 +237,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <i class="ti ti-book text-lg text-blue-500 flex-shrink-0"></i>
                             <div class="min-w-0">
                                 <span class="font-medium text-gray-700"><?php echo e($dictLabel); ?></span>
-                                <p class="text-xs text-gray-400 truncate"><?php echo $dictCount; ?> 个词条 · lang/dict-<?php echo e($dictCode); ?>.php</p>
+                                <p class="text-xs text-gray-400 truncate"><?php echo str_replace(':n', (string) $dictCount, e(__('slang_dict_entries'))); ?> · lang/dict-<?php echo e($dictCode); ?>.php</p>
                             </div>
                         </div>
                     </div>
                     <?php endforeach; ?>
                 </div>
                 <?php else: ?>
-                <div class="p-3 text-sm text-gray-400 text-center">暂无词典文件</div>
+                <div class="p-3 text-sm text-gray-400 text-center"><?php echo e(__('slang_no_dicts')); ?></div>
                 <?php endif; ?>
 
                 <div class="text-xs text-gray-400 mt-2 px-3">
-                    <strong>翻译流程：</strong>编辑内容时点击「翻译为 English →」→ 先查词典快速翻译标题 → 未命中调 AI API → 创建英文版本
+                    <strong><?php echo e(__('slang_flow_label')); ?></strong><?php echo e(__('slang_flow_desc')); ?>
                 </div>
             </div>
         </div>
@@ -256,7 +256,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex justify-end">
             <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition inline-flex items-center gap-2">
                 <i class="ti ti-check text-base"></i>
-                保存设置
+                <?php echo e(__('save_settings')); ?>
             </button>
         </div>
     </form>
@@ -269,8 +269,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if (!empty($otherLangs)): ?>
     <div class="bg-white rounded-lg shadow mt-6">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">栏目翻译</h2>
-            <p class="text-sm text-gray-500 mt-1">将栏目名称翻译到其他语言，支持手工编辑和 AI 批量翻译</p>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('slang_channel_translate')); ?></h2>
+            <p class="text-sm text-gray-500 mt-1"><?php echo e(__('slang_channel_translate_tip')); ?></p>
         </div>
         <div class="p-6 flex flex-wrap gap-3">
             <?php foreach ($otherLangs as $lc => $ll):
@@ -283,9 +283,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div>
                     <span class="font-medium text-gray-700"><?php echo e($ll); ?></span>
                     <?php if ($existCount > 0): ?>
-                    <span class="text-xs text-green-600 ml-1">✓ <?php echo $existCount; ?> 个栏目</span>
+                    <span class="text-xs text-green-600 ml-1">✓ <?php echo str_replace(':n', (string) $existCount, e(__('slang_n_channels'))); ?></span>
                     <?php else: ?>
-                    <span class="text-xs text-gray-400 ml-1">未翻译</span>
+                    <span class="text-xs text-gray-400 ml-1"><?php echo e(__('slang_untranslated')); ?></span>
                     <?php endif; ?>
                 </div>
                 <i class="ti ti-chevron-right text-base text-gray-300"></i>
@@ -303,10 +303,10 @@ document.getElementById('langForm').addEventListener('submit', async function(e)
     var resp = await fetch('', { method: 'POST', body: fd });
     var data = await safeJson(resp);
     if (data.code === 0) {
-        showMessage(data.msg || '保存成功');
+        showMessage(data.msg || <?php echo json_encode(__('save_success'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(() => location.reload(), 800);
     } else {
-        showMessage(data.msg || '保存失败', 'error');
+        showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 </script>
