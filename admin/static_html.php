@@ -282,10 +282,10 @@ document.getElementById('genBtn').addEventListener('click', async function() {
         if (d.failed && d.failed.length) failedList.push(...d.failed);
         const done = Math.min(d.next, d.total);
         bar.style.width = (done / d.total * 100).toFixed(1) + '%';
-        let info = '成功 ' + (okSum + extraSum);
-        if (extraSum) info += '（含分页 ' + extraSum + '）';
-        if (skipSum) info += '，跳过 ' + skipSum;
-        if (failSum) info += '，失败 ' + failSum;
+        let info = <?php echo json_encode(__('sh_ok_n'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', okSum + extraSum);
+        if (extraSum) info += <?php echo json_encode(__('sh_incl_paged'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', extraSum);
+        if (skipSum) info += <?php echo json_encode(__('sh_skipped'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', skipSum);
+        if (failSum) info += <?php echo json_encode(__('sh_failed'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', failSum);
         txt.textContent = done + ' / ' + d.total + '（' + info + '）';
         if (d.done) break;
         offset = d.next;

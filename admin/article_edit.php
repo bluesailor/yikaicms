@@ -528,7 +528,7 @@ initTinyEditor(".tinymce-editor");
             }
         } catch (err) {
             submitting = false;
-            showMessage("网络错误，请重试", "error");
+            showMessage(<?php echo json_encode(__('admin_network_error'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     });
 })();

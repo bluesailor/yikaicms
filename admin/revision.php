@@ -23,7 +23,7 @@ $type     = (string) input('type', '');
 $targetId = (int) input('id', 0);
 
 if (!in_array($type, ['article', 'page'], true) || $targetId <= 0) {
-    error('参数错误');
+    error(__('admin_bad_params'));
 }
 
 // 按类型要求对应的编辑权限。此前本端点只有 checkLogin()：虽然有版本归属校验
@@ -74,7 +74,7 @@ if ($action === 'preview') {
 
 if ($action === 'restore') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        error('非法请求');
+        error(__('admin_illegal_request'));
     }
     $rev = $loadOwned((int) input('rev_id', 0));
     try {

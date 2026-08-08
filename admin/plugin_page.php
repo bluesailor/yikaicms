@@ -20,7 +20,7 @@ $pluginSlug = trim($_GET['plugin'] ?? '');
 
 // 验证 slug
 if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $pluginSlug)) {
-    die('<div style="padding:50px;text-align:center"><h2>无效的插件</h2><a href="/admin/plugin.php">返回插件管理</a></div>');
+    die('<div style="padding:50px;text-align:center"><h2>' . e(__('pl_invalid_plugin')) . '</h2><a href="/admin/plugin.php">' . e(__('pl_back_to_plugins')) . '</a></div>');
 }
 
 // 检查插件是否已启用

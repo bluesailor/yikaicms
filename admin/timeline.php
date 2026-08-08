@@ -310,7 +310,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex items-start justify-between mb-1 gap-3">
             <div>
                 <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__('tl_layout')); ?></h3>
-                <p class="text-sm text-gray-500 mb-4"><?php echo str_replace(':page', '<code>/about/history.html</code>', e(__('tl_layout_desc'))); ?><span class="text-green-600">点击卡片即自动保存</span>，无需点保存按钮。</p>
+                <p class="text-sm text-gray-500 mb-4"><?php echo str_replace(':page', '<code>/about/history.html</code>', e(__('tl_layout_desc'))); ?><span class="text-green-600"><?php echo e(__('tl_autosave_note')); ?></span></p>
             </div>
             <button type="button" onclick="saveTimelineLayout(document.querySelector('input[name=&quot;timeline_layout&quot;]:checked')?.value || 'vertical')" class="cursor-pointer text-sm border px-3 py-1.5 rounded hover:bg-gray-50 inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                 <i class="ti ti-device-floppy text-base"></i>
@@ -337,7 +337,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="font-semibold text-gray-800"><?php echo e(__('tl_vertical')); ?></span>
                         <span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"><?php echo e(__('slang_default_badge')); ?></span>
                     </div>
-                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(__('tl_vertical_desc')); ?>。适合企业大事记。</p>
+                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(__('tl_vertical_desc')); ?><?php echo e(__('tl_vertical_use')); ?></p>
                 </div>
             </label>
 

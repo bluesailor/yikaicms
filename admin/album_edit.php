@@ -179,7 +179,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php $__layout = $album['layout'] ?? 'grid'; ?>
                 <select name="layout" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <option value="grid" <?php echo $__layout === 'grid' ? 'selected' : ''; ?>><?php echo e(__('albume_layout_grid')); ?></option>
-                    <option value="masonry" <?php echo $__layout === 'masonry' ? 'selected' : ''; ?>><?php echo e(__('albume_layout_masonry')); ?><span class="hidden">片原始比例</option>
+                    <option value="masonry" <?php echo $__layout === 'masonry' ? 'selected' : ''; ?>><?php echo e(__('albume_layout_masonry')); ?></option>
                 </select>
                 <p class="text-xs text-gray-400 mt-1"><?php echo str_replace(':code', '<code>[album-<?php echo (int)($album[\'id\'] ?? 0); ?>]</code>', e(__('albume_shortcode_tip'))); ?></p>
             </div>
