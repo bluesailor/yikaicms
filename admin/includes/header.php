@@ -530,9 +530,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     </a>
 
                     <!-- HTML 缓存设置 -->
-                    <a href="/admin/setting_cache.php" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="HTML 缓存">
+                    <a href="/admin/setting_cache.php" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="<?php echo e(__('admin_cache_title')); ?>">
                         <i class="ti ti-database text-lg"></i>
-                        <span class="hidden sm:inline">缓存</span>
+                        <span class="hidden sm:inline"><?php echo e(__('admin_cache_short')); ?></span>
                     </a>
 
                     <!-- AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） -->
