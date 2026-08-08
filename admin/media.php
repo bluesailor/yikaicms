@@ -60,6 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // 查询参数
 $type = get('type', '');
+// 选择模式（用户反馈补齐）：其它页面 window.open 本页 mode=select&target=<inputId>，
+// 点击图片即回填 opener 对应输入框并关窗——此前 mode 参数从未被实现，弹窗只是
+// 普通媒体库（勾选框是批量删除的），选中后没有任何确认/回填动作。
+$selectMode = get('mode', '') === 'select';
+$selectTarget = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) get('target', ''));
 $keyword = get('keyword', '');
 $page = max(1, getInt('page', 1));
 $perPage = 24;
@@ -114,6 +119,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
+<?php if ($selectMode): ?>
+<div class="bg-blue-50 border border-blue-100 rounded-lg px-5 py-3 mb-4 text-sm text-blue-700">
+    <i class="ti ti-hand-click"></i> <?php echo __('media_select_hint'); ?>
+</div>
+<?php endif; ?>
+
 <!-- 文件列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="p-6">
@@ -121,15 +132,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="mediaGrid">
             <?php foreach ($mediaList as $item): ?>
             <div class="relative group border rounded-lg overflow-hidden" data-id="<?php echo $item['id']; ?>">
+                <?php if (!$selectMode): ?>
                 <div class="absolute top-2 left-2 z-10">
                     <input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>"
                            class="w-4 h-4 rounded border-gray-300">
                 </div>
+                <?php endif; ?>
 
                 <div class="aspect-square bg-gray-100 flex items-center justify-center">
                     <?php if ($item['type'] === 'image'): ?>
                     <img src="<?php echo e($item['url']); ?>" alt="<?php echo e($item['name']); ?>"
-                         class="w-full h-full object-cover cursor-pointer" onclick="previewImage('<?php echo e($item['url']); ?>')">
+                         class="w-full h-full object-cover cursor-pointer"
+                         onclick="<?php echo $selectMode ? 'pickMedia(this.src)' : "previewImage('" . e($item['url']) . "')"; ?>">
                     <?php else: ?>
                     <div class="text-center p-4">
                         <div class="text-4xl text-gray-400 mb-2">
@@ -158,6 +172,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
 
+                <?php if ($selectMode): ?>
+                <!-- 选择模式：hover 遮罩就是确认动作（原遮罩的复制/删除会拦截图片点击） -->
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    <button onclick="pickMedia('<?php echo e($item['url']); ?>')"
+                            class="bg-primary text-white px-4 py-1.5 rounded text-sm hover:opacity-90">
+                        <?php echo __('media_select_use'); ?>
+                    </button>
+                </div>
+                <?php else: ?>
                 <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                     <button onclick="copyUrl('<?php echo e($item['url']); ?>')"
                             class="bg-white text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-100">
@@ -168,6 +191,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php echo __('admin_delete'); ?>
                     </button>
                 </div>
+                <?php endif; ?>
             </div>
             <?php endforeach; ?>
         </div>
@@ -303,6 +327,21 @@ async function handleFiles(files) {
     }, 1500);
 }
 
+var YK_SELECT_TARGET = <?php echo json_encode($selectMode ? $selectTarget : '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+function pickMedia(url) {
+    if (!YK_SELECT_TARGET) return;
+    try {
+        var input = window.opener && window.opener.document.getElementById(YK_SELECT_TARGET);
+        if (input) {
+            input.value = url;
+            input.dispatchEvent(new window.opener.Event('input', { bubbles: true }));
+            input.dispatchEvent(new window.opener.Event('change', { bubbles: true }));
+            window.close();
+            return;
+        }
+    } catch (e) { /* opener 跨页/已关：走降级 */ }
+    prompt(<?php echo json_encode(__('media_select_copy_fallback'), JSON_UNESCAPED_UNICODE); ?>, url);
+}
 function previewImage(url) {
     document.getElementById('previewImage').src = url;
     document.getElementById('previewModal').classList.remove('hidden');
@@ -341,7 +380,11 @@ async function scanMedia(btn) {
     var icon = btn.querySelector('i');
     icon.classList.add('animate-spin');
     try {
-        var resp = await fetch('/admin/media_api.php?action=scan', { method: 'POST' });
+        // 全局 POST CSRF（RBAC 加固后 auth.php 对所有 POST 强制校验）——header 携带 token
+        var resp = await fetch('/admin/media_api.php?action=scan', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        });
         var data = await resp.json();
         if (data.code === 0) {
             alert('扫描完成：新增 ' + data.data.added + ' 个文件');
