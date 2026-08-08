@@ -27,11 +27,11 @@ const PLUGIN_MARKET_API = 'https://update.yikaicms.com/api/plugins/list.php';
 function pluginInstallFromZip(string $zipPath): array
 {
     if (!class_exists('ZipArchive')) {
-        return [false, 'PHP未安装zip扩展', ''];
+        return [false, __('pl_no_zip_ext'), ''];
     }
     $zip = new ZipArchive();
     if ($zip->open($zipPath) !== true) {
-        return [false, 'ZIP文件无法打开', ''];
+        return [false, __('pl_zip_open_failed'), ''];
     }
 
     // 查找 slug/plugin.json 确定插件标识
@@ -45,20 +45,20 @@ function pluginInstallFromZip(string $zipPath): array
     }
     if (!$pluginSlug) {
         $zip->close();
-        return [false, 'ZIP中未找到有效的 plugin.json，请确保ZIP结构为 插件名/plugin.json', ''];
+        return [false, __('pl_no_manifest'), ''];
     }
 
     $meta = json_decode((string) $zip->getFromName($pluginSlug . '/plugin.json'), true);
     if (!is_array($meta) || empty($meta['name'])) {
         $zip->close();
-        return [false, 'plugin.json 格式无效，缺少 name 字段', ''];
+        return [false, __('pl_manifest_invalid'), ''];
     }
 
     // zip-slip 防护：任一条目会逃出目录则拒绝，绝不 extractTo
     $unsafe = zipUnsafeEntry($zip);
     if ($unsafe !== null) {
         $zip->close();
-        return [false, 'ZIP 含非法路径条目，已拒绝：' . $unsafe, ''];
+        return [false, __('pl_unsafe_entry') . ': ' . $unsafe, ''];
     }
 
     $pluginsDir = ROOT_PATH . '/plugins';
@@ -79,7 +79,7 @@ function pluginInstallFromZip(string $zipPath): array
             'activated_at' => 0,
         ]);
     }
-    return [true, '插件安装成功: ' . ($meta['name'] ?? $pluginSlug), $pluginSlug];
+    return [true, __('pl_installed') . ': ' . ($meta['name'] ?? $pluginSlug), $pluginSlug];
 }
 
 /** GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null） */
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
 
     // 验证 slug 格式（upload/market_list 不携带 slug）
     if (!in_array($action, ['upload', 'market_list'], true) && !preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
-        echo json_encode(['code' => 1, 'msg' => '无效的插件标识']);
+        echo json_encode(['code' => 1, 'msg' => __('pl_bad_slug')]);
         exit;
     }
 
@@ -144,13 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 ]);
             }
             adminLog('plugin', 'activate', '启用插件: ' . $slug);
-            echo json_encode(['code' => 0, 'msg' => '插件已启用']);
+            echo json_encode(['code' => 0, 'msg' => __('pl_activated')]);
             break;
 
         case 'deactivate':
             pluginModel()->deactivate($slug);
             adminLog('plugin', 'deactivate', '禁用插件: ' . $slug);
-            echo json_encode(['code' => 0, 'msg' => '插件已禁用']);
+            echo json_encode(['code' => 0, 'msg' => __('pl_deactivated')]);
             break;
 
         case 'delete':
@@ -163,17 +163,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             adminLog('plugin', 'delete', '删除插件: ' . $slug);
             echo json_encode([
                 'code' => 0,
-                'msg' => $deleted ? '插件已删除' : '插件记录已清除，但目录删除失败'
+                'msg' => $deleted ? __('pl_deleted') : __('pl_record_cleared')
             ]);
             break;
 
         case 'upload':
             if (empty($_FILES['plugin_zip']) || $_FILES['plugin_zip']['error'] !== UPLOAD_ERR_OK) {
-                echo json_encode(['code' => 1, 'msg' => '请选择有效的ZIP文件']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_pick_zip')]);
                 exit;
             }
             if (strtolower(pathinfo($_FILES['plugin_zip']['name'], PATHINFO_EXTENSION)) !== 'zip') {
-                echo json_encode(['code' => 1, 'msg' => '仅支持ZIP格式']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_zip_only')]);
                 exit;
             }
             [$ok, $msg, $pluginSlug] = pluginInstallFromZip($_FILES['plugin_zip']['tmp_name']);
@@ -194,12 +194,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             ]));
             $resp = pluginMarketHttpGet($url);
             if ($resp === null) {
-                echo json_encode(['code' => 1, 'msg' => '无法连接插件市场，请检查服务器外网访问（curl/allow_url_fopen）']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_market_unreachable')]);
                 exit;
             }
             $data = json_decode($resp, true);
             if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
-                echo json_encode(['code' => 1, 'msg' => '插件市场返回异常']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_market_bad_response')]);
                 exit;
             }
             echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             ])));
             $data = $resp !== null ? json_decode($resp, true) : null;
             if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
-                echo json_encode(['code' => 1, 'msg' => '无法连接插件市场']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_market_offline')]);
                 exit;
             }
             $item = null;
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 exit;
             }
             if (!$item || empty($item['download_url']) || empty($item['hash'])) {
-                echo json_encode(['code' => 1, 'msg' => '市场中不存在该插件']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_not_in_market')]);
                 exit;
             }
 
@@ -245,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $body = pluginMarketHttpGet($item['download_url'], 120);
             if ($body === null || file_put_contents($tmpZip, $body) === false) {
                 @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => '插件包下载失败']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_download_failed')]);
                 exit;
             }
 
@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $actual = strtolower((string) hash_file('sha256', $tmpZip));
             if (!hash_equals($expected, $actual)) {
                 @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => 'SHA256 校验不通过，包可能损坏或被篡改，已丢弃']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_hash_failed')]);
                 exit;
             }
 
@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 || !function_exists('openssl_verify')
                 || openssl_verify($canonical, $sig, license_pubkey(), OPENSSL_ALGO_SHA256) !== 1) {
                 @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => '插件包签名验证失败，已丢弃']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_sig_failed')]);
                 exit;
             }
 
@@ -276,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 // 包内 slug 与市场条目不符：清掉刚解压的目录，拒绝
                 deletePluginDir($pluginSlug);
                 pluginModel()->query('DELETE FROM ' . pluginModel()->tableName() . ' WHERE slug = ?', [$pluginSlug]);
-                echo json_encode(['code' => 1, 'msg' => '插件包内容与市场条目不符，已拒绝']);
+                echo json_encode(['code' => 1, 'msg' => __('pl_mismatch')]);
                 exit;
             }
             if ($ok) {
@@ -286,7 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             break;
 
         default:
-            echo json_encode(['code' => 1, 'msg' => '未知操作']);
+            echo json_encode(['code' => 1, 'msg' => __('blox_invalid_action')]);
     }
     exit;
 }
@@ -300,7 +300,7 @@ foreach ($plugins as $slug => $p) {
     $localVersions[$slug] = (string) ($p['version'] ?? '0');
 }
 
-$pageTitle = '插件管理';
+$pageTitle = __('pl_title');
 $currentMenu = 'plugin';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -313,7 +313,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <button @click="tab = 'installed'"
                     :class="tab === 'installed' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:text-primary'"
                     class="px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition cursor-pointer inline-flex items-center gap-1">
-                <i class="ti ti-clipboard-list text-base"></i>已安装 (<?php echo count($plugins); ?>)
+                <i class="ti ti-clipboard-list text-base"></i><?php echo e(__('pl_installed_tab')); ?> (<?php echo count($plugins); ?>)
                 <span x-show="updCount() > 0" x-cloak
                       class="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-xs font-bold"
                       x-text="updCount()"></span>
@@ -321,13 +321,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <button @click="openMarket()"
                     :class="tab === 'market' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:text-primary'"
                     class="px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition cursor-pointer inline-flex items-center gap-1">
-                <i class="ti ti-building-store text-base"></i>插件市场
+                <i class="ti ti-building-store text-base"></i><?php echo e(__('pl_market')); ?>
             </button>
         </div>
         <button x-show="tab === 'installed'" onclick="document.getElementById('uploadModal').classList.remove('hidden')"
                 class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-2">
             <i class="ti ti-cloud-upload text-base"></i>
-            上传安装插件
+            <?php echo e(__('pl_upload_install')); ?>
         </button>
     </div>
 
@@ -336,26 +336,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex items-center gap-2 mb-4">
             <div class="relative flex-1">
                 <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" x-model="q" @keydown.enter="search()" placeholder="搜索插件名称、描述、分类…"
+                <input type="text" x-model="q" @keydown.enter="search()" placeholder="<?php echo e(__('pl_search_ph')); ?>"
                        class="w-full border rounded-lg pl-9 pr-3 py-2 text-sm bg-white">
             </div>
-            <button @click="search()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg text-sm transition cursor-pointer">搜索</button>
+            <button @click="search()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg text-sm transition cursor-pointer"><?php echo e(__('admin_search')); ?></button>
         </div>
 
         <template x-if="loading">
             <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm">
-                <i class="ti ti-loader-2 animate-spin text-2xl block mb-2"></i>正在加载插件市场…
+                <i class="ti ti-loader-2 animate-spin text-2xl block mb-2"></i><?php echo e(__('pl_loading_market')); ?>
             </div>
         </template>
         <template x-if="!loading && error">
             <div class="bg-white rounded-lg shadow p-10 text-center text-sm">
                 <i class="ti ti-plug-connected-x text-3xl block mb-2 text-gray-300"></i>
                 <p class="text-red-500 mb-2" x-text="error"></p>
-                <button @click="search()" class="text-primary hover:underline cursor-pointer">重试</button>
+                <button @click="search()" class="text-primary hover:underline cursor-pointer"><?php echo e(__('pl_retry')); ?></button>
             </div>
         </template>
         <template x-if="!loading && !error && loaded && items.length === 0">
-            <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm">没有匹配的插件</div>
+            <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm"><?php echo e(__('pl_no_match')); ?></div>
         </template>
 
         <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="!loading && !error">
@@ -383,12 +383,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <div class="text-xs text-gray-400" x-text="(p.author || '') + (p.size_kb ? ' · ' + p.size_kb + ' KB' : '')"></div>
                         </div>
                         <template x-if="statusOf(p) === 'installed'">
-                            <span class="text-xs px-2.5 py-1 rounded bg-gray-100 text-gray-400 whitespace-nowrap">已安装</span>
+                            <span class="text-xs px-2.5 py-1 rounded bg-gray-100 text-gray-400 whitespace-nowrap"><?php echo e(__('pl_installed_tab')); ?></span>
                         </template>
                         <template x-if="statusOf(p) === 'upgrade'">
                             <button @click="install(p)" :disabled="installing === p.slug"
                                     class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
-                                    x-text="installing === p.slug ? '升级中…' : '升级'"></button>
+                                    x-text="installing === p.slug ? <?php echo json_encode(__('pl_upgrading'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_upgrade'), JSON_UNESCAPED_UNICODE); ?>"></button>
                         </template>
                         <template x-if="statusOf(p) === 'none' && p.tier === 'pro' && !p.entitled">
                             <a href="https://www.yikaicms.com/#pricing" target="_blank"
@@ -399,7 +399,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <template x-if="statusOf(p) === 'none' && !(p.tier === 'pro' && !p.entitled)">
                             <button @click="install(p)" :disabled="installing === p.slug"
                                     class="text-sm px-3 py-1.5 rounded bg-primary hover:bg-secondary text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
-                                    x-text="installing === p.slug ? '安装中…' : '安装'"></button>
+                                    x-text="installing === p.slug ? <?php echo json_encode(__('pl_installing'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_install'), JSON_UNESCAPED_UNICODE); ?>"></button>
                         </template>
                     </div>
                     <p class="text-sm text-gray-500" x-text="p.description"></p>
@@ -416,7 +416,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </template>
         </div>
-        <p class="text-xs text-gray-400 mt-4">插件包由官方仓库分发，安装前自动完成 SHA256 完整性校验与 RSA 签名验证。</p>
+        <p class="text-xs text-gray-400 mt-4"><?php echo e(__('pl_security_note')); ?></p>
     </div>
 
     <!-- Tab: 已安装 -->
@@ -425,8 +425,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 空状态 -->
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <i class="ti ti-clipboard text-base mx-auto text-gray-300 mb-4"></i>
-        <p class="text-gray-500 text-lg mb-2">暂无插件</p>
-        <p class="text-gray-400 text-sm">将插件文件夹放入 <code class="bg-gray-100 px-1 rounded">/plugins/</code> 目录，或点击上方按钮上传安装。</p>
+        <p class="text-gray-500 text-lg mb-2"><?php echo e(__('pl_empty')); ?></p>
+        <p class="text-gray-400 text-sm"><?php echo e(__('pl_empty_tip')); ?> <code class="bg-gray-100 px-1 rounded">/plugins/</code> 目录，或点击上方按钮上传安装。</p>
     </div>
     <?php else: ?>
     <!-- 插件列表 -->
@@ -463,7 +463,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php endif; ?>
                         <template x-if="upd['<?php echo e($slug); ?>']">
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                                <i class="ti ti-arrow-big-up-line text-xs"></i>可升级 v<span x-text="upd['<?php echo e($slug); ?>'].version"></span>
+                                <i class="ti ti-arrow-big-up-line text-xs"></i><?php echo e(__('pl_upgradable')); ?> v<span x-text="upd['<?php echo e($slug); ?>'].version"></span>
                             </span>
                         </template>
                         <?php if ($p['status']): ?>
@@ -493,24 +493,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             :disabled="installing === '<?php echo e($slug); ?>'"
                             class="px-3 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition inline-flex items-center gap-1">
                         <i class="ti ti-cloud-download text-sm"></i>
-                        <span x-text="installing === '<?php echo e($slug); ?>' ? '升级中…' : '升级'"></span>
+                        <span x-text="installing === '<?php echo e($slug); ?>' ? <?php echo json_encode(__('pl_upgrading'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_upgrade'), JSON_UNESCAPED_UNICODE); ?>"></span>
                     </button>
                     <?php if ($p['status']): ?>
                     <?php if (file_exists(ROOT_PATH . '/plugins/' . $slug . '/admin.php')): ?>
                     <a href="/admin/plugin_page.php?plugin=<?php echo e($slug); ?>"
                        class="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-secondary transition inline-flex items-center gap-1">
                         <i class="ti ti-settings text-sm"></i>
-                        设置
+                        <?php echo e(__('pl_settings')); ?>
                     </a>
                     <?php endif; ?>
                     <button onclick="pluginAction('deactivate', '<?php echo e($slug); ?>')"
                             class="px-3 py-1.5 text-sm border border-yellow-300 text-yellow-700 rounded hover:bg-yellow-50 transition">
-                        禁用
+                        <?php echo e(__('pl_disable')); ?>
                     </button>
                     <?php else: ?>
                     <button onclick="pluginAction('activate', '<?php echo e($slug); ?>')"
                             class="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-secondary transition">
-                        启用
+                        <?php echo e(__('pl_enable')); ?>
                     </button>
                     <button onclick="pluginAction('delete', '<?php echo e($slug); ?>')"
                             class="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 transition">
@@ -530,7 +530,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">上传安装插件</h3>
+            <h3 class="font-bold text-gray-800"><?php echo e(__('pl_upload_install')); ?></h3>
             <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-lg"></i>
             </button>
@@ -538,8 +538,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form id="uploadForm" class="p-6">
             <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer" id="dropZone">
                 <i class="ti ti-cloud-upload text-base mx-auto text-gray-300 mb-3"></i>
-                <p class="text-sm text-gray-500 mb-1">点击选择或拖拽上传</p>
-                <p class="text-xs text-gray-400">支持 .zip 格式，ZIP内需包含 插件目录/plugin.json</p>
+                <p class="text-sm text-gray-500 mb-1"><?php echo e(__('pl_drop_hint')); ?></p>
+                <p class="text-xs text-gray-400"><?php echo e(__('pl_zip_hint')); ?></p>
                 <input type="file" id="pluginFile" name="plugin_zip" accept=".zip" class="hidden">
             </div>
             <div id="selectedFile" class="hidden mt-3 p-3 bg-gray-50 rounded flex items-center justify-between">
@@ -552,7 +552,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')"
                         class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded transition"><?php echo __('admin_cancel'); ?></button>
                 <button type="button" id="btnUpload" onclick="uploadPlugin()"
-                        class="px-4 py-2 text-sm bg-primary hover:bg-secondary text-white rounded transition">安装</button>
+                        class="px-4 py-2 text-sm bg-primary hover:bg-secondary text-white rounded transition"><?php echo e(__('pl_install')); ?></button>
             </div>
         </form>
     </div>
@@ -615,10 +615,10 @@ function pluginMarket() {
                     this.items = (data.data && data.data.plugins) || [];
                     this.loaded = true;
                 } else {
-                    this.error = data.msg || '加载失败';
+                    this.error = data.msg || <?php echo json_encode(__('admin_load_failed'), JSON_UNESCAPED_UNICODE); ?>;
                 }
             } catch (e) {
-                this.error = '网络错误：' + e.message;
+                this.error = <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?> + e.message;
             }
             this.loading = false;
         },
@@ -637,7 +637,7 @@ function pluginMarket() {
         async install(p) {
             var st = this.statusOf(p);
             if (st === 'installed') return;
-            if (!confirm((st === 'upgrade' ? '升级' : '安装') + '插件「' + p.name + '」 v' + p.version + '？')) return;
+            if (!confirm((st === 'upgrade' ? <?php echo json_encode(__('pl_upgrade'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_install'), JSON_UNESCAPED_UNICODE); ?>) + ' ' + p.name + ' v' + p.version + '?')) return;
             this.installing = p.slug;
             var body = new URLSearchParams();
             body.set('action', 'market_install');
@@ -648,7 +648,7 @@ function pluginMarket() {
                 if (data.code === 0) {
                     showMessage(data.msg);
                     // 装完即问启用：免去用户去已安装列表里找启用按钮（2026-08-08 用户反馈）
-                    if (data.slug && confirm('安装成功，立即启用「' + p.name + '」？')) {
+                    if (data.slug && confirm(<?php echo json_encode(__('pl_activate_now'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', p.name))) {
                         var act = new URLSearchParams();
                         act.set('action', 'activate');
                         act.set('slug', data.slug);
@@ -659,7 +659,7 @@ function pluginMarket() {
                     showMessage(data.msg, 'error');
                 }
             } catch (e) {
-                showMessage('安装失败', 'error');
+                showMessage(<?php echo json_encode(__('pl_install_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             }
             this.installing = '';
         }
@@ -697,12 +697,12 @@ function clearFile() {
 // 上传安装
 async function uploadPlugin() {
     if (!fileInput.files.length) {
-        showMessage('请选择插件ZIP文件', 'error');
+        showMessage(<?php echo json_encode(__('pl_pick_zip'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         return;
     }
     var btn = document.getElementById('btnUpload');
     btn.disabled = true;
-    btn.textContent = '安装中...';
+    btn.textContent = <?php echo json_encode(__('pl_installing'), JSON_UNESCAPED_UNICODE); ?>;
 
     var formData = new FormData();
     formData.append('action', 'upload');
@@ -718,15 +718,15 @@ async function uploadPlugin() {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('上传失败: ' + err.message, 'error');
+        showMessage(<?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + err.message, 'error');
     }
     btn.disabled = false;
-    btn.textContent = '安装';
+    btn.textContent = <?php echo json_encode(__('pl_install'), JSON_UNESCAPED_UNICODE); ?>;
 }
 
 // 启用/禁用/删除
 async function pluginAction(action, slug) {
-    if (action === 'delete' && !confirm('确定要删除此插件吗？删除后插件文件将被移除。')) {
+    if (action === 'delete' && !confirm(<?php echo json_encode(__('pl_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) {
         return;
     }
 
@@ -744,7 +744,7 @@ async function pluginAction(action, slug) {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('操作失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 </script>
