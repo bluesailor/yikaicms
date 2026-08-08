@@ -38,13 +38,13 @@ $platformGroups = [
         'pinterest' => ['name' => 'Pinterest',   'placeholder' => 'https://pinterest.com/username','color' => '#BD081C'],
     ],
     __('social_group_china') => [
-        'wechat'    => ['name' => '微信 (WeChat)',  'placeholder' => '微信公众号链接 / 二维码图片URL', 'color' => '#07C160'],
-        'weibo'     => ['name' => '微博 (Weibo)',   'placeholder' => 'https://weibo.com/username',    'color' => '#E6162D'],
-        'douyin'    => ['name' => '抖音 (Douyin)',  'placeholder' => 'https://douyin.com/user/xxx',   'color' => '#000000'],
-        'kuaishou'  => ['name' => '快手 (Kuaishou)','placeholder' => 'https://kuaishou.com/profile/x','color' => '#FF4906'],
-        'xiaohongshu'=>['name' => '小红书 (RED)',   'placeholder' => 'https://xiaohongshu.com/user/x','color' => '#FE2C55'],
+        'wechat'    => ['name' => __('social_wechat'), 'placeholder' => __('social_wechat_ph'), 'color' => '#07C160'],
+        'weibo'     => ['name' => __('social_weibo'),   'placeholder' => 'https://weibo.com/username',    'color' => '#E6162D'],
+        'douyin'    => ['name' => __('social_douyin'),  'placeholder' => 'https://douyin.com/user/xxx',   'color' => '#000000'],
+        'kuaishou'  => ['name' => __('social_kuaishou'),'placeholder' => 'https://kuaishou.com/profile/x','color' => '#FF4906'],
+        'xiaohongshu'=>['name' => __('social_xiaohongshu'),   'placeholder' => 'https://xiaohongshu.com/user/x','color' => '#FE2C55'],
         'bilibili'  => ['name' => 'Bilibili',      'placeholder' => 'https://space.bilibili.com/xxx','color' => '#00A1D6'],
-        'zhihu'     => ['name' => '知乎 (Zhihu)',   'placeholder' => 'https://zhihu.com/people/xxx',  'color' => '#0066FF'],
+        'zhihu'     => ['name' => __('social_zhihu'),   'placeholder' => 'https://zhihu.com/people/xxx',  'color' => '#0066FF'],
     ],
 ];
 // フラット化（保存・表示用）
