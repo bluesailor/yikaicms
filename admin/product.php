@@ -201,13 +201,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_product'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('product_tab_category'); ?></th>
                         <?php if (config('show_price', '0') === '1'): ?>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">价格</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('pr_price')); ?></th>
                         <?php endif; ?>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_top'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_recommend'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('detail_views'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_date'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translate')); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -250,7 +250,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                <?php echo e($item['category_name'] ?: '未分类'); ?>
+                                <?php echo e($item['category_name'] ?: __('admin_uncategorized')); ?>
                             </span>
                         </td>
                         <?php if (config('show_price', '0') === '1'): ?>
@@ -258,7 +258,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php if ($item['price'] > 0): ?>
                             <span class="text-red-600 font-medium">&yen;<?php echo number_format((float)$item['price'], 2); ?></span>
                             <?php else: ?>
-                            <span class="text-gray-400">面议</span>
+                            <span class="text-gray-400"><?php echo e(__('pr_negotiable')); ?></span>
                             <?php endif; ?>
                         </td>
                         <?php endif; ?>
@@ -307,7 +307,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
+                <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
                 $queryString = http_build_query(array_filter(['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword]));
@@ -318,7 +318,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <i class="ti ti-chevron-left text-base"></i>
                     <?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
-                <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+                <span class="text-sm"><?php echo str_replace([':p', ':t'], [(string) $page, (string) $totalPages], e(__('admin_page_of'))); ?></span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100 inline-flex items-center gap-1">
                     <?php echo __('list_next_page'); ?>

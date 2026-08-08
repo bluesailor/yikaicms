@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     if (empty($data['title'])) {
-        error('请输入职位名称');
+        error(__('job_title_required'));
     }
 
     if ($isEdit) {
@@ -92,13 +92,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_title'); ?> <span class="text-red-500">*</span></label>
                         <input type="text" name="title" value="<?php echo e($job['title'] ?? ''); ?>" required
-                               class="w-full border rounded px-4 py-2" placeholder="如：PHP高级开发工程师">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('job_ph_title')); ?>">
                     </div>
 
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1">职位摘要</label>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('job_summary')); ?></label>
                         <textarea name="summary" rows="3" class="w-full border rounded px-4 py-2"
-                                  placeholder="简要描述岗位..."><?php echo e($job['summary'] ?? ''); ?></textarea>
+                                  placeholder="<?php echo e(__('job_ph_summary')); ?>"><?php echo e($job['summary'] ?? ''); ?></textarea>
                     </div>
 
                     <div>
@@ -113,63 +113,63 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 招聘信息 -->
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h2 class="font-bold text-gray-800">招聘信息</h2>
+                    <h2 class="font-bold text-gray-800"><?php echo e(__('job_info')); ?></h2>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_location'); ?></label>
                             <input type="text" name="location" value="<?php echo e($job['location'] ?? ''); ?>"
-                                   class="w-full border rounded px-4 py-2" placeholder="如：上海、北京">
+                                   class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('job_ph_location')); ?>">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_salary'); ?></label>
                             <input type="text" name="salary" value="<?php echo e($job['salary'] ?? ''); ?>"
-                                   class="w-full border rounded px-4 py-2" placeholder="如：8k-15k">
+                                   class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('job_ph_salary')); ?>">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_headcount'); ?></label>
                             <input type="text" name="headcount" value="<?php echo e($job['headcount'] ?? ''); ?>"
-                                   class="w-full border rounded px-4 py-2" placeholder="如：2人、若干">
+                                   class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('job_ph_headcount')); ?>">
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_type'); ?></label>
                             <select name="job_type" class="w-full border rounded px-4 py-2">
                                 <option value=""><?php echo __('please_select'); ?></option>
-                                <option value="全职" <?php echo ($job['job_type'] ?? '') === '全职' ? 'selected' : ''; ?>>全职</option>
-                                <option value="兼职" <?php echo ($job['job_type'] ?? '') === '兼职' ? 'selected' : ''; ?>>兼职</option>
-                                <option value="实习" <?php echo ($job['job_type'] ?? '') === '实习' ? 'selected' : ''; ?>>实习</option>
+                                <option value="全职" <?php echo ($job['job_type'] ?? '') === '全职' ? 'selected' : ''; ?>><?php echo e(__('job_fulltime')); ?></option>
+                                <option value="兼职" <?php echo ($job['job_type'] ?? '') === '兼职' ? 'selected' : ''; ?>><?php echo e(__('job_parttime')); ?></option>
+                                <option value="实习" <?php echo ($job['job_type'] ?? '') === '实习' ? 'selected' : ''; ?>><?php echo e(__('job_intern')); ?></option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_education'); ?></label>
                             <select name="education" class="w-full border rounded px-4 py-2">
                                 <option value=""><?php echo __('please_select'); ?></option>
-                                <option value="不限" <?php echo ($job['education'] ?? '') === '不限' ? 'selected' : ''; ?>>不限</option>
-                                <option value="高中" <?php echo ($job['education'] ?? '') === '高中' ? 'selected' : ''; ?>>高中</option>
-                                <option value="大专" <?php echo ($job['education'] ?? '') === '大专' ? 'selected' : ''; ?>>大专</option>
-                                <option value="本科" <?php echo ($job['education'] ?? '') === '本科' ? 'selected' : ''; ?>>本科</option>
-                                <option value="硕士" <?php echo ($job['education'] ?? '') === '硕士' ? 'selected' : ''; ?>>硕士</option>
-                                <option value="博士" <?php echo ($job['education'] ?? '') === '博士' ? 'selected' : ''; ?>>博士</option>
+                                <option value="不限" <?php echo ($job['education'] ?? '') === '不限' ? 'selected' : ''; ?>><?php echo e(__('job_any')); ?></option>
+                                <option value="高中" <?php echo ($job['education'] ?? '') === '高中' ? 'selected' : ''; ?>><?php echo e(__('job_edu_highschool')); ?></option>
+                                <option value="大专" <?php echo ($job['education'] ?? '') === '大专' ? 'selected' : ''; ?>><?php echo e(__('job_edu_college')); ?></option>
+                                <option value="本科" <?php echo ($job['education'] ?? '') === '本科' ? 'selected' : ''; ?>><?php echo e(__('job_edu_bachelor')); ?></option>
+                                <option value="硕士" <?php echo ($job['education'] ?? '') === '硕士' ? 'selected' : ''; ?>><?php echo e(__('job_edu_master')); ?></option>
+                                <option value="博士" <?php echo ($job['education'] ?? '') === '博士' ? 'selected' : ''; ?>><?php echo e(__('job_edu_phd')); ?></option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_experience'); ?></label>
                             <select name="experience" class="w-full border rounded px-4 py-2">
                                 <option value=""><?php echo __('please_select'); ?></option>
-                                <option value="不限" <?php echo ($job['experience'] ?? '') === '不限' ? 'selected' : ''; ?>>不限</option>
-                                <option value="应届生" <?php echo ($job['experience'] ?? '') === '应届生' ? 'selected' : ''; ?>>应届生</option>
-                                <option value="1-3年" <?php echo ($job['experience'] ?? '') === '1-3年' ? 'selected' : ''; ?>>1-3年</option>
-                                <option value="3-5年" <?php echo ($job['experience'] ?? '') === '3-5年' ? 'selected' : ''; ?>>3-5年</option>
-                                <option value="5-10年" <?php echo ($job['experience'] ?? '') === '5-10年' ? 'selected' : ''; ?>>5-10年</option>
-                                <option value="10年以上" <?php echo ($job['experience'] ?? '') === '10年以上' ? 'selected' : ''; ?>>10年以上</option>
+                                <option value="不限" <?php echo ($job['experience'] ?? '') === '不限' ? 'selected' : ''; ?>><?php echo e(__('job_any')); ?></option>
+                                <option value="应届生" <?php echo ($job['experience'] ?? '') === '应届生' ? 'selected' : ''; ?>><?php echo e(__('job_exp_fresh')); ?></option>
+                                <option value="1-3年" <?php echo ($job['experience'] ?? '') === '1-3年' ? 'selected' : ''; ?>><?php echo e(__('job_exp_1_3')); ?></option>
+                                <option value="3-5年" <?php echo ($job['experience'] ?? '') === '3-5年' ? 'selected' : ''; ?>><?php echo e(__('job_exp_3_5')); ?></option>
+                                <option value="5-10年" <?php echo ($job['experience'] ?? '') === '5-10年' ? 'selected' : ''; ?>><?php echo e(__('job_exp_5_10')); ?></option>
+                                <option value="10年以上" <?php echo ($job['experience'] ?? '') === '10年以上' ? 'selected' : ''; ?>><?php echo e(__('job_exp_10p')); ?></option>
                             </select>
                         </div>
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_job_requirement'); ?></label>
                         <textarea name="requirements" rows="5" class="w-full border rounded px-4 py-2"
-                                  placeholder="请输入任职要求..."><?php echo e($job['requirements'] ?? ''); ?></textarea>
+                                  placeholder="<?php echo e(__('job_ph_requirements')); ?>"><?php echo e($job['requirements'] ?? ''); ?></textarea>
                     </div>
                 </div>
             </div>
@@ -185,8 +185,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
                         <select name="status" class="w-full border rounded px-4 py-2">
-                            <option value="1" <?php echo ($job['status'] ?? 1) == 1 ? 'selected' : ''; ?>>招聘中</option>
-                            <option value="0" <?php echo ($job['status'] ?? 1) == 0 ? 'selected' : ''; ?>>已关闭</option>
+                            <option value="1" <?php echo ($job['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo e(__('job_open')); ?></option>
+                            <option value="0" <?php echo ($job['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo e(__('job_closed')); ?></option>
                         </select>
                     </div>
 
@@ -200,7 +200,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                         <input type="number" name="sort_order" value="<?php echo $job['sort_order'] ?? 0; ?>"
-                               class="w-full border rounded px-4 py-2" placeholder="数字越大越靠前">
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('dcat_sort_tip')); ?>">
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -213,7 +213,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 封面图 -->
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4">封面图</h3>
+                <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('job_cover')); ?></h3>
                 <div id="coverPreview" class="mb-4 <?php echo empty($job['cover']) ? 'hidden' : ''; ?>">
                     <img src="<?php echo e($job['cover'] ?? ''); ?>" class="w-full rounded">
                 </div>
@@ -222,7 +222,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" onclick="uploadCover()"
                             class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                         <i class="ti ti-upload text-base"></i>
-                        上传图片</button>
+                        <?php echo e(__('job_upload_image')); ?></button>
                     <button type="button" onclick="pickCoverFromMedia()"
                             class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded text-sm inline-flex items-center justify-center gap-1">
                         <i class="ti ti-photo text-base"></i>
@@ -283,7 +283,7 @@ function pickCoverFromMedia() {
 $contentHtml = json_encode($job['content'] ?? '', JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 $extraJs = '<script>
 var editor = initWangEditor("#toolbar-container", "#editor-container", {
-    placeholder: "请输入职位详情...",
+    placeholder: ' . json_encode(__('job_ph_detail'), JSON_UNESCAPED_UNICODE) . ',
     html: ' . $contentHtml . ',
     uploadUrl: "/admin/upload.php",
     onChange: function(editor) {
@@ -307,7 +307,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
             showMessage(data.msg, "error");
         }
     } catch (err) {
-        showMessage("请求失败", "error");
+        showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error");
     }
 });
 </script>';

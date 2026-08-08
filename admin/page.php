@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create') {
         $name = post('name');
         if (empty($name)) {
-            error('请输入页面名称');
+            error(__('pg_name_required'));
         }
         $slug = resolveSlug('', $name, 'channels', 0);
         $parentId = postInt('parent_id');
@@ -56,15 +56,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         $channel = channelModel()->find($id);
         if (!$channel) {
-            error('栏目不存在');
+            error(__('pg_channel_missing'));
         }
         if (!empty($channel['is_system'])) {
-            error('系统预设栏目不可删除，只能隐藏');
+            error(__('pg_system_undeletable'));
         }
         // 检查是否有子栏目
         $childCount = channelModel()->count(['parent_id' => $id]);
         if ($childCount > 0) {
-            error('该栏目下有子栏目，请先删除子栏目');
+            error(__('pg_has_children'));
         }
         // 删除关联内容
         contentModel()->query("DELETE FROM " . contentModel()->tableName() . " WHERE channel_id = ?", [$id]);
@@ -118,7 +118,7 @@ $transStatus = loadTransStatus('channels');
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 
-echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过翻译徽标列编辑；新建/删除只能在源语言（' . $_defaultLang . '）进行');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __('pg_lang_tip')));
 ?>
 
 <div class="mb-6 flex items-center justify-between">
@@ -129,7 +129,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
         <?php echo __('admin_add'); ?>
     </button>
     <?php else: ?>
-    <span class="text-xs text-gray-400">仅源语言可新增；点击下方"翻译"列徽标编辑翻译版本</span>
+    <span class="text-xs text-gray-400"><?php echo e(__('pg_source_only')); ?></span>
     <?php endif; ?>
 </div>
 
@@ -146,7 +146,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('page_menu_position'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translate')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -326,9 +326,9 @@ echo renderAdminLangSwitcher($_viewLang, '提示：单页的翻译版本通过�
                         <?php if (($item['type'] ?? '') !== 'album'): ?>
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="ml-2 text-sm inline-flex items-center gap-1 <?php echo $item['status'] ? 'text-amber-600 hover:text-amber-700' : 'text-green-600 hover:text-green-700'; ?>"
-                                title="<?php echo $item['status'] ? '停用后可在「已停用」区删除' : ''; ?>">
+                                title="<?php echo $item['status'] ? e(__('pg_disable_hint')) : ''; ?>">
                             <i class="ti <?php echo $item['status'] ? 'ti-eye-off' : 'ti-eye'; ?> text-sm"></i>
-                            <?php echo $item['status'] ? '停用' : '启用'; ?>
+                            <?php echo $item['status'] ? e(__('pg_disable')) : e(__('admin_enabled')); ?>
                         </button>
                         <?php endif; ?>
                     </td>
@@ -443,7 +443,7 @@ async function createPage() {
     var response = await fetch('', { method: 'POST', body: formData });
     var data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('创建成功，正在跳转...');
+        showMessage(<?php echo json_encode(__('pg_created'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(function() { location.href = '/admin/page_edit.php?id=' + data.data.id; }, 500);
     } else {
         showMessage(data.msg, 'error');
@@ -451,7 +451,7 @@ async function createPage() {
 }
 
 async function deletePage(id, name) {
-    if (!confirm('确定要删除单页「' + name + '」吗？\n关联的页面内容也会一并删除，此操作不可恢复。')) return;
+    if (!confirm(<?php echo json_encode(__('pg_del_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', name))) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
@@ -473,7 +473,7 @@ async function toggleStatus(id, btn) {
     const data = await safeJson(response);
     if (data.code === 0) {
         // 刷新让行在「主列表 ↔ 已停用」间移动
-        showMessage('状态已更新');
+        showMessage(<?php echo json_encode(__('album_status_updated'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(function() { location.reload(); }, 400);
     }
 }

@@ -132,7 +132,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <select name="status" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('status_published'); ?></option>
-                <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>>已隐藏</option>
+                <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo e(__('album_hidden')); ?></option>
             </select>
 
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
@@ -147,7 +147,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex gap-2">
             <a href="/admin/download_category.php" class="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-tag text-base"></i>
-                分类管理
+                <?php echo e(__('dl_categories')); ?>
             </a>
             <a href="/admin/download_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
@@ -165,14 +165,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left"><input type="checkbox" id="checkAll"></th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">文件信息</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('dl_file_info')); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_category'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_type'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">大小</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">下载</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('dl_size')); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('dl_downloads')); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_date'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translate')); ?></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -210,14 +210,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                <?php echo e($item['category_name'] ?: '未分类'); ?>
+                                <?php echo e($item['category_name'] ?: __('admin_uncategorized')); ?>
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php if ($item['is_external']): ?>
-                            <span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded">外链</span>
+                            <span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded"><?php echo e(__('dl_external')); ?></span>
                             <?php else: ?>
-                            <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded">本地</span>
+                            <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded"><?php echo e(__('dl_local')); ?></span>
                             <?php endif; ?>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">
@@ -251,7 +251,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($items)): ?>
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">暂无下载数据</td></tr>
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500"><?php echo e(__('dl_empty')); ?></td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -265,7 +265,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             ]); ?>
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
+                <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
                 $queryString = http_build_query(array_filter(['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword]));
@@ -274,7 +274,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if ($page > 1): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page - 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100"><?php echo __('list_prev_page'); ?></a>
                 <?php endif; ?>
-                <span class="text-sm">第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+                <span class="text-sm"><?php echo str_replace([':p', ':t'], [(string) $page, (string) $totalPages], e(__('admin_page_of'))); ?></span>
                 <?php if ($page < $totalPages): ?>
                 <a href="<?php echo $baseUrl; ?>page=<?php echo $page + 1; ?>" class="px-3 py-1 border rounded hover:bg-gray-100"><?php echo __('list_next_page'); ?></a>
                 <?php endif; ?>
@@ -298,12 +298,12 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '已发布';
+            btn.textContent = <?php echo json_encode(__('dl_published'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '已隐藏';
+            btn.textContent = <?php echo json_encode(__('album_hidden'), JSON_UNESCAPED_UNICODE); ?>;
         }
-        showMessage('状态已更新');
+        showMessage(<?php echo json_encode(__('album_status_updated'), JSON_UNESCAPED_UNICODE); ?>);
     }
 }
 
@@ -315,12 +315,12 @@ async function updateSort(id, value) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('排序已更新');
+        showMessage(<?php echo json_encode(__('dl_sort_updated'), JSON_UNESCAPED_UNICODE); ?>);
     }
 }
 
 async function deleteItem(id) {
-    if (!confirm('确定要删除吗？删除后文件也将被移除。')) return;
+    if (!confirm(<?php echo json_encode(__('dl_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);

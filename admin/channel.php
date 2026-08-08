@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $key = $tLang === $defaultLang ? 'nav_home_show' : 'nav_home_show_' . $tLang;
         settingModel()->set($key, $value);
         adminLog('setting', 'nav_home_show', "切换 {$key} = {$value}");
-        success([], $value === '1' ? '已显示「首页」' : '已隐藏「首页」');
+        success([], $value === '1' ? __('ch_home_shown') : __('ch_home_hidden'));
     }
 
     if ($action === 'delete') {
@@ -270,8 +270,8 @@ function renderEyeToggle(string $onclickJs, bool $isShown, string $viewLabel = '
 {
     $cls = $isShown ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100';
     $title = $isShown
-        ? '当前显示' . ($viewLabel ? '（' . $viewLabel . '）' : '') . '，点击隐藏'
-        : '当前隐藏' . ($viewLabel ? '（' . $viewLabel . '）' : '') . '，点击显示';
+        ? str_replace(':lang', $viewLabel ? '（' . $viewLabel . '）' : '', __('ch_now_shown'))
+        : str_replace(':lang', $viewLabel ? '（' . $viewLabel . '）' : '', __('ch_now_hidden'));
     $icon = $isShown ? 'ti-eye' : 'ti-eye-off';
     return '<button onclick="' . htmlspecialchars($onclickJs, ENT_QUOTES) . '" '
         . 'class="cursor-pointer p-1 rounded transition ' . $cls . '" '
@@ -281,7 +281,7 @@ function renderEyeToggle(string $onclickJs, bool $isShown, string $viewLabel = '
 }
 
 // view-lang 视角的"首页"文本（per-lang 覆盖优先；否则回退到 lang/{lang}.php 的 nav_home）
-$_viewHomeText = '首页';
+$_viewHomeText = __('nav_home');
 $_viewHomeShow = '1';
 $_viewHomeKey = $_viewLang === $_defaultLang ? 'nav_home_text' : 'nav_home_text_' . $_viewLang;
 $_viewHomeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
@@ -505,7 +505,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php if (count($_enabledList) > 1): ?>
 <div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
-    <span class="text-gray-500">查看语言：</span>
+    <span class="text-gray-500"><?php echo e(__('admin_view_lang')); ?></span>
     <?php
     $_langLabels = ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'];
     foreach ($_enabledList as $_lc):
@@ -516,11 +516,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <a href="?lang=<?php echo e($_lc); ?>&tab=<?php echo e($activeTab); ?>"
        class="px-3 py-1 rounded-full transition <?php echo $_isCurrent ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
         <?php echo e($_label); ?>
-        <?php if ($_isDefault): ?><span class="ml-1 text-[10px] opacity-70">(源)</span><?php endif; ?>
+        <?php if ($_isDefault): ?><span class="ml-1 text-[10px] opacity-70">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
     </a>
     <?php endforeach; ?>
     <?php if ($_viewLang !== $_defaultLang): ?>
-    <span class="ml-auto text-xs text-amber-600">提示：源语言（<?php echo e($_langLabels[$_defaultLang] ?? $_defaultLang); ?>）才能新增/删除栏目；当前是翻译版本，编辑用于本地化文字</span>
+    <span class="ml-auto text-xs text-amber-600"><?php echo str_replace(':lang', e($_langLabels[$_defaultLang] ?? $_defaultLang), e(__('ch_source_lang_tip'))); ?></span>
     <?php endif; ?>
 </div>
 <?php endif; ?>
@@ -995,9 +995,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            href="/admin/album_photos.php?id=<?php echo (int)($editChannel['album_id'] ?? 0); ?>"
                            target="_blank"
                            class="inline-flex items-center gap-1 px-3 py-2 border border-primary text-primary hover:bg-primary hover:text-white rounded text-sm whitespace-nowrap transition <?php echo ((int)($editChannel['album_id'] ?? 0)) > 0 ? '' : 'hidden'; ?>"
-                           title="管理该相册的图片">
+                           title="<?php echo e(__('ch_manage_photos')); ?>">
                             <i class="ti ti-photo text-base"></i>
-                            管理图片
+                            <?php echo e(__('ch_manage_images')); ?>
                         </a>
                     </div>
                     <p class="text-xs text-gray-400 mt-1"><?= __('admin_album') ?>。选好相册后点右侧「管理图片」可直接进入相片管理页（新窗口打开）。</p>
@@ -1027,7 +1027,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <label class="cursor-pointer">
                                 <input type="radio" name="status" value="0" class="peer sr-only" <?php echo $chStatus === 0 ? 'checked' : ''; ?>>
                                 <div class="flex items-center justify-center gap-1.5 py-2 rounded-lg border text-sm text-gray-600 hover:bg-gray-50 transition peer-checked:bg-gray-600 peer-checked:text-white peer-checked:border-gray-600">
-                                    <i class="ti ti-eye-off text-base"></i>停用
+                                    <i class="ti ti-eye-off text-base"></i><?php echo e(__('pg_disable')); ?>
                                 </div>
                             </label>
                         </div>
@@ -1251,7 +1251,7 @@ async function toggleHomeShow(lang, value) {
     if (data.code === 0) {
         location.reload();
     } else {
-        showMessage(data.msg || '操作失败', 'error');
+        showMessage(data.msg || <?php echo json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
