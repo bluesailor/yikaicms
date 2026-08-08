@@ -272,7 +272,7 @@ function ykRenderNavRows(array $byParent, int $parentId, int $level, array $type
     <?php endif; ?>
 </div>
 
-<?php if ($activeGroup === 0): ?>
+<?php if ($activeGroup === 0 || $editGroup === null): ?>
 <!-- ============ 默认导航：栏目投影 ============ -->
 <form method="post" class="bg-white rounded-lg shadow">
     <?php echo csrfField(); ?>
