@@ -82,12 +82,12 @@ foreach ($allSettings as $item) {
 }
 
 $tab = $_GET['tab'] ?? 'info';
-$pageTitle = '联系设置';
+$pageTitle = __('scontact_title');
 $currentMenu = 'setting_contact';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 
-echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/表单文案 按语言独立保存（key_' . $_viewLang . '）；二维码、地图、表单字段类型/必填/启用 全局共享');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang, __('scontact_lang_tip')));
 ?>
 
 <!-- Tab 导航 -->
@@ -107,11 +107,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
             <h2 class="font-bold text-gray-800"><?php echo __('contact_info_title'); ?></h2>
             <?php // 短码提示：这几块内容除了联系页，也能放进任意文章/单页/区块 ?>
             <p class="text-xs text-gray-500 mt-1">
-                页面调用短码：<code class="bg-gray-100 px-1 rounded select-all">[contact-cards]</code>
-                联系卡片（可加 <code class="bg-gray-100 px-1 rounded">cols="3"</code> 指定列数）、
-                <code class="bg-gray-100 px-1 rounded select-all">[map]</code> 地图/二维码、
-                <code class="bg-gray-100 px-1 rounded select-all">[form-contact]</code> 留言表单
-                —— 粘到任意文章、单页正文或排版区块里即可调用。
+                <?php echo e(__('scontact_shortcode_label')); ?><code class="bg-gray-100 px-1 rounded select-all">[contact-cards]</code>
+                <?php echo str_replace(':code', '<code class="bg-gray-100 px-1 rounded">cols="3"</code>', e(__('scontact_sc_cards'))); ?>、
+                <code class="bg-gray-100 px-1 rounded select-all">[map]</code> <?php echo e(__('scontact_sc_map')); ?>、
+                <code class="bg-gray-100 px-1 rounded select-all">[form-contact]</code> <?php echo e(__('scontact_sc_form')); ?>
+                —— <?php echo e(__('scontact_sc_usage')); ?>
             </p>
         </div>
         <div class="p-6 space-y-4">
@@ -139,14 +139,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                                 <div class="flex items-center gap-2">
                                     <select class="card-icon border rounded px-2 py-1.5 text-sm w-24" onchange="updateIconPreview(this)">
                                         <option value=""><?php echo __('none'); ?></option>
-                                        <option value="phone" <?php echo ($card['icon'] ?? '') === 'phone' ? 'selected' : ''; ?>>电话</option>
-                                        <option value="email" <?php echo ($card['icon'] ?? '') === 'email' ? 'selected' : ''; ?>>邮箱</option>
-                                        <option value="location" <?php echo ($card['icon'] ?? '') === 'location' ? 'selected' : ''; ?>>地址</option>
-                                        <option value="clock" <?php echo ($card['icon'] ?? '') === 'clock' ? 'selected' : ''; ?>>时间</option>
-                                        <option value="fax" <?php echo ($card['icon'] ?? '') === 'fax' ? 'selected' : ''; ?>>传真</option>
-                                        <option value="wechat" <?php echo ($card['icon'] ?? '') === 'wechat' ? 'selected' : ''; ?>>微信</option>
-                                        <option value="building" <?php echo ($card['icon'] ?? '') === 'building' ? 'selected' : ''; ?>>公司</option>
-                                        <option value="globe" <?php echo ($card['icon'] ?? '') === 'globe' ? 'selected' : ''; ?>>网站</option>
+                                        <option value="phone" <?php echo ($card['icon'] ?? '') === 'phone' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_phone')); ?></option>
+                                        <option value="email" <?php echo ($card['icon'] ?? '') === 'email' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_email')); ?></option>
+                                        <option value="location" <?php echo ($card['icon'] ?? '') === 'location' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_location')); ?></option>
+                                        <option value="clock" <?php echo ($card['icon'] ?? '') === 'clock' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_clock')); ?></option>
+                                        <option value="fax" <?php echo ($card['icon'] ?? '') === 'fax' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_fax')); ?></option>
+                                        <option value="wechat" <?php echo ($card['icon'] ?? '') === 'wechat' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_wechat')); ?></option>
+                                        <option value="building" <?php echo ($card['icon'] ?? '') === 'building' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_building')); ?></option>
+                                        <option value="globe" <?php echo ($card['icon'] ?? '') === 'globe' ? 'selected' : ''; ?>><?php echo e(__('contact_icon_globe')); ?></option>
                                         <option value="qq" <?php echo ($card['icon'] ?? '') === 'qq' ? 'selected' : ''; ?>>QQ</option>
                                     </select>
                                     <span class="icon-preview w-8 h-8 flex items-center justify-center text-primary"><?php
@@ -156,19 +156,19 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                                 </div>
                             </div>
                             <div class="flex-1">
-                                <label class="text-xs text-gray-400 block mb-1">标题</label>
-                                <input type="text" class="card-label w-full border rounded px-3 py-1.5 text-sm" placeholder="如：联系电话" value="<?php echo e($card['label'] ?? ''); ?>">
+                                <label class="text-xs text-gray-400 block mb-1"><?php echo e(__('label_title')); ?></label>
+                                <input type="text" class="card-label w-full border rounded px-3 py-1.5 text-sm" placeholder="<?php echo e(__('scontact_card_label_ph')); ?>" value="<?php echo e($card['label'] ?? ''); ?>">
                             </div>
                             <div class="flex-1">
                                 <label class="text-xs text-gray-400 block mb-1"><?php echo __('contact_value'); ?></label>
                                 <div class="flex gap-1">
-                                    <textarea class="card-value w-full border rounded px-3 py-1.5 text-sm" rows="2" placeholder="文字或图片地址"><?php echo e($card['value'] ?? ''); ?></textarea>
+                                    <textarea class="card-value w-full border rounded px-3 py-1.5 text-sm" rows="2" placeholder="<?php echo e(__('scontact_card_value_ph')); ?>"><?php echo e($card['value'] ?? ''); ?></textarea>
                                     <button type="button" class="card-upload text-gray-400 hover:text-primary flex-shrink-0 pt-1" title="<?php echo __('btn_upload_image'); ?>">
                                         <i class="ti ti-photo text-lg"></i>
                                     </button>
                                 </div>
                             </div>
-                            <button type="button" class="card-clear text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="清空此行">
+                            <button type="button" class="card-clear text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo e(__('scontact_clear_row')); ?>">
                                 <i class="ti ti-x text-base"></i>
                             </button>
                         </div>
@@ -210,7 +210,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                         <button type="button" onclick="uploadImage('<?php echo e($item['key']); ?>')"
                                 class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                             <i class="ti ti-upload text-base"></i>
-                            上传
+                            <?php echo e(__('admin_upload')); ?>
                         </button>
                         <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -241,11 +241,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
         <div class="flex items-center gap-3">
             <i class="ti ti-info-circle text-lg text-blue-500 flex-shrink-0"></i>
             <div class="text-sm text-blue-800">
-                联系我们页面当前调用的表单短码：<code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono">[form-contact]</code>
-                <span class="text-blue-500 ml-1">— 可在「表单设计」中编辑模板和字段</span>
+                <?php echo e(__('scontact_form_sc_label')); ?><code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono">[form-contact]</code>
+                <span class="text-blue-500 ml-1">— <?php echo e(__('scontact_form_design_tip')); ?></span>
             </div>
         </div>
-        <a href="/admin/form_design.php" class="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0">前往表单设计 &rarr;</a>
+        <a href="/admin/form_design.php" class="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0"><?php echo e(__('scontact_goto_form_design')); ?> &rarr;</a>
     </div>
 
     <!-- 表单设置 -->
@@ -261,11 +261,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
             <?php $fieldsData = json_decode($item['value'], true) ?: []; ?>
             <?php
             $defaultFieldDefs = [
-                ['key'=>'name','label'=>'您的姓名','type'=>'text'],
-                ['key'=>'phone','label'=>'联系电话','type'=>'tel'],
-                ['key'=>'email','label'=>'电子邮箱','type'=>'email'],
-                ['key'=>'company','label'=>'公司名称','type'=>'text'],
-                ['key'=>'content','label'=>'留言内容','type'=>'textarea'],
+                ['key'=>'name','label'=>__('form_field_name'),'type'=>'text'],
+                ['key'=>'phone','label'=>__('form_field_phone'),'type'=>'tel'],
+                ['key'=>'email','label'=>__('form_field_email'),'type'=>'email'],
+                ['key'=>'company','label'=>__('form_field_company'),'type'=>'text'],
+                ['key'=>'content','label'=>__('form_field_content'),'type'=>'textarea'],
             ];
             $fieldMap = [];
             foreach ($fieldsData as $fd) { $fieldMap[$fd['key']] = $fd; }
@@ -291,9 +291,9 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                 <input type="hidden" name="settings[contact_form_fields]" id="contactFormFieldsJson">
                 <div id="contactFormFieldsEditor" class="mt-2">
                     <div class="grid grid-cols-12 gap-2 text-xs text-gray-400 px-3 mb-1">
-                        <div class="col-span-2">字段</div>
-                        <div class="col-span-4">标签文字</div>
-                        <div class="col-span-2">类型</div>
+                        <div class="col-span-2"><?php echo e(__('scontact_col_field')); ?></div>
+                        <div class="col-span-4"><?php echo e(__('scontact_col_label')); ?></div>
+                        <div class="col-span-2"><?php echo e(__('scontact_col_type')); ?></div>
                         <div class="col-span-2 text-center"><?php echo __('required'); ?></div>
                         <div class="col-span-2 text-center"><?php echo __('status_enabled'); ?></div>
                     </div>
@@ -354,25 +354,25 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
     <!-- ============ 地图 API ============ -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800">地图 API 设置</h2>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('scontact_map_api')); ?></h2>
             <p class="text-sm text-gray-500 mt-1">联系页地图按访问语言自动切换：<b>中文版</b>用高德 / 百度，<b>日 / 英文版</b>用 Google 地图（免 Key）。三者都没配好时回退到「信息」tab 里的静态地图图片。</p>
         </div>
         <div class="p-6 space-y-6">
 
             <!-- 坐标 -->
             <div>
-                <label class="block font-medium text-gray-700 mb-2">店铺坐标（三家地图通用）</label>
+                <label class="block font-medium text-gray-700 mb-2"><?php echo e(__('scontact_coords')); ?></label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <span class="text-sm text-gray-500">纬度 lat</span>
+                        <span class="text-sm text-gray-500"><?php echo e(__('scontact_lat')); ?></span>
                         <input type="text" name="settings[map_lat]" value="<?php echo e(config('map_lat')); ?>" placeholder="31.2304" class="w-full border rounded px-4 py-2 mt-1">
                     </div>
                     <div>
-                        <span class="text-sm text-gray-500">经度 lng</span>
+                        <span class="text-sm text-gray-500"><?php echo e(__('scontact_lng')); ?></span>
                         <input type="text" name="settings[map_lng]" value="<?php echo e(config('map_lng')); ?>" placeholder="121.4737" class="w-full border rounded px-4 py-2 mt-1">
                     </div>
                     <div>
-                        <span class="text-sm text-gray-500">缩放级别 zoom</span>
+                        <span class="text-sm text-gray-500"><?php echo e(__('scontact_zoom')); ?></span>
                         <input type="text" name="settings[map_zoom]" value="<?php echo e(config('map_zoom', '15')); ?>" placeholder="15" class="w-full border rounded px-4 py-2 mt-1">
                     </div>
                 </div>
@@ -411,14 +411,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
 
             <!-- 中文版服务商 -->
             <div>
-                <label class="block font-medium text-gray-700 mb-2">中文版地图服务商</label>
+                <label class="block font-medium text-gray-700 mb-2"><?php echo e(__('scontact_zh_provider')); ?></label>
                 <?php $prov = (string) config('map_zh_provider'); ?>
                 <select name="settings[map_zh_provider]" class="w-full md:w-72 border rounded px-4 py-2">
-                    <option value="" <?php echo $prov === '' ? 'selected' : ''; ?>>不用交互地图（显示静态地图图片）</option>
+                    <option value="" <?php echo $prov === '' ? 'selected' : ''; ?>><?php echo e(__('scontact_provider_none')); ?></option>
                     <option value="amap" <?php echo $prov === 'amap' ? 'selected' : ''; ?>>高德地图 Amap</option>
                     <option value="baidu" <?php echo $prov === 'baidu' ? 'selected' : ''; ?>>百度地图 Baidu</option>
                 </select>
-                <p class="text-xs text-gray-400 mt-1">日 / 英文版固定用 Google 地图，无需在此选择、无需 Key。</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('scontact_google_note')); ?></p>
             </div>
 
             <!-- 高德 -->
@@ -427,7 +427,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                     <span class="font-medium text-gray-700">高德地图 JS API Key</span>
                     <a href="https://console.amap.com/dev/key/app" target="_blank" rel="noopener" class="text-primary text-sm hover:underline">前往高德控制台申请 →</a>
                 </div>
-                <input type="text" name="settings[map_amap_key]" value="<?php echo e(config('map_amap_key')); ?>" placeholder="中文版选「高德」时填写" class="w-full border rounded px-4 py-2">
+                <input type="text" name="settings[map_amap_key]" value="<?php echo e(config('map_amap_key')); ?>" placeholder="<?php echo e(__('scontact_amap_ph')); ?>" class="w-full border rounded px-4 py-2">
                 <details class="mt-2 text-sm text-gray-600 leading-relaxed">
                     <summary class="cursor-pointer text-gray-700 font-medium select-none">📖 申请步骤（点击展开）</summary>
                     <ol class="list-decimal ml-5 mt-2 space-y-1.5">
@@ -446,7 +446,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：电话/邮箱/地址/卡片/�
                     <span class="font-medium text-gray-700">百度地图 ak</span>
                     <a href="https://lbsyun.baidu.com/apiconsole/key" target="_blank" rel="noopener" class="text-primary text-sm hover:underline">前往百度控制台申请 →</a>
                 </div>
-                <input type="text" name="settings[map_baidu_ak]" value="<?php echo e(config('map_baidu_ak')); ?>" placeholder="中文版选「百度」时填写" class="w-full border rounded px-4 py-2">
+                <input type="text" name="settings[map_baidu_ak]" value="<?php echo e(config('map_baidu_ak')); ?>" placeholder="<?php echo e(__('scontact_baidu_ph')); ?>" class="w-full border rounded px-4 py-2">
                 <details class="mt-2 text-sm text-gray-600 leading-relaxed">
                     <summary class="cursor-pointer text-gray-700 font-medium select-none">📖 申请步骤（点击展开）</summary>
                     <ol class="list-decimal ml-5 mt-2 space-y-1.5">
