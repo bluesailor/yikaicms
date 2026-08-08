@@ -1159,8 +1159,10 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 
     // 拖放目标合法性：容器一层嵌套 + 容器 allowedChildren（如 stats-group 只收 stat-item）。
     // Chrome 在 dragover 期禁读 dataTransfer.getData，类型由编辑器 dragstart 经 postMessage 广播。
-    function dropTargetValid(target) {
-        if (!ykDragRules || !ykDragType) return true; // 规则未下发时不拦（编辑器端仍会校验）
+    // r14 具名拒因：{valid, reason}——reason 随 drop 上报编辑器 toast（craft.js 的
+    // onError 思想：拒绝要告诉用户为什么，不再是红线一闪的静默失败）
+    function dropTargetVerdict(target) {
+        if (!ykDragRules || !ykDragType) return { valid: true }; // 规则未下发时不拦（编辑器端仍会校验）
         var draggedIsContainer = !!(ykDragRules.isContainer || {})[ykDragType];
         if (target.kind === 'element') {
             var parts = pathParts(target.path);
@@ -1169,13 +1171,17 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
                 var parentType = parentNode ? (parentNode.getAttribute('data-yk-el-type') || '') : '';
                 var allowed = (ykDragRules.containers || {})[parentType];
                 if (Array.isArray(allowed)) {
-                    if (allowed.indexOf(ykDragType) !== -1) return true;
-                    return allowed.indexOf('*') !== -1 && !draggedIsContainer && (ykDragRules.generic || {})[ykDragType] !== false;
+                    if (allowed.indexOf(ykDragType) !== -1) return { valid: true };
+                    if (allowed.indexOf('*') !== -1 && !draggedIsContainer && (ykDragRules.generic || {})[ykDragType] !== false) return { valid: true };
+                    return { valid: false, reason: 'restricted-children' };
                 }
-                return !draggedIsContainer;
+                if (draggedIsContainer) return { valid: false, reason: 'no-nested-container' };
             }
         }
-        return true; // 列级/顶级元素前后：任何元素均可
+        return { valid: true }; // 列级/顶级元素前后：任何元素均可
+    }
+    function dropTargetValid(target) {
+        return dropTargetVerdict(target).valid;
     }
 
     // Palette tiles use a versioned payload. The target is either a column end or an element before/after position.
@@ -1201,7 +1207,12 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var target = dropTargetFromEvent(e, s) || dropState;
         hideDropLine();
         dropLine.classList.remove('yk-drop-invalid');
-        if (!target || !dropTargetValid(target)) return;
+        if (!target) return;
+        var verdict = dropTargetVerdict(target);
+        if (!verdict.valid) {
+            postToEditor({ ykDropRejected: verdict.reason || 'invalid' });
+            return;
+        }
         postToEditor({ ykDrop: {
             version: 1,
             source: 'palette',

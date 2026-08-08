@@ -136,6 +136,15 @@ test('ykInsertAt 白名单：index/kind/spans 全校验（r13 插入轨道）', 
     assert.deepEqual(got.map(function (p) { return p.kind; }), ['layout', 'templates', 'blank']);
 });
 
+test('ykDropRejected 具名拒因白名单（r14）', function () {
+    const got = [];
+    const current = fixture({ onDropRejected: function (r) { got.push(r); } });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDropRejected: 'restricted-children' } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDropRejected: 'no-nested-container' } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDropRejected: 'evil' } }), false);
+    assert.deepEqual(got, ['restricted-children', 'no-nested-container']);
+});
+
 test("内联编辑限制体积，发送与生命周期保持幂等", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykInlineEdit: { kind: "element", path: "0.0.0", field: "text", format: "text", value: "ok" } } }), true);

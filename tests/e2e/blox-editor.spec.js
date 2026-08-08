@@ -375,6 +375,24 @@ test('canvas insert rails add section at exact boundary @ci', async ({ page }, t
   await expect(contentFrame.locator('.yk-insert-rail-tail .yk-insert-btn')).toBeVisible();
 });
 
+// ── 面包屑（r14）：选择模型的第二视图，点父级两击内回到区块 ──
+test('breadcrumb reflects selection and climbs to parent @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const { section, sectionIndex } = await addTemporaryHeading(page);
+  // 选中新加的标题元素 → 面包屑 = 区块 > 列 > 元素（3 项，末项高亮）
+  await section.getByTestId('blox-tree-element').first().click();
+  const crumb = page.getByTestId('blox-breadcrumb');
+  await expect(crumb).toBeVisible();
+  await expect(crumb.locator('button')).toHaveCount(3);
+  // 点第一项 → 回到区块层（面包屑收敛为 1 项），选择仍在该区块
+  await crumb.locator('button').first().click();
+  await expect(crumb.locator('button')).toHaveCount(1);
+  // 清理：临时标题=加区块+加元素两个历史项，undo 两次回 clean
+  await undo(page);
+  await undo(page);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
 // ── 点空白取消选择（用户报告的回归，2026-08-08）──
 test('clicking blank canvas deselects tree selection @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
@@ -391,7 +409,8 @@ test('clicking blank canvas deselects tree selection @ci', async ({ page }, test
   // 再选中一次，点画布宿主空白（iframe 外灰底）→ 同样清除
   await page.getByTestId('blox-tree-section').first().click();
   await expect(page.getByTestId('blox-clear-selection')).toBeVisible();
-  await page.getByTestId('blox-canvas-host').click({ position: { x: 4, y: 4 } });
+  // y 避开顶部面包屑条（r14 起有选择时显示在 host 顶部），点画布左侧灰底空白
+  await page.getByTestId('blox-canvas-host').click({ position: { x: 4, y: 100 } });
   await expect(page.getByTestId('blox-clear-selection')).toBeHidden();
 });
 
