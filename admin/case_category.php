@@ -182,7 +182,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
         <div id="batchBar" class="hidden items-center gap-3">
-            <span class="text-sm text-gray-500"><?php echo str_replace(':n', '<span id="selectedCount" class="font-medium text-gray-800">0</span>', e(__('admin_selected_n'))); ?><span class="hidden"> 项</span>
+            <span class="text-sm text-gray-500"><?php echo str_replace(':n', '<span id="selectedCount" class="font-medium text-gray-800">0</span>', e(__('admin_selected_n'))); ?>
             <button onclick="batchDelete()" class="text-red-600 hover:text-red-800 text-sm inline-flex items-center gap-1">
                 <i class="ti ti-trash text-sm"></i><?php echo e(__('admin_batch_delete')); ?></button>
         </div>

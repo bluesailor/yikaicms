@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 批量上传图片
     if ($action === 'upload') {
         if (empty($_FILES['files'])) {
-            error('请选择图片');
+            error(__('ap_pick_images'));
         }
 
         $uploadDir = '/uploads/albums/' . date('Ym') . '/';
@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取图片列表
 $photos = albumPhotoModel()->getByAlbum($albumId);
 
-$pageTitle = '管理图片 - ' . $album['name'];
+$pageTitle = __('ap_title') . ' - ' . $album['name'];
 $currentMenu = 'album';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -188,7 +188,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 面包屑 -->
 <div class="mb-6">
     <div class="flex items-center gap-2 text-sm text-gray-500">
-        <a href="/admin/album.php" class="hover:text-primary">相册管理</a>
+        <a href="/admin/album.php" class="hover:text-primary"><?php echo e(__('admin_album')); ?></a>
         <i class="ti ti-chevron-right text-base"></i>
         <span class="text-gray-900"><?php echo e($album['name']); ?></span>
     </div>
@@ -197,23 +197,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 页面调用短码 + 展示模式 -->
 <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2">
     <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-600">页面调用短码：</span>
+        <span class="text-sm text-gray-600"><?php echo e(__('ap_shortcode')); ?></span>
         <code class="text-sm bg-white border text-primary px-2 py-1 rounded select-all font-mono">[album-<?php echo (int)$album['id']; ?>]</code>
         <button type="button" onclick="ykCopyShortcode(this,'[album-<?php echo (int)$album['id']; ?>]')"
-                class="text-gray-400 hover:text-primary p-1" title="复制短码，粘贴到页面/文章正文即可调用本相册">
+                class="text-gray-400 hover:text-primary p-1" title="<?php echo e(__('ap_copy_shortcode_tip')); ?>">
             <i class="ti ti-copy text-base"></i>
         </button>
     </div>
     <div class="flex items-center gap-2 text-sm text-gray-600">
-        <span>展示模式：</span>
-        <span class="font-medium text-gray-800"><?php echo ($album['layout'] ?? 'grid') === 'masonry' ? '流布局（瀑布流）' : '网格'; ?></span>
-        <a href="/admin/album_edit.php?id=<?php echo (int)$album['id']; ?>" class="text-primary hover:underline">修改</a>
+        <span><?php echo e(__('ap_layout')); ?></span>
+        <span class="font-medium text-gray-800"><?php echo ($album['layout'] ?? 'grid') === 'masonry' ? __('ap_layout_masonry') : __('ap_layout_grid'); ?></span>
+        <a href="/admin/album_edit.php?id=<?php echo (int)$album['id']; ?>" class="text-primary hover:underline"><?php echo e(__('admin_edit')); ?></a>
     </div>
-    <p class="text-xs text-gray-400 w-full">把短码粘贴到任意页面或文章正文中，前台即以所选模式内嵌展示本相册（含点击放大灯箱）。</p>
+    <p class="text-xs text-gray-400 w-full"><?php echo e(__('ap_shortcode_tip')); ?></p>
 </div>
 <script>
 function ykCopyShortcode(btn, code) {
-    const done = () => { if (window.showMessage) showMessage('已复制短码 ' + code); };
+    const done = () => { if (window.showMessage) showMessage(<?php echo json_encode(__('ap_shortcode_copied'), JSON_UNESCAPED_UNICODE); ?>.replace(':code', code)); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(code).then(done).catch(() => ykFallbackCopy(code, done));
     } else { ykFallbackCopy(code, done); }
@@ -233,14 +233,14 @@ function ykFallbackCopy(text, cb) {
         <div id="uploadZone" class="upload-zone">
             <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
             <i class="ti ti-photo text-base mx-auto mb-3 text-gray-300"></i>
-            <p class="text-gray-600 mb-1">拖拽图片到此处，或 <span class="text-primary">点击上传</span></p>
-            <p class="text-xs text-gray-400">支持 JPG、PNG、GIF、WEBP 格式，可多选</p>
+            <p class="text-gray-600 mb-1"><?php echo str_replace(':click', '<span class="text-primary">' . e(__('ap_click_upload')) . '</span>', e(__('ap_drop_hint'))); ?></p>
+            <p class="text-xs text-gray-400"><?php echo e(__('ap_format_hint')); ?></p>
         </div>
 
         <!-- 上传进度 -->
         <div id="uploadProgress" class="hidden mt-4">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-sm text-gray-600">正在上传...</span>
+                <span class="text-sm text-gray-600"><?php echo e(__('ap_uploading')); ?></span>
                 <span id="progressText" class="text-sm text-gray-600">0%</span>
             </div>
             <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -256,14 +256,14 @@ function ykFallbackCopy(text, cb) {
         <div class="flex items-center gap-4">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="checkAll">
-                <span class="text-sm text-gray-600">全选</span>
+                <span class="text-sm text-gray-600"><?php echo e(__('admin_select_all')); ?></span>
             </label>
             <button onclick="batchDelete()" class="text-sm text-red-600 hover:underline hidden" id="batchDeleteBtn">
-                删除选中
+                <?php echo e(__('admin_batch_delete')); ?>
             </button>
         </div>
         <div class="text-sm text-gray-500">
-            共 <span id="photoCount"><?php echo count($photos); ?></span> 张图片
+            <?php echo str_replace(':n', '<span id="photoCount">' . count($photos) . '</span>', e(__('ap_n_photos'))); ?>
         </div>
     </div>
 </div>
@@ -277,7 +277,7 @@ function ykFallbackCopy(text, cb) {
             <img src="<?php echo e($photo['image']); ?>" alt="<?php echo e($photo['title']); ?>" loading="lazy">
             <div class="overlay"></div>
             <div class="actions">
-                <button onclick="setCover(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="设为封面">
+                <button onclick="setCover(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo e(__('ap_set_cover')); ?>">
                     <i class="ti ti-photo text-base text-gray-700"></i>
                 </button>
                 <button onclick="editPhoto(<?php echo $photo['id']; ?>, '<?php echo e(addslashes($photo['title'])); ?>', '<?php echo e(addslashes($photo['description'] ?? '')); ?>')" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo __('admin_edit'); ?>">
@@ -288,7 +288,7 @@ function ykFallbackCopy(text, cb) {
                 </button>
             </div>
             <?php if (!$photo['status']): ?>
-            <div class="absolute top-2 right-2 bg-gray-500 text-white text-xs px-2 py-0.5 rounded">隐藏</div>
+            <div class="absolute top-2 right-2 bg-gray-500 text-white text-xs px-2 py-0.5 rounded"><?php echo e(__('admin_hide')); ?></div>
             <?php endif; ?>
         </div>
         <?php endforeach; ?>
@@ -297,7 +297,7 @@ function ykFallbackCopy(text, cb) {
     <?php if (empty($photos)): ?>
     <div class="text-center py-12 text-gray-500">
         <i class="ti ti-photo text-base mx-auto mb-4 text-gray-300"></i>
-        <p>暂无图片，请上传</p>
+        <p><?php echo e(__('ap_empty')); ?></p>
     </div>
     <?php endif; ?>
 </div>
@@ -306,7 +306,7 @@ function ykFallbackCopy(text, cb) {
 <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="text-lg font-medium">编辑图片信息</h3>
+            <h3 class="text-lg font-medium"><?php echo e(__('ap_edit_photo')); ?></h3>
             <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-lg"></i>
             </button>
@@ -315,19 +315,19 @@ function ykFallbackCopy(text, cb) {
             <input type="hidden" name="photo_id" id="editPhotoId">
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">图片标题</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('ap_photo_title')); ?></label>
                     <input type="text" name="title" id="editTitle"
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">图片描述</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('ap_photo_desc')); ?></label>
                     <textarea name="description" id="editDescription" rows="3"
                               class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"></textarea>
                 </div>
             </div>
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 rounded-b-lg">
                 <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
-                <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-secondary">保存</button>
+                <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-secondary"><?php echo e(__('admin_save')); ?></button>
             </div>
         </form>
     </div>
@@ -418,10 +418,10 @@ async function uploadFiles(files) {
             if (xhr.status === 200) {
                 const result = JSON.parse(xhr.responseText);
                 if (result.code === 0) {
-                    showMessage(`成功上传 ${result.data.count} 张图片`);
+                    showMessage(<?php echo json_encode(__('ap_uploaded_n'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', result.data.count));
                     setTimeout(() => location.reload(), 1000);
                 } else {
-                    showMessage(result.msg || '上传失败', 'error');
+                    showMessage(result.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
                 }
             }
         };
@@ -462,7 +462,7 @@ async function setCover(photoId) {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage('已设为封面');
+        showMessage(<?php echo json_encode(__('ap_cover_set'), JSON_UNESCAPED_UNICODE); ?>);
     }
 }
 
@@ -494,7 +494,7 @@ async function savePhoto(e) {
 
 // 删除图片
 async function deletePhoto(photoId) {
-    if (!confirm('确定要删除这张图片吗？')) return;
+    if (!confirm(<?php echo json_encode(__('ap_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('photo_id', photoId);
@@ -511,7 +511,7 @@ async function deletePhoto(photoId) {
 async function batchDelete() {
     const checked = document.querySelectorAll('.photo-checkbox:checked');
     if (checked.length === 0) return;
-    if (!confirm(`确定要删除选中的 ${checked.length} 张图片吗？`)) return;
+    if (!confirm(<?php echo json_encode(__('ap_del_n_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', checked.length))) return;
 
     const formData = new FormData();
     formData.append('action', 'batch_delete');

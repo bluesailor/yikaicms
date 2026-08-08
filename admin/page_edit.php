@@ -375,38 +375,45 @@ $orgDemoHtml = <<<'HTML'
 <div class="org-chart">
   <ul style="padding-top:0">
     <li style="padding-top:0">
-      <div class="org-node org-ceo">张伟<span class="org-title">董事长 / CEO</span></div>
+      <div class="org-node org-ceo">:ceo_name<span class="org-title">:ceo_title</span></div>
       <ul>
         <li>
-          <div class="org-node org-vp">李明<span class="org-title">副总裁 · 技术</span></div>
+          <div class="org-node org-vp">:vp1_name<span class="org-title">:vp1_title</span></div>
           <ul>
-            <li><div class="org-node org-dept">研发部</div></li>
-            <li><div class="org-node org-dept">测试部</div></li>
-            <li><div class="org-node org-dept">运维部</div></li>
+            <li><div class="org-node org-dept">:dept_rd</div></li>
+            <li><div class="org-node org-dept">:dept_qa</div></li>
+            <li><div class="org-node org-dept">:dept_ops</div></li>
           </ul>
         </li>
         <li>
-          <div class="org-node org-vp">王芳<span class="org-title">副总裁 · 营销</span></div>
+          <div class="org-node org-vp">:vp2_name<span class="org-title">:vp2_title</span></div>
           <ul>
-            <li><div class="org-node org-dept">市场部</div></li>
-            <li><div class="org-node org-dept">销售部</div></li>
-            <li><div class="org-node org-dept">客服部</div></li>
+            <li><div class="org-node org-dept">:dept_mkt</div></li>
+            <li><div class="org-node org-dept">:dept_sales</div></li>
+            <li><div class="org-node org-dept">:dept_support</div></li>
           </ul>
         </li>
         <li>
-          <div class="org-node org-vp">赵强<span class="org-title">副总裁 · 运营</span></div>
+          <div class="org-node org-vp">:vp3_name<span class="org-title">:vp3_title</span></div>
           <ul>
-            <li><div class="org-node org-dept">财务部</div></li>
-            <li><div class="org-node org-dept">人力资源部</div></li>
-            <li><div class="org-node org-dept">行政部</div></li>
+            <li><div class="org-node org-dept">:dept_fin</div></li>
+            <li><div class="org-node org-dept">:dept_hr</div></li>
+            <li><div class="org-node org-dept">:dept_admin</div></li>
           </ul>
         </li>
       </ul>
     </li>
   </ul>
 </div>
-<p style="margin-top:32px;padding:20px;background:#f8fafc;border-radius:8px;">公司设有<strong>技术中心</strong>、<strong>营销中心</strong>、<strong>运营中心</strong>三大业务板块，下辖 9 个职能部门。请按实际情况修改上方图中的姓名与部门。</p>
+<p style="margin-top:32px;padding:20px;background:#f8fafc;border-radius:8px;">:footnote</p>
 HTML;
+
+// 示例文案随后台语言填充——英文/日文站插入的样例不该是中文姓名与部门
+$orgDemoHtml = str_replace(
+    [':ceo_name', ':ceo_title', ':vp1_name', ':vp1_title', ':dept_rd', ':dept_qa', ':dept_ops', ':vp2_name', ':vp2_title', ':dept_mkt', ':dept_sales', ':dept_support', ':vp3_name', ':vp3_title', ':dept_fin', ':dept_hr', ':dept_admin', ':footnote'],
+    [__('org_demo_ceo_name'), __('org_demo_ceo_title'), __('org_demo_vp1_name'), __('org_demo_vp1_title'), __('org_demo_dept_rd'), __('org_demo_dept_qa'), __('org_demo_dept_ops'), __('org_demo_vp2_name'), __('org_demo_vp2_title'), __('org_demo_dept_mkt'), __('org_demo_dept_sales'), __('org_demo_dept_support'), __('org_demo_vp3_name'), __('org_demo_vp3_title'), __('org_demo_dept_fin'), __('org_demo_dept_hr'), __('org_demo_dept_admin'), __('org_demo_footnote')],
+    $orgDemoHtml
+);
 ?>
 const ORG_DEMO_HTML = <?php echo json_encode($orgDemoHtml, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 function insertOrgDemo() {

@@ -77,10 +77,13 @@ foreach ([
     'SELECT summary FROM ' . DB_PREFIX . 'products',
     'SELECT subtitle FROM ' . DB_PREFIX . 'contents',
     'SELECT summary FROM ' . DB_PREFIX . 'contents',
+    'SELECT title FROM ' . DB_PREFIX . 'album_photos',
+    'SELECT description FROM ' . DB_PREFIX . 'album_photos',
     // settings.value = 站长自己填的站点内容（站点名/口号/简介…），属数据；
     // settings.name / tip / options 才是 UI，走 setting_* / setting_opt_* 键。
     'SELECT value FROM ' . DB_PREFIX . 'settings',
     'SELECT title FROM ' . DB_PREFIX . 'jobs',
+    'SELECT location FROM ' . DB_PREFIX . 'jobs',
     'SELECT name FROM ' . DB_PREFIX . 'links',
     'SELECT name FROM ' . DB_PREFIX . 'brands',
     'SELECT name FROM ' . DB_PREFIX . 'albums',
@@ -102,7 +105,76 @@ foreach ([
     } catch (Throwable) {
     }
 }
+// 单页/文章的排版数据（blocks_data）是 JSON 里的正文，编辑器把它渲染进画布——
+// 整块 JSON 当白名单条目匹配不上单个片段，得把里面的字符串逐个摊出来。
+$collectStrings = static function ($node) use (&$collectStrings, &$whitelist): void {
+    if (is_string($node)) {
+        // 正文里混着标签（<strong> 加粗、alt="..." 等），整串比对会被标签切断——
+        // 直接把每一段连续中文收进白名单：blocks_data 里的内容按定义就是数据。
+        if (preg_match_all('/[\x{4e00}-\x{9fff}][^<>"\x{0000}-\x{001f}]*/u', $node, $cm)) {
+            foreach ($cm[0] as $piece) {
+                $piece = trim($piece);
+                if ($piece !== '') {
+                    $whitelist[] = $piece;
+                }
+            }
+        }
+        return;
+    }
+    if (is_array($node)) {
+        foreach ($node as $child) {
+            $collectStrings($child);
+        }
+    }
+};
+try {
+    foreach (db()->fetchAll('SELECT blocks_data FROM ' . DB_PREFIX . 'contents') as $row) {
+        $collectStrings(json_decode((string) reset($row), true));
+    }
+} catch (Throwable) {
+}
+// 插件提供的元素标签由插件作者维护，不是本仓库的 UI 债
+foreach (glob(ROOT_PATH . '/plugins/*/*.php') as $pf) {
+    if (preg_match_all("/function label\(\): string.*?return '([^']+)'/s", (string) file_get_contents($pf), $lm)) {
+        foreach ($lm[1] as $lbl) {
+            if (preg_match('/[\x{4e00}-\x{9fff}]/u', $lbl)) {
+                $whitelist[] = $lbl;
+            }
+        }
+    }
+}
+// 出厂默认值（defaults.php）——DB 里没有该行时页面显示的就是它，同属数据
+foreach (['basic', 'home', 'contact', 'seo'] as $g) {
+    foreach (getDefaults($g) as $def) {
+        $v = trim((string) ($def['value'] ?? ''));
+        if ($v !== '' && preg_match('/[\x{4e00}-\x{9fff}]/u', $v)) {
+            $whitelist[] = $v;
+        }
+    }
+}
+// 内容模型预置方案名：三语并列存在预置表里，新建弹窗要用它填 EN/JA 输入框，
+// 中文出现在页面源码里是功能需要
+foreach (require ROOT_PATH . '/includes/content_model_presets.php' as $preset) {
+    foreach (['name', 'name_ja'] as $f) {
+        $v = trim((string) ($preset[$f] ?? ''));
+        if ($v !== '' && preg_match('/[\x{4e00}-\x{9fff}]/u', $v)) {
+            $whitelist[] = $v;
+        }
+    }
+}
+// 插件与主题清单里的名称/描述由第三方作者提供，不是本仓库的 UI 债
+foreach (array_merge(glob(ROOT_PATH . '/plugins/*/plugin.json'), glob(ROOT_PATH . '/themes/*/theme.json')) as $mf) {
+    $j = json_decode((string) file_get_contents($mf), true);
+    foreach (['name', 'description'] as $f) {
+        $v = trim((string) ($j[$f] ?? ''));
+        if ($v !== '' && preg_match('/[\x{4e00}-\x{9fff}]/u', $v)) {
+            $whitelist[] = $v;
+        }
+    }
+}
+// 长串优先剔除，避免短串先命中把长串切碎
 $whitelist = array_unique($whitelist);
+usort($whitelist, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
 
 // 豁免清单：
 //   前四个 = 未登录/升级流程页（扫描器登录态覆盖不到或有副作用）；
@@ -121,7 +193,13 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
     if (in_array($name, $skip, true) || str_contains($name, '_api') || str_starts_with($name, 'api_')) {
         continue;
     }
-    [$code, $html] = scan_req('/admin/' . $name);
+    // 少数页面无参直接 302（必须带 id/type）——补默认查询串，否则永远扫不到
+    $qs = [
+        'album_photos.php'      => '?id=1',
+        'page_edit.php'         => '?id=1',
+        'page_edit_advance.php' => '?id=1',
+    ][$name] ?? '';
+    [$code, $html] = scan_req('/admin/' . $name . $qs);
     if ($code !== 200) {
         $errors[$name] = "HTTP $code";
         continue;
@@ -131,7 +209,8 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
     $jsText = '';
     preg_match_all('/<script(?![^>]*src)[^>]*>(.*?)<\/script>/s', $html, $scripts);
     foreach ($scripts[1] ?? [] as $js) {
-        $js = preg_replace('~//[^\n]*|/\*.*?\*/~s', '', $js);
+        $js = preg_replace('~/\*.*?\*/~s', '', (string) $js);   // 块注释先剥
+        $js = preg_replace('~//[^\n]*~', '', (string) $js);
         preg_match_all('/[\'"`]([^\'"`\n]*[\x{4e00}-\x{9fff}][^\'"`\n]*)[\'"`]/u', (string) $js, $jm);
         $jsText .= ' ' . implode(' ', $jm[1] ?? []);
     }
@@ -140,6 +219,15 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
     preg_match_all('/(?:placeholder|title|aria-label|alt)="([^"]*[\x{4e00}-\x{9fff}][^"]*)"/u', (string) $clean, $attrs);
     $text = strip_tags((string) $clean) . ' ' . implode(' ', $attrs[1] ?? []) . $jsText;
 
+    // 先把数据串从文本里剔掉再抽片段——事后比对会漏掉「数据+标签同处一串」的
+    // 情况（如 title="<文章标题> Translated: <译文标题>"，整串既不含于白名单
+    // 任一条、也不被任一条包含，旧法必误报）。
+    foreach ($whitelist as $w) {
+        if (mb_strlen($w) >= 2) {
+            $text = str_replace($w, ' ', $text);
+        }
+    }
+
     preg_match_all('/[\x{4e00}-\x{9fff}][\x{4e00}-\x{9fff}\x{ff01}-\x{ff5e}a-zA-Z0-9 ：ःः:，、．.]{0,24}/u', $text, $mm);
     $frags = [];
     foreach (array_unique($mm[0]) as $frag) {
@@ -147,9 +235,13 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
         if ($frag === '') {
             continue;
         }
+        // 剔除步骤按整串匹配，两种情况会漏：列表里被 cutStr() 截断（尾部省略号）、
+        // 数据串里含片段正则不认的字符（斜杠等）被切成两半。都按「是白名单条目的
+        // 一部分」再兜一次。
         $isData = false;
+        $stem = rtrim($frag, '.…');
         foreach ($whitelist as $w) {
-            if (mb_strlen($w) >= 2 && (str_contains($frag, $w) || str_contains($w, $frag))) {
+            if (mb_strlen($stem) >= 4 && str_contains($w, $stem)) {
                 $isData = true;
                 break;
             }

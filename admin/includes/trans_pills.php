@@ -204,8 +204,13 @@ function renderTransPills(int $sourceId, array $statusIdx, string $editUrl, stri
     $enabled = $enabledRaw !== '' ? json_decode($enabledRaw, true) : null;
     if (!is_array($enabled) || count($enabled) < 2) return '';
 
-    // 短标签（徽标里只显示 1-2 字符）；扩展时优先短标签，否则用 code 大写
-    $shortLabels = ['zh-CN' => '中', 'en' => 'EN', 'ja' => '日', 'ko' => '韩', 'fr' => 'FR', 'de' => 'DE', 'es' => 'ES'];
+    // 短标签（徽标里只显示 1-2 字符）；中文后台用「中/日/韩」，其他语言回落
+    // 大写代码——中文单字在英文/日文界面里读不出是哪门语言。扩展语言无键时同样用代码。
+    $shortLabels = [
+        'zh-CN' => __('lang_short_zhcn'), 'en' => __('lang_short_en'),
+        'ja' => __('lang_short_ja'), 'ko' => __('lang_short_ko'),
+        'fr' => 'FR', 'de' => 'DE', 'es' => 'ES',
+    ];
     $available = availableLanguages();
     $sep = strpos($editUrl, '?') !== false ? '&' : '?';
 

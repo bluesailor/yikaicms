@@ -71,11 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 extFieldModel()->create([
                     'owner_type'  => $key,
                     'field_key'   => $f['field_key'],
-                    'field_name'  => $f['field_name'],
+                    'field_name'  => presetText($f, 'field_name'),
                     'field_type'  => $f['field_type'],
-                    'options'     => $f['options'] ?? '',
+                    'options'     => presetText($f, 'options'),
                     'placeholder' => '',
-                    'help_text'   => $f['help_text'] ?? '',
+                    'help_text'   => presetText($f, 'help_text'),
                     'is_required' => (int) ($f['is_required'] ?? 0),
                     'sort_order'  => $i,
                     'status'      => 1,
@@ -216,7 +216,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="flex items-center gap-2">
                             <svg class="w-5 h-5 text-primary shrink-0" fill="none" viewBox="0 0 24 24"><?php echo $p['icon']; ?></svg>
                             <div class="min-w-0">
-                                <div class="text-sm font-medium text-gray-800 truncate"><?php echo e($p['name']); ?></div>
+                                <div class="text-sm font-medium text-gray-800 truncate"><?php echo e(presetText($p, 'name')); ?></div>
                                 <div class="text-xs text-gray-400"><?php echo count($p['fields']); ?> <?php echo __('cm_preset_fields'); ?></div>
                             </div>
                         </div>
@@ -278,7 +278,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <script>
 const CSRF = <?php echo json_encode(csrfToken()); ?>, CSRF_NAME = <?php echo json_encode(CSRF_TOKEN_NAME); ?>;
-const PRESETS = <?php echo json_encode($presets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
+<?php
+// 只把表单需要的五个标量投影给 JS——整表下发会把三语字段名与选项全灌进页面，
+// 既没人用，也让「后台英文界面无中文」的渲染态检查永远过不了。
+$presetsJs = [];
+foreach ($presets as $pk => $p) {
+    $presetsJs[$pk] = [
+        'name'       => $p['name'],
+        'name_en'    => $p['name_en'] ?? '',
+        'name_ja'    => $p['name_ja'] ?? '',
+        'url_prefix' => $p['url_prefix'] ?? $pk,
+        'has_detail' => $p['has_detail'] ?? 0,
+    ];
+}
+?>
+const PRESETS = <?php echo json_encode($presetsJs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
 const modal = document.getElementById('cmModal');
 
 function openModal() {
