@@ -142,7 +142,7 @@ $items = contentModel()->query(
     $params
 );
 
-$pageTitle = '案例管理';
+$pageTitle = __('admin_case_manage');
 $currentMenu = 'case';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
@@ -210,7 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_recommend'); ?></th>
 
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_publish_time'); ?></th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translation')); ?></th>
 
                     </tr>
                 </thead>

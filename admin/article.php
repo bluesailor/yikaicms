@@ -251,7 +251,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3"><?php echo __('admin_recommend'); ?></th>
                     <th class="px-4 py-3"><?php echo __('detail_views'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_date'); ?></th>
-                    <th class="px-4 py-3">翻译</th>
+                    <th class="px-4 py-3"><?php echo e(__('admin_translation')); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">

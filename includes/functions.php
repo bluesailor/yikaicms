@@ -789,6 +789,36 @@ function _e(string $key, array $params = []): string
  * 格式化文件大小
  */
 /**
+ * settings 表（及 defaults.php）里的 name / tip / options 是中文出厂值，
+ * 后台按语言显示时优先取 lang 键，查不到才回落 DB 值——这样老库与站长自建的
+ * 设置项不受影响。三个设置页共用，别再各自内联同一段三元表达式。
+ *
+ *   name    => setting_<key>
+ *   tip     => setting_<key>_tip
+ *   options => setting_opt_<key>_<value>
+ */
+function settingLabel(string $key, string $fallback = ''): string
+{
+    $langKey = 'setting_' . $key;
+    $val = __($langKey);
+    return $val !== $langKey ? $val : $fallback;
+}
+
+function settingTip(string $key, string $fallback = ''): string
+{
+    $langKey = 'setting_' . $key . '_tip';
+    $val = __($langKey);
+    return $val !== $langKey ? $val : $fallback;
+}
+
+function settingOptionLabel(string $key, string $value, string $fallback = ''): string
+{
+    $langKey = 'setting_opt_' . $key . '_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $value);
+    $val = __($langKey);
+    return $val !== $langKey ? $val : $fallback;
+}
+
+/**
  * 后台品牌名（左上角 Logo / 页面标题 / 页脚版权）。
  * admin_title 仍是出厂默认「后台管理」时按后台语言本地化（en=Admin Panel、
  * ja=管理画面）；管理员自定义过则原样显示；为空回落站点名。

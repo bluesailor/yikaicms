@@ -484,8 +484,8 @@ async function saveAdminLanguages() {
             <?php $columnsData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
-                    <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
-                    <?php $__tip = __('setting_' . $item['key'] . '_tip'); $__tip = $__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : (string) $item['tip']; ?>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
                     <?php if ($__tip !== ''): ?>
                     <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
@@ -529,8 +529,8 @@ async function saveAdminLanguages() {
             <?php $navData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
-                    <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
-                    <?php $__tip = __('setting_' . $item['key'] . '_tip'); $__tip = $__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : (string) $item['tip']; ?>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
                     <?php if ($__tip !== ''): ?>
                     <span class="text-gray-400 text-sm font-normal ml-2"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
@@ -558,9 +558,9 @@ async function saveAdminLanguages() {
             ?>
             <div class="<?php echo $__stackedField ? '' : 'grid grid-cols-1 md:grid-cols-4 gap-4 items-start'; ?>">
                 <label class="text-gray-700 <?php echo $__stackedField ? 'block mb-2 font-medium' : 'pt-2'; ?>">
-                    <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
+                    <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
                     <?php // tip：语言包 setting_<key>_tip 优先；数据库存的 tip 兜底（老库该列可能为空，故不能以它做显示开关） ?>
-                    <?php $__tip = __('setting_' . $item['key'] . '_tip'); $__tip = $__tip !== 'setting_' . $item['key'] . '_tip' ? $__tip : (string) $item['tip']; ?>
+                    <?php $__tip = settingTip($item['key'], (string) $item['tip']); ?>
                     <?php if ($__tip !== ''): ?>
                     <span class="text-gray-400 text-sm block"><?php echo e($__tip); ?></span>
                     <?php endif; ?>

@@ -840,7 +840,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                             </div>
                             <?php endfor; ?>
                         </div>
-                        <p class="text-xs text-gray-400 mt-2"><?php echo e(__('shome_tabler_hint')); ?>（<a href="https://tabler.io/icons" target="_blank" class="text-primary hover:underline">tabler.io/icons</a>），留空则该项不显示图标。</p>
+                        <p class="text-xs text-gray-400 mt-2"><?php echo str_replace(':site', '<a href="https://tabler.io/icons" target="_blank" class="text-primary hover:underline">tabler.io/icons</a>', e(__('shome_icon_hint'))); ?></p>
                     </div>
                     <?php endif; ?>
 
@@ -851,9 +851,13 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                     ?>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                         <label class="text-gray-700 text-sm pt-2">
-                            <?php $__lbl = __('setting_' . $item['key']); echo e($__lbl !== 'setting_' . $item['key'] ? $__lbl : $item['name']); ?>
-                            <?php if ($item['tip']): ?>
-                            <span class="text-gray-400 text-xs block"><?php echo e($item['tip']); ?></span>
+                            <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
+                            <?php
+                            // tip 本地化与 label 同规则：lang 键优先，DB/defaults 的中文作兜底
+                            $__tip = settingTip($item['key'], (string) $item['tip']);
+                            ?>
+                            <?php if ($__tip !== ''): ?>
+                            <span class="text-gray-400 text-xs block"><?php echo e($__tip); ?></span>
                             <?php endif; ?>
                         </label>
                         <div class="md:col-span-3">
@@ -865,9 +869,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                             <?php $opts = json_decode($item['options'], true) ?: []; ?>
                             <select name="settings[<?php echo e($item['key']); ?>]"
                                     class="w-full border rounded px-3 py-2 text-sm bg-white">
-                                <?php foreach ($opts as $optVal => $optLabel): ?>
+                                <?php foreach ($opts as $optVal => $optLabel):
+                                    $__ol = settingOptionLabel($item['key'], (string) $optVal, (string) $optLabel);
+                                ?>
                                 <option value="<?php echo e($optVal); ?>" <?php echo $item['value'] === $optVal ? 'selected' : ''; ?>>
-                                    <?php echo e($optLabel); ?>
+                                    <?php echo e($__ol); ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
