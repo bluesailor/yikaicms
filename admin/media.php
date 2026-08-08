@@ -205,7 +205,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 分页 -->
     <?php if ($total > $perPage): ?>
     <div class="px-6 py-4 border-t flex items-center justify-between">
-        <span class="text-sm text-gray-500">共 <?php echo $total; ?> 个文件</span>
+        <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('mp_total_files'))); ?></span>
         <div class="flex items-center gap-2">
             <?php
             $totalPages = (int)ceil($total / $perPage);

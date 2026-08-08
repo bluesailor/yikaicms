@@ -65,6 +65,19 @@ foreach ([
     'SELECT title FROM ' . DB_PREFIX . 'contents',
     'SELECT nickname FROM ' . DB_PREFIX . 'users',
     'SELECT name FROM ' . DB_PREFIX . 'blox_templates',
+    'SELECT title FROM ' . DB_PREFIX . 'timelines',
+    'SELECT description FROM ' . DB_PREFIX . 'timelines',
+    'SELECT title FROM ' . DB_PREFIX . 'jobs',
+    'SELECT name FROM ' . DB_PREFIX . 'links',
+    'SELECT name FROM ' . DB_PREFIX . 'brands',
+    'SELECT name FROM ' . DB_PREFIX . 'albums',
+    'SELECT name FROM ' . DB_PREFIX . 'banner_groups',
+    'SELECT title FROM ' . DB_PREFIX . 'banners',
+    'SELECT title FROM ' . DB_PREFIX . 'downloads',
+    'SELECT name FROM ' . DB_PREFIX . 'download_categories',
+    'SELECT name FROM ' . DB_PREFIX . 'roles',
+    'SELECT name FROM ' . DB_PREFIX . 'content_models',
+    'SELECT title FROM ' . DB_PREFIX . 'form_templates',
 ] as $sql) {
     try {
         foreach (db()->fetchAll($sql) as $row) {
@@ -78,7 +91,16 @@ foreach ([
 }
 $whitelist = array_unique($whitelist);
 
-$skip = ['login.php', 'logout.php', 'upgrade.php', 'upgrade_online.php', 'blox_editor.php'];
+// 豁免清单：
+//   前四个 = 未登录/升级流程页（扫描器登录态覆盖不到或有副作用）；
+//   blox_editor = 付费文件不随公开仓库分发；
+//   setting_translate / setting_channel_translate / setting_product_cat_translate =
+//     翻译工作台，页面职能就是展示中文源文供翻译，命中的是数据不是 UI；
+//   ai_assistant = Abilities 能力描述是 AI 提示词语料（includes/abilities/*），
+//     由模型消费而非用户界面，中文是特性不是缺陷。
+$skip = ['login.php', 'logout.php', 'upgrade.php', 'upgrade_online.php', 'blox_editor.php',
+    'setting_translate.php', 'setting_channel_translate.php', 'setting_product_cat_translate.php',
+    'ai_assistant.php'];
 $report = [];
 $errors = [];
 foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {

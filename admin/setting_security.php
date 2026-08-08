@@ -256,7 +256,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('sec_login_history'); ?></h2>
-            <span class="text-sm text-gray-400">共 <?php echo number_format($loginTotal); ?> 条</span>
+            <span class="text-sm text-gray-400"><?php echo str_replace(':n', number_format($loginTotal), e(__('admin_total_n'))); ?></span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -328,7 +328,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php if ($loginTotal > $loginPerPage): ?>
         <div class="px-6 py-4 border-t flex items-center justify-between">
             <div class="text-sm text-gray-500">
-                第 <?php echo $loginPage; ?> 页 / 共 <?php echo ceil($loginTotal / $loginPerPage); ?> 页
+                <?php echo str_replace([':p', ':t'], [(string) $loginPage, (string) (int) ceil($loginTotal / $loginPerPage)], e(__('admin_page_of'))); ?>
             </div>
             <div class="flex gap-2">
                 <?php if ($loginPage > 1): ?>

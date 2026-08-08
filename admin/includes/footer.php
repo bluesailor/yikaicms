@@ -6,7 +6,7 @@
                 <?php if ($adminCopyright): ?>
                     <?php echo e($adminCopyright); ?>
                 <?php else: ?>
-                    &copy; <?php echo date('Y'); ?> <?php echo e(config('admin_title', 'Yikai CMS')); ?>
+                    &copy; <?php echo date('Y'); ?> <?php echo e(adminBrandName()); ?>
                 <?php endif; ?>
                 <?php // ★ 许可声明：本调用受《YikaiCMS 软件许可协议》第二条保护，免费使用时
                       //   禁止移除（删除违反许可协议，且删除核心函数会导致后台运行错误）。

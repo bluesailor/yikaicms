@@ -25,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newValue = post('demo_mode', '0') === '1' ? '1' : '0';
         settingModel()->set('demo_mode', $newValue);
         adminLog('setting', 'demo_mode', '演示模式 ' . ($newValue === '1' ? '开启' : '关闭'));
-        success([], '保存成功');
+        success([], __('admin_saved'));
     }
 }
 
-$pageTitle = '演示模式开关';
+$pageTitle = __('dm_title');
 $currentMenu = '';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -42,31 +42,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
-                <h2 class="font-bold text-gray-800">演示模式</h2>
+                <h2 class="font-bold text-gray-800"><?php echo e(__('dm_heading')); ?></h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    开启后整个后台只能浏览，所有 POST 写操作都会被拦截（仅 <code class="bg-gray-100 px-1 rounded">upgrade.php</code> 和本页除外）。
-                    适合公开演示站点防止访客篡改数据。
+                    <?php echo str_replace(':file', '<code class="bg-gray-100 px-1 rounded">upgrade.php</code>', e(__('dm_desc'))); ?>
                 </p>
             </div>
             <div class="p-6 space-y-4">
                 <label class="flex items-start gap-3 p-4 rounded-lg border hover:bg-gray-50 cursor-pointer">
                     <input type="checkbox" name="demo_mode" value="1" <?php echo $currentOn ? 'checked' : ''; ?> class="w-5 h-5 rounded mt-0.5">
                     <div>
-                        <span class="font-medium text-gray-700">启用演示模式</span>
+                        <span class="font-medium text-gray-700"><?php echo e(__('dm_enable')); ?></span>
                         <p class="text-xs text-gray-400 mt-1">
-                            当前状态：
+                            <?php echo e(__('dm_current_state')); ?>
                             <?php if ($currentOn): ?>
-                                <span class="text-orange-600 font-medium">已开启（写操作被拦截）</span>
+                                <span class="text-orange-600 font-medium"><?php echo e(__('dm_state_on')); ?></span>
                             <?php else: ?>
-                                <span class="text-green-600 font-medium">已关闭（正常使用）</span>
+                                <span class="text-green-600 font-medium"><?php echo e(__('dm_state_off')); ?></span>
                             <?php endif; ?>
                         </p>
                     </div>
                 </label>
 
                 <div class="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-700 space-y-1">
-                    <div><strong>访问入口：</strong>/admin/setting_demo.php（侧栏未挂链接，仅记 URL）</div>
-                    <div><strong>底层机制：</strong>读取 <code>yikai_settings.demo_mode</code>，<code>config/config.php</code> 中的 <code>define('DEMO_MODE', ...)</code> 已注释</div>
+                    <div><strong><?php echo e(__('dm_entry')); ?></strong>/admin/setting_demo.php<?php echo e(__('dm_entry_note')); ?></div>
+                    <div><strong><?php echo e(__('dm_mechanism')); ?></strong><?php echo str_replace([':row', ':const'], ['<code>' . DB_PREFIX . 'settings.demo_mode</code>', '<code>config/config.php</code>'], e(__('dm_mechanism_note'))); ?></div>
                 </div>
             </div>
         </div>
@@ -88,10 +87,10 @@ document.getElementById('demoForm').addEventListener('submit', async function(e)
     var resp = await fetch('', { method: 'POST', body: fd });
     var data = await safeJson(resp);
     if (data.code === 0) {
-        showMessage(data.msg || '保存成功');
+        showMessage(data.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(() => location.reload(), 800);
     } else {
-        showMessage(data.msg || '保存失败', 'error');
+        showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 </script>

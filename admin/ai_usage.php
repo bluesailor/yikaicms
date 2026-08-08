@@ -14,7 +14,7 @@ checkLogin();
 requirePermission('*');
 
 $currentMenu = 'setting_ai';
-$pageTitle = 'AI 用量详情';
+$pageTitle = __('aiu_title');
 $logTable = DB_PREFIX . 'ai_logs';
 
 // 筛选参数
@@ -60,8 +60,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="mb-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">AI 用量详情</h1>
-            <a href="/admin/setting_ai.php" class="text-sm text-gray-400 hover:text-primary">&laquo; 返回 AI 设置</a>
+            <h1 class="text-2xl font-bold text-gray-800"><?php echo e(__('aiu_title')); ?></h1>
+            <a href="/admin/setting_ai.php" class="text-sm text-gray-400 hover:text-primary">&laquo; <?php echo e(__('aiu_back_ai_setting')); ?></a>
         </div>
     </div>
 </div>
@@ -70,30 +70,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
     <div class="bg-white rounded-lg shadow p-4 text-center">
         <p class="text-2xl font-bold text-blue-600"><?php echo number_format($total); ?></p>
-        <p class="text-xs text-gray-500 mt-1">总调用次数</p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('aiu_total_calls')); ?></p>
     </div>
     <div class="bg-white rounded-lg shadow p-4 text-center">
         <p class="text-2xl font-bold text-purple-600"><?php echo number_format((int)($stats['tokens'] ?? 0)); ?></p>
-        <p class="text-xs text-gray-500 mt-1">总 Tokens</p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('aiu_total_tokens')); ?></p>
     </div>
     <div class="bg-white rounded-lg shadow p-4 text-center">
         <p class="text-2xl font-bold text-cyan-600"><?php echo number_format((int)($stats['prompt_t'] ?? 0)); ?></p>
-        <p class="text-xs text-gray-500 mt-1">输入 Tokens</p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('aiu_in_tokens')); ?></p>
     </div>
     <div class="bg-white rounded-lg shadow p-4 text-center">
         <p class="text-2xl font-bold text-teal-600"><?php echo number_format((int)($stats['comp_t'] ?? 0)); ?></p>
-        <p class="text-xs text-gray-500 mt-1">输出 Tokens</p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('aiu_out_tokens')); ?></p>
     </div>
     <div class="bg-white rounded-lg shadow p-4 text-center">
         <p class="text-2xl font-bold text-green-600"><?php echo (int)($stats['ok'] ?? 0); ?> <span class="text-red-400 text-lg">/ <?php echo (int)($stats['fail'] ?? 0); ?></span></p>
-        <p class="text-xs text-gray-500 mt-1">成功 / 失败</p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('aiu_ok_fail')); ?></p>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- 按供应商统计 -->
     <div class="bg-white rounded-lg shadow">
-        <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm">供应商分布</div>
+        <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm"><?php echo e(__('aiu_by_provider')); ?></div>
         <div class="p-4 space-y-2">
             <?php if (empty($providerStats)): ?>
             <p class="text-gray-400 text-sm text-center py-4">暂无数据</p>
@@ -115,7 +115,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <!-- 每日趋势 -->
     <div class="bg-white rounded-lg shadow lg:col-span-2">
-        <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm">每日调用（最近30天）</div>
+        <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm"><?php echo e(__('aiu_daily')); ?></div>
         <div class="p-4 overflow-x-auto">
             <?php if (empty($dailyStats)): ?>
             <p class="text-gray-400 text-sm text-center py-4">暂无数据</p>
@@ -137,7 +137,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 筛选 -->
 <div class="bg-white rounded-lg shadow mb-4">
     <div class="px-4 py-3 flex items-center gap-4 flex-wrap">
-        <span class="text-sm text-gray-500">筛选：</span>
+        <span class="text-sm text-gray-500"><?php echo e(__('aiu_filter')); ?></span>
         <a href="/admin/ai_usage.php" class="text-sm <?php echo (!$filterProvider && !$filterDate) ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>">全部</a>
         <?php foreach ($providerStats as $ps): ?>
         <a href="?provider=<?php echo e($ps['provider']); ?>" class="text-sm <?php echo $filterProvider === $ps['provider'] ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>"><?php echo e($ps['provider']); ?></a>
@@ -145,7 +145,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php if ($filterDate): ?>
         <span class="text-sm text-gray-400">|</span>
         <span class="text-sm text-primary"><?php echo e($filterDate); ?></span>
-        <a href="?<?php echo $filterProvider ? 'provider=' . e($filterProvider) : ''; ?>" class="text-xs text-red-400 hover:text-red-600">清除日期</a>
+        <a href="?<?php echo $filterProvider ? 'provider=' . e($filterProvider) : ''; ?>" class="text-xs text-red-400 hover:text-red-600"><?php echo e(__('aiu_clear_date')); ?></a>
         <?php endif; ?>
     </div>
 </div>
@@ -157,19 +157,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <thead class="bg-gray-50">
                 <tr>
                     <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo __('admin_created_at'); ?></th>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500">操作员</th>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500">供应商</th>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500">模型</th>
+                    <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo e(__('aiu_operator')); ?></th>
+                    <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo e(__('aiu_provider')); ?></th>
+                    <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo e(__('aiu_model')); ?></th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
-                    <th class="text-right px-4 py-3 font-medium text-gray-500">输入</th>
-                    <th class="text-right px-4 py-3 font-medium text-gray-500">输出</th>
-                    <th class="text-right px-4 py-3 font-medium text-gray-500">合计</th>
+                    <th class="text-right px-4 py-3 font-medium text-gray-500"><?php echo e(__('aiu_input')); ?></th>
+                    <th class="text-right px-4 py-3 font-medium text-gray-500"><?php echo e(__('aiu_output')); ?></th>
+                    <th class="text-right px-4 py-3 font-medium text-gray-500"><?php echo e(__('aiu_sum')); ?></th>
                     <th class="text-center px-4 py-3 font-medium text-gray-500"><?php echo __('admin_status'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
                 <?php if (empty($logs)): ?>
-                <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">暂无记录</td></tr>
+                <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400"><?php echo e(__('admin_no_data')); ?></td></tr>
                 <?php else: foreach ($logs as $log): ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-2.5 text-gray-400 text-xs whitespace-nowrap"><?php echo $log['created_at']; ?></td>
@@ -197,7 +197,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <?php if ($totalPages > 1): ?>
     <div class="px-4 py-3 border-t flex items-center justify-between">
-        <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条，第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</span>
+        <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?> <?php echo str_replace([':p', ':t'], [(string) $page, (string) $totalPages], e(__('admin_page_of'))); ?></span>
         <div class="flex gap-1">
             <?php if ($page > 1): ?>
             <a href="?page=<?php echo $page - 1; ?>&provider=<?php echo e($filterProvider); ?>&date=<?php echo e($filterDate); ?>" class="px-3 py-1 border rounded text-sm hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>

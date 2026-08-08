@@ -205,7 +205,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             ]); ?>
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500">共 <?php echo $total; ?> 条</span>
+                <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
                 $queryString = http_build_query(array_filter(['status' => $status, 'keyword' => $keyword]));
