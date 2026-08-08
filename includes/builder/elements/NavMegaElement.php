@@ -51,13 +51,25 @@ final class NavMegaElement extends AbstractElement
     {
         $groupId = (int) ($data['menu_group'] ?? 0);
         if ($groupId > 0 && function_exists('navMenuModel')) {
+            // 菜单组：内容用户全权自定义，不自动插首页（需要就在组里加）
             try {
                 return navMenuModel()->treeFor($groupId);
             } catch (Throwable) {
                 return [];
             }
         }
-        return function_exists('getNavChannels') ? getNavChannels() : [];
+        $tree = function_exists('getNavChannels') ? getNavChannels() : [];
+        // 首页项：与主题导航同源吃站点设置（nav_home_show 开关 + nav_home_text 文案），
+        // 行为一致——主题头部显示首页，Blox 头部也显示；设置里关掉则都不显示
+        if (function_exists('configRawLang') && configRawLang('nav_home_show', '1') !== '0') {
+            array_unshift($tree, [
+                'name' => function_exists('configLang') ? (string) configLang('nav_home_text', 'nav_home') : __('nav_home'),
+                'url' => '/',
+                '_url' => '/',
+                'children' => [],
+            ]);
+        }
+        return $tree;
     }
 
     /** 组树自定义链接可配 _blank（栏目投影节点无此键=空串） */
