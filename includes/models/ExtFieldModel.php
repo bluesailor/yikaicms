@@ -13,18 +13,29 @@ class ExtFieldModel extends Model
     protected string $table = 'extfields';
     protected string $defaultOrder = 'sort_order ASC, id ASC';
 
+    /** 字段类型键 => lang 键。标签本地化走 typeLabels()——const 不能调 __()。 */
     public const TYPES = [
-        'text'         => '单行文本',
-        'textarea'     => '多行文本',
-        'richtext'     => '富文本',
-        'image'        => '单图',
-        'images'       => '多图',
-        'select'       => '下拉选择',
-        'multi_select' => '多选',
-        'date'         => '日期',
-        'number'       => '数字',
-        'switch'       => '开关',
+        'text'         => 'ext_type_text',
+        'textarea'     => 'ext_type_textarea',
+        'richtext'     => 'ext_type_richtext',
+        'image'        => 'ext_type_image',
+        'images'       => 'ext_type_images',
+        'select'       => 'ext_type_select',
+        'multi_select' => 'ext_type_multi_select',
+        'date'         => 'ext_type_date',
+        'number'       => 'ext_type_number',
+        'switch'       => 'ext_type_switch',
     ];
+
+    /** 字段类型键 => 当前语言的显示标签。 */
+    public static function typeLabels(): array
+    {
+        $out = [];
+        foreach (self::TYPES as $key => $langKey) {
+            $out[$key] = __($langKey);
+        }
+        return $out;
+    }
 
     /**
      * 获取指定 owner_type 的启用字段（按 sort_order 排序）

@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $permissions = $_POST['permissions'] ?? [];
 
         if (empty($name)) {
-            error('请输入角色名称');
+            error(__('role_name_required'));
         }
 
         // 过滤无效权限
@@ -62,19 +62,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $role = roleModel()->find($id);
         if (!$role) {
-            error('角色不存在');
+            error(__('role_not_found'));
         }
 
         // 检查是否有用户关联
         $userCount = roleModel()->getUserCount($id);
         if ($userCount > 0) {
-            error("该角色下有 {$userCount} 个管理员，请先转移后再删除");
+            error(str_replace(':n', (string) $userCount, __('role_in_use')));
         }
 
         // 检查是否是超级管理员角色
         $perms = json_decode($role['permissions'] ?? '[]', true) ?: [];
         if (in_array('*', $perms)) {
-            error('超级管理员角色不可删除');
+            error(__('role_super_undeletable'));
         }
 
         roleModel()->deleteById($id);
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取角色列表
 $roles = roleModel()->all('id ASC');
 
-$pageTitle = '管理员';
+$pageTitle = __('admin_admins');
 $currentMenu = 'role';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -97,8 +97,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/user.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300">管理员列表</a>
-        <a href="/admin/role.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary">角色管理</a>
+        <a href="/admin/user.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo e(__('role_tab_users')); ?></a>
+        <a href="/admin/role.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo e(__('role_title')); ?></a>
     </div>
 </div>
 
@@ -107,7 +107,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <i class="ti ti-plus text-base"></i>
-            添加角色
+            <?php echo e(__('role_add')); ?>
         </button>
     </div>
 </div>
@@ -151,13 +151,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3">
                         <div class="flex flex-wrap gap-1">
                             <?php if ($isSuperRole): ?>
-                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">全部权限</span>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded"><?php echo e(__('role_all_perms')); ?></span>
                             <?php else: ?>
                             <?php foreach ($perms as $p): ?>
                             <span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded"><?php echo e(permLabel($p)); ?></span>
                             <?php endforeach; ?>
                             <?php if (empty($perms)): ?>
-                            <span class="text-xs text-gray-400">无权限</span>
+                            <span class="text-xs text-gray-400"><?php echo e(__('role_no_perms')); ?></span>
                             <?php endif; ?>
                             <?php endif; ?>
                         </div>
@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($roles)): ?>
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无角色</td>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500"><?php echo e(__('role_empty')); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -190,7 +190,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="relative max-w-lg mx-auto my-10 bg-white rounded-lg shadow-xl">
         <div class="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-lg z-10">
-            <h3 class="font-bold text-gray-800" id="modalTitle">添加角色</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo e(__('role_add')); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
@@ -198,17 +198,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="editId" value="0">
 
             <div>
-                <label class="block text-gray-700 mb-1">角色名称 <span class="text-red-500">*</span></label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('role_name')); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="name" id="editName" required class="w-full border rounded px-4 py-2">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">描述</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('admin_description')); ?></label>
                 <input type="text" name="description" id="editDescription" class="w-full border rounded px-4 py-2" placeholder="<?php echo __('optional'); ?>">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-2">权限分配</label>
+                <label class="block text-gray-700 mb-2"><?php echo e(__('role_perms')); ?></label>
                 <div class="border rounded p-4 space-y-4 bg-gray-50">
                     <!-- 全部权限（超管）单列，勾选后禁用其余 -->
                     <label class="flex items-center gap-2 cursor-pointer pb-2 border-b">
@@ -250,7 +250,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 function openEditModal(item = null) {
     const isEdit = !!item;
-    document.getElementById('modalTitle').textContent = isEdit ? '编辑角色' : '添加角色';
+    document.getElementById('modalTitle').textContent = isEdit ? <?php echo json_encode(__('role_edit'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('role_add'), JSON_UNESCAPED_UNICODE); ?>;
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editName').value = item?.name || '';
     document.getElementById('editDescription').value = item?.description || '';
@@ -307,12 +307,12 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('请求失败，请重试', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_retry'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 
 async function deleteRole(id) {
-    if (!confirm('确定要删除该角色吗？')) return;
+    if (!confirm(<?php echo json_encode(__('role_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
@@ -326,7 +326,7 @@ async function deleteRole(id) {
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('请求失败，请重试', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_retry'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 </script>

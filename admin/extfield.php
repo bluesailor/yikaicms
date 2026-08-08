@@ -127,8 +127,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-gray-500"><?php echo (int)$f['sort_order']; ?></td>
                     <td class="px-4 py-3 font-mono text-sm"><?php echo e($f['field_key']); ?></td>
                     <td class="px-4 py-3"><?php echo e($f['field_name']); ?></td>
-                    <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600"><?php echo e(ExtFieldModel::TYPES[$f['field_type']] ?? $f['field_type']); ?></span></td>
-                    <td class="px-4 py-3 text-center"><?php echo $f['is_required'] ? '<span class="text-red-500">' . e(__('setting_yes')) . '</span>' : '否'; ?></td>
+                    <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600"><?php echo e(ExtFieldModel::typeLabels()[$f['field_type']] ?? $f['field_type']); ?></span></td>
+                    <td class="px-4 py-3 text-center"><?php echo $f['is_required'] ? '<span class="text-red-500">' . e(__('setting_yes')) . '</span>' : e(__('setting_no')); ?></td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo (int)$f['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $f['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo __('extfield_type'); ?></label>
                 <select name="field_type" id="editType" class="w-full border rounded px-4 py-2">
-                    <?php foreach (ExtFieldModel::TYPES as $k => $v): ?>
+                    <?php foreach (ExtFieldModel::typeLabels() as $k => $v): ?>
                     <option value="<?php echo e($k); ?>"><?php echo e($v); ?></option>
                     <?php endforeach; ?>
                 </select>
