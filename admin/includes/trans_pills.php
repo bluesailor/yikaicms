@@ -124,10 +124,10 @@ function renderAdminLangSwitcher(string $currentLang, string $extraNote = ''): s
     if (!is_array($enabled) || count($enabled) < 2) return '';
 
     $labels = availableLanguages();
-    $defaultNote = $extraNote ?: '源语言（' . ($labels[$defaultLang] ?? $defaultLang) . '）才能新增/删除；当前是翻译版本，编辑用于本地化文字';
+    $defaultNote = $extraNote ?: str_replace(':lang', ($labels[$defaultLang] ?? $defaultLang), __('tp_source_note'));
 
     $html = '<div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">';
-    $html .= '<span class="text-gray-500">查看语言：</span>';
+    $html .= '<span class="text-gray-500">' . e(__('admin_view_lang')) . '</span>';
     foreach ($enabled as $lc) {
         if (!isset($labels[$lc])) continue;
         $isCurrent = ($lc === $currentLang);
@@ -139,11 +139,11 @@ function renderAdminLangSwitcher(string $currentLang, string $extraNote = ''): s
         $href = '?' . http_build_query($qs);
         $html .= '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '" class="px-3 py-1 rounded-full transition ' . $cls . '">'
               . htmlspecialchars($labels[$lc], ENT_QUOTES);
-        if ($isDefault) $html .= '<span class="ml-1 text-[10px] opacity-70">(源)</span>';
+        if ($isDefault) $html .= '<span class="ml-1 text-[10px] opacity-70">(' . e(__('lang_source')) . ')</span>';
         $html .= '</a>';
     }
     if ($currentLang !== $defaultLang) {
-        $html .= '<span class="ml-auto text-xs text-amber-600">提示：' . htmlspecialchars($defaultNote, ENT_QUOTES) . '</span>';
+        $html .= '<span class="ml-auto text-xs text-amber-600">' . e(__('admin_tip_label')) . '' . htmlspecialchars($defaultNote, ENT_QUOTES) . '</span>';
     }
     $html .= '</div>';
     return $html;
@@ -219,12 +219,12 @@ function renderTransPills(int $sourceId, array $statusIdx, string $editUrl, stri
         if ($existing) {
             // 已翻译 — 绿色，点跳到翻译版本编辑页
             $href = htmlspecialchars($editUrl . $sep . $editParam . '=' . (int) $existing['id'], ENT_QUOTES);
-            $title = htmlspecialchars('已译: ' . ($existing['_title'] ?? ''), ENT_QUOTES);
+            $title = htmlspecialchars(__('tp_translated') . ': ' . ($existing['_title'] ?? ''), ENT_QUOTES);
             $html .= '<a href="' . $href . '" title="' . $title . '" class="inline-flex items-center justify-center w-7 h-5 text-[10px] font-medium rounded bg-green-100 text-green-700 hover:bg-green-200 transition">' . $label . ' ✓</a>';
         } else {
             // 缺译 — 灰色，点跳到源行编辑页（使用其 widget 创建翻译）
             $href = htmlspecialchars($editUrl . $sep . $editParam . '=' . $sourceId, ENT_QUOTES);
-            $title = htmlspecialchars('缺' . $label . '翻译，点击进入源行编辑页创建', ENT_QUOTES);
+            $title = htmlspecialchars(str_replace(':lang', $label, __('tp_missing')), ENT_QUOTES);
             $html .= '<a href="' . $href . '" title="' . $title . '" class="inline-flex items-center justify-center w-7 h-5 text-[10px] font-medium rounded bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition">' . $label . '</a>';
         }
     }
