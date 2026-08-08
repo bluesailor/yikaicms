@@ -64,13 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once ROOT_PATH . '/includes/builder/presets.php';
         $presetKey = (string) ($_POST['preset'] ?? '');
         $blocks = null;
-        $cTitle = '自定义版块';
+        $cTitle = __('shome_custom_block');
         if ($presetKey === 'blank') {
             $blocks = [homeFreshSection([
                 'settings' => ['padding' => 'lg', 'max_width' => 'default', 'gap' => 'lg', 'justify_items' => 'center'],
                 'columns'  => [['elements' => [
-                    ['type' => 'heading', 'data' => ['text' => '新版块标题', 'level' => 'h2']],
-                    ['type' => 'text', 'data' => ['html' => '<p style="text-align:center">在此编辑内容。</p>']],
+                    ['type' => 'heading', 'data' => ['text' => __('shome_new_block_title'), 'level' => 'h2']],
+                    ['type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('shome_new_block_body') . '</p>']],
                 ]]],
             ])];
         } else {
@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 取当前 lang 下的 nav_home_text，没有则回退到默认 lang 的 nav_home_text
         $submittedHomeText = trim($settings['nav_home_text'] ?? '');
         $fallbackHomeText  = (string) config('nav_home_text', '');
-        $homeText = $submittedHomeText ?: ($fallbackHomeText ?: '首页');
+        $homeText = $submittedHomeText ?: ($fallbackHomeText ?: __('nav_home'));
         if (empty($footerNav)) {
             $footerNav[] = ['title' => '', 'links' => []];
         }
@@ -315,55 +315,55 @@ $channelIconPath = '<path stroke-linecap="round" stroke-linejoin="round" stroke-
 // 区块元数据
 $blockMeta = [
     'banner' => [
-        'title' => 'Banner轮播图',
+        'title' => __('shome_blk_banner'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>',
-        'tip'   => '轮播图内容在 <a href="/admin/banner.php" class="text-primary hover:underline">轮播图管理</a> 中编辑',
+        'tip'   => str_replace(':link', '<a href="/admin/banner.php" class="text-primary hover:underline">' . __('admin_banner') . '</a>', __('shome_tip_banner')),
         'keys'  => [],
     ],
     'product_categories' => [
-        'title' => '产品分类树',
+        'title' => __('shome_blk_pcat'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>',
-        'tip'   => '展示产品分类（一级 + 子级），分类多的工业/批发站适用；分类在 <a href="/admin/product_category.php" class="text-primary hover:underline">产品分类</a> 或产品栏目下维护',
+        'tip'   => str_replace(':link', '<a href="/admin/product_category.php" class="text-primary hover:underline">' . __('admin_product_category') . '</a>', __('shome_tip_pcat')),
         'keys'  => [],
     ],
     'about' => [
-        'title' => '关于我们',
+        'title' => __('shome_blk_about'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
         'bg_default' => '#ffffff',
         'keys'  => ['home_about_title', 'home_about_layout', 'home_about_content', 'home_about_image', 'home_about_tag_title', 'home_about_tag_desc'],
     ],
     'stats' => [
-        'title' => '数据统计',
+        'title' => __('shome_blk_stats'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>',
         'bg_default' => '#111827',
         'keys'  => ['home_stat_bg', 'home_stat_1_num', 'home_stat_1_text', 'home_stat_2_num', 'home_stat_2_text', 'home_stat_3_num', 'home_stat_3_text', 'home_stat_4_num', 'home_stat_4_text'],
     ],
     'testimonials' => [
-        'title'  => '客户评价',
+        'title'  => __('shome_blk_testimonials'),
         'icon'   => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>',
         'bg_default' => '#f9fafb',
         'editor' => 'testimonials',
         'keys'   => ['home_testimonials_title', 'home_testimonials_desc'],
     ],
     'advantage' => [
-        'title' => '我们的优势',
+        'title' => __('shome_blk_advantage'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
         'bg_default' => '#1f2937',
         'text_light' => true,
         'keys'  => ['home_advantage_title', 'home_advantage_desc', 'home_adv_1_icon', 'home_adv_1_title', 'home_adv_1_desc', 'home_adv_2_icon', 'home_adv_2_title', 'home_adv_2_desc', 'home_adv_3_icon', 'home_adv_3_title', 'home_adv_3_desc', 'home_adv_4_icon', 'home_adv_4_title', 'home_adv_4_desc'],
     ],
     'cta' => [
-        'title' => '行动号召',
+        'title' => __('shome_blk_cta'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>',
         'bg_default' => config('primary_color', '#3B82F6'),
         'text_light' => true,
         'keys'  => ['home_cta_title', 'home_cta_desc'],
     ],
     'partners' => [
-        'title' => '合作伙伴',
+        'title' => __('shome_blk_partners'),
         'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-3-3"></path>',
         'bg_default' => '#f9fafb',
-        'tip'   => '合作伙伴 Logo / 友情链接在 <a href="/admin/link.php" class="text-primary hover:underline">链接管理</a> 中编辑；此版块可拖拽排序、开关显隐（原「显示合作伙伴」开关已并入本版块）',
+        'tip'   => str_replace(':link', '<a href="/admin/link.php" class="text-primary hover:underline">' . __('admin_link') . '</a>', __('shome_tip_partners')),
         'keys'  => ['home_links_title'],
     ],
 ];
@@ -374,7 +374,7 @@ foreach ($homeChannelRows as $hcRow) {
         'title' => $hcRow['name'],
         'icon'  => $channelIconPath,
         'bg_default' => '#f9fafb',
-        'tip'   => '在 <a href="/admin/channel.php?action=edit&id=' . (int)$hcRow['id'] . '" class="text-primary hover:underline">栏目管理</a> 中编辑此栏目内容',
+        'tip'   => str_replace(':link', '<a href="/admin/channel.php?action=edit&id=' . (int)$hcRow['id'] . '" class="text-primary hover:underline">' . __('admin_channel') . '</a>', __('shome_tip_channel')),
         'keys'  => [],
     ];
 }
@@ -394,10 +394,10 @@ foreach ($blocksConfig as $__cb) {
     $__ch = $__rows[0] ?? null;
     if (!$__ch) continue;
     $blockMeta[$__t] = [
-        'title' => $__ch['name'] . '（未开启首页显示）',
+        'title' => $__ch['name'] . __('shome_channel_off_suffix'),
         'icon'  => $channelIconPath,
         'bg_default' => '#f9fafb',
-        'tip'   => '此栏目未开启「首页显示」，去 <a href="/admin/channel.php?action=edit&id=' . (int)$__ch['id'] . '" class="text-primary hover:underline">栏目管理</a> 勾选后即正常展示；也可在此禁用或移除本版块。',
+        'tip'   => str_replace(':link', '<a href="/admin/channel.php?action=edit&id=' . (int)$__ch['id'] . '" class="text-primary hover:underline">' . __('admin_channel') . '</a>', __('shome_tip_channel_off')),
         'keys'  => [],
     ];
 }
@@ -409,7 +409,7 @@ foreach ($blocksConfig as $__cb) {
     $__cn = substr($__ct, 7);
     $__cd = json_decode((string) config('home_custom_' . $__cn, ''), true);
     $blockMeta[$__ct] = [
-        'title'    => (string) ($__cd['title'] ?? ('自定义版块 ' . $__cn)),
+        'title'    => (string) ($__cd['title'] ?? (__('shome_custom_block') . ' ' . $__cn)),
         'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>',
         'bg_default' => '#ffffff',
         'editor'   => 'custom',
@@ -440,8 +440,8 @@ try {
     $__bGroups = [];
 }
 if ($__bGroups) {
-    $__bTip = '轮播图内容在 <a href="/admin/banner.php" class="text-primary hover:underline">轮播图管理</a> 中编辑。'
-            . '<div class="mt-2 text-xs text-gray-500">各分组短码（可嵌到任意页面/正文）：</div>'
+    $__bTip = str_replace(':link', '<a href="/admin/banner.php" class="text-primary hover:underline">' . __('admin_banner') . '</a>', __('shome_tip_banner')) . ' '
+            . '<div class="mt-2 text-xs text-gray-500">' . __('shome_banner_shortcodes') . '</div>'
             . '<div class="mt-1.5 space-y-1">';
     foreach ($__bGroups as $__bg) {
         $__slug = (string) ($__bg['slug'] ?? '');
@@ -451,21 +451,21 @@ if ($__bGroups) {
         $__bTip .= '<div class="flex items-center flex-wrap gap-2 text-xs">'
                  . '<code class="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-primary select-all cursor-text">[banner-' . e($__slug) . ']</code>'
                  . '<span class="text-gray-700">' . e((string) ($__bg['name'] ?? $__slug)) . '</span>'
-                 . '<span class="text-gray-400">· ' . (int) $__cnt . ' 张</span>'
-                 . ($__isHome ? '<span class="px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">首页使用</span>' : '')
+                 . '<span class="text-gray-400">· ' . str_replace(':n', (string) (int) $__cnt, __('shome_n_images')) . '</span>'
+                 . ($__isHome ? '<span class="px-1.5 py-0.5 bg-primary/10 text-primary rounded-full">' . __('shome_used_on_home') . '</span>' : '')
                  . '</div>';
     }
     $__bTip .= '</div>';
     $blockMeta['banner']['tip'] = $__bTip;
 }
 
-$pageTitle = '首页设置';
+$pageTitle = __('shome_title');
 $currentMenu = 'setting_home';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
 
-echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言独立保存（key_' . $_viewLang . '）；区块顺序、图片、图标、数字、颜色全局共享');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang, __('shome_lang_tip')));
 ?>
 
 <div class="mb-6">
@@ -492,22 +492,22 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
         <div class="p-5 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <label class="text-gray-700 text-sm">
-                    导航「首页」文字
-                    <span class="text-gray-400 text-xs block">留空则显示默认"首页"</span>
+                    <?php echo e(__('shome_nav_home_text')); ?>
+                    <span class="text-gray-400 text-xs block"><?php echo e(__('shome_nav_home_hint')); ?></span>
                 </label>
                 <div class="md:col-span-3">
                     <input type="text" name="settings[nav_home_text]"
                            value="<?php echo e($readLang('nav_home_text')); ?>"
-                           class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo $_viewLang === 'zh-CN' ? '首页' : ($_viewLang === 'en' ? 'Home' : 'ホーム'); ?>">
+                           class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('nav_home')); ?>">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                <label class="text-gray-700 text-sm">菜单位置</label>
+                <label class="text-gray-700 text-sm"><?php echo e(__('shome_menu_position')); ?></label>
                 <div class="md:col-span-3 flex gap-4">
                     <label class="flex items-center">
                         <input type="hidden" name="settings[nav_home_show]" value="0">
                         <input type="checkbox" name="settings[nav_home_show]" value="1" <?php echo config('nav_home_show', '1') !== '0' ? 'checked' : ''; ?> class="mr-2">
-                        主菜单
+                        <?php echo e(__('shome_main_menu')); ?>
                     </label>
                     <label class="flex items-center">
                         <?php
@@ -522,7 +522,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         ?>
                         <input type="hidden" name="home_footer_nav" value="0">
                         <input type="checkbox" name="home_footer_nav" value="1" <?php echo $homeInFooter ? 'checked' : ''; ?> class="mr-2">
-                        页脚导航
+                        <?php echo e(__('shome_footer_nav')); ?>
                     </label>
                 </div>
             </div>
@@ -534,18 +534,18 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     <!-- 全局只控制标题文字；装饰由 Blox 各版块独立设置 -->
     <div class="bg-white rounded-lg shadow p-5 mb-3">
         <div class="flex items-center gap-3 flex-wrap">
-            <label class="font-medium text-gray-800 whitespace-nowrap">版块标题文字</label>
+            <label class="font-medium text-gray-800 whitespace-nowrap"><?php echo e(__('shome_title_style')); ?></label>
             <select name="settings[home_title_style]" class="border rounded px-3 py-1.5 text-sm bg-white">
                 <?php
                 $__ts = config('home_title_style', 'underline') === 'split' ? 'split' : 'underline';
                 foreach ([
-                    'underline' => '整体同色（默认）',
-                    'split'     => '前两字主题色',
+                    'underline' => __('shome_title_style_uniform'),
+                    'split'     => __('shome_title_style_split'),
                 ] as $k => $label): ?>
                 <option value="<?php echo $k; ?>" <?php echo $__ts === $k ? 'selected' : ''; ?>><?php echo $label; ?></option>
                 <?php endforeach; ?>
             </select>
-            <span class="text-xs text-gray-400">应用于 关于 / 产品 / 案例 / 新闻 / 评价 / 优势 / CTA 等版块标题</span>
+            <span class="text-xs text-gray-400"><?php echo e(__('shome_title_style_scope')); ?></span>
         </div>
     </div>
 
@@ -554,12 +554,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
     <div class="mb-3" x-data="{ openAdd: false }">
         <button type="button" @click="openAdd = true"
                 class="inline-flex items-center gap-1.5 px-4 py-2 border border-dashed border-primary/50 text-primary rounded-lg text-sm hover:bg-primary/5 cursor-pointer">
-            <i class="ti ti-plus text-base"></i> 添加版块
+            <i class="ti ti-plus text-base"></i> <?php echo e(__('shome_add_block')); ?>
         </button>
         <div x-show="openAdd" x-cloak class="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" @click.self="openAdd = false">
             <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[82vh] overflow-y-auto">
                 <div class="flex items-center justify-between px-5 py-3 border-b sticky top-0 bg-white">
-                    <h3 class="font-semibold text-gray-800">从预设库添加版块</h3>
+                    <h3 class="font-semibold text-gray-800"><?php echo e(__('shome_add_from_presets')); ?></h3>
                     <button type="button" @click="openAdd = false" class="text-gray-400 hover:text-gray-600"><i class="ti ti-x text-lg"></i></button>
                 </div>
                 <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -572,8 +572,8 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     <?php endforeach; ?>
                     <button type="button" @click="addCustom('blank')"
                             class="text-left border border-dashed border-gray-300 rounded-lg p-3 hover:border-primary transition cursor-pointer">
-                        <div class="font-medium text-gray-800 text-sm">空白版块</div>
-                        <div class="text-xs text-gray-500 mt-0.5">从零开始（标题 + 文本）</div>
+                        <div class="font-medium text-gray-800 text-sm"><?php echo e(__('shome_blank_block')); ?></div>
+                        <div class="text-xs text-gray-500 mt-0.5"><?php echo e(__('shome_blank_block_tip')); ?></div>
                     </button>
                 </div>
             </div>
@@ -591,7 +591,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
             <!-- 卡片头部 -->
             <div class="flex items-center gap-3 px-4 py-3">
                 <!-- 拖拽手柄 -->
-                <div class="block-drag-handle cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0" title="拖拽排序" @click.stop>
+                <div class="block-drag-handle cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0" title="<?php echo e(__('shome_drag_sort')); ?>" @click.stop>
                     <i class="ti ti-grip-vertical text-lg"></i>
                 </div>
                 <!-- 图标 + 标题：整块可点，与右侧箭头等效（拖拽手柄与开关各自 stop） -->
@@ -640,17 +640,17 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         }
                     ?>
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">版块样式</h4>
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3"><?php echo e(__('shome_block_style')); ?></h4>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
                             <div>
                                 <label class="text-xs text-gray-500 block mb-1"><?php echo __('home_bg_image'); ?></label>
                                 <div class="flex gap-1">
                                     <input type="text" class="block-bg-image flex-1 min-w-0 border rounded px-2 py-1.5 text-xs"
-                                           value="<?php echo e($block['bg_image'] ?? ''); ?>" placeholder="图片URL">
+                                           value="<?php echo e($block['bg_image'] ?? ''); ?>" placeholder="<?php echo e(__('shome_image_url')); ?>">
                                     <button type="button" class="block-bg-media shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-500 px-1.5 rounded" title="<?php echo __('admin_media_library'); ?>">
                                         <i class="ti ti-photo text-base"></i>
                                     </button>
-                                    <button type="button" class="block-bg-upload shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-500 px-1.5 rounded" title="上传">
+                                    <button type="button" class="block-bg-upload shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-500 px-1.5 rounded" title="<?php echo e(__('admin_upload')); ?>">
                                         <i class="ti ti-upload text-base"></i>
                                     </button>
                                 </div>
@@ -658,14 +658,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                             <div x-data="{ bgMode: '<?php echo $bgMode; ?>' }" class="sm:col-span-2">
                                 <input type="hidden" class="block-bg-mode" :value="bgMode">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <label class="text-xs text-gray-500">背景色</label>
+                                    <label class="text-xs text-gray-500"><?php echo e(__('blox_bg_color')); ?></label>
                                     <div class="flex gap-0.5 ml-auto">
                                         <button type="button" @click="bgMode='solid'"
                                                 :class="bgMode==='solid' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'"
-                                                class="text-[10px] leading-none px-1.5 py-1 rounded transition">单色</button>
+                                                class="text-[10px] leading-none px-1.5 py-1 rounded transition"><?php echo e(__('shome_solid')); ?></button>
                                         <button type="button" @click="bgMode='gradient'"
                                                 :class="bgMode==='gradient' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'"
-                                                class="text-[10px] leading-none px-1.5 py-1 rounded transition">渐变</button>
+                                                class="text-[10px] leading-none px-1.5 py-1 rounded transition"><?php echo e(__('shome_gradient')); ?></button>
                                     </div>
                                 </div>
                                 <!-- 预置背景（含放射渐变）：点击直接套用，写入背景色原始 CSS 值 -->
@@ -707,7 +707,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                     <input type="color" class="block-bg-picker w-8 h-[30px] border rounded cursor-pointer p-0.5"
                                            value="<?php echo e($bgPickerVal); ?>">
                                     <input type="text" class="block-bg-color flex-1 min-w-0 border rounded px-2 py-1.5 text-xs"
-                                           value="<?php echo e($isGradient ? '' : $blockBgColor); ?>" placeholder="<?php echo $bgDefault ? '默认: ' . e($bgDefault) : '#hex 或渐变'; ?>">
+                                           value="<?php echo e($isGradient ? '' : $blockBgColor); ?>" placeholder="<?php echo $bgDefault ? e(__('shome_default_prefix')) . e($bgDefault) : '#hex 或渐变'; ?>">
                                 </div>
                                 <div x-show="bgMode==='gradient'">
                                     <div class="flex gap-1 items-center">
@@ -717,16 +717,16 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                         <input type="color" class="block-grad-to w-8 h-[30px] border rounded cursor-pointer p-0.5"
                                                value="<?php echo e($gradTo); ?>">
                                         <select class="block-grad-dir flex-1 border rounded px-1 py-1.5 text-xs bg-white">
-                                            <option value="to right" <?php echo $gradDir === 'to right' ? 'selected' : ''; ?>>→ 水平</option>
-                                            <option value="to bottom" <?php echo $gradDir === 'to bottom' ? 'selected' : ''; ?>>↓ 垂直</option>
-                                            <option value="to bottom right" <?php echo $gradDir === 'to bottom right' ? 'selected' : ''; ?>>↘ 对角</option>
-                                            <option value="135deg" <?php echo $gradDir === '135deg' ? 'selected' : ''; ?>>↗ 反对角</option>
+                                            <option value="to right" <?php echo $gradDir === 'to right' ? 'selected' : ''; ?>><?php echo e(__('shome_grad_h')); ?></option>
+                                            <option value="to bottom" <?php echo $gradDir === 'to bottom' ? 'selected' : ''; ?>><?php echo e(__('shome_grad_v')); ?></option>
+                                            <option value="to bottom right" <?php echo $gradDir === 'to bottom right' ? 'selected' : ''; ?>><?php echo e(__('shome_grad_d')); ?></option>
+                                            <option value="135deg" <?php echo $gradDir === '135deg' ? 'selected' : ''; ?>><?php echo e(__('shome_grad_ad')); ?></option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">透明度</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_opacity')); ?></label>
                                 <div class="flex items-center gap-2">
                                     <input type="range" class="block-bg-opacity flex-1 accent-primary" min="0" max="100"
                                            value="<?php echo (int)($block['bg_opacity'] ?? 100); ?>">
@@ -734,18 +734,18 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 </div>
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">文字颜色</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_text_color')); ?></label>
                                 <label class="inline-flex items-center gap-2 cursor-pointer mt-1">
                                     <input type="checkbox" class="block-text-light sr-only peer" <?php echo $blockTextLight ? 'checked' : ''; ?>>
                                     <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                    <span class="text-xs text-gray-500">浅色文字</span>
+                                    <span class="text-xs text-gray-500"><?php echo e(__('shome_light_text')); ?></span>
                                 </label>
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">内容宽度</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_content_width')); ?></label>
                                 <select class="block-layout w-full border rounded px-2 py-1.5 text-xs bg-white">
-                                    <option value="container" <?php echo $blockLayout === 'container' ? 'selected' : ''; ?>>居中容器</option>
-                                    <option value="full" <?php echo $blockLayout === 'full' ? 'selected' : ''; ?>>100%全屏</option>
+                                    <option value="container" <?php echo $blockLayout === 'container' ? 'selected' : ''; ?>><?php echo e(__('shome_centered')); ?></option>
+                                    <option value="full" <?php echo $blockLayout === 'full' ? 'selected' : ''; ?>><?php echo e(__('shome_fullwidth')); ?></option>
                                 </select>
                             </div>
                         </div>
@@ -759,23 +759,23 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         $cSort   = $block['sort'] ?? 'recommend';
                     ?>
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">展示设置</h4>
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3"><?php echo e(__('shome_display_settings')); ?></h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">每行个数 <span class="text-gray-300">(1-8)</span></label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_per_row')); ?> <span class="text-gray-300">(1-8)</span></label>
                                 <input type="number" min="1" max="8" class="block-perrow w-full border rounded px-2 py-1.5 text-xs"
                                        value="<?php echo $cPerRow; ?>">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">显示数量</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_count')); ?></label>
                                 <input type="number" min="1" max="100" class="block-limit w-full border rounded px-2 py-1.5 text-xs"
                                        value="<?php echo $cLimit; ?>">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">排序</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('sort_order')); ?></label>
                                 <select class="block-sort w-full border rounded px-2 py-1.5 text-xs bg-white">
-                                    <option value="recommend" <?php echo $cSort === 'recommend' ? 'selected' : ''; ?>>推荐优先</option>
-                                    <option value="latest" <?php echo $cSort === 'latest' ? 'selected' : ''; ?>>最新优先</option>
+                                    <option value="recommend" <?php echo $cSort === 'recommend' ? 'selected' : ''; ?>><?php echo e(__('shome_sort_recommend')); ?></option>
+                                    <option value="latest" <?php echo $cSort === 'latest' ? 'selected' : ''; ?>><?php echo e(__('shome_sort_latest')); ?></option>
                                 </select>
                             </div>
                         </div>
@@ -790,28 +790,28 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         $pcL = (int)($block['limit'] ?? 30);
                     ?>
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">展示设置</h4>
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3"><?php echo e(__('shome_display_settings')); ?></h4>
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-x-6 gap-y-4">
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">版块标题</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_block_title')); ?></label>
                                 <input type="text" class="block-pc-title w-full border rounded px-2 py-1.5 text-xs"
-                                       value="<?php echo e($pcT); ?>" placeholder="产品分类">
+                                       value="<?php echo e($pcT); ?>" placeholder="<?php echo e(__('admin_product_category')); ?>">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">每行列数 <span class="text-gray-300">(1-4)</span></label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_cols')); ?> <span class="text-gray-300">(1-4)</span></label>
                                 <input type="number" min="1" max="4" class="block-pc-cols w-full border rounded px-2 py-1.5 text-xs"
                                        value="<?php echo $pcC; ?>">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">显示分类数 <span class="text-gray-300">(1-60)</span></label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_cat_count')); ?> <span class="text-gray-300">(1-60)</span></label>
                                 <input type="number" min="1" max="60" class="block-pc-limit w-full border rounded px-2 py-1.5 text-xs"
                                        value="<?php echo $pcL; ?>">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-500 block mb-1">搜索框</label>
+                                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('shome_search_box')); ?></label>
                                 <label class="flex items-center gap-2 text-xs text-gray-600 mt-1.5">
                                     <input type="checkbox" class="block-pc-search w-4 h-4 accent-blue-500" <?php echo $pcS ? 'checked' : ''; ?>>
-                                    显示产品搜索框
+                                    <?php echo e(__('shome_show_product_search')); ?>
                                 </label>
                             </div>
                         </div>
@@ -826,7 +826,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         $statIconDefaults = ['award', 'users', 'briefcase', 'thumb-up'];
                     ?>
                     <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">统计图标</h4>
+                        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3"><?php echo e(__('shome_stat_icons')); ?></h4>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <?php for ($si = 1; $si <= 4; $si++):
                                 $sIcon = config('home_stat_' . $si . '_icon', $statIconDefaults[$si - 1]);
@@ -836,11 +836,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                     <i class="ti text-xl" :class="'ti-' + (ic || 'point')"></i>
                                 </span>
                                 <input type="text" name="settings[home_stat_<?php echo $si; ?>_icon]" x-model="ic"
-                                       placeholder="如 award" class="flex-1 min-w-0 border rounded px-2 py-1.5 text-xs">
+                                       placeholder="<?php echo e(__('shome_icon_ph')); ?>" class="flex-1 min-w-0 border rounded px-2 py-1.5 text-xs">
                             </div>
                             <?php endfor; ?>
                         </div>
-                        <p class="text-xs text-gray-400 mt-2">Tabler 图标名（<a href="https://tabler.io/icons" target="_blank" class="text-primary hover:underline">tabler.io/icons</a>），留空则该项不显示图标。</p>
+                        <p class="text-xs text-gray-400 mt-2"><?php echo e(__('shome_tabler_hint')); ?>（<a href="https://tabler.io/icons" target="_blank" class="text-primary hover:underline">tabler.io/icons</a>），留空则该项不显示图标。</p>
                     </div>
                     <?php endif; ?>
 
@@ -894,7 +894,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 <button type="button" onclick="uploadImage('<?php echo e($item['key']); ?>')"
                                         class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
                                     <i class="ti ti-upload text-base"></i>
-                                    上传
+                                    <?php echo e(__('admin_upload')); ?>
                                 </button>
                                 <button type="button" onclick="pickFromMedia('<?php echo e($item['key']); ?>')"
                                         class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
@@ -923,7 +923,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     ?>
                     <div class="border-t pt-4 mt-2" data-custom-editor="<?php echo e((string)$__cn); ?>">
                         <div class="mb-3">
-                            <label class="text-xs text-gray-400 block mb-1">版块名称（后台标识）</label>
+                            <label class="text-xs text-gray-400 block mb-1"><?php echo e(__('shome_block_name')); ?></label>
                             <input type="text" class="cb-title w-full border rounded px-3 py-2 text-sm" value="<?php echo e($meta['title']); ?>">
                         </div>
                         <?php if ($__hasEl): ?>
@@ -931,10 +931,10 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                         <div class="space-y-2 mb-3">
                             <?php foreach ($__secs as $si => $__sec): if (empty($__sec['columns'])) continue; $__ss = $__sec['settings'] ?? []; ?>
                             <div class="cb-sec p-3 border border-blue-100 rounded-lg bg-blue-50/40" data-sec="<?php echo (int)$si; ?>">
-                                <div class="text-[11px] uppercase tracking-wide text-blue-400 mb-2">区块 <?php echo (int)$si + 1; ?> · 标题（可选，居中大标题 + 装饰条）</div>
+                                <div class="text-[11px] uppercase tracking-wide text-blue-400 mb-2"><?php echo str_replace(':n', (string) ((int)$si + 1), e(__('shome_section_n'))); ?> · <?php echo e(__('shome_section_title_opt')); ?>（居中大标题 + 装饰条）</div>
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="text" class="cb-sec-field border rounded px-2 py-1.5 text-sm" data-sec-field="title" value="<?php echo e($__ss['title'] ?? ''); ?>" placeholder="区块标题（留空不显示）">
-                                    <input type="text" class="cb-sec-field border rounded px-2 py-1.5 text-sm" data-sec-field="subtitle" value="<?php echo e($__ss['subtitle'] ?? ''); ?>" placeholder="副标题">
+                                    <input type="text" class="cb-sec-field border rounded px-2 py-1.5 text-sm" data-sec-field="title" value="<?php echo e($__ss['title'] ?? ''); ?>" placeholder="<?php echo e(__('shome_ph_sec_title')); ?>">
+                                    <input type="text" class="cb-sec-field border rounded px-2 py-1.5 text-sm" data-sec-field="subtitle" value="<?php echo e($__ss['subtitle'] ?? ''); ?>" placeholder="<?php echo e(__('blox_field_subtitle')); ?>">
                                 </div>
                             </div>
                             <?php endforeach; ?>
@@ -947,71 +947,71 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 <div class="text-[11px] uppercase tracking-wide text-gray-400 mb-2"><?php echo e($eType); ?></div>
                                 <?php if ($eType === 'heading'): ?>
                                     <div class="flex gap-2">
-                                        <input type="text" class="cb-field flex-1 border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="标题文字">
-                                        <select class="cb-field border rounded px-2 py-1.5 text-sm bg-white" data-field="align" title="对齐">
-                                            <?php $__al = $d['align'] ?? 'left'; foreach (['left' => '左', 'center' => '居中', 'right' => '右'] as $__av => $__aln): ?>
+                                        <input type="text" class="cb-field flex-1 border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="<?php echo e(__('shome_ph_title_text')); ?>">
+                                        <select class="cb-field border rounded px-2 py-1.5 text-sm bg-white" data-field="align" title="<?php echo e(__('shome_align')); ?>">
+                                            <?php $__al = $d['align'] ?? 'left'; foreach (['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')] as $__av => $__aln): ?>
                                             <option value="<?php echo $__av; ?>" <?php echo $__al === $__av ? 'selected' : ''; ?>><?php echo $__aln; ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
                                 <?php elseif ($eType === 'text'): ?>
-                                    <textarea class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="html" rows="3" placeholder="内容（可含 HTML）"><?php echo e($d['html'] ?? ''); ?></textarea>
+                                    <textarea class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="html" rows="3" placeholder="<?php echo e(__('shome_ph_html')); ?>"><?php echo e($d['html'] ?? ''); ?></textarea>
                                 <?php elseif ($eType === 'button'): ?>
                                     <div class="grid grid-cols-2 gap-2">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="按钮文字">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="url" value="<?php echo e($d['url'] ?? ''); ?>" placeholder="链接 URL">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_btn_text')); ?>">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="url" value="<?php echo e($d['url'] ?? ''); ?>" placeholder="<?php echo e(__('shome_ph_link_url')); ?>">
                                     </div>
                                 <?php elseif ($eType === 'icon-box'): ?>
                                     <div class="grid grid-cols-3 gap-2">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="icon" value="<?php echo e($d['icon'] ?? ''); ?>" placeholder="图标名">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="标题">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="描述">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="icon" value="<?php echo e($d['icon'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_icon')); ?>">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="<?php echo e(__('label_title')); ?>">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_desc')); ?>">
                                     </div>
                                 <?php elseif ($eType === 'card'): ?>
                                     <div class="space-y-2">
-                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="image" value="<?php echo e($d['image'] ?? ''); ?>" placeholder="图片 URL">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="image" value="<?php echo e($d['image'] ?? ''); ?>" placeholder="<?php echo e(__('shome_image_url')); ?>">
                                         <div class="grid grid-cols-2 gap-2">
-                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="标题">
-                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="link" value="<?php echo e($d['link'] ?? ''); ?>" placeholder="链接(可空)">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="<?php echo e(__('label_title')); ?>">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="link" value="<?php echo e($d['link'] ?? ''); ?>" placeholder="<?php echo e(__('shome_ph_link_opt')); ?>">
                                         </div>
-                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="描述">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_desc')); ?>">
                                     </div>
                                 <?php elseif ($eType === 'image'): ?>
                                     <div class="grid grid-cols-2 gap-2">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="src" value="<?php echo e($d['src'] ?? ''); ?>" placeholder="图片 URL">
-                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="alt" value="<?php echo e($d['alt'] ?? ''); ?>" placeholder="alt 文字">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="src" value="<?php echo e($d['src'] ?? ''); ?>" placeholder="<?php echo e(__('shome_image_url')); ?>">
+                                        <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="alt" value="<?php echo e($d['alt'] ?? ''); ?>" placeholder="<?php echo e(__('shome_ph_alt')); ?>">
                                     </div>
                                 <?php elseif ($eType === 'cta'): ?>
                                     <div class="space-y-2">
-                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="标题">
-                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="描述">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="title" value="<?php echo e($d['title'] ?? ''); ?>" placeholder="<?php echo e(__('label_title')); ?>">
+                                        <input type="text" class="cb-field w-full border rounded px-2 py-1.5 text-sm" data-field="text" value="<?php echo e($d['text'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_desc')); ?>">
                                         <div class="grid grid-cols-2 gap-2">
-                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_text" value="<?php echo e($d['btn_text'] ?? ''); ?>" placeholder="按钮文字">
-                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_url" value="<?php echo e($d['btn_url'] ?? ''); ?>" placeholder="按钮链接">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_text" value="<?php echo e($d['btn_text'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_btn_text')); ?>">
+                                            <input type="text" class="cb-field border rounded px-2 py-1.5 text-sm" data-field="btn_url" value="<?php echo e($d['btn_url'] ?? ''); ?>" placeholder="<?php echo e(__('shome_f_btn_url')); ?>">
                                         </div>
                                     </div>
                                 <?php elseif ($eType === 'accordion'): ?>
                                     <div class="space-y-2">
-                                        <textarea class="cb-field w-full border rounded px-2 py-1.5 text-sm font-mono" data-field="items" rows="6" placeholder="每行一条：问题|答案"><?php echo e($d['items'] ?? ''); ?></textarea>
-                                        <p class="text-xs text-gray-400 -mt-1">每行一条问答，问题和答案之间用竖线 <code>|</code> 分隔；加行 = 加一条</p>
+                                        <textarea class="cb-field w-full border rounded px-2 py-1.5 text-sm font-mono" data-field="items" rows="6" placeholder="<?php echo e(__('shome_ph_faq_items')); ?>"><?php echo e($d['items'] ?? ''); ?></textarea>
+                                        <p class="text-xs text-gray-400 -mt-1"><?php echo str_replace(':sep', '<code>|</code>', e(__('shome_faq_hint'))); ?></p>
                                         <div class="flex gap-4 text-xs text-gray-600">
-                                            <label class="inline-flex items-center gap-1"><input type="checkbox" class="cb-field" data-field="open_first" <?php echo !empty($d['open_first']) ? 'checked' : ''; ?>>默认展开第一条</label>
-                                            <label class="inline-flex items-center gap-1"><input type="checkbox" class="cb-field" data-field="seo_schema" <?php echo !empty($d['seo_schema']) ? 'checked' : ''; ?>>输出 FAQ 结构化数据(SEO)</label>
+                                            <label class="inline-flex items-center gap-1"><input type="checkbox" class="cb-field" data-field="open_first" <?php echo !empty($d['open_first']) ? 'checked' : ''; ?>><?php echo e(__('shome_faq_open_first')); ?></label>
+                                            <label class="inline-flex items-center gap-1"><input type="checkbox" class="cb-field" data-field="seo_schema" <?php echo !empty($d['seo_schema']) ? 'checked' : ''; ?>><?php echo e(__('shome_faq_schema')); ?></label>
                                         </div>
                                     </div>
                                 <?php else: ?>
-                                    <p class="text-xs text-gray-400">「<?php echo e($eType); ?>」元素请到构建器编辑</p>
+                                    <p class="text-xs text-gray-400"><?php echo str_replace(':type', e($eType), e(__('shome_edit_in_builder'))); ?></p>
                                 <?php endif; ?>
                             </div>
                             <?php endforeach; endforeach; endforeach; ?>
                         </div>
                         <?php else: ?>
-                        <p class="text-sm text-gray-400">此版块暂无可编辑内容。</p>
+                        <p class="text-sm text-gray-400"><?php echo e(__('shome_no_editable')); ?></p>
                         <?php endif; ?>
                         <input type="hidden" class="cb-json" value="<?php echo e(json_encode($__secs, JSON_UNESCAPED_UNICODE)); ?>">
                         <input type="hidden" name="settings[home_custom_<?php echo e((string)$__cn); ?>]" class="cb-output">
                         <div class="mt-3 text-right">
-                            <button type="button" onclick="delCustom(<?php echo (int)$__cn; ?>)" class="text-xs text-red-400 hover:text-red-600">删除此版块</button>
+                            <button type="button" onclick="delCustom(<?php echo (int)$__cn; ?>)" class="text-xs text-red-400 hover:text-red-600"><?php echo e(__('shome_del_this_block')); ?></button>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -1019,8 +1019,8 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                     <?php if (($meta['editor'] ?? '') === 'testimonials'): ?>
                     <div class="border-t pt-4 mt-2">
                         <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-sm font-medium text-gray-700">评价列表</h4>
-                            <button type="button" onclick="addTestimonial()" class="text-primary hover:underline text-sm">+ 添加评价</button>
+                            <h4 class="text-sm font-medium text-gray-700"><?php echo e(__('shome_testimonial_list')); ?></h4>
+                            <button type="button" onclick="addTestimonial()" class="text-primary hover:underline text-sm">+ <?php echo e(__('shome_add_testimonial')); ?></button>
                         </div>
                         <div id="testimonialsEditor" class="space-y-3">
                             <?php for ($ti = 0; $ti < max(count($testimonialsData), 1); $ti++):
@@ -1030,10 +1030,10 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
                                 <div class="flex gap-3 items-start">
                                     <span class="text-gray-300 text-sm pt-2 w-5 flex-shrink-0"><?php echo $ti + 1; ?></span>
                                     <div class="flex-shrink-0">
-                                        <label class="text-xs text-gray-400 block mb-1">头像</label>
+                                        <label class="text-xs text-gray-400 block mb-1"><?php echo e(__('shome_avatar')); ?></label>
                                         <div class="flex items-center gap-1">
-                                            <input type="text" class="tm-avatar border rounded px-2 py-1.5 text-xs w-28" placeholder="图片URL" value="<?php echo e($tm['avatar'] ?? ''); ?>">
-                                            <button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="上传头像">
+                                            <input type="text" class="tm-avatar border rounded px-2 py-1.5 text-xs w-28" placeholder="<?php echo e(__('shome_image_url')); ?>" value="<?php echo e($tm['avatar'] ?? ''); ?>">
+                                            <button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="<?php echo e(__('shome_upload_avatar')); ?>">
                                                 <i class="ti ti-photo text-base"></i>
                                             </button>
                                         </div>
@@ -1062,7 +1062,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：文案/客户评价 按语言
 
                     <div class="pt-1 flex justify-end">
                         <button type="button" class="block-save-btn bg-primary hover:bg-secondary text-white text-sm px-4 py-1.5 rounded inline-flex items-center gap-1 transition">
-                            <i class="ti ti-check text-base"></i>保存设置
+                            <i class="ti ti-check text-base"></i><?php echo e(__('save_settings')); ?>
                         </button>
                     </div>
                 </div>
@@ -1179,16 +1179,16 @@ function collectTestimonials() {
 function addTestimonial() {
     var editor = document.getElementById('testimonialsEditor');
     var rows = editor.querySelectorAll('.tm-row');
-    if (rows.length >= 10) { showMessage('最多添加10条评价', 'error'); return; }
+    if (rows.length >= 10) { showMessage(<?php echo json_encode(__('shome_max_testimonials'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
 
     var idx = rows.length + 1;
     var div = document.createElement('div');
     div.className = 'tm-row p-3 border rounded-lg bg-gray-50';
     div.innerHTML = '<div class="flex gap-3 items-start">' +
         '<span class="text-gray-300 text-sm pt-2 w-5 flex-shrink-0">' + idx + '</span>' +
-        '<div class="flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">头像</label>' +
-        '<div class="flex items-center gap-1"><input type="text" class="tm-avatar border rounded px-2 py-1.5 text-xs w-28" placeholder="图片URL">' +
-        '<button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="上传头像">' +
+        '<div class="flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">' + <?php echo json_encode(__('shome_avatar'), JSON_UNESCAPED_UNICODE); ?> + '</label>' +
+        '<div class="flex items-center gap-1"><input type="text" class="tm-avatar border rounded px-2 py-1.5 text-xs w-28" placeholder="<?php echo e(__('shome_image_url')); ?>">' +
+        '<button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="<?php echo e(__('shome_upload_avatar')); ?>">' +
         '<i class="ti ti-photo text-base"></i>' +
         '</button></div></div>' +
         '<div class="w-24 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_name'); ?></label>' +
@@ -1407,7 +1407,7 @@ async function addCustom(preset) {
 
 // 删除自定义版块
 async function delCustom(n) {
-    if (!confirm('删除此自定义版块？此操作不可撤销。')) return;
+    if (!confirm(<?php echo json_encode(__('shome_del_block_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     var body = new URLSearchParams();
     body.set('action', 'del_custom');
     body.set('n', n);

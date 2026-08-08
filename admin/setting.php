@@ -612,9 +612,15 @@ async function saveAdminLanguages() {
                             $options = $defaultOptions[$item['key']] ?? ['0' => __('setting_no'), '1' => __('setting_yes')];
                         }
                         foreach ($options as $optKey => $optLabel):
+                            // 选项文案本地化：优先 lang 键 setting_opt_<key>_<value>（DB 里的中文标签是兜底）
+                            $__optLangKey = 'setting_opt_' . $item['key'] . '_' . preg_replace('/[^a-zA-Z0-9_]/', '_', (string) $optKey);
+                            $__optText = __($__optLangKey);
+                            if ($__optText === $__optLangKey) {
+                                $__optText = (string) $optLabel;
+                            }
                         ?>
                         <option value="<?php echo e((string)$optKey); ?>" <?php echo $item['value'] === (string)$optKey ? 'selected' : ''; ?>>
-                            <?php echo e($optLabel); ?>
+                            <?php echo e($__optText); ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
