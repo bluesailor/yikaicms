@@ -89,15 +89,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $slug = post('slug');
 
         if (!$name || !$slug) {
-            error('分组名称和标识不能为空');
+            error(__('bn_group_required'));
         }
 
         if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) {
-            error('标识只能包含小写字母、数字和连字符，且以字母或数字开头');
+            error(__('bn_slug_format'));
         }
 
         if (!bannerGroupModel()->isSlugUnique($slug, $id)) {
-            error('标识已存在');
+            error(__('bn_slug_exists'));
         }
 
         $data = [
@@ -133,11 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'group_delete') {
         $id = postInt('id');
         $group = bannerGroupModel()->find($id);
-        if (!$group) error('分组不存在');
+        if (!$group) error(__('bn_group_missing'));
 
         $count = bannerGroupModel()->getBannerCount($group['slug']);
         if ($count > 0) {
-            error("该分组下还有 {$count} 张轮播图，请先移除或移到其他分组");
+            error(str_replace(':n', (string) $count, __('bn_group_has_items')));
         }
 
         bannerGroupModel()->deleteById($id);
@@ -169,7 +169,7 @@ foreach ($groups as $g) {
     $positions[$g['slug']] = $g['name'];
 }
 if (empty($positions)) {
-    $positions = ['home' => '首页', 'about' => '关于我们', 'product' => '产品中心', 'case' => '案例展示'];
+    $positions = ['home' => __('nav_home'), 'about' => __('shome_blk_about'), 'product' => __('admin_product'), 'case' => __('bn_pos_case')];
 }
 
 // 轮播图列表数据（list Tab 用）
@@ -205,17 +205,17 @@ require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 $transStatus = loadTransStatus('banners');
 require_once ROOT_PATH . '/admin/includes/header.php';
 
-echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang 字段；切换语言显示该语言下的轮播图');
+echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
 ?>
 
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/banner.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'list' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
-            轮播图列表
+            <?php echo e(__('bn_tab_list')); ?>
         </a>
         <a href="/admin/banner.php?tab=groups" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'groups' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
-            分组管理
+            <?php echo e(__('bn_tab_groups')); ?>
         </a>
     </div>
 </div>
@@ -243,7 +243,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
         <div class="flex gap-2">
             <button onclick="openSettingsModal()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-settings text-base"></i>
-                轮播图设置
+                <?php echo e(__('bn_tab_settings')); ?>
             </button>
             <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
@@ -264,7 +264,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_group'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">翻译</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translate')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -282,7 +282,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3">
-                        <div class="font-medium"><?php echo e($item['title'] ?: '无标题'); ?></div>
+                        <div class="font-medium"><?php echo e($item['title'] ?: __('bn_untitled')); ?></div>
                         <?php if ($item['subtitle']): ?>
                         <div class="text-sm text-gray-500"><?php echo e($item['subtitle']); ?></div>
                         <?php endif; ?>
@@ -351,7 +351,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_btn1_text'); ?></label>
-                    <input type="text" name="btn1_text" id="editBtn1Text" class="w-full border rounded px-4 py-2" placeholder="如：了解更多">
+                    <input type="text" name="btn1_text" id="editBtn1Text" class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('bn_ph_btn1')); ?>">
                 </div>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_btn1_url'); ?></label>
@@ -362,7 +362,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_btn2_text'); ?></label>
-                    <input type="text" name="btn2_text" id="editBtn2Text" class="w-full border rounded px-4 py-2" placeholder="如：联系我们">
+                    <input type="text" name="btn2_text" id="editBtn2Text" class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('bn_ph_btn2')); ?>">
                 </div>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_btn2_url'); ?></label>
@@ -378,7 +378,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
                     <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <div id="imagePreview" class="mt-2"></div>
-                <p class="text-xs text-gray-400 mt-1">建议尺寸：1920 x <?php echo $bannerHeightPc; ?>px</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo str_replace(':size', '1920 x ' . $bannerHeightPc . 'px', e(__('bn_suggest_size'))); ?></p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -439,19 +439,19 @@ echo renderAdminLangSwitcher($_viewLang, '提示：每张轮播图独立 lang �
             <input type="hidden" name="action" value="save_settings">
 
             <div>
-                <label class="block text-gray-700 mb-1">PC端高度 (px)</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_pc_height')); ?> (px)</label>
                 <input type="number" name="banner_height_pc" id="settingHeightPc" value="<?php echo $bannerHeightPc; ?>" min="200" max="1000" class="w-full border rounded px-4 py-2">
-                <p class="text-xs text-gray-400 mt-1">建议范围：400-800px，当前推荐：650px</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_pc_height_tip')); ?></p>
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">移动端高度 (px)</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_mobile_height')); ?> (px)</label>
                 <input type="number" name="banner_height_mobile" id="settingHeightMobile" value="<?php echo $bannerHeightMobile; ?>" min="150" max="600" class="w-full border rounded px-4 py-2">
-                <p class="text-xs text-gray-400 mt-1">建议范围：200-400px，当前推荐：300px</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_mobile_height_tip')); ?></p>
             </div>
 
             <div class="bg-blue-50 text-blue-700 p-3 rounded text-sm">
-                <strong>提示：</strong>此设置为首页轮播图全局高度，其他分组可在分组管理中单独设置。
+                <strong><?php echo e(__('admin_tip_label')); ?></strong><?php echo e(__('bn_global_height_tip')); ?>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
@@ -524,10 +524,10 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
             showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showMessage(data.msg || '保存失败', 'error');
+            showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (err) {
-        showMessage('请求失败: ' + err.message, 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + err.message, 'error');
     }
 });
 
@@ -540,10 +540,10 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '显示';
+            btn.textContent = <?php echo json_encode(__('admin_show'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '隐藏';
+            btn.textContent = <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>;
         }
     }
 }
@@ -591,10 +591,10 @@ document.getElementById('settingsForm').addEventListener('submit', async functio
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('设置保存成功');
+        showMessage(<?php echo json_encode(__('save_success'), JSON_UNESCAPED_UNICODE); ?>);
         closeSettingsModal();
     } else {
-        showMessage(data.msg || '保存失败', 'error');
+        showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 
@@ -634,10 +634,10 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
-        <p class="text-sm text-gray-500">管理轮播图分组，每个分组可生成短码嵌入到页面内容中。</p>
+        <p class="text-sm text-gray-500"><?php echo e(__('bn_groups_intro')); ?></p>
         <button onclick="openGroupModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <i class="ti ti-plus text-base"></i>
-            添加分组
+            <?php echo e(__('bn_add_group')); ?>
         </button>
     </div>
 </div>
@@ -648,11 +648,11 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_name'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">标识</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('bn_slug')); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('label_shortcode'); ?></th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">尺寸 (PC/移动)</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">自动播放</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">轮播图</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('bn_size_col')); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('bn_autoplay')); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_banner')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
@@ -669,7 +669,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
                             <code class="text-sm bg-blue-50 text-blue-700 px-2 py-1 rounded">[banner-<?php echo e($g['slug']); ?>]</code>
-                            <button onclick="copyShortcode('<?php echo e($g['slug']); ?>')" class="text-gray-400 hover:text-primary" title="复制短码">
+                            <button onclick="copyShortcode('<?php echo e($g['slug']); ?>')" class="text-gray-400 hover:text-primary" title="<?php echo e(__('bn_copy_shortcode')); ?>">
                                 <i class="ti ti-copy text-base"></i>
                             </button>
                         </div>
@@ -678,15 +678,15 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                         <?php echo $g['height_pc']; ?> / <?php echo $g['height_mobile']; ?>px
                     </td>
                     <td class="px-4 py-3 text-center text-sm text-gray-600">
-                        <?php echo $g['autoplay_delay'] > 0 ? ($g['autoplay_delay'] / 1000) . 's' : '关闭'; ?>
+                        <?php echo $g['autoplay_delay'] > 0 ? ($g['autoplay_delay'] / 1000) . 's' : __('bn_off'); ?>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <a href="/admin/banner.php?position=<?php echo e($g['slug']); ?>" class="text-primary hover:underline text-sm"><?php echo $bannerCount; ?> 张</a>
+                        <a href="/admin/banner.php?position=<?php echo e($g['slug']); ?>" class="text-primary hover:underline text-sm"><?php echo str_replace(':n', (string) $bannerCount, e(__('shome_n_images'))); ?></a>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleGroupStatus(<?php echo $g['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $g['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
-                            <?php echo $g['status'] ? '启用' : '禁用'; ?>
+                            <?php echo $g['status'] ? e(__('admin_enabled')) : e(__('admin_disabled')); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -724,23 +724,23 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             <input type="hidden" name="id" id="groupId" value="0">
 
             <div>
-                <label class="block text-gray-700 mb-1">分组名称 <span class="text-red-500">*</span></label>
-                <input type="text" name="name" id="groupName" class="w-full border rounded px-4 py-2" required placeholder="如：产品页轮播">
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_group_name')); ?> <span class="text-red-500">*</span></label>
+                <input type="text" name="name" id="groupName" class="w-full border rounded px-4 py-2" required placeholder="<?php echo e(__('bn_ph_group_name')); ?>">
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">标识 (slug) <span class="text-red-500">*</span></label>
-                <input type="text" name="slug" id="groupSlug" class="w-full border rounded px-4 py-2" required placeholder="如：product-page" pattern="[a-z0-9][a-z0-9-]*">
-                <p class="text-xs text-gray-400 mt-1">小写字母、数字和连字符，用于生成短码 [banner-slug]</p>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_slug')); ?> (slug) <span class="text-red-500">*</span></label>
+                <input type="text" name="slug" id="groupSlug" class="w-full border rounded px-4 py-2" required placeholder="<?php echo e(__('bn_ph_slug')); ?>" data-x="ge" pattern="[a-z0-9][a-z0-9-]*">
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_slug_tip')); ?></p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">PC端高度 (px)</label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('bn_pc_height')); ?> (px)</label>
                     <input type="number" name="height_pc" id="groupHeightPc" value="500" min="200" max="2000" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">移动端高度 (px)</label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('bn_mobile_height')); ?> (px)</label>
                     <input type="number" name="height_mobile" id="groupHeightMobile" value="250" min="100" max="1000" class="w-full border rounded px-4 py-2">
                 </div>
             </div>
@@ -748,15 +748,15 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             <div class="border rounded-lg p-3 bg-gray-50">
                 <label class="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" name="fullscreen" value="1" id="groupFullscreen" class="w-4 h-4">
-                    <span class="font-medium text-gray-700">全屏大 Banner（PC 满屏高度 100vh）</span>
+                    <span class="font-medium text-gray-700"><?php echo e(__('bn_fullscreen')); ?></span>
                 </label>
-                <p class="text-xs text-gray-400 mt-1 ml-7">开启后该分组在 PC 端铺满整屏（视口高度 − 头部，svh 适配移动端地址栏），忽略上方「PC端高度」；移动端仍按「移动端高度」显示。</p>
+                <p class="text-xs text-gray-400 mt-1 ml-7"><?php echo e(__('bn_fullscreen_tip')); ?></p>
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1">自动播放间隔 (ms)</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_autoplay_delay')); ?> (ms)</label>
                 <input type="number" name="autoplay_delay" id="groupAutoplay" value="5000" min="0" max="30000" step="500" class="w-full border rounded px-4 py-2">
-                <p class="text-xs text-gray-400 mt-1">设为 0 则关闭自动播放，推荐 3000-5000ms</p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_autoplay_tip')); ?></p>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
@@ -809,10 +809,10 @@ document.getElementById('groupForm').addEventListener('submit', async function(e
             showMessage('<?php echo __('admin_saved'); ?>');
             setTimeout(() => location.reload(), 1000);
         } else {
-            showMessage(data.msg || '保存失败', 'error');
+            showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 
@@ -834,7 +834,7 @@ async function toggleGroupStatus(id, btn) {
 }
 
 async function deleteGroup(id) {
-    if (!confirm('确定要删除此分组吗？')) return;
+    if (!confirm(<?php echo json_encode(__('bn_del_group_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'group_delete');
     formData.append('id', id);
@@ -844,7 +844,7 @@ async function deleteGroup(id) {
         showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
-        showMessage(data.msg || '删除失败', 'error');
+        showMessage(data.msg || <?php echo json_encode(__('admin_delete_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
@@ -852,7 +852,7 @@ function copyShortcode(slug) {
     var text = '[banner-' + slug + ']';
     if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function() {
-            showMessage('短码已复制: ' + text);
+            showMessage(<?php echo json_encode(__('bn_shortcode_copied'), JSON_UNESCAPED_UNICODE); ?> + ': ' + text);
         });
     } else {
         var ta = document.createElement('textarea');
@@ -861,7 +861,7 @@ function copyShortcode(slug) {
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        showMessage('短码已复制: ' + text);
+        showMessage(<?php echo json_encode(__('bn_shortcode_copied'), JSON_UNESCAPED_UNICODE); ?> + ': ' + text);
     }
 }
 </script>
