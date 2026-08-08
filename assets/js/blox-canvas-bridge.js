@@ -140,6 +140,7 @@
         this.onAreaHit = options.onAreaHit || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onInsertAt = options.onInsertAt || noop;
+        this.onDropRejected = options.onDropRejected || noop;
         this.lastDropId = "";
         this.started = false;
         this.boundMessage = this.handleMessage.bind(this);
@@ -254,6 +255,10 @@
         }
         if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {
             this.onEmptyAction(data.ykEmptyAction);
+            return true;
+        }
+        if (data.ykDropRejected === "restricted-children" || data.ykDropRejected === "no-nested-container" || data.ykDropRejected === "invalid") {
+            this.onDropRejected(data.ykDropRejected);
             return true;
         }
         payload = data.ykInsertAt;
