@@ -71,10 +71,63 @@ final class BloxRemoteTemplateProvider
     }
 
     /**
+     * 官方模板全类型目录（r16：含 header/footer——编辑器插入面板仍走 items() 窄类型，
+     * 头尾资产经管理页「官方模板库」一键安装落库，不混入正文插入动线）。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function installable(bool $forceRefresh = false): array
+    {
+        $catalog = $this->catalog($forceRefresh);
+        $items = [];
+        foreach ($catalog['templates'] as $raw) {
+            $item = $this->normalizeItem($raw, $catalog['updated_at'], true);
+            if ($item !== null) {
+                $items[] = $item;
+            }
+        }
+        return $items;
+    }
+
+    /**
+     * 下载并验证官方模板包，返回包 JSON 原文（安装走 BloxTemplateImporter::importJson，
+     * 与文件导入同一安全链）。复用 resolve 同一 hash+RSA 签名校验。
+     */
+    public function fetchPackageJson(string $slug): string
+    {
+        [, $json] = $this->verifiedPackage($slug);
+        return $json;
+    }
+
+    /**
      * @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>}
      * @psalm-suppress UnusedParam （$context 是本地/插件/远程三类来源的统一签名；远程目录按 context 过滤需服务端先在 list.php 返回该字段，接入前保留参数不改调用方。）
      */
     public function resolve(string $slug, string $context = 'page'): array
+    {
+        [$item, $json] = $this->verifiedPackage($slug);
+
+        BuilderRegistry::boot();
+        $prepared = BloxTemplateImporter::prepare($json);
+        if ($prepared['type'] !== $item['type']) {
+            throw new RuntimeException(__('blox_template_remote_invalid'));
+        }
+
+        return [
+            'key' => 'remote:' . $slug,
+            'type' => $prepared['type'],
+            'name' => $item['name'],
+            'source' => 'remote',
+            'provider' => self::PROVIDER,
+            'sections' => $prepared['sections'],
+        ];
+    }
+
+    /**
+     * 目录定位 + 下载 + hash + RSA 签名 + 包内 source_ref 复核（resolve 与
+     * fetchPackageJson 的共用安检段）。@return array{0:array<string,mixed>,1:string}
+     */
+    private function verifiedPackage(string $slug): array
     {
         if (!$this->validSlug($slug)) {
             throw new RuntimeException(__('blox_template_remote_invalid'));
@@ -92,7 +145,7 @@ final class BloxRemoteTemplateProvider
             throw new RuntimeException(__('blox_template_remote_missing'));
         }
 
-        $item = $this->normalizeItem($raw, $catalog['updated_at']);
+        $item = $this->normalizeItem($raw, $catalog['updated_at'], true);
         if ($item === null) {
             throw new RuntimeException(__('blox_template_remote_invalid'));
         }
@@ -136,21 +189,7 @@ final class BloxRemoteTemplateProvider
             throw new RuntimeException(__('blox_template_remote_invalid'));
         }
 
-        BuilderRegistry::boot();
-        $prepared = BloxTemplateImporter::prepare($json);
-        if ($prepared['type'] !== $item['type']) {
-            throw new RuntimeException(__('blox_template_remote_invalid'));
-        }
-
-
-        return [
-            'key' => 'remote:' . $slug,
-            'type' => $prepared['type'],
-            'name' => $item['name'],
-            'source' => 'remote',
-            'provider' => self::PROVIDER,
-            'sections' => $prepared['sections'],
-        ];
+        return [$item, $json];
     }
 
     /** @return array{updated_at:string,fetched_at:int,templates:list<array<string,mixed>>} */
@@ -209,11 +248,12 @@ final class BloxRemoteTemplateProvider
         return $catalog;
     }
     /** @param array<string,mixed> $raw @return array<string,mixed>|null */
-    private function normalizeItem(array $raw, string $updatedAt): ?array
+    private function normalizeItem(array $raw, string $updatedAt, bool $allTypes = false): ?array
     {
         $slug = trim((string) ($raw['slug'] ?? ''));
         $type = trim((string) ($raw['type'] ?? ''));
-        if (!$this->validSlug($slug) || !in_array($type, ['section', 'page'], true)) {
+        $allowed = $allTypes ? ['section', 'page', 'header', 'footer'] : ['section', 'page'];
+        if (!$this->validSlug($slug) || !in_array($type, $allowed, true)) {
             return null;
         }
         $paid = !empty($raw['paid']) || (string) ($raw['tier'] ?? 'free') !== 'free';

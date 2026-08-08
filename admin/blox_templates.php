@@ -72,6 +72,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/admin/blox_templates.php?imported=' . $result['id']);
         }
 
+        if ($action === 'install_remote') {
+            // r16 官方模板库一键安装：下载+hash+RSA 验签（provider 安检段）→ importJson
+            // 完整校验落库——与文件导入同一安全链，官方包不是绕过安检的后门。
+            $slug = trim((string) post('slug', ''));
+            $provider = new BloxRemoteTemplateProvider();
+            $json = $provider->fetchPackageJson($slug);
+            $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0), 'remote', $slug);
+            adminLog('blox_template', 'install_remote', '安装官方模板 ' . $slug . ' → #' . $result['id']);
+            redirect('/admin/blox_templates.php?imported=' . $result['id']);
+        }
+
         if ($action === 'publish' || $action === 'unpublish') {
             $id = max(0, (int) post('id', 0));
             if ($action === 'publish') {
@@ -141,13 +152,30 @@ BuilderRegistry::boot();
 $providerTemplates = BloxPluginRegistry::templates('all');
 $storedTemplates = $tableReady ? array_values(array_filter(
     bloxTemplateModel()->catalog(),
-    static fn (array $template): bool => in_array((string) ($template['source'] ?? ''), ['user', 'import'], true)
+    static fn (array $template): bool => in_array((string) ($template['source'] ?? ''), ['user', 'import', 'remote', 'builtin'], true)
 )) : [];
 $libraryBlocks = [];
 if (db()->tableExists('blocks_library')) {
     $libraryBlocks = db()->fetchAll(
         'SELECT id,name,updated_at FROM ' . DB_PREFIX . 'blocks_library ORDER BY updated_at DESC, id DESC LIMIT 100'
     );
+}
+
+// r16 官方模板库（含 header/footer；远程不可达时静默降级为空列表+提示）
+$officialTemplates = [];
+$officialError = '';
+if ($tableReady) {
+    try {
+        $officialTemplates = (new BloxRemoteTemplateProvider())->installable();
+    } catch (Throwable $e) {
+        $officialError = $e->getMessage();
+    }
+}
+$installedRefs = [];
+foreach ($tableReady ? bloxTemplateModel()->catalog() : [] as $t) {
+    if ((string) ($t['source'] ?? '') === 'remote' && (string) ($t['source_ref'] ?? '') !== '') {
+        $installedRefs[(string) $t['source_ref']] = (int) $t['id'];
+    }
 }
 
 $typeLabels = [
@@ -204,6 +232,52 @@ function condForm(initial) {
         <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_reusable_blocks'); ?></div><div class="mt-1 text-xl font-semibold"><?php echo count($libraryBlocks); ?></div></div>
         <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_format'); ?></div><div class="mt-1 text-xl font-semibold">JSON v1</div></div>
     </div>
+
+    <!-- r16 官方模板库：远程签名资产一键安装（含 header/footer） -->
+    <section class="border-y border-gray-200 bg-white">
+        <div class="px-5 py-4 border-b border-gray-200 flex items-center gap-2">
+            <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_official_title'); ?></h2>
+            <span class="text-xs text-gray-400"><?php echo __('blox_tpl_official_hint'); ?></span>
+        </div>
+        <?php if ($officialError !== ''): ?>
+        <div class="px-5 py-3 text-sm text-amber-600"><i class="ti ti-cloud-off"></i> <?php echo e($officialError); ?></div>
+        <?php elseif ($officialTemplates === []): ?>
+        <div class="px-5 py-3 text-sm text-gray-400"><?php echo __('blox_tpl_official_empty'); ?></div>
+        <?php else: ?>
+        <div class="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-3" data-testid="blox-official-list">
+            <?php foreach ($officialTemplates as $ot):
+                $slug = str_replace('remote:', '', (string) $ot['key']);
+                $installedId = $installedRefs[$slug] ?? 0;
+            ?>
+            <div class="rounded-xl border border-gray-200 p-4 flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="font-medium text-gray-900"><?php echo e((string) $ot['name']); ?></span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"><?php echo e($typeLabels[(string) $ot['type']] ?? (string) $ot['type']); ?></span>
+                    <?php if (!empty($ot['paid'])): ?><span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">Pro</span><?php endif; ?>
+                </div>
+                <p class="text-xs text-gray-500 flex-1"><?php echo e((string) ($ot['description'] ?? '')); ?></p>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] text-gray-400">v<?php echo e((string) ($ot['version'] ?? '')); ?></span>
+                    <?php if ($installedId > 0): ?>
+                    <span class="text-xs text-emerald-600"><i class="ti ti-check"></i> <?php echo __('blox_tpl_installed'); ?></span>
+                    <?php elseif (!empty($ot['locked'])): ?>
+                    <span class="text-xs text-gray-400"><i class="ti ti-lock"></i> <?php echo __('blox_tpl_locked'); ?></span>
+                    <?php else: ?>
+                    <form method="post">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="install_remote">
+                        <input type="hidden" name="slug" value="<?php echo e($slug); ?>">
+                        <button type="submit" class="text-xs text-primary hover:opacity-80" data-testid="blox-official-install">
+                            <i class="ti ti-download"></i> <?php echo __('blox_tpl_install'); ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </section>
 
     <section class="border-y border-gray-200 bg-white">
         <div class="px-5 py-4 border-b border-gray-200">
