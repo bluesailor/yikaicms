@@ -1415,16 +1415,26 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 })();
 </script>
 HTML;
-        // nowdoc 里 <?php 不解析，会原样进浏览器（曾整块画布脚本语法报错）——
-        // 文案改用 @@key@@ 占位，在这里换成 JSON 字面量。
-        $bloxInject = str_replace(
-            ['@@pea_add_blank_section@@', '@@pea_add_section@@', '@@pea_canvas_empty@@', '@@pea_column@@', '@@pea_empty_container@@', '@@pea_empty_div@@', '@@pea_empty_section@@', '@@pea_home_field@@', '@@pea_import_template@@', '@@pea_n_columns@@', '@@pea_section_title@@', '@@pea_subtitle@@', '@@pea_template_library@@', '@@pea_text_edit@@'],
-            [(string) json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE)],
-            $bloxInject
-        );
+        // nowdoc 不解析 PHP，文案一律走 __TOKEN__ / @@key@@ 占位，在这里换成 JSON
+        // 字面量。曾在 nowdoc 里直接写 PHP 开标签，结果标签原样进了浏览器，
+        // 整块画布脚本语法报错、编辑器 e2e 全线 pageerror。
         $bloxInject = strtr($bloxInject, [
             '__YK_COLUMN_RESIZE_LABEL__' => json_encode(__('blox_canvas_column_resize'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '__YK_COLUMN_RESIZE_HINT__' => json_encode(__('blox_canvas_column_resize_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),
+            '@@pea_add_section@@' => json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE),
+            '@@pea_canvas_empty@@' => json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE),
+            '@@pea_column@@' => json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE),
+            '@@pea_empty_container@@' => json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE),
+            '@@pea_empty_div@@' => json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE),
+            '@@pea_empty_section@@' => json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE),
+            '@@pea_home_field@@' => json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE),
+            '@@pea_import_template@@' => json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE),
+            '@@pea_n_columns@@' => json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE),
+            '@@pea_section_title@@' => json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE),
+            '@@pea_subtitle@@' => json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE),
+            '@@pea_template_library@@' => json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE),
+            '@@pea_text_edit@@' => json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE),
         ]);
     }
 
