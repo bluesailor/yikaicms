@@ -43,7 +43,7 @@ function checkLogin(): void
 {
     if (empty($_SESSION['admin_id'])) {
         if (isAjax()) {
-            error('请先登录', 401);
+            error(__('auth_login_required'), 401);
         }
         redirect('/admin/login.php');
     }
@@ -61,7 +61,7 @@ function checkLogin(): void
             $demoAllowPages = ['upgrade.php', 'setting_demo.php'];
             $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
             if (!in_array($currentPage, $demoAllowPages)) {
-                error('演示模式下不允许修改操作');
+                error(__('auth_demo_readonly'));
             }
         }
     }
@@ -99,7 +99,7 @@ function refreshAdminIdentity(): void
         // 账号已被禁用或删除：当场失效，不等对方自己退出
         doLogout();   // 内含清除静态绕过标记
         if (isAjax()) {
-            error('账号已失效，请重新登录', 401);
+            error(__('auth_account_invalid'), 401);
         }
         redirect('/admin/login.php');
     }
@@ -154,7 +154,7 @@ function doLogin(string $username, string $password): array
             'admin_name'   => $username,
             'module'       => 'auth',
             'action'       => 'login_fail',
-            'description'  => '登录失败：用户名或密码错误',
+            'description'  => __('auth_login_failed_pw'),
             'url'          => $_SERVER['REQUEST_URI'] ?? '',
             'method'       => 'POST',
             'request_data' => json_encode(['username' => $username], JSON_UNESCAPED_UNICODE),
@@ -284,7 +284,7 @@ function doTotpLogin(string $code): array
             'admin_name'   => (string) ($user['username'] ?? ''),
             'module'       => 'auth',
             'action'       => 'login_fail',
-            'description'  => '登录失败：两步验证码错误',
+            'description'  => __('auth_login_failed_2fa'),
             'url'          => $_SERVER['REQUEST_URI'] ?? '',
             'method'       => 'POST',
             'request_data' => '{}',

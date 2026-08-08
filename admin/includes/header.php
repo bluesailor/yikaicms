@@ -558,17 +558,17 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                     </div>
                                     <div>
                                         <div class="text-sm font-bold text-gray-800"><?php echo __('admin_ai_assistant'); ?></div>
-                                        <div class="text-[11px]" :class="busy ? 'text-amber-600' : 'text-gray-400'" x-text="busy ? '思考中…' : '在线'"></div>
+                                        <div class="text-[11px]" :class="busy ? 'text-amber-600' : 'text-gray-400'" x-text="busy ? <?php echo json_encode(__('ai_thinking'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('ai_online'), JSON_UNESCAPED_UNICODE); ?>"></div>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-0.5">
-                                    <button type="button" @click="clearChat()" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="清空">
+                                    <button type="button" @click="clearChat()" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="<?php echo e(__('ai_clear')); ?>">
                                         <i class="ti ti-trash text-base"></i>
                                     </button>
-                                    <a href="/admin/ai_assistant.php" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="放大">
+                                    <a href="/admin/ai_assistant.php" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="<?php echo e(__('ai_expand')); ?>">
                                         <i class="ti ti-maximize text-base"></i>
                                     </a>
-                                    <button type="button" @click="open = false" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="关闭">
+                                    <button type="button" @click="open = false" class="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" title="<?php echo e(__('blox_template_close')); ?>">
                                         <i class="ti ti-x text-base"></i>
                                     </button>
                                 </div>
@@ -577,9 +577,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                             <div x-ref="msgArea" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50">
                                 <template x-if="messages.length === 0">
                                     <div class="text-center text-gray-400 text-xs py-6 leading-relaxed">
-                                        试试问我：<br>
-                                        <button type="button" @click="quickPrompt('列出最近 5 篇草稿')" class="inline-block mt-2 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">列出最近 5 篇草稿</button><br>
-                                        <button type="button" @click="quickPrompt('给文章 #1 生成 SEO 摘要')" class="inline-block mt-1 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">给文章 #1 生成 SEO 摘要</button>
+                                        <?php echo e(__('ai_try_asking')); ?><br>
+                                        <button type="button" @click="quickPrompt(<?php echo json_encode(__('ai_prompt_drafts'), JSON_UNESCAPED_UNICODE); ?>)" class="inline-block mt-2 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">列出最近 5 篇草稿</button><br>
+                                        <button type="button" @click="quickPrompt(<?php echo json_encode(__('ai_prompt_seo'), JSON_UNESCAPED_UNICODE); ?>)" class="inline-block mt-1 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">给文章 #1 生成 SEO 摘要</button>
                                     </div>
                                 </template>
                                 <template x-for="(m, i) in messages" :key="i">
@@ -605,19 +605,19 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                                  :class="m.applied ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'">
                                                 <template x-if="!m.applied">
                                                     <div>
-                                                        <div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1" x-text="'待确认的改动 (' + m.proposals.length + ')'"></div>
+                                                        <div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1" x-text="<?php echo json_encode(__('ai_pending_changes'), JSON_UNESCAPED_UNICODE); ?> + ' (' + m.proposals.length + ')'"></div>
                                                         <template x-for="(p, pi) in m.proposals" :key="pi">
                                                             <div class="flex items-start gap-1.5 py-0.5 text-sm text-gray-800"><span class="text-amber-600">✎</span><span x-text="p.summary || p.label"></span></div>
                                                         </template>
                                                         <div class="mt-2 flex gap-2">
                                                             <button type="button" @click="applyProposals(i)" :disabled="m.applying" class="px-3 py-1 bg-primary text-white text-xs rounded-lg cursor-pointer disabled:opacity-50" x-text="m.applying ? '应用中…' : '确认应用'"></button>
-                                                            <button type="button" @click="messages.splice(i,1)" class="px-3 py-1 border border-gray-300 text-gray-500 text-xs rounded-lg cursor-pointer">忽略</button>
+                                                            <button type="button" @click="messages.splice(i,1)" class="px-3 py-1 border border-gray-300 text-gray-500 text-xs rounded-lg cursor-pointer"><?php echo e(__('ai_ignore')); ?></button>
                                                         </div>
                                                     </div>
                                                 </template>
                                                 <template x-if="m.applied">
                                                     <div>
-                                                        <div class="text-[11px] uppercase tracking-wide text-green-700 mb-1">已应用 ✓</div>
+                                                        <div class="text-[11px] uppercase tracking-wide text-green-700 mb-1"><?php echo e(__('ai_applied')); ?> ✓</div>
                                                         <template x-for="(a, ai) in m.appliedItems" :key="ai">
                                                             <div class="flex items-center justify-between gap-2 py-0.5 text-sm text-gray-800">
                                                                 <span x-text="a.summary"></span>
@@ -689,14 +689,14 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                             body: JSON.stringify({ args: tc.args, result: tc.result }, null, 2),
                                         }));
                                     }
-                                    if (data.success) this.messages.push({ role: 'ai', text: data.content || '(无回复内容)' });
-                                    else this.messages.push({ role: 'error', text: data.error || '未知错误' });
+                                    if (data.success) this.messages.push({ role: 'ai', text: data.content || <?php echo json_encode(__('ai_no_reply'), JSON_UNESCAPED_UNICODE); ?> });
+                                    else this.messages.push({ role: 'error', text: data.error || <?php echo json_encode(__('ai_unknown_error'), JSON_UNESCAPED_UNICODE); ?> });
                                     // 待确认的写操作提案
                                     if (data.proposals && data.proposals.length && data.proposal_set_id) {
                                         this.messages.push({ role: 'proposal', proposals: data.proposals, setId: data.proposal_set_id, applied: false, applying: false, appliedItems: [], errors: [] });
                                     }
                                 } catch (e) {
-                                    this.messages.push({ role: 'error', text: '网络错误：' + e.message });
+                                    this.messages.push({ role: 'error', text: <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?> + e.message });
                                 } finally {
                                     this.busy = false;
                                 }
@@ -714,10 +714,10 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                         m.errors = data.errors || [];
                                         m.applied = true;
                                     } else {
-                                        this.messages.push({ role: 'error', text: data.error || (data.errors || []).join('；') || '应用失败' });
+                                        this.messages.push({ role: 'error', text: data.error || (data.errors || []).join('；') || <?php echo json_encode(__('ai_apply_failed'), JSON_UNESCAPED_UNICODE); ?> });
                                     }
                                 } catch (e) {
-                                    this.messages.push({ role: 'error', text: '网络错误：' + e.message });
+                                    this.messages.push({ role: 'error', text: <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?> + e.message });
                                 } finally { m.applying = false; }
                             },
                             async undoChange(logId, mi, ai) {
@@ -726,9 +726,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                     const r = await fetch('/admin/api_ai_undo.php', { method: 'POST', body: fd });
                                     const data = await r.json();
                                     if (data.success) { this.messages[mi].appliedItems[ai].undone = true; }
-                                    else { this.messages.push({ role: 'error', text: data.error || '撤销失败' }); }
+                                    else { this.messages.push({ role: 'error', text: data.error || <?php echo json_encode(__('ai_undo_failed'), JSON_UNESCAPED_UNICODE); ?> }); }
                                 } catch (e) {
-                                    this.messages.push({ role: 'error', text: '网络错误：' + e.message });
+                                    this.messages.push({ role: 'error', text: <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?> + e.message });
                                 }
                             },
                         };
@@ -792,9 +792,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
                 <i class="ti ti-alert-triangle text-lg text-red-500 mt-0.5"></i>
                 <div class="text-sm text-red-800 flex-1">
-                    <p class="font-bold">数据库有 <?php echo (int) $__pendingMig; ?> 项升级待执行 —— 程序文件已更新，但数据库结构还没跟上</p>
-                    <p class="mt-1">在此状态下部分功能会异常（如删除内容不生效、新功能报错）。请立即执行数据库升级（几秒钟完成，不影响数据）。</p>
+                    <p class="font-bold"><?php echo str_replace(':n', (string) (int) $__pendingMig, e(__('mig_pending_title'))); ?></p>
+                    <p class="mt-1"><?php echo e(__('mig_pending_desc')); ?></p>
                 </div>
-                <a href="/admin/upgrade.php" class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition">立即升级数据库 →</a>
+                <a href="/admin/upgrade.php" class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition"><?php echo e(__('mig_upgrade_now')); ?> →</a>
             </div>
             <?php endif; ?>

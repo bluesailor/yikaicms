@@ -54,14 +54,14 @@ function submitAiPanel() {
     prompt = prompt.trim();
     var content = getEditorContent();
 
-    if (!prompt && !title) { showMessage('请填写提示词或文章标题', 'error'); return; }
-    if ((action === 'polish' || action === 'continue') && !content) { showMessage('请先编写内容', 'error'); return; }
+    if (!prompt && !title) { showMessage(<?php echo json_encode(__('aip_need_prompt'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
+    if ((action === 'polish' || action === 'continue') && !content) { showMessage(<?php echo json_encode(__('aip_need_content'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
 
     var btn = document.getElementById('aiPanelSubmit');
     var status = document.getElementById('aiStatus');
     btn.disabled = true;
-    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i> 生成中...';
-    if (status) status.textContent = 'AI 生成中...';
+    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i> ' + <?php echo json_encode(__('aip_generating'), JSON_UNESCAPED_UNICODE); ?>;
+    if (status) status.textContent = <?php echo json_encode(__('aip_generating'), JSON_UNESCAPED_UNICODE); ?>;
 
     var fd = new FormData();
     fd.append('action', action); fd.append('title', title); fd.append('prompt', prompt); fd.append('content', content);
@@ -75,7 +75,7 @@ function submitAiPanel() {
     fetch('/admin/api_ai.php', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (!data.success) { showMessage('AI 错误: ' + data.error, 'error'); return; }
+        if (!data.success) { showMessage(<?php echo json_encode(__('aip_ai_error'), JSON_UNESCAPED_UNICODE); ?> + ': ' + data.error, 'error'); return; }
         if (action === 'generate_all' && data.fields) {
             var f = data.fields;
             if (document.getElementById('aiGenTitle').checked && f.title) { var el = document.querySelector('input[name=title]'); if(el) el.value = f.title; }
@@ -83,15 +83,15 @@ function submitAiPanel() {
             if (document.getElementById('aiGenTags').checked && f.tags) { var el = document.querySelector('input[name=tags]'); if(el) el.value = f.tags; }
             if (document.getElementById('aiGenSlug').checked && f.slug) { var el = document.querySelector('input[name=slug]'); if(el) el.value = f.slug; }
             if (document.getElementById('aiGenContent').checked && f.content) { setEditorContent(f.content); }
-            showMessage('一键生成完成');
+            showMessage(<?php echo json_encode(__('aip_generate_done'), JSON_UNESCAPED_UNICODE); ?>);
         } else {
-            setEditorContent(data.content); showMessage('内容已生成');
+            setEditorContent(data.content); showMessage(<?php echo json_encode(__('aip_content_done'), JSON_UNESCAPED_UNICODE); ?>);
         }
     })
-    .catch(function(e) { showMessage('请求失败: ' + e.message, 'error'); })
+    .catch(function(e) { showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error'); })
     .finally(function() {
         btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-bolt text-base"></i> 开始生成';
+        btn.innerHTML = '<i class="ti ti-bolt text-base"></i> ' + <?php echo json_encode(__('aip_start'), JSON_UNESCAPED_UNICODE); ?>;
         if (status) status.textContent = '';
     });
 }
@@ -103,10 +103,10 @@ function aiQuick(action) {
     var content = getEditorContent();
     var summary = document.querySelector('textarea[name=summary]');
 
-    if (action === 'generate_seo' && !title) { showMessage('请先填写标题', 'error'); return; }
-    if (action === 'generate_summary' && !title && !content) { showMessage('请先填写标题或内容', 'error'); return; }
-    if (!confirm('AI ' + (action === 'generate_summary' ? '生成摘要' : '生成 SEO') + '？')) return;
-    if (status) status.textContent = 'AI 生成中...';
+    if (action === 'generate_seo' && !title) { showMessage(<?php echo json_encode(__('aip_need_title'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
+    if (action === 'generate_summary' && !title && !content) { showMessage(<?php echo json_encode(__('aip_need_title_content'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
+    if (!confirm('AI ' + (action === 'generate_summary' ? <?php echo json_encode(__('aip_gen_summary'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('aip_gen_seo'), JSON_UNESCAPED_UNICODE); ?>) + '?')) return;
+    if (status) status.textContent = <?php echo json_encode(__('aip_generating'), JSON_UNESCAPED_UNICODE); ?>;
 
     var fd = new FormData();
     fd.append('action', action); fd.append('title', title); fd.append('content', content);
@@ -114,16 +114,16 @@ function aiQuick(action) {
     fetch('/admin/api_ai.php', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        if (!data.success) { showMessage('AI 错误: ' + data.error, 'error'); return; }
-        if (action === 'generate_summary' && summary) { summary.value = data.content; showMessage('摘要已生成'); }
+        if (!data.success) { showMessage(<?php echo json_encode(__('aip_ai_error'), JSON_UNESCAPED_UNICODE); ?> + ': ' + data.error, 'error'); return; }
+        if (action === 'generate_summary' && summary) { summary.value = data.content; showMessage(<?php echo json_encode(__('aip_summary_done'), JSON_UNESCAPED_UNICODE); ?>); //成'); }
         else if (action === 'generate_seo' && data.seo) {
             ['seo_title','seo_keywords','seo_description'].forEach(function(k) {
                 var el = document.querySelector('[name='+k+']'); if (el && data.seo[k]) el.value = data.seo[k];
             });
-            showMessage('SEO 已生成');
+            showMessage(<?php echo json_encode(__('aip_seo_done'), JSON_UNESCAPED_UNICODE); ?>);
         }
     })
-    .catch(function() { showMessage('请求失败', 'error'); })
+    .catch(function() { showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); })
     .finally(function() { if (status) status.textContent = ''; });
 }
 </script>

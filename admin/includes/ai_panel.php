@@ -38,53 +38,53 @@ $GLOBALS['_ai_panel_loaded'] = true;
 
             <!-- 提示词 -->
             <div>
-                <textarea id="aiPrompt" rows="2" class="w-full border rounded px-3 py-2 text-sm" placeholder="输入提示词，如：写一篇关于工业自动化PLC控制器的介绍，突出节能优势。留空则使用文章标题。"></textarea>
+                <textarea id="aiPrompt" rows="2" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('aip_prompt_ph')); ?>"></textarea>
             </div>
 
             <!-- 模式 + 生成项 -->
             <div class="flex items-start gap-6">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <button type="button" data-action="generate_all" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition font-medium">一键生成</button>
-                    <button type="button" data-action="generate_article" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition">仅内容</button>
-                    <button type="button" data-action="polish" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition">润色</button>
-                    <button type="button" data-action="continue" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition">续写</button>
+                    <button type="button" data-action="generate_all" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition font-medium"><?php echo e(__('aip_generate_all')); ?></button>
+                    <button type="button" data-action="generate_article" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_content_only')); ?></button>
+                    <button type="button" data-action="polish" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_polish')); ?></button>
+                    <button type="button" data-action="continue" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_continue')); ?></button>
                     <span class="text-gray-200">|</span>
-                    <button type="button" onclick="aiQuick('generate_summary')" class="px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-500 hover:text-blue-500 cursor-pointer transition">摘要</button>
+                    <button type="button" onclick="aiQuick('generate_summary')" class="px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-500 hover:text-blue-500 cursor-pointer transition"><?php echo e(__('aip_summary')); ?></button>
                     <button type="button" onclick="aiQuick('generate_seo')" class="px-3 py-1 text-xs rounded-full border border-gray-200 text-gray-500 hover:text-purple-500 cursor-pointer transition">SEO</button>
                 </div>
             </div>
 
             <!-- 一键生成选项 -->
             <div id="aiAllOptions" class="flex items-center gap-4 text-xs text-gray-500">
-                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenTitle" checked class="w-3.5 h-3.5 rounded"> 标题</label>
-                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenSummary" checked class="w-3.5 h-3.5 rounded"> 摘要</label>
-                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenTags" checked class="w-3.5 h-3.5 rounded"> 标签</label>
-                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenSlug" checked class="w-3.5 h-3.5 rounded"> 别名</label>
-                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenContent" checked class="w-3.5 h-3.5 rounded"> 内容</label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenTitle" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('label_title')); ?></label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenSummary" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('aip_summary')); ?></label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenTags" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('aip_tags')); ?></label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenSlug" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('admin_slug')); ?></label>
+                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenContent" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('aip_content')); ?></label>
             </div>
 
             <!-- 高级选项 + 生成按钮 -->
             <div class="flex items-center justify-between pt-2 border-t">
                 <details class="inline">
-                    <summary class="text-xs text-gray-400 cursor-pointer hover:text-blue-500 select-none">高级选项</summary>
+                    <summary class="text-xs text-gray-400 cursor-pointer hover:text-blue-500 select-none"><?php echo e(__('aip_advanced')); ?></summary>
                     <div class="mt-3 space-y-3 p-4 bg-gray-50 rounded-lg">
                         <div class="grid grid-cols-4 gap-3">
-                            <div><label class="block text-xs text-gray-500 mb-1">行业</label><input type="text" id="aiIndustry" class="w-full border rounded px-2 py-1 text-xs" placeholder="工业自动化"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">受众</label><input type="text" id="aiAudience" class="w-full border rounded px-2 py-1 text-xs" placeholder="企业采购"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">关键词</label><input type="text" id="aiKeywords" class="w-full border rounded px-2 py-1 text-xs" placeholder="逗号分隔"></div>
-                            <div><label class="block text-xs text-gray-500 mb-1">补充要求</label><input type="text" id="aiExtra" class="w-full border rounded px-2 py-1 text-xs" placeholder="末尾加号召"></div>
+                            <div><label class="block text-xs text-gray-500 mb-1"><?php echo e(__('aip_industry')); ?></label><input type="text" id="aiIndustry" class="w-full border rounded px-2 py-1 text-xs" placeholder="<?php echo e(__('aip_industry_ph')); ?>"></div>
+                            <div><label class="block text-xs text-gray-500 mb-1"><?php echo e(__('aip_audience')); ?></label><input type="text" id="aiAudience" class="w-full border rounded px-2 py-1 text-xs" placeholder="<?php echo e(__('aip_audience_ph')); ?>"></div>
+                            <div><label class="block text-xs text-gray-500 mb-1"><?php echo e(__('aip_keywords')); ?></label><input type="text" id="aiKeywords" class="w-full border rounded px-2 py-1 text-xs" placeholder="<?php echo e(__('aip_comma_sep')); ?>"></div>
+                            <div><label class="block text-xs text-gray-500 mb-1"><?php echo e(__('aip_extra')); ?></label><input type="text" id="aiExtra" class="w-full border rounded px-2 py-1 text-xs" placeholder="<?php echo e(__('aip_extra_ph')); ?>"></div>
                         </div>
                         <div class="flex items-center gap-4">
                             <div class="flex items-center gap-1">
-                                <span class="text-xs text-gray-400">风格：</span>
-                                <button type="button" data-val="professional" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">专业</button>
-                                <button type="button" data-val="friendly" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">通俗</button>
-                                <button type="button" data-val="marketing" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">营销</button>
-                                <button type="button" data-val="news" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">资讯</button>
+                                <span class="text-xs text-gray-400"><?php echo e(__('aip_style')); ?></span>
+                                <button type="button" data-val="professional" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_style_pro')); ?></button>
+                                <button type="button" data-val="friendly" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_style_friendly')); ?></button>
+                                <button type="button" data-val="marketing" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_style_marketing')); ?></button>
+                                <button type="button" data-val="news" class="ai-style-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition"><?php echo e(__('aip_style_news')); ?></button>
                             </div>
                             <input type="hidden" id="aiStyle" value="professional">
                             <div class="flex items-center gap-1">
-                                <span class="text-xs text-gray-400">字数：</span>
+                                <span class="text-xs text-gray-400"><?php echo e(__('aip_length')); ?></span>
                                 <button type="button" data-val="300" class="ai-len-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">~300</button>
                                 <button type="button" data-val="800" class="ai-len-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">~800</button>
                                 <button type="button" data-val="1500" class="ai-len-btn px-2 py-0.5 text-xs rounded-full border cursor-pointer transition">~1500</button>
@@ -96,7 +96,7 @@ $GLOBALS['_ai_panel_loaded'] = true;
 
                 <button type="button" id="aiPanelSubmit" onclick="submitAiPanel()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-1.5 rounded text-sm cursor-pointer inline-flex items-center gap-1.5">
                     <i class="ti ti-bolt text-base"></i>
-                    开始生成
+                    <?php echo e(__('aip_start')); ?>
                 </button>
             </div>
         </div>
