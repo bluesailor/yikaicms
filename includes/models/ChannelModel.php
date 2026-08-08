@@ -123,6 +123,15 @@ class ChannelModel extends Model
                     "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
                     array_merge([(int) $channel['id']], $langParams)
                 );
+                // 孙级（r12 mega menu 消费：子栏目=面板列、孙栏目=列内链接）。
+                // 既有消费者（主题导航/移动抽屉）只读两级，多出的 children 不影响它们。
+                foreach ($channel['children'] as &$child) {
+                    $child['children'] = db()->fetchAll(
+                        "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
+                        array_merge([(int) $child['id']], $langParams)
+                    );
+                }
+                unset($child);
             }
         }
         unset($channel);

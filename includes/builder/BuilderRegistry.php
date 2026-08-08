@@ -114,6 +114,7 @@ final class BuilderRegistry
             new StatItemElement(),
             new LogoElement(),
             new NavDrawerElement(),
+            new NavMegaElement(),
             // 布局容器（一层嵌套；子元素在 data.children）
             new ContainerElement(),
             new DivElement(),
