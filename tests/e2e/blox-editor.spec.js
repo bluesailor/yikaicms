@@ -11,6 +11,7 @@ const {
   observeUnsafeWrites,
   openEditor,
   performPreviewUpdate,
+  waitPreviewSettled,
   restoreClean,
   scrollCanvasToBottom,
   undo,
@@ -97,19 +98,17 @@ test('inline edit patches preview and preserves scroll @ci', async ({ page }, te
   await expect(heading).not.toHaveAttribute('contenteditable', /.+/);
   await expect(page.getByTestId('blox-tree-section').last().getByTestId('blox-tree-element')).toContainText('E2E 局部预览标题');
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0"]`)).toContainText('E2E 局部预览标题');
-  // 滚动保持断言仅本地执行：CI 慢机上预览往返与滚动恢复的时序两个方向都能
-  // 竞态（r16 两轮实证：scrollBefore 假 0 / blur 后恢复到 0），产品的滚动保持
-  // 由本地基线守护；CI 保留内联编辑的全部功能断言。
-  if (!process.env.CI) {
-    await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
-  }
+  // r17：滚动不变量恢复 CI 执行——采样点改在 preview-settled（最新 generation
+  // 已应用+滚动恢复完成）之后，消除 r16 两轮实证的双向时序竞态；小容差吸收
+  // 浏览器亚像素差。
+  await waitPreviewSettled(page);
+  await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
   expect(page.url()).toBe(originalURL);
 
   await undo(page);
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0"]`)).toContainText(originalText);
-  if (!process.env.CI) {
-    await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
-  }
+  await waitPreviewSettled(page);
+  await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
   await undo(page);
   await undo(page);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();

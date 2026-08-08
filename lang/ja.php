@@ -2521,6 +2521,7 @@ return [
     'blox_tpl_installed' => 'インストール済み',
     'blox_tpl_locked' => 'ライセンスが必要',
     'blox_tpl_install' => 'インストール',
+    'blox_tpl_official_refresh' => 'ライセンス状態を更新',
     'blox_ctx_label' => 'プレビューコンテキスト',
     'blox_ctx_home' => 'ホームページ',
     'blox_ctx_hit_none' => 'このコンテキストに一致する公開テンプレートはありません',

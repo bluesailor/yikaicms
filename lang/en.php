@@ -2351,6 +2351,7 @@ return [
     'blox_tpl_installed' => 'Installed',
     'blox_tpl_locked' => 'License required',
     'blox_tpl_install' => 'Install',
+    'blox_tpl_official_refresh' => 'Refresh entitlement',
     'blox_ctx_label' => 'Preview context',
     'blox_ctx_home' => 'Homepage',
     'blox_ctx_hit_none' => 'No published template matches this context',

@@ -75,9 +75,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'install_remote') {
             // r16 官方模板库一键安装：下载+hash+RSA 验签（provider 安检段）→ importJson
             // 完整校验落库——与文件导入同一安全链，官方包不是绕过安检的后门。
+            // 审计 r17-3：按 (source=remote, source_ref=slug) 幂等——重放/重试/并发
+            // 二次提交更新既有记录草稿而非新建行（无唯一约束迁移的轻量方案：入口
+            // 唯一（本分支）+ 先查后写；决策记录见 r17 轮次文档）。
             $slug = trim((string) post('slug', ''));
             $provider = new BloxRemoteTemplateProvider();
             $json = $provider->fetchPackageJson($slug);
+            $existing = bloxTemplateModel()->findWhere(['source' => 'remote', 'source_ref' => $slug]);
+            if ($existing) {
+                $prepared = BloxTemplateImporter::prepare($json);
+                bloxTemplateModel()->updateDraft((int) $existing['id'], $prepared['draft_json'], $prepared['requirements']);
+                adminLog('blox_template', 'install_remote', '重装官方模板 ' . $slug . ' → #' . $existing['id']);
+                redirect('/admin/blox_templates.php?imported=' . (int) $existing['id']);
+            }
             $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0), 'remote', $slug);
             adminLog('blox_template', 'install_remote', '安装官方模板 ' . $slug . ' → #' . $result['id']);
             redirect('/admin/blox_templates.php?imported=' . $result['id']);
@@ -101,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$row) {
                 throw new RuntimeException(__('blox_tpl_not_found'));
             }
-            if (!in_array((string) ($row['source'] ?? ''), ['user', 'import'], true)) {
+            if (!in_array((string) ($row['source'] ?? ''), ['user', 'import', 'remote'], true)) {
                 throw new RuntimeException(__('blox_tpl_provider_undeletable'));
             }
             bloxTemplateModel()->deleteById($id);
@@ -166,7 +176,7 @@ $officialTemplates = [];
 $officialError = '';
 if ($tableReady) {
     try {
-        $officialTemplates = (new BloxRemoteTemplateProvider())->installable();
+        $officialTemplates = (new BloxRemoteTemplateProvider())->installable(isset($_GET['refresh_official']));
     } catch (Throwable $e) {
         $officialError = $e->getMessage();
     }
@@ -238,6 +248,9 @@ function condForm(initial) {
         <div class="px-5 py-4 border-b border-gray-200 flex items-center gap-2">
             <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_official_title'); ?></h2>
             <span class="text-xs text-gray-400"><?php echo __('blox_tpl_official_hint'); ?></span>
+            <a href="/admin/blox_templates.php?refresh_official=1" class="ml-auto text-xs text-gray-400 hover:text-primary" data-testid="blox-official-refresh">
+                <i class="ti ti-refresh"></i> <?php echo __('blox_tpl_official_refresh'); ?>
+            </a>
         </div>
         <?php if ($officialError !== ''): ?>
         <div class="px-5 py-3 text-sm text-amber-600"><i class="ti ti-cloud-off"></i> <?php echo e($officialError); ?></div>

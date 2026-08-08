@@ -173,7 +173,15 @@
         this.restoreScroll(frame, state);
         this.onLoaded();
         var raf = global.requestAnimationFrame || function (callback) { setTimeout(callback, 0); };
-        raf(function () { self.restoreScroll(frame, state); });
+        raf(function () {
+            self.restoreScroll(frame, state);
+            // r17 稳定信号（审计方案）：最新序号已应用且滚动恢复完成——e2e 据此
+            // 采样滚动不变量，替代对预览往返时序的猜测等待。旧响应（序号不符）
+            // 不到达 finishUpdate，故此事件即"最新 generation 已 settle"。
+            try {
+                global.dispatchEvent(new global.CustomEvent("blox:preview-settled", { detail: { sequence: self.sequence } }));
+            } catch (e) { /* CustomEvent 不可用的古老环境：仅少一个测试信号 */ }
+        });
     };
 
     BloxPreviewClient.prototype.refresh = function () {

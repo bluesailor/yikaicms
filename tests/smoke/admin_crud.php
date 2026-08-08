@@ -107,6 +107,55 @@ foreach ($cases as [$name, $editUrl, $postUrl, $data]) {
     }
 }
 
+// ---- r17：画布另存区块模板（save_section）行为验证（审计要求行为测试而非源码 grep）----
+// 依赖 blox 开关：fixture 未开则跳过段（不判失败——开关是产品闸）
+$secDoc = json_encode(['type' => 'section', 'settings' => [], 'columns' => [[
+    'elements' => [['type' => 'heading', 'data' => ['text' => '行为测试区块', 'level' => 'h2']]],
+]]], JSON_UNESCAPED_UNICODE);
+[$c, $body] = req('POST', '/admin/blox_template_api.php', [
+    'action' => 'save_section', 'name' => '行为测试模板', 'section' => $secDoc, '_token' => $token,
+]);
+$j = json_decode($body, true);
+if (is_array($j) && (int) ($j['code'] ?? 1) === 0 && (int) ($j['data']['id'] ?? 0) > 0) {
+    $tid = (int) $j['data']['id'];
+    $row = null;
+    // 直接查库验证：单 section、已发布、ID 被管线重建（tpl_ 前缀）
+    $pdo = new PDO('sqlite:' . __DIR__ . '/../../storage/database.sqlite');
+    $st = $pdo->query("SELECT type, status, draft_data FROM yikai_blox_templates WHERE id = $tid");
+    $row = $st ? $st->fetch(PDO::FETCH_ASSOC) : null;
+    $doc = is_array($row) ? json_decode((string) $row['draft_data'], true) : null;
+    $okType = is_array($row) && $row['type'] === 'section' && (int) $row['status'] === 1;
+    $okDoc = is_array($doc) && count($doc['sections'] ?? []) === 1
+        && str_starts_with((string) ($doc['sections'][0]['id'] ?? ''), 'tpl');
+    // 危险元素拒绝：code 元素不进注册表白名单外？code 是注册元素——用未知类型验证拒绝
+    [$c2, $body2] = req('POST', '/admin/blox_template_api.php', [
+        'action' => 'save_section', 'name' => 'x',
+        'section' => json_encode(['type' => 'section', 'settings' => [], 'columns' => [[
+            'elements' => [['type' => 'totally-unknown-element', 'data' => []]],
+        ]]]),
+        '_token' => $token,
+    ]);
+    $j2 = json_decode($body2, true);
+    $okReject = is_array($j2) && (int) ($j2['code'] ?? 0) !== 0;
+    $pdo->exec("DELETE FROM yikai_blox_templates WHERE id = $tid");
+    if ($okType && $okDoc && $okReject) {
+        echo "✓ save_section 行为（发布/单区块/ID 重建/未知元素拒绝）OK
+";
+    } else {
+        $fails[] = 'save_section 行为断言失败 (type=' . var_export($okType, true)
+            . ' doc=' . var_export($okDoc, true) . ' reject=' . var_export($okReject, true) . ')';
+        echo "✗ save_section 行为断言失败
+";
+    }
+} elseif (is_array($j) && str_contains((string) ($j['msg'] ?? $j['message'] ?? ''), '未启用')) {
+    echo "· save_section 跳过（blox 开关未开）
+";
+} else {
+    $fails[] = 'save_section 请求失败: ' . mb_substr(strip_tags((string) $body), 0, 120);
+    echo "✗ save_section 请求失败
+";
+}
+
 @unlink($JAR);
 if ($fails) {
     fwrite(STDERR, "\n❌ 冒烟测试失败 " . count($fails) . " 项：\n  - " . implode("\n  - ", $fails) . "\n");
