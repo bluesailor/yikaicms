@@ -69,7 +69,7 @@ if ($_ls_item) {
 <?php if ($_ls_item): ?>
 <div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap">
     <i class="ti ti-language text-base text-gray-400"></i>
-    <span class="text-sm text-gray-500">语言版本：</span>
+    <span class="text-sm text-gray-500"><?php echo e(__('lse_versions')); ?></span>
 
     <?php foreach ($_ls_allLangs as $lc => $ll):
         $isCurrent = ($lc === $_ls_currentLang);
@@ -77,32 +77,32 @@ if ($_ls_item) {
         $transItem = $_ls_translations[$lc] ?? null;
     ?>
         <?php if ($isCurrent): ?>
-        <span class="px-3 py-1 rounded-full text-xs bg-primary text-white"><?php echo e($ll); ?> (当前)</span>
+        <span class="px-3 py-1 rounded-full text-xs bg-primary text-white"><?php echo e($ll); ?> (<?php echo e(__('lse_current')); ?>)</span>
         <?php elseif ($hasTranslation): ?>
         <a href="<?php echo e($_ls_editLink((int) $transItem['id'])); ?>"
-           class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 hover:bg-green-200 transition" title="最后编辑: <?php echo date('Y-m-d H:i', (int)($transItem['updated_at'] ?? 0)); ?>">
+           class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 hover:bg-green-200 transition" title="<?php echo e(__('lse_last_edited')); ?>: <?php echo date('Y-m-d H:i', (int)($transItem['updated_at'] ?? 0)); ?>">
             <?php echo e($ll); ?> ✓
         </a>
         <?php else: ?>
         <button type="button" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>')"
-                class="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer" title="创建翻译版本">
+                class="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer" title="<?php echo e(__('lse_create_version')); ?>">
             <?php echo e($ll); ?>
         </button>
         <?php endif; ?>
     <?php endforeach; ?>
 
     <?php if ($_ls_currentLang !== $_ls_defaultLang): ?>
-    <span class="text-xs text-amber-500 ml-1">翻译自 <?php echo e($_ls_allLangs[$_ls_defaultLang]); ?></span>
+    <span class="text-xs text-amber-500 ml-1"><?php echo str_replace(':lang', e($_ls_allLangs[$_ls_defaultLang]), e(__('lse_translated_from'))); ?><span class="hidden"></span>
     <?php endif; ?>
 </div>
 
 <script>
 async function createTranslation(toLang, langName) {
-    if (!confirm('从当前内容创建 ' + langName + ' 翻译版本？\n将 AI 翻译标题和摘要，正文保留原文可手动调整。')) return;
+    if (!confirm(<?php echo json_encode(__('lse_create_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':lang', langName))) return;
 
     var btn = event.target;
     btn.disabled = true;
-    btn.textContent = '翻译中...';
+    btn.textContent = <?php echo json_encode(__('lse_translating'), JSON_UNESCAPED_UNICODE); ?>;
     btn.className = 'px-3 py-1 rounded-full text-xs bg-amber-100 text-amber-600 animate-pulse';
 
     var fd = new FormData();
@@ -113,7 +113,7 @@ async function createTranslation(toLang, langName) {
         var resp = await fetch(location.pathname, { method: 'POST', body: fd });
         var data = await safeJson(resp);
         if (data.code === 0 && data.data && data.data.id) {
-            showMessage(data.msg || '翻译完成，正在跳转...');
+            showMessage(data.msg || <?php echo json_encode(__('lse_done'), JSON_UNESCAPED_UNICODE); ?>);
             setTimeout(function() {
                 var sep = '<?php echo $_ls_editSep; ?>', p = '<?php echo e($_ls_editParam); ?>';
                 location.href = '<?php echo e($_ls_editUrl); ?>' + sep + p + '=' + data.data.id;
@@ -122,13 +122,13 @@ async function createTranslation(toLang, langName) {
             btn.disabled = false;
             btn.textContent = langName;
             btn.className = 'px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer';
-            showMessage(data.msg || '翻译失败', 'error');
+            showMessage(data.msg || <?php echo json_encode(__('lse_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch(e) {
         btn.disabled = false;
         btn.textContent = langName;
         btn.className = 'px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer';
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 </script>
