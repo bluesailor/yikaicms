@@ -44,7 +44,7 @@
         <?php endif; ?>
         <?php if (config('show_price', '0') === '1' && $isProductType && !empty($item['price']) && $item['price'] > 0): ?>
         <div class="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between">
-            <span class="text-lg font-semibold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">&yen;<?php echo number_format((float)$item['price'], 2); ?></span>
+            <span class="text-lg font-semibold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"><?php echo formatPrice($item['price']); ?></span>
             <svg class="w-4 h-4 text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
         </div>
         <?php endif; ?>

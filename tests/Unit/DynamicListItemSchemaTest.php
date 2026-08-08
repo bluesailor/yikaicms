@@ -84,7 +84,8 @@ final class DynamicListItemSchemaTest extends TestCase
         $this->assertStringContainsString('{yk:if field=model op=notempty}', $model);
         $this->assertStringContainsString('{yk:field name=model /}', $model);
         $this->assertStringContainsString('{yk:if field=price op=gt value=0}', $price);
-        $this->assertStringContainsString('&yen;{yk:field name=price /}', $price);
+        $this->assertStringContainsString('{yk:field name=price /}</div>', $price);
+        $this->assertStringNotContainsString('&yen;', $price); // r18 起货币符号随语言（formatPrice/currency_symbol）
         $this->assertStringNotContainsString('{yk:if field=price', $content);
     }
 
