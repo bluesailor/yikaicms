@@ -41,16 +41,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $albumId = postInt('album_id');
 
         if ($albumId <= 0) {
-            error('请选择相册');
+            error(__('album_pick'));
         }
 
         $album = albumModel()->find($albumId);
         if (!$album) {
-            error('相册不存在');
+            error(__('album_missing'));
         }
 
         if (empty($_FILES['files'])) {
-            error('请选择图片');
+            error(__('album_pick_images'));
         }
 
         $uploadDir = '/uploads/albums/' . date('Ym') . '/';
@@ -152,14 +152,14 @@ $currentMenu = 'album';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 
-echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存；新建/删除请在源语言（' . $_defaultLang . '）进行，翻译版本通过翻译徽标编辑');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __('album_lang_tip')));
 ?>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <div class="text-gray-600">
-            共 <?php echo count($albums); ?> 个相册（<?php echo e($_viewLang); ?>）
+            <?php echo str_replace([':n', ':lang'], [(string) count($albums), e($_viewLang)], e(__('album_total'))); ?>
         </div>
         <div class="flex gap-2">
             <button onclick="openUploadModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -172,7 +172,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
                 <?php echo __('admin_add'); ?>
             </a>
             <?php else: ?>
-            <span class="text-xs text-gray-400">仅源语言可新增；点击卡片右下角徽标编辑翻译版本</span>
+            <span class="text-xs text-gray-400"><?php echo e(__('album_source_only')); ?></span>
             <?php endif; ?>
         </div>
     </div>
@@ -195,11 +195,11 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
 
             <!-- 图片数量 -->
             <div class="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                <?php echo (int)$item['photo_count']; ?> 张
+                <?php echo str_replace(':n', (string) (int) $item['photo_count'], e(__('shome_n_images'))); ?>
             </div>
 
             <?php if (!$item['status']): ?>
-            <div class="absolute top-2 left-2 bg-gray-500 text-white text-xs px-2 py-1 rounded">已隐藏</div>
+            <div class="absolute top-2 left-2 bg-gray-500 text-white text-xs px-2 py-1 rounded"><?php echo e(__('album_hidden')); ?></div>
             <?php endif; ?>
         </a>
 
@@ -211,7 +211,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
             <div class="flex items-center gap-1 mb-2">
                 <code class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded select-all font-mono">[album-<?php echo (int)$item['id']; ?>]</code>
                 <button type="button" onclick="ykCopyShortcode(this,'[album-<?php echo (int)$item['id']; ?>]')"
-                        class="text-xs text-gray-400 hover:text-primary p-1" title="复制短码，粘贴到页面/文章正文即可调用本相册">
+                        class="text-xs text-gray-400 hover:text-primary p-1" title="<?php echo e(__('album_copy_sc_tip')); ?>">
                     <i class="ti ti-copy text-base"></i>
                 </button>
             </div>
@@ -251,10 +251,10 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
     <div class="col-span-full">
         <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
             <i class="ti ti-photo text-base mx-auto mb-4 text-gray-300"></i>
-            <p class="mb-4">暂无相册</p>
+            <p class="mb-4"><?php echo e(__('album_empty')); ?></p>
             <a href="/admin/album_edit.php" class="inline-flex items-center gap-1 text-primary hover:underline">
                 <i class="ti ti-plus text-base"></i>
-                创建第一个相册
+                <?php echo e(__('album_create_first')); ?>
             </a>
         </div>
     </div>
@@ -265,7 +265,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
 <div id="uploadModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="text-lg font-medium">批量上传图片</h3>
+            <h3 class="text-lg font-medium"><?php echo e(__('album_batch_upload')); ?></h3>
             <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-lg"></i>
             </button>
@@ -273,9 +273,9 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
         <div class="p-6">
             <!-- 选择相册 -->
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">选择相册 <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('album_select')); ?> <span class="text-red-500">*</span></label>
                 <select id="uploadAlbumId" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option value="">-- 请选择 --</option>
+                    <option value="">-- <?php echo e(__('admin_please_select')); ?> --</option>
                     <?php foreach ($albums as $a): ?>
                     <option value="<?php echo $a['id']; ?>"><?php echo e($a['name']); ?></option>
                     <?php endforeach; ?>
@@ -286,14 +286,14 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
             <div id="quickUploadZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-gray-50 transition">
                 <input type="file" id="quickFileInput" multiple accept="image/*" class="hidden">
                 <i class="ti ti-photo text-base mx-auto mb-3 text-gray-300"></i>
-                <p class="text-gray-600 mb-1">拖拽图片到此处，或 <span class="text-primary font-medium">点击选择</span></p>
-                <p class="text-xs text-gray-400">支持 JPG、PNG、GIF、WEBP，可多选</p>
+                <p class="text-gray-600 mb-1"><?php echo e(__('album_drop_hint')); ?> <span class="text-primary font-medium"><?php echo e(__('album_click_select')); ?></span></p>
+                <p class="text-xs text-gray-400"><?php echo e(__('album_formats')); ?></p>
             </div>
 
             <!-- 上传进度 -->
             <div id="quickUploadProgress" class="hidden mt-4">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm text-gray-600">正在上传...</span>
+                    <span class="text-sm text-gray-600"><?php echo e(__('album_uploading')); ?></span>
                     <span id="quickProgressText" class="text-sm text-gray-600">0%</span>
                 </div>
                 <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -302,7 +302,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
             </div>
         </div>
         <div class="px-6 py-4 border-t bg-gray-50 flex justify-end rounded-b-lg">
-            <button type="button" onclick="closeUploadModal()" class="px-4 py-2 border rounded hover:bg-gray-100">关闭</button>
+            <button type="button" onclick="closeUploadModal()" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo e(__('blox_template_close')); ?></button>
         </div>
     </div>
 </div>
@@ -310,7 +310,7 @@ echo renderAdminLangSwitcher($_viewLang, '提示：相册按语言独立保存�
 <script>
 // 复制相册短码到剪贴板
 function ykCopyShortcode(btn, code) {
-    const done = () => { showMessage('已复制短码 ' + code + '，粘贴到页面正文即可调用'); };
+    const done = () => { showMessage(<?php echo json_encode(__('album_sc_copied'), JSON_UNESCAPED_UNICODE); ?>.replace(':code', code)); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopy(code, done));
     } else {
@@ -365,7 +365,7 @@ quickFileInput.addEventListener('change', function() {
 async function quickUploadFiles(files) {
     const albumId = document.getElementById('uploadAlbumId').value;
     if (!albumId) {
-        showMessage('请先选择相册', 'error');
+        showMessage(<?php echo json_encode(__('album_pick'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         return;
     }
 
@@ -397,10 +397,10 @@ async function quickUploadFiles(files) {
         if (xhr.status === 200) {
             const result = JSON.parse(xhr.responseText);
             if (result.code === 0) {
-                showMessage(`成功上传 ${result.data.count} 张图片`);
+                showMessage(<?php echo json_encode(__('album_upload_done'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', result.data.count));
                 setTimeout(() => location.reload(), 1500);
             } else {
-                showMessage(result.msg || '上传失败', 'error');
+                showMessage(result.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             }
         }
     };
@@ -420,13 +420,13 @@ async function toggleStatus(id, btn) {
         btn.className = data.data.status
             ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-600'
             : 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-        btn.textContent = data.data.status ? '显示' : '隐藏';
-        showMessage('状态已更新');
+        btn.textContent = data.data.status ? <?php echo json_encode(__('admin_show'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>;
+        showMessage(<?php echo json_encode(__('album_status_updated'), JSON_UNESCAPED_UNICODE); ?>);
     }
 }
 
 async function deleteAlbum(id, name) {
-    if (!confirm(`确定要删除相册"${name}"吗？\n相册内的所有图片也将被删除！`)) return;
+    if (!confirm(<?php echo json_encode(__('album_del_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', name))) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);

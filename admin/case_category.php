@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (empty($data['name'])) {
-            error('请输入分类名称');
+            error(__('pcat_name_required'));
         }
 
         // 上级只能是 case 栏目；非法则回退顶级
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id > 0) {
             $existing = channelModel()->find($id);
             if (!$existing || ($existing['type'] ?? '') !== 'case') {
-                error('无效的分类');
+                error(__('ccat_invalid'));
             }
             channelModel()->updateById($id, $data);
             adminLog('case_category', 'update', "更新案例分类ID: $id");
@@ -72,14 +72,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = postInt('id');
         if (channelModel()->count(['parent_id' => $id, 'type' => 'case']) > 0) {
-            error('请先删除子分类');
+            error(__('pcat_has_children'));
         }
         $cnt = (int) db()->fetchColumn(
             "SELECT COUNT(*) FROM " . contentModel()->tableName() . " WHERE channel_id = ? AND type = 'case' AND deleted_at IS NULL",
             [$id]
         );
         if ($cnt > 0) {
-            error('该分类下有案例，无法删除');
+            error(__('ccat_has_cases'));
         }
         channelModel()->deleteById($id);
         adminLog('case_category', 'delete', "删除案例分类ID: $id");
@@ -102,13 +102,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'batch_delete') {
         $ids = $_POST['ids'] ?? [];
-        if (empty($ids)) error('请选择要删除的分类');
+        if (empty($ids)) error(__('pcat_pick_delete'));
         $failed = []; $deleted = 0;
         foreach ($ids as $rid) {
             $rid = (int) $rid;
             if (channelModel()->count(['parent_id' => $rid, 'type' => 'case']) > 0) {
                 $c = channelModel()->find($rid);
-                $failed[] = ($c['name'] ?? "ID:$rid") . '（有子分类）';
+                $failed[] = ($c['name'] ?? "ID:$rid") . '（' . __('pcat_reason_children') . '）';
                 continue;
             }
             $cnt = (int) db()->fetchColumn(
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             if ($cnt > 0) {
                 $c = channelModel()->find($rid);
-                $failed[] = ($c['name'] ?? "ID:$rid") . '（有案例）';
+                $failed[] = ($c['name'] ?? "ID:$rid") . '（' . __('ccat_reason_cases') . '）';
                 continue;
             }
             channelModel()->deleteById($rid);
@@ -175,14 +175,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <div class="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-4 py-3 mb-4">
-    <i class="ti ti-info-circle mr-1"></i>案例分类即 type=案例 的栏目；此处按站点默认语言管理。跨语言翻译请到「栏目管理」。
+    <i class="ti ti-info-circle mr-1"></i><?php echo e(__('ccat_notice')); ?>
 </div>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
         <div id="batchBar" class="hidden items-center gap-3">
-            <span class="text-sm text-gray-500">已选 <span id="selectedCount" class="font-medium text-gray-800">0</span> 项</span>
+            <span class="text-sm text-gray-500"><?php echo str_replace(':n', '<span id="selectedCount" class="font-medium text-gray-800">0</span>', e(__('admin_selected_n'))); ?><span class="hidden"> 项</span>
             <button onclick="batchDelete()" class="text-red-600 hover:text-red-800 text-sm inline-flex items-center gap-1">
                 <i class="ti ti-trash text-sm"></i>批量<?php echo __('admin_delete'); ?></button>
         </div>
@@ -204,7 +204,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_count'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">导航</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('pcat_col_nav')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
@@ -238,8 +238,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleNav(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo !empty($item['is_nav']) ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>"
-                                title="切换是否在前台导航/分类菜单中显示">
-                            <?php echo !empty($item['is_nav']) ? '显示' : '隐藏'; ?>
+                                title="<?php echo e(__('pcat_nav_toggle_tip')); ?>">
+                            <?php echo !empty($item['is_nav']) ? e(__('admin_show')) : e(__('admin_hide')); ?>
                         </button>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -273,7 +273,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="editId" value="0">
 
             <div>
-                <label class="block text-gray-700 mb-1">上级分类</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('pcat_parent')); ?></label>
                 <select name="parent_id" id="editParentId" class="w-full border rounded px-4 py-2">
                     <option value="0"><?php echo __('admin_none'); ?></option>
                     <?php foreach ($categories as $cat): ?>
@@ -289,7 +289,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
-                <input type="text" name="slug" id="editSlug" class="w-full border rounded px-4 py-2" placeholder="留空自动生成">
+                <input type="text" name="slug" id="editSlug" class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('ptag_slug_ph')); ?>">
             </div>
 
             <div class="grid grid-cols-3 gap-4">
@@ -305,10 +305,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </select>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">导航显示</label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('pcat_nav_show')); ?></label>
                     <select name="is_nav" id="editIsNav" class="w-full border rounded px-4 py-2">
-                        <option value="1">显示</option>
-                        <option value="0">隐藏</option>
+                        <option value="1"><?php echo e(__('admin_show')); ?></option>
+                        <option value="0"><?php echo e(__('admin_hide')); ?></option>
                     </select>
                 </div>
             </div>
@@ -380,12 +380,12 @@ function updateBatchBar() {
 async function batchDelete() {
     const ids = [...document.querySelectorAll('.row-check:checked')].map(cb => cb.value);
     if (!ids.length) return;
-    if (!confirm(`确定删除选中的 ${ids.length} 个分类？`)) return;
+    if (!confirm(<?php echo json_encode(__('pcat_batch_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', ids.length))) return;
     const fd = new FormData(); fd.append('action', 'batch_delete'); ids.forEach(id => fd.append('ids[]', id));
     const data = await safeJson(await fetch('', { method: 'POST', body: fd }));
     if (data.code === 0) {
-        let msg = `成功删除 ${data.data.deleted} 个`;
-        if (data.data.failed && data.data.failed.length) msg += `\n无法删除：\n${data.data.failed.join('\n')}`;
+        let msg = <?php echo json_encode(__('pcat_batch_done'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', data.data.deleted);
+        if (data.data.failed && data.data.failed.length) msg += '\n' + <?php echo json_encode(__('pcat_batch_failed'), JSON_UNESCAPED_UNICODE); ?> + '\n' + data.data.failed.join('\n');
         showMessage(msg); setTimeout(() => location.reload(), 1000);
     } else showMessage(data.msg, 'error');
 }
@@ -401,8 +401,8 @@ async function toggleNav(id, btn) {
     const fd = new FormData(); fd.append('action', 'toggle_nav'); fd.append('id', id);
     const data = await safeJson(await fetch('', { method: 'POST', body: fd }));
     if (data.code === 0) {
-        if (data.data.is_nav) { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-blue-100 text-blue-600'; btn.textContent = '显示'; }
-        else { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-400'; btn.textContent = '隐藏'; }
+        if (data.data.is_nav) { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-blue-100 text-blue-600'; btn.textContent = <?php echo json_encode(__('admin_show'), JSON_UNESCAPED_UNICODE); ?>; }
+        else { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-400'; btn.textContent = <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>; }
     }
 }
 function pickImageFromMedia() {
