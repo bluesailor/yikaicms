@@ -223,6 +223,59 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('data-yk-drawer-backdrop class="hidden', $out);
     }
 
+    // ---- r12 mega menu：三级树 → 顶级菜单 + 全宽多列面板 ----
+
+    /** 本测试环境无 getNavChannels，定义固定三级树 stub（全套件唯一定义点） */
+    private function defineMegaNavStub(): void
+    {
+        if (!function_exists('getNavChannels')) {
+            eval('function getNavChannels(): array { return [
+                ["name" => "首页", "slug" => "home", "type" => "page", "children" => []],
+                ["name" => "产品", "slug" => "product", "type" => "list", "description" => "全线产品", "children" => [
+                    ["name" => "激光器", "slug" => "laser", "type" => "list", "description" => "工业级", "children" => [
+                        ["name" => "光纤激光器", "slug" => "fiber", "type" => "list", "children" => []],
+                    ]],
+                    ["name" => "配件", "slug" => "parts", "type" => "list", "children" => []],
+                ]],
+            ]; }');
+        }
+        if (!function_exists('channelUrl')) {
+            eval('function channelUrl(array $c): string { return "/" . ($c["slug"] ?? "") . ".html"; }');
+        }
+    }
+
+    public function testNavMegaRendersPanelColumnsAndGrandchildren(): void
+    {
+        $this->defineMegaNavStub();
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [[ 'elements' => [['type' => 'nav-mega', 'data' => []]] ]],
+        ]], JSON_UNESCAPED_UNICODE));
+
+        $this->assertStringContainsString('hidden lg:flex', $out); // 内建桌面 only（移动配 nav-drawer）
+        $this->assertStringContainsString('>首页<', $out); // 无子级=普通链接，无面板
+        $this->assertStringContainsString('grid-cols-2', $out); // 两个子栏目=两列
+        $this->assertStringContainsString('inset-x-0', $out); // 默认通栏面板（相对元素根）
+        $this->assertStringContainsString('href="/laser.html"', $out); // 列标题可点（Avada 语义）
+        $this->assertStringContainsString('href="/fiber.html"', $out); // 孙级=列内链接
+        $this->assertStringContainsString('group-focus-within/mega:visible', $out); // 键盘可达
+        $this->assertStringContainsString('pointer-events-none', $out); // 关闭态不拦截指针（Bricks 做法）
+        $this->assertStringNotContainsString('全线产品', $out); // show_desc 默认关
+    }
+
+    public function testNavMegaOptionsDescAndNarrowPanel(): void
+    {
+        $this->defineMegaNavStub();
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [[ 'elements' => [['type' => 'nav-mega', 'data' => ['show_desc' => true, 'full_width' => 0]]] ]],
+        ]], JSON_UNESCAPED_UNICODE));
+
+        $this->assertStringContainsString('工业级', $out); // 列描述（channels.description）
+        $this->assertStringContainsString('w-max max-w-3xl', $out); // 非通栏=内容自适应
+        $this->assertStringNotContainsString('inset-x-0', $out);
+    }
+
     // ---- r5 响应式列宽：span 接受 {d,t}；标量路径黄金对拍不破 ----
     public function testResponsiveSpanEmitsTabletAndDesktopClasses(): void
     {
