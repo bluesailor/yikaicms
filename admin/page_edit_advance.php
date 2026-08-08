@@ -1419,7 +1419,7 @@ HTML;
         // 文案改用 @@key@@ 占位，在这里换成 JSON 字面量。
         $bloxInject = str_replace(
             ['@@pea_add_blank_section@@', '@@pea_add_section@@', '@@pea_canvas_empty@@', '@@pea_column@@', '@@pea_empty_container@@', '@@pea_empty_div@@', '@@pea_empty_section@@', '@@pea_home_field@@', '@@pea_import_template@@', '@@pea_n_columns@@', '@@pea_section_title@@', '@@pea_subtitle@@', '@@pea_template_library@@', '@@pea_text_edit@@'],
-            [json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE), json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE)],
+            [(string) json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE), (string) json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE)],
             $bloxInject
         );
         $bloxInject = strtr($bloxInject, [
@@ -1807,7 +1807,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="text-xs text-gray-400" x-show="!isSectionOpen(section.id)" x-text="sectionElementCount(section) + ' <?php echo e(__('home_layout_element_unit')); ?>'"></span>
                                 <template x-if="section.library_id">
                                     <span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                                        <i class="ti ti-link"></i><span x-text="<?php echo json_encode(__('pea_reference_of'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', section.library_name || ('#' + section.library_id))"></span>
+                                        <i class="ti ti-link"></i><span x-text="<?php echo (string) json_encode(__('pea_reference_of'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', section.library_name || ('#' + section.library_id))"></span>
                                     </span>
                                 </template>
                                 <template x-if="section.settings.bg_color">
@@ -1934,7 +1934,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                             <div @dblclick="editText(si,ci,ei)"
                                                                  class="prose prose-sm max-w-none overflow-hidden text-gray-600 border-t pt-2 cursor-pointer transition-all"
                                                                  :class="full ? '' : 'max-h-32'"
-                                                                 x-html="el.data.html || '<span class=\'text-gray-400 italic\'>' + <?php echo json_encode(__('pea_dblclick_to_edit'), JSON_UNESCAPED_UNICODE); ?> + '</span>'"></div>
+                                                                 x-html="el.data.html || '<span class=\'text-gray-400 italic\'>' + <?php echo (string) json_encode(__('pea_dblclick_to_edit'), JSON_UNESCAPED_UNICODE); ?> + '</span>'"></div>
                                                             <!-- 未展开时底部渐隐，提示内容被截断 -->
                                                             <div x-show="!full" class="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent"></div>
                                                         </div>
@@ -2003,7 +2003,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                             </span>
                                                             <button type="button" @click="pick = !pick"
                                                                     class="text-xs text-primary hover:underline cursor-pointer"
-                                                                    x-text="pick ? <?php echo json_encode(__('pea_collapse'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_change_icon'), JSON_UNESCAPED_UNICODE); ?>"></button>
+                                                                    x-text="pick ? <?php echo (string) json_encode(__('pea_collapse'), JSON_UNESCAPED_UNICODE); ?> : <?php echo (string) json_encode(__('pea_change_icon'), JSON_UNESCAPED_UNICODE); ?>"></button>
                                                         </div>
                                                         <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mb-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
                                                             <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
@@ -2569,7 +2569,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                         <div class="flex items-center gap-2">
                                                                             <span class="w-8 h-8 border rounded flex items-center justify-center bg-gray-50 shrink-0"><i class="ti text-lg" :class="'ti-' + (el.data[ctrl.key] || 'star')"></i></span>
                                                                             <input type="text" x-model="el.data[ctrl.key]" placeholder="<?php echo e(__('pea_tabler_icon_ph')); ?>" class="flex-1 border rounded px-2 py-1 text-sm">
-                                                                            <button type="button" @click="pick = !pick" class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? <?php echo json_encode(__('pea_collapse'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_choose'), JSON_UNESCAPED_UNICODE); ?>"></button>
+                                                                            <button type="button" @click="pick = !pick" class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? <?php echo (string) json_encode(__('pea_collapse'), JSON_UNESCAPED_UNICODE); ?> : <?php echo (string) json_encode(__('pea_choose'), JSON_UNESCAPED_UNICODE); ?>"></button>
                                                                         </div>
                                                                         <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mt-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
                                                                             <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
@@ -3078,7 +3078,7 @@ document.getElementById('sectionBgFileInput').addEventListener('change', async f
         if (data.code === 0) {
             document.getElementById('settingBgImage').value = data.data.url;
             showMessage('<?php echo __('admin_success'); ?>');
-        } else { showMessage(data.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); }
+        } else { showMessage(data.msg || <?php echo (string) json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); }
     } catch (e) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
     this.value = '';
 });
@@ -3188,11 +3188,11 @@ function setTextEditorMode(mode, presetHtml) {
 function seedContactLayout() {
     var d = Alpine.$data(document.getElementById('editForm'));
     if (d.sections && d.sections.length > 0
-        && !confirm(<?php echo json_encode(__('page_contact_seed_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
+        && !confirm(<?php echo (string) json_encode(__('page_contact_seed_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     d.sections = CONTACT_SEED_SECTIONS.map(function(section) {
         return d.freshSection(section);
     });
-    showMessage(<?php echo json_encode(__('page_contact_seed_done'), JSON_UNESCAPED_UNICODE); ?>, 'success');
+    showMessage(<?php echo (string) json_encode(__('page_contact_seed_done'), JSON_UNESCAPED_UNICODE); ?>, 'success');
 }
 
 function closeTextEditor() {
@@ -3209,7 +3209,7 @@ function saveTextEditor() {
         // 双保险：编辑器/源码框异常返回空，而元素原本有内容时不写入，
         // 宁可这次编辑不生效，也不能静默清空已有内容（要清空请用删除元素）。
         if (html === '' && (el.data.html || '') !== '') {
-            showMessage(<?php echo json_encode(__('page_text_editor_empty_guard'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            showMessage(<?php echo (string) json_encode(__('page_text_editor_empty_guard'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             return;
         }
         el.data.html = html;
@@ -3252,9 +3252,9 @@ var BUILDER_ELEMENTS = ' . json_encode(BuilderRegistry::meta($isHomeLayout ? 'ho
 var BUILDER_CUSTOM_UI = ["heading","text","image","button","icon","divider","code","spacer","list-dynamic","banner","nav"];
 var CONTACT_SEED_SECTIONS = ' . json_encode($isContactPage ? contactSeedSections() : [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
 var CONTACT_ELEMENT_MANAGE = {
-    contact_cards: { url: "/admin/setting_contact.php", label: ' . json_encode(__('page_contact_manage_cards'), JSON_UNESCAPED_UNICODE) . ' },
-    contact_form: { url: "/admin/form_design.php", label: ' . json_encode(__('page_contact_manage_form'), JSON_UNESCAPED_UNICODE) . ' },
-    contact_map: { url: "/admin/setting_contact.php#map", label: ' . json_encode(__('page_contact_manage_map'), JSON_UNESCAPED_UNICODE) . ' }
+    contact_cards: { url: "/admin/setting_contact.php", label: ' . (string) json_encode(__('page_contact_manage_cards'), JSON_UNESCAPED_UNICODE) . ' },
+    contact_form: { url: "/admin/form_design.php", label: ' . (string) json_encode(__('page_contact_manage_form'), JSON_UNESCAPED_UNICODE) . ' },
+    contact_map: { url: "/admin/setting_contact.php#map", label: ' . (string) json_encode(__('page_contact_manage_map'), JSON_UNESCAPED_UNICODE) . ' }
 };
 var HOME_LAYOUT_MODE = ' . ($isHomeLayout ? 'true' : 'false') . ';
 var HOME_PRODUCT_OPTIONS = ' . json_encode($homeProductOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
@@ -3293,9 +3293,9 @@ function pageBuilder() {
         previewLoading: false,
         previewDevice: "desktop",
         previewDevices: [
-            { key: "desktop", label: ' . json_encode(__('pea_desktop'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-desktop" },
-            { key: "tablet", label: ' . json_encode(__('pea_tablet'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-tablet" },
-            { key: "mobile", label: ' . json_encode(__('pea_mobile'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-mobile" }
+            { key: "desktop", label: ' . (string) json_encode(__('pea_desktop'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-desktop" },
+            { key: "tablet", label: ' . (string) json_encode(__('pea_tablet'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-tablet" },
+            { key: "mobile", label: ' . (string) json_encode(__('pea_mobile'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-mobile" }
         ],
         _previewTimer: null,
         previewWidth() {
@@ -3348,7 +3348,7 @@ function pageBuilder() {
             return groups;
         },
         categoryLabel(c) {
-            return ({ basic: ' . json_encode(__('pea_cat_basic'), JSON_UNESCAPED_UNICODE) . ', media: ' . json_encode(__('pea_cat_media'), JSON_UNESCAPED_UNICODE) . ', layout: ' . json_encode(__('pea_cat_layout'), JSON_UNESCAPED_UNICODE) . ', advanced: ' . json_encode(__('pea_cat_advanced'), JSON_UNESCAPED_UNICODE) . ', dynamic: ' . json_encode(__('pea_cat_dynamic'), JSON_UNESCAPED_UNICODE) . ' })[c] || c;
+            return ({ basic: ' . (string) json_encode(__('pea_cat_basic'), JSON_UNESCAPED_UNICODE) . ', media: ' . (string) json_encode(__('pea_cat_media'), JSON_UNESCAPED_UNICODE) . ', layout: ' . (string) json_encode(__('pea_cat_layout'), JSON_UNESCAPED_UNICODE) . ', advanced: ' . (string) json_encode(__('pea_cat_advanced'), JSON_UNESCAPED_UNICODE) . ', dynamic: ' . (string) json_encode(__('pea_cat_dynamic'), JSON_UNESCAPED_UNICODE) . ' })[c] || c;
         },
         hasCustomUI(type) { return BUILDER_CUSTOM_UI.indexOf(type) !== -1; },
         elementControls(type) { return (BUILDER_ELEMENTS[type] || {}).controls || []; },
@@ -3518,7 +3518,7 @@ function pageBuilder() {
             }).catch(function() {});
         },
         saveToLibrary(si) {
-            var name = prompt(' . json_encode(__('pea_block_name_prompt'), JSON_UNESCAPED_UNICODE) . ');
+            var name = prompt(' . (string) json_encode(__('pea_block_name_prompt'), JSON_UNESCAPED_UNICODE) . ');
             if (!name) return;
             var self = this;
             this.libPost({
@@ -3526,9 +3526,9 @@ function pageBuilder() {
                 lib_name: name,
                 section_data: JSON.stringify(this.sections[si])
             }).then(function(res) {
-                if (res.code === 0) { showMessage(' . json_encode(__('pea_saved_to_library'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
+                if (res.code === 0) { showMessage(' . (string) json_encode(__('pea_saved_to_library'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
                 else showMessage(res.msg, "error");
-            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
+            }).catch(function() { showMessage(' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
         insertLibRef(item) {
             this.sections.push({ id: this.uid("s"), library_id: item.id, library_name: item.name, settings: {}, columns: [] });
@@ -3540,7 +3540,7 @@ function pageBuilder() {
                 var sec = JSON.parse(res.data.item.data);
                 self.sections.push(self.freshSection(sec));
                 self.$nextTick(function() { self.initSortable(); });
-            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
+            }).catch(function() { showMessage(' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
         detachLibRef(si) {
             var s = this.sections[si];
@@ -3551,15 +3551,15 @@ function pageBuilder() {
                 var sec = JSON.parse(res.data.item.data);
                 self.sections.splice(si, 1, self.freshSection(sec));
                 self.$nextTick(function() { self.initSortable(); });
-            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
+            }).catch(function() { showMessage(' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
         libDelete(item) {
-            if (!confirm(' . json_encode(__('pea_del_from_library_confirm'), JSON_UNESCAPED_UNICODE) . '.replace(":name", item.name))) return;
+            if (!confirm(' . (string) json_encode(__('pea_del_from_library_confirm'), JSON_UNESCAPED_UNICODE) . '.replace(":name", item.name))) return;
             var self = this;
             this.libPost({ action: "lib_delete", lib_id: item.id }).then(function(res) {
-                if (res.code === 0) { showMessage(' . json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
+                if (res.code === 0) { showMessage(' . (string) json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
                 else showMessage(res.msg, "error");
-            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
+            }).catch(function() { showMessage(' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
 
         // 深拷贝元素并递归刷新子元素 id，避免复制含 Banner 子项的模板后产生重复定位键。
@@ -3637,15 +3637,15 @@ function pageBuilder() {
         sectionColumnLabel(section) {
             for (var column of (section.columns || [])) {
                 for (var el of (column.elements || [])) {
-                    if (this.isHomeAboutBlock(el)) return ' . json_encode(__('pea_cols_2'), JSON_UNESCAPED_UNICODE) . ';
-                    if (this.isHomeStatsBlock(el)) return ' . json_encode(__('pea_cols_4'), JSON_UNESCAPED_UNICODE) . ';
-                    if (this.isProductCarouselBlock(el)) return (Math.max(1, Math.min(6, Number((el.data || {}).per_row) || 4))).toString().replace(/^/, "") + " " + ' . json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
-                    if (this.isHomeChannelBlock(el)) return (Math.max(1, Math.min(8, Number((el.data || {}).per_row) || 4))).toString().replace(/^/, "") + " " + ' . json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
-                    if (this.isHomeAdvantageBlock(el)) return ' . json_encode(__('pea_cols_4'), JSON_UNESCAPED_UNICODE) . ';
-                    if (this.isHomeTestimonialsBlock(el)) return ' . json_encode(__('pea_cols_3'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeAboutBlock(el)) return ' . (string) json_encode(__('pea_cols_2'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeStatsBlock(el)) return ' . (string) json_encode(__('pea_cols_4'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isProductCarouselBlock(el)) return (Math.max(1, Math.min(6, Number((el.data || {}).per_row) || 4))).toString().replace(/^/, "") + " " + ' . (string) json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeChannelBlock(el)) return (Math.max(1, Math.min(8, Number((el.data || {}).per_row) || 4))).toString().replace(/^/, "") + " " + ' . (string) json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeAdvantageBlock(el)) return ' . (string) json_encode(__('pea_cols_4'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeTestimonialsBlock(el)) return ' . (string) json_encode(__('pea_cols_3'), JSON_UNESCAPED_UNICODE) . ';
                 }
             }
-            return (section.columns || []).length + " " + ' . json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
+            return (section.columns || []).length + " " + ' . (string) json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
         },
         sectionLabel(section, si) {
             if (section.library_id) return section.library_name || ("#" + section.library_id);
@@ -3653,11 +3653,11 @@ function pageBuilder() {
             if (title) return title;
             for (var column of (section.columns || [])) {
                 for (var el of (column.elements || [])) {
-                    if (this.isHomeBlock(el)) return String((el.data || {}).label || this.homeBlockSourceLabel(el) || (' . json_encode(__('pea_section_n'), JSON_UNESCAPED_UNICODE) . '.replace(":n", si + 1)));
+                    if (this.isHomeBlock(el)) return String((el.data || {}).label || this.homeBlockSourceLabel(el) || (' . (string) json_encode(__('pea_section_n'), JSON_UNESCAPED_UNICODE) . '.replace(":n", si + 1)));
                     if (el.type === "heading" && String((el.data || {}).text || "").trim()) return String(el.data.text).trim();
                 }
             }
-            return ' . json_encode(__('pea_section_n'), JSON_UNESCAPED_UNICODE) . '.replace(":n", si + 1);
+            return ' . (string) json_encode(__('pea_section_n'), JSON_UNESCAPED_UNICODE) . '.replace(":n", si + 1);
         },
 
         // 定位 URL ?focus=N 指定的区块（前台悬停编辑跳转而来）
@@ -3701,7 +3701,7 @@ function pageBuilder() {
             var self = this;
             var fresh = tpl.map(function(s) { return self.freshSection(s); });
             if (this.sections.length > 0 && fresh.length > 1) {
-                if (!confirm(' . json_encode(__('pea_append_template_confirm'), JSON_UNESCAPED_UNICODE) . ')) return;
+                if (!confirm(' . (string) json_encode(__('pea_append_template_confirm'), JSON_UNESCAPED_UNICODE) . ')) return;
             }
             this.sections = this.sections.concat(fresh);
             for (var section of fresh) this.openSections[section.id] = true;
@@ -3722,7 +3722,7 @@ function pageBuilder() {
         },
 
         removeSection(si) {
-            if (!confirm(' . json_encode(__('pea_del_section_confirm'), JSON_UNESCAPED_UNICODE) . ')) return;
+            if (!confirm(' . (string) json_encode(__('pea_del_section_confirm'), JSON_UNESCAPED_UNICODE) . ')) return;
             this.sections.splice(si, 1);
         },
 
@@ -3799,7 +3799,7 @@ function pageBuilder() {
             m.classList.remove("hidden"); m.classList.add("flex");
             if (!_modalEditor) {
                 _modalEditor = initWangEditor("#modal-toolbar", "#modal-editor", {
-                    placeholder: ' . json_encode(__('pea_content_ph'), JSON_UNESCAPED_UNICODE) . ',
+                    placeholder: ' . (string) json_encode(__('pea_content_ph'), JSON_UNESCAPED_UNICODE) . ',
                     html: el.data.html || "",
                     uploadUrl: "/admin/upload.php",
                     onChange: function() {}
@@ -3973,15 +3973,15 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
             if (baseEl && result.data && result.data.home_base_updated_at) {
                 baseEl.value = result.data.home_base_updated_at;
             }
-            msgEl.textContent = ' . json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE) . ';
+            msgEl.textContent = ' . (string) json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE) . ';
             msgEl.className = "text-sm text-green-600";
             window.dispatchEvent(new CustomEvent("layout-saved"));
         } else {
-            msgEl.textContent = result.msg || ' . json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE) . ';
+            msgEl.textContent = result.msg || ' . (string) json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE) . ';
             msgEl.className = "text-sm text-red-600";
         }
     } catch (err) {
-        msgEl.textContent = ' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ';
+        msgEl.textContent = ' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ';
         msgEl.className = "text-sm text-red-600";
     }
     window.dispatchEvent(new CustomEvent("layout-save-finished"));
@@ -4010,7 +4010,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
                 var saveBody = new FormData(form);
                 var saveResp = await fetch("", { method: "POST", body: saveBody });
                 var saveResult = await safeJson(saveResp);
-                if (saveResult.code !== 0) { say(saveResult.msg || ' . json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE) . ', false); return; }
+                if (saveResult.code !== 0) { say(saveResult.msg || ' . (string) json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE) . ', false); return; }
                 var baseEl = form.querySelector("input[name=home_base_updated_at]");
                 if (baseEl && saveResult.data && saveResult.data.home_base_updated_at) {
                     baseEl.value = saveResult.data.home_base_updated_at;
@@ -4022,20 +4022,20 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
             var resp = await fetch("", { method: "POST", body: body });
             var result = await safeJson(resp);
             if (result.code === 0) {
-                say(action === "publish" ? ' . json_encode(__('pea_published_home'), JSON_UNESCAPED_UNICODE) . ' : ' . json_encode(__('pea_rolled_back_home'), JSON_UNESCAPED_UNICODE) . ', true);
+                say(action === "publish" ? ' . (string) json_encode(__('pea_published_home'), JSON_UNESCAPED_UNICODE) . ' : ' . (string) json_encode(__('pea_rolled_back_home'), JSON_UNESCAPED_UNICODE) . ', true);
                 setTimeout(function () { location.reload(); }, 900);
             } else {
-                say(result.msg || ' . json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE) . ', false);
+                say(result.msg || ' . (string) json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE) . ', false);
             }
         } catch (err) {
-            say(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', false);
+            say(' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', false);
         } finally {
             btn.disabled = false;
         }
     }
 
-    if (pubBtn) pubBtn.addEventListener("click", function () { run("publish", ' . json_encode(__('pea_publish_confirm'), JSON_UNESCAPED_UNICODE) . ', pubBtn); });
-    if (backBtn) backBtn.addEventListener("click", function () { run("rollback", ' . json_encode(__('pea_rollback_confirm'), JSON_UNESCAPED_UNICODE) . ', backBtn); });
+    if (pubBtn) pubBtn.addEventListener("click", function () { run("publish", ' . (string) json_encode(__('pea_publish_confirm'), JSON_UNESCAPED_UNICODE) . ', pubBtn); });
+    if (backBtn) backBtn.addEventListener("click", function () { run("rollback", ' . (string) json_encode(__('pea_rollback_confirm'), JSON_UNESCAPED_UNICODE) . ', backBtn); });
 })();
 
 </scr' . 'ipt>';
