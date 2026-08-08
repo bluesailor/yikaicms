@@ -23,7 +23,8 @@ class AiService
         // 官方中转：不需要用户自备 Key，凭本站授权码调用，额度由授权等级决定。
         // 请求发往 update.yikaicms.com，真实上游 Key 只存在于服务端。
         'yikai' => [
-            'name'     => 'YikaiCMS 官方接口（需授权）',
+            'name_key' => 'ai_provider_yikai_name',
+            'name'     => 'YikaiCMS',
             'base_url' => 'https://update.yikaicms.com/api/ai',
             // 可用模型由服务端下发（「同步最新模型」拉取），此处不写死型号，
             // 免得客户端与服务端上游调整脱节、用户配到已下线的模型。
@@ -53,14 +54,16 @@ class AiService
             'format'   => 'anthropic',
         ],
         'qwen' => [
-            'name'     => '通义千问 (Qwen)',
+            'name_key' => 'ai_provider_qwen_name',
+            'name'     => 'Qwen',
             'base_url' => 'https://dashscope.aliyuncs.com/compatible-mode/v1',
             'models'   => ['qwen-plus', 'qwen-turbo', 'qwen-max', 'qwen-long'],
             'default'  => 'qwen-plus',
             'format'   => 'openai',
         ],
         'zhipu' => [
-            'name'     => '智谱AI (GLM)',
+            'name_key' => 'ai_provider_zhipu_name',
+            'name'     => 'Zhipu AI',
             'base_url' => 'https://open.bigmodel.cn/api/paas/v4',
             'models'   => ['glm-4-flash', 'glm-4', 'glm-4-plus'],
             'default'  => 'glm-4-flash',
@@ -97,6 +100,12 @@ class AiService
     public static function getProviders(): array
     {
         $providers = self::PROVIDERS;
+        // 带 name_key 的供应商按后台语言取显示名（const 不能调 __()，只能在此投影）
+        foreach ($providers as $k => $p) {
+            if (!empty($p['name_key'])) {
+                $providers[$k]['name'] = __($p['name_key']);
+            }
+        }
         // 叠加「同步」覆盖（来自 update.yikaicms 中心源，存 setting: ai_models_override）
         $ov = json_decode((string) config('ai_models_override', ''), true);
         if (is_array($ov)) {

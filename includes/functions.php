@@ -797,6 +797,20 @@ function _e(string $key, array $params = []): string
  *   tip     => setting_<key>_tip
  *   options => setting_opt_<key>_<value>
  */
+/**
+ * 预置数据（内容模型预置方案等）的三语取值：按后台语言优先取 <field>_en /
+ * <field>_ja，缺失回落中文基准。用于「文案随语言、结构不变」的静态预置表。
+ */
+function presetText(array $row, string $field): string
+{
+    $lang = getLang();
+    $suffix = $lang === 'en' ? '_en' : ($lang === 'ja' ? '_ja' : '');
+    if ($suffix !== '' && trim((string) ($row[$field . $suffix] ?? '')) !== '') {
+        return (string) $row[$field . $suffix];
+    }
+    return (string) ($row[$field] ?? '');
+}
+
 function settingLabel(string $key, string $fallback = ''): string
 {
     $langKey = 'setting_' . $key;

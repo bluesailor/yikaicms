@@ -630,9 +630,9 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     }
     function restoreInlineLabel(payload) {
         if (payload.kind === 'sectionField') {
-            label.textContent = payload.field === 'subtitle' ? '副标题' : '区块标题';
+            label.textContent = payload.field === 'subtitle' ? <?php echo json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE); ?>;
         } else if (payload.kind === 'homeField') {
-            label.textContent = '首页字段';
+            label.textContent = <?php echo json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             label.textContent = 'Element ' + payload.path;
         }
@@ -690,7 +690,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         node.setAttribute('spellcheck', 'true');
         node.classList.add('yk-inline-editing');
         activeEl = node;
-        label.textContent = '文字编辑';
+        label.textContent = <?php echo json_encode(__('pea_text_edit'), JSON_UNESCAPED_UNICODE); ?>;
         syncOverlay();
         startOverlayTracking();
         node.addEventListener('keydown', state.onKeydown);
@@ -1016,7 +1016,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     function highlightSectionField(si, field) {
         clearLayerSelections();
         activeEl = document.querySelector('[data-yk-sec-field="' + si + '.' + cssEscape(field) + '"]');
-        label.textContent = field === 'subtitle' ? '副标题' : '区块标题';
+        label.textContent = field === 'subtitle' ? <?php echo json_encode(__('pea_subtitle'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_section_title'), JSON_UNESCAPED_UNICODE); ?>;
         syncOverlay();
         startOverlayTracking();
     }
@@ -1026,7 +1026,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             '[data-yk-home-path="' + cssEscape(path) + '"]' +
             '[data-yk-home-field="' + cssEscape(field) + '"]'
         );
-        label.textContent = '首页字段';
+        label.textContent = <?php echo json_encode(__('pea_home_field'), JSON_UNESCAPED_UNICODE); ?>;
         syncOverlay();
         startOverlayTracking();
     }
@@ -1037,8 +1037,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             '[data-yk-home-column="' + cssEscape(column) + '"]'
         );
         label.textContent = activeEl
-            ? (activeEl.getAttribute('data-yk-home-column-label') || '列')
-            : '列';
+            ? (activeEl.getAttribute('data-yk-home-column-label') || <?php echo json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE); ?>)
+            : <?php echo json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE); ?>;
         syncOverlay();
         startOverlayTracking();
     }
@@ -1290,10 +1290,10 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var d = document.createElement('div');
         d.className = 'yk-empty-hint yk-empty-doc';
         var p = document.createElement('p');
-        p.textContent = '画布还是空的 —— 从模板库一键起步，或从空白区块开始';
+        p.textContent = <?php echo json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE); ?>;
         d.appendChild(p);
-        d.appendChild(emptyActionButton('templates', '从模板库导入', true));
-        d.appendChild(emptyActionButton('section', '＋ 添加空白区块', false));
+        d.appendChild(emptyActionButton('templates', <?php echo json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE); ?>, true));
+        d.appendChild(emptyActionButton('section', <?php echo json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE); ?>, false));
         host.appendChild(d);
     }
     function setupEmptyHints(root) {
@@ -1304,7 +1304,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             if (c.querySelector('img,svg,iframe,video,picture')) return;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint yk-empty-hint-sm';
-            d.textContent = c.classList.contains('yk-div') ? '空 Div —— 在结构树选中它，再从「＋ 元素」添加子元素' : '空容器 —— 在结构树选中它，再从「＋ 元素」添加子元素';
+            d.textContent = c.classList.contains('yk-div') ? <?php echo json_encode(__('pea_empty_div'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_empty_container'), JSON_UNESCAPED_UNICODE); ?>;
             c.appendChild(d);
         });
         contentNodes(root, '[data-yk-sec]').forEach(function (sec) {
@@ -1315,8 +1315,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             var n = parseInt(sec.getAttribute('data-yk-sec'), 10) + 1;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint';
-            d.textContent = '空区块 ' + n + ' —— 点选后从左侧「元素库」添加内容，或';
-            d.appendChild(emptyActionButton('templates', '从模板库导入', false));
+            d.textContent = <?php echo json_encode(__('pea_empty_section'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', n);
+            d.appendChild(emptyActionButton('templates', <?php echo json_encode(__('pea_import_template'), JSON_UNESCAPED_UNICODE); ?>, false));
             sec.appendChild(d);
         });
         setupEmptyDocHint();
@@ -1334,7 +1334,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'yk-insert-pop-btn';
-            b.title = spans.length + ' 列';
+            b.title = <?php echo json_encode(__('pea_n_columns'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', spans.length);
             var bars = document.createElement('span');
             bars.className = 'yk-insert-pop-bars';
             spans.forEach(function () {
@@ -1352,7 +1352,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var tpl = document.createElement('button');
         tpl.type = 'button';
         tpl.className = 'yk-insert-pop-btn yk-insert-pop-tpl';
-        tpl.textContent = '模板库';
+        tpl.textContent = <?php echo json_encode(__('pea_template_library'), JSON_UNESCAPED_UNICODE); ?>;
         tpl.addEventListener('click', function (e) {
             e.stopPropagation();
             pop.remove();
@@ -1375,7 +1375,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'yk-insert-btn';
-        btn.textContent = mode === 'tail' ? '＋ 添加区块' : '＋';
+        btn.textContent = mode === 'tail' ? <?php echo json_encode(__('pea_add_section'), JSON_UNESCAPED_UNICODE); ?> : '＋';
         btn.setAttribute('data-yk-insert', String(index));
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -1450,10 +1450,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
             $libName = trim(post('lib_name'));
             $libSection = json_decode($_POST['section_data'] ?? '', true);
             if ($libName === '' || !is_array($libSection)) {
-                error('参数不完整');
+                error(__('pea_incomplete_params'));
             }
             if (!empty($libSection['library_id'])) {
-                error('引用块请先转为副本再存入块库');
+                error(__('pea_detach_before_save'));
             }
             unset($libSection['library_name']);
             $now = time();
@@ -1478,7 +1478,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
                 [(int) ($_POST['lib_id'] ?? 0)]
             );
             if (!$row) {
-                error('块不存在（可能已被删除）');
+                error(__('pea_block_missing'));
             }
             success(['item' => $row]);
         }
@@ -1489,9 +1489,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
             success();
         }
     } catch (\Throwable $e) {
-        error('块库不可用，请先在「系统 → 数据库升级」执行升级');
+        error(__('pea_lib_unavailable'));
     }
-    error('未知操作');
+    error(__('admin_unknown_action'));
 }
 
 // 处理保存
@@ -1603,7 +1603,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success();
 }
 
-$pageTitle = ($isHomeLayout ? __('page_mode_blocks_edit') : '排版编辑') . ' - ' . $page['name'];
+$pageTitle = ($isHomeLayout ? __('page_mode_blocks_edit') : __('pea_title')) . ' - ' . $page['name'];
 $currentMenu = 'page';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -1721,7 +1721,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div>
                     <label class="block text-sm text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                     <input type="text" name="slug" value="<?php echo e($page['slug']); ?>"
-                           class="w-full border rounded px-4 py-2" placeholder="如：about-us，留空自动生成">
+                           class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('pea_slug_ph')); ?>">
                 </div>
             </div>
             <div>
@@ -1764,11 +1764,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <button type="button" @click="togglePreview()"
                         class="text-sm border px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap"
                         :class="showPreview ? 'border-primary bg-primary text-white' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'">
-                    <i class="ti ti-eye text-base"></i>实时预览
+                    <i class="ti ti-eye text-base"></i><?php echo e(__('pea_live_preview')); ?>
                 </button>
                 <button type="button" @click="showPresets = true"
                         class="text-sm border border-primary text-primary hover:bg-primary hover:text-white px-3 py-1.5 rounded inline-flex items-center gap-1 cursor-pointer transition whitespace-nowrap">
-                    <i class="ti ti-layout-collage text-base"></i>预设库
+                    <i class="ti ti-layout-collage text-base"></i><?php echo e(__('pea_preset_library')); ?>
                 </button>
             </div>
         </div>
@@ -1776,7 +1776,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <template x-if="sections.length === 0">
                 <div class="text-center py-12 text-gray-400">
                     <i class="ti ti-lock text-5xl mx-auto mb-3 text-gray-300"></i>
-                    <p>暂无区块，点击下方按钮添加</p>
+                    <p><?php echo e(__('pea_no_sections')); ?></p>
                 </div>
             </template>
 
@@ -1800,7 +1800,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <span class="text-xs text-gray-400" x-show="!isSectionOpen(section.id)" x-text="sectionElementCount(section) + ' <?php echo e(__('home_layout_element_unit')); ?>'"></span>
                                 <template x-if="section.library_id">
                                     <span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                                        <i class="ti ti-link"></i><span x-text="'引用：' + (section.library_name || ('#' + section.library_id))"></span>
+                                        <i class="ti ti-link"></i><span x-text="<?php echo json_encode(__('pea_reference_of'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', section.library_name || ('#' + section.library_id))"></span>
                                     </span>
                                 </template>
                                 <template x-if="section.settings.bg_color">
@@ -1815,28 +1815,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </div>
                             <div class="flex items-center gap-1">
                                 <button type="button" @click="moveSection(si, -1)" :disabled="si === 0"
-                                        class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="上移">
+                                        class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="<?php echo e(__('nav_menu_move_up')); ?>">
                                     <i class="ti ti-chevron-up text-base"></i>
                                 </button>
                                 <button type="button" @click="moveSection(si, 1)" :disabled="si === sections.length - 1"
-                                        class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="下移">
+                                        class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="<?php echo e(__('nav_menu_move_down')); ?>">
                                     <i class="ti ti-chevron-down text-base"></i>
                                 </button>
                                 <template x-if="!section.library_id">
                                     <button type="button" @click="saveToLibrary(si)"
-                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="存为可复用块">
+                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="<?php echo e(__('pea_save_to_library')); ?>">
                                         <i class="ti ti-bookmark-plus text-base"></i>
                                     </button>
                                 </template>
                                 <template x-if="section.library_id">
                                     <button type="button" @click="detachLibRef(si)"
-                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="转为独立副本（不再跟随块库更新）">
+                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="<?php echo e(__('pea_detach_copy')); ?>">
                                         <i class="ti ti-unlink text-base"></i>
                                     </button>
                                 </template>
                                 <template x-if="!section.library_id">
                                     <button type="button" @click="openSettings(si)"
-                                            class="p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="设置">
+                                            class="p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="<?php echo e(__('admin_settings')); ?>">
                                         <i class="ti ti-settings text-base"></i>
                                     </button>
                                 </template>
@@ -1857,8 +1857,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <div class="p-4" x-show="isSectionOpen(section.id)" x-cloak>
                                 <div class="text-center py-6 text-sm text-purple-500 bg-purple-50/50 rounded border border-dashed border-purple-200">
                                     <i class="ti ti-library text-2xl block mb-1"></i>
-                                    引用块内容在块库中统一维护，修改后所有引用页面同步生效
-                                    <div class="text-xs text-purple-400 mt-1">如需单独编辑此页版本，点右上 <i class="ti ti-unlink"></i> 转为独立副本</div>
+                                    <?php echo e(__('pea_reference_note')); ?>
+                                    <div class="text-xs text-purple-400 mt-1"><?php echo str_replace(':icon', '<i class="ti ti-unlink"></i>', e(__('pea_detach_hint'))); ?></div>
                                 </div>
                             </div>
                         </template>
@@ -1874,15 +1874,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                             <div class="mb-2 bg-white border rounded p-3 group/el relative hover:border-blue-300 transition block-element">
                                                 <!-- 元素工具栏 -->
                                                 <div class="absolute -top-2 -right-2 flex gap-0.5 z-10 bg-white border rounded shadow-sm px-1 py-0.5">
-                                                    <span class="element-drag-handle cursor-grab p-1 text-gray-400 hover:text-gray-600" title="拖拽排序">
+                                                    <span class="element-drag-handle cursor-grab p-1 text-gray-400 hover:text-gray-600" title="<?php echo e(__('pea_drag_sort')); ?>">
                                                         <i class="ti ti-menu-2 text-base"></i>
                                                     </span>
                                                     <button type="button" @click="moveElement(si,ci,ei,-1)" :disabled="ei===0"
-                                                            class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="上移">
+                                                            class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="<?php echo e(__('nav_menu_move_up')); ?>">
                                                         <i class="ti ti-chevron-up text-base"></i>
                                                     </button>
                                                     <button type="button" @click="moveElement(si,ci,ei,1)" :disabled="ei===col.elements.length-1"
-                                                            class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="下移">
+                                                            class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="<?php echo e(__('nav_menu_move_down')); ?>">
                                                         <i class="ti ti-chevron-down text-base"></i>
                                                     </button>
                                                     <button type="button" @click="removeElement(si,ci,ei)"
@@ -1895,7 +1895,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <template x-if="el.type === 'heading'">
                                                     <div>
                                                         <div class="flex items-center gap-2 mb-1">
-                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">标题</span>
+                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(__('admin_title')); ?></span>
                                                             <select x-model="el.data.level" class="text-xs border rounded px-1.5 py-0.5">
                                                                 <option value="h1">H1</option>
                                                                 <option value="h2">H2</option>
@@ -1903,7 +1903,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 <option value="h4">H4</option>
                                                             </select>
                                                         </div>
-                                                        <input type="text" x-model="el.data.text" placeholder="输入标题..."
+                                                        <input type="text" x-model="el.data.text" placeholder="<?php echo e(__('pea_title_ph')); ?>"
                                                                class="w-full border-0 border-b border-gray-200 font-bold text-lg focus:outline-none focus:border-primary py-1">
                                                     </div>
                                                 </template>
@@ -1912,7 +1912,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <template x-if="el.type === 'text'">
                                                     <div x-data="{ full: false }">
                                                         <div class="flex items-center justify-between mb-1">
-                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">富文本</span>
+                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(__('ext_type_richtext')); ?></span>
                                                             <div class="flex items-center gap-2">
                                                                 <?php // 长文默认限高，但要让人看得出「下面还有」，可一键展开 ?>
                                                                 <button type="button" @click="full = !full"
@@ -1920,14 +1920,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                     <i class="ti text-sm" :class="full ? 'ti-chevrons-up' : 'ti-chevrons-down'"></i>
                                                                     <span x-text="full ? '<?php echo e(__('admin_collapse')); ?>' : '<?php echo e(__('admin_expand')); ?>'"></span>
                                                                 </button>
-                                                                <button type="button" @click="editText(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer">编辑内容</button>
+                                                                <button type="button" @click="editText(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer"><?php echo e(__('pea_edit_content')); ?></button>
                                                             </div>
                                                         </div>
                                                         <div class="relative">
                                                             <div @dblclick="editText(si,ci,ei)"
                                                                  class="prose prose-sm max-w-none overflow-hidden text-gray-600 border-t pt-2 cursor-pointer transition-all"
                                                                  :class="full ? '' : 'max-h-32'"
-                                                                 x-html="el.data.html || '<span class=\'text-gray-400 italic\'>双击或点击编辑添加内容</span>'"></div>
+                                                                 x-html="el.data.html || '<span class=\'text-gray-400 italic\'>' + <?php echo json_encode(__('pea_dblclick_to_edit'), JSON_UNESCAPED_UNICODE); ?> + '</span>'"></div>
                                                             <!-- 未展开时底部渐隐，提示内容被截断 -->
                                                             <div x-show="!full" class="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent"></div>
                                                         </div>
@@ -1937,34 +1937,34 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 图片 -->
                                                 <template x-if="el.type === 'image'">
                                                     <div>
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block">图片</span>
+                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block"><?php echo e(__('media_type_image')); ?></span>
                                                         <div x-show="el.data.src">
                                                             <img :src="el.data.src" class="max-h-40 rounded border">
                                                             <div class="flex items-center gap-2 mt-1">
-                                                                <input type="text" x-model="el.data.alt" placeholder="图片描述(alt)"
+                                                                <input type="text" x-model="el.data.alt" placeholder="<?php echo e(__('pea_alt_ph')); ?>"
                                                                        class="flex-1 text-xs border rounded px-2 py-1">
-                                                                <button type="button" @click="pickImage(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer whitespace-nowrap">更换</button>
+                                                                <button type="button" @click="pickImage(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer whitespace-nowrap"><?php echo e(__('pea_replace')); ?></button>
                                                             </div>
                                                             <div class="flex items-center gap-2 mt-1.5">
                                                                 <select x-model="el.data.click_action" class="text-xs border rounded px-2 py-1">
-                                                                    <option value="">点击无动作</option>
-                                                                    <option value="lightbox">点击弹出大图</option>
-                                                                    <option value="link">点击跳转链接</option>
+                                                                    <option value=""><?php echo e(__('pea_click_none')); ?></option>
+                                                                    <option value="lightbox"><?php echo e(__('pea_click_lightbox')); ?></option>
+                                                                    <option value="link"><?php echo e(__('pea_click_link')); ?></option>
                                                                 </select>
                                                                 <template x-if="el.data.click_action === 'link'">
-                                                                    <input type="text" x-model="el.data.link_url" placeholder="链接地址"
+                                                                    <input type="text" x-model="el.data.link_url" placeholder="<?php echo e(__('pea_url_ph')); ?>"
                                                                            class="flex-1 text-xs border rounded px-2 py-1">
                                                                 </template>
                                                                 <template x-if="el.data.click_action === 'link'">
                                                                     <label class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer whitespace-nowrap">
-                                                                        <input type="checkbox" x-model="el.data.link_new_tab"> 新窗口
+                                                                        <input type="checkbox" x-model="el.data.link_new_tab"> <?php echo e(__('pea_new_tab')); ?>
                                                                     </label>
                                                                 </template>
                                                             </div>
                                                         </div>
                                                         <div x-show="!el.data.src" @click="pickImage(si,ci,ei)"
                                                              class="h-20 bg-gray-50 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm cursor-pointer hover:border-primary hover:text-primary transition">
-                                                            点击选择图片
+                                                            <?php echo e(__('pea_click_pick_image')); ?>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -1972,15 +1972,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 按钮 -->
                                                 <template x-if="el.type === 'button'">
                                                     <div>
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block">按钮</span>
+                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block"><?php echo e(__('pea_button')); ?></span>
                                                         <div class="flex gap-2 mt-1">
-                                                            <input type="text" x-model="el.data.text" placeholder="按钮文字"
+                                                            <input type="text" x-model="el.data.text" placeholder="<?php echo e(__('pea_button_text_ph')); ?>"
                                                                    class="border rounded px-2 py-1 text-sm flex-1">
-                                                            <input type="text" x-model="el.data.url" placeholder="链接地址"
+                                                            <input type="text" x-model="el.data.url" placeholder="<?php echo e(__('pea_url_ph')); ?>"
                                                                    class="border rounded px-2 py-1 text-sm flex-1">
                                                         </div>
                                                         <label class="flex items-center gap-1 mt-1 text-xs text-gray-500 cursor-pointer">
-                                                            <input type="checkbox" x-model="el.data.new_tab"> 新窗口打开
+                                                            <input type="checkbox" x-model="el.data.new_tab"> <?php echo e(__('pea_open_new_tab')); ?>
                                                         </label>
                                                     </div>
                                                 </template>
@@ -1989,14 +1989,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <template x-if="el.type === 'icon'">
                                                     <div x-data="{ pick: false }">
                                                         <div class="flex items-center gap-2 mb-2">
-                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">图标</span>
+                                                            <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(__('pea_icon')); ?></span>
                                                             <span class="w-9 h-9 border rounded flex items-center justify-center bg-gray-50"
                                                                   :style="el.data.color ? 'color:' + el.data.color : ''">
                                                                 <i class="ti text-xl" :class="'ti-' + (el.data.icon || 'star')"></i>
                                                             </span>
                                                             <button type="button" @click="pick = !pick"
                                                                     class="text-xs text-primary hover:underline cursor-pointer"
-                                                                    x-text="pick ? '收起' : '更换图标'"></button>
+                                                                    x-text="pick ? <?php echo json_encode(__('pea_collapse'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_change_icon'), JSON_UNESCAPED_UNICODE); ?>"></button>
                                                         </div>
                                                         <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mb-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
                                                             <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
@@ -2009,24 +2009,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                         </div>
                                                         <div class="grid grid-cols-2 gap-2">
                                                             <div>
-                                                                <label class="text-xs text-gray-500">大小</label>
+                                                                <label class="text-xs text-gray-500"><?php echo e(__('pea_size')); ?></label>
                                                                 <select x-model="el.data.size" class="w-full border rounded px-2 py-1 text-sm">
-                                                                    <option value="sm">小 (24px)</option>
-                                                                    <option value="md">中 (32px)</option>
-                                                                    <option value="lg">大 (48px)</option>
-                                                                    <option value="xl">超大 (64px)</option>
+                                                                    <option value="sm"><?php echo e(__('pea_size_sm_24')); ?></option>
+                                                                    <option value="md"><?php echo e(__('pea_size_md_32')); ?></option>
+                                                                    <option value="lg"><?php echo e(__('pea_size_lg_48')); ?></option>
+                                                                    <option value="xl"><?php echo e(__('pea_size_xl_64')); ?></option>
                                                                 </select>
                                                             </div>
                                                             <div>
-                                                                <label class="text-xs text-gray-500">颜色</label>
+                                                                <label class="text-xs text-gray-500"><?php echo e(__('pea_color')); ?></label>
                                                                 <div class="flex gap-1">
                                                                     <input type="color" x-model="el.data.color" class="w-8 h-8 rounded border cursor-pointer">
-                                                                    <input type="text" x-model="el.data.color" placeholder="#主题色" class="flex-1 border rounded px-2 py-1 text-xs">
+                                                                    <input type="text" x-model="el.data.color" placeholder="<?php echo e(__('pea_color_ph')); ?>" class="flex-1 border rounded px-2 py-1 text-xs">
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <div class="mt-2">
-                                                            <input type="text" x-model="el.data.text" placeholder="图标下方文字（可选）" class="w-full border rounded px-2 py-1 text-sm">
+                                                            <input type="text" x-model="el.data.text" placeholder="<?php echo e(__('pea_icon_caption_ph')); ?>" class="w-full border rounded px-2 py-1 text-sm">
                                                         </div>
                                                     </div>
                                                 </template>
@@ -2034,18 +2034,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 分隔线 -->
                                                 <template x-if="el.type === 'divider'">
                                                     <div>
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-2 inline-block">分隔线</span>
+                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-2 inline-block"><?php echo e(__('pea_divider')); ?></span>
                                                         <div class="flex items-center gap-3">
                                                             <div>
-                                                                <label class="text-xs text-gray-500">样式</label>
+                                                                <label class="text-xs text-gray-500"><?php echo e(__('pea_style')); ?></label>
                                                                 <select x-model="el.data.style" class="border rounded px-2 py-1 text-sm">
-                                                                    <option value="solid">实线</option>
-                                                                    <option value="dashed">虚线</option>
-                                                                    <option value="dotted">点线</option>
+                                                                    <option value="solid"><?php echo e(__('pea_line_solid')); ?></option>
+                                                                    <option value="dashed"><?php echo e(__('pea_line_dashed')); ?></option>
+                                                                    <option value="dotted"><?php echo e(__('pea_line_dotted')); ?></option>
                                                                 </select>
                                                             </div>
                                                             <div>
-                                                                <label class="text-xs text-gray-500">粗细</label>
+                                                                <label class="text-xs text-gray-500"><?php echo e(__('pea_thickness')); ?></label>
                                                                 <select x-model="el.data.width" class="border rounded px-2 py-1 text-sm">
                                                                     <option value="1">1px</option>
                                                                     <option value="2">2px</option>
@@ -2053,18 +2053,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 </select>
                                                             </div>
                                                             <div>
-                                                                <label class="text-xs text-gray-500">颜色</label>
+                                                                <label class="text-xs text-gray-500"><?php echo e(__('pea_color')); ?></label>
                                                                 <div class="flex gap-1">
                                                                     <input type="color" x-model="el.data.color" class="w-8 h-8 rounded border cursor-pointer">
                                                                     <input type="text" x-model="el.data.color" placeholder="#e5e7eb" class="w-20 border rounded px-2 py-1 text-xs">
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <label class="text-xs text-gray-500">间距</label>
+                                                                <label class="text-xs text-gray-500"><?php echo e(__('pea_spacing')); ?></label>
                                                                 <select x-model="el.data.spacing" class="border rounded px-2 py-1 text-sm">
-                                                                    <option value="sm">小</option>
-                                                                    <option value="md">中</option>
-                                                                    <option value="lg">大</option>
+                                                                    <option value="sm"><?php echo e(__('pea_sm')); ?></option>
+                                                                    <option value="md"><?php echo e(__('pea_md')); ?></option>
+                                                                    <option value="lg"><?php echo e(__('pea_lg')); ?></option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -2075,8 +2075,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 代码/HTML -->
                                                 <template x-if="el.type === 'code'">
                                                     <div>
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block">代码/HTML</span>
-                                                        <textarea x-model="el.data.html" rows="4" placeholder="输入 HTML 代码、短码 [form-xxx]、iframe 等..."
+                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block"><?php echo e(__('pea_code_html')); ?></span>
+                                                        <textarea x-model="el.data.html" rows="4" placeholder="<?php echo e(__('pea_code_ph')); ?>"
                                                                   class="w-full border rounded px-3 py-2 text-sm font-mono bg-gray-50 text-gray-800"></textarea>
                                                     </div>
                                                 </template>
@@ -2084,27 +2084,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 间距（支持响应式三档） -->
                                                 <template x-if="el.type === 'spacer'">
                                                     <div class="flex items-center gap-2 flex-wrap">
-                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">间距</span>
+                                                        <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(__('pea_spacing')); ?></span>
                                                         <select x-effect="$el.value = respGet(el, 'size', 'md')"
                                                                 @change="respSet(el, 'size', $event.target.value, 'md')"
                                                                 class="border rounded px-2 py-1 text-sm">
-                                                            <option value="sm">小 (16px)</option>
-                                                            <option value="md">中 (32px)</option>
-                                                            <option value="lg">大 (64px)</option>
-                                                            <option value="xl">超大 (96px)</option>
+                                                            <option value="sm"><?php echo e(__('pea_size_sm_16')); ?></option>
+                                                            <option value="md"><?php echo e(__('pea_size_md_32')); ?></option>
+                                                            <option value="lg"><?php echo e(__('pea_size_lg_64')); ?></option>
+                                                            <option value="xl"><?php echo e(__('pea_size_xl_96')); ?></option>
                                                         </select>
                                                         <div class="flex gap-0.5">
-                                                            <button type="button" @click="setRespDev(el, 'd')" title="桌面"
+                                                            <button type="button" @click="setRespDev(el, 'd')" title="<?php echo e(__('pea_desktop')); ?>"
                                                                     class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
                                                                     :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
-                                                            <button type="button" @click="setRespDev(el, 't')" title="平板"
+                                                            <button type="button" @click="setRespDev(el, 't')" title="<?php echo e(__('pea_tablet')); ?>"
                                                                     class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
                                                                     :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
-                                                            <button type="button" @click="setRespDev(el, 'm')" title="手机"
+                                                            <button type="button" @click="setRespDev(el, 'm')" title="<?php echo e(__('pea_mobile')); ?>"
                                                                     class="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
                                                                     :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
                                                         </div>
-                                                        <span x-show="respIsSplit(el, 'size')" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded">已分档</span>
+                                                        <span x-show="respIsSplit(el, 'size')" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded"><?php echo e(__('pea_split_by_device')); ?></span>
                                                     </div>
                                                 </template>
 
@@ -2112,28 +2112,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <template x-if="el.type === 'list-dynamic'">
                                                     <div class="space-y-2">
                                                         <div class="flex items-center gap-2">
-                                                            <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded">动态列表</span>
-                                                            <span class="text-xs text-gray-400">发布后按栏目/模型拉实时数据</span>
+                                                            <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded"><?php echo e(__('pea_dynamic_list')); ?></span>
+                                                            <span class="text-xs text-gray-400"><?php echo e(__('pea_dynamic_list_tip')); ?></span>
                                                         </div>
                                                         <div class="grid grid-cols-2 gap-2">
-                                                            <label class="text-xs text-gray-500 block">类型
-                                                                <input x-model="el.data.source_type" placeholder="article/case/product/模型key" class="w-full border rounded px-2 py-1 text-sm">
+                                                            <label class="text-xs text-gray-500 block"><?php echo e(__('pea_type')); ?>
+                                                                <input x-model="el.data.source_type" placeholder="<?php echo e(__('pea_source_type_ph')); ?>" class="w-full border rounded px-2 py-1 text-sm">
                                                             </label>
-                                                            <label class="text-xs text-gray-500 block">栏目 slug/id
-                                                                <input x-model="el.data.cat" placeholder="留空=全部" class="w-full border rounded px-2 py-1 text-sm">
+                                                            <label class="text-xs text-gray-500 block"><?php echo e(__('pea_channel_slug')); ?>
+                                                                <input x-model="el.data.cat" placeholder="<?php echo e(__('pea_blank_all')); ?>" class="w-full border rounded px-2 py-1 text-sm">
                                                             </label>
-                                                            <label class="text-xs text-gray-500 block">数量
+                                                            <label class="text-xs text-gray-500 block"><?php echo e(__('pea_count')); ?>
                                                                 <input type="number" x-model="el.data.limit" class="w-full border rounded px-2 py-1 text-sm">
                                                             </label>
-                                                            <label class="text-xs text-gray-500 block">网格列数 (1-4)
+                                                            <label class="text-xs text-gray-500 block"><?php echo e(__('pea_grid_cols')); ?>
                                                                 <input type="number" min="1" max="4" x-model="el.data.columns" class="w-full border rounded px-2 py-1 text-sm">
                                                             </label>
                                                         </div>
                                                         <div class="flex flex-wrap gap-3 text-xs text-gray-600 pt-1">
-                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_image"> 封面</label>
-                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_title"> 标题</label>
-                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_summary"> 摘要</label>
-                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_date"> 日期</label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_image"> <?php echo e(__('admin_cover')); ?></label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_title"> <?php echo e(__('admin_title')); ?></label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_summary"> <?php echo e(__('pea_summary')); ?></label>
+                                                            <label class="inline-flex items-center gap-1"><input type="checkbox" x-model="el.data.show_date"> <?php echo e(__('ext_type_date')); ?></label>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -2141,17 +2141,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 <!-- 轮播图 -->
                                                 <template x-if="el.type === 'banner'">
                                                     <div class="flex items-center gap-2">
-                                                        <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded">轮播图</span>
-                                                        <input x-model="el.data.group" placeholder="轮播分组标识 (banner group)" class="flex-1 border rounded px-2 py-1 text-sm">
+                                                        <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded"><?php echo e(__('log_mod_banner')); ?></span>
+                                                        <input x-model="el.data.group" placeholder="<?php echo e(__('pea_banner_group_ph')); ?>" class="flex-1 border rounded px-2 py-1 text-sm">
                                                     </div>
                                                 </template>
 
                                                 <!-- 导航菜单 -->
                                                 <template x-if="el.type === 'nav'">
                                                     <div class="flex items-center gap-2 flex-wrap">
-                                                        <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded">导航</span>
-                                                        <input x-model="el.data.parent" placeholder="父栏目 slug/id，空=顶级" class="flex-1 border rounded px-2 py-1 text-sm">
-                                                        <label class="inline-flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" x-model="el.data.nav_only"> 仅导航栏目</label>
+                                                        <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded"><?php echo e(__('pea_nav')); ?></span>
+                                                        <input x-model="el.data.parent" placeholder="<?php echo e(__('pea_parent_ph')); ?>" class="flex-1 border rounded px-2 py-1 text-sm">
+                                                        <label class="inline-flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" x-model="el.data.nav_only"> <?php echo e(__('pea_nav_only')); ?></label>
                                                     </div>
                                                 </template>
 
@@ -2513,7 +2513,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                         <?php // 普通容器的子元素继续交给 Blox；首页动态区块在本页有专用轻量管理。 ?>
                                                         <template x-if="(BUILDER_ELEMENTS[el.type] || {}).container && !isHomeBlock(el)">
                                                             <p class="text-[11px] text-amber-600 bg-amber-50 rounded px-2 py-1.5 leading-relaxed">
-                                                                容器内含 <span x-text="(el.data.children || []).length"></span> 个子元素，请在 Blox 编辑器中管理；此处仅可调容器样式，保存不影响子元素。
+                                                                <?php echo str_replace(':n', '<span x-text="(el.data.children || []).length"></span>', e(__('pea_container_children'))); ?>
                                                             </p>
                                                         </template>
                                                         <template x-for="ctrl in visibleElementControls(el)" :key="ctrl.key">
@@ -2541,11 +2541,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                             <template x-for="(lbl,val) in ctrl.options" :key="val"><option :value="val" x-text="lbl"></option></template>
                                                                         </select>
                                                                         <div class="flex gap-0.5">
-                                                                            <button type="button" @click="setRespDev(el, 'd')" title="桌面" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
-                                                                            <button type="button" @click="setRespDev(el, 't')" title="平板" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
-                                                                            <button type="button" @click="setRespDev(el, 'm')" title="手机" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 'd')" title="<?php echo e(__('pea_desktop')); ?>" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 'd' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-desktop"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 't')" title="<?php echo e(__('pea_tablet')); ?>" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 't' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-tablet"></i></button>
+                                                                            <button type="button" @click="setRespDev(el, 'm')" title="<?php echo e(__('pea_mobile')); ?>" class="px-1.5 py-0.5 border rounded text-xs cursor-pointer" :class="respTab(el) === 'm' ? 'bg-primary text-white border-primary' : 'text-gray-400 hover:text-gray-600'"><i class="ti ti-device-mobile"></i></button>
                                                                         </div>
-                                                                        <span x-show="respIsSplit(el, ctrl.key)" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded">已分档</span>
+                                                                        <span x-show="respIsSplit(el, ctrl.key)" class="text-[10px] text-primary bg-blue-50 px-1 py-0.5 rounded"><?php echo e(__('pea_split_by_device')); ?></span>
                                                                     </div>
                                                                 </template>
                                                                 <template x-if="ctrl.type === 'color'">
@@ -2555,14 +2555,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                     <label class="inline-flex items-center gap-1 text-sm text-gray-600"><input type="checkbox" x-model="el.data[ctrl.key]"> <span x-text="ctrl.label"></span></label>
                                                                 </template>
                                                                 <template x-if="ctrl.type === 'image'">
-                                                                    <div class="flex gap-1.5"><input type="text" x-model="el.data[ctrl.key]" :placeholder="ctrl.placeholder || ''" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm"><button type="button" @click="pickSchemaImage(el, ctrl.key)" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer">媒体库</button></div>
+                                                                    <div class="flex gap-1.5"><input type="text" x-model="el.data[ctrl.key]" :placeholder="ctrl.placeholder || ''" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm"><button type="button" @click="pickSchemaImage(el, ctrl.key)" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer"><?php echo e(__('admin_media_library')); ?></button></div>
                                                                 </template>
                                                                 <template x-if="ctrl.type === 'icon'">
                                                                     <div x-data="{ pick: false }">
                                                                         <div class="flex items-center gap-2">
                                                                             <span class="w-8 h-8 border rounded flex items-center justify-center bg-gray-50 shrink-0"><i class="ti text-lg" :class="'ti-' + (el.data[ctrl.key] || 'star')"></i></span>
-                                                                            <input type="text" x-model="el.data[ctrl.key]" placeholder="Tabler 图标名" class="flex-1 border rounded px-2 py-1 text-sm">
-                                                                            <button type="button" @click="pick = !pick" class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? '收起' : '选择'"></button>
+                                                                            <input type="text" x-model="el.data[ctrl.key]" placeholder="<?php echo e(__('pea_tabler_icon_ph')); ?>" class="flex-1 border rounded px-2 py-1 text-sm">
+                                                                            <button type="button" @click="pick = !pick" class="text-xs text-primary hover:underline cursor-pointer shrink-0" x-text="pick ? <?php echo json_encode(__('pea_collapse'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pea_choose'), JSON_UNESCAPED_UNICODE); ?>"></button>
                                                                         </div>
                                                                         <div x-show="pick" x-cloak class="flex flex-wrap gap-1.5 mt-2 p-2 border rounded bg-gray-50 max-h-28 overflow-y-auto">
                                                                             <template x-for="ic in ['star','heart','circle-check','phone','mail','map-pin','clock','shield','bolt','award','world','users','home','settings','camera','bell','bookmark','calendar','folder','gift','link','lock','search','tag','trending-up','thumb-up','eye','download','upload','share','code','coffee','feather','flag','info-circle','lifebuoy','microphone','device-desktop','music','package','pencil','printer','send','server','mood-smile','sun','target','terminal','truck','device-tv','umbrella','wifi']">
@@ -2582,7 +2582,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         <div x-data="{ open: false }" class="relative add-element-btn">
                                             <button type="button" @click="open = !open"
                                                     class="w-full border-2 border-dashed border-gray-300 rounded py-2 text-gray-400 hover:border-primary hover:text-primary transition text-sm cursor-pointer">
-                                                + 添加元素
+                                                + <?php echo e(__('pea_add_element')); ?>
                                             </button>
                                             <!-- palette 由 BuilderRegistry 元数据生成，按分类分组；加元素类即自动出现 -->
                                             <div x-show="open" @click.away="open = false" x-cloak
@@ -2611,15 +2611,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div x-data="{ showPicker: false }" class="mt-4">
                 <button type="button" @click="showPicker = !showPicker; showPicker && libRefresh()"
                         class="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-400 hover:border-primary hover:text-primary transition text-sm cursor-pointer">
-                    + 添加区块
+                    + <?php echo e(__('pea_add_section_plain')); ?>
                 </button>
                 <div x-show="showPicker" x-cloak class="mt-2 border rounded-lg p-4 bg-gray-50">
-                    <p class="text-sm text-gray-600 mb-3">选择列布局：</p>
+                    <p class="text-sm text-gray-600 mb-3"><?php echo e(__('pea_pick_columns')); ?></p>
                     <div class="flex gap-3 justify-center">
                         <button type="button" @click="addSection(1); showPicker=false"
                                 class="border-2 rounded-lg p-3 hover:border-primary hover:bg-white transition flex flex-col items-center cursor-pointer">
                             <div class="w-20 h-10 bg-blue-100 rounded"></div>
-                            <span class="text-xs mt-1 text-gray-600">1 列</span>
+                            <span class="text-xs mt-1 text-gray-600"><?php echo e(__('pea_cols_1')); ?></span>
                         </button>
                         <button type="button" @click="addSection(2); showPicker=false"
                                 class="border-2 rounded-lg p-3 hover:border-primary hover:bg-white transition flex flex-col items-center cursor-pointer">
@@ -2627,7 +2627,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <div class="flex-1 bg-blue-100 rounded"></div>
                                 <div class="flex-1 bg-blue-100 rounded"></div>
                             </div>
-                            <span class="text-xs mt-1 text-gray-600">2 列</span>
+                            <span class="text-xs mt-1 text-gray-600"><?php echo e(__('pea_cols_2')); ?></span>
                         </button>
                         <button type="button" @click="addSection(3); showPicker=false"
                                 class="border-2 rounded-lg p-3 hover:border-primary hover:bg-white transition flex flex-col items-center cursor-pointer">
@@ -2636,7 +2636,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <div class="flex-1 bg-blue-100 rounded"></div>
                                 <div class="flex-1 bg-blue-100 rounded"></div>
                             </div>
-                            <span class="text-xs mt-1 text-gray-600">3 列</span>
+                            <span class="text-xs mt-1 text-gray-600"><?php echo e(__('pea_cols_3')); ?></span>
                         </button>
                         <button type="button" @click="addSection(4); showPicker=false"
                                 class="border-2 rounded-lg p-3 hover:border-primary hover:bg-white transition flex flex-col items-center cursor-pointer">
@@ -2646,14 +2646,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <div class="flex-1 bg-blue-100 rounded"></div>
                                 <div class="flex-1 bg-blue-100 rounded"></div>
                             </div>
-                            <span class="text-xs mt-1 text-gray-600">4 列</span>
+                            <span class="text-xs mt-1 text-gray-600"><?php echo e(__('pea_cols_4')); ?></span>
                         </button>
                     </div>
                     <!-- 从块库插入（P2 可复用块）：引用=改库全站生效；副本=独立编辑 -->
                     <div class="mt-4 border-t pt-3">
-                        <p class="text-sm text-gray-600 mb-2">或从块库插入 <span class="text-xs text-gray-400">引用块随块库更新全站生效；副本插入后独立编辑</span></p>
+                        <p class="text-sm text-gray-600 mb-2"><?php echo e(__('pea_insert_from_library')); ?> <span class="text-xs text-gray-400"><?php echo e(__('pea_insert_from_library_tip')); ?></span></p>
                         <template x-if="libItems.length === 0">
-                            <p class="text-xs text-gray-400">块库为空——在任意区块工具栏点 <i class="ti ti-bookmark-plus"></i> 可把该区块存入块库</p>
+                            <p class="text-xs text-gray-400"><?php echo str_replace(':icon', '<i class="ti ti-bookmark-plus"></i>', e(__('pea_library_empty'))); ?></p>
                         </template>
                         <div class="space-y-1">
                             <template x-for="item in libItems" :key="item.id">
@@ -2661,11 +2661,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <i class="ti ti-library text-purple-400"></i>
                                     <span class="text-sm text-gray-700 flex-1" x-text="item.name"></span>
                                     <button type="button" @click="insertLibRef(item); showPicker = false"
-                                            class="text-xs text-purple-600 hover:underline cursor-pointer">引用插入</button>
+                                            class="text-xs text-purple-600 hover:underline cursor-pointer"><?php echo e(__('pea_insert_reference')); ?></button>
                                     <button type="button" @click="insertLibCopy(item); showPicker = false"
-                                            class="text-xs text-primary hover:underline cursor-pointer">副本插入</button>
+                                            class="text-xs text-primary hover:underline cursor-pointer"><?php echo e(__('pea_insert_copy')); ?></button>
                                     <button type="button" @click="libDelete(item)"
-                                            class="text-xs text-red-400 hover:text-red-600 cursor-pointer" title="从块库删除">
+                                            class="text-xs text-red-400 hover:text-red-600 cursor-pointer" title="<?php echo e(__('pea_remove_from_library')); ?>">
                                         <i class="ti ti-trash"></i>
                                     </button>
                                 </div>
@@ -2680,7 +2680,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- 实时预览面板 -->
     <div x-show="showPreview" x-cloak class="bg-white rounded-lg shadow">
         <div class="px-6 py-3 border-b flex items-center justify-between gap-3">
-            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-eye"></i>实时预览</h2>
+            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-eye"></i><?php echo e(__('pea_live_preview')); ?></h2>
             <div class="flex items-center gap-2">
                 <template x-for="d in previewDevices" :key="d.key">
                     <button type="button" @click="previewDevice = d.key"
@@ -2689,7 +2689,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <i class="ti" :class="d.icon"></i><span x-text="d.label"></span>
                     </button>
                 </template>
-                <span class="text-xs text-gray-300" x-show="previewLoading">刷新中…</span>
+                <span class="text-xs text-gray-300" x-show="previewLoading"><?php echo e(__('pea_refreshing')); ?></span>
             </div>
         </div>
         <div class="p-4 bg-gray-100 flex justify-center overflow-auto">
@@ -2703,14 +2703,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
             <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
-                <h3 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-layout-collage"></i>预设库</h3>
+                <h3 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-layout-collage"></i><?php echo e(__('pea_preset_library')); ?></h3>
                 <button type="button" @click="showPresets = false" class="text-gray-400 hover:text-gray-600 cursor-pointer">
                     <i class="ti ti-x text-xl"></i>
                 </button>
             </div>
             <div class="p-6 overflow-y-auto space-y-6">
                 <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">区块预设 · 插入单个区块</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-2"><?php echo e(__('pea_section_presets')); ?></p>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                         <template x-for="p in presetSections()" :key="p.key">
                             <button type="button" @click="insertPreset(p)"
@@ -2723,7 +2723,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">整页模板 · 插入整套区块</p>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-2"><?php echo e(__('pea_page_templates')); ?></p>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                         <template x-for="p in presetPages()" :key="p.key">
                             <button type="button" @click="insertPreset(p)"
@@ -2795,137 +2795,137 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="sectionSettingsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[88vh] flex flex-col">
         <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
-            <h3 class="font-bold text-gray-800">区块设置</h3>
+            <h3 class="font-bold text-gray-800"><?php echo e(__('pea_section_settings')); ?></h3>
             <button type="button" onclick="closeSectionSettings()" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-xl"></i>
             </button>
         </div>
         <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div class="md:col-span-2">
-                <label class="block text-sm text-gray-700 mb-1">列数</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_column_count')); ?></label>
                 <div class="flex gap-2">
-                    <button type="button" onclick="setSectionCols(1)" data-cols="1" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">1 列</button>
-                    <button type="button" onclick="setSectionCols(2)" data-cols="2" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">2 列</button>
-                    <button type="button" onclick="setSectionCols(3)" data-cols="3" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">3 列</button>
-                    <button type="button" onclick="setSectionCols(4)" data-cols="4" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer">4 列</button>
+                    <button type="button" onclick="setSectionCols(1)" data-cols="1" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer"><?php echo e(__('pea_cols_1')); ?></button>
+                    <button type="button" onclick="setSectionCols(2)" data-cols="2" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer"><?php echo e(__('pea_cols_2')); ?></button>
+                    <button type="button" onclick="setSectionCols(3)" data-cols="3" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer"><?php echo e(__('pea_cols_3')); ?></button>
+                    <button type="button" onclick="setSectionCols(4)" data-cols="4" class="col-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer"><?php echo e(__('pea_cols_4')); ?></button>
                 </div>
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm text-gray-700 mb-1">区块标题 <span class="text-xs text-gray-400">（可选，居中大标题 + 装饰条；留空则不显示，适合"总标题 + 多列"版块如价格表）</span></label>
-                <input id="settingTitle" type="text" class="w-full border rounded px-3 py-2" placeholder="如：价格方案 / 我们的产品">
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_section_title')); ?> <span class="text-xs text-gray-400"><?php echo e(__('pea_section_title_tip')); ?></span></label>
+                <input id="settingTitle" type="text" class="w-full border rounded px-3 py-2" placeholder="<?php echo e(__('pea_section_title_ph')); ?>">
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm text-gray-700 mb-1">区块副标题 <span class="text-xs text-gray-400">（可选）</span></label>
-                <input id="settingSubtitle" type="text" class="w-full border rounded px-3 py-2" placeholder="如：选择最适合你的套餐，随时可升级">
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_section_subtitle')); ?> <span class="text-xs text-gray-400"><?php echo e(__('admin_optional_paren')); ?></span></label>
+                <input id="settingSubtitle" type="text" class="w-full border rounded px-3 py-2" placeholder="<?php echo e(__('pea_section_subtitle_ph')); ?>">
             </div>
             <div class="md:col-span-2 flex items-center justify-between gap-2">
-                <label class="text-sm text-gray-700">设备分档 <span class="text-xs text-gray-400">内边距/列间距可按设备分别设置</span></label>
+                <label class="text-sm text-gray-700"><?php echo e(__('pea_device_tiers')); ?> <span class="text-xs text-gray-400"><?php echo e(__('pea_device_tiers_tip')); ?></span></label>
                 <div class="flex gap-1">
-                    <button type="button" onclick="setSettingDevice('d')" data-dev="d" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-desktop"></i>桌面</button>
-                    <button type="button" onclick="setSettingDevice('t')" data-dev="t" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-tablet"></i>平板</button>
-                    <button type="button" onclick="setSettingDevice('m')" data-dev="m" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-mobile"></i>手机</button>
+                    <button type="button" onclick="setSettingDevice('d')" data-dev="d" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-desktop"></i><?php echo e(__('pea_desktop')); ?></button>
+                    <button type="button" onclick="setSettingDevice('t')" data-dev="t" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-tablet"></i><?php echo e(__('pea_tablet')); ?></button>
+                    <button type="button" onclick="setSettingDevice('m')" data-dev="m" class="dev-btn px-2 py-1 border rounded text-xs cursor-pointer hover:bg-gray-50 inline-flex items-center gap-1"><i class="ti ti-device-mobile"></i><?php echo e(__('pea_mobile')); ?></button>
                 </div>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">内边距</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_padding')); ?></label>
                 <select id="settingPadding" class="w-full border rounded px-3 py-2">
-                    <option value="none">无</option>
-                    <option value="sm">小</option>
-                    <option value="md">中（默认）</option>
-                    <option value="lg">大</option>
-                    <option value="xl">超大</option>
+                    <option value="none"><?php echo e(__('pea_none')); ?></option>
+                    <option value="sm"><?php echo e(__('pea_sm')); ?></option>
+                    <option value="md"><?php echo e(__('pea_md_default')); ?></option>
+                    <option value="lg"><?php echo e(__('pea_lg')); ?></option>
+                    <option value="xl"><?php echo e(__('pea_xl')); ?></option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">最大宽度</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_max_width')); ?></label>
                 <select id="settingMaxWidth" class="w-full border rounded px-3 py-2">
-                    <option value="default">默认 (1152px)</option>
-                    <option value="narrow">窄 (896px)</option>
-                    <option value="wide">宽 (1280px)</option>
-                    <option value="full">全宽</option>
+                    <option value="default"><?php echo e(__('pea_width_default')); ?></option>
+                    <option value="narrow"><?php echo e(__('pea_width_narrow')); ?></option>
+                    <option value="wide"><?php echo e(__('pea_width_wide')); ?></option>
+                    <option value="full"><?php echo e(__('pea_width_full')); ?></option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">垂直对齐</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_valign')); ?></label>
                 <div class="flex gap-2">
                     <button type="button" onclick="setAlignItems('start')" data-val="start" class="align-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="20" y2="4"/><rect x="6" y="4" width="4" height="10" rx="1" fill="currentColor" opacity="0.3"/><rect x="14" y="4" width="4" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">顶部</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_top')); ?></span>
                     </button>
                     <button type="button" onclick="setAlignItems('center')" data-val="center" class="align-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12" stroke-dasharray="2 2"/><rect x="6" y="7" width="4" height="10" rx="1" fill="currentColor" opacity="0.3"/><rect x="14" y="9" width="4" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">居中</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_center')); ?></span>
                     </button>
                     <button type="button" onclick="setAlignItems('end')" data-val="end" class="align-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="10" width="4" height="10" rx="1" fill="currentColor" opacity="0.3"/><rect x="14" y="14" width="4" height="6" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">底部</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_bottom')); ?></span>
                     </button>
                     <button type="button" onclick="setAlignItems('stretch')" data-val="stretch" class="align-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="20" y2="4"/><line x1="4" y1="20" x2="20" y2="20"/><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" opacity="0.3"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">拉伸</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_stretch')); ?></span>
                     </button>
                 </div>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">水平对齐</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_halign')); ?></label>
                 <div class="flex gap-2">
                     <button type="button" onclick="setJustifyItems('start')" data-val="start" class="justify-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="4" y2="20"/><rect x="4" y="6" width="10" height="4" rx="1" fill="currentColor" opacity="0.3"/><rect x="4" y="14" width="6" height="4" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">左对齐</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_left')); ?></span>
                     </button>
                     <button type="button" onclick="setJustifyItems('center')" data-val="center" class="justify-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="4" x2="12" y2="20" stroke-dasharray="2 2"/><rect x="7" y="6" width="10" height="4" rx="1" fill="currentColor" opacity="0.3"/><rect x="9" y="14" width="6" height="4" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">居中</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_center')); ?></span>
                     </button>
                     <button type="button" onclick="setJustifyItems('end')" data-val="end" class="justify-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="20" y1="4" x2="20" y2="20"/><rect x="10" y="6" width="10" height="4" rx="1" fill="currentColor" opacity="0.3"/><rect x="14" y="14" width="6" height="4" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">右对齐</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_right')); ?></span>
                     </button>
                     <button type="button" onclick="setJustifyItems('stretch')" data-val="stretch" class="justify-btn flex-1 py-2 border rounded text-sm hover:bg-gray-50 cursor-pointer flex flex-col items-center gap-0.5">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="4" x2="4" y2="20"/><line x1="20" y1="4" x2="20" y2="20"/><rect x="4" y="6" width="16" height="4" rx="1" fill="currentColor" opacity="0.3"/><rect x="4" y="14" width="16" height="4" rx="1" fill="currentColor" opacity="0.3"/></svg>
-                        <span class="text-xs">拉伸</span>
+                        <span class="text-xs"><?php echo e(__('pea_align_stretch')); ?></span>
                     </button>
                 </div>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">列间距</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_gap')); ?></label>
                 <select id="settingGap" class="w-full border rounded px-3 py-2">
-                    <option value="none">无间距</option>
-                    <option value="sm">小 (8px)</option>
-                    <option value="md">中 (16px)</option>
-                    <option value="lg">大 (32px) - 默认</option>
-                    <option value="xl">超大 (48px)</option>
+                    <option value="none"><?php echo e(__('pea_gap_none')); ?></option>
+                    <option value="sm"><?php echo e(__('pea_gap_sm')); ?></option>
+                    <option value="md"><?php echo e(__('pea_gap_md')); ?></option>
+                    <option value="lg"><?php echo e(__('pea_gap_lg')); ?></option>
+                    <option value="xl"><?php echo e(__('pea_gap_xl')); ?></option>
                 </select>
             </div>
             <div>
                 <label class="inline-flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" id="settingColCard" class="rounded border-gray-300 text-primary focus:ring-primary">
-                    <span class="text-sm text-gray-700">每列显示为卡片（白底/边框/阴影，适合多列特性区）</span>
+                    <span class="text-sm text-gray-700"><?php echo e(__('pea_card_columns')); ?></span>
                 </label>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">背景颜色</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_bg_color')); ?></label>
                 <div class="flex gap-2 items-center">
                     <input type="color" id="settingBgColor" value="#ffffff" class="w-10 h-10 rounded border cursor-pointer">
-                    <input type="text" id="settingBgColorText" placeholder="如 #f3f4f6 或留空"
+                    <input type="text" id="settingBgColorText" placeholder="<?php echo e(__('pea_bg_color_ph')); ?>"
                            class="flex-1 border rounded px-3 py-2 text-sm">
                 </div>
                 <div class="flex items-center gap-2 mt-2">
-                    <label class="text-xs text-gray-500 whitespace-nowrap">透明度</label>
+                    <label class="text-xs text-gray-500 whitespace-nowrap"><?php echo e(__('pea_opacity')); ?></label>
                     <input type="range" id="settingBgOpacity" min="0" max="100" value="100" class="flex-1 cursor-pointer">
                     <span id="settingBgOpacityVal" class="text-xs text-gray-500 w-8 text-right">100%</span>
                 </div>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">背景图片</label>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('pea_bg_image')); ?></label>
                 <div class="flex gap-2">
-                    <input type="text" id="settingBgImage" placeholder="图片URL" class="flex-1 border rounded px-3 py-2 text-sm">
-                    <button type="button" onclick="uploadSectionBgImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="上传本地图片">上传</button>
-                    <button type="button" onclick="pickSectionBgImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="从媒体库选择"><?php echo __('admin_media_library'); ?></button>
+                    <input type="text" id="settingBgImage" placeholder="<?php echo e(__('pea_image_url_ph')); ?>" class="flex-1 border rounded px-3 py-2 text-sm">
+                    <button type="button" onclick="uploadSectionBgImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="<?php echo e(__('pea_upload_local')); ?>"><?php echo e(__('admin_upload')); ?></button>
+                    <button type="button" onclick="pickSectionBgImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm cursor-pointer" title="<?php echo e(__('pea_pick_from_media')); ?>"><?php echo __('admin_media_library'); ?></button>
                 </div>
                 <input type="file" id="sectionBgFileInput" class="hidden" accept="image/*">
             </div>
-            <button type="button" onclick="saveSectionSettings()" class="md:col-span-2 w-full bg-primary hover:bg-secondary text-white py-2 rounded transition cursor-pointer">确定</button>
+            <button type="button" onclick="saveSectionSettings()" class="md:col-span-2 w-full bg-primary hover:bg-secondary text-white py-2 rounded transition cursor-pointer"><?php echo e(__('admin_confirm')); ?></button>
         </div>
     </div>
 </div>
@@ -2934,19 +2934,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="textEditorModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 flex flex-col" style="max-height: calc(100vh - 3rem)">
         <div class="px-6 py-4 border-b flex items-center justify-between gap-4 shrink-0">
-            <h3 class="font-bold text-gray-800">编辑富文本内容</h3>
+            <h3 class="font-bold text-gray-800"><?php echo e(__('pea_edit_richtext')); ?></h3>
             <div class="flex items-center gap-3">
-                <div class="inline-flex rounded border border-gray-200 bg-gray-100 p-0.5" aria-label="编辑模式">
+                <div class="inline-flex rounded border border-gray-200 bg-gray-100 p-0.5" aria-label="<?php echo e(__('pea_edit_mode')); ?>">
                     <button type="button" id="textEditorVisualBtn" onclick="setTextEditorMode('visual')"
                             class="px-3 py-1.5 rounded-sm bg-white text-gray-800 shadow-sm text-xs font-medium cursor-pointer">
-                        <i class="ti ti-eye mr-1"></i>可视化
+                        <i class="ti ti-eye mr-1"></i><?php echo e(__('pea_visual')); ?>
                     </button>
                     <button type="button" id="textEditorSourceBtn" onclick="setTextEditorMode('source')"
                             class="px-3 py-1.5 rounded-sm text-gray-500 text-xs font-medium cursor-pointer">
-                        <i class="ti ti-code mr-1"></i>HTML 源码
+                        <i class="ti ti-code mr-1"></i><?php echo e(__('pea_html_source')); ?>
                     </button>
                 </div>
-                <button type="button" onclick="closeTextEditor()" class="text-gray-400 hover:text-gray-600" title="关闭">
+                <button type="button" onclick="closeTextEditor()" class="text-gray-400 hover:text-gray-600" title="<?php echo e(__('admin_close')); ?>">
                     <i class="ti ti-x text-xl"></i>
                 </button>
             </div>
@@ -2957,16 +2957,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div id="modal-editor" class="border rounded-b-lg" style="min-height: 300px;"></div>
             </div>
             <div id="textEditorSourcePane" class="hidden">
-                <label for="textEditorSource" class="sr-only">HTML 源码</label>
+                <label for="textEditorSource" class="sr-only"><?php echo e(__('pea_html_source')); ?></label>
                 <textarea id="textEditorSource" spellcheck="false"
                           class="w-full min-h-80 border border-gray-300 rounded px-4 py-3 font-mono text-sm leading-6 text-gray-800 bg-gray-50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                          placeholder="在这里编辑 HTML 源码"></textarea>
-                <p class="mt-2 text-xs text-gray-500">切回可视化模式时会应用当前源码。</p>
+                          placeholder="<?php echo e(__('pea_html_source_ph')); ?>"></textarea>
+                <p class="mt-2 text-xs text-gray-500"><?php echo e(__('pea_source_apply_note')); ?></p>
             </div>
         </div>
         <div class="px-6 py-3 border-t flex justify-end gap-2 shrink-0">
             <button type="button" onclick="closeTextEditor()" class="px-4 py-2 border rounded hover:bg-gray-100 text-sm cursor-pointer"><?php echo __('admin_cancel'); ?></button>
-            <button type="button" onclick="saveTextEditor()" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm cursor-pointer">确定</button>
+            <button type="button" onclick="saveTextEditor()" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm cursor-pointer"><?php echo e(__('admin_confirm')); ?></button>
         </div>
     </div>
 </div>
@@ -3071,7 +3071,7 @@ document.getElementById('sectionBgFileInput').addEventListener('change', async f
         if (data.code === 0) {
             document.getElementById('settingBgImage').value = data.data.url;
             showMessage('<?php echo __('admin_success'); ?>');
-        } else { showMessage(data.msg || '上传失败', 'error'); }
+        } else { showMessage(data.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); }
     } catch (e) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
     this.value = '';
 });
@@ -3286,9 +3286,9 @@ function pageBuilder() {
         previewLoading: false,
         previewDevice: "desktop",
         previewDevices: [
-            { key: "desktop", label: "桌面", icon: "ti-device-desktop" },
-            { key: "tablet", label: "平板", icon: "ti-device-tablet" },
-            { key: "mobile", label: "手机", icon: "ti-device-mobile" }
+            { key: "desktop", label: ' . json_encode(__('pea_desktop'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-desktop" },
+            { key: "tablet", label: ' . json_encode(__('pea_tablet'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-tablet" },
+            { key: "mobile", label: ' . json_encode(__('pea_mobile'), JSON_UNESCAPED_UNICODE) . ', icon: "ti-device-mobile" }
         ],
         _previewTimer: null,
         previewWidth() {
@@ -3341,7 +3341,7 @@ function pageBuilder() {
             return groups;
         },
         categoryLabel(c) {
-            return ({ basic: "基础", media: "媒体", layout: "布局", advanced: "高级", dynamic: "动态" })[c] || c;
+            return ({ basic: ' . json_encode(__('pea_cat_basic'), JSON_UNESCAPED_UNICODE) . ', media: ' . json_encode(__('pea_cat_media'), JSON_UNESCAPED_UNICODE) . ', layout: ' . json_encode(__('pea_cat_layout'), JSON_UNESCAPED_UNICODE) . ', advanced: ' . json_encode(__('pea_cat_advanced'), JSON_UNESCAPED_UNICODE) . ', dynamic: ' . json_encode(__('pea_cat_dynamic'), JSON_UNESCAPED_UNICODE) . ' })[c] || c;
         },
         hasCustomUI(type) { return BUILDER_CUSTOM_UI.indexOf(type) !== -1; },
         elementControls(type) { return (BUILDER_ELEMENTS[type] || {}).controls || []; },
@@ -3511,7 +3511,7 @@ function pageBuilder() {
             }).catch(function() {});
         },
         saveToLibrary(si) {
-            var name = prompt("块名称（存入块库后可在其他页面复用）：");
+            var name = prompt(' . json_encode(__('pea_block_name_prompt'), JSON_UNESCAPED_UNICODE) . ');
             if (!name) return;
             var self = this;
             this.libPost({
@@ -3519,9 +3519,9 @@ function pageBuilder() {
                 lib_name: name,
                 section_data: JSON.stringify(this.sections[si])
             }).then(function(res) {
-                if (res.code === 0) { showMessage("已存入块库"); self.libRefresh(); }
+                if (res.code === 0) { showMessage(' . json_encode(__('pea_saved_to_library'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
                 else showMessage(res.msg, "error");
-            }).catch(function() { showMessage("请求失败", "error"); });
+            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
         insertLibRef(item) {
             this.sections.push({ id: this.uid("s"), library_id: item.id, library_name: item.name, settings: {}, columns: [] });
@@ -3533,7 +3533,7 @@ function pageBuilder() {
                 var sec = JSON.parse(res.data.item.data);
                 self.sections.push(self.freshSection(sec));
                 self.$nextTick(function() { self.initSortable(); });
-            }).catch(function() { showMessage("请求失败", "error"); });
+            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
         detachLibRef(si) {
             var s = this.sections[si];
@@ -3544,15 +3544,15 @@ function pageBuilder() {
                 var sec = JSON.parse(res.data.item.data);
                 self.sections.splice(si, 1, self.freshSection(sec));
                 self.$nextTick(function() { self.initSortable(); });
-            }).catch(function() { showMessage("请求失败", "error"); });
+            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
         libDelete(item) {
-            if (!confirm("从块库删除「" + item.name + "」？已引用它的页面该区块将不再显示")) return;
+            if (!confirm(' . json_encode(__('pea_del_from_library_confirm'), JSON_UNESCAPED_UNICODE) . '.replace(":name", item.name))) return;
             var self = this;
             this.libPost({ action: "lib_delete", lib_id: item.id }).then(function(res) {
-                if (res.code === 0) { showMessage("已删除"); self.libRefresh(); }
+                if (res.code === 0) { showMessage(' . json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
                 else showMessage(res.msg, "error");
-            }).catch(function() { showMessage("请求失败", "error"); });
+            }).catch(function() { showMessage(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
         },
 
         // 深拷贝元素并递归刷新子元素 id，避免复制含 Banner 子项的模板后产生重复定位键。
@@ -3630,15 +3630,15 @@ function pageBuilder() {
         sectionColumnLabel(section) {
             for (var column of (section.columns || [])) {
                 for (var el of (column.elements || [])) {
-                    if (this.isHomeAboutBlock(el)) return "2 列";
-                    if (this.isHomeStatsBlock(el)) return "4 列";
-                    if (this.isProductCarouselBlock(el)) return (Math.max(1, Math.min(6, Number((el.data || {}).per_row) || 4))) + " 列";
-                    if (this.isHomeChannelBlock(el)) return (Math.max(1, Math.min(8, Number((el.data || {}).per_row) || 4))) + " 列";
-                    if (this.isHomeAdvantageBlock(el)) return "4 列";
-                    if (this.isHomeTestimonialsBlock(el)) return "3 列";
+                    if (this.isHomeAboutBlock(el)) return ' . json_encode(__('pea_cols_2'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeStatsBlock(el)) return ' . json_encode(__('pea_cols_4'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isProductCarouselBlock(el)) return (Math.max(1, Math.min(6, Number((el.data || {}).per_row) || 4))).toString().replace(/^/, "") + " " + ' . json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeChannelBlock(el)) return (Math.max(1, Math.min(8, Number((el.data || {}).per_row) || 4))).toString().replace(/^/, "") + " " + ' . json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeAdvantageBlock(el)) return ' . json_encode(__('pea_cols_4'), JSON_UNESCAPED_UNICODE) . ';
+                    if (this.isHomeTestimonialsBlock(el)) return ' . json_encode(__('pea_cols_3'), JSON_UNESCAPED_UNICODE) . ';
                 }
             }
-            return (section.columns || []).length + " 列";
+            return (section.columns || []).length + " " + ' . json_encode(__('pea_columns_unit'), JSON_UNESCAPED_UNICODE) . ';
         },
         sectionLabel(section, si) {
             if (section.library_id) return section.library_name || ("#" + section.library_id);
@@ -3646,11 +3646,11 @@ function pageBuilder() {
             if (title) return title;
             for (var column of (section.columns || [])) {
                 for (var el of (column.elements || [])) {
-                    if (this.isHomeBlock(el)) return String((el.data || {}).label || this.homeBlockSourceLabel(el) || ("区块 " + (si + 1)));
+                    if (this.isHomeBlock(el)) return String((el.data || {}).label || this.homeBlockSourceLabel(el) || (' . json_encode(__('pea_section_n'), JSON_UNESCAPED_UNICODE) . '.replace(":n", si + 1)));
                     if (el.type === "heading" && String((el.data || {}).text || "").trim()) return String(el.data.text).trim();
                 }
             }
-            return "区块 " + (si + 1);
+            return ' . json_encode(__('pea_section_n'), JSON_UNESCAPED_UNICODE) . '.replace(":n", si + 1);
         },
 
         // 定位 URL ?focus=N 指定的区块（前台悬停编辑跳转而来）
@@ -3694,7 +3694,7 @@ function pageBuilder() {
             var self = this;
             var fresh = tpl.map(function(s) { return self.freshSection(s); });
             if (this.sections.length > 0 && fresh.length > 1) {
-                if (!confirm("将整页模板追加到当前内容末尾？")) return;
+                if (!confirm(' . json_encode(__('pea_append_template_confirm'), JSON_UNESCAPED_UNICODE) . ')) return;
             }
             this.sections = this.sections.concat(fresh);
             for (var section of fresh) this.openSections[section.id] = true;
@@ -3715,7 +3715,7 @@ function pageBuilder() {
         },
 
         removeSection(si) {
-            if (!confirm("确定删除此区块？")) return;
+            if (!confirm(' . json_encode(__('pea_del_section_confirm'), JSON_UNESCAPED_UNICODE) . ')) return;
             this.sections.splice(si, 1);
         },
 
@@ -3792,7 +3792,7 @@ function pageBuilder() {
             m.classList.remove("hidden"); m.classList.add("flex");
             if (!_modalEditor) {
                 _modalEditor = initWangEditor("#modal-toolbar", "#modal-editor", {
-                    placeholder: "请输入内容...",
+                    placeholder: ' . json_encode(__('pea_content_ph'), JSON_UNESCAPED_UNICODE) . ',
                     html: el.data.html || "",
                     uploadUrl: "/admin/upload.php",
                     onChange: function() {}
@@ -3966,15 +3966,15 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
             if (baseEl && result.data && result.data.home_base_updated_at) {
                 baseEl.value = result.data.home_base_updated_at;
             }
-            msgEl.textContent = "保存成功";
+            msgEl.textContent = ' . json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE) . ';
             msgEl.className = "text-sm text-green-600";
             window.dispatchEvent(new CustomEvent("layout-saved"));
         } else {
-            msgEl.textContent = result.msg || "保存失败";
+            msgEl.textContent = result.msg || ' . json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE) . ';
             msgEl.className = "text-sm text-red-600";
         }
     } catch (err) {
-        msgEl.textContent = "请求失败";
+        msgEl.textContent = ' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ';
         msgEl.className = "text-sm text-red-600";
     }
     window.dispatchEvent(new CustomEvent("layout-save-finished"));
@@ -4003,7 +4003,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
                 var saveBody = new FormData(form);
                 var saveResp = await fetch("", { method: "POST", body: saveBody });
                 var saveResult = await safeJson(saveResp);
-                if (saveResult.code !== 0) { say(saveResult.msg || "保存失败", false); return; }
+                if (saveResult.code !== 0) { say(saveResult.msg || ' . json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE) . ', false); return; }
                 var baseEl = form.querySelector("input[name=home_base_updated_at]");
                 if (baseEl && saveResult.data && saveResult.data.home_base_updated_at) {
                     baseEl.value = saveResult.data.home_base_updated_at;
@@ -4015,20 +4015,20 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
             var resp = await fetch("", { method: "POST", body: body });
             var result = await safeJson(resp);
             if (result.code === 0) {
-                say(action === "publish" ? "已发布到线上首页" : "已回退到旧首页", true);
+                say(action === "publish" ? ' . json_encode(__('pea_published_home'), JSON_UNESCAPED_UNICODE) . ' : ' . json_encode(__('pea_rolled_back_home'), JSON_UNESCAPED_UNICODE) . ', true);
                 setTimeout(function () { location.reload(); }, 900);
             } else {
-                say(result.msg || "操作失败", false);
+                say(result.msg || ' . json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE) . ', false);
             }
         } catch (err) {
-            say("请求失败", false);
+            say(' . json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', false);
         } finally {
             btn.disabled = false;
         }
     }
 
-    if (pubBtn) pubBtn.addEventListener("click", function () { run("publish", "确定用当前排版替换线上首页？", pubBtn); });
-    if (backBtn) backBtn.addEventListener("click", function () { run("rollback", "确定回退到旧版首页？草稿会保留。", backBtn); });
+    if (pubBtn) pubBtn.addEventListener("click", function () { run("publish", ' . json_encode(__('pea_publish_confirm'), JSON_UNESCAPED_UNICODE) . ', pubBtn); });
+    if (backBtn) backBtn.addEventListener("click", function () { run("rollback", ' . json_encode(__('pea_rollback_confirm'), JSON_UNESCAPED_UNICODE) . ', backBtn); });
 })();
 
 </scr' . 'ipt>';
