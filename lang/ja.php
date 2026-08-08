@@ -2477,6 +2477,7 @@ return [
     'nav_menu_need_upgrade' => 'メニューグループにはデータベースのアップグレードが必要です：',
     'nav_menu_go_upgrade' => 'システムアップグレードへ',
     'nav_menu_drag_hint' => 'ドラッグで並べ替え。スイッチは即時保存',
+    'clear' => 'クリア',
     'nav_menu_default_desc' => 'ホームとチャンネルの表示を設定し、同じ階層内で並べ替えます。ホームは先頭固定で、階層はチャンネル管理に従います。',
     'nav_menu_home_fixed' => '先頭固定',
     'nav_menu_summary' => 'ナビチャンネル集計',
