@@ -54,6 +54,33 @@ if ($adminBrand === '后台管理') {
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <meta name="csrf-token" content="<?php echo csrfToken(); ?>">
+    <script>
+    // 全局 POST CSRF（auth.php 对所有 POST 强制校验）后台侧配套：同源 POST fetch
+    // 自动补 X-CSRF-TOKEN（已带则不覆盖）。RBAC 加固上线时散落各页的裸 fetch
+    // （media 扫描/上传/删除、AI 助手等）留下一片"非法请求"回归面——在源头一次根治，
+    // 未来新页面的裸 fetch 也自动免疫。
+    (function () {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        var token = meta ? meta.content : '';
+        if (!token || !window.fetch) return;
+        var origFetch = window.fetch;
+        window.fetch = function (input, init) {
+            init = init || {};
+            var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+            var url = typeof input === 'string' ? input : ((input && input.url) || '');
+            var sameOrigin = url.indexOf('://') === -1 || url.indexOf(location.origin + '/') === 0;
+            if (method === 'POST' && sameOrigin) {
+                if (init.headers instanceof Headers) {
+                    if (!init.headers.has('X-CSRF-TOKEN')) init.headers.set('X-CSRF-TOKEN', token);
+                } else {
+                    init.headers = init.headers || {};
+                    if (!init.headers['X-CSRF-TOKEN']) init.headers['X-CSRF-TOKEN'] = token;
+                }
+            }
+            return origFetch.call(this, input, init);
+        };
+    })();
+    </script>
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/admin.css'); ?>">
     <?php do_action('ik_admin_head'); ?>
 </head>
