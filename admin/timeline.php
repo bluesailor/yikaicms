@@ -19,35 +19,35 @@ requirePermission('edit_timeline');
 
 // 图标选项
 $iconOptions = [
-    '' => '无图标',
-    'flag' => '旗帜',
-    'rocket' => '火箭',
-    'award' => '奖杯',
-    'users' => '团队',
-    'box' => '产品',
-    'trending-up' => '增长',
-    'map' => '地图',
-    'handshake' => '合作',
-    'building' => '大楼',
-    'star' => '星星',
-    'heart' => '爱心',
-    'zap' => '闪电',
-    'target' => '目标',
-    'globe' => '全球',
+    '' => __('tl_icon_none'),
+    'flag' => __('tl_icon_flag'),
+    'rocket' => __('tl_icon_rocket'),
+    'award' => __('tl_icon_award'),
+    'users' => __('icon_users'),
+    'box' => __('admin_product'),
+    'trending-up' => __('tl_icon_growth'),
+    'map' => __('tl_icon_map'),
+    'handshake' => __('tl_icon_handshake'),
+    'building' => __('tl_icon_building'),
+    'star' => __('icon_star'),
+    'heart' => __('icon_heart'),
+    'zap' => __('icon_bolt'),
+    'target' => __('tl_icon_target'),
+    'globe' => __('icon_globe'),
 ];
 
 // 颜色选项
 $colorOptions = [
-    'primary' => '主色',
-    'blue' => '蓝色',
-    'green' => '绿色',
-    'yellow' => '黄色',
-    'red' => '红色',
-    'purple' => '紫色',
-    'cyan' => '青色',
-    'indigo' => '靛蓝',
-    'pink' => '粉色',
-    'gray' => '灰色',
+    'primary' => __('tl_c_primary'),
+    'blue' => __('tl_c_blue'),
+    'green' => __('tl_c_green'),
+    'yellow' => __('tl_c_yellow'),
+    'red' => __('tl_c_red'),
+    'purple' => __('tl_c_purple'),
+    'cyan' => __('tl_c_cyan'),
+    'indigo' => __('tl_c_indigo'),
+    'pink' => __('tl_c_pink'),
+    'gray' => __('tl_c_gray'),
 ];
 
 // 处理 AJAX
@@ -71,11 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (empty($data['title'])) {
-            error('请输入标题');
+            error(__('tl_title_required'));
         }
 
         if ($data['year'] < 1900 || $data['year'] > 2100) {
-            error('请输入有效年份');
+            error(__('tl_year_invalid'));
         }
 
         if ($id > 0) {
@@ -172,7 +172,7 @@ $transStatus = loadTransStatus('timelines');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<?php echo renderAdminLangSwitcher($_viewLang, '提示：每条里程碑独立 lang 字段；切换语言后看到的是该语言下的记录'); ?>
+<?php echo renderAdminLangSwitcher($_viewLang, __('tl_lang_tip')); ?>
 
 <!-- Swiper 全局预加载（横向布局预览需要，初始即可用） -->
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
@@ -186,12 +186,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <button type="button" @click="tab='events'" :class="tab==='events' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="px-6 py-3 border-b-2 font-medium text-sm transition inline-flex items-center gap-2">
             <i class="ti ti-align-justified text-base"></i>
-            事件管理
+            <?php echo e(__('tl_events')); ?>
         </button>
         <button type="button" @click="tab='settings'" :class="tab==='settings' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="px-6 py-3 border-b-2 font-medium text-sm transition inline-flex items-center gap-2">
             <i class="ti ti-settings text-base"></i>
-            显示设置
+            <?php echo e(__('tl_display')); ?>
         </button>
     </div>
 </div>
@@ -202,16 +202,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
         <div class="text-gray-500 text-sm">
-            拖拽排序 · 共 <?php echo count($timelines); ?> 条记录
+            <?php echo e(__('shome_drag_sort')); ?> · <?php echo str_replace(':n', (string) count($timelines), e(__('admin_total_n'))); ?>
         </div>
         <div class="flex gap-2">
             <a href="/history.php" target="_blank" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <i class="ti ti-eye text-base"></i>
-                预览
+                <?php echo e(__('tl_preview')); ?>
             </a>
             <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
-                添加事件
+                <?php echo e(__('tl_add_event')); ?>
             </button>
         </div>
     </div>
@@ -226,7 +226,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_created_at'); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容摘要</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('tl_summary_col')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('timeline_color'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
@@ -241,9 +241,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3">
                         <span class="font-medium text-primary"><?php echo $item['year']; ?></span>
                         <?php if ($item['month'] > 0): ?>
-                        <span class="text-gray-500">年<?php echo $item['month']; ?>月</span>
+                        <span class="text-gray-500"><?php echo str_replace(':m', (string) $item['month'], e(__('tl_year_month'))); ?></span>
                         <?php else: ?>
-                        <span class="text-gray-500">年</span>
+                        <span class="text-gray-500"><?php echo e(__('tl_year_unit')); ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3">
@@ -281,7 +281,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($timelines)): ?>
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">暂无数据，点击"添加事件"开始创建</td>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500"><?php echo e(__('tl_empty')); ?></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
@@ -309,12 +309,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow p-6 mb-4">
         <div class="flex items-start justify-between mb-1 gap-3">
             <div>
-                <h3 class="font-bold text-gray-800 mb-1">前台布局</h3>
-                <p class="text-sm text-gray-500 mb-4">选择时间线在 <code>/about/history.html</code> 的展示形态。<span class="text-green-600">点击卡片即自动保存</span>，无需点保存按钮。</p>
+                <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__('tl_layout')); ?></h3>
+                <p class="text-sm text-gray-500 mb-4"><?php echo str_replace(':page', '<code>/about/history.html</code>', e(__('tl_layout_desc'))); ?><span class="text-green-600">点击卡片即自动保存</span>，无需点保存按钮。</p>
             </div>
             <button type="button" onclick="saveTimelineLayout(document.querySelector('input[name=&quot;timeline_layout&quot;]:checked')?.value || 'vertical')" class="cursor-pointer text-sm border px-3 py-1.5 rounded hover:bg-gray-50 inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                 <i class="ti ti-device-floppy text-base"></i>
-                重新保存
+                <?php echo e(__('tl_resave')); ?>
             </button>
         </div>
 
@@ -334,10 +334,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="absolute left-1/2 -translate-x-1/2 top-14 w-1.5 h-1.5 bg-primary rounded-full"></div>
                     </div>
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="font-semibold text-gray-800">竖向双边</span>
-                        <span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">默认</span>
+                        <span class="font-semibold text-gray-800"><?php echo e(__('tl_vertical')); ?></span>
+                        <span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"><?php echo e(__('slang_default_badge')); ?></span>
                     </div>
-                    <p class="text-xs text-gray-500 leading-relaxed">中间主线 + 左右交替卡片，PC 双边 / 移动单边。适合企业大事记。</p>
+                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(__('tl_vertical_desc')); ?>。适合企业大事记。</p>
                 </div>
             </label>
 
@@ -356,8 +356,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="absolute left-1/3 -translate-x-1/4 bottom-2 w-12 h-8 bg-primary/40 rounded-sm"></div>
                         <div class="absolute right-2 bottom-2 w-12 h-8 bg-primary/40 rounded-sm"></div>
                     </div>
-                    <div class="font-semibold text-gray-800 mb-1">横向滑块</div>
-                    <p class="text-xs text-gray-500 leading-relaxed">Swiper 卡片轮播，顶部主线 + 横向排列，响应式 1-4 列，移动端友好。</p>
+                    <div class="font-semibold text-gray-800 mb-1"><?php echo e(__('tl_horizontal')); ?></div>
+                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(__('tl_horizontal_desc')); ?></p>
                 </div>
             </label>
 
@@ -387,10 +387,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                     </div>
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="font-semibold text-gray-800">紧凑列表</span>
-                        <span class="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">新</span>
+                        <span class="font-semibold text-gray-800"><?php echo e(__('tl_compact')); ?></span>
+                        <span class="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded"><?php echo e(__('tl_new_badge')); ?></span>
                     </div>
-                    <p class="text-xs text-gray-500 leading-relaxed">左侧窄列日期 + 主线圆点 + 右侧标题/正文。信息密度高，适合版本日志、新闻速递。</p>
+                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(__('tl_compact_desc')); ?></p>
                 </div>
             </label>
         </div>
@@ -399,17 +399,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="mt-6 border-t pt-5">
             <div class="flex items-center justify-between mb-3">
                 <div>
-                    <span class="font-medium text-gray-800">实时预览</span>
-                    <span class="text-xs text-gray-500 ml-2">仅显示时间线区块（最多 6 条），切换布局自动刷新</span>
+                    <span class="font-medium text-gray-800"><?php echo e(__('tl_live_preview')); ?></span>
+                    <span class="text-xs text-gray-500 ml-2"><?php echo e(__('tl_preview_note')); ?></span>
                 </div>
                 <div class="flex gap-2">
                     <button type="button" onclick="refreshTimelinePreview()" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
                         <i class="ti ti-refresh text-sm"></i>
-                        刷新
+                        <?php echo e(__('tl_refresh')); ?>
                     </button>
                     <a href="/history.php" target="_blank" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
                         <i class="ti ti-external-link text-sm"></i>
-                        前台完整页
+                        <?php echo e(__('tl_full_page')); ?>
                     </a>
                 </div>
             </div>
@@ -420,12 +420,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="font-bold text-gray-800 mb-1">前台显示顺序</h3>
-        <p class="text-sm text-gray-500 mb-4">控制事件在前台的排列方向（仅竖向布局严格按此分组；横向滑块按相同方向排序）。</p>
+        <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__('tl_order')); ?></h3>
+        <p class="text-sm text-gray-500 mb-4"><?php echo e(__('tl_order_desc_text')); ?></p>
 
         <select onchange="saveTimelineSort(this.value)" class="border rounded px-3 py-2 text-sm w-full md:w-auto">
-            <option value="desc" <?php echo $timelineSort === 'desc' ? 'selected' : ''; ?>>最新在上（年份降序）</option>
-            <option value="asc"  <?php echo $timelineSort === 'asc'  ? 'selected' : ''; ?>>最早在上（年份升序）</option>
+            <option value="desc" <?php echo $timelineSort === 'desc' ? 'selected' : ''; ?>><?php echo e(__('tl_order_desc')); ?></option>
+            <option value="asc"  <?php echo $timelineSort === 'asc'  ? 'selected' : ''; ?>><?php echo e(__('tl_order_asc')); ?></option>
         </select>
     </div>
 </div><!-- /TAB: settings -->
@@ -437,7 +437,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div class="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white">
-            <h3 class="font-bold text-gray-800" id="modalTitle">添加事件</h3>
+            <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo e(__('tl_add_event')); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
         <form id="editForm" class="p-6 space-y-4">
@@ -447,25 +447,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <!-- 时间 -->
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-gray-700 mb-1">年份 <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('tl_year')); ?> <span class="text-red-500">*</span></label>
                     <input type="number" name="year" id="editYear" required min="1900" max="2100"
                            value="<?php echo date('Y'); ?>" class="w-full border rounded px-4 py-2">
                 </div>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('timeline_month'); ?></label>
                     <select name="month" id="editMonth" class="w-full border rounded px-4 py-2">
-                        <option value="0">不显示</option>
+                        <option value="0"><?php echo e(__('tl_hide_field')); ?></option>
                         <?php for ($i = 1; $i <= 12; $i++): ?>
-                        <option value="<?php echo $i; ?>"><?php echo $i; ?>月</option>
+                        <option value="<?php echo $i; ?>"><?php echo $i; ?><?php echo e(__('tl_month_unit')); ?></option>
                         <?php endfor; ?>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-1">日期</label>
+                    <label class="block text-gray-700 mb-1"><?php echo e(__('tl_day')); ?></label>
                     <select name="day" id="editDay" class="w-full border rounded px-4 py-2">
-                        <option value="0">不显示</option>
+                        <option value="0"><?php echo e(__('tl_hide_field')); ?></option>
                         <?php for ($i = 1; $i <= 31; $i++): ?>
-                        <option value="<?php echo $i; ?>"><?php echo $i; ?>日</option>
+                        <option value="<?php echo $i; ?>"><?php echo $i; ?><?php echo e(__('tl_day_unit')); ?></option>
                         <?php endfor; ?>
                     </select>
                 </div>
@@ -473,26 +473,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <!-- 标题 -->
             <div>
-                <label class="block text-gray-700 mb-1">标题 <span class="text-red-500">*</span></label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('label_title')); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="title" id="editTitle" required class="w-full border rounded px-4 py-2"
-                       placeholder="例如：公司成立、获得融资、产品发布">
+                       placeholder="<?php echo e(__('tl_title_ph')); ?>">
             </div>
 
             <!-- 内容 -->
             <div>
-                <label class="block text-gray-700 mb-1">内容描述</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('tl_desc')); ?></label>
                 <textarea name="content" id="editContent" rows="3" class="w-full border rounded px-4 py-2"
-                          placeholder="详细描述这个里程碑事件..."></textarea>
+                          placeholder="<?php echo e(__('tl_desc_ph')); ?>"></textarea>
             </div>
 
             <!-- 图片 -->
             <div>
-                <label class="block text-gray-700 mb-1">配图</label>
+                <label class="block text-gray-700 mb-1"><?php echo e(__('tl_image')); ?></label>
                 <div class="flex gap-2">
-                    <input type="text" name="image" id="editImage" class="flex-1 border rounded px-4 py-2" placeholder="图片URL">
+                    <input type="text" name="image" id="editImage" class="flex-1 border rounded px-4 py-2" placeholder="<?php echo e(__('shome_image_url')); ?>">
                     <button type="button" onclick="uploadImage()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-flex items-center gap-1">
                         <i class="ti ti-folder text-base"></i>
-                        选择
+                        <?php echo e(__('tl_choose')); ?>
                     </button>
                     <button type="button" onclick="pickImageFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"><?php echo __('admin_media_library'); ?></button>
                 </div>
@@ -511,7 +511,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <button type="button" data-icon="<?php echo e($key); ?>" title="<?php echo e($label); ?>"
                                 onclick="pickTimelineIcon('<?php echo e($key); ?>')"
                                 class="tl-icon w-9 h-9 flex items-center justify-center text-lg rounded-lg border border-gray-200 hover:border-primary cursor-pointer transition">
-                            <?php echo $key === '' ? '<span class="text-xs text-gray-400">无</span>' : $emoji; ?>
+                            <?php echo $key === '' ? '<span class="text-xs text-gray-400">' . e(__('tl_icon_none')) . '</span>' : $emoji; ?>
                         </button>
                         <?php endforeach; ?>
                     </div>
@@ -541,7 +541,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>
                     <input type="number" name="sort_order" id="editSortOrder" value="0" class="w-full border rounded px-4 py-2">
-                    <p class="text-xs text-gray-400 mt-1">数字越大越靠前</p>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('dcat_sort_tip')); ?></p>
                 </div>
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_status'); ?></label>
@@ -581,7 +581,7 @@ document.addEventListener('click', function (e) {
     } else {
         console.error('saveTimelineLayout is not defined; layout=' + val);
         if (typeof showMessage === 'function') {
-            showMessage('保存函数未加载，请刷新页面后重试', 'error');
+            showMessage(<?php echo json_encode(__('tl_save_fn_missing'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     }
 });
@@ -599,7 +599,7 @@ try {
                 formData.append('action', 'sort');
                 ids.forEach(id => formData.append('ids[]', id));
                 await fetch('', { method: 'POST', body: formData });
-                showMessage('排序已保存');
+                showMessage(<?php echo json_encode(__('dl_sort_updated'), JSON_UNESCAPED_UNICODE); ?>);
             }
         });
     }
@@ -634,7 +634,7 @@ function pickTimelineColor(val) {
 }
 
 function openEditModal(item = null) {
-    document.getElementById('modalTitle').textContent = item ? '编辑事件' : '添加事件';
+    document.getElementById('modalTitle').textContent = item ? <?php echo json_encode(__('tl_edit_event'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('tl_add_event'), JSON_UNESCAPED_UNICODE); ?>;
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editYear').value = item?.year || new Date().getFullYear();
     document.getElementById('editMonth').value = item?.month || 0;
@@ -685,16 +685,16 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '显示';
+            btn.textContent = <?php echo json_encode(__('admin_show'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '隐藏';
+            btn.textContent = <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>;
         }
     }
 }
 
 async function deleteItem(id) {
-    if (!confirm('确定要删除这条记录吗？')) return;
+    if (!confirm(<?php echo json_encode(__('tl_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
@@ -750,10 +750,10 @@ document.getElementById('imageFileInput')?.addEventListener('change', async func
 async function saveTimelineSort(value) {
     const r = await fetchApi('', { action: 'save_sort_direction', timeline_sort: value });
     if (r.code === 0) {
-        showMessage('已更新前台显示顺序');
+        showMessage(<?php echo json_encode(__('tl_order_saved'), JSON_UNESCAPED_UNICODE); ?>);
         refreshTimelinePreview();
     } else {
-        showMessage(r.msg || '保存失败', 'error');
+        showMessage(r.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
@@ -770,16 +770,16 @@ async function saveTimelineLayout(value) {
     try {
         const r = await fetchApi('', { action: 'save_layout', timeline_layout: value });
         if (r && r.code === 0) {
-            const labels = { vertical: '竖向双边', horizontal: '横向滑块', compact: '紧凑列表' };
-            showMessage('已保存为' + (labels[value] || value));
+            const labels = { vertical: <?php echo json_encode(__('tl_vertical'), JSON_UNESCAPED_UNICODE); ?>, horizontal: <?php echo json_encode(__('tl_horizontal'), JSON_UNESCAPED_UNICODE); ?>, compact: <?php echo json_encode(__('tl_compact'), JSON_UNESCAPED_UNICODE); ?> };
+            showMessage(<?php echo json_encode(__('tl_saved_as'), JSON_UNESCAPED_UNICODE); ?> + (labels[value] || value));
             refreshTimelinePreview(value);
         } else {
-            showMessage((r && r.msg) || '保存失败：服务端未返回成功状态', 'error');
+            showMessage((r && r.msg) || <?php echo json_encode(__('tl_save_no_ok'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             console.error('saveTimelineLayout response:', r);
         }
     } catch (err) {
         console.error('saveTimelineLayout error:', err);
-        showMessage('保存失败：' + (err.message || '网络错误'), 'error');
+        showMessage(<?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + (err.message || <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?>), 'error');
     }
 }
 
@@ -812,7 +812,7 @@ async function refreshTimelinePreview(layout) {
             try { (new Function(old.textContent))(); } catch (e) { console.warn('preview script error', e); }
         });
     } catch (e) {
-        showMessage('预览刷新失败', 'error');
+        showMessage(<?php echo json_encode(__('tl_preview_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
