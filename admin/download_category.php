@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (empty($data['name'])) {
-            error('分类名称不能为空');
+            error(__('pcat_name_required'));
         }
 
         // slug：留空按名称自动生成；用于伪静态 /download/{slug}.html
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $count = downloadModel()->count(['category_id' => $id]);
 
         if ($count > 0) {
-            error('该分类下有 ' . $count . ' 个文件，请先移动或删除这些文件');
+            error(str_replace(':n', (string) $count, __('dcat_has_files')));
         }
 
         downloadCategoryModel()->deleteById($id);
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($item) {
             success($item);
         } else {
-            error('分类不存在');
+            error(__('ccat_invalid'));
         }
     }
 
@@ -100,7 +100,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <div class="text-gray-600">
-            共 <?php echo count($categories); ?> 个分类
+            <?php echo str_replace(':n', (string) count($categories), e(__('dcat_total'))); ?>
         </div>
         <div class="flex gap-2">
             <a href="/admin/download.php" class="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded inline-flex items-center gap-1">
@@ -109,7 +109,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </a>
             <button onclick="openModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
-                添加分类
+                <?php echo e(__('pcat_add')); ?>
             </button>
         </div>
     </div>
@@ -123,8 +123,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_name'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">文件数</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('shome_f_desc')); ?></th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('dcat_file_count')); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="text-lg font-medium" id="modalTitle">添加分类</h3>
+            <h3 class="text-lg font-medium" id="modalTitle"><?php echo e(__('pcat_add')); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-lg"></i>
             </button>
@@ -186,16 +186,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="formId" value="0">
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">分类名称 <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('pcat_name')); ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="name" id="formName" required
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">URL 别名 (Slug)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('admin_slug')); ?> (Slug)</label>
                     <input type="text" name="slug" id="formSlug"
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                           placeholder="留空自动生成，如 software">
-                    <p class="text-xs text-gray-400 mt-1">前端伪静态地址：/download/<span class="font-mono">{slug}</span>.html</p>
+                           placeholder="<?php echo e(__('dcat_slug_ph')); ?>">
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('dcat_url_tip')); ?>/download/<span class="font-mono">{slug}</span>.html</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo __('admin_description'); ?></label>
@@ -204,13 +204,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">排序</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('sort_order')); ?></label>
                         <input type="number" name="sort_order" id="formSortOrder" value="0"
                                class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                        <p class="text-xs text-gray-400 mt-1">数字越大越靠前</p>
+                        <p class="text-xs text-gray-400 mt-1"><?php echo e(__('dcat_sort_tip')); ?></p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('label_status')); ?></label>
                         <select name="status" id="formStatus"
                                 class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                             <option value="1"><?php echo __('admin_show'); ?></option>
@@ -221,7 +221,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-2 rounded-b-lg">
                 <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
-                <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-secondary">保存</button>
+                <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-secondary"><?php echo e(__('btn_save')); ?></button>
             </div>
         </form>
     </div>
@@ -231,7 +231,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 const modal = document.getElementById('editModal');
 
 function openModal() {
-    document.getElementById('modalTitle').textContent = '添加分类';
+    document.getElementById('modalTitle').textContent = <?php echo json_encode(__('pcat_add'), JSON_UNESCAPED_UNICODE); ?>;
     document.getElementById('formId').value = 0;
     document.getElementById('formName').value = '';
     document.getElementById('formSlug').value = '';
@@ -257,7 +257,7 @@ async function editItem(id) {
 
     if (result.code === 0 && result.data) {
         const item = result.data;
-        document.getElementById('modalTitle').textContent = '编辑分类';
+        document.getElementById('modalTitle').textContent = <?php echo json_encode(__('dcat_edit'), JSON_UNESCAPED_UNICODE); ?>;
         document.getElementById('formId').value = item.id;
         document.getElementById('formName').value = item.name;
         document.getElementById('formSlug').value = item.slug || '';
@@ -267,7 +267,7 @@ async function editItem(id) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     } else {
-        showMessage(result.msg || '获取数据失败', 'error');
+        showMessage(result.msg || <?php echo json_encode(__('admin_load_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
@@ -284,7 +284,7 @@ async function saveItem(e) {
         showMessage('<?php echo __('admin_saved'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
-        showMessage(result.msg || '保存失败', 'error');
+        showMessage(result.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
@@ -303,7 +303,7 @@ async function toggleStatus(id, value, btn) {
 }
 
 async function deleteItem(id, name) {
-    if (!confirm(`确定要删除分类"${name}"吗？`)) return;
+    if (!confirm(<?php echo json_encode(__('dcat_del_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', name))) return;
 
     const formData = new FormData();
     formData.append('action', 'delete');
@@ -316,7 +316,7 @@ async function deleteItem(id, name) {
         showMessage('<?php echo __('admin_deleted'); ?>');
         setTimeout(() => location.reload(), 1000);
     } else {
-        showMessage(result.msg || '删除失败', 'error');
+        showMessage(result.msg || <?php echo json_encode(__('admin_delete_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 

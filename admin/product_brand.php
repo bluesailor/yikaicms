@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'sort_order' => postInt('sort_order'),
             'status' => postInt('status', 1),
         ];
-        if (empty($data['name'])) error('请输入品牌名称');
+        if (empty($data['name'])) error(__('brand_name_required'));
 
         if ($id > 0) {
             // 编辑：保留原 lang 与 translation_group_id（不在表单里改）
@@ -87,12 +87,12 @@ if ($editId > 0) {
     }
 }
 
-$pageTitle = '品牌管理';
+$pageTitle = __('brand_title');
 $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 $transStatus = loadTransStatus('brands');
 require_once ROOT_PATH . '/admin/includes/header.php';
-echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_viewLang . ' 语种品牌；翻译徽标列点击进入翻译版本');
+echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('brand_lang_tip')));
 ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
@@ -110,18 +110,18 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
     <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b flex justify-between items-center">
-                <h3 class="font-bold">品牌列表 <span class="text-gray-400 font-normal">(<?php echo count($brands); ?>)</span></h3>
+                <h3 class="font-bold"><?php echo e(__('brand_list')); ?> <span class="text-gray-400 font-normal">(<?php echo count($brands); ?>)</span></h3>
             </div>
             <?php $_brandLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : ''; ?>
             <table class="w-full">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left"><input type="checkbox" id="checkAll"></th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">品牌</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">产地</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500"><?php echo e(__('brand_col')); ?></th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo e(__('brand_country')); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_count'); ?></th>
                         <?php if ($_viewLang === $_defaultLang): ?>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">翻译</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo e(__('admin_translate')); ?></th>
                         <?php endif; ?>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_sort_order'); ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500"><?php echo __('admin_action'); ?></th>
@@ -169,30 +169,30 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
     <!-- 添加/编辑 -->
     <div>
         <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="font-bold mb-4"><?php echo $editBrand ? '编辑品牌' : '添加品牌'; ?></h3>
+            <h3 class="font-bold mb-4"><?php echo $editBrand ? e(__('brand_edit')) : e(__('brand_add')); ?></h3>
             <form id="brandForm" class="space-y-4">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" value="<?php echo $editBrand['id'] ?? 0; ?>">
                 <input type="hidden" name="lang" value="<?php echo e($editBrand['lang'] ?? $_viewLang); ?>">
                 <?php if (!$editBrand && $_viewLang !== $_defaultLang): ?>
                 <div class="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-2 py-1.5">
-                    在 <?php echo e($_viewLang); ?> 视图下新建会创建独立的翻译行。建议先在 zh-CN 创建源记录，再切到 EN/JA 录翻译。
+                    <?php echo str_replace(':lang', e($_viewLang), e(__('brand_new_in_lang_tip'))); ?>
                 </div>
                 <?php endif; ?>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">品牌名称 *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('brand_name')); ?> *</label>
                     <input type="text" name="name" value="<?php echo e($editBrand['name'] ?? ''); ?>" required class="w-full border rounded px-3 py-2 text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">国家/产地</label>
-                    <input type="text" name="country" value="<?php echo e($editBrand['country'] ?? ''); ?>" placeholder="如：日本、德国" class="w-full border rounded px-3 py-2 text-sm">
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('brand_country')); ?></label>
+                    <input type="text" name="country" value="<?php echo e($editBrand['country'] ?? ''); ?>" placeholder="<?php echo e(__('brand_country_ph')); ?>" class="w-full border rounded px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
                     <div class="flex gap-2">
                         <input type="text" name="logo" id="brandLogo" value="<?php echo e($editBrand['logo'] ?? ''); ?>" class="flex-1 border rounded px-3 py-2 text-sm">
                         <label class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded cursor-pointer text-sm whitespace-nowrap">
-                            上传
+                            <?php echo e(__('admin_upload')); ?>
                             <input type="file" class="hidden" accept="image/*" onchange="uploadLogo(this)">
                         </label>
                     </div>
@@ -201,12 +201,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
                     <?php endif; ?>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">官网</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('brand_website')); ?></label>
                     <input type="text" name="url" value="<?php echo e($editBrand['url'] ?? ''); ?>" class="w-full border rounded px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                    <input type="text" name="slug" value="<?php echo e($editBrand['slug'] ?? ''); ?>" class="w-full border rounded px-3 py-2 text-sm" placeholder="留空自动生成">
+                    <input type="text" name="slug" value="<?php echo e($editBrand['slug'] ?? ''); ?>" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('ptag_slug_ph')); ?>">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -222,12 +222,12 @@ echo renderAdminLangSwitcher($_viewLang, '提示：当前列表只显示 ' . $_v
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">品牌介绍</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('brand_intro')); ?></label>
                     <textarea name="description" rows="3" class="w-full border rounded px-3 py-2 text-sm"><?php echo e($editBrand['description'] ?? ''); ?></textarea>
                 </div>
                 <button type="button" onclick="saveBrand()" class="w-full bg-primary hover:bg-secondary text-white py-2 rounded text-sm"><?php echo __('btn_save'); ?></button>
                 <?php if ($editBrand): ?>
-                <a href="/admin/product_brand.php" class="block text-center text-gray-500 text-sm hover:text-gray-700">取消编辑</a>
+                <a href="/admin/product_brand.php" class="block text-center text-gray-500 text-sm hover:text-gray-700"><?php echo e(__('ptag_cancel_edit')); ?></a>
                 <?php endif; ?>
             </form>
         </div>
@@ -247,8 +247,8 @@ document.getElementById('checkAll').addEventListener('change', function() {
 });
 async function batchDeleteBrands() {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
-    if (checked.length === 0) { showMessage('请先选择品牌', 'error'); return; }
-    if (!confirm('确定删除选中的 ' + checked.length + ' 个品牌？关联产品的品牌将被清除。')) return;
+    if (checked.length === 0) { showMessage(<?php echo json_encode(__('brand_pick_first'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
+    if (!confirm(<?php echo json_encode(__('brand_batch_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', checked.length))) return;
     const fd = new FormData();
     fd.append('action', 'batch_delete');
     checked.forEach(el => fd.append('ids[]', el.value));
@@ -270,11 +270,11 @@ async function uploadLogo(input) {
     input.value = '';
 }
 async function deleteBrand(id) {
-    if (!confirm('删除品牌将清除产品的品牌关联，确定？')) return;
+    if (!confirm(<?php echo json_encode(__('brand_del_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     const fd = new FormData(); fd.append('action', 'delete'); fd.append('id', id);
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('已删除'); setTimeout(() => location.reload(), 1000); }
+    if (d.code === 0) { showMessage(<?php echo json_encode(__('admin_deleted'), JSON_UNESCAPED_UNICODE); ?>); setTimeout(() => location.reload(), 1000); }
 }
 </script>
 
