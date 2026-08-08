@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 adminLog('setting', 'restore', '恢复默认值: ' . $restoreKey);
                 success(['value' => $defaultValue]);
             }
-            error('未找到该设置的默认值');
+            error(__('sset_no_default'));
         } elseif ($restoreGroup) {
             // 恢复整个分组
             $groupDefaults = getDefaults($restoreGroup);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('setting', 'restore', '恢复分组默认值: ' . $restoreGroup);
             success();
         }
-        error('参数错误');
+        error(__('admin_bad_params'));
     }
 
     if ($action === 'save_admin_languages') {
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 仅允许 lang/*.php 实际存在的语言，去重，按 availableLanguages() 顺序
         $allowed = array_keys(availableLanguages());
         $list = array_values(array_intersect($allowed, array_filter(array_map('trim', explode(',', $val)))));
-        if ($list === []) error('至少保留一种语言');
+        if ($list === []) error(__('sset_keep_one_lang'));
         settingModel()->set('admin_languages', implode(',', $list));
         adminLog('setting', 'admin_languages', '更新后台语言: ' . implode(',', $list));
         success(['admin_languages' => implode(',', $list)]);
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $enabled = array_values(array_intersect($allowed, (array)($_POST['enabled'] ?? [])));
         $default = (string)($_POST['site_lang'] ?? 'zh-CN');
         if (!in_array($default, $allowed, true)) $default = 'zh-CN';
-        if ($enabled === []) error('至少保留一种前台语言');
+        if ($enabled === []) error(__('sset_keep_one_front'));
         // 默认语言必须在启用列表中
         if (!in_array($default, $enabled, true)) $enabled[] = $default;
         // 重新按 allowed 顺序排序
@@ -216,7 +216,7 @@ foreach (array_keys($groupDefaults) as $__k) {
     $__s = trim((string) ($groupDefaults[$__k]['section'] ?? ''));
     if ($__s !== '' && !in_array($__s, $sectionOrder, true)) $sectionOrder[] = $__s;
 }
-$OTHER_SECTION = '其他';
+$OTHER_SECTION = __('sset_sec_other');
 $itemsBySection = [];
 foreach ($items as $__it) {
     $__s = trim((string) ($groupDefaults[$__it['key']]['section'] ?? ''));
@@ -234,13 +234,13 @@ foreach ($renderSections as $__i => $__s) $sectionAnchor[$__s] = 'setsec-' . $__
 
 // 分区名多语言：defaults.php 里存中文名，这里映射到 i18n key，按后台语言显示。
 $__sectionKeyMap = [
-    '站点信息' => 'site_info',
-    '站点标识' => 'site_identity',
-    '主题外观' => 'appearance',
-    '备案信息' => 'icp',
-    '上传设置' => 'upload',
-    '后台品牌' => 'admin_brand',
-    '其他'     => 'other',
+    __('sset_sec_site_info') => 'site_info',
+    __('sset_sec_identity') => 'site_identity',
+    __('sset_sec_appearance') => 'appearance',
+    __('sset_sec_icp') => 'icp',
+    __('sset_sec_upload') => 'upload',
+    __('sset_sec_admin_brand') => 'admin_brand',
+    __('sset_sec_other')     => 'other',
 ];
 $sectionLabel = function (string $sec) use ($__sectionKeyMap): string {
     $k = 'setting_section_' . ($__sectionKeyMap[$sec] ?? 'other');
@@ -256,9 +256,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 if ($_langAware) {
     $_hint = match ($_tabForLang) {
-        'basic'  => '提示：站点名称 / SEO关键词 / SEO描述 / Logo 按语言独立保存（key_' . $_viewLang . '）；备案号、颜色、Banner 高度等全局共享',
-        'header' => '提示：通栏左侧内容（topbar_left）按语言独立保存（key_' . $_viewLang . '）；颜色/开关等全局共享',
-        default  => '提示：页脚栏目/导航/版权 按语言独立保存（key_' . $_viewLang . '）；背景色/图片等其余设置全局共享',
+        'basic'  => str_replace(':key', 'key_' . $_viewLang, __('sset_tip_basic')),
+        'header' => str_replace(':key', 'key_' . $_viewLang, __('sset_tip_header')),
+        default  => str_replace(':key', 'key_' . $_viewLang, __('sset_tip_footer')),
     };
     echo renderAdminLangSwitcher($_viewLang, $_hint);
 }
@@ -317,10 +317,10 @@ foreach ($siteEnabled as $_lc) {
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b flex items-start justify-between">
         <div>
-            <h2 class="font-bold text-gray-800">前台语言</h2>
-            <p class="text-xs text-gray-500 mt-1">勾选要启用的前台语言，并选定一个为默认。访问者首次访问时使用默认语言。</p>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('sset_front_langs')); ?></h2>
+            <p class="text-xs text-gray-500 mt-1"><?php echo e(__('sset_front_langs_tip')); ?></p>
         </div>
-        <a href="/admin/setting_lang.php" class="text-xs text-primary hover:underline whitespace-nowrap mt-1">高级设置 →</a>
+        <a href="/admin/setting_lang.php" class="text-xs text-primary hover:underline whitespace-nowrap mt-1"><?php echo e(__('sset_advanced')); ?> →</a>
     </div>
     <div class="p-6 space-y-4">
         <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
@@ -331,10 +331,10 @@ foreach ($siteEnabled as $_lc) {
                                <?php echo in_array($code, $siteEnabled, true) ? 'checked' : ''; ?>>
                         <span class="text-sm"><?php echo e($label); ?> <span class="text-gray-400">(<?php echo e($code); ?>)</span></span>
                     </label>
-                    <label class="flex items-center gap-1 ml-1 cursor-pointer" title="设为默认">
+                    <label class="flex items-center gap-1 ml-1 cursor-pointer" title="<?php echo e(__('sset_set_default')); ?>">
                         <input type="radio" name="site_default" value="<?php echo e($code); ?>"
                                <?php echo $code === $siteDefault ? 'checked' : ''; ?>>
-                        <span class="text-[11px] text-gray-500">默认</span>
+                        <span class="text-[11px] text-gray-500"><?php echo e(__('slang_default_badge')); ?></span>
                     </label>
                 </div>
             <?php endforeach; ?>
@@ -342,13 +342,13 @@ foreach ($siteEnabled as $_lc) {
 
         <!-- per-language 首页菜单显示开关：只渲染已启用语言 -->
         <div class="border-t pt-3">
-            <p class="text-xs text-gray-500 mb-2">每种语言独立控制是否在导航栏显示「首页」菜单：</p>
+            <p class="text-xs text-gray-500 mb-2"><?php echo e(__('sset_home_per_lang')); ?></p>
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <?php foreach ($siteEnabled as $code): $label = $_allLangsForUI[$code] ?? $code; ?>
                 <label class="flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" name="nav_home_show[<?php echo e($code); ?>]" value="1"
                            <?php echo ($navHomeShowMap[$code] ?? '1') === '1' ? 'checked' : ''; ?>>
-                    <span class="text-sm text-gray-700"><?php echo e($label); ?> 显示「首页」</span>
+                    <span class="text-sm text-gray-700"><?php echo str_replace(':lang', e($label), e(__('sset_show_home_for'))); ?></span>
                 </label>
                 <?php endforeach; ?>
             </div>
@@ -357,8 +357,8 @@ foreach ($siteEnabled as $_lc) {
         <div class="flex items-center justify-between border-t pt-3">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="siteShowSwitcher" <?php echo $showSwitcher === '1' ? 'checked' : ''; ?>>
-                <span class="text-sm text-gray-700">显示前台语言切换器</span>
-                <span class="text-xs text-gray-400">（启用 2 种以上语言时生效）</span>
+                <span class="text-sm text-gray-700"><?php echo e(__('slang_switcher')); ?></span>
+                <span class="text-xs text-gray-400"><?php echo e(__('sset_switcher_min')); ?></span>
             </label>
             <button type="button" onclick="saveSiteLanguages()" class="cursor-pointer bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm">保存设置</button>
         </div>
@@ -378,11 +378,11 @@ function _langToast(msg, type) {
 }
 async function _langSafeJson(r) {
     var t = await r.text();
-    try { return JSON.parse(t); } catch (e) { return { code: -1, msg: '服务器返回异常: ' + t.slice(0, 200) }; }
+    try { return JSON.parse(t); } catch (e) { return { code: -1, msg: <?php echo json_encode(__('admin_server_error'), JSON_UNESCAPED_UNICODE); ?> + ': ' + t.slice(0, 200) }; }
 }
 async function saveSiteLanguages() {
     const enabled = Array.from(document.querySelectorAll('input[name="site_langs[]"]:checked')).map(el => el.value);
-    if (enabled.length === 0) { _langToast('至少保留一种前台语言', 'error'); return; }
+    if (enabled.length === 0) { _langToast(<?php echo json_encode(__('sset_keep_one_front'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
     const def = document.querySelector('input[name="site_default"]:checked')?.value || 'zh-CN';
     const fd = new FormData();
     fd.append('_token', _LANG_CSRF);
@@ -397,10 +397,10 @@ async function saveSiteLanguages() {
     try {
         const r = await fetch(location.href, { method: 'POST', body: fd });
         const d = await _langSafeJson(r);
-        _langToast(d.msg || '已保存', d.code === 0 ? 'success' : 'error');
+        _langToast(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error');
         if (d.code === 0) setTimeout(() => location.reload(), 600);
     } catch (e) {
-        _langToast('请求失败: ' + e.message, 'error');
+        _langToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
     }
 }
 </script>
@@ -414,8 +414,8 @@ $adminLangsCurrent = $adminLangsRaw !== ''
 ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
-        <h2 class="font-bold text-gray-800">后台语言</h2>
-        <p class="text-xs text-gray-500 mt-1">勾选后台顶栏语言切换器要显示的语言。少于 2 种时不显示切换器。</p>
+        <h2 class="font-bold text-gray-800"><?php echo e(__('slang_admin_lang')); ?></h2>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('sset_admin_langs_tip')); ?></p>
     </div>
     <div class="p-6 flex items-center gap-6">
         <?php foreach ($_allLangsForUI as $code => $label): ?>
@@ -431,7 +431,7 @@ $adminLangsCurrent = $adminLangsRaw !== ''
 <script>
 async function saveAdminLanguages() {
     const checked = Array.from(document.querySelectorAll('input[name="admin_langs[]"]:checked')).map(el => el.value);
-    if (checked.length === 0) { _langToast('至少要保留一种语言', 'error'); return; }
+    if (checked.length === 0) { _langToast(<?php echo json_encode(__('sset_keep_one_lang'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
     const fd = new FormData();
     fd.append('_token', _LANG_CSRF);
     fd.append('action', 'save_admin_languages');
@@ -439,10 +439,10 @@ async function saveAdminLanguages() {
     try {
         const r = await fetch(location.href, { method: 'POST', body: fd });
         const d = await _langSafeJson(r);
-        _langToast(d.msg || '已保存', d.code === 0 ? 'success' : 'error');
+        _langToast(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error');
         if (d.code === 0) setTimeout(() => location.reload(), 600);
     } catch (e) {
-        _langToast('请求失败: ' + e.message, 'error');
+        _langToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
     }
 }
 </script>
@@ -738,7 +738,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
         try {
             data = JSON.parse(text);
         } catch (e) {
-            console.error('上传响应:', text);
+            console.error('upload response:', text);
             showMessage('<?php echo __('setting_upload_error'); ?>', 'error');
             return;
         }
@@ -758,7 +758,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             showMessage(data.msg || '<?php echo __('setting_upload_failed'); ?>', 'error');
         }
     } catch (err) {
-        console.error('上传错误:', err);
+        console.error('upload error:', err);
         showMessage('<?php echo __('setting_upload_failed'); ?>: ' + err.message, 'error');
     }
 
