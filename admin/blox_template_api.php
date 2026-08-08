@@ -42,6 +42,31 @@ try {
         adminLog('blox_template', 'save_draft', '保存 Blox 模板草稿 #' . $id);
         success(['id' => $id]);
     }
+    if ($action === 'save_section' && $method === 'POST') {
+        // r14 画布「另存为区块模板」：客户端只发 section JSON + 名称，服务端组
+        // 标准模板包走 Importer 安全链（危险字段/元素白名单/插件依赖/Pipeline 校验
+        // 与文件导入完全一致——画布选区不是绕过安检的后门）。发布后目录立即可插回。
+        verifyCsrf();
+        $name = mb_substr(trim((string) post('name', '')), 0, 150);
+        if ($name === '') {
+            error(__('blox_tpl_name_required'));
+        }
+        $decoded = json_decode((string) post('section', ''), true);
+        if (!is_array($decoded)) {
+            error(__('blox_doc_invalid_json'));
+        }
+        $package = json_encode([
+            'format' => BloxTemplateImporter::FORMAT,
+            'version' => BloxTemplateImporter::VERSION,
+            'type' => 'section',
+            'name' => $name,
+            'document' => [$decoded],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $result = BloxTemplateImporter::importJson($package, (int) ($_SESSION['admin_id'] ?? 0), 'user', 'canvas');
+        bloxTemplateModel()->publishDraft((int) $result['id']);
+        adminLog('blox_template', 'save_section', '画布另存区块模板 #' . (int) $result['id'] . ' ' . $name);
+        success(['id' => (int) $result['id']]);
+    }
     if ($action === 'publish' && $method === 'POST') {
         verifyCsrf();
         $id = (int) post('id', '0');
