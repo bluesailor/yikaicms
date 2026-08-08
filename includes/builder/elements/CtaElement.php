@@ -15,7 +15,8 @@ final class CtaElement extends AbstractElement
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_subtext'), 'default' => '', 'rows' => 2],
             ['key' => 'btn_text', 'type' => 'text', 'label' => __('blox_ctl_btn_text'), 'default' => __('nav_contact')],
-            ['key' => 'btn_url', 'type' => 'text', 'label' => __('blox_ctl_btn_url'), 'default' => '', 'placeholder' => '/contact.html'],
+            ['key' => 'btn_url', 'type' => 'text', 'label' => __('blox_ctl_btn_url'), 'default' => '', 'placeholder' => '/contact.html',
+                'visible_when' => ['terms' => [['btn_text', 'not_empty']]]],
             ...$this->animationControls(),
         ];
     }
