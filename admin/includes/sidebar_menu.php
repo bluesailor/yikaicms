@@ -171,6 +171,13 @@ return [
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>',
             ],
             [
+                'key'   => 'nav_menu',
+                'perm'  => '*',
+                'label' => __('admin_nav_menu'),
+                'url'   => '/admin/nav_menu.php',
+                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"></path>',
+            ],
+            [
                 'key'   => 'page',
                 'perm'  => 'edit_page',
                 'label' => __('admin_page'),
