@@ -48,6 +48,39 @@ final class BuilderSchemaContractTest extends TestCase
         ]));
     }
 
+    /**
+     * r15 声明式显示规则守卫：全元素扫描 required / visible_when——
+     * 引用的 key 必须存在于同元素 controls（拼错 = 控件静默永久隐藏，测试期堵死），
+     * 操作符必须在 JS 求值器的封闭枚举内（PHP/JS 两侧枚举一致性同时锁定）。
+     */
+    public function testControlVisibilityRulesReferenceExistingKeysAndKnownOps(): void
+    {
+        $ops = ['=', '!=', 'in', 'not_in', 'empty', 'not_empty', '>', '<'];
+        // 与 JS 求值器枚举同步（blox-control-rules.js OPS）
+        $rulesJs = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-control-rules.js');
+        $this->assertStringContainsString('var OPS = ["=", "!=", "in", "not_in", "empty", "not_empty", ">", "<"];', $rulesJs);
+
+        foreach (BuilderRegistry::meta() as $type => $meta) {
+            $controls = $meta['controls'] ?? [];
+            $keys = array_map(static fn (array $c): string => (string) ($c['key'] ?? ''), $controls);
+            foreach ($controls as $control) {
+                $terms = [];
+                if (isset($control['required']) && is_array($control['required']) && count($control['required']) >= 3) {
+                    $terms[] = [$control['required'][0], $control['required'][1]];
+                }
+                foreach (($control['visible_when']['terms'] ?? []) as $term) {
+                    if (is_array($term) && count($term) >= 2) {
+                        $terms[] = [$term[0], $term[1]];
+                    }
+                }
+                foreach ($terms as [$refKey, $op]) {
+                    $this->assertContains((string) $refKey, $keys, "{$type}.{$control['key']} 显示规则引用了不存在的控件 key：{$refKey}");
+                    $this->assertContains((string) $op, $ops, "{$type}.{$control['key']} 使用了枚举外操作符：{$op}");
+                }
+            }
+        }
+    }
+
     public function testContainerContractsExportDefaultChildrenAndConditionalRules(): void
     {
         $meta = BuilderRegistry::meta('home');
