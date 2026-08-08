@@ -259,6 +259,17 @@ CREATE TABLE `yikai_blox_templates` (
   KEY `idx_blox_templates_source` (`source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+DROP TABLE IF EXISTS `yikai_nav_menus`;
+CREATE TABLE `yikai_nav_menus` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `items` longtext,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `created_at` int(11) unsigned NOT NULL DEFAULT 0,
+  `updated_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 DROP TABLE IF EXISTS `yikai_content_revisions`;
 CREATE TABLE `yikai_content_revisions` (

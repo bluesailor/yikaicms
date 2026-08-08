@@ -133,3 +133,7 @@ function contentModelModel(): ContentModelModel {
 function contentRevisionModel(): ContentRevisionModel {
     static $i; return $i ??= new ContentRevisionModel();
 }
+
+function navMenuModel(): NavMenuModel {
+    static $i; return $i ??= new NavMenuModel();
+}
