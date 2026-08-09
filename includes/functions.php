@@ -1615,7 +1615,7 @@ function paginate(int $total, int $perPage, int $currentPage, string $baseUrl): 
 
     // 上一页
     if ($currentPage > 1) {
-        $html .= '<li><a href="' . $url($currentPage - 1) . '" class="px-3 py-2 border rounded hover:bg-gray-100">上一页</a></li>';
+        $html .= '<li><a href="' . $url($currentPage - 1) . '" class="px-3 py-2 border rounded hover:bg-gray-100">' . e(__('pager_prev')) . '</a></li>';
     }
 
     // 页码
@@ -1642,7 +1642,7 @@ function paginate(int $total, int $perPage, int $currentPage, string $baseUrl): 
 
     // 下一页
     if ($currentPage < $totalPages) {
-        $html .= '<li><a href="' . $url($currentPage + 1) . '" class="px-3 py-2 border rounded hover:bg-gray-100">下一页</a></li>';
+        $html .= '<li><a href="' . $url($currentPage + 1) . '" class="px-3 py-2 border rounded hover:bg-gray-100">' . e(__('pager_next')) . '</a></li>';
     }
 
     $html .= '</ul></nav>';
@@ -1685,10 +1685,11 @@ function friendlyTime(int $time): string
     $diff = time() - $time;
 
     return match (true) {
-        $diff < 60 => '刚刚',
-        $diff < 3600 => floor($diff / 60) . '分钟前',
-        $diff < 86400 => floor($diff / 3600) . '小时前',
-        $diff < 604800 => floor($diff / 86400) . '天前',
+        // 相对时间随站点语言：英文/日文站原先照吐「分钟前」（访客可见）
+        $diff < 60 => __('time_just_now'),
+        $diff < 3600 => str_replace(':n', (string) floor($diff / 60), __('time_minutes_ago')),
+        $diff < 86400 => str_replace(':n', (string) floor($diff / 3600), __('time_hours_ago')),
+        $diff < 604800 => str_replace(':n', (string) floor($diff / 86400), __('time_days_ago')),
         default => date('Y-m-d', $time)
     };
 }
@@ -3185,8 +3186,12 @@ function frontEditUrl(array $content, array $channel): string
 }
 
 /** 前台内容区的 data-yk-edit 属性串（仅登录管理员输出），供模板内联使用 */
-function frontEditAttr(array $content, array $channel, string $label = '✎ 编辑内容'): string
+function frontEditAttr(array $content, array $channel, string $label = ''): string
 {
+    // 默认标签随后台语言（原先硬编码中文，英文站管理员看到的浮层是中文）
+    if ($label === '') {
+        $label = '✎ ' . __('fe_edit_content');
+    }
     if (empty($_SESSION['admin_id'])) {
         return '';
     }

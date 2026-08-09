@@ -12,9 +12,9 @@ function renderAdminBar(): void
 {
     if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
 
-    $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? '管理员');
+    $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
     $editUrl = (string) ($GLOBALS['ik_edit_url'] ?? '');
-    $brand = config('site_name', '后台');
+    $brand = config('site_name', '') ?: adminBrandName();
 
     // 「新建」跟随站点实际启用的模块：按 channels 里存在的栏目类型生成
     $createMap = [
@@ -56,9 +56,9 @@ function renderAdminBar(): void
     </style>
     <div id="ik-adminbar">
       <a class="ik-ab-brand" href="/admin/">🏠 <?php echo e($brand); ?></a>
-      <a href="/admin/">控制台</a>
+      <a href="/admin/"><?php echo e(__('ab_dashboard')); ?></a>
       <?php if (!empty($createItems)): ?>
-      <span class="ik-ab-new"><a href="javascript:;">＋ 新建 ▾</a>
+      <span class="ik-ab-new"><a href="javascript:;">＋ <?php echo e(__('ab_new')); ?> ▾</a>
         <span class="ik-ab-menu">
           <?php foreach ($createItems as $it): ?>
           <a href="<?php echo e($it['url']); ?>"><?php echo e($it['label']); ?></a>
@@ -66,11 +66,11 @@ function renderAdminBar(): void
         </span>
       </span>
       <?php endif; ?>
-      <?php if ($editUrl !== ''): ?><a href="<?php echo e($editUrl); ?>">✎ 编辑此页</a><?php endif; ?>
-      <a href="/admin/setting_cache.php">清缓存</a>
+      <?php if ($editUrl !== ''): ?><a href="<?php echo e($editUrl); ?>">✎ <?php echo e(__('ab_edit_page')); ?></a><?php endif; ?>
+      <a href="/admin/setting_cache.php"><?php echo e(__('ab_clear_cache')); ?></a>
       <span class="ik-ab-right">
         <a href="/admin/profile.php">👤 <?php echo e($name); ?></a>
-        <a href="/admin/logout.php"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 退出</a>
+        <a href="/admin/logout.php"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> <?php echo e(__('admin_logout')); ?></a>
       </span>
     </div>
     <?php
