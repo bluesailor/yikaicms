@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['ms_action'] ?? '') === 'sa
     $orderJson = $_POST['order_json'] ?? '';
     $order = json_decode($orderJson, true);
     if (!$order) {
-        echo json_encode(['code' => 1, 'msg' => '无效的排序数据']);
+        echo json_encode(['code' => 1, 'msg' => __('mnsort_bad_data')]);
         exit;
     }
     // labels 按语言分存：本次只提交当前后台语言的改名，需与既有其它语言合并，
@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['ms_action'] ?? '') === 'sa
     $orderJson = json_encode($order, JSON_UNESCAPED_UNICODE);
 
     settingModel()->set('admin_menu_order', $orderJson, 'plugin');
-    adminLog('plugin', 'update', '更新菜单排序配置');
-    echo json_encode(['code' => 0, 'msg' => '保存成功']);
+    adminLog('plugin', 'update', __('mnsort_log_update'));
+    echo json_encode(['code' => 0, 'msg' => __('operation_success')]);
     exit;
 }
 
@@ -35,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['ms_action'] ?? '') === 'sa
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['ms_action'] ?? '') === 'reset') {
     header('Content-Type: application/json; charset=utf-8');
     settingModel()->set('admin_menu_order', '', 'plugin');
-    adminLog('plugin', 'update', '重置菜单排序');
-    echo json_encode(['code' => 0, 'msg' => '已恢复默认排序']);
+    adminLog('plugin', 'update', __('mnsort_log_reset'));
+    echo json_encode(['code' => 0, 'msg' => __('mnsort_reset_msg')]);
     exit;
 }
 
@@ -86,7 +86,7 @@ if (function_exists('resolveAdminSidebar')) {
 if (!$defaultGroups) {
     // 兜底（老内核无 API 时）：极简快照，保证页面可用
     $defaultGroups = [
-        'system' => ['label' => '系统', 'items' => ['setting' => '站点设置', 'plugin' => '插件管理']],
+        'system' => ['label' => __('mnsort_grp_system'), 'items' => ['setting' => __('mnsort_grp_setting'), 'plugin' => __('mnsort_grp_plugin')]],
     ];
 }
 
@@ -129,7 +129,7 @@ if ($savedOrder && !empty($savedOrder['groups'])) {
     $sortedGroups = $reordered;
 }
 
-$pageTitle = '后台菜单排序';
+$pageTitle = __('mnsort_title');
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
@@ -143,13 +143,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="bg-white rounded-lg shadow mb-6 sticky top-0 z-20">
     <div class="p-4 flex items-center justify-between gap-3 flex-wrap">
-        <p class="text-sm text-gray-500">拖拽排序、点击名称可改名、👁 切换显示隐藏——<b>改动自动保存</b>，刷新后台页面后生效。改名仅作用于当前后台语言（<?php echo e($msLang); ?>），清空恢复默认。</p>
+        <p class="text-sm text-gray-500"><?php
+            // 整句走 :占位——「改名仅作用于当前语言（xx）」这半句在英日语序不同，逐词替换救不了
+            echo strtr(e(__('mnsort_tip')), [':b' => '<b>', ':_b' => '</b>', ':lang' => e($msLang)]);
+        ?></p>
         <div class="flex items-center gap-3">
             <span id="msStatus" class="text-xs text-gray-400"></span>
-            <button onclick="resetOrder()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm">恢复默认</button>
+            <button onclick="resetOrder()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm"><?php echo e(__('mnsort_reset')); ?></button>
             <button onclick="saveOrder(false)" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1 text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                立即保存
+                <?php echo e(__('mnsort_save_now')); ?>
             </button>
         </div>
     </div>
@@ -167,9 +170,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="text" class="group-label font-bold text-gray-800 flex-1 bg-transparent border border-transparent hover:border-gray-200 focus:border-primary focus:bg-white rounded px-2 py-1 outline-none"
                    value="<?php echo e($msLabels['__group:' . $groupKey] ?? $group['label']); ?>"
                    data-default="<?php echo e($group['label']); ?>"
-                   onclick="event.stopPropagation()" placeholder="<?php echo e($group['label']); ?>" title="改名后立即保存；清空则恢复默认">
+                   onclick="event.stopPropagation()" placeholder="<?php echo e($group['label']); ?>" title="<?php echo e(__('mnsort_rename_tip')); ?>">
             <span class="text-xs text-gray-400">(<?php echo $groupKey; ?>)</span>
-            <span class="toggle-vis" onclick="toggleGroup(this)" title="显示/隐藏整个分组">
+            <span class="toggle-vis" onclick="toggleGroup(this)" title="<?php echo e(__('mnsort_toggle_group')); ?>">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <?php if ($groupHidden): ?>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
@@ -191,9 +194,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <input type="text" class="item-label text-sm text-gray-700 flex-1 bg-transparent border border-transparent hover:border-gray-200 focus:border-primary focus:bg-white rounded px-2 py-1 outline-none"
                        value="<?php echo e($msLabels[$itemKey] ?? $itemLabel); ?>"
                        data-default="<?php echo e($itemLabel); ?>"
-                       placeholder="<?php echo e($itemLabel); ?>" title="改名后立即保存；清空则恢复默认">
-                <span class="text-xs text-gray-400"><?php echo e(str_starts_with($itemKey, 'plugin_page:') ? '插件·' . substr($itemKey, 12) : '/admin/' . $itemKey . '.php'); ?></span>
-                <span class="toggle-vis" onclick="toggleItem(this)" title="显示/隐藏">
+                       placeholder="<?php echo e($itemLabel); ?>" title="<?php echo e(__('mnsort_rename_tip')); ?>">
+                <span class="text-xs text-gray-400"><?php echo e(str_starts_with($itemKey, 'plugin_page:') ? __('mnsort_from_plugin') . substr($itemKey, 12) : '/admin/' . $itemKey . '.php'); ?></span>
+                <span class="toggle-vis" onclick="toggleItem(this)" title="<?php echo e(__('mnsort_toggle_item')); ?>">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <?php if ($itemHidden): ?>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
@@ -232,7 +235,7 @@ document.querySelectorAll('.item-list').forEach(function(el) {
 var _msTimer = null;
 function autoSave() {
     var st = document.getElementById('msStatus');
-    if (st) st.textContent = '保存中…';
+    if (st) st.textContent = <?php echo json_encode(__('mnsort_saving'), JSON_UNESCAPED_UNICODE); ?>;
     clearTimeout(_msTimer);
     _msTimer = setTimeout(function () { saveOrder(true); }, 600);
 }
@@ -302,28 +305,28 @@ async function saveOrder(silent) {
         var res = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await res.json();
         if (data.code === 0) {
-            if (st) st.textContent = '✓ 已自动保存 ' + new Date().toLocaleTimeString();
-            if (!silent) showMessage('已保存，刷新后台页面后侧栏生效');
+            if (st) st.textContent = <?php echo json_encode(__('mnsort_autosaved'), JSON_UNESCAPED_UNICODE); ?> + new Date().toLocaleTimeString();
+            if (!silent) showMessage(<?php echo json_encode(__('mnsort_saved_hint'), JSON_UNESCAPED_UNICODE); ?>);
         } else {
-            if (st) st.textContent = '保存失败';
+            if (st) st.textContent = <?php echo json_encode(__('mnsort_save_failed'), JSON_UNESCAPED_UNICODE); ?>;
             showMessage(data.msg, 'error');
         }
     } catch(e) {
-        if (st) st.textContent = '保存失败';
-        showMessage('请求失败', 'error');
+        if (st) st.textContent = <?php echo json_encode(__('mnsort_save_failed'), JSON_UNESCAPED_UNICODE); ?>;
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
 async function resetOrder() {
-    if (!confirm('确定恢复默认菜单排序？')) return;
+    if (!confirm(<?php echo json_encode(__('mnsort_reset_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
     var formData = new FormData();
     formData.append('ms_action', 'reset');
     try {
         var res = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await res.json();
-        if (data.code === 0) { showMessage('已恢复默认'); setTimeout(function(){ location.reload(); }, 1000); }
+        if (data.code === 0) { showMessage(<?php echo json_encode(__('mnsort_reset_done'), JSON_UNESCAPED_UNICODE); ?>); setTimeout(function(){ location.reload(); }, 1000); }
         else showMessage(data.msg, 'error');
-    } catch(e) { showMessage('请求失败', 'error'); }
+    } catch(e) { showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); }
 }
 </script>
 

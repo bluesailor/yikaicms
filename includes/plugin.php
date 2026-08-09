@@ -66,6 +66,10 @@ function loadActivePlugins(): void
         if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
             continue;
         }
+        // 语言包先于插件代码加载，插件里任何 __() 才拿得到自己的文案
+        if (function_exists('loadPluginLang')) {
+            loadPluginLang($slug);
+        }
         $registerFile = ROOT_PATH . '/plugins/' . $slug . '/register.php';
         if (file_exists($registerFile)) {
             require_once $registerFile;

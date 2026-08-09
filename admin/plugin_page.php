@@ -26,13 +26,13 @@ if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $pluginSlug)) {
 // 检查插件是否已启用
 $active = pluginModel()->findWhere(['slug' => $pluginSlug, 'status' => 1]);
 if (!$active) {
-    die('<div style="padding:50px;text-align:center"><h2>插件未启用</h2><a href="/admin/plugin.php">返回插件管理</a></div>');
+    die('<div style="padding:50px;text-align:center"><h2>' . e(__('pl_not_enabled')) . '</h2><a href="/admin/plugin.php">' . e(__('pl_back_to_list')) . '</a></div>');
 }
 
 // 检查管理页面文件
 $adminPage = ROOT_PATH . '/plugins/' . $pluginSlug . '/admin.php';
 if (!file_exists($adminPage)) {
-    die('<div style="padding:50px;text-align:center"><h2>插件没有管理页面</h2><a href="/admin/plugin.php">返回插件管理</a></div>');
+    die('<div style="padding:50px;text-align:center"><h2>' . e(__('pl_no_admin_page')) . '</h2><a href="/admin/plugin.php">' . e(__('pl_back_to_list')) . '</a></div>');
 }
 
 // 获取插件元数据

@@ -137,13 +137,38 @@ if ($dupTotal > 0) {
     exit(1);
 }
 
+// ── 2c. 插件自带语言包 ──
+// 插件文案不进核心 lang/（市场插件独立安装、独立发版），而是放 plugins/<slug>/lang/{code}.php，
+// 由 loadPluginLang() 在插件加载前并入。扫描器要认这套，否则插件 key 会被误报成「缺失」。
+$pluginKeys = [];   // lang => [key => true]
+foreach ((array) glob("$ROOT/plugins/*/lang", GLOB_ONLYDIR) as $pdir) {
+    foreach ($LANGS as $code) {
+        $f = $pdir . '/' . $code . '.php';
+        if (!is_file($f)) continue;
+        $data = require $f;
+        if (!is_array($data)) continue;
+        foreach (array_keys($data) as $k) {
+            $pluginKeys[$code][$k] = true;
+        }
+    }
+}
+if ($pluginKeys !== []) {
+    $n = count($pluginKeys[$LANGS[0]] ?? []);
+    echo '插件自带语言包：', count(glob("$ROOT/plugins/*/lang", GLOB_ONLYDIR)), ' 个插件，', $n, " 个 key\n";
+}
+
 // ── 3. 找出每个语言里缺的 key ──
 $missing = [];   // lang => [key => first-usage]
 foreach ($LANGS as $code) {
     foreach ($usedKeys as $key => $location) {
-        if (!array_key_exists($key, $langData[$code])) {
-            $missing[$code][$key] = $location;
+        if (array_key_exists($key, $langData[$code])) {
+            continue;
         }
+        // 插件里用的 key 由插件自己的语言包提供
+        if (isset($pluginKeys[$code][$key])) {
+            continue;
+        }
+        $missing[$code][$key] = $location;
     }
 }
 
