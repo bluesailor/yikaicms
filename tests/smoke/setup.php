@@ -6,28 +6,109 @@
  */
 declare(strict_types=1);
 $root = dirname(__DIR__, 2);
+$i18nOnly = in_array('--admin-i18n', $argv, true);
 
-// 0) 保护本地开发配置：本脚本会把 config.php 整个换成 SQLite 冒烟配置。
-//    CI 上没有 config.php，直接写；本地已有非冒烟配置时先备份，跑完可 --restore 还原。
-//    （踩过：直接覆写把本地开发站的 MySQL 配置冲掉了）
-$cfgPath = $root . '/config/config.php';
-$bakPath = $root . '/config/config.php.smoke-backup';
+// 0) 保护本地状态。setup 会覆盖配置、重建 SQLite 库并写 installed.lock/fixtures.json，
+//    因此必须在任何写操作之前完整备份，且不得覆盖上一次未恢复的备份。
+$stateFiles = [
+    'config'   => $root . '/config/config.php',
+    'database' => $root . '/storage/database.sqlite',
+    'lock'     => $root . '/installed.lock',
+    'fixtures' => __DIR__ . '/fixtures.json',
+];
+$backupDir = $root . '/storage/.smoke-state-backup';
+$manifestPath = $backupDir . '/manifest.json';
+
+/** @param array<string,string> $stateFiles */
+function backupSmokeState(array $stateFiles, string $backupDir, string $manifestPath): void
+{
+    if (is_dir($backupDir)) {
+        throw new RuntimeException('检测到未恢复的 smoke 备份，请先运行 php tests/smoke/setup.php --restore');
+    }
+    if (!mkdir($backupDir, 0777, true) && !is_dir($backupDir)) {
+        throw new RuntimeException('无法创建 smoke 状态备份目录');
+    }
+
+    $manifest = [];
+    try {
+        foreach ($stateFiles as $key => $path) {
+            $exists = is_file($path);
+            $manifest[$key] = ['exists' => $exists];
+            if ($exists && !copy($path, $backupDir . '/' . $key . '.bak')) {
+                throw new RuntimeException("无法备份 {$path}");
+            }
+        }
+        $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        if (file_put_contents($manifestPath, $json) === false) {
+            throw new RuntimeException('无法写入 smoke 状态备份清单');
+        }
+    } catch (Throwable $e) {
+        removeSmokeBackupDir($backupDir);
+        throw $e;
+    }
+}
+
+/** @param array<string,string> $stateFiles */
+function restoreSmokeState(array $stateFiles, string $backupDir, string $manifestPath): bool
+{
+    if (!is_file($manifestPath)) {
+        return false;
+    }
+    $manifest = json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+    foreach ($stateFiles as $key => $path) {
+        $existed = (bool) ($manifest[$key]['exists'] ?? false);
+        $backup = $backupDir . '/' . $key . '.bak';
+        if ($existed) {
+            $parent = dirname($path);
+            if (!is_dir($parent) && !mkdir($parent, 0777, true) && !is_dir($parent)) {
+                throw new RuntimeException("无法创建恢复目录 {$parent}");
+            }
+            if (!is_file($backup) || !copy($backup, $path)) {
+                throw new RuntimeException("无法恢复 {$path}");
+            }
+        } elseif (is_file($path) && !unlink($path)) {
+            throw new RuntimeException("无法删除 smoke 生成文件 {$path}");
+        }
+    }
+    removeSmokeBackupDir($backupDir);
+    return true;
+}
+
+function removeSmokeBackupDir(string $backupDir): void
+{
+    if (!is_dir($backupDir)) {
+        return;
+    }
+    $items = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($backupDir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($items as $item) {
+        $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+    }
+    rmdir($backupDir);
+}
 
 if (in_array('--restore', $argv, true)) {
-    if (is_file($bakPath)) {
-        copy($bakPath, $cfgPath);
-        unlink($bakPath);
-        echo "已还原 config.php（来自 config.php.smoke-backup）\n";
-    } else {
-        echo "无备份可还原\n";
+    try {
+        echo restoreSmokeState($stateFiles, $backupDir, $manifestPath)
+            ? "已还原 smoke 前的配置、数据库、安装锁与 fixture\n"
+            : "无 smoke 状态备份可还原\n";
+        exit(0);
+    } catch (Throwable $e) {
+        fwrite(STDERR, '恢复 smoke 状态失败：' . $e->getMessage() . "\n");
+        exit(1);
     }
-    exit(0);
 }
 
-if (is_file($cfgPath) && !str_contains((string) file_get_contents($cfgPath), "'sqlite'")) {
-    copy($cfgPath, $bakPath);
-    echo "已备份原 config.php → config.php.smoke-backup（跑完用 php tests/smoke/setup.php --restore 还原）\n";
+try {
+    backupSmokeState($stateFiles, $backupDir, $manifestPath);
+} catch (Throwable $e) {
+    fwrite(STDERR, '准备 smoke 状态备份失败：' . $e->getMessage() . "\n");
+    exit(1);
 }
+
+$cfgPath = $stateFiles['config'];
 
 // 1) 生成 sqlite 版 config.php（基于 example，改数据库驱动）
 $example = file_get_contents($root . '/config/config.php.example');
@@ -37,7 +118,8 @@ $cfg = preg_replace(
     $example
 );
 // SITE_URL 指向本地冒烟服务器
-$cfg = preg_replace("/define\('SITE_URL',\s*'[^']*'\)/", "define('SITE_URL', 'http://127.0.0.1:8080')", $cfg);
+$smokeSiteUrl = getenv('SMOKE_SITE_URL') ?: 'http://127.0.0.1:8080';
+$cfg = preg_replace("/define\('SITE_URL',\s*'[^']*'\)/", "define('SITE_URL', '" . addslashes($smokeSiteUrl) . "')", $cfg);
 $cfg = preg_replace("/define\('DEBUG',\s*(?:true|false)\)/", "define('DEBUG', true)", $cfg);
 file_put_contents($root . '/config/config.php', $cfg);
 
@@ -51,12 +133,14 @@ $pdo = new PDO('sqlite:' . $dbFile);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $pdo->exec(file_get_contents($root . '/install/sql/sqlite.sql'));
 
-// 浏览器回归必须显式通过设置闸；DEBUG 只作为无授权 CI 的本地旁路。
-$enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
-$enabled->execute(['1', 'blox_editor_enabled']);
-if ($enabled->rowCount() === 0) {
-    $pdo->prepare('INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        ->execute(['page', 'blox_editor_enabled', '1', 'switch', 'Blox 编辑器（实验）', '', null, 3]);
+if (!$i18nOnly) {
+    // 浏览器回归必须显式通过设置闸；i18n 扫描不加载 Blox。
+    $enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
+    $enabled->execute(['1', 'blox_editor_enabled']);
+    if ($enabled->rowCount() === 0) {
+        $pdo->prepare('INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute(['page', 'blox_editor_enabled', '1', 'switch', 'Blox 编辑器（实验）', '', null, 3]);
+    }
 }
 
 // 3) 建管理员（bcrypt）
@@ -69,17 +153,21 @@ $pdo->prepare("INSERT INTO yikai_users (username,password,nickname,email,role_id
 // 4) installed.lock 必须先于 init.php；全新 CI 不存在可沿用的锁文件。
 file_put_contents($root . '/installed.lock', date('Y-m-d H:i:s'));
 
-// 5) 通过正式导入器准备并发布一份本地模板，供浏览器模板链路使用。
-define('IK_CLI', true);
-require_once $root . '/includes/init.php';
-$templateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/section-template.json');
-$template = BloxTemplateImporter::importJson($templateJson, 1, 'import', 'e2e-local-section');
-bloxTemplateModel()->publishDraft($template['id']);
+$templateId = 0;
+$headerTemplateId = 0;
+if (!$i18nOnly) {
+    // 5) 通过正式导入器准备 Blox 模板；后台 i18n 扫描不需要这组编辑器 fixture。
+    define('IK_CLI', true);
+    require_once $root . '/includes/init.php';
+    $templateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/section-template.json');
+    $template = BloxTemplateImporter::importJson($templateJson, 1, 'import', 'e2e-local-section');
+    bloxTemplateModel()->publishDraft($template['id']);
+    $templateId = (int) $template['id'];
 
-// 5b) 头模板草稿（不发布、无条件）：供编辑器模板模式（?template=N）浏览器用例使用。
-// 种子内容与 e2e 复位共用同一 fixture 文件（单源），保证测试幂等复位有据可依。
-$headerTemplateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/header-template.json');
-$headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'import', 'e2e-header-draft');
+    $headerTemplateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/header-template.json');
+    $headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'import', 'e2e-header-draft');
+    $headerTemplateId = (int) $headerTemplate['id'];
+}
 
 // 6) 报告可用的 parent id（供冒烟客户端引用）
 $out = [
@@ -88,8 +176,8 @@ $out = [
     'product_cat'  => (int) $pdo->query("SELECT id FROM yikai_product_categories LIMIT 1")->fetchColumn(),
     'download_cat' => (int) ($pdo->query("SELECT id FROM yikai_download_categories LIMIT 1")->fetchColumn() ?: 0),
     'tables'       => (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")->fetchColumn(),
-    'blox_template' => (int) $template['id'],
-    'blox_header_template' => (int) $headerTemplate['id'],
+    'blox_template' => $templateId,
+    'blox_header_template' => $headerTemplateId,
 ];
 file_put_contents(__DIR__ . '/fixtures.json', json_encode($out));
 echo "SMOKE SETUP OK: " . json_encode($out) . "\n";

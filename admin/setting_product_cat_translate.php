@@ -99,11 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } catch (\Throwable $e) {
-            error('保存失败: ' . $e->getMessage());
+            error(str_replace(':error', $e->getMessage(), __('atr_save_failed')));
         }
 
         adminLog('setting', 'product_cat_translate', "产品分类翻译({$targetLang}): 创建{$created}, 更新{$updated}");
-        success([], "保存成功：创建 {$created} 个，更新 {$updated} 个");
+        success([], str_replace([':created', ':updated'], [(string) $created, (string) $updated], __('atr_save_success')));
     }
 
     if ($action === 'ai_translate') {
@@ -115,24 +115,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $toTranslate[] = $cat['name'];
         }
         if (empty($toTranslate)) {
-            success([], '所有分类已有翻译或词典匹配，无需 AI 翻译');
+            success([], str_replace(':item', __('atr_item_product_categories'), __('atr_all_done')));
             exit;
         }
         require_once ROOT_PATH . '/includes/AiService.php';
         $encryptedKey = config('ai_api_key', '');
         $aiKey = $encryptedKey ? AiService::decryptKey($encryptedKey) : '';
-        if (!$aiKey) error('请先在 AI 设置中配置 API Key');
+        if (!$aiKey) error(__('atr_ai_key_required'));
 
         $langName = $allLangs[$targetLang] ?? $targetLang;
         $prompt = "Translate the following Chinese product category names to {$langName}. Return ONLY a JSON object mapping Chinese to translation. No explanation.\n\n" . json_encode($toTranslate, JSON_UNESCAPED_UNICODE);
         $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
         $result = $ai->chat($prompt, 'You are a professional translator. Return only valid JSON.', 0.3);
-        if (!$result['success']) error('AI 翻译失败: ' . ($result['error'] ?? '未知错误'));
+        if (!$result['success']) error(str_replace(':error', (string) ($result['error'] ?? __('atr_unknown_error')), __('atr_ai_failed')));
 
         $content = preg_replace('/^```json\s*|```\s*$/m', '', trim($result['content'] ?? ''));
         $translations = json_decode($content, true);
-        if (!is_array($translations)) error('AI 返回格式异常');
-        success(['translations' => $translations], 'AI 翻译完成，请确认后保存');
+        if (!is_array($translations)) error(__('atr_ai_bad_format'));
+        success(['translations' => $translations], __('atr_ai_done'));
     }
 }
 
@@ -143,7 +143,7 @@ foreach ($targetRows as $r) {
     if ($r['translation_group_id'] > 0) $targetCats[(int)$r['translation_group_id']] = $r;
 }
 
-$pageTitle = '产品分类翻译';
+$pageTitle = str_replace(':item', __('atr_item_product_categories'), __('atr_title'));
 $currentMenu = 'setting_product_cat_translate';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -152,7 +152,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div>
     <div class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <span class="text-sm text-gray-500">翻译到：</span>
+            <span class="text-sm text-gray-500"><?php echo e(__('atr_translate_to')); ?></span>
             <?php foreach ($otherLangs as $lc => $ll): ?>
             <a href="?lang=<?php echo e($lc); ?>"
                class="px-4 py-1.5 rounded-full text-sm border transition <?php echo $lc === $targetLang ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-200 hover:border-primary hover:text-primary'; ?>">
@@ -160,7 +160,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </a>
             <?php endforeach; ?>
         </div>
-        <a href="/admin/setting_channel_translate.php?lang=<?php echo e($targetLang); ?>" class="text-sm text-gray-400 hover:text-primary">← 栏目翻译</a>
+        <a href="/admin/setting_channel_translate.php?lang=<?php echo e($targetLang); ?>" class="text-sm text-gray-400 hover:text-primary">← <?php echo e(str_replace(':item', __('atr_item_channels'), __('atr_title'))); ?></a>
     </div>
 
     <form id="translateForm">
@@ -173,13 +173,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php echo e($allLangs[$defaultLang]); ?> → <?php echo e($allLangs[$targetLang] ?? $targetLang); ?>
                 </h2>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="fillDict()" class="text-xs border rounded px-3 py-1.5 hover:bg-gray-50 transition">词典填充</button>
-                    <button type="button" onclick="aiTranslate()" class="text-xs border rounded px-3 py-1.5 hover:bg-gray-50 transition text-primary border-primary">AI 翻译空白项</button>
+                    <button type="button" onclick="fillDict()" class="text-xs border rounded px-3 py-1.5 hover:bg-gray-50 transition"><?php echo e(__('atr_dict_fill')); ?></button>
+                    <button type="button" onclick="aiTranslate()" class="text-xs border rounded px-3 py-1.5 hover:bg-gray-50 transition text-primary border-primary"><?php echo e(__('atr_ai_empty')); ?></button>
                 </div>
             </div>
             <div class="divide-y">
                 <?php if (empty($srcCats)): ?>
-                <div class="px-6 py-8 text-center text-gray-400 text-sm">暂无产品分类</div>
+                <div class="px-6 py-8 text-center text-gray-400 text-sm"><?php echo e(str_replace(':item', __('atr_item_product_categories'), __('atr_no_items'))); ?></div>
                 <?php endif; ?>
 
                 <?php foreach ($srcCats as $cat):
@@ -206,7 +206,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if ($currentValue): ?>
                         <span class="text-xs text-green-500">✓</span>
                         <?php elseif ($dictResult): ?>
-                        <span class="text-xs text-blue-400">词典</span>
+                        <span class="text-xs text-blue-400"><?php echo e(__('atr_dictionary')); ?></span>
                         <?php else: ?>
                         <span class="text-xs text-gray-300">—</span>
                         <?php endif; ?>
@@ -216,11 +216,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <div class="px-6 py-4 border-t flex items-center justify-between">
                 <span class="text-xs text-gray-400">
-                    共 <?php echo count($srcCats); ?> 个分类，已翻译 <?php echo count(array_filter($targetCats)); ?> 个
+                    <?php echo e(str_replace([':total', ':translated', ':item'], [(string) count($srcCats), (string) count(array_filter($targetCats)), __('atr_item_product_categories')], __('atr_count_summary'))); ?>
                 </span>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-2">
                     <i class="ti ti-check text-base"></i>
-                    保存翻译
+                    <?php echo e(__('atr_save')); ?>
                 </button>
             </div>
         </div>
@@ -237,10 +237,10 @@ async function aiTranslate() {
         }
     });
     if (empties.length === 0) {
-        showMessage('没有需要 AI 翻译的空白项（全部已有翻译或词典匹配）');
+        showMessage(<?php echo json_encode(str_replace(':item', __('atr_item_product_categories'), __('atr_no_empty')), JSON_UNESCAPED_UNICODE); ?>);
         return;
     }
-    if (!confirm('将调用 AI 翻译 ' + empties.length + ' 个分类名，确定？')) return;
+    if (!confirm(<?php echo json_encode(str_replace(':item', __('atr_item_product_categories'), __('atr_ai_confirm')), JSON_UNESCAPED_UNICODE); ?>.replace(':n', empties.length))) return;
 
     var fd = new FormData();
     fd.append('action', 'ai_translate');
@@ -260,11 +260,11 @@ async function aiTranslate() {
                     filled++;
                 }
             });
-            showMessage('AI 翻译填充 ' + filled + ' 个');
+            showMessage(<?php echo json_encode(__('atr_ai_filled'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', filled));
         } else {
-            showMessage(data.msg || 'AI 翻译失败', 'error');
+            showMessage(data.msg || <?php echo json_encode(__('atr_ai_failed_short'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
-    } catch(e) { showMessage('请求失败', 'error'); }
+    } catch(e) { showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); }
 }
 
 function fillDict() {
@@ -276,7 +276,7 @@ function fillDict() {
             filled++;
         }
     });
-    showMessage('词典填充 ' + filled + ' 个');
+    showMessage(<?php echo json_encode(__('atr_dict_filled'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', filled));
 }
 
 document.getElementById('translateForm').addEventListener('submit', async function(e) {
@@ -285,10 +285,10 @@ document.getElementById('translateForm').addEventListener('submit', async functi
     var resp = await fetch(location.href, { method: 'POST', body: fd });
     var data = await safeJson(resp);
     if (data.code === 0) {
-        showMessage(data.msg || '保存成功');
+        showMessage(data.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(function() { location.reload(); }, 800);
     } else {
-        showMessage(data.msg || '保存失败', 'error');
+        showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 });
 </script>

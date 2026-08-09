@@ -23,6 +23,33 @@ requirePermission('*');
 $currentMenu = 'ai_assistant';
 $pageTitle = __('admin_ai_assistant');
 $abilities = Abilities::all();
+$abilitySchemaForUi = static function (array $node) use (&$abilitySchemaForUi): array {
+    foreach ($node as $key => $value) {
+        if ($key === 'description') {
+            unset($node[$key]);
+        } elseif (is_array($value)) {
+            $node[$key] = $abilitySchemaForUi($value);
+        }
+    }
+    return $node;
+};
+
+$abilityUi = [
+    'cms_search_content' => [__('ability_cms_search_content_label'), __('ability_cms_search_content_desc')],
+    'cms_list_drafts' => [__('ability_cms_list_drafts_label'), __('ability_cms_list_drafts_desc')],
+    'cms_get_content' => [__('ability_cms_get_content_label'), __('ability_cms_get_content_desc')],
+    'cms_publish_content' => [__('ability_cms_publish_content_label'), __('ability_cms_publish_content_desc')],
+    'cms_create_article_draft' => [__('ability_cms_create_article_draft_label'), __('ability_cms_create_article_draft_desc')],
+    'cms_generate_seo_summary' => [__('ability_cms_generate_seo_summary_label'), __('ability_cms_generate_seo_summary_desc')],
+    'cms_auto_tag_content' => [__('ability_cms_auto_tag_content_label'), __('ability_cms_auto_tag_content_desc')],
+    'cms_translate_text' => [__('ability_cms_translate_text_label'), __('ability_cms_translate_text_desc')],
+    'cms_navigate_admin' => [__('ability_cms_navigate_admin_label'), __('ability_cms_navigate_admin_desc')],
+    'cms_list_common_settings' => [__('ability_cms_list_common_settings_label'), __('ability_cms_list_common_settings_desc')],
+    'cms_get_setting' => [__('ability_cms_get_setting_label'), __('ability_cms_get_setting_desc')],
+    'cms_update_setting' => [__('ability_cms_update_setting_label'), __('ability_cms_update_setting_desc')],
+    'cms_list_channels' => [__('ability_cms_list_channels_label'), __('ability_cms_list_channels_desc')],
+    'cms_set_content_flags' => [__('ability_cms_set_content_flags_label'), __('ability_cms_set_content_flags_desc')],
+];
 $aiConfigured = aiService()->isConfigured();
 $cfg = AiService::getProviders()[config('ai_provider', 'openai')] ?? null;
 $supported = $cfg && $cfg['format'] === 'openai';
@@ -45,7 +72,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php elseif (!$supported): ?>
     <div class="mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
-        <?php echo str_replace(':provider', e(config('ai_provider', '')), e(__('aia_no_function_calling'))); ?><span class="hidden"> / Qwen / 智谱。
+        <?php echo str_replace(':provider', e(config('ai_provider', '')), e(__('aia_no_function_calling'))); ?>
     </div>
     <?php endif; ?>
 
@@ -86,9 +113,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-xs text-gray-400 group-open:rotate-180 transition">▾</span>
                     </summary>
                     <div class="px-3 pb-3 text-xs text-gray-600 space-y-1">
-                        <div><span class="font-semibold"><?php echo e($a['label']); ?></span></div>
-                        <div class="text-gray-500"><?php echo e($a['description']); ?></div>
-                        <pre class="bg-gray-50 rounded p-2 text-[11px] overflow-x-auto"><?php echo e(json_encode($a['input_schema'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)); ?></pre>
+                        <?php $ui = $abilityUi[$name] ?? [(string) $a['label'], (string) $a['description']]; ?>
+                        <div><span class="font-semibold"><?php echo e($ui[0]); ?></span></div>
+                        <div class="text-gray-500"><?php echo e($ui[1]); ?></div>
+                        <pre class="bg-gray-50 rounded p-2 text-[11px] overflow-x-auto"><?php echo e(json_encode($abilitySchemaForUi($a['input_schema']), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)); ?></pre>
                     </div>
                 </details>
                 <?php endforeach; ?>
@@ -179,7 +207,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             `<div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1">${<?php echo json_encode(__('ai_pending_changes'), JSON_UNESCAPED_UNICODE); ?>} (${proposals.length})</div>` +
             list +
             `<div class="mt-2 flex gap-2">` +
-            `<button class="btn-apply px-3 py-1.5 bg-primary text-white text-sm rounded-lg cursor-pointer">${<?php echo json_encode(__('aia_confirm_apply'), JSON_UNESCAPED_UNICODE); ?>}<span class="hidden">用</button>` +
+            `<button class="btn-apply px-3 py-1.5 bg-primary text-white text-sm rounded-lg cursor-pointer">${<?php echo json_encode(__('aia_confirm_apply'), JSON_UNESCAPED_UNICODE); ?>}</button>` +
             `<button class="btn-ignore px-3 py-1.5 border border-gray-300 text-gray-500 text-sm rounded-lg cursor-pointer">${<?php echo json_encode(__('ai_ignore'), JSON_UNESCAPED_UNICODE); ?>}</button>` +
             `</div>`;
         chatArea.appendChild(wrap);
@@ -212,7 +240,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         html += applied.map(a =>
             `<div class="flex items-center justify-between gap-2 py-0.5">` +
             `<div class="text-sm text-gray-800">${escapeHtml(a.summary)}</div>` +
-            `<button class="btn-undo text-xs text-gray-500 underline cursor-pointer" data-log="${a.log_id}">${<?php echo json_encode(__('ai_undo'), JSON_UNESCAPED_UNICODE); ?>}<span class="hidden"></button></div>`).join('');
+            `<button class="btn-undo text-xs text-gray-500 underline cursor-pointer" data-log="${a.log_id}">${<?php echo json_encode(__('ai_undo'), JSON_UNESCAPED_UNICODE); ?>}</button></div>`).join('');
         if (errors && errors.length) {
             html += `<div class="text-xs text-red-600 mt-1">${errors.map(escapeHtml).join('<br>')}</div>`;
         }
@@ -225,7 +253,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 const data = await res.json();
                 if (data.success) { b.textContent = <?php echo json_encode(__('ai_undone'), JSON_UNESCAPED_UNICODE); ?>; b.classList.remove('text-gray-500'); b.classList.add('text-green-600'); }
                 else { b.disabled = false; b.textContent = <?php echo json_encode(__('ai_undo'), JSON_UNESCAPED_UNICODE); ?>; addMsg('error', data.error || <?php echo json_encode(__('ai_undo_failed'), JSON_UNESCAPED_UNICODE); ?>); }
-            } catch (e) { b.disabled = false; b.textContent = '撤销'; addMsg('error', <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?> + e.message); }
+            } catch (e) { b.disabled = false; b.textContent = <?php echo json_encode(__('ai_undo'), JSON_UNESCAPED_UNICODE); ?>; addMsg('error', <?php echo json_encode(__('ai_network_error'), JSON_UNESCAPED_UNICODE); ?> + e.message); }
         }));
     }
 

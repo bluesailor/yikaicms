@@ -1,7 +1,8 @@
 <?php
 /**
- * 后台 i18n 渲染态扫描器（CLI）——在英文语言环境下逐页 GET 后台页面，
- * 提取 UI 中的 CJK 残留（硬编码中文/半翻译体）。
+ * 后台 i18n HTTP 响应态扫描器（CLI）——在目标后台语言下逐页 GET 后台页面，
+ * 提取 UI 中的 CJK 残留（硬编码中文/半翻译体）。默认门禁语言为英文；
+ * 日文合法包含汉字，只作为诊断模式，不能用“汉字归零”替代浏览器功能回归。
  *
  * 原理与方法论：yikaicms-docs/admin-i18n-audit-methodology-2026-08-09.md
  * 用法：优先用包装脚本，它负责准备环境并保证还原 config.php——
@@ -29,34 +30,88 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/models/autoload.php';
 
 $verbose = in_array('-v', $argv, true);
+$scanLang = (string) (getenv('SCAN_LANG') ?: 'en');
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--lang=')) {
+        $scanLang = substr($arg, 7);
+    }
+}
+if (!in_array($scanLang, ['en', 'ja'], true)) {
+    fwrite(STDERR, "Unsupported scan language: {$scanLang} (expected en or ja)\n");
+    exit(2);
+}
 $BASE = 'http://127.0.0.1:' . (getenv('SCAN_PORT') ?: '8080');
 $JAR = sys_get_temp_dir() . '/i18n_scan_' . getmypid() . '.txt';
+register_shutdown_function(static fn (): bool => !is_file($JAR) || unlink($JAR));
 
 function scan_req(string $path, array $post = []): array
 {
     global $BASE, $JAR;
     $ch = curl_init($BASE . $path);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $JAR,
-        CURLOPT_COOKIEFILE => $JAR, CURLOPT_TIMEOUT => 20,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_COOKIEJAR => $JAR,
+        CURLOPT_COOKIEFILE => $JAR,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 20,
     ]);
     if ($post) {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
     }
-    $body = (string) curl_exec($ch);
+    $result = curl_exec($ch);
+    $body = is_string($result) ? $result : '';
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
-    return [$code, $body];
+    return [$code, $body, $error];
 }
 
-// 登录（smoke 固定管理员）
-[$c, $login] = scan_req('/admin/login.php');
+// 登录（smoke 固定管理员）。任何一步异常都必须中止，不能把未登录的 302 误报成零残留。
+[$loginCode, $login, $loginError] = scan_req('/admin/login.php');
 preg_match('/name="_token" value="([a-f0-9]+)"/', $login, $m);
-scan_req('/admin/login.php', ['username' => 'admin', 'password' => 'smoke@Test123', '_token' => $m[1] ?? '']);
+if ($loginCode !== 200 || $loginError !== '' || empty($m[1])) {
+    fwrite(STDERR, "LOGIN_FAILED stage=form http={$loginCode} error={$loginError}\n");
+    exit(2);
+}
+[$postCode, , $postError] = scan_req('/admin/login.php', [
+    'username' => 'admin',
+    'password' => 'smoke@Test123',
+    '_token' => $m[1],
+]);
+[$authCode, $authHtml, $authError] = scan_req('/admin/index.php');
+if (!in_array($postCode, [200, 302], true) || $postError !== '' || $authCode !== 200 || $authError !== ''
+    || str_contains($authHtml, 'name="username"')) {
+    fwrite(STDERR, "LOGIN_FAILED stage=session post_http={$postCode} verify_http={$authCode} error={$postError}{$authError}\n");
+    exit(2);
+}
 
 // 数据白名单：内容性中文（动态拉库）+ 语言标签
 $whitelist = ['中文', '日本語', '繁體中文', '한국어'];
+
+// 日文界面会合法包含汉字：先剔除目标语言包中的完整 UI 文案，再检测剩余硬编码中文。
+// 英文语言包通常不含汉字，走同一逻辑可保持规则一致。
+$targetLangData = require ROOT_PATH . '/lang/' . $scanLang . '.php';
+foreach ($targetLangData as $value) {
+    if (is_string($value) && preg_match('/[\x{4e00}-\x{9fff}]/u', $value)) {
+        $whitelist[] = $value;
+    }
+}
+
+// 翻译工作台需要显示中文源文。只在对应页面剔除源语言包数据，页面 UI 骨架仍参与扫描。
+$sourceLangData = require ROOT_PATH . '/lang/zh-CN.php';
+$sourceLanguageValues = [];
+foreach ($sourceLangData as $value) {
+    if (is_string($value) && preg_match('/[\x{4e00}-\x{9fff}]/u', $value)) {
+        $sourceLanguageValues[] = $value;
+    }
+}
+$pageDataWhitelists = [
+    'setting_translate.php' => $sourceLanguageValues,
+    'setting_channel_translate.php' => $sourceLanguageValues,
+    'setting_product_cat_translate.php' => $sourceLanguageValues,
+];
 foreach ([
     'SELECT name FROM ' . DB_PREFIX . 'channels',
     'SELECT description FROM ' . DB_PREFIX . 'channels',
@@ -177,21 +232,23 @@ foreach (array_merge(glob(ROOT_PATH . '/plugins/*/plugin.json'), glob(ROOT_PATH 
 $whitelist = array_unique($whitelist);
 usort($whitelist, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
 
-// 豁免清单：
-//   前四个 = 未登录/升级流程页（扫描器登录态覆盖不到或有副作用）；
-//   blox_editor = 付费文件不随公开仓库分发；
-//   setting_translate / setting_channel_translate / setting_product_cat_translate =
-//     翻译工作台，页面职能就是展示中文源文供翻译，命中的是数据不是 UI；
-//   ai_assistant = Abilities 能力描述是 AI 提示词语料（includes/abilities/*），
-//     由模型消费而非用户界面，中文是特性不是缺陷。
-$skip = ['login.php', 'logout.php', 'upgrade.php', 'upgrade_online.php', 'blox_editor.php',
-    'setting_translate.php', 'setting_channel_translate.php', 'setting_product_cat_translate.php',
-    'ai_assistant.php'];
+// 仅跳过需要独立场景验证的入口。翻译工作台和 AI 助手必须扫描其 UI 骨架。
+$skip = ['login.php', 'logout.php', 'upgrade.php', 'upgrade_online.php', 'blox_editor.php'];
 $report = [];
 $errors = [];
+$skipped = [];
+$apiSkipped = [];
+$discovered = 0;
+$scanned = 0;
 foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
     $name = basename($file);
-    if (in_array($name, $skip, true) || str_contains($name, '_api') || str_starts_with($name, 'api_')) {
+    if (str_contains($name, '_api') || str_starts_with($name, 'api_')) {
+        $apiSkipped[] = $name;
+        continue;
+    }
+    $discovered++;
+    if (in_array($name, $skip, true)) {
+        $skipped[] = $name;
         continue;
     }
     // 少数页面无参直接 302（必须带 id/type）——补默认查询串，否则永远扫不到
@@ -200,11 +257,12 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
         'page_edit.php'         => '?id=1',
         'page_edit_advance.php' => '?id=1',
     ][$name] ?? '';
-    [$code, $html] = scan_req('/admin/' . $name . $qs);
-    if ($code !== 200) {
-        $errors[$name] = "HTTP $code";
+    [$code, $html, $requestError] = scan_req('/admin/' . $name . $qs);
+    if ($code !== 200 || $requestError !== '') {
+        $errors[$name] = "HTTP {$code}" . ($requestError !== '' ? " ({$requestError})" : '');
         continue;
     }
+    $scanned++;
 
     // 内联 JS：剥注释后抓引号串
     $jsText = '';
@@ -216,6 +274,8 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
         $jsText .= ' ' . implode(' ', $jm[1] ?? []);
     }
 
+    // 翻译工作台等页面可精确标记“源文数据”，只剔除该 DOM 区域而不豁免整页。
+    $html = preg_replace('/<([a-z][a-z0-9]*)[^>]*\sdata-i18n-source(?:[=\s][^>]*)?>.*?<\/\1>/is', ' ', $html);
     $clean = preg_replace('/<script.*?<\/script>|<style.*?<\/style>|<!--.*?-->/s', ' ', $html);
     preg_match_all('/(?:placeholder|title|aria-label|alt)="([^"]*[\x{4e00}-\x{9fff}][^"]*)"/u', (string) $clean, $attrs);
     $text = strip_tags((string) $clean) . ' ' . implode(' ', $attrs[1] ?? []) . $jsText;
@@ -223,7 +283,9 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
     // 先把数据串从文本里剔掉再抽片段——事后比对会漏掉「数据+标签同处一串」的
     // 情况（如 title="<文章标题> Translated: <译文标题>"，整串既不含于白名单
     // 任一条、也不被任一条包含，旧法必误报）。
-    foreach ($whitelist as $w) {
+    $activeWhitelist = array_unique(array_merge($whitelist, $pageDataWhitelists[$name] ?? []));
+    usort($activeWhitelist, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
+    foreach ($activeWhitelist as $w) {
         if (mb_strlen($w) >= 2) {
             $text = str_replace($w, ' ', $text);
         }
@@ -241,7 +303,7 @@ foreach (glob(ROOT_PATH . '/admin/*.php') as $file) {
         // 一部分」再兜一次。
         $isData = false;
         $stem = rtrim($frag, '.…');
-        foreach ($whitelist as $w) {
+        foreach ($activeWhitelist as $w) {
             if (mb_strlen($stem) >= 4 && str_contains($w, $stem)) {
                 $isData = true;
                 break;
@@ -264,10 +326,18 @@ foreach ($report as $page => $frags) {
     echo '  ' . implode(' | ', $verbose ? $frags : array_slice($frags, 0, 12)) . "\n";
 }
 if ($errors !== []) {
-    echo "\n-- 非 200 页面（需带参/写端点/异常）--\n";
+    echo "\n-- 非 200 页面（必须修复后才能通过）--\n";
     foreach ($errors as $page => $why) {
         echo "  $page: $why\n";
     }
 }
-echo "\nTOTAL pages_with_residue=" . count($report) . " fragments=$total\n";
-@unlink($JAR);
+echo "\nCOVERAGE lang={$scanLang} discovered={$discovered} scanned={$scanned}"
+    . ' skipped=' . count($skipped) . ' api_skipped=' . count($apiSkipped)
+    . ' errors=' . count($errors) . "\n";
+echo 'SKIPPED ' . implode(',', $skipped) . "\n";
+echo "TOTAL lang={$scanLang} pages_with_residue=" . count($report) . " fragments={$total}\n";
+
+if ($scanned === 0 || $errors !== []) {
+    exit(2);
+}
+exit($total > 0 ? 1 : 0);
