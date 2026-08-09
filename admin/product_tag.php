@@ -187,9 +187,17 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('pt
 </div>
 
 <script>
-document.getElementById('groupSelect').addEventListener('change', function() {
-    document.getElementById('newGroupInput').classList.toggle('hidden', this.value !== '__new__');
-});
+// 新建组输入框的显隐：change 之外还要在加载时同步一次——全新站点一个标签组都没有时，
+// 下拉里只剩「+ 新建分组」且默认已选中，change 永不触发，输入框一直藏着，
+// 于是保存必报「请输入组名」，第一个组永远建不出来（客户站实测）。
+function ykSyncNewGroupInput() {
+    var sel = document.getElementById('groupSelect');
+    var inp = document.getElementById('newGroupInput');
+    if (!sel || !inp) return;
+    inp.classList.toggle('hidden', sel.value !== '__new__');
+}
+document.getElementById('groupSelect').addEventListener('change', ykSyncNewGroupInput);
+ykSyncNewGroupInput();
 
 async function saveTag() {
     const fd = new FormData(document.getElementById('tagForm'));
