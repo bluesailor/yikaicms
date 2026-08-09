@@ -66,21 +66,21 @@ function renderFrontEdit(): void
       box.id = 'yk-edit-outline';
       var btn = document.createElement('a');
       btn.id = 'yk-edit-btn';
-      btn.innerHTML = '✎ 编辑此区块'; // ✎ 编辑此区块
+      btn.innerHTML = '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
       box.appendChild(btn);
 
       // 首页版块专用：隐藏（系统自带与自定义通用）/ 删除（仅自定义）
       var btnHide = document.createElement('a');
       btnHide.id = 'yk-hide-btn';
       btnHide.className = 'yk-edit-extra';
-      btnHide.textContent = '⃠ 隐藏';
+      btnHide.textContent = '⃠ ' + <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>;
       btnHide.style.display = 'none';
       box.appendChild(btnHide);
 
       var btnDel = document.createElement('a');
       btnDel.id = 'yk-del-btn';
       btnDel.className = 'yk-edit-extra yk-edit-extra--danger';
-      btnDel.textContent = '✕ 删除';
+      btnDel.textContent = '✕ ' + <?php echo json_encode(__('admin_delete'), JSON_UNESCAPED_UNICODE); ?>;
       btnDel.style.display = 'none';
       box.appendChild(btnDel);
 
@@ -91,12 +91,12 @@ function renderFrontEdit(): void
         fd.append('_token', csrf);
         Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
         return fetch('/admin/setting_home.php', { method: 'POST', body: fd, credentials: 'same-origin' })
-          .then(function (r) { return r.json().catch(function () { return { success: false, message: '服务器返回异常' }; }); })
+          .then(function (r) { return r.json().catch(function () { return { success: false, message: <?php echo json_encode(__('fe_bad_response'), JSON_UNESCAPED_UNICODE); ?> }; }); })
           .then(function (j) {
             if (j && j.success) { location.reload(); }
-            else { alert((j && j.message) || '操作失败'); }
+            else { alert((j && j.message) || <?php echo json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE); ?>); }
           })
-          .catch(function (e) { alert('请求失败：' + e.message); });
+          .catch(function (e) { alert(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + '：' + e.message); });
       }
 
       btnHide.addEventListener('click', function (e) {
@@ -104,7 +104,7 @@ function renderFrontEdit(): void
         if (!current) return;
         var type = current.getAttribute('data-yk-home') || '';
         if (!type) return;
-        if (!confirm('隐藏此版块？前台将不再显示，可在「首页设置」里重新启用。')) return;
+        if (!confirm(<?php echo json_encode(__('fe_hide_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
         homePost('toggle_block', { type: type, enabled: '0' });
       });
 
@@ -113,7 +113,7 @@ function renderFrontEdit(): void
         if (!current) return;
         var type = current.getAttribute('data-yk-home') || '';
         if (type.indexOf('custom:') !== 0) return;
-        if (!confirm('删除此自定义版块？内容将一并删除，不可恢复。')) return;
+        if (!confirm(<?php echo json_encode(__('fe_delete_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
         homePost('del_custom', { n: type.slice(7) });
       });
 
@@ -146,11 +146,11 @@ function renderFrontEdit(): void
         return '#';
       }
       function editLabel(el) {
-        if (el.hasAttribute('data-yk-nav'))      return '✎ 编辑导航';
-        if (el.hasAttribute('data-yk-footer'))   return '✎ 编辑页脚';
-        if (el.hasAttribute('data-yk-partners')) return '✎ 编辑合作伙伴';
-        if (el.hasAttribute('data-yk-edit'))     return el.getAttribute('data-yk-edit-label') || '✎ 编辑内容';
-        return '✎ 编辑此区块';
+        if (el.hasAttribute('data-yk-nav'))      return '✎ ' + <?php echo json_encode(__('fe_edit_nav'), JSON_UNESCAPED_UNICODE); ?>;
+        if (el.hasAttribute('data-yk-footer'))   return '✎ ' + <?php echo json_encode(__('fe_edit_footer'), JSON_UNESCAPED_UNICODE); ?>;
+        if (el.hasAttribute('data-yk-partners')) return '✎ ' + <?php echo json_encode(__('fe_edit_partners'), JSON_UNESCAPED_UNICODE); ?>;
+        if (el.hasAttribute('data-yk-edit'))     return el.getAttribute('data-yk-edit-label') || ('✎ ' + <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>);
+        return '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
       }
 
       function place(sec) {
@@ -204,7 +204,7 @@ function renderFrontEdit(): void
           wrap.className = 'yk-logo-btns';
           var b = document.createElement('span');
           b.className = 'yk-logo-btn';
-          b.textContent = '✎ 换Logo';
+          b.textContent = '✎ ' + <?php echo json_encode(__('fe_change_logo'), JSON_UNESCAPED_UNICODE); ?>;
           b.addEventListener('click', function (e) {
             e.preventDefault(); e.stopPropagation();
             fileInput.onchange = function () {
@@ -219,7 +219,7 @@ function renderFrontEdit(): void
             // 图标工坊在线制作入口（做好后可一键设为站点 Logo）
             var mk = document.createElement('a');
             mk.className = 'yk-logo-btn yk-logo-btn--make';
-            mk.textContent = '★ 制作Logo';
+            mk.textContent = '★ ' + <?php echo json_encode(__('fe_make_logo'), JSON_UNESCAPED_UNICODE); ?>;
             mk.href = '/admin/plugin_page.php?plugin=icon-maker#logo';
             mk.addEventListener('click', function (e) { e.stopPropagation(); });
             wrap.appendChild(mk);
@@ -240,25 +240,25 @@ function renderFrontEdit(): void
 
       function uploadAndSaveLogo(file) {
         var fd = new FormData(); fd.append('file', file); fd.append('type', 'images'); fd.append('_token', csrf);
-        toast('上传中…', true);
+        toast(<?php echo json_encode(__('media_uploading'), JSON_UNESCAPED_UNICODE); ?>, true);
         fetch('/admin/upload.php', { method: 'POST', body: fd })
           .then(function (r) { return r.json(); })
           .then(function (d) {
-            if (d.code !== 0) { toast(d.msg || '上传失败', false); return; }
+            if (d.code !== 0) { toast(d.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, false); return; }
             var url = d.data.url;
             var sd = new FormData();
             sd.append('key', 'site_logo'); sd.append('value', url); sd.append('_token', csrf);
             return fetch('/admin/front_edit_api.php', { method: 'POST', body: sd })
               .then(function (r) { return r.json(); })
               .then(function (s) {
-                if (s.code !== 0) { toast(s.msg || '保存失败', false); return; }
+                if (s.code !== 0) { toast(s.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, false); return; }
                 // 实时替换所有 Logo 图；原来是文字站名的则刷新以显示新图
                 var imgs = document.querySelectorAll('[data-yk-logo] img');
-                if (imgs.length) { imgs.forEach(function (im) { im.src = url; }); toast('Logo 已更新', true); }
-                else { toast('Logo 已保存，刷新中…', true); setTimeout(function () { location.reload(); }, 700); }
+                if (imgs.length) { imgs.forEach(function (im) { im.src = url; }); toast(<?php echo json_encode(__('fe_logo_updated'), JSON_UNESCAPED_UNICODE); ?>, true); }
+                else { toast(<?php echo json_encode(__('fe_logo_saved'), JSON_UNESCAPED_UNICODE); ?>, true); setTimeout(function () { location.reload(); }, 700); }
               });
           })
-          .catch(function (err) { toast('网络错误：' + err.message, false); });
+          .catch(function (err) { toast(<?php echo json_encode(__('admin_network_error'), JSON_UNESCAPED_UNICODE); ?> + '：' + err.message, false); });
       }
     })();
     </script>
