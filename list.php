@@ -306,7 +306,7 @@ $horizRootChannel = $channel;
             <div class="text-sm text-gray-500">
                 <?php echo __('list_total'); ?> <span class="text-primary font-medium"><?php echo $total; ?></span> <?php echo __('list_items'); ?>
                 <?php if ($keyword !== ''): ?>
-                ，搜索 "<span class="text-primary"><?php echo e($keyword); ?></span>"
+                ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
             <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">

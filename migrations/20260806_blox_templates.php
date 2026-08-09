@@ -7,6 +7,11 @@ return [
     'id' => '20260806_blox_templates',
     'title' => 'Blox 模板库',
     'desc' => '新增 section/page/header/footer 四类 Blox 模板，保存草稿、发布副本、来源和依赖信息。',
+    // 站点语言非中文时用这几项；Migrator::label() 取不到会回落上面的中文原文
+    'title_en' => 'Blox template library',
+    'title_ja' => 'Blox テンプレートライブラリ',
+    'desc_en' => 'Adds the tables behind the Blox template library.',
+    'desc_ja' => 'Blox テンプレートライブラリ用のテーブルを追加します。',
     'check' => static function (): bool {
         try {
             return db()->tableExists('blox_templates');

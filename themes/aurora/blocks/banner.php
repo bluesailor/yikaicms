@@ -49,14 +49,14 @@
                     <?php if (!empty($heroBanner['link_url'])): ?>
                     <a href="<?php echo e($heroBanner['link_url']); ?>" target="<?php echo e($heroBanner['link_target'] ?? '_self'); ?>"
                        class="group inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all">
-                        <?php echo e($heroBanner['button_text'] ?? '立即开始'); ?>
+                        <?php echo e($heroBanner['button_text'] ?? __('home_cta_button')); ?>
                         <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                     </a>
                     <?php endif; ?>
                     <?php if (count($banners) > 1 && !empty($banners[1]['link_url'])): ?>
                     <a href="<?php echo e($banners[1]['link_url']); ?>" target="<?php echo e($banners[1]['link_target'] ?? '_self'); ?>"
                        class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 hover:bg-white/5 transition">
-                        <?php echo e($banners[1]['button_text'] ?? $banners[1]['title'] ?? '了解更多'); ?>
+                        <?php echo e($banners[1]['button_text'] ?? $banners[1]['title'] ?? __('learn_more')); ?>
                     </a>
                     <?php endif; ?>
                 </div>

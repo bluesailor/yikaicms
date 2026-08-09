@@ -78,7 +78,7 @@ require theme_path('partials/page-hero.php');
         <div class="w-full lg:w-72 flex-shrink-0">
             <div class="bg-white rounded-lg shadow sticky top-24">
                 <div class="px-4 py-3 border-b font-bold text-dark bg-primary text-white rounded-t-lg">
-                    <?php echo e($aboutChannel['name'] ?? '关于我们'); ?>
+                    <?php echo e($aboutChannel['name'] ?? __('nav_about')); ?>
                 </div>
                 <div class="divide-y">
                     <?php foreach ($sidebarChannels as $sub): ?>

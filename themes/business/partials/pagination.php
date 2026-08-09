@@ -13,12 +13,15 @@
 <nav aria-label="pagination" class="mt-10 flex items-center justify-between gap-4 flex-wrap">
     <!-- 总条数 / 当前页提示 -->
     <div class="text-xs text-slate-500 font-medium tracking-wide">
-        <span class="text-slate-700 font-bold"><?php echo number_format($total); ?></span>
-        <?php echo '条 ·'; ?>
-        <?php echo '第'; ?>
-        <span class="text-primary font-bold"><?php echo $page; ?></span>
-        /<?php echo $totalPages; ?>
-        <?php echo '页'; ?>
+        <?php
+        // 「123 条 · 第 5/10 页」这种拼法只在中文成立：英文是 "123 items · Page 5 of 10"，
+        // 语序和量词都不同。整句走 :占位 的 key，数字回填时套上样式（都是整数，无需转义）。
+        echo strtr(__('pager_summary'), [
+            ':total' => '<span class="text-slate-700 font-bold">' . number_format($total) . '</span>',
+            ':page'  => '<span class="text-primary font-bold">' . (int) $page . '</span>',
+            ':pages' => (int) $totalPages,
+        ]);
+        ?>
     </div>
 
     <!-- 翻页按钮组 -->

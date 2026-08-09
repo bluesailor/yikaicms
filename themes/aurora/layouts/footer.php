@@ -31,7 +31,7 @@
                 <!-- Contact -->
                 <?php if ($_phone = config('site_phone', '')): ?>
                 <div>
-                    <h4 class="text-xs uppercase tracking-wider text-slate-300 font-semibold mb-3">联系我们</h4>
+                    <h4 class="text-xs uppercase tracking-wider text-slate-300 font-semibold mb-3"><?php echo e(__('nav_contact')); ?></h4>
                     <ul class="space-y-2 text-sm text-slate-500">
                         <?php if ($_phone): ?>
                         <li class="flex items-start gap-2">
@@ -62,7 +62,7 @@
                 ?>
                 <?php if ($_footerNav): ?>
                 <div>
-                    <h4 class="text-xs uppercase tracking-wider text-slate-300 font-semibold mb-3">导航</h4>
+                    <h4 class="text-xs uppercase tracking-wider text-slate-300 font-semibold mb-3"><?php echo e(__('pea_nav')); ?></h4>
                     <ul class="space-y-2 text-sm">
                         <?php foreach ($_footerNav as $_nav): ?>
                         <li>

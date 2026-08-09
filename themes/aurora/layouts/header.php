@@ -227,12 +227,12 @@ function getChannelUrl(array $channel): string {
                     </a>
                     <?php else: ?>
                     <a href="/member/login.php" class="hidden md:inline-flex items-center px-4 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all">
-                        登录
+                        <?php echo e(__('login_button')); ?>
                     </a>
                     <?php endif; ?>
                     <?php endif; ?>
                     <!-- Mobile Hamburger -->
-                    <button id="mobileMenuBtn" class="md:hidden p-2 text-slate-300" aria-label="菜单">
+                    <button id="mobileMenuBtn" class="md:hidden p-2 text-slate-300" aria-label="<?php echo e(__('menu_label')); ?>">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                 </div>
@@ -260,11 +260,11 @@ function getChannelUrl(array $channel): string {
                     <?php if (isMemberLoggedIn()): ?>
                     <?php $memberInfo = $memberInfo ?? getMemberInfo(); ?>
                     <a href="/member/profile.php" class="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5"><?php echo e($memberInfo['nickname']); ?></a>
-                    <a href="/member/logout.php" class="block px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-white hover:bg-white/5">退出登录</a>
+                    <a href="/member/logout.php" class="block px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-white hover:bg-white/5"><?php echo e(__('admin_logout')); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5">登录</a>
+                    <a href="/member/login.php" class="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5"><?php echo e(__('login_button')); ?></a>
                     <?php if (config('allow_member_register') === '1'): ?>
-                    <a href="/member/register.php" class="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5">注册</a>
+                    <a href="/member/register.php" class="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5"><?php echo e(__('member_register')); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
                 </div>

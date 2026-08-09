@@ -543,7 +543,11 @@ function switchAdminLang(lang) {
         .catch(function() { showMessage('Error', 'error'); });
 }
 </script>
-    <script src="/assets/js/screen-options.js?v=1"></script>
+    <script>window.YK_SO_I18N = <?php echo json_encode([
+        'screen_options' => __('so_screen_options'),
+        'columns'        => __('so_columns'),
+    ], JSON_UNESCAPED_UNICODE); ?>;</script>
+    <script src="/assets/js/screen-options.js?v=2"></script>
     <!-- flatpickr：统一美化后台所有日期/时间输入（跨浏览器一致 + 本地化日历） -->
     <link rel="stylesheet" href="/assets/flatpickr/flatpickr.min.css">
     <script src="/assets/flatpickr/flatpickr.min.js"></script>

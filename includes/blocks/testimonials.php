@@ -13,7 +13,7 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2">
-                <span class="text-primary"><?php echo e(mb_substr($tmTitle, 0, 2)); ?></span><?php echo e(mb_substr($tmTitle, 2)); ?>
+                <?php echo homeTitleInner($tmTitle); ?>
             </h2>
             <?php echo homeTitleDeco(); ?>
             <p class="text-gray-500 mt-4"><?php echo e($tmDesc); ?></p>

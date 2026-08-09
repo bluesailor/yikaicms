@@ -4,6 +4,13 @@
  *   按页面路径记忆到 localStorage。无需改动各列表页。
  *   仅作用于含 thead 且 ≥3 列的表格；编辑页/无表格页自动跳过。
  */
+// 文案来自后台 footer 渲染的 window.YK_SO_I18N（本文件是独立 JS，用不了 PHP 的 __()）。
+// 取不到就回落中文原文——字典没渲染出来时按钮至少还有字，不会变成空白。
+function T(key, fallback) {
+  var d = window.YK_SO_I18N || {};
+  return (typeof d[key] === 'string' && d[key] !== '') ? d[key] : fallback;
+}
+
 (function () {
   "use strict";
 
@@ -45,13 +52,13 @@
   var wrap = document.createElement("div");
   wrap.style.cssText = "position:relative;display:block;text-align:right;margin:0 0 10px;";
   wrap.innerHTML =
-    '<button type="button" id="ikSoBtn" class="text-sm border rounded px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-600">⚙ 显示选项 ▾</button>' +
+    '<button type="button" id="ikSoBtn" class="text-sm border rounded px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-600">⚙ ' + T('screen_options', '显示选项') + ' ▾</button>' +
     '<div id="ikSoPanel" style="display:none;position:absolute;right:0;top:36px;z-index:50;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px 14px;min-width:180px;text-align:left;"></div>';
   table.parentNode.insertBefore(wrap, table);
 
   var btn = wrap.querySelector("#ikSoBtn");
   var panel = wrap.querySelector("#ikSoPanel");
-  var html = '<div style="font-size:12px;color:#9ca3af;margin-bottom:6px">显示的列</div>';
+  var html = '<div style="font-size:12px;color:#9ca3af;margin-bottom:6px">' + T('columns', '显示的列') + '</div>';
   cols.forEach(function (c) {
     if (c.skip) return;
     html +=

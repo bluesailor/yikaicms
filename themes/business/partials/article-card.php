@@ -37,7 +37,7 @@ $__lo = $listOpts ?? null;
 
         <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary transition line-clamp-2 leading-snug">
             <?php if (!empty($item['is_top'])): ?>
-            <span class="inline-block text-[10px] bg-primary text-white px-1.5 py-0.5 mr-2 align-middle uppercase tracking-wide">置顶</span>
+            <span class="inline-block text-[10px] bg-primary text-white px-1.5 py-0.5 mr-2 align-middle uppercase tracking-wide"><?php echo e(__('article_top')); ?></span>
             <?php endif; ?>
             <?php echo e($item['title']); ?>
         </h3>

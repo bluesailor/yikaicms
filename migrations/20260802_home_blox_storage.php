@@ -24,6 +24,11 @@ return [
     'id'    => '20260802_home_blox_storage',
     'title' => '首页 Blox 设置存储扩容',
     'desc'  => '将 MySQL settings.value 从 TEXT 扩大为 LONGTEXT，避免首页草稿、已发布快照和历史回退数据被 64KB 截断；SQLite 保持 TEXT。',
+    // 站点语言非中文时用这几项；Migrator::label() 取不到会回落上面的中文原文
+    'title_en' => 'Home page Blox storage',
+    'title_ja' => 'ホームページ Blox ストレージ',
+    'desc_en' => 'Adds storage for home page layouts built with the Blox editor.',
+    'desc_ja' => 'Blox エディターで作成したホームページのレイアウトを保存する領域を追加します。',
     'check' => static function () use ($__settingsValueType): bool {
         $type = $__settingsValueType();
         return $type === '' || $type === 'longtext';

@@ -23,6 +23,11 @@ return [
     'title' => 'lang 列默认值纠偏（ja → zh-CN）',
     'desc' => 'channels / contents / products 三表的 lang 出厂默认值原为 ja，与其余多语言表不一致，'
         . '导致未显式写 lang 的新建行落进日语桶、中文站列表查不到。本迁移只改列默认值，不动既有数据。',
+    // 站点语言非中文时用这几项；Migrator::label() 取不到会回落上面的中文原文
+    'title_en' => 'Fix lang column default (ja to zh-CN)',
+    'title_ja' => 'lang 列の既定値を修正（ja → zh-CN）',
+    'desc_en' => 'The lang column on channels, contents and products shipped with a default of ja, unlike every other multilingual table, so rows created without an explicit lang landed in the Japanese bucket and vanished from Chinese listings. This changes the column default only; existing data is untouched.',
+    'desc_ja' => 'channels / contents / products の lang 列の既定値が ja になっており、他の多言語テーブルと異なっていました。そのため lang を明示せずに作成した行が日本語として保存され、中国語サイトの一覧から消えていました。本マイグレーションは列の既定値のみ変更し、既存データには触れません。',
     'check' => static function (): bool {
         // 已纠正 or SQLite（不适用）→ 视为完成
         try {
