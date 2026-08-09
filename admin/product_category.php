@@ -44,6 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'is_nav' => !empty($_POST['is_nav']) ? 1 : 0,
         ];
 
+        // 新建行必须显式带 lang——列表按 view-lang 过滤，而列默认值是 'zh-CN'：
+        // 非中文站（或在 ?lang=en 视图下）新建的分类会落到 zh-CN，列表里永远查不到，
+        // 用户看到的现象是「添加了却没显示」（客户站 kksky.ph 实测）。
+        // 与 content_edit.php 同范式：取当前视图语言，回退站点默认语言。
+        if ($id <= 0) {
+            $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));
+        }
+
         if (empty($data['name'])) {
             error(__('pcat_name_required'));
         }

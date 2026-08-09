@@ -48,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('link', 'update', "更新友链ID: $id");
         } else {
             $data['created_at'] = time();
+            // 列表按 view-lang 过滤，而 lang 列默认 'zh-CN'——新建不显式带上，
+            // 非中文站/翻译视图下新建的行永远查不出来（product_category 同款 bug）
+            $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));
             $id = linkModel()->create($data);
             adminLog('link', 'create', "创建友链ID: $id");
         }
