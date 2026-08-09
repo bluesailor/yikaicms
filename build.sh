@@ -153,6 +153,10 @@ EXCLUDES=(
     "node_modules"
     "package.json"
     "package-lock.json"
+    "playwright.config.js"
+    "playwright-report"
+    "test-results"
+    "package-lock.json"
     "tailwind.config.js"
     "postcss.config.js"
 
@@ -271,6 +275,28 @@ for f in "${MUST_EXIST[@]}"; do
         ERRORS=$((ERRORS + 1))
     fi
 done
+
+# 根目录白名单：排除清单是黑名单，新增开发文件必然漏排（1.17.0 的
+# playwright.config.js 就是这么发出去的）。这里反过来断言——包根只允许出现
+# 已知文件，多一个就构建失败，逼开发者显式决定它该不该随包。
+ROOT_ALLOWED=(
+    ".htaccess" "LICENSE" "LICENSE-MIT-HISTORICAL" "README.md" "THIRD-PARTY-NOTICES.md"
+    "favicon.ico" "robots.txt"
+    "index.php" "article.php" "captcha.php" "contact.php" "cron.php" "detail.php"
+    "download.php" "form_submit.php" "history.php" "job_detail.php" "list.php"
+    "news.php" "page.php" "product.php" "search.php" "sitemap.php"
+)
+while IFS= read -r entry; do
+    name="$(basename "$entry")"
+    known=0
+    for a in "${ROOT_ALLOWED[@]}"; do
+        [ "$name" = "$a" ] && { known=1; break; }
+    done
+    if [ "$known" -eq 0 ]; then
+        echo "  ✗ 包根出现未登记文件: $name（确认该随包则加进 build.sh 的 ROOT_ALLOWED，否则加进排除清单）"
+        ERRORS=$((ERRORS + 1))
+    fi
+done < <(find "$PKG_DIR" -maxdepth 1 -type f)
 
 if [ $ERRORS -gt 0 ]; then
     echo ""
