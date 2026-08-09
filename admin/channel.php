@@ -91,8 +91,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('admin_category_name_required'));
         }
 
-        if ($data['type'] === 'product' && $_viewLang === $_defaultLang) {
-            $data['slug'] = 'product';
+        // 判据用行语言而非页面视图变量（$_viewLang 在文件后段才定义，保存分支
+        // 拿不到——Psalm 在 release 分支抓出的未定义变量）：编辑行取库里 lang，
+        // 新建行取当前视图 lang（?lang= 参数），与默认语言一致才锁定。
+        if ($data['type'] === 'product') {
+            $__siteDefault = (string) config('site_lang', 'zh-CN');
+            if ($id > 0) {
+                $__row = channelModel()->find($id);
+                $__rowLang = (string) ($__row['lang'] ?? '');
+            } else {
+                $__rowLang = (string) (get('lang') ?: $__siteDefault);
+            }
+            if ($__rowLang === '' || $__rowLang === $__siteDefault) {
+                $data['slug'] = 'product';
+            }
         }
         if (empty($data['slug'])) {
             $data['slug'] = $data['name'];
