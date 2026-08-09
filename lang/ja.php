@@ -418,7 +418,7 @@ return [
     'recipe_available' => '利用可能なプリセット',
     'recipe_scan_hint' => '/recipes/ ディレクトリをスキャン、合計 :count 件',
     'recipe_empty' => 'プリセットがありません。/recipes/ にサブディレクトリを作成し recipe.json を配置してください。',
-    'recipe_count_channels' => '栏目 :n',
+    'recipe_count_channels' => 'カテゴリ :n',
     'recipe_count_extfields' => 'フィールド :n',
     'recipe_count_contents' => 'コンテンツ :n',
     'recipe_count_settings' => '設定 :n',
@@ -2526,6 +2526,7 @@ return [
     'currency_symbol' => '¥',
     'currency_decimals' => '0',
     'mp_pick_title' => 'メディアファイルを選択',
+    
     'pager_prev' => '前へ',
     'pager_next' => '次へ',
     'time_just_now' => 'たった今',
