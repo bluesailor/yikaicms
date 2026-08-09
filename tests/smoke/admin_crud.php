@@ -76,18 +76,28 @@ $chId  = $fx['channel_list'] ?: ($fx['channel_any'] ?: 1);
 $pcId  = $fx['product_cat'] ?: 0;
 $dcId  = $fx['download_cat'] ?: 0;
 
-// 每类：[名称, 编辑页, 端点, POST 数据]
+// 唯一标记：建完要回列表页找它——只判「保存返回成功」会漏掉「存进去了但
+// 列表查不到」这类 bug（新建行 lang 落错桶，客户英文站实测：分类/友链/时间线
+// 三处全中，而保存接口一路 code:0）。
+$mark = 'SMK' . mt_rand(100000, 999999);
+
+// 每类：[名称, 编辑页, 端点, POST 数据, 列表页(空=跳过可见性回读), 期望在列表出现的文本]
 $cases = [
-    ['栏目',   '/admin/channel.php',       '/admin/channel.php',       ['action' => 'save', 'name' => '冒烟栏目', 'slug' => 'smoke-ch-' . mt_rand(1000, 9999), 'type' => 'list', 'parent_id' => 0]],
-    ['产品',   '/admin/product_edit.php',  '/admin/product_edit.php',  ['title' => '冒烟产品', 'category_id' => $pcId, 'status' => 1]],
-    ['内容',   '/admin/content_edit.php?channel_id=' . $chId, '/admin/content_edit.php', ['title' => '冒烟内容', 'channel_id' => $chId, 'status' => 1]],
-    ['文章',   '/admin/article_edit.php',  '/admin/article_edit.php',  ['title' => '冒烟文章', 'channel_id' => $chId, 'status' => 1]],
-    ['下载',   '/admin/download_edit.php', '/admin/download_edit.php', ['title' => '冒烟下载', 'category_id' => $dcId, 'status' => 1]],
-    ['招聘',   '/admin/job_edit.php',      '/admin/job_edit.php',      ['title' => '冒烟职位', 'content' => '测试', 'location' => '上海', 'status' => 1]],
+    ['栏目',     '/admin/channel.php',       '/admin/channel.php',       ['action' => 'save', 'name' => '冒烟栏目' . $mark, 'slug' => 'smoke-ch-' . mt_rand(1000, 9999), 'type' => 'list', 'parent_id' => 0], '/admin/channel.php', '冒烟栏目' . $mark],
+    ['产品',     '/admin/product_edit.php',  '/admin/product_edit.php',  ['title' => '冒烟产品' . $mark, 'category_id' => $pcId, 'status' => 1], '/admin/product.php', '冒烟产品' . $mark],
+    ['内容',     '/admin/content_edit.php?channel_id=' . $chId, '/admin/content_edit.php', ['title' => '冒烟内容' . $mark, 'channel_id' => $chId, 'status' => 1], '', ''],
+    ['文章',     '/admin/article_edit.php',  '/admin/article_edit.php',  ['title' => '冒烟文章' . $mark, 'channel_id' => $chId, 'status' => 1], '/admin/article.php', '冒烟文章' . $mark],
+    ['下载',     '/admin/download_edit.php', '/admin/download_edit.php', ['title' => '冒烟下载' . $mark, 'category_id' => $dcId, 'status' => 1], '/admin/download.php', '冒烟下载' . $mark],
+    ['招聘',     '/admin/job_edit.php',      '/admin/job_edit.php',      ['title' => '冒烟职位' . $mark, 'content' => '测试', 'location' => '上海', 'status' => 1], '/admin/job.php', '冒烟职位' . $mark],
+    // ── 以下四类原先完全不在冒烟清单里，正是 lang bug 的藏身处 ──
+    ['产品分类', '/admin/product_category.php', '/admin/product_category.php', ['action' => 'save', 'name' => '冒烟分类' . $mark, 'slug' => 'smoke-pc-' . mt_rand(1000, 9999), 'status' => 1], '/admin/product_category.php', '冒烟分类' . $mark],
+    ['产品标签', '/admin/product_tag.php',   '/admin/product_tag.php',   ['action' => 'save', 'name' => '冒烟标签' . $mark, 'group_name' => '冒烟组' . $mark], '/admin/product_tag.php', '冒烟标签' . $mark],
+    ['友情链接', '/admin/link.php',          '/admin/link.php',          ['action' => 'save', 'name' => '冒烟友链' . $mark, 'url' => 'https://example.com/' . $mark, 'status' => 1], '/admin/link.php', '冒烟友链' . $mark],
+    ['时间线',   '/admin/timeline.php',      '/admin/timeline.php',      ['action' => 'save', 'year' => '2026', 'title' => '冒烟时间线' . $mark, 'content' => '测试', 'status' => 1], '/admin/timeline.php', '冒烟时间线' . $mark],
 ];
 
 $fails = [];
-foreach ($cases as [$name, $editUrl, $postUrl, $data]) {
+foreach ($cases as [$name, $editUrl, $postUrl, $data, $listUrl, $expectText]) {
     [$gc, $form] = req('GET', $editUrl);          // 取该页 CSRF
     $data['_token'] = csrf($form) ?: csrf($dash); // 会话级 token，复用亦可
     [$code, $body] = req('POST', $postUrl, $data);
@@ -103,7 +113,23 @@ foreach ($cases as [$name, $editUrl, $postUrl, $data]) {
         $fails[] = "$name → $why";
         echo "✗ 新建$name 失败：$why\n";
     } else {
-        echo "✓ 新建$name OK" . (is_array($json) && isset($json['data']['id']) ? "（id={$json['data']['id']}）" : '') . "\n";
+        // 可见性回读：保存成功还不够，得能在列表页找到它
+        $seen = '';
+        if ($listUrl !== '' && $expectText !== '') {
+            [$lc, $lbody] = req('GET', $listUrl);
+            if ($lc !== 200) {
+                $fails[] = "$name → 列表页 HTTP $lc";
+                echo "✗ 新建$name 后列表页 HTTP $lc\n";
+                continue;
+            }
+            if (!str_contains($lbody, $expectText)) {
+                $fails[] = "$name → 保存成功但列表查不到（疑似 lang/过滤条件不匹配）";
+                echo "✗ 新建$name 后在列表页找不到「$expectText」——存进去了但列表查不到\n";
+                continue;
+            }
+            $seen = '，列表可见 ✓';
+        }
+        echo "✓ 新建$name OK" . (is_array($json) && isset($json['data']['id']) ? "（id={$json['data']['id']}）" : '') . $seen . "\n";
     }
 }
 

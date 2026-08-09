@@ -314,7 +314,7 @@ DROP TABLE IF EXISTS `yikai_channels`;
  SET character_set_client = utf8mb4 ;
 CREATE TABLE `yikai_channels` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `lang` varchar(5) NOT NULL DEFAULT 'ja',
+  `lang` varchar(10) NOT NULL DEFAULT 'zh-CN',
   `translation_group_id` int(11) unsigned NOT NULL DEFAULT '0',
   `parent_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '父栏目ID',
   `name` varchar(100) NOT NULL COMMENT '栏目名称',
@@ -429,7 +429,7 @@ DROP TABLE IF EXISTS `yikai_contents`;
  SET character_set_client = utf8mb4 ;
 CREATE TABLE `yikai_contents` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `lang` varchar(5) NOT NULL DEFAULT 'ja',
+  `lang` varchar(10) NOT NULL DEFAULT 'zh-CN',
   `translation_group_id` int(11) unsigned NOT NULL DEFAULT '0',
   `channel_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '栏目ID',
   `type` varchar(20) NOT NULL DEFAULT 'article' COMMENT '类型：article/product/case/download/job',
@@ -999,7 +999,7 @@ DROP TABLE IF EXISTS `yikai_products`;
  SET character_set_client = utf8mb4 ;
 CREATE TABLE `yikai_products` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `lang` varchar(5) NOT NULL DEFAULT 'ja',
+  `lang` varchar(10) NOT NULL DEFAULT 'zh-CN',
   `translation_group_id` int(11) unsigned NOT NULL DEFAULT '0',
   `category_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '分类ID',
   `brand_id` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '品牌ID',
