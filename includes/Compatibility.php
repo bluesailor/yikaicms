@@ -175,7 +175,7 @@ class Compatibility
         if (in_array($script, $allowList, true)) return;
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
             if (function_exists('error')) {
-                error('演示模式下不允许修改操作');
+                error(__('auth_demo_readonly'));
             }
             http_response_code(403);
             exit('Demo mode: writes blocked');

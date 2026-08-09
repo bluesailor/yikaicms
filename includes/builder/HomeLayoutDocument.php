@@ -510,7 +510,7 @@ public static function isActive(): bool
 
         $title = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
         if ($title === '') {
-            $title = __('home_about_title') . configRawLang('site_name', '');
+            $title = homeAboutDefaultTitle();
         }
 
         $layout = (string) config('home_about_layout', 'text_left');

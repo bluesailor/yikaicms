@@ -8,6 +8,20 @@ $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
 $bg = getBlockBg($block ?? [], 'bg-white');
+// 标题「关于 + 站名」：拼法由语言决定（见 homeAboutDefaultTitle()），
+// 但这里要保留「关于」主题色 + 站名本色的配色，所以按 :site 占位切开分别包 span。
+$aboutSite = trim((string) configRawLang('site_name', ''));
+if ($aboutSite === '') {
+    $aboutTitleHtml = '<span class="text-primary">' . e(__('home_about_title')) . '</span>';
+} else {
+    $aboutParts = array_pad(explode(':site', __('home_about_title_site'), 2), 2, '');
+    $aboutTitleHtml = implode(e($aboutSite), array_map(
+        static fn (string $seg): string => trim($seg) === ''
+            ? $seg                                                        // 纯空白照原样，别把分隔丢了
+            : '<span class="text-primary">' . e($seg) . '</span>',
+        $aboutParts
+    ));
+}
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -30,7 +44,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             </div>
             <div data-animate="fade-left">
                 <h2 class="text-3xl font-bold text-dark mb-2">
-                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
+                    <?php echo $aboutTitleHtml; ?>
                 </h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">
@@ -46,7 +60,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <!-- 左文右图（默认） -->
             <div data-animate="fade-right">
                 <h2 class="text-3xl font-bold text-dark mb-2">
-                    <span class="text-primary"><?php echo __('home_about_title'); ?></span><?php echo e(configRawLang('site_name', '')); ?>
+                    <?php echo $aboutTitleHtml; ?>
                 </h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">

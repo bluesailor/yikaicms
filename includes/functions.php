@@ -252,17 +252,20 @@ function json(mixed $data, int $code = 200): never
 /**
  * 成功响应
  */
-function success(mixed $data = [], string $msg = '操作成功'): never
+function success(mixed $data = [], ?string $msg = null): never
 {
-    json(['code' => 0, 'msg' => $msg, 'data' => $data]);
+    // 默认参数不能调函数，所以用 null 当「未指定」的哨兵：
+    // 200+ 个调用点都不传 msg，写死中文会让英/日后台每次操作都弹一句中文。
+    // 显式传 '' 仍然表示「不要提示语」，行为不变。
+    json(['code' => 0, 'msg' => $msg ?? __('operation_success'), 'data' => $data]);
 }
 
 /**
  * 错误响应
  */
-function error(string $msg = '操作失败', int $code = 1): never
+function error(?string $msg = null, int $code = 1): never
 {
-    json(['code' => $code, 'msg' => $msg, 'data' => null]);
+    json(['code' => $code, 'msg' => $msg ?? __('operation_failed'), 'data' => null]);
 }
 
 // ============================================================
@@ -1455,6 +1458,25 @@ function getBlockBg(array $block, string $defaultClass = ''): array
 }
 
 /**
+ * 首页「关于」版块的默认标题（后台未自定义时用）。
+ *
+ * 原先各主题都写 __('home_about_title') . site_name：中文「关于KKSKY」读得通，
+ * 英文就粘成「AboutKKSKY Solar Light」，日语语序还是反的。站名该放前面还是后面、
+ * 中间要不要空格，是**语言**的事，不能在 PHP 里拼——改用带 :site 占位的整句 key，
+ * 拼法交给各语言文件（en 补空格、ja 用「〜について」后置）。
+ *
+ * 站名为空时只回「关于/About」，不留下一个孤零零的空格。
+ */
+function homeAboutDefaultTitle(): string
+{
+    $site = trim((string) configRawLang('site_name', ''));
+    if ($site === '') {
+        return __('home_about_title');
+    }
+    return trim(str_replace(':site', $site, __('home_about_title_site')));
+}
+
+/**
  * 首页版块标题文字：按 home_title_style 决定配色。
  * split → 前两字（中文）/首词（英文）主题色、其余同色；其它样式 → 整体同色。
  */
@@ -1938,7 +1960,7 @@ function verifyCsrf(): bool
     // 支持从 POST 字段或 X-CSRF-TOKEN 请求头获取
     $token = $_POST[CSRF_TOKEN_NAME] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
     if (empty($token) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
-        error('非法请求', 403);
+        error(__('admin_illegal_request'), 403);
     }
     return true;
 }

@@ -5,7 +5,7 @@
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
 $aboutContent = config('home_about_content', '') ?: __('home_about_default');
 $aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
-if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('site_name', ''); }
+if ($aboutTitle === '') { $aboutTitle = homeAboutDefaultTitle(); }
 ?>
 <section class="py-20 bg-white">
     <div class="container mx-auto px-4">

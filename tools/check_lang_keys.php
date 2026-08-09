@@ -178,4 +178,39 @@ if ($strict && in_array('zh-CN', $LANGS, true)) {
     }
 }
 
-exit($totalMissing === 0 ? 0 : 1);
+// ── 6. 译文直接拼接数据（语序/分隔是语言的事，不能在 PHP 里拼）──
+//
+// 起因：首页「关于」标题写成 __('home_about_title') . site_name，
+// 中文「关于KKSKY」读得通，英文粘成「AboutKKSKY Solar Light」，日语语序还是反的。
+// 正确写法是整句带 :site / :n 占位，由各语言文件决定拼法，再 str_replace 回填。
+$concatHits = [];
+$ROOT_N = str_replace('\\', '/', $ROOT);      // Windows 下 __DIR__ 是反斜杠，路径要先归一
+$scanDirs = [$ROOT . '/includes', $ROOT . '/themes', $ROOT . '/admin'];
+foreach ($scanDirs as $dir) {
+    if (!is_dir($dir)) continue;
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+    foreach ($it as $file) {
+        if ($file->getExtension() !== 'php') continue;
+        $rel = str_replace($ROOT_N . '/', '', str_replace('\\', '/', $file->getPathname()));
+        foreach (file($file->getPathname()) as $i => $line) {
+            // 注释行跳过——本规则的说明文字里就会出现反面例子，否则自己报自己
+            $t = ltrim($line);
+            if ($t === '' || str_starts_with($t, '//') || str_starts_with($t, '*') || str_starts_with($t, '/*') || str_starts_with($t, '#')) {
+                continue;
+            }
+            // __('key') 紧跟 . 再跟变量/函数调用（拼字面量字符串是允许的，那不影响语序）
+            if (preg_match('/__\(\s*\'[a-z0-9_]+\'\s*\)\s*\.\s*[\$a-zA-Z_]/', $line)) {
+                $concatHits[] = "$rel:" . ($i + 1) . '  ' . trim($line);
+            }
+        }
+    }
+}
+if ($concatHits !== []) {
+    echo "\n✗ 译文直接拼接数据 " . count($concatHits) . " 处（语序与分隔应交给语言文件，用 :占位 + str_replace）：\n";
+    foreach (array_slice($concatHits, 0, 20) as $h) {
+        echo "    $h\n";
+    }
+    if (count($concatHits) > 20) echo '    ... 另 ' . (count($concatHits) - 20) . " 处未列\n";
+}
+
+exit(($totalMissing === 0 && $concatHits === []) ? 0 : 1);

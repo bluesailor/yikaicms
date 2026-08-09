@@ -70,6 +70,7 @@ require_once ROOT_PATH . '/includes/member_auth.php';
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+require_once ROOT_PATH . '/includes/font_presets.php';
 require_once ROOT_PATH . '/includes/Compatibility.php';
 Compatibility::bootstrap();
 require_once ROOT_PATH . '/includes/HtmlCache.php';
@@ -88,6 +89,8 @@ if (function_exists('add_action')) {
     add_action('ik_footer_scripts', 'renderHeaderScrollFade');
     // 代码块复制按钮（正文含 <pre><code> 时才实际生效）
     add_action('ik_footer_scripts', 'renderCodeCopy');
+    // 字体设置（未配置时 renderFontStyles() 返回 ''，前台输出逐字节不变）
+    add_action('ik_head', static function (): void { echo renderFontStyles(); });
 }
 require_once ROOT_PATH . '/includes/StaticHtml.php';
 require_once ROOT_PATH . '/includes/HtmlPipeline.php';

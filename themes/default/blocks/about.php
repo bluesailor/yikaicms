@@ -77,7 +77,7 @@ $aboutTagDesc = configJsonLang('home_about_tag_desc') ?: config('home_about_tag_
 // 版块标题：后台可自定义（home_about_title）；留空回退到「关于」+ 站点名称
 $aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
 if ($aboutTitle === '') {
-    $aboutTitle = __('home_about_title') . configRawLang('site_name', '');
+    $aboutTitle = homeAboutDefaultTitle();
 }
 $bg = getBlockBg($block ?? [], '@auto');
 ?>
