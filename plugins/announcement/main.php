@@ -25,15 +25,15 @@ add_action('ik_footer_scripts', function () {
     // 仅首页开关
     if ((string) config('ann_home_only', '0') === '1' && empty($GLOBALS['isHomePage'])) return;
 
-    $title    = (string) config('ann_title', '网站公告');
-    $button   = (string) config('ann_button', '我知道了');
+    $title    = (string) config('ann_title', __('ann_default_title'));
+    $button   = (string) config('ann_button', __('ann_default_btn'));
     $cooldown = max(0, (int) config('ann_cooldown', '1'));
     $primary  = (string) config('primary_color', '#005090');
     $token    = substr(md5($content . '|' . $title . '|' . $button), 0, 10); // 指纹：内容/标题/按钮改动即重弹
     ?>
     <div id="ik-ann-overlay" style="display:none;position:fixed;inset:0;z-index:999999;justify-content:center;align-items:center;background:rgba(0,0,0,0.5);">
       <div id="ik-ann-box" style="background:#fff;max-width:600px;width:90%;border-radius:16px;padding:32px;position:relative;box-shadow:0 25px 60px rgba(0,0,0,0.3);max-height:80vh;overflow-y:auto;animation:ikAnnIn .3s ease;">
-        <button id="ik-ann-x" aria-label="关闭" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;color:#9ca3af;cursor:pointer;line-height:1;">&times;</button>
+        <button id="ik-ann-x" aria-label="<?php echo e(__('ann_close')); ?>" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;color:#9ca3af;cursor:pointer;line-height:1;">&times;</button>
         <h2 style="margin:0 0 16px;font-size:22px;color:#1e293b;"><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></h2>
         <div style="color:#374151;line-height:1.8;font-size:15px;"><?php echo $content; /* 管理员提供的 HTML，原样输出 */ ?></div>
         <div style="text-align:center;margin-top:24px;">
