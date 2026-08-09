@@ -71,7 +71,7 @@ if (!function_exists('timelineBlock')) {
         }
 
         if (empty($items)) {
-            return '<div class="text-center py-12 text-gray-500"><p>暂无内容</p></div>';
+            return '<div class="text-center py-12 text-gray-500"><p>' . e(__('home_no_content')) . '</p></div>';
         }
 
         // 按年分组（vertical/compact 用）

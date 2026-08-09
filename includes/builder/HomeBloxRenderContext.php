@@ -322,8 +322,18 @@ final class HomeBloxRenderContext
             return null;
         }
 
-        $channel = $this->homeChannelsMap[$channelId] ?? channelModel()->find($channelId);
-        if (!$channel || empty($channel['status'])) {
+        $channel = $this->homeChannelsMap[$channelId] ?? null;
+        if ($channel === null) {
+            // 映射表未命中（版块存的是别的语言行的 id）：按翻译组映射到当前语言，
+            // 再回查映射表拿富化行（contents/per_row 等）；没有对应语言行就不渲染。
+            $sibling = channelModel()->siblingForLang($channelId);
+            if ($sibling === null) {
+                return null;
+            }
+            $channelId = (int) $sibling['id'];
+            $channel = $this->homeChannelsMap[$channelId] ?? $sibling;
+        }
+        if (empty($channel['status'])) {
             return null;
         }
 

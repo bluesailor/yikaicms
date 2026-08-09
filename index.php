@@ -283,6 +283,11 @@ if (($homeLayoutActive || $homeBloxActive) && is_array($homeBloxDocument)) {
         if (str_starts_with($type, 'channel:')) {
             $channelId = (int) substr($type, 8);
             $currentChannel = $homeChannelsMap[$channelId] ?? null;
+            if (!$currentChannel) {
+                // 配置存的是别的语言行的 id：按翻译组映射后再查富化映射表
+                $__sib = channelModel()->siblingForLang($channelId);
+                $currentChannel = $__sib ? ($homeChannelsMap[(int) $__sib['id']] ?? null) : null;
+            }
             if ($currentChannel) {
                 require theme_path('blocks/channel.php');
             }

@@ -49,7 +49,7 @@
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
                         <div class="text-center text-white px-4 w-full max-w-4xl">
                             <h2 class="text-3xl md:text-5xl font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h2>
-                            <p class="text-lg md:text-2xl mb-6"><?php echo e(config('site_description', '专业的企业内容管理系统')); ?></p>
+                            <p class="text-lg md:text-2xl mb-6"><?php echo e(configLang('site_description', 'quality_service_desc')); ?></p>
                             <a href="/contact.html" class="inline-block bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition pointer-events-auto"><?php echo __('nav_contact'); ?></a>
                         </div>
                     </div>

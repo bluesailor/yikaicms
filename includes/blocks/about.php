@@ -16,7 +16,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
             <?php if ($aboutLayout === 'image_left'): ?>
             <!-- 左图右文 -->
             <div class="relative" data-animate="fade-right">
-                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>
@@ -34,7 +34,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 </h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">
-                    <?php echo e(config('home_about_content', config('site_description', '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。'))); ?>
+                    <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
                 <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
@@ -50,7 +50,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 </h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 leading-relaxed mb-6 mt-6">
-                    <?php echo e(config('home_about_content', config('site_description', '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。'))); ?>
+                    <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
                 <a href="<?php echo channelUrl($aboutChannel); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
@@ -59,7 +59,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <?php endif; ?>
             </div>
             <div class="relative" data-animate="fade-left">
-                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="关于我们" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>

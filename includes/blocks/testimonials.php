@@ -4,8 +4,8 @@
  * 变量：$testimonials
  */
 if (empty($testimonials)) return;
-$tmTitle = config('home_testimonials_title', '客户评价');
-$tmDesc = config('home_testimonials_desc', '听听合作伙伴怎么说');
+$tmTitle = configLang('home_testimonials_title', 'home_testimonials_title');
+$tmDesc = configLang('home_testimonials_desc', 'home_testimonials_desc');
 $bg = getBlockBg($block ?? [], 'bg-gray-50');
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
