@@ -180,6 +180,21 @@ EXCLUDES=(
     "admin/blox_editor.php"
     "admin/blox_home_api.php"
     "themes/blox"
+    #   r7 之后新增的编辑器侧文件（1.16.2 免费包均无，1.17.0 首次被扫进包里——
+    #   排除清单必须随文件新增同步维护）。前台渲染运行时的三个 JS 保留：
+    #   blox-counter（统计动画）/ blox-sticky-header（吸顶头）/ blox-nav-drawer（移动端抽屉），
+    #   它们由 includes/builder 元素与主题区块引用，已发布内容离了会 404。
+    "admin/blox_template_api.php"
+    "admin/blox_templates.php"
+    "assets/js/blox-preview-client.js"
+    "assets/js/blox-canvas-bridge.js"
+    "assets/js/blox-command-runner.js"
+    "assets/js/blox-control-rules.js"
+    "assets/js/blox-history-store.js"
+    "assets/js/blox-template-library.js"
+    "plugins/blox-example"
+    #   双仓工作流脚本——纯内部工具
+    "bin/blox-git"
 
     # 临时测试文件（如本地 dev 时手写的）
     "recipe_test.php"
