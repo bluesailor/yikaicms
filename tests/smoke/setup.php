@@ -133,6 +133,26 @@ $pdo = new PDO('sqlite:' . $dbFile);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $pdo->exec(file_get_contents($root . '/install/sql/sqlite.sql'));
 
+// ── 站点语言（--lang=en 等；默认 zh-CN）────────────────────────────────
+// 客户站大量是纯英文/日文，而测试一直只跑中文——「新建行 lang 落错桶、
+// 列表查不到」这类 bug 在中文站上根本不成立（默认值恰好对），只有换语言才现形。
+// 让 smoke 能按语言起站，CI 并行跑 zh-CN 与 en 两腿。
+$smokeLang = 'zh-CN';
+foreach ($argv as $a) {
+    if (str_starts_with((string) $a, '--lang=')) {
+        $v = substr((string) $a, 7);
+        if (in_array($v, ['zh-CN', 'en', 'ja'], true)) {
+            $smokeLang = $v;
+        }
+    }
+}
+if ($smokeLang !== 'zh-CN') {
+    $setLang = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
+    $setLang->execute([$smokeLang, 'site_lang']);
+    $setLang->execute([$smokeLang, 'admin_lang']);
+    $setLang->execute([json_encode([$smokeLang]), 'enabled_languages']);
+}
+
 if (!$i18nOnly) {
     // 浏览器回归必须显式通过设置闸；i18n 扫描不加载 Blox。
     $enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
@@ -171,9 +191,15 @@ if (!$i18nOnly) {
 
 // 6) 报告可用的 parent id（供冒烟客户端引用）
 $out = [
-    'channel_list' => (int) $pdo->query("SELECT id FROM yikai_channels WHERE type='list' LIMIT 1")->fetchColumn(),
-    'channel_any'  => (int) $pdo->query("SELECT id FROM yikai_channels LIMIT 1")->fetchColumn(),
-    'product_cat'  => (int) $pdo->query("SELECT id FROM yikai_product_categories LIMIT 1")->fetchColumn(),
+    // 按站点语言挑 fixture：种子数据是三语的，随手取第一行会拿到中文栏目，
+    // 而英文站建的内容 lang=en——父子语言不一致，列表页永远查不到（这不是产品
+    // bug 而是测试自身的坑，--lang=en 首跑就撞上）。同语言取不到才回退任意行。
+    'channel_list' => (int) ($pdo->query("SELECT id FROM yikai_channels WHERE type='list' AND lang='{$smokeLang}' LIMIT 1")->fetchColumn()
+        ?: $pdo->query("SELECT id FROM yikai_channels WHERE type='list' LIMIT 1")->fetchColumn()),
+    'channel_any'  => (int) ($pdo->query("SELECT id FROM yikai_channels WHERE lang='{$smokeLang}' LIMIT 1")->fetchColumn()
+        ?: $pdo->query("SELECT id FROM yikai_channels LIMIT 1")->fetchColumn()),
+    'product_cat'  => (int) ($pdo->query("SELECT id FROM yikai_product_categories WHERE lang='{$smokeLang}' LIMIT 1")->fetchColumn()
+        ?: $pdo->query("SELECT id FROM yikai_product_categories LIMIT 1")->fetchColumn()),
     'download_cat' => (int) ($pdo->query("SELECT id FROM yikai_download_categories LIMIT 1")->fetchColumn() ?: 0),
     'tables'       => (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")->fetchColumn(),
     'blox_template' => $templateId,

@@ -92,12 +92,21 @@ jobs:
   # ─── （生产依赖要求 PHP 8.1、8.0 主机保存文章 ParseError 500）由本矩阵
   # ─── 的 8.0 腿拦截：composer 平台约束、vendor 语法、真实保存 三层全覆盖。
   smoke:
-    name: Admin CRUD Smoke (PHP ${{ matrix.php }})
+    name: Admin CRUD Smoke (PHP ${{ matrix.php }} / ${{ matrix.lang }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.2']
+        # lang 维度：客户站大量是纯英文/日文，而测试一直只跑中文——「新建行 lang
+        # 落错桶、列表查不到」这类 bug 在中文站上根本不成立（默认值恰好对）。
+        # en 腿只挂在 8.2 上，避免矩阵翻倍。
+        include:
+          - php: '8.0'
+            lang: 'zh-CN'
+          - php: '8.2'
+            lang: 'zh-CN'
+          - php: '8.2'
+            lang: 'en'
     steps:
       - uses: actions/checkout@v4
 
@@ -135,7 +144,7 @@ jobs:
         run: php tests/smoke/schema_parity.php
 
       - name: Prepare fresh SQLite install
-        run: php tests/smoke/setup.php
+        run: php tests/smoke/setup.php --lang=${{ matrix.lang }}
 
       - name: Start PHP built-in server
         run: |
@@ -395,6 +404,9 @@ jobs:
           coverage: none
       - name: Run lang key check
         run: php tools/check_lang_keys.php
+
+      - name: Hardcoded currency symbol gate
+        run: php tools/check_currency_symbols.php
 
       # Blox 三语化门禁（严格档，2026-08-07 起 351 处元素标签清零后全范围生效）：
       # \uXXXX 转义与硬编码中文回潮即红。付费源码不在 checkout 时自动跳过对应文件。

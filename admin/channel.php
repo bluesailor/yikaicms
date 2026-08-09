@@ -110,6 +110,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['slug'] = $data['name'];
         }
 
+        // 新建行显式带 lang：列表按 view-lang 过滤，而列默认值历史上是 'ja'，
+        // 不写则新建栏目落到日语桶、中文站列表里查不到（smoke 新增的可见性回读抓出）。
+        if ($id <= 0) {
+            $data['lang'] = (string) (get('lang') ?: config('site_lang', 'zh-CN'));
+        }
+
         // 检查 slug 唯一性
         if (!channelModel()->isSlugUnique($data['slug'], $id)) {
             error(__('admin_url_alias_exists'));

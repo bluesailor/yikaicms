@@ -243,7 +243,7 @@ CREATE TABLE "yikai_channels" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "show_cover" INTEGER NOT NULL DEFAULT 1,
   "list_options" TEXT DEFAULT '',
-  "lang" TEXT NOT NULL DEFAULT 'ja',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "parent_id" INTEGER NOT NULL DEFAULT '0',
   "name" TEXT NOT NULL,
@@ -403,7 +403,7 @@ DROP TABLE IF EXISTS "yikai_contents";
 CREATE TABLE "yikai_contents" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "deleted_at" INTEGER DEFAULT NULL,
-  "lang" TEXT NOT NULL DEFAULT 'ja',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "channel_id" INTEGER NOT NULL DEFAULT '0',
   "type" TEXT NOT NULL DEFAULT 'article',
@@ -1801,7 +1801,7 @@ DROP TABLE IF EXISTS "yikai_products";
 CREATE TABLE "yikai_products" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "deleted_at" INTEGER DEFAULT NULL,
-  "lang" TEXT NOT NULL DEFAULT 'ja',
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "category_id" INTEGER NOT NULL DEFAULT '0',
   "brand_id" INTEGER NOT NULL DEFAULT '0',
