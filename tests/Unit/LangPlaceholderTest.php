@@ -21,9 +21,10 @@ final class LangPlaceholderTest extends TestCase
 
     /** key => 该 key 必须包含的占位符 */
     private const PLACEHOLDERS = [
-        'home_about_title_site'  => ':site',
         'email_test_sent_at'     => ':time',
         'email_test_fail_prefix' => ':error',
+        'home_about_title_site'  => ':site',
+        'upgrade_welcome_title'  => ':version',
     ];
 
     /** @return array<string, array<string, string>> */

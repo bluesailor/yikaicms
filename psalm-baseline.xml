@@ -18,6 +18,15 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
+  <file src="admin/appearance.php">
+    <MissingFile>
+      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
+    </MissingFile>
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
   <file src="admin/album.php">
     <InvalidArgument>
       <code><![CDATA[$files['name']]]></code>

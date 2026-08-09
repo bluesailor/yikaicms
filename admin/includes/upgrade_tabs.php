@@ -42,6 +42,7 @@ $__showDb = $__upgPending > 0 || $__upgTab === 'check';
         </a>
         <?php endif; ?>
         <a href="/admin/upgrade_online.php" class="whitespace-nowrap <?php echo $__upgTab === 'online' ? $__upgOn : $__upgOff; ?>"><?php echo __('upgrade_online'); ?></a>
+        <a href="/admin/upgrade.php?tab=history" class="whitespace-nowrap <?php echo $__upgTab === 'history' ? $__upgOn : $__upgOff; ?>"><?php echo __('upgrade_tab_history'); ?></a>
         <a href="/admin/upgrade.php?tab=config" class="whitespace-nowrap <?php echo $__upgTab === 'config' ? $__upgOn : $__upgOff; ?>"><?php echo __('upgrade_config_title'); ?></a>
     </div>
 </div>
