@@ -623,6 +623,44 @@ function __(string $key, array $params = []): string
 }
 
 /**
+ * 并入一个插件的语言包：plugins/<slug>/lang/{当前语言}.php（缺则回落 zh-CN）。
+ *
+ * 为什么插件文案不进核心 lang/：市场插件独立安装、独立发版，塞进核心语言包会让它
+ * 无限膨胀且永远清理不掉，`check_lang_keys` 还会要求「未安装插件的 key 也必须存在」。
+ * 让插件自带译文，装了才有、卸了就走。
+ *
+ * key 建议加插件前缀（如 `mnsort_`），避免与核心或其它插件撞车；
+ * **撞车时核心优先**——插件不许覆盖核心文案。
+ */
+function loadPluginLang(string $slug): void
+{
+    if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
+        return;
+    }
+    global $_LANG_DATA;
+    loadLangData();                     // 先确保核心语言表已就绪
+
+    $lang = getLang();
+    $dir = ROOT_PATH . '/plugins/' . $slug . '/lang/';
+    $data = [];
+    foreach (array_unique(['zh-CN', $lang]) as $code) {
+        $file = $dir . $code . '.php';
+        if (!is_file($file)) {
+            continue;
+        }
+        $part = require $file;
+        if (is_array($part)) {
+            $data = array_merge($data, $part);      // 目标语言覆盖 zh-CN 兜底
+        }
+    }
+    if ($data === []) {
+        return;
+    }
+    // 核心已有的 key 不被插件覆盖
+    $_LANG_DATA = array_merge($data, (array) $_LANG_DATA);
+}
+
+/**
  * 多语言感知的配置读取：默认语言用 config，其他语言用语言包
  */
 function configLang(string $configKey, string $langKey = ''): string
