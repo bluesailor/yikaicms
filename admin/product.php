@@ -256,7 +256,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if (config('show_price', '0') === '1'): ?>
                         <td class="px-4 py-3 text-center">
                             <?php if ($item['price'] > 0): ?>
-                            <span class="text-red-600 font-medium">&yen;<?php echo number_format((float)$item['price'], 2); ?></span>
+                            <span class="text-red-600 font-medium"><?php echo formatPrice($item['price']); ?></span>
                             <?php else: ?>
                             <span class="text-gray-400"><?php echo e(__('pr_negotiable')); ?></span>
                             <?php endif; ?>
