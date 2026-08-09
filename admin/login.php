@@ -21,11 +21,27 @@ if (!empty($_SESSION['admin_id'])) {
 // 语言切换：以后台「admin_languages」设置为准，可在 /admin/setting.php?tab=lang 配置
 // ============================================================
 $_allLangs = availableLanguages();  // ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', ...]
+// enabled_languages 是站长在「语言设置」里的明确选择，优先于 admin_languages
+// ——后者是安装时写死的 'zh-CN,en,ja'，从不跟随站点实际启用语言，纯英文站的
+// 登录页因此一直显示「中文 / 日本語」，点进去整个后台变中文（客户实测报出）。
+$_enabledRaw = trim((string) config('enabled_languages', ''));
+$_enabledList = $_enabledRaw !== '' ? json_decode($_enabledRaw, true) : null;
 $_adminLangsRaw = trim((string) config('admin_languages', ''));
-if ($_adminLangsRaw !== '') {
+
+if (is_array($_enabledList) && $_enabledList !== []) {
+    $_adminAllowed = array_values(array_filter(array_map('strval', $_enabledList)));
+} elseif ($_adminLangsRaw !== '') {
     $_adminAllowed = array_values(array_filter(array_map('trim', explode(',', $_adminLangsRaw))));
 } else {
-    $_adminAllowed = array_keys($_allLangs);
+    // 两者都没配：退到后台语言/站点语言，再不行才列全部语言包
+    $_fallbackLang = (string) (config('admin_lang', '') ?: config('site_lang', ''));
+    $_adminAllowed = $_fallbackLang !== '' ? [$_fallbackLang] : array_keys($_allLangs);
+}
+// 后台语言本身必须在列表里：admin_lang 设了 ja 而 enabled_languages 只有 en 时，
+// 不能把管理员正在用的语言从切换器里摘掉。
+$_curAdminLang = (string) config('admin_lang', '');
+if ($_curAdminLang !== '' && !in_array($_curAdminLang, $_adminAllowed, true)) {
+    $_adminAllowed[] = $_curAdminLang;
 }
 $supportedLangs = [];
 foreach ($_adminAllowed as $_lc) {
