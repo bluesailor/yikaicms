@@ -20,7 +20,7 @@ if (!defined('ROOT_PATH')) {
 // ── 1. 注册版块类型 ───────────────────────────────────────────
 add_filter('home_block_types', function (array $blockMeta): array {
     $blockMeta['product_carousel'] = [
-        'title'      => '产品轮播',
+        'title'      => __('pcar_block_name'),
         'icon'       => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 15l3 3 3-3"></path>',
         'bg_default' => '#ffffff',
         'plugin'     => true,
@@ -49,45 +49,45 @@ add_action('home_block_config_ui', function (string $type, array $block): void {
              . '<button type="button" class="pc-del text-red-400 hover:text-red-600 px-1">✕</button>';
     ?>
     <div class="bg-gray-50 rounded-lg p-4 space-y-4" data-pc-config>
-        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide">产品轮播</h4>
+        <h4 class="text-xs font-medium text-gray-400 uppercase tracking-wide"><?php echo e(__('pcar_block_name')); ?></h4>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-                <label class="text-xs text-gray-500 block mb-1">标题</label>
-                <input type="text" class="pc-title w-full border rounded px-2 py-1.5 text-xs" value="<?php echo e($title); ?>" placeholder="如：精选产品">
+                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('pcar_f_title')); ?></label>
+                <input type="text" class="pc-title w-full border rounded px-2 py-1.5 text-xs" value="<?php echo e($title); ?>" placeholder="<?php echo e(__('pcar_title_ph')); ?>">
             </div>
             <div>
-                <label class="text-xs text-gray-500 block mb-1">每屏个数 <span class="text-gray-300">(1-6)</span></label>
+                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('pcar_per_screen')); ?> <span class="text-gray-300">(1-6)</span></label>
                 <input type="number" min="1" max="6" class="pc-perrow w-full border rounded px-2 py-1.5 text-xs" value="<?php echo $perRow ?: 4; ?>">
             </div>
             <div>
-                <label class="text-xs text-gray-500 block mb-1">自动播放</label>
+                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('pcar_autoplay')); ?></label>
                 <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 mt-1.5">
-                    <input type="checkbox" class="pc-autoplay-on" <?php echo $autoplay > 0 ? 'checked' : ''; ?>> 开启
+                    <input type="checkbox" class="pc-autoplay-on" <?php echo $autoplay > 0 ? 'checked' : ''; ?>> <?php echo e(__('pcar_on')); ?>
                 </label>
             </div>
             <div>
-                <label class="text-xs text-gray-500 block mb-1">间隔（秒）</label>
+                <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('pcar_interval')); ?></label>
                 <input type="number" min="2" max="30" class="pc-autoplay-sec w-full border rounded px-2 py-1.5 text-xs" value="<?php echo $autoplay > 0 ? $autoplay : 5; ?>">
             </div>
         </div>
 
         <div>
-            <label class="text-xs text-gray-500 block mb-1">已选产品（顺序即展示顺序，可上下移）</label>
+            <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('pcar_selected')); ?></label>
             <div class="pc-list space-y-1">
                 <?php foreach ($selectedIds as $sid): ?>
                 <div class="pc-row flex items-center gap-1 bg-white border rounded px-2 py-1 text-xs" data-id="<?php echo $sid; ?>">
-                    <span class="pc-name flex-1 truncate"><?php echo e($nameMap[$sid] ?? ('产品 #' . $sid)); ?></span>
+                    <span class="pc-name flex-1 truncate"><?php echo e($nameMap[$sid] ?? (__('pcar_item_fallback') . $sid)); ?></span>
                     <?php echo $rowBtns; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
-            <p class="pc-empty text-xs text-gray-400 mt-1 <?php echo $selectedIds ? 'hidden' : ''; ?>">尚未选择产品</p>
+            <p class="pc-empty text-xs text-gray-400 mt-1 <?php echo $selectedIds ? 'hidden' : ''; ?>"><?php echo e(__('pcar_none_selected')); ?></p>
         </div>
 
         <div>
-            <label class="text-xs text-gray-500 block mb-1">批量添加</label>
-            <input type="text" class="pc-search w-full border rounded px-2 py-1.5 text-xs mb-2" placeholder="搜索产品名筛选…">
+            <label class="text-xs text-gray-500 block mb-1"><?php echo e(__('pcar_batch_add')); ?></label>
+            <input type="text" class="pc-search w-full border rounded px-2 py-1.5 text-xs mb-2" placeholder="<?php echo e(__('pcar_search_ph')); ?>">
             <div class="pc-pool max-h-48 overflow-y-auto border rounded bg-white p-2 space-y-1">
                 <?php foreach ($products as $p): ?>
                 <label class="pc-pool-item flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5"
@@ -96,9 +96,9 @@ add_action('home_block_config_ui', function (string $type, array $block): void {
                     <span class="truncate"><?php echo e($p['title']); ?></span>
                 </label>
                 <?php endforeach; ?>
-                <?php if (empty($products)): ?><div class="text-xs text-gray-400">暂无已发布产品</div><?php endif; ?>
+                <?php if (empty($products)): ?><div class="text-xs text-gray-400"><?php echo e(__('pcar_no_published')); ?></div><?php endif; ?>
             </div>
-            <button type="button" class="pc-batch-add mt-2 bg-primary hover:bg-secondary text-white text-xs px-3 py-1.5 rounded">添加勾选的产品</button>
+            <button type="button" class="pc-batch-add mt-2 bg-primary hover:bg-secondary text-white text-xs px-3 py-1.5 rounded"><?php echo e(__('pcar_add_checked')); ?></button>
             <template class="pc-row-tpl">
                 <div class="pc-row flex items-center gap-1 bg-white border rounded px-2 py-1 text-xs" data-id="">
                     <span class="pc-name flex-1 truncate"></span>
@@ -241,8 +241,8 @@ add_filter('home_block_render', function (string $html, string $type, array $blo
                 </div>
             </div>
 
-            <button type="button" class="yk-pc-prev" aria-label="上一组">&#10094;</button>
-            <button type="button" class="yk-pc-next" aria-label="下一组">&#10095;</button>
+            <button type="button" class="yk-pc-prev" aria-label="<?php echo e(__('pcar_prev_group')); ?>">&#10094;</button>
+            <button type="button" class="yk-pc-next" aria-label="<?php echo e(__('pcar_next_group')); ?>">&#10095;</button>
             <div class="yk-pc-dots" style="text-align:center;margin-top:24px;"></div>
         </div>
 
