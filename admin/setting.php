@@ -482,6 +482,7 @@ async function saveAdminLanguages() {
             <?php if ($item['type'] === 'footer_columns'): ?>
             <!-- 页脚栏目编辑器 -->
             <?php $columnsData = json_decode($item['value'], true) ?: []; ?>
+            <?php $__navGroups = navMenuModel()->asMap(); // 栏可引用网站菜单组（选了组则该栏渲染组链接） ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
                     <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
@@ -514,6 +515,20 @@ async function saveAdminLanguages() {
                             <button type="button" class="fcol-clear text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('setting_clear_row'); ?>">
                                 <i class="ti ti-x text-base"></i>
                             </button>
+                        </div>
+                        <div class="mt-2 ml-8 flex items-center gap-2 flex-wrap">
+                            <label class="text-xs text-gray-400 flex-shrink-0"><?php echo __('setting_col_menu'); ?></label>
+                            <select class="fcol-menu border rounded px-2 py-1.5 text-sm">
+                                <option value="0"><?php echo __('setting_col_menu_none'); ?></option>
+                                <?php foreach ($__navGroups as $__gid => $__gname): ?>
+                                <option value="<?php echo (int) $__gid; ?>" <?php echo (int) ($col['menu_id'] ?? 0) === (int) $__gid ? 'selected' : ''; ?>><?php echo e($__gname); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php if ($__navGroups === []): ?>
+                            <a href="/admin/nav_menu.php" class="text-xs text-primary hover:underline"><?php echo e(__('setting_col_menu_create')); ?></a>
+                            <?php else: ?>
+                            <span class="text-xs text-gray-400"><?php echo e(__('setting_col_menu_hint')); ?></span>
+                            <?php endif; ?>
                         </div>
                         <div class="mt-2 ml-8">
                             <label class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
@@ -816,8 +831,10 @@ function collectFooterColumns() {
         var title = row.querySelector('.fcol-title').value.trim();
         var content = row.querySelector('.fcol-content').value.trim();
         var colSpan = parseInt(row.querySelector('.fcol-span').value) || 1;
-        if (title || content) {
-            cols.push({ title: title, content: content, col_span: colSpan });
+        var menuSel = row.querySelector('.fcol-menu');
+        var menuId = menuSel ? (parseInt(menuSel.value) || 0) : 0;
+        if (title || content || menuId) {
+            cols.push({ title: title, content: content, col_span: colSpan, menu_id: menuId });
         }
     });
     document.getElementById('footerColumnsJson').value = JSON.stringify(cols);
@@ -830,7 +847,22 @@ document.querySelectorAll('.fcol-clear').forEach(function(btn) {
         row.querySelector('.fcol-title').value = '';
         row.querySelector('.fcol-content').value = '';
         row.querySelector('.fcol-span').value = '1';
+        var menuSel = row.querySelector('.fcol-menu');
+        if (menuSel) { menuSel.value = '0'; menuSel.dispatchEvent(new Event('change')); }
     });
+});
+
+// 选了菜单组 → 内容框置灰（渲染时被忽略，但保留内容便于切回）
+document.querySelectorAll('.fcol-menu').forEach(function(sel) {
+    var sync = function() {
+        var row = sel.closest('.fcol-row');
+        var ta = row.querySelector('.fcol-content');
+        var on = (parseInt(sel.value) || 0) > 0;
+        ta.classList.toggle('opacity-40', on);
+        ta.classList.toggle('pointer-events-none', on);
+    };
+    sel.addEventListener('change', sync);
+    sync();
 });
 
 // 单项恢复默认值

@@ -97,6 +97,29 @@ final class NavMenuModelTest extends TestCase
         $this->assertSame('产品别名', $tree[1]['name']); // label 覆盖显示名
     }
 
+    public function testFooterLinksFlattensTopLevelAndIgnoresChildren(): void
+    {
+        $this->insertRow('channels', ['name' => '产品', 'slug' => 'product']);
+        $gid = (int) $this->model()->create(['name' => '页脚组', 'items' => json_encode([
+            ['channel_id' => 1, 'label' => '', 'url' => '', 'target' => '', 'children' => [
+                ['channel_id' => 0, 'label' => '子项', 'url' => '/sub', 'target' => '', 'children' => []],
+            ]],
+            ['channel_id' => 0, 'label' => '文档', 'url' => 'https://docs.example.com', 'target' => '_blank', 'children' => []],
+        ], JSON_UNESCAPED_UNICODE), 'created_at' => 1, 'updated_at' => 1]);
+
+        $links = $this->model()->footerLinks($gid);
+        // 只投影顶层——嵌套是 mega menu 的语义，页脚一栏就是一列链接
+        $this->assertCount(2, $links);
+        $this->assertSame(['name' => '产品', 'url' => '/product.html', 'target' => ''], $links[0]);
+        $this->assertSame(['name' => '文档', 'url' => 'https://docs.example.com', 'target' => '_blank'], $links[1]);
+    }
+
+    public function testFooterLinksUnknownGroupIsEmpty(): void
+    {
+        // 组不存在 / 项全失效 → []，主题据此回退到自定义内容渲染
+        $this->assertSame([], $this->model()->footerLinks(999));
+    }
+
     public function testTreeForUnknownGroupOrBadJsonIsEmpty(): void
     {
         $this->assertSame([], $this->model()->treeFor(999));
