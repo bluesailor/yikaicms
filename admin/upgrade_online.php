@@ -43,6 +43,13 @@ const UO_EXCLUDES = [
     'config/config.php', 'config/installed.lock', 'installed.lock',
     'storage', 'uploads', 'install',
     'overrides', 'config/overrides.php', 'lang/overrides',
+    // 站点自己的东西，随包分发但**装完就归站点所有**，升级不能盖回出厂值：
+    //   robots.txt   后台「SEO 设置」可编辑，客户改过的抓取规则不能被冲掉
+    //   favicon.ico  图标工坊「一键应用到本站」写的就是它，被盖回去等于插件功能失效
+    //   .htaccess    客户常在里面加自己的重定向/防盗链规则
+    // 这几个此前没写进来，属于「碰巧没出事」——发行包里它们和站点版本长得一样，
+    // 一旦客户动过就静默丢失，而且丢了不报错、下次访问才发现。
+    'robots.txt', 'favicon.ico', '.htaccess',
 ];
 
 /**

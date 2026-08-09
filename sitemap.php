@@ -30,6 +30,19 @@ if ($cached !== null) {
 
 $siteUrl = siteBaseUrl();
 
+// 只提交**已启用语言**的内容。原先三处查询都不带 lang 条件：多语言站会把各语言混在
+// 一张 sitemap 里；只开英文的站点更糟——把从未启用、内容为空的中文/日文栏目页
+// 一并交给搜索引擎去索引（fhzn 实测 204 条里有 9 条是这种）。
+// enabledLanguages() 返回的是 ['en' => 'English'] 这种**映射**，要的是键不是值
+$sitemapLangs = isMultiLangEnabled('channels') ? array_keys(enabledLanguages()) : [];
+$sitemapLangParams = [];
+$sitemapLangCond = static fn(string $col): string => '';   // 未启用多语言时不加条件
+if ($sitemapLangs !== []) {
+    $ph = implode(',', array_fill(0, count($sitemapLangs), '?'));
+    $sitemapLangCond = static fn(string $col): string => " AND {$col} IN ({$ph})";
+    $sitemapLangParams = $sitemapLangs;
+}
+
 $urls = [];
 
 // 首页
@@ -43,6 +56,7 @@ $urls[] = [
 $channels = channelModel()->getTree();
 foreach ($channels as $channel) {
     if ($channel['type'] === 'link') continue;
+    if ($sitemapLangs !== [] && !in_array((string) ($channel['lang'] ?? ''), $sitemapLangs, true)) continue;
     $urls[] = [
         'loc'        => $siteUrl . channelUrl($channel),
         'lastmod'    => date('Y-m-d', (int)($channel['updated_at'] ?? $channel['created_at'] ?? time())),
@@ -70,9 +84,10 @@ $contents = db()->fetchAll(
             ch.slug as channel_slug, ch.type as channel_type
      FROM " . DB_PREFIX . "contents c
      LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-     WHERE c.status = 1
+     WHERE c.status = 1" . $sitemapLangCond('c.lang') . "
      ORDER BY c.publish_time DESC
-     LIMIT 5000"
+     LIMIT 5000",
+    $sitemapLangParams
 );
 
 foreach ($contents as $content) {
@@ -94,9 +109,10 @@ $products = db()->fetchAll(
             pc.slug as category_slug
      FROM " . DB_PREFIX . "products p
      LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-     WHERE p.status = 1
+     WHERE p.status = 1" . $sitemapLangCond('p.lang') . "
      ORDER BY p.updated_at DESC, p.id DESC
-     LIMIT 5000"
+     LIMIT 5000",
+    $sitemapLangParams
 );
 
 foreach ($products as $product) {
