@@ -35,7 +35,7 @@ class NavMenuModel extends Model
      * 子级忽略——嵌套结构是给 mega menu 用的，页脚一栏就是一列链接；
      * 组不存在/项全失效时返回 []，主题据此回退到自定义内容。
      *
-     * 调用方在 themes/*/layouts/footer.php——Psalm 不分析 themes/，认不出调用。
+     * 调用方在各主题的 layouts/footer.php——Psalm 不分析 themes 目录，认不出调用。
      *
      * @return array<int,array{name:string,url:string,target:string}>
      * @psalm-suppress PossiblyUnusedMethod
