@@ -128,9 +128,18 @@ if ($footerBgImage) {
                     <?php if (!empty($col['title'])): ?>
                     <h3 class="text-white text-lg font-bold mb-4"><?php echo e($col['title']); ?></h3>
                     <?php endif; ?>
+                    <?php $__colLinks = !empty($col['menu_id']) ? navMenuModel()->footerLinks((int) $col['menu_id']) : []; ?>
+                    <?php if ($__colLinks !== []): ?>
+                    <ul class="text-sm space-y-2">
+                        <?php foreach ($__colLinks as $__l): ?>
+                        <li><a href="<?php echo e(safeUrl($__l['url'])); ?>"<?php echo $__l['target'] === '_blank' ? ' target="_blank" rel="nofollow"' : ''; ?> class="hover:text-white transition"><?php echo e($__l['name']); ?></a></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php else: ?>
                     <div class="text-sm leading-relaxed">
                         <?php echo renderFooterContent($col['content'] ?? ''); ?>
                     </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>

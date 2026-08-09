@@ -31,6 +31,29 @@ class NavMenuModel extends Model
     }
 
     /**
+     * 页脚栏投影：组的顶层项 → 扁平链接列表 [{name,url,target}]。
+     * 子级忽略——嵌套结构是给 mega menu 用的，页脚一栏就是一列链接；
+     * 组不存在/项全失效时返回 []，主题据此回退到自定义内容。
+     *
+     * 调用方在各主题的 layouts/footer.php——Psalm 不分析 themes 目录，认不出调用。
+     *
+     * @return array<int,array{name:string,url:string,target:string}>
+     * @psalm-suppress PossiblyUnusedMethod
+     */
+    public function footerLinks(int $id): array
+    {
+        $links = [];
+        foreach ($this->treeFor($id) as $node) {
+            $links[] = [
+                'name'   => (string) $node['name'],
+                'url'    => (string) $node['url'],
+                'target' => (string) ($node['link_target'] ?? ''),
+            ];
+        }
+        return $links;
+    }
+
+    /**
      * 渲染树：items JSON → 与 getNavChannels() 同构的节点列表。
      * 栏目引用解析活数据（改栏目名/链接全站生效）；引用失效（栏目删除/停用）
      * 的项连同其子树跳过；节点同时给 url 与 _url 键（兼容两类既有消费者）。
