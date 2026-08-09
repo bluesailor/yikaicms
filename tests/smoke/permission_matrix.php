@@ -317,7 +317,13 @@ else { $fail++; echo "  ✗ 放开权限后仍被拒——说明上一条是误�
 $pdo3->prepare('UPDATE yikai_users SET status = 0 WHERE username = ?')->execute([$ISOLATED['user']]);
 [$c, $b] = pmReq($jar2, 'GET', '/admin/article.php');
 $checked++;
-$kicked = $c === 302 || $c === 401 || str_contains($b, 'name="password"') || str_contains($b, '账号已失效');
+// 判据必须与语言无关：原先只认中文串「账号已失效」，英文站上产品照常返回
+// 401 + 英文文案，断言却判失败（--lang=en 腿首跑抓出的测试自身的坑）。
+// 三语文案并列——与上面 pmDenied() 的既有做法一致，不引核心（本脚本不加载 functions.php）。
+$kicked = $c === 302 || $c === 401 || str_contains($b, 'name="password"')
+    || str_contains($b, '账号已失效')
+    || str_contains($b, 'Account is no longer valid')
+    || str_contains($b, 'アカウントが無効です');
 if ($kicked) { echo "  ✓ 停用账号后当场踢出\n"; }
 else { $fail++; printf("  ✗ 停用账号后仍可用 (HTTP %d)——「禁用」等于没禁\n", $c); }
 
