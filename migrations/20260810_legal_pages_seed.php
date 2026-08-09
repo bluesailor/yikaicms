@@ -5,7 +5,9 @@
  * 安装器一直建了这两个栏目却不给正文，客户站上线就挂着两个空白页——比没有更糟。
  * 本迁移只填**正文为空**的栏目：已经自己写过条款的站点一个字都不动。
  *
- * 正文顶部带「模板提示」横幅，明确要求站长按实际业务与所在地法律修改后再发布。
+ * 提醒写成 **HTML 注释**而不是页面上的横幅：横幅是给站长看的，可它躺在 channels.content 里，
+ * 访客照样看得见——隐私政策页上挂一句「这是模板请修改」，比空白页更伤专业度。
+ * 注释对访客不可见，编辑正文的人却一眼能看到。
  * 刻意不写任何法域（GDPR / CCPA / 个人信息保护法）的合规承诺——那需要律师按
  * 具体业务定，我们只给结构和常见条目。
  */
@@ -38,7 +40,7 @@ return [
     'php' => static function (): string {
         $texts = [
             'privacy'    => <<<'HTML'
-<div class="yk-tpl-notice"><strong>模板提示：</strong>以下为通用样板，请根据贵司实际的数据收集与使用情况、以及所在地适用法律修改后再发布。如涉及跨境业务或敏感个人信息，建议咨询法律顾问。</div>
+<!-- 模板提示：以下为通用样板，请根据贵司实际的数据收集与使用情况、以及所在地适用法律修改后再发布。如涉及跨境业务或敏感个人信息，建议咨询法律顾问。 -->
 <h2>我们收集的信息</h2>
 <p>当您访问本网站、填写表单或与我们联系时，我们可能会收集以下信息：您主动提供的姓名、公司、电话、邮箱等联系方式；以及浏览器自动发送的 IP 地址、设备与浏览器类型、访问时间与页面路径等技术信息。</p>
 <h2>信息的使用</h2>
@@ -62,7 +64,7 @@ return [
 <p>如对本隐私政策有任何疑问，请通过网站「联系我们」页面提供的方式与我们联系。</p>
 HTML,
             'terms'      => <<<'HTML'
-<div class="yk-tpl-notice"><strong>模板提示：</strong>以下为通用样板，请根据贵司实际业务与所在地适用法律修改后再发布。涉及在线交易、会员或订阅服务时，建议咨询法律顾问。</div>
+<!-- 模板提示：以下为通用样板，请根据贵司实际业务与所在地适用法律修改后再发布。涉及在线交易、会员或订阅服务时，建议咨询法律顾问。 -->
 <h2>条款的接受</h2>
 <p>访问和使用本网站，即表示您已阅读、理解并同意接受本条款的约束。如不同意，请停止使用本网站。</p>
 <h2>网站内容</h2>
@@ -87,7 +89,7 @@ HTML,
 <p>如对本条款有任何疑问，请通过网站「联系我们」页面提供的方式与我们联系。</p>
 HTML,
             'privacy-en' => <<<'HTML'
-<div class="yk-tpl-notice"><strong>Template notice:</strong> the text below is a generic starting point. Please revise it to match how your organisation actually collects and uses data, and the laws that apply where you operate. If you handle cross-border transfers or sensitive personal data, seek legal advice.</div>
+<!-- Template notice: the text below is a generic starting point. Please revise it to match how your organisation actually collects and uses data, and the laws that apply where you operate. If you handle cross-border transfers or sensitive personal data, seek legal advice. -->
 <h2>Information We Collect</h2>
 <p>When you browse this website, submit a form or contact us, we may collect: the details you provide, such as your name, company, phone number and email address; and technical information sent automatically by your browser, such as IP address, device and browser type, and the pages and times you visited.</p>
 <h2>How We Use Information</h2>
@@ -111,7 +113,7 @@ HTML,
 <p>If you have any questions about this privacy policy, please reach us through the details on our Contact page.</p>
 HTML,
             'terms-en'   => <<<'HTML'
-<div class="yk-tpl-notice"><strong>Template notice:</strong> the text below is a generic starting point. Please revise it to match your business and the laws that apply where you operate. If you sell online or run member or subscription services, seek legal advice.</div>
+<!-- Template notice: the text below is a generic starting point. Please revise it to match your business and the laws that apply where you operate. If you sell online or run member or subscription services, seek legal advice. -->
 <h2>Acceptance of Terms</h2>
 <p>By accessing and using this website you confirm that you have read, understood and agree to be bound by these terms. If you do not agree, please stop using this website.</p>
 <h2>Website Content</h2>
@@ -136,7 +138,7 @@ HTML,
 <p>If you have any questions about these terms, please reach us through the details on our Contact page.</p>
 HTML,
             'privacy-ja' => <<<'HTML'
-<div class="yk-tpl-notice"><strong>テンプレートについて：</strong>以下は汎用のひな形です。実際の情報の取得・利用状況および適用される法令に合わせて修正のうえ公開してください。越境移転や要配慮個人情報を扱う場合は、専門家にご相談ください。</div>
+<!-- テンプレートについて：以下は汎用のひな形です。実際の情報の取得・利用状況および適用される法令に合わせて修正のうえ公開してください。越境移転や要配慮個人情報を扱う場合は、専門家にご相談ください。 -->
 <h2>取得する情報</h2>
 <p>本サイトの閲覧、フォームの送信、お問い合わせの際に、お客様がご提供になるお名前・会社名・電話番号・メールアドレスなどの連絡先、およびブラウザーから自動的に送信される IP アドレス、端末・ブラウザーの種類、閲覧日時とページなどの技術情報を取得することがあります。</p>
 <h2>情報の利用目的</h2>
@@ -160,7 +162,7 @@ HTML,
 <p>本プライバシーポリシーに関するご質問は、「お問い合わせ」ページに記載の方法でご連絡ください。</p>
 HTML,
             'terms-ja'   => <<<'HTML'
-<div class="yk-tpl-notice"><strong>テンプレートについて：</strong>以下は汎用のひな形です。実際の事業内容および適用される法令に合わせて修正のうえ公開してください。オンライン取引や会員・定期サービスを扱う場合は、専門家にご相談ください。</div>
+<!-- テンプレートについて：以下は汎用のひな形です。実際の事業内容および適用される法令に合わせて修正のうえ公開してください。オンライン取引や会員・定期サービスを扱う場合は、専門家にご相談ください。 -->
 <h2>本規約への同意</h2>
 <p>本サイトをご利用になることで、本規約をお読みになり、理解し、これに従うことに同意されたものとみなします。同意いただけない場合は、本サイトのご利用をお控えください。</p>
 <h2>掲載内容について</h2>
@@ -212,6 +214,8 @@ HTML,
 
         return $filled === []
             ? '两个页面均已有正文，未做改动'
-            : ('已补上样板正文：' . implode('、', $filled) . '（请按实际业务修改后发布）');
+            : ('已补上样板正文：' . implode('、', $filled)
+                . '。这是通用模板，请到「栏目管理」逐条按贵司实际业务与所在地法律修改后再对外发布'
+                . '（正文顶部有一条 HTML 注释写明此事，访客看不到）。');
     },
 ];
