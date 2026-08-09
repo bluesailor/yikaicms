@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 后台 i18n 渲染态扫描 —— 一条命令跑完（准备环境 → 扫描 → 必定还原）。
+# 后台 i18n HTTP 响应态扫描 —— 一条命令跑完（备份状态 → 英文扫描 → 完整还原）。
 #
 #   bash tools/scan_admin_i18n.sh              # 摘要
 #   bash tools/scan_admin_i18n.sh -v           # 每页完整片段清单
@@ -8,9 +8,9 @@
 #
 # 原理与修复模式见 yikaicms-docs/admin-i18n-audit-methodology-2026-08-09.md。
 #
-# 为什么要有这个脚本：扫描需要 smoke 环境（隔离 SQLite 库）+ 英文后台语言 + 起站，
-# 手工五步里任何一步失败，config/config.php 都会停在 SQLite 上，本地站随即 500。
-# 这里用 trap 保证无论成功、失败还是 Ctrl-C 都会还原 config 与语言设置。
+# 为什么要有这个脚本：扫描需要 smoke 环境（临时 SQLite 库）+ 英文后台语言 + 起站。
+# setup 在任何覆盖动作前备份配置、SQLite 库、installed.lock 与 fixture；trap 保证
+# 成功、失败或 Ctrl-C 后都调用恢复。i18n 模式不启用或导入 Blox。
 #
 # ⚠️ 运行期间（约 1-2 分钟）本地站不可用——smoke 环境会替换 config.php。
 #    别在别人正用站点时跑。
@@ -22,7 +22,7 @@ cd "$ROOT"
 
 PORT="${SCAN_PORT:-8080}"
 SERVER_PID=""
-PREPARED=0
+SETUP_STARTED=0
 
 cleanup() {
     local code=$?
@@ -40,26 +40,19 @@ cleanup() {
                 >/dev/null 2>&1 || true
         fi
     fi
-    if [ "$PREPARED" = "1" ]; then
-        # 顺序要紧：先把语言切回中文（要读 smoke 库），再还原 config
-        php tests/e2e/set-lang.php zh-CN >/dev/null 2>&1 || true
-        php tests/smoke/setup.php --restore >/dev/null 2>&1 \
-            || echo "!! config.php 还原失败，请手动执行 php tests/smoke/setup.php --restore" >&2
+    if [ "$SETUP_STARTED" = "1" ]; then
+        if ! php tests/smoke/setup.php --restore >/dev/null; then
+            echo "!! smoke 状态还原失败，请立即手动执行 php tests/smoke/setup.php --restore" >&2
+            code=2
+        fi
     fi
     exit $code
 }
 trap cleanup EXIT INT TERM
 
-if [ ! -f config/config.php ]; then
-    echo "!! config/config.php 不存在，先恢复配置再跑" >&2
-    exit 1
-fi
-
 echo ">> 准备 smoke 环境（会临时替换 config.php）"
-php tests/smoke/setup.php >/dev/null || { echo "!! smoke setup 失败" >&2; exit 1; }
-PREPARED=1
-
-php tests/e2e/set-lang.php en >/dev/null || { echo "!! 切换后台语言失败" >&2; exit 1; }
+SETUP_STARTED=1
+SMOKE_SITE_URL="http://127.0.0.1:$PORT" php tests/smoke/setup.php --admin-i18n >/dev/null || { echo "!! smoke setup 失败" >&2; exit 2; }
 
 # ⚠️ 探测一律用 php，不能用 WSL 的 curl：这里的 php 是 Windows 的 php.exe，
 # 起的站绑在 Windows 的 127.0.0.1 上，WSL 的 curl 在另一个网络命名空间里连不到
@@ -89,4 +82,20 @@ if [ "$READY" != "1" ]; then
 fi
 
 echo ">> 扫描"
-SCAN_PORT="$PORT" php tools/scan_admin_i18n.php "$@"
+OVERALL=0
+for LANG in ${SCAN_LANGS:-en}; do
+    case "$LANG" in
+        en|ja) ;;
+        *) echo "!! 不支持的扫描语言：$LANG（仅支持 en/ja）" >&2; OVERALL=2; continue ;;
+    esac
+    if ! php tests/e2e/set-lang.php "$LANG" >/dev/null; then
+        echo "!! 切换后台语言失败：$LANG" >&2
+        OVERALL=2
+        continue
+    fi
+    echo ">> language=$LANG"
+    SCAN_PORT="$PORT" php tools/scan_admin_i18n.php --lang="$LANG" "$@"
+    STATUS=$?
+    if [ "$STATUS" -gt "$OVERALL" ]; then OVERALL=$STATUS; fi
+done
+exit "$OVERALL"

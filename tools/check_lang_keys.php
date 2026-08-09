@@ -40,7 +40,7 @@ if ($LANGS === []) {
 
 // ── 1. 扫描代码里出现过的 key ──
 $dirsToScan = [
-    'themes', 'admin', 'includes', 'controllers', 'views',
+    'themes', 'plugins', 'admin', 'includes', 'controllers', 'views',
     'list.php', 'detail.php', 'job_detail.php', 'product.php',
     'article.php', 'news.php', 'search.php', 'index.php',
     'page.php', 'sitemap.php', 'rss.php',

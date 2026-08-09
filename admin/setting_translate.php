@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     verifyCsrf();
     $settings->set('translate_api', $_POST['api'] ?? 'deepl');
     $settings->set('translate_api_key', $_POST['api_key'] ?? '');
-    success([], 'API 配置已保存');
+    success([], __('tr_api_config_saved'));
 }
 
 // API 翻译单条
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'trans
     if ($result !== false) {
         success(['translated' => $result]);
     }
-    error('翻译失败，请检查 API Key 配置');
+    error(__('tr_failed_check_api'));
 }
 
 // API 批量翻译未翻译的条目
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'trans
     }
 
     if (empty($untranslated)) {
-        success(['count' => 0], '所有条目已翻译');
+        success(['count' => 0], __('tr_all_done'));
     }
 
     $translated = 0;
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'trans
 
     // 保存
     saveLangFile($targetLangFile, $targetLang, $targetData);
-    success(['count' => $translated], "已翻译 {$translated} 条");
+    success(['count' => $translated], str_replace(':n', (string) $translated, __('tr_translated_count')));
 }
 
 // 已确认"同源即翻译"清单的存放路径
@@ -112,13 +112,13 @@ function saveConfirmedKeys(string $file, array $keys): void {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confirm_same') {
     verifyCsrf();
     $key = (string) ($_POST['key'] ?? '');
-    if ($key === '' || !isset($sourceData[$key])) error('无效的 key');
+    if ($key === '' || !isset($sourceData[$key])) error(__('tr_invalid_key'));
     $confirmed = loadConfirmedKeys($confirmedFile);
     if (!in_array($key, $confirmed, true)) {
         $confirmed[] = $key;
         saveConfirmedKeys($confirmedFile, $confirmed);
     }
-    success([], '已确认');
+    success([], __('tr_confirmed'));
 }
 
 // 取消确认（误点回退）
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uncon
     $confirmed = loadConfirmedKeys($confirmedFile);
     $confirmed = array_values(array_filter($confirmed, fn($k) => $k !== $key));
     saveConfirmedKeys($confirmedFile, $confirmed);
-    success([], '已取消确认');
+    success([], __('tr_unconfirmed'));
 }
 
 // 批量确认：把当前目标语言里所有"未确认且同源"的 key 一次性加入 confirmed 清单
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'confi
     }
     saveConfirmedKeys($confirmedFile, $confirmed);
     adminLog('translate', 'confirm_same_all', "批量确认 {$targetLang}: +{$added} 条");
-    success(['added' => $added], "已确认 {$added} 条");
+    success(['added' => $added], str_replace(':n', (string) $added, __('tr_confirmed_count')));
 }
 
 // 批量保存所有翻译
@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
     }
     if ($changed > 0) saveLangFile($targetLangFile, $targetLang, $targetData);
     adminLog('translate', 'save', "保存翻译 {$targetLang}: 改动 {$changed} 条");
-    success(['changed' => $changed], "保存成功（{$changed} 条改动）");
+    success(['changed' => $changed], str_replace(':n', (string) $changed, __('tr_save_changed')));
 }
 
 // 单行保存
@@ -174,12 +174,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     verifyCsrf();
     $key   = (string) ($_POST['key']   ?? '');
     $value = trim((string) ($_POST['value'] ?? ''));
-    if ($key === '' || !isset($sourceData[$key])) error('无效的 key');
-    if ($value === '') error('翻译不能为空');
+    if ($key === '' || !isset($sourceData[$key])) error(__('tr_invalid_key'));
+    if ($value === '') error(__('tr_translation_required'));
     $targetData[$key] = $value;
     saveLangFile($targetLangFile, $targetLang, $targetData);
     adminLog('translate', 'save_one', "保存 {$targetLang}/{$key}");
-    success([], '已保存');
+    success([], __('admin_saved'));
 }
 
 // 翻译 API 调用
@@ -294,7 +294,7 @@ foreach ($sourceData as $key => $value) {
 
 $filter = $_GET['filter'] ?? 'all'; // all, untranslated, translated
 
-$pageTitle = __('admin_system') . ' - 翻译管理';
+$pageTitle = __('admin_system') . ' - ' . __('tr_title');
 $currentMenu = 'translate';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -304,20 +304,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <!-- API 配置 -->
     <div class="bg-white rounded-lg shadow-sm p-5 mb-6">
         <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-gray-800 text-sm">翻译 API 配置</h3>
-            <button type="button" onclick="saveApiConfig()" class="bg-primary hover:bg-secondary text-white px-4 py-1.5 rounded text-sm">保存配置</button>
+            <h3 class="font-bold text-gray-800 text-sm"><?php echo e(__('tr_api_config')); ?></h3>
+            <button type="button" onclick="saveApiConfig()" class="bg-primary hover:bg-secondary text-white px-4 py-1.5 rounded text-sm"><?php echo e(__('tr_save_config')); ?></button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-xs text-gray-500 mb-1">翻译服务</label>
+                <label class="block text-xs text-gray-500 mb-1"><?php echo e(__('tr_service')); ?></label>
                 <select id="apiProvider" class="w-full border rounded px-3 py-2 text-sm">
-                    <option value="deepl" <?php echo $settings->get('translate_api', 'deepl') === 'deepl' ? 'selected' : ''; ?>>DeepL（推荐，日语最佳）</option>
+                    <option value="deepl" <?php echo $settings->get('translate_api', 'deepl') === 'deepl' ? 'selected' : ''; ?>><?php echo e(__('tr_deepl_option')); ?></option>
                     <option value="google" <?php echo $settings->get('translate_api', '') === 'google' ? 'selected' : ''; ?>>Google Translate</option>
                 </select>
             </div>
             <div class="md:col-span-2">
-                <label class="block text-xs text-gray-500 mb-1">API Key <a href="https://www.deepl.com/pro-api" target="_blank" class="text-blue-500 hover:underline">免费注册 DeepL API →</a></label>
-                <input type="text" id="apiKey" value="<?php echo e($settings->get('translate_api_key', '')); ?>" placeholder="填入 API Key 后即可使用一键翻译"
+                <label class="block text-xs text-gray-500 mb-1">API Key <a href="https://www.deepl.com/pro-api" target="_blank" class="text-blue-500 hover:underline"><?php echo e(__('tr_deepl_register')); ?></a></label>
+                <input type="text" id="apiKey" value="<?php echo e($settings->get('translate_api_key', '')); ?>" placeholder="<?php echo e(__('tr_api_key_placeholder')); ?>"
                        class="w-full border rounded px-3 py-2 text-sm font-mono">
             </div>
         </div>
@@ -327,22 +327,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow-sm p-4 text-center">
             <div class="text-2xl font-bold text-gray-800"><?php echo $totalKeys; ?></div>
-            <div class="text-sm text-gray-500">总条目</div>
+            <div class="text-sm text-gray-500"><?php echo e(__('tr_total')); ?></div>
         </div>
         <div class="bg-white rounded-lg shadow-sm p-4 text-center">
             <div class="text-2xl font-bold text-green-600"><?php echo $translatedKeys; ?></div>
-            <div class="text-sm text-gray-500">已翻译</div>
+            <div class="text-sm text-gray-500"><?php echo e(__('tr_translated')); ?></div>
         </div>
         <div class="bg-white rounded-lg shadow-sm p-4 text-center">
             <div class="text-2xl font-bold text-orange-500"><?php echo $untranslatedKeys; ?></div>
-            <div class="text-sm text-gray-500">未翻译</div>
+            <div class="text-sm text-gray-500"><?php echo e(__('tr_untranslated')); ?></div>
         </div>
     </div>
 
     <!-- 工具栏 -->
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-            <label class="text-sm text-gray-600">目标语言：</label>
+            <label class="text-sm text-gray-600"><?php echo e(__('tr_target_language')); ?></label>
             <select onchange="location.href='?lang='+this.value+'&filter=<?php echo $filter; ?>'" class="border rounded px-3 py-1.5 text-sm">
                 <?php foreach ($languages as $code => $name): if ($code === 'zh-CN') continue; ?>
                 <option value="<?php echo $code; ?>" <?php echo $targetLang === $code ? 'selected' : ''; ?>><?php echo $name; ?></option>
@@ -350,23 +350,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </select>
 
             <div class="flex border rounded overflow-hidden text-sm">
-                <a href="?lang=<?php echo $targetLang; ?>&filter=all" class="px-3 py-1.5 <?php echo $filter === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'; ?>">全部 <?php echo $totalKeys; ?></a>
-                <a href="?lang=<?php echo $targetLang; ?>&filter=untranslated" class="px-3 py-1.5 border-l <?php echo $filter === 'untranslated' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'; ?>">未翻译 <?php echo $untranslatedKeys; ?></a>
-                <a href="?lang=<?php echo $targetLang; ?>&filter=translated" class="px-3 py-1.5 border-l <?php echo $filter === 'translated' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'; ?>">已翻译 <?php echo $translatedKeys; ?></a>
-                <a href="?lang=<?php echo $targetLang; ?>&filter=same" class="px-3 py-1.5 border-l <?php echo $filter === 'same' ? 'bg-amber-500 text-white' : 'bg-white text-amber-600 hover:bg-amber-50'; ?>" title="目标值与源相同，请人工确认">存疑 <?php echo $sameAsSourceKeys; ?></a>
+                <a href="?lang=<?php echo $targetLang; ?>&filter=all" class="px-3 py-1.5 <?php echo $filter === 'all' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'; ?>"><?php echo e(__('tr_all')); ?> <?php echo $totalKeys; ?></a>
+                <a href="?lang=<?php echo $targetLang; ?>&filter=untranslated" class="px-3 py-1.5 border-l <?php echo $filter === 'untranslated' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'; ?>"><?php echo e(__('tr_untranslated')); ?> <?php echo $untranslatedKeys; ?></a>
+                <a href="?lang=<?php echo $targetLang; ?>&filter=translated" class="px-3 py-1.5 border-l <?php echo $filter === 'translated' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'; ?>"><?php echo e(__('tr_translated')); ?> <?php echo $translatedKeys; ?></a>
+                <a href="?lang=<?php echo $targetLang; ?>&filter=same" class="px-3 py-1.5 border-l <?php echo $filter === 'same' ? 'bg-amber-500 text-white' : 'bg-white text-amber-600 hover:bg-amber-50'; ?>" title="<?php echo e(__('tr_suspect_title')); ?>"><?php echo e(__('tr_suspect')); ?> <?php echo $sameAsSourceKeys; ?></a>
             </div>
         </div>
 
         <div class="flex items-center gap-2">
             <?php if ($sameAsSourceKeys > 0): ?>
-            <button onclick="confirmSameAll()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1" title="把所有'同源'条目一次性确认为正常翻译">
+            <button onclick="confirmSameAll()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1" title="<?php echo e(__('tr_confirm_all_title')); ?>">
                 <i class="ti ti-check text-base"></i>
-                批量确认存疑 (<?php echo $sameAsSourceKeys; ?>条)
+                <?php echo e(str_replace(':n', (string) $sameAsSourceKeys, __('tr_confirm_all'))); ?>
             </button>
             <?php endif; ?>
             <button onclick="batchTranslate()" id="btnBatch" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm inline-flex items-center gap-1">
                 <i class="ti ti-language text-base"></i>
-                API一键翻译 (<?php echo $untranslatedKeys; ?>条)
+                <?php echo e(str_replace(':n', (string) $untranslatedKeys, __('tr_api_translate'))); ?>
             </button>
             <button onclick="saveAll()" class="bg-primary hover:bg-secondary text-white px-4 py-1.5 rounded text-sm">
                 <?php echo __('admin_save'); ?>
@@ -384,7 +384,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 w-44">Key</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 w-1/4">中文原文</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 w-1/4"><?php echo e(__('tr_source_chinese')); ?></th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500"><?php echo $languages[$targetLang]; ?></th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 w-28"><?php echo __('admin_action'); ?></th>
                     </tr>
@@ -407,12 +407,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <td class="px-4 py-2 text-xs text-gray-400 font-mono">
                             <?php echo e($key); ?>
                             <?php if ($isSameAsSource): ?>
-                            <span class="ml-1 text-[10px] text-amber-600" title="目标值与源相同，请确认是否需要本地化">⚠ 同源</span>
+                            <span data-same-status class="ml-1 text-[10px] text-amber-600" title="<?php echo e(__('tr_same_title')); ?>">⚠ <?php echo e(__('tr_same')); ?></span>
                             <?php elseif ($isLiterallyEqual && $isConfirmed): ?>
-                            <span class="ml-1 text-[10px] text-green-600" title="同源 — 已人工确认为正常翻译" onclick="unconfirmSame('<?php echo e($key); ?>', this)" style="cursor:pointer">✓ 已确认</span>
+                            <span class="ml-1 text-[10px] text-green-600" title="<?php echo e(__('tr_confirmed_title')); ?>" onclick="unconfirmSame('<?php echo e($key); ?>', this)" style="cursor:pointer">✓ <?php echo e(__('tr_confirmed_badge')); ?></span>
                             <?php endif; ?>
                         </td>
-                        <td class="px-4 py-2 text-sm text-gray-700 break-words align-top"><?php echo e($value); ?></td>
+                        <td data-i18n-source class="px-4 py-2 text-sm text-gray-700 break-words align-top"><?php echo e($value); ?></td>
                         <td class="px-4 py-2">
                             <input type="text" name="translations[<?php echo e($key); ?>]" value="<?php echo e($translated); ?>"
                                    class="w-full px-2 py-1 border rounded text-sm <?php
@@ -420,21 +420,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         elseif ($isSameAsSource) echo 'border-amber-200 bg-amber-50';
                                         else echo 'border-green-200 bg-green-50';
                                    ?>"
-                                   placeholder="未翻译">
+                                   placeholder="<?php echo e(__('tr_placeholder')); ?>">
                         </td>
                         <td class="px-4 py-2 text-center">
                             <div class="inline-flex items-center gap-2">
                                 <button type="button" onclick="saveOne('<?php echo e($key); ?>', this)"
-                                        class="text-primary hover:text-secondary" title="保存这一行">
+                                        class="text-primary hover:text-secondary" title="<?php echo e(__('tr_save_row')); ?>">
                                     <i class="ti ti-device-floppy text-base"></i>
                                 </button>
                                 <button type="button" onclick="translateOne(this, '<?php echo e(addslashes($value)); ?>', '<?php echo e($key); ?>')"
-                                        class="text-blue-500 hover:text-blue-700" title="API翻译">
+                                        class="text-blue-500 hover:text-blue-700" title="<?php echo e(__('tr_api_row')); ?>">
                                     <i class="ti ti-language text-base"></i>
                                 </button>
                                 <?php if ($isSameAsSource): ?>
                                 <button type="button" onclick="confirmSame('<?php echo e($key); ?>', this)"
-                                        class="text-amber-600 hover:text-amber-700" title="确认同源即正常翻译（如品牌名/技术词等）">
+                                        class="text-amber-600 hover:text-amber-700" title="<?php echo e(__('tr_confirm_same_title')); ?>">
                                     <i class="ti ti-check text-base"></i>
                                 </button>
                                 <?php endif; ?>
@@ -462,11 +462,11 @@ async function confirmSame(key, btn) {
             // 不刷新整页 —— 把这一行的 ⚠ 同源 换成 ✓ 已确认，输入框颜色改回正常翻译
             var tr = btn.closest('tr');
             if (tr) {
-                var sus = tr.querySelector('span[title*="目标值与源相同"]');
+                var sus = tr.querySelector('[data-same-status]');
                 if (sus) {
-                    sus.textContent = '✓ 已确认';
+                    sus.textContent = '✓ ' + <?php echo json_encode(__('tr_confirmed_badge'), JSON_UNESCAPED_UNICODE); ?>;
                     sus.className = 'ml-1 text-[10px] text-green-600';
-                    sus.title = '同源 — 已人工确认为正常翻译';
+                    sus.title = <?php echo json_encode(__('tr_confirmed_title'), JSON_UNESCAPED_UNICODE); ?>;
                     sus.style.cursor = 'pointer';
                     sus.onclick = function() { unconfirmSame(key, sus); };
                 }
@@ -475,19 +475,19 @@ async function confirmSame(key, btn) {
                     .replace('border-amber-200 bg-amber-50', 'border-green-200 bg-green-50');
                 btn.remove();
             }
-            showToast(d.msg || '已确认');
+            showToast(d.msg || <?php echo json_encode(__('tr_confirmed'), JSON_UNESCAPED_UNICODE); ?>);
         } else {
             btn.disabled = false;
-            showToast(d.msg || '操作失败', 'error');
+            showToast(d.msg || <?php echo json_encode(__('tr_operation_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (e) {
         btn.disabled = false;
-        showToast('请求失败', 'error');
+        showToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
 async function unconfirmSame(key, badge) {
-    if (!confirm('取消确认？此 key 将重新被标为"⚠ 同源"。')) return;
+    if (!confirm(<?php echo json_encode(__('tr_confirm_cancel'), JSON_UNESCAPED_UNICODE); ?>)) return;
     var fd = new FormData();
     fd.append('_token', '<?php echo csrfToken(); ?>');
     fd.append('action', 'unconfirm_same');
@@ -495,21 +495,21 @@ async function unconfirmSame(key, badge) {
     var r = await fetch(location.href, { method: 'POST', body: fd });
     var d = await r.json();
     if (d.code === 0) location.reload();
-    else showToast(d.msg || '操作失败', 'error');
+    else showToast(d.msg || <?php echo json_encode(__('tr_operation_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
 }
 
 async function confirmSameAll() {
-    if (!confirm('把当前目标语言里所有"⚠ 同源"条目一次性确认为正常翻译？\n仅适用于品牌名 / 技术词等故意保持原文的场景。')) return;
+    if (!confirm(<?php echo json_encode(__('tr_confirm_all_prompt'), JSON_UNESCAPED_UNICODE); ?>)) return;
     var fd = new FormData();
     fd.append('_token', '<?php echo csrfToken(); ?>');
     fd.append('action', 'confirm_same_all');
     var r = await fetch(location.href, { method: 'POST', body: fd });
     var d = await r.json();
     if (d.code === 0) {
-        showToast(d.msg || '已确认');
+        showToast(d.msg || <?php echo json_encode(__('tr_confirmed'), JSON_UNESCAPED_UNICODE); ?>);
         setTimeout(function() { location.reload(); }, 600);
     } else {
-        showToast(d.msg || '操作失败', 'error');
+        showToast(d.msg || <?php echo json_encode(__('tr_operation_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
@@ -539,21 +539,21 @@ function translateOne(btn, text, key) {
                 input.value = d.data.translated;
                 input.className = input.className.replace('border-orange-200 bg-orange-50', 'border-green-200 bg-green-50');
             } else {
-                showMessage(d.msg || '翻译失败', 'error');
+                showMessage(d.msg || <?php echo json_encode(__('tr_translate_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             }
         })
-        .catch(() => showMessage('请求失败', 'error'))
+        .catch(() => showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'))
         .finally(() => {
             btn.innerHTML = '<i class="ti ti-language text-base"></i>';
         });
 }
 
 function batchTranslate() {
-    if (!confirm('将调用翻译API翻译 <?php echo $untranslatedKeys; ?> 条未翻译内容，确定继续？')) return;
+    if (!confirm(<?php echo json_encode(str_replace([':n', ':item'], [(string) $untranslatedKeys, __('tr_untranslated')], __('atr_ai_confirm')), JSON_UNESCAPED_UNICODE); ?>)) return;
 
     var btn = document.getElementById('btnBatch');
     btn.disabled = true;
-    btn.textContent = '翻译中...';
+    btn.textContent = <?php echo json_encode(__('tr_translating'), JSON_UNESCAPED_UNICODE); ?>;
 
     var fd = new FormData();
     fd.append('_token', '<?php echo csrfToken(); ?>');
@@ -571,7 +571,7 @@ function batchTranslate() {
         })
         .finally(() => {
             btn.disabled = false;
-            btn.textContent = 'API一键翻译';
+            btn.textContent = <?php echo json_encode(str_replace(':n', (string) $untranslatedKeys, __('tr_api_translate')), JSON_UNESCAPED_UNICODE); ?>;
         });
 }
 
@@ -583,20 +583,20 @@ async function saveAll() {
         var d;
         try { d = JSON.parse(t); }
         catch (e) {
-            showToast('服务器返回非 JSON：' + t.slice(0, 120), 'error');
+            showToast(<?php echo json_encode(__('tr_non_json'), JSON_UNESCAPED_UNICODE); ?> + t.slice(0, 120), 'error');
             return;
         }
-        showToast(d.msg || (d.code === 0 ? '保存成功' : '保存失败'), d.code === 0 ? 'success' : 'error');
+        showToast(d.msg || (d.code === 0 ? <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>), d.code === 0 ? 'success' : 'error');
     } catch (e) {
-        showToast('请求失败：' + e.message, 'error');
+        showToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
     }
 }
 
 async function saveOne(key, btn) {
     var input = document.querySelector('input[name="translations[' + key.replace(/"/g, '\\"') + ']"]');
-    if (!input) { showToast('找不到输入框', 'error'); return; }
+    if (!input) { showToast(<?php echo json_encode(__('tr_input_not_found'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
     var value = input.value.trim();
-    if (value === '') { showToast('请先填写翻译', 'error'); input.focus(); return; }
+    if (value === '') { showToast(<?php echo json_encode(__('tr_fill_translation'), JSON_UNESCAPED_UNICODE); ?>, 'error'); input.focus(); return; }
     var fd = new FormData();
     fd.append('_token', '<?php echo csrfToken(); ?>');
     fd.append('action', 'save_one');
@@ -617,12 +617,12 @@ async function saveOne(key, btn) {
                 tr.style.backgroundColor = '#d1fae5';
                 setTimeout(function() { tr.style.backgroundColor = ''; }, 800);
             }
-            showToast(d.msg || '已保存');
+            showToast(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>);
         } else {
-            showToast(d.msg || '保存失败', 'error');
+            showToast(d.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (e) {
-        showToast('请求失败：' + e.message, 'error');
+        showToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
     } finally {
         btn.disabled = false;
     }
