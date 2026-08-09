@@ -15,14 +15,38 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('edit_product');
 
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';   // adminLangView / 语言切换器
+
+// 视图语言：货币可按语言分设（多语言站中文版 ¥ / 英文版 $），沿用
+// <key>_<lang> 后缀惯例；版式与规格预置是全局的，不分语言。
+$_lang        = adminLangView();
+$_defaultLang = $_lang['default'];
+$_viewLang    = $_lang['view'];
+
 // 保存设置
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settingModel()->set('product_layout', post('product_layout', 'sidebar'));
     settingModel()->set('show_price', post('show_price', '0'));
     settingModel()->set('product_spec_presets', trim((string) ($_POST['product_spec_presets'] ?? '')));
+
+    // 货币：默认语言写 base 行，其它语言写 <key>_<lang>
+    $_sfx = $_viewLang === $_defaultLang ? '' : ('_' . $_viewLang);
+    $_sym = trim((string) ($_POST['currency_symbol'] ?? ''));
+    $_dec = trim((string) ($_POST['currency_decimals'] ?? ''));
+    if ($_dec !== '') {
+        $_dec = (string) max(0, min(4, (int) $_dec));
+    }
+    settingModel()->set('currency_symbol' . $_sfx, mb_substr($_sym, 0, 8));
+    settingModel()->set('currency_decimals' . $_sfx, $_dec);
+
     adminLog('setting', 'update', '更新产品设置');
     success();
 }
+
+// 当前视图下的货币值（用于回填表单）
+$_curSfx     = $_viewLang === $_defaultLang ? '' : ('_' . $_viewLang);
+$_curSymbol  = (string) config('currency_symbol' . $_curSfx, '');
+$_curDecimal = (string) config('currency_decimals' . $_curSfx, '');
 
 $pageTitle = __('psetting_title');
 $currentMenu = 'product_setting';
@@ -106,6 +130,29 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            <?php echo config('show_price', '0') === '1' ? 'checked' : ''; ?>>
                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
+            </div>
+
+            <hr>
+
+            <!-- 货币设置 -->
+            <div>
+                <label class="font-medium text-gray-800"><?php echo e(__('psetting_currency')); ?></label>
+                <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('psetting_currency_tip')); ?></p>
+                <?php echo renderAdminLangSwitcher($_viewLang, __('psetting_currency_lang_hint')); ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1"><?php echo e(__('psetting_currency_symbol')); ?></label>
+                        <input type="text" name="currency_symbol" maxlength="8" value="<?php echo e($_curSymbol); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('psetting_currency_symbol_ph')); ?>">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1"><?php echo e(__('psetting_currency_decimals')); ?></label>
+                        <input type="number" name="currency_decimals" min="0" max="4" value="<?php echo e($_curDecimal); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('psetting_currency_decimals_ph')); ?>">
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 mt-2"><?php echo e(__('psetting_currency_preview')); ?>
+                    <span class="font-medium text-gray-700"><?php echo formatPrice(1234.5); ?></span></p>
             </div>
 
             <hr>
