@@ -243,7 +243,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
               // 悬停分组图标时按其位置弹出。数据从同一份菜单生成，不重复维护。 ?>
         <div x-show="collapsed && fly.key" x-cloak
              @mouseenter="flyKeep()" @mouseleave="flyLater()"
-             :style="'top:' + fly.top + 'px'"
+             :style="{ top: fly.top + 'px' }"
              class="hidden lg:block fixed left-16 z-[60] w-52 bg-sidebar text-gray-300 rounded-r-lg shadow-2xl border border-white/10 border-l-0 py-2">
             <div class="px-4 py-1.5 text-sm text-gray-400 border-b border-white/5 mb-1" x-text="fly.label"></div>
             <template x-for="it in fly.items" :key="it.url">
