@@ -54,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name' => post('name'),
             'slug' => post('slug'),
             'type' => post('type', 'list'),
+            // 产品栏目（默认语言）slug 锁定为 product：产品分类页固定走
+            // /product/{分类别名}.html，别名一致才有统一前缀。非默认语言行
+            // 受全局 slug 唯一性约束，保持后缀形（product-en 等）可编辑。
             'album_id' => postInt('album_id'),
             'icon' => post('icon'),
             'image' => post('image'),
@@ -88,6 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('admin_category_name_required'));
         }
 
+        if ($data['type'] === 'product' && $_viewLang === $_defaultLang) {
+            $data['slug'] = 'product';
+        }
         if (empty($data['slug'])) {
             $data['slug'] = $data['name'];
         }
@@ -476,14 +482,6 @@ if ($activeTab === 'hidden' && empty($hiddenChannels)) {
     $activeTab = 'main';
 }
 
-// 产品栏目 slug 约定检查：产品分类页固定走 /product/{分类别名}.html（.htaccess 按 slug=product 路由）。
-// 前台已有按类型回退的兜底，但别名不一致会导致栏目页与分类页 URL 前缀不统一，这里给出提醒。
-$productSlugWarning = false;
-if ($_viewLang === $_defaultLang) {
-    $_prodChs = array_filter($channels, fn($c) => ($c['type'] ?? '') === 'product');
-    $productSlugWarning = !empty($_prodChs)
-        && empty(array_filter($_prodChs, fn($c) => ($c['slug'] ?? '') === 'product'));
-}
 
 $editId = getInt('edit');
 $editChannel = $editId > 0 ? channelModel()->find($editId) : null;
@@ -525,12 +523,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 <?php endif; ?>
 
-<?php if ($productSlugWarning): ?>
-<div class="bg-amber-50 border border-amber-200 rounded-lg px-5 py-3 mb-4 flex items-start gap-2 text-sm text-amber-700">
-    <i class="ti ti-alert-triangle text-base mt-0.5"></i>
-    <span><?php echo __('admin_product_slug_warning'); ?></span>
-</div>
-<?php endif; ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- 栏目列表 -->
@@ -920,13 +912,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?= __('admin_url_alias') ?></label>
-                    <input type="text" name="slug" value="<?php echo e($editChannel['slug'] ?? ''); ?>"
-                           class="w-full border rounded px-3 py-2" placeholder="<?php echo __('admin_slug_auto_placeholder'); ?>">
+                    <?php $__slugLocked = ($editChannel['type'] ?? '') === 'product' && $_viewLang === $_defaultLang; ?>
+                    <input type="text" name="slug" id="channelSlug" value="<?php echo e($__slugLocked ? 'product' : ($editChannel['slug'] ?? '')); ?>"
+                           class="w-full border rounded px-3 py-2 <?php echo $__slugLocked ? 'bg-gray-100 text-gray-500' : ''; ?>"
+                           placeholder="<?php echo __('admin_slug_auto_placeholder'); ?>"
+                           <?php echo $__slugLocked ? 'readonly title="' . e(__('admin_product_slug_locked')) . '"' : ''; ?>>
                 </div>
 
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?= __('admin_type') ?></label>
-                    <select name="type" id="channelType" class="w-full border rounded px-3 py-2">
+                    <select name="type" id="channelType" onchange="ykSyncProductSlugLock()" class="w-full border rounded px-3 py-2">
                         <?php foreach ($channelTypes as $key => $label): ?>
                         <option value="<?php echo $key; ?>" <?php echo ($editChannel['type'] ?? 'list') === $key ? 'selected' : ''; ?>>
                             <?php echo $label; ?>
@@ -1387,4 +1382,21 @@ async function saveFooterSort(container) {
 })();
 </script>
 <?php endif; ?>
+<script>
+// 产品栏目（默认语言）slug 锁定为 product——服务端为准，这里只是即时反馈
+var YK_SLUG_LOCK_DEFAULT_VIEW = <?php echo json_encode($_viewLang === $_defaultLang); ?>;
+function ykSyncProductSlugLock() {
+    var typeSel = document.getElementById('channelType');
+    var slugInp = document.getElementById('channelSlug');
+    if (!typeSel || !slugInp || !YK_SLUG_LOCK_DEFAULT_VIEW) return;
+    var lock = typeSel.value === 'product';
+    slugInp.readOnly = lock;
+    slugInp.classList.toggle('bg-gray-100', lock);
+    slugInp.classList.toggle('text-gray-500', lock);
+    if (lock) { slugInp.value = 'product'; slugInp.title = <?php echo json_encode(__('admin_product_slug_locked'), JSON_UNESCAPED_UNICODE); ?>; }
+    else { slugInp.title = ''; }
+}
+ykSyncProductSlugLock();
+</script>
+
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
