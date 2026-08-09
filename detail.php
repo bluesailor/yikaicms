@@ -205,7 +205,7 @@ require_once theme_path('layouts/header.php');
                                 <?php if (config('show_price', '0') === '1' && $content['price']): ?>
                                 <div class="mb-4">
                                     <span class="text-gray-500"><?php echo __('detail_price'); ?>:</span>
-                                    <span class="text-2xl text-red-500 font-bold">&yen;<?php echo number_format((float)$content['price'], 2); ?></span>
+                                    <span class="text-2xl text-red-500 font-bold"><?php echo formatPrice($content['price']); ?></span>
                                 </div>
                                 <?php endif; ?>
                                 <?php if ($content['specs']): ?>

@@ -232,7 +232,7 @@ add_filter('home_block_render', function (string $html, string $type, array $blo
                             <div style="padding:14px 16px;">
                                 <div style="font-weight:600;color:#1e293b;font-size:15px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"><?php echo e($p['title']); ?></div>
                                 <?php if (!empty($p['price']) && (float) $p['price'] > 0): ?>
-                                <div style="margin-top:8px;color:<?php echo e($primary); ?>;font-weight:700;">&yen;<?php echo number_format((float) $p['price'], 2); ?></div>
+                                <div style="margin-top:8px;color:<?php echo e($primary); ?>;font-weight:700;"><?php echo formatPrice($p['price']); ?></div>
                                 <?php endif; ?>
                             </div>
                         </a>
