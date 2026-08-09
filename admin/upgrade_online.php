@@ -400,8 +400,33 @@ if ($action !== '') {
         $vf = @file_get_contents(ROOT_PATH . '/config/version.php');
         if ($vf && preg_match("/CMS_VERSION'\\s*,\\s*'([^']+)'/", $vf, $m)) $newVer = $m[1];
 
+        // 还有几条迁移要跑？多数版本一条都没有，那就不该把人赶去「数据库升级」页
+        // 只为看一句「全部已应用」。注意这里读的是刚覆盖上去的**新** migrations/。
+        $pending = null;
+        try {
+            require_once ROOT_PATH . '/includes/Migrator.php';
+            $pending = 0;
+            foreach (Migrator::loadAll() as $mg) {
+                if (!Migrator::isApplied($mg)) $pending++;
+            }
+        } catch (Throwable $e) {
+            $pending = null;   // 数不出来就按老路子跳，宁可多跳一趟也别漏掉迁移
+        }
+
+        // 记下这次升级的落点，供「升级完成」页展示（版本号、时间、更新说明）。
+        // 说明文字来自更新服务器，渲染时一律 e() 转义。
+        try {
+            settingModel()->set('last_upgrade_from', (string) ($state['from'] ?? ''), 'system');
+            settingModel()->set('last_upgrade_to', $newVer ?: (string) ($state['to'] ?? ''), 'system');
+            settingModel()->set('last_upgrade_at', (string) time(), 'system');
+            settingModel()->set('last_upgrade_note', mb_substr(trim((string) post('note')), 0, 4000), 'system');
+        } catch (Throwable $e) {
+            // 记不上不影响升级本身
+        }
+
         uo_json([
             'code'    => empty($errors) ? 0 : 2,
+            'pending' => $pending,
             'msg'     => (empty($errors) ? "文件更新完成，共覆盖 $copied 个文件" : "部分文件未能覆盖（$copied 成功，" . count($errors) . " 失败）") . ($deletedCount ? "，删除 $deletedCount 个" : ''),
             'mode'    => $mode,
             'copied'  => $copied,
@@ -419,7 +444,7 @@ if ($action !== '') {
 // ============================================================
 // 页面
 // ============================================================
-$pageTitle = '在线升级';
+$pageTitle = __('upgrade_online');
 $currentMenu = 'upgrade';   // 与「系统升级」共用菜单（升级页两个标签之一）
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
@@ -580,6 +605,7 @@ async function uoCheck() {
     const lvEl = document.getElementById('uo-level');
     lvEl.className = 'text-xs font-medium px-2 py-0.5 rounded-full ' + lv.cls;
     lvEl.textContent = lv.text;
+    window.UO_CHANGELOG = logText || '';   // 升级完成页要展示「本次更新了什么」
     document.getElementById('uo-changelog-body').textContent = logText || '（本次更新未提供更新说明）';
     document.getElementById('uo-card').classList.remove('hidden');
     document.getElementById('uo-target').textContent = 'v' + d.latest_version;
@@ -625,7 +651,7 @@ document.getElementById('uo-upgrade').onclick = async () => {
     UO.set(rr, errCount ? 'fail' : 'ok', `覆盖完成（${total} 个文件${errCount ? '，' + errCount + ' 个失败' : ''}）`);
     // 收尾（删除废弃文件 / 补版本号 / 清理）
     const rf = UO.row('收尾…', 'run');
-    const fin = await UO.post('apply_finalize');
+    const fin = await UO.post('apply_finalize', { note: (window.UO_CHANGELOG || '') });
     if (fin.code === 1) return fail(rf, fin.msg);
     UO.set(rf, fin.code === 0 ? 'ok' : 'fail', fin.msg);
     // 有失败：把未覆盖的文件逐个列出来（名字，非只显示个数），并给手动修复指引
@@ -637,19 +663,32 @@ document.getElementById('uo-upgrade').onclick = async () => {
     }
     document.getElementById('uo-migrate').classList.remove('hidden');
     btn.classList.add('hidden');
-    // 文件更新成功后自动前往数据库升级：避免用户停在「文件已升、库未升」的中间态
-    //（该状态下软删除等写操作会失效）。有失败文件时不自动跳，让用户先看清单。
-    if (!fin.errors || !fin.errors.length) {
-        let sec = 5;
-        const rj = UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。${sec} 秒后自动前往「数据库升级」完成最后一步…`, 'ok', '无需迁移时该页会显示「全部已应用」。');
+    const ver = fin.new_version || d.latest_version;
+    if (fin.errors && fin.errors.length) {
+        UO.row(`程序文件已更新到 v${ver}。`, 'ok', '请先处理上方失败文件，然后点击「下一步：升级数据库」完成最后一步。');
+    } else if (fin.pending === 0) {
+        // 这一版没有待办迁移——不必把人赶去「数据库升级」页只为看一句「全部已应用」，
+        // 改去「升级记录」：那里能看清刚才到底动了什么。
+        let sec = 3;
+        const rj = UO.row(`升级完成，当前版本 v${ver}。${sec} 秒后前往完成页…`, 'ok', '本次无需数据库迁移。');
         const lbl = rj.querySelector('.text-gray-800');
         const timer = setInterval(() => {
             sec--;
-            if (lbl) lbl.textContent = `程序文件已更新到 v${fin.new_version || d.latest_version}。${sec} 秒后自动前往「数据库升级」完成最后一步…`;
-            if (sec <= 0) { clearInterval(timer); location.href = 'upgrade.php'; }
+            if (lbl) lbl.textContent = `升级完成，当前版本 v${ver}。${sec} 秒后前往完成页…`;
+            if (sec <= 0) { clearInterval(timer); location.href = 'upgrade.php?tab=welcome'; }
         }, 1000);
     } else {
-        UO.row(`程序文件已更新到 v${fin.new_version || d.latest_version}。`, 'ok', '请先处理上方失败文件，然后点击「下一步：升级数据库」完成最后一步。');
+        // 有迁移待跑（或数不出来）就自动前往，避免停在「文件已升、库未升」的中间态
+        //（该状态下软删除等写操作会失效）。
+        let sec = 5;
+        const what = fin.pending > 0 ? `${fin.pending} 项数据库更新` : '数据库升级';
+        const rj = UO.row(`程序文件已更新到 v${ver}。${sec} 秒后自动前往完成 ${what}…`, 'ok', '');
+        const lbl = rj.querySelector('.text-gray-800');
+        const timer = setInterval(() => {
+            sec--;
+            if (lbl) lbl.textContent = `程序文件已更新到 v${ver}。${sec} 秒后自动前往完成 ${what}…`;
+            if (sec <= 0) { clearInterval(timer); location.href = 'upgrade.php'; }
+        }, 1000);
     }
 };
 </script>

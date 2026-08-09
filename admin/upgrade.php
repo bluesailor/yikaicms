@@ -209,15 +209,41 @@ foreach ($upgrades as $up) {
 // 默认标签：有待执行迁移时进「数据库升级」（要紧事优先），否则进「升级配置」——
 // 数据库升级是少用的恢复动作，不该做门面
 $tab = $_GET['tab'] ?? (!empty($pendingUpgrades) ? 'check' : 'config');
-if ($tab === 'history') $tab = 'check';   // 升级历史已并入「数据库升级」标签
-$pageTitle = '升级管理';
+// ── 升级记录：操作日志里 module='upgrade' 的两类条目（程序文件覆盖 / 数据库迁移）──
+// 升完级最想知道的是「刚才到底动了什么、什么时候动的」，这些 adminLog 早就在记，
+// 只是一直没有地方看。另附升级前的 config 备份清单，需要比对时不用翻 FTP。
+$upgLogs = [];
+$upgBackups = [];
+if ($tab === 'welcome') {
+    // 升级完成页要展示的三样：升到哪个版本、什么时候升的、这一版更新了什么
+    $welcomeTo   = (string) config('last_upgrade_to', '');
+    $welcomeFrom = (string) config('last_upgrade_from', '');
+    $welcomeAt   = (int) config('last_upgrade_at', 0);
+    $welcomeNote = (string) config('last_upgrade_note', '');
+}
+if ($tab === 'history') {
+    try {
+        $upgLogs = db()->fetchAll(
+            'SELECT admin_name, action, description, ip, created_at FROM ' . DB_PREFIX . 'admin_logs'
+            . " WHERE module = 'upgrade' ORDER BY id DESC LIMIT 200"
+        );
+    } catch (\Throwable $e) {
+        $upgLogs = [];
+    }
+    foreach ((array) glob(ROOT_PATH . '/storage/backups/pre-upgrade-*') as $b) {
+        $upgBackups[] = ['name' => basename((string) $b), 'time' => (int) @filemtime((string) $b)];
+    }
+    usort($upgBackups, static fn(array $a, array $b): int => $b['time'] <=> $a['time']);
+}
+
+$pageTitle = __('upgrade_page_title');
 $currentMenu = $tab === 'online' ? 'online_upgrade' : 'upgrade';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <?php // 标签栏由 admin/includes/upgrade_tabs.php 统一渲染（两页共用，避免各自维护漂移）
-$__upgTab = $tab === 'config' ? 'config' : 'check';
+$__upgTab = in_array($tab, ['config', 'history', 'welcome'], true) ? $tab : 'check';
 require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 ?>
 
@@ -332,15 +358,17 @@ async function runUpgrade() {
                     msg.textContent = item.message;
                 }
             }
-            showMessage('升级完成');
+            showMessage(<?php echo json_encode(__('upgrade_all_applied'), JSON_UNESCAPED_UNICODE); ?>);
             if (allSuccess) {
-                setTimeout(function() { location.reload(); }, 1500);
+                // 落到「升级记录」而不是刷回本页：刷回来只会看到一句「全部已应用」，
+                // 而人这会儿想知道的是刚才到底动了什么。
+                setTimeout(function() { location.href = 'upgrade.php?tab=welcome'; }, 1500);
             }
         } else {
             showMessage(data.msg || '<?php echo __('upgrade_failed'); ?>', 'error');
         }
     } catch (err) {
-        showMessage('请求失败', 'error');
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 
     btn.disabled = false;
@@ -498,6 +526,124 @@ async function saveNotifyLevel(sel) {
     } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
 }
 </script>
+<?php endif; ?>
+
+<?php if ($tab === 'welcome'): ?>
+<div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+    <div class="px-8 py-12 text-center border-b">
+        <div class="w-16 h-16 mx-auto mb-5 rounded-full bg-green-50 flex items-center justify-center">
+            <i class="ti ti-circle-check text-3xl text-green-500"></i>
+        </div>
+        <h2 class="text-2xl font-semibold text-gray-900 mb-2">
+            <?php echo e(str_replace(':version', 'v' . (defined('CMS_VERSION') ? CMS_VERSION : ''), __('upgrade_welcome_title'))); ?>
+        </h2>
+        <p class="text-gray-500">
+            <?php if ($welcomeFrom !== '' && $welcomeTo !== ''): ?>
+                <?php echo e(str_replace([':from', ':to'], ['v' . $welcomeFrom, 'v' . $welcomeTo], __('upgrade_welcome_from_to'))); ?>
+            <?php else: ?>
+                <?php echo e(__('upgrade_welcome_sub')); ?>
+            <?php endif; ?>
+            <?php if ($welcomeAt > 0): ?>
+            <span class="text-gray-300 mx-1">·</span><?php echo e(formatTime($welcomeAt, 'Y-m-d H:i')); ?>
+            <?php endif; ?>
+        </p>
+    </div>
+
+    <?php if (trim($welcomeNote) !== ''): ?>
+    <div class="px-8 py-6 border-b bg-gray-50">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3"><?php echo e(__('upgrade_welcome_whats_new')); ?></h3>
+        <pre class="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto"><?php echo e($welcomeNote); ?></pre>
+    </div>
+    <?php endif; ?>
+
+    <div class="px-8 py-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="/admin/index.php" class="block px-4 py-4 rounded-lg border hover:border-primary hover:shadow-sm transition text-center">
+            <i class="ti ti-dashboard text-xl text-gray-400 block mb-2"></i>
+            <span class="text-sm text-gray-700"><?php echo e(__('upgrade_welcome_go_dashboard')); ?></span>
+        </a>
+        <a href="/" target="_blank" class="block px-4 py-4 rounded-lg border hover:border-primary hover:shadow-sm transition text-center">
+            <i class="ti ti-world text-xl text-gray-400 block mb-2"></i>
+            <span class="text-sm text-gray-700"><?php echo e(__('upgrade_welcome_view_site')); ?></span>
+        </a>
+        <a href="/admin/upgrade.php?tab=history" class="block px-4 py-4 rounded-lg border hover:border-primary hover:shadow-sm transition text-center">
+            <i class="ti ti-history text-xl text-gray-400 block mb-2"></i>
+            <span class="text-sm text-gray-700"><?php echo e(__('upgrade_tab_history')); ?></span>
+        </a>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($tab === 'history'): ?>
+<div class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-center justify-between flex-wrap gap-2">
+    <div class="text-sm text-gray-600">
+        <?php echo e(__('upgrade_hist_current')); ?>
+        <span class="ml-1 font-mono font-medium text-gray-900">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '—'); ?></span>
+    </div>
+    <div class="text-sm text-gray-400"><?php echo e(__('upgrade_hist_tip')); ?></div>
+</div>
+
+<div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+    <?php if (empty($upgLogs)): ?>
+    <div class="p-12 text-center">
+        <i class="ti ti-history text-base mx-auto text-gray-300 mb-4"></i>
+        <p class="text-gray-500"><?php echo e(__('upgrade_hist_empty')); ?></p>
+    </div>
+    <?php else: ?>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500">
+                <tr>
+                    <th class="px-6 py-3 text-left font-medium whitespace-nowrap"><?php echo e(__('upgrade_hist_time')); ?></th>
+                    <th class="px-6 py-3 text-left font-medium whitespace-nowrap"><?php echo e(__('upgrade_hist_type')); ?></th>
+                    <th class="px-6 py-3 text-left font-medium"><?php echo e(__('upgrade_hist_detail')); ?></th>
+                    <th class="px-6 py-3 text-left font-medium whitespace-nowrap"><?php echo e(__('upgrade_hist_operator')); ?></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                <?php foreach ($upgLogs as $lg): ?>
+                <?php
+                    // online_apply = 覆盖程序文件；execute = 跑了一条数据库迁移
+                    $isFiles = ($lg['action'] ?? '') === 'online_apply';
+                    $isDb    = ($lg['action'] ?? '') === 'execute';
+                ?>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-3 whitespace-nowrap text-gray-600 font-mono text-xs">
+                        <?php echo e(formatTime((int) ($lg['created_at'] ?? 0), 'Y-m-d H:i:s')); ?>
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap">
+                        <span class="inline-block px-2 py-0.5 rounded text-xs <?php echo $isFiles ? 'bg-blue-50 text-blue-700' : ($isDb ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'); ?>">
+                            <?php echo e($isFiles ? __('upgrade_hist_type_files') : ($isDb ? __('upgrade_hist_type_db') : (string) ($lg['action'] ?? ''))); ?>
+                        </span>
+                    </td>
+                    <td class="px-6 py-3 text-gray-700 break-all"><?php echo e((string) ($lg['description'] ?? '')); ?></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-gray-500">
+                        <?php echo e((string) ($lg['admin_name'] ?? '')); ?>
+                        <span class="text-gray-300 ml-1 font-mono text-xs"><?php echo e((string) ($lg['ip'] ?? '')); ?></span>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
+</div>
+
+<?php if (!empty($upgBackups)): ?>
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b">
+        <h3 class="font-medium text-gray-800"><?php echo e(__('upgrade_hist_backups')); ?></h3>
+        <p class="text-sm text-gray-400 mt-1"><?php echo e(__('upgrade_hist_backups_tip')); ?></p>
+    </div>
+    <ul class="divide-y">
+        <?php foreach ($upgBackups as $bk): ?>
+        <li class="px-6 py-3 flex items-center justify-between text-sm">
+            <span class="font-mono text-gray-700 break-all">storage/backups/<?php echo e($bk['name']); ?></span>
+            <span class="text-gray-400 whitespace-nowrap ml-4"><?php echo e(formatTime($bk['time'], 'Y-m-d H:i')); ?></span>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+</div>
+<?php endif; ?>
 <?php endif; ?>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
