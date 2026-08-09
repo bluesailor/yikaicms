@@ -76,13 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'test') {
     $result = sendMail(
         $testEmail,
         __('email_test_subject') . ' - ' . config('site_name'),
-        __('email_test_body') . "\n\n" . __('email_test_sent_at') . date('Y-m-d H:i:s')
+        __('email_test_body') . "\n\n" . str_replace(':time', date('Y-m-d H:i:s'), __('email_test_sent_at'))
     );
 
     if ($result === true) {
         success([], __('email_test_success_msg'));
     } else {
-        error(__('email_test_fail_prefix') . $result);
+        error(str_replace(':error', (string) $result, __('email_test_fail_prefix')));
     }
 }
 

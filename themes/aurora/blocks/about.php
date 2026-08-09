@@ -6,7 +6,7 @@
 $aboutLayout = config('home_about_layout', 'text_left');
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80');
 $aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
-if ($aboutTitle === '') { $aboutTitle = __('home_about_title') . configRawLang('site_name', ''); }
+if ($aboutTitle === '') { $aboutTitle = homeAboutDefaultTitle(); }
 ?>
 <section class="py-24 relative">
     <div class="container mx-auto px-6 lg:px-8 relative">
