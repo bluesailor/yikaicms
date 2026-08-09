@@ -83,6 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('timeline', 'update', "更新时间线ID: $id");
         } else {
             $data['created_at'] = time();
+            // 列表按 view-lang 过滤，而 lang 列默认 'zh-CN'——新建不显式带上，
+            // 非中文站/翻译视图下新建的行永远查不出来（product_category 同款 bug）
+            $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));
             $id = timelineModel()->create($data);
             adminLog('timeline', 'create', "创建时间线ID: $id");
         }
