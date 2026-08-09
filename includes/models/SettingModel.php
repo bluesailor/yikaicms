@@ -63,6 +63,57 @@ class SettingModel extends Model
     /**
      * 按分组获取
      */
+    /**
+     * 切换默认语言后的行角色归位。
+     *
+     * 不变量：base 行 = 默认语言内容，<key>_<lang> = 其他语言。前台读取是
+     * 后缀优先（configLang），切默认语言若不归位，后台表单显示旧语言、
+     * 保存写 base 但前台读后缀——改了不生效（2026-08-09 实测事故）。
+     *
+     * 归位规则（仅处理存在 <key>_<新默认> 行的键，数据驱动、幂等）：
+     *   1) base 现值（旧默认语言内容）落到 <key>_<旧默认>（已有则不覆盖）；
+     *   2) <key>_<新默认> 值提升为 base；
+     *   3) 删除 <key>_<新默认> 行。
+     * 无新默认后缀行的键不动——base 继续按「语言无关兜底」参与前台回退链。
+     *
+     * @return int 归位的键数
+     */
+    public function normalizeDefaultLangRows(string $newDefault, string $oldDefault): int
+    {
+        if ($newDefault === '' || $newDefault === $oldDefault) {
+            return 0;
+        }
+        $suffix = '_' . $newDefault;
+        // LIKE 里 _ 是通配符，须转义；语言码含 '-'（zh-CN）无需处理
+        $pattern = '%' . str_replace(['\\', '_', '%'], ['\\\\', '\\_', '\\%'], $suffix);
+        $rows = db()->fetchAll(
+            "SELECT * FROM {$this->tableName()} WHERE `key` LIKE ? ESCAPE '\\'",
+            [$pattern]
+        );
+        $count = 0;
+        foreach ($rows as $row) {
+            $baseKey = substr((string) $row['key'], 0, -strlen($suffix));
+            if ($baseKey === '') {
+                continue;
+            }
+            $base = db()->fetchOne("SELECT * FROM {$this->tableName()} WHERE `key` = ?", [$baseKey]);
+            // 1) 保全旧默认语言内容
+            if ($base !== null && $oldDefault !== '') {
+                $oldKey = $baseKey . '_' . $oldDefault;
+                $oldRow = db()->fetchOne("SELECT id FROM {$this->tableName()} WHERE `key` = ?", [$oldKey]);
+                if (!$oldRow && (string) $base['value'] !== (string) $row['value']) {
+                    $this->set($oldKey, (string) $base['value'], (string) ($base['group'] ?? 'basic'));
+                }
+            }
+            // 2) 提升为 base
+            $this->set($baseKey, (string) $row['value'], (string) ($row['group'] ?? 'basic'));
+            // 3) 删除后缀行
+            db()->execute("DELETE FROM {$this->tableName()} WHERE `key` = ?", [(string) $row['key']]);
+            $count++;
+        }
+        return $count;
+    }
+
     public function getByGroup(string $group): array
     {
         return db()->fetchAll(

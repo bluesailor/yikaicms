@@ -34,6 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!in_array($newDefault, $selected)) $selected[] = $newDefault;
 
         settingModel()->set('enabled_languages', json_encode(array_values($selected)));
+        // 切默认语言：先做行角色归位（<key>_<新默认> 提升为 base、旧默认内容落后缀），
+        // 否则后台表单显示旧语言且保存不生效（前台后缀优先）。见 SettingModel 注释。
+        if ($newDefault !== $defaultLang) {
+            $__moved = settingModel()->normalizeDefaultLangRows($newDefault, $defaultLang);
+            if ($__moved > 0) {
+                adminLog('setting', 'lang_normalize', "默认语言 {$defaultLang}→{$newDefault}，归位 {$__moved} 个设置键");
+            }
+        }
         settingModel()->set('site_lang', $newDefault);
         settingModel()->set('admin_lang', $newAdmin);
         settingModel()->set('show_lang_switcher', post('show_switcher', '0'));

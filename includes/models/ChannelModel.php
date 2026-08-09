@@ -48,6 +48,38 @@ class ChannelModel extends Model
     }
 
     /**
+     * 按 id 取栏目并映射到目标语言的翻译兄弟行。
+     *
+     * 版块配置里存的 channel id 是「建块当时语言」的行——多语言/切语言站点直接
+     * find() 会把别的语言渲进当前页面（英文首页冒出中文栏目的实测根因之一）。
+     * 语言不匹配且无兄弟行时返回 null（按语言页面宁可不显示，不串语言）；
+     * lang 列为空的老站行视为语言无关，原样返回。
+     */
+    public function siblingForLang(int $id, ?string $lang = null): ?array
+    {
+        $row = $this->find($id);
+        if (!$row || empty($row['status'])) {
+            return null;
+        }
+        // 判据用行数据本身而非 isMultiLangEnabled()：无 lang 列时键不存在、
+        // 老站空值同样落到 ''——语言无关，原样返回（也让单测无需绕 schema 探测）。
+        $rowLang = (string) ($row['lang'] ?? '');
+        if ($rowLang === '') {
+            return $row;
+        }
+        $lang = $lang ?: siteLang();
+        if ($rowLang === $lang) {
+            return $row;
+        }
+        $groupId = (int) ($row['translation_group_id'] ?: $row['id']);
+        $sibling = db()->fetchOne(
+            "SELECT * FROM {$this->tableName()} WHERE translation_group_id = ? AND lang = ? AND status = 1",
+            [$groupId, $lang]
+        );
+        return $sibling ?: null;
+    }
+
+    /**
      * 获取子栏目
      */
     public function getByParent(int $parentId = 0, bool $activeOnly = true, bool $navOnly = false, ?string $lang = null): array
