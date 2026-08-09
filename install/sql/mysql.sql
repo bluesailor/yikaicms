@@ -1214,6 +1214,8 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (99,'product','show_price','0','select','显示产品价格','','{\"0\":\"隐藏\",\"1\":\"显示\"}',2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (100,'product','product_sort_options','[\"default\",\"newest\",\"views\"]','text','可用排序选项','',NULL,3);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (101,'product','product_default_sort','default','select','产品默认排序','','{\"default\":\"默认\",\"newest\":\"最新\",\"views\":\"浏览量\"}',4);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (221,'product','currency_symbol','','text','货币符号','留空按站点语言自动选择（中文 ¥ / 英文 \$ / 日文 ¥）；填了以此为准，如 ₱ € £',NULL,5);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (222,'product','currency_decimals','','text','价格小数位','留空按语言默认（中英 2 位、日元 0 位）；0-4',NULL,6);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (102,'banner','banner_height_pc','650','number','轮播图高度(PC)','',NULL,1);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (103,'banner','banner_height_mobile','300','number','轮播图高度(移动)','',NULL,2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (104,'member','allow_member_register','1','switch','允许会员注册','',NULL,1);

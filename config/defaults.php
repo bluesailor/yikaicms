@@ -188,6 +188,8 @@ return [
         'product_layout'        => ['value' => 'sidebar', 'type' => 'select', 'name' => '产品列表布局', 'tip' => '', 'options' => '{"sidebar":"侧边栏","top":"顶部栏"}', 'sort_order' => 1],
         'show_price'            => ['value' => '0', 'type' => 'select', 'name' => '显示产品价格', 'tip' => '前台是否显示价格', 'options' => '{"0":"隐藏","1":"显示"}', 'sort_order' => 2],
         'product_spec_presets'  => ['value' => "model|型号\nsize|尺寸\nmaterial|材质\nweight|重量\norigin|产地", 'type' => 'textarea', 'name' => '预置规格参数', 'tip' => '每行一条：键名|显示名|默认值（后两项可省略）；新建产品自动填入', 'sort_order' => 3],
+        'currency_symbol'       => ['value' => '', 'type' => 'text', 'name' => '货币符号', 'tip' => '留空按站点语言自动选择（中文 ¥ / 英文 $ / 日文 ¥）；填了以此为准，如 ₱ € £', 'sort_order' => 4],
+        'currency_decimals'     => ['value' => '', 'type' => 'text', 'name' => '价格小数位', 'tip' => '留空按语言默认（中英 2 位、日元 0 位）；0-4', 'sort_order' => 5],
         'product_sort_options'  => ['value' => '["default","newest","views"]', 'type' => 'text', 'name' => '可用排序选项', 'tip' => 'JSON数组，可选：default/newest/updated/views/price_asc/price_desc', 'sort_order' => 3],
     ],
 

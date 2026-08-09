@@ -854,8 +854,20 @@ function adminBrandName(): string
  */
 function formatPrice(float|int|string $price): string
 {
-    $symbol = __('currency_symbol');
-    $decimals = max(0, min(4, (int) __('currency_decimals')));
+    // 站点设置优先，语言包默认兜底。
+    //   语言默认（zh ¥2位 / en $2位 / ja ¥0位）对多数站点够用，但「英文站 = 美元」
+    //   并不成立——菲律宾站要 ₱、欧洲站要 €。所以给一个站点级覆盖：
+    //   产品设置里填了就用填的，留空则回到语言默认。
+    //   configRawLang 让覆盖本身也能按语言分设（currency_symbol_en 等），
+    //   多语言站可以中文版 ¥、英文版 $ 各自成立。
+    $symbol = trim(configRawLang('currency_symbol', ''));
+    if ($symbol === '') {
+        $symbol = __('currency_symbol');
+    }
+    $decimalsRaw = trim(configRawLang('currency_decimals', ''));
+    $decimals = $decimalsRaw !== '' ? (int) $decimalsRaw : (int) __('currency_decimals');
+    $decimals = max(0, min(4, $decimals));
+
     return e($symbol) . number_format((float) $price, $decimals);
 }
 
