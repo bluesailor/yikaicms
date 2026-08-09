@@ -442,8 +442,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-3 mb-1">
                         <?php
-                        $langSuffix = getLang() !== 'zh-CN' ? '_' . getLang() : '';
-                        $pName = ($langSuffix && !empty($p['name' . $langSuffix])) ? $p['name' . $langSuffix] : ($p['name'] ?? $slug);
+                        $pName = pluginMetaLabel($p, 'name', (string) $slug);
                         ?>
                         <h3 class="font-semibold text-gray-800"><?php echo e($pName); ?></h3>
                         <?php if (!empty($p['version'])): ?>
@@ -473,7 +472,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php endif; ?>
                     </div>
                     <?php if (!empty($p['description'])): ?>
-                    <?php $pDesc = ($langSuffix && !empty($p['description' . $langSuffix])) ? $p['description' . $langSuffix] : $p['description']; ?>
+                    <?php $pDesc = pluginMetaLabel($p, 'description'); ?>
                     <p class="text-sm text-gray-500 mb-2"><?php echo e($pDesc); ?></p>
                     <?php endif; ?>
                     <div class="text-xs text-gray-400 flex flex-wrap gap-4">
