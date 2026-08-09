@@ -223,10 +223,19 @@ foreach (($__qkByRole[$__roleId] ?? $__qkByRole[1]) as $__u) {
     if (!hasPermission($__perm)) continue;
     $__quick[] = [$__u, $__icon, $__box, $__color, $__lang];
 }
-$__recent = array_values(array_filter(
-    adminMenuUsageRecent($__adminId, 8),
-    fn(array $row): bool => adminMenuUsageFindItem($sidebarMenu, (string) ($row['url'] ?? '')) !== null
-));
+// 标题/图标按当前语言取自侧栏定义（FindItem 返回的就是本地化后的 label）。
+// 库里存的 title 是「使用当刻」的语言快照——英文后台里点过的页面会以英文标题
+// 入库，切回中文后原样吐出（用户实测报过）。渲染时一律重取，存量脏数据自愈。
+$__recent = [];
+foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
+    $item = adminMenuUsageFindItem($sidebarMenu, (string) ($row['url'] ?? ''));
+    if ($item === null) {
+        continue;
+    }
+    $row['title'] = $item['title'] !== '' ? $item['title'] : (string) ($row['title'] ?? '');
+    $row['icon']  = $item['icon'] !== '' ? $item['icon'] : (string) ($row['icon'] ?? '');
+    $__recent[] = $row;
+}
 ?>
 <?php if ($__quick): ?>
 <div class="mb-8">

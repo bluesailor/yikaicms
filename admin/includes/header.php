@@ -281,8 +281,10 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             var RECENT = <?php
                 $__sbRecent = [];
                 foreach (adminMenuUsageRecent((int) ($adminInfo['id'] ?? 0), 8) as $__r) {
-                    if (adminMenuUsageFindItem($sidebarMenu, (string) ($__r['url'] ?? '')) === null) continue;
-                    $__sbRecent[] = ['url' => (string) $__r['url'], 'title' => (string) ($__r['title'] ?: $__r['url'])];
+                    $__item = adminMenuUsageFindItem($sidebarMenu, (string) ($__r['url'] ?? ''));
+                    if ($__item === null) continue;
+                    // 标题按当前语言重取（库存的是使用当刻的语言快照，切语言会串）
+                    $__sbRecent[] = ['url' => (string) $__r['url'], 'title' => (string) ($__item['title'] ?: ($__r['title'] ?: $__r['url']))];
                 }
                 echo json_encode($__sbRecent, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
             ?>;
