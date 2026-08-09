@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     settingModel()->set('update_notify_level', $lv, 'system');
     // 兼容旧键：控制台首页与既有代码仍读它做粗粒度判断
     settingModel()->set('dashboard_update_check', $lv === 'off' ? '0' : '1', 'system');
-    adminLog('setting', 'update', '控制台更新提醒级别：' . $lv);
+    adminLog('setting', 'update', str_replace(':level', $lv, __('upg_log_notify_level')));
     success();
 }
 
@@ -96,18 +96,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
             $error = curl_error($ch);
             curl_close($ch);
             if ($response === false || $httpCode >= 400) {
-                echo json_encode(['code' => 1, 'msg' => '无法连接更新服务器' . ($error ? ': ' . $error : ' (HTTP ' . $httpCode . ')')], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['code' => 1, 'msg' => __('upg_server_unreachable') . ($error ? ': ' . $error : ' (HTTP ' . $httpCode . ')')], JSON_UNESCAPED_UNICODE);
                 exit;
             }
         } else {
-            echo json_encode(['code' => 1, 'msg' => '无法连接更新服务器，请检查网络或服务器 PHP 配置'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['code' => 1, 'msg' => __('upg_server_unreachable_2')], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
 
     $data = json_decode($response, true);
     if ($data === null) {
-        echo json_encode(['code' => 1, 'msg' => '更新服务器返回数据格式错误'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['code' => 1, 'msg' => __('upg_server_bad_json')], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             continue;
         }
         if ($alreadyDone) {
-            $results[$up['id']] = ['status' => 'skipped', 'message' => '已是最新，无需升级'];
+            $results[$up['id']] = ['status' => 'skipped', 'message' => __('upg_already_applied')];
             continue;
         }
         try {
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             }
             $results[$up['id']] = ['status' => 'success', 'message' => $msg ?: __('upgrade_success')];
             // adminLog 失败不影响升级响应
-            try { adminLog('upgrade', 'execute', '执行升级: ' . ($up['title'] ?? $up['id'])); } catch (\Throwable $e) {}
+            try { adminLog('upgrade', 'execute', str_replace(':name', (string) ($up['title'] ?? $up['id']), __('upg_log_execute'))); } catch (\Throwable $e) {}
         } catch (\Throwable $e) {
             $results[$up['id']] = ['status' => 'error', 'message' => $e->getMessage()];
         }
@@ -257,7 +257,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
     </div>
     <?php else: ?>
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mb-6">
-        检测到 <?php echo count($pendingUpgrades); ?> 项待升级，升级前请确保已备份数据库。
+        <?php echo e(str_replace(':n', (string) count($pendingUpgrades), __('upg_pending_notice'))); ?>
     </div>
 
     <div id="upgradeList" class="space-y-4">
@@ -265,12 +265,12 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
     <div class="bg-white rounded-lg shadow" data-id="<?php echo $up['id']; ?>">
         <div class="px-5 py-4 border-b flex items-center gap-3">
             <input type="checkbox" class="upgrade-check w-4 h-4" value="<?php echo $up['id']; ?>" checked>
-            <span class="font-semibold flex-1"><?php echo htmlspecialchars((string) ($up['title'] ?? $up['name'] ?? $up['id'])); ?></span>
+            <span class="font-semibold flex-1"><?php echo e(Migrator::label($up) ?: (string) ($up['name'] ?? $up['id'])); ?></span>
             <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
-            <span class="upgrade-badge inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">待升级</span>
+            <span class="upgrade-badge inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700"><?php echo e(__('upg_badge_pending')); ?></span>
         </div>
         <div class="px-5 py-3 text-sm text-gray-500">
-            <?php echo htmlspecialchars((string) ($up['desc'] ?? '')); ?>
+            <?php echo e(Migrator::label($up, 'desc')); ?>
             <div class="upgrade-msg mt-2 hidden"></div>
         </div>
     </div>
@@ -280,20 +280,20 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
     <div class="mt-6">
         <button id="btnUpgrade" onclick="runUpgrade()" class="bg-primary hover:bg-secondary text-white px-8 py-2.5 rounded transition inline-flex items-center gap-2">
             <i class="ti ti-refresh text-base"></i>
-            执行升级
+            <?php echo e(__('upg_run')); ?>
         </button>
     </div>
     <?php endif; ?>
 
     <?php if (!empty($doneUpgrades)): ?>
     <div class="mt-8">
-        <h3 class="text-sm font-semibold text-gray-500 mb-3">已完成（<?php echo count($doneUpgrades); ?>）</h3>
+        <h3 class="text-sm font-semibold text-gray-500 mb-3"><?php echo e(str_replace(':n', (string) count($doneUpgrades), __('upg_done_count'))); ?></h3>
         <div class="space-y-3">
         <?php foreach (array_reverse($doneUpgrades) as $up): ?>
         <div class="bg-white rounded-lg shadow">
             <div class="px-5 py-3.5 flex items-center gap-3">
                 <i class="ti ti-circle-check text-lg text-green-500 flex-shrink-0"></i>
-                <span class="font-medium flex-1 text-sm"><?php echo htmlspecialchars((string) ($up['title'] ?? $up['name'] ?? $up['id'])); ?></span>
+                <span class="font-medium flex-1 text-sm"><?php echo e(Migrator::label($up) ?: (string) ($up['name'] ?? $up['id'])); ?></span>
                 <span class="text-xs text-gray-400 font-mono"><?php echo $up['id']; ?></span>
                 <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><?php echo __('upgrade_completed'); ?></span>
             </div>
@@ -307,7 +307,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 <script>
 async function runUpgrade() {
     var checks = document.querySelectorAll('.upgrade-check:checked');
-    if (!checks.length) { showMessage('请选择要升级的项目', 'error'); return; }
+    if (!checks.length) { showMessage(<?php echo json_encode(__('upg_pick_items'), JSON_UNESCAPED_UNICODE); ?>, 'error'); return; }
 
     var ids = [];
     checks.forEach(function(c) { ids.push(c.value); });
@@ -389,7 +389,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('upgrade_online'); ?></h2>
-            <span class="text-sm text-gray-400">更新服务器：<?php echo e($updateServerUrl); ?></span>
+            <span class="text-sm text-gray-400"><?php echo e(__('upg_server_label')); ?><?php echo e($updateServerUrl); ?></span>
         </div>
         <div class="px-6 py-5">
             <div class="flex items-center gap-4 mb-4">
@@ -399,7 +399,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
                 <div>
                     <?php // 白标：有效授权不露 CMS 品牌名（同 footer / 系统信息页惯例） ?>
                     <p class="text-gray-800 font-medium"><?php echo (function_exists('license_valid') && license_valid()) ? e(config('site_name', 'YikaiCMS')) : 'YikaiCMS'; ?></p>
-                    <p class="text-sm text-gray-500">当前版本：<span class="font-mono font-medium text-primary">v<?php echo e($currentVersion); ?></span></p>
+                    <p class="text-sm text-gray-500"><?php echo e(__('upg_current_version')); ?><span class="font-mono font-medium text-primary">v<?php echo e($currentVersion); ?></span></p>
                 </div>
             </div>
 
@@ -407,7 +407,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 
             <button id="btnCheckUpdate" onclick="checkUpdate()" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded transition inline-flex items-center gap-2">
                 <i class="ti ti-refresh text-base"></i>
-                检测更新
+                <?php echo e(__('upg_check_now')); ?>
             </button>
         </div>
     </div>
@@ -415,12 +415,17 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
     <!-- 升级说明 -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
-            <h3 class="font-medium text-gray-700">升级说明</h3>
+            <h3 class="font-medium text-gray-700"><?php echo e(__('upg_help_title')); ?></h3>
         </div>
         <div class="px-6 py-4 text-sm text-gray-500 space-y-2">
-            <p>1. 升级前请务必<strong class="text-gray-700">备份数据库和网站文件</strong>。</p>
-            <p>2. 系统会自动从 <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs"><?php echo e($updateServerUrl); ?></code> 检测是否有新版本。</p>
-            <p>3. 检测到新版本后，请按照提示下载更新包并按步骤完成升级。</p>
+            <p>1. <strong class="text-gray-700"><?php echo e(__('upg_help_1')); ?></strong></p>
+            <p>2. <?php
+                // 「从 X 检测新版本」在英日语序不同，整句走 :server 占位，回填时套上 <code> 样式
+                echo strtr(e(__('upg_help_2')), [
+                    ':server' => '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">' . e($updateServerUrl) . '</code>',
+                ]);
+            ?></p>
+            <p>3. <?php echo e(__('upg_help_3')); ?></p>
             <p>4. 升级完成后，建议访问 <a href="/admin/upgrade.php" class="text-primary hover:underline"><?php echo __('upgrade_check'); ?></a> 页面执行数据库升级。</p>
         </div>
     </div>
@@ -433,7 +438,7 @@ async function checkUpdate() {
     var btn = document.getElementById('btnCheckUpdate');
     var result = document.getElementById('updateResult');
     btn.disabled = true;
-    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i> 检测中...';
+    btn.innerHTML = '<i class="ti ti-loader-2 text-base animate-spin"></i> ' + <?php echo json_encode(__('upg_checking'), JSON_UNESCAPED_UNICODE); ?>;
 
     try {
         var formData = new FormData();
@@ -445,7 +450,7 @@ async function checkUpdate() {
         });
 
         if (!response.ok) {
-            throw new Error('服务器响应异常 (HTTP ' + response.status + ')');
+            throw new Error(<?php echo json_encode(__('upg_bad_response'), JSON_UNESCAPED_UNICODE); ?> + ' (HTTP ' + response.status + ')');
         }
 
         var data = await safeJson(response);
@@ -457,29 +462,29 @@ async function checkUpdate() {
                 + '<div class="flex items-start gap-3">'
                 + '<i class="ti ti-info-circle text-lg text-blue-500 mt-0.5 flex-shrink-0"></i>'
                 + '<div class="flex-1">'
-                + '<p class="font-medium text-blue-800 mb-1">发现新版本 <span class="font-mono">v' + escapeHtml(d.latest_version) + '</span></p>'
-                + (d.release_date ? '<p class="text-sm text-blue-600 mb-2">发布日期：' + escapeHtml(d.release_date) + '</p>' : '')
+                + '<p class="font-medium text-blue-800 mb-1">' + <?php echo json_encode(__('upg_new_version_found'), JSON_UNESCAPED_UNICODE); ?> + ' <span class="font-mono">v' + escapeHtml(d.latest_version) + '</span></p>'
+                + (d.release_date ? '<p class="text-sm text-blue-600 mb-2">' + <?php echo json_encode(__('upg_release_date'), JSON_UNESCAPED_UNICODE); ?> + escapeHtml(d.release_date) + '</p>' : '')
                 + (d.changelog ? '<div class="text-sm text-blue-700 mb-3 whitespace-pre-line">' + escapeHtml(d.changelog) + '</div>' : '')
-                + (d.download_url ? '<a href="' + escapeHtml(d.download_url) + '" target="_blank" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition"><i class="ti ti-download text-base"></i> 下载更新包</a>' : '')
+                + (d.download_url ? '<a href="' + escapeHtml(d.download_url) + '" target="_blank" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition"><i class="ti ti-download text-base"></i> ' + <?php echo json_encode(__('upg_download_pkg'), JSON_UNESCAPED_UNICODE); ?> + '</a>' : '')
                 + '</div></div></div>';
         } else if (data.code === 0) {
             result.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 flex items-center gap-3">'
                 + '<i class="ti ti-circle-check text-lg text-green-500 flex-shrink-0"></i>'
-                + '<p class="text-green-700">当前已是最新版本 <span class="font-mono font-medium">v' + escapeHtml(currentVersion) + '</span></p>'
+                + '<p class="text-green-700">' + <?php echo json_encode(__('upg_up_to_date_msg'), JSON_UNESCAPED_UNICODE); ?> + ' <span class="font-mono font-medium">v' + escapeHtml(currentVersion) + '</span></p>'
                 + '</div>';
         } else {
-            throw new Error(data.msg || '检测失败');
+            throw new Error(data.msg || <?php echo json_encode(__('upg_check_failed'), JSON_UNESCAPED_UNICODE); ?>);
         }
     } catch (err) {
         result.classList.remove('hidden');
         result.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">'
             + '<i class="ti ti-alert-circle text-lg text-red-500 flex-shrink-0"></i>'
-            + '<div><p class="text-red-700 font-medium">检测失败</p><p class="text-red-600 text-sm mt-0.5">' + escapeHtml(err.message) + '</p></div>'
+            + '<div><p class="text-red-700 font-medium">' + <?php echo json_encode(__('upg_check_failed'), JSON_UNESCAPED_UNICODE); ?> + '</p><p class="text-red-600 text-sm mt-0.5">' + escapeHtml(err.message) + '</p></div>'
             + '</div>';
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-refresh text-base"></i> 重新检测';
+    btn.innerHTML = '<i class="ti ti-refresh text-base"></i> ' + <?php echo json_encode(__('upg_check_again'), JSON_UNESCAPED_UNICODE); ?>;
 }
 
 function escapeHtml(str) {

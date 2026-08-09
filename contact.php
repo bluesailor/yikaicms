@@ -78,7 +78,7 @@ require theme_path('partials/contact-hero.php');
 <?php // 排过版：整页交给区块（联系卡片/表单/地图作为元素自由摆放、可加任意其它内容）；
       // 未排版：沿用下方固定版式，输出与老版本逐字节一致。 ?>
 <?php if ($contactBlocksHtml !== ''): ?>
-<div class="yk-contact-blocks"<?php echo $__ykEdit('/admin/page_edit_advance.php?id=' . $currentChannelId, '✎ 排版编辑本页'); ?>>
+<div class="yk-contact-blocks"<?php echo $__ykEdit('/admin/page_edit_advance.php?id=' . $currentChannelId, '✎ ' . __('fe_edit_layout')); ?>>
     <?php echo $contactBlocksHtml; ?>
 </div>
 <?php else: ?>

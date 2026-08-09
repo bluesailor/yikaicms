@@ -48,7 +48,7 @@
 
         <?php if ($isProductType && !empty($item['model'])): ?>
         <p class="mt-1 text-xs text-slate-400 font-mono tracking-wide">
-            <?php echo '型号'; ?>:
+            <?php echo e(__('detail_model')); ?>:
             <span class="text-slate-600"><?php echo e($item['model']); ?></span>
         </p>
         <?php endif; ?>

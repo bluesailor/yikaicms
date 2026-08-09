@@ -14,7 +14,7 @@ $contents = $hChannel['contents'];
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="text-center mb-12" data-animate="fade-up">
             <h2 class="text-3xl font-bold text-dark mb-2">
-                <span class="text-primary"><?php echo e(mb_substr($hChannel['name'], 0, 2)); ?></span><?php echo e(mb_substr($hChannel['name'], 2)); ?>
+                <?php echo homeTitleInner($hChannel['name']); ?>
             </h2>
             <?php echo homeTitleDeco(); ?>
             <?php if ($hChannel['description']): ?>

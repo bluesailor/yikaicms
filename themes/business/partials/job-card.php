@@ -59,7 +59,7 @@
             </div>
             <?php endif; ?>
             <span class="inline-flex items-center gap-1 text-xs font-medium text-slate-400 group-hover:text-primary transition">
-                <?php echo '查看职位'; ?>
+                <?php echo e(__('job_view_detail')); ?>
                 <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </span>
         </div>

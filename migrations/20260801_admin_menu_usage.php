@@ -5,6 +5,11 @@ return [
     'id' => '20260801_admin_menu_usage',
     'title' => 'Admin menu usage history',
     'desc' => 'Add per-admin backend menu usage table for dashboard recent links.',
+    // 站点语言非中文时用这几项；Migrator::label() 取不到会回落上面的中文原文
+    'title_en' => 'Admin menu usage tracking',
+    'title_ja' => '管理メニューの利用状況',
+    'desc_en' => 'Adds a table that records which admin menu items you use, to power the recently-used shortcuts.',
+    'desc_ja' => '「最近使用した項目」ショートカットのために、管理メニューの利用状況を記録するテーブルを追加します。',
     'check' => function (): bool {
         try {
             return db()->tableExists('admin_menu_usage');

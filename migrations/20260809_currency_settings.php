@@ -17,6 +17,11 @@ return [
     'title' => '自定义货币单位',
     'desc' => '产品设置新增「货币符号」与「价格小数位」，留空则按站点语言自动选择；'
         . '可按语言分别设置。升级后行为不变，需要时到「产品设置」里填写。',
+    // 站点语言非中文时用这几项；Migrator::label() 取不到会回落上面的中文原文
+    'title_en' => 'Custom currency unit',
+    'title_ja' => 'カスタム通貨単位',
+    'desc_en' => 'Adds a currency symbol and price decimals option to Product Settings. Leave blank to follow the site language. Can be set per language. Nothing changes until you fill them in.',
+    'desc_ja' => '製品設定に通貨記号と小数桁数の項目を追加します。空欄のままならサイト言語に従います。言語ごとに設定できます。入力するまで表示は変わりません。',
     'check' => static function (): bool {
         try {
             return db()->fetchOne(

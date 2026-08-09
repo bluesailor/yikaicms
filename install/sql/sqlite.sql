@@ -293,8 +293,51 @@ INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id",
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (13,'zh-CN',13,0,'下载中心','download','download',0,'','','资料与软件下载',NULL,'','_self','none','','','','',1,0,1,1,3,1776652898,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (14,'zh-CN',14,0,'人才招聘','job','job',0,'','','加入我们',NULL,'','_self','auto','','','','',1,0,1,1,7,1776652898,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (15,'zh-CN',15,0,'联系我们','contact','page',0,'','','联系方式与在线留言',NULL,'','_self','auto','','','','',1,0,1,1,8,1776652898,0);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (16,'zh-CN',16,0,'隐私政策','privacy','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,98,1776652898,0);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (17,'zh-CN',17,0,'服务条款','terms','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,99,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (16,'zh-CN',16,0,'隐私政策','privacy','page',0,'','','','<div class="yk-tpl-notice"><strong>模板提示：</strong>以下为通用样板，请根据贵司实际的数据收集与使用情况、以及所在地适用法律修改后再发布。如涉及跨境业务或敏感个人信息，建议咨询法律顾问。</div>
+<h2>我们收集的信息</h2>
+<p>当您访问本网站、填写表单或与我们联系时，我们可能会收集以下信息：您主动提供的姓名、公司、电话、邮箱等联系方式；以及浏览器自动发送的 IP 地址、设备与浏览器类型、访问时间与页面路径等技术信息。</p>
+<h2>信息的使用</h2>
+<ul>
+<li>回复您的咨询、提供报价与售后支持</li>
+<li>改进网站内容与用户体验</li>
+<li>在您同意的前提下，向您发送产品与服务信息</li>
+<li>履行法律法规要求的义务</li>
+</ul>
+<h2>Cookie</h2>
+<p>本网站使用 Cookie 以维持会话、记忆偏好设置并统计访问情况。您可以在浏览器中禁用 Cookie，但部分功能可能因此无法正常使用。</p>
+<h2>信息的共享</h2>
+<p>除以下情形外，我们不会向第三方出售或出租您的个人信息：为完成您的请求而必须共享给服务提供方（如物流、支付、邮件服务）；法律法规要求或政府主管部门依法要求。</p>
+<h2>数据安全</h2>
+<p>我们采取合理的技术与管理措施保护您的信息，防止未经授权的访问、披露或损毁。但请理解，任何通过互联网传输的数据都无法保证绝对安全。</p>
+<h2>您的权利</h2>
+<p>您有权查询、更正或删除我们持有的您的个人信息，也可以随时撤回此前给予的同意。请通过下方联系方式与我们联系。</p>
+<h2>政策更新</h2>
+<p>本政策如有修改，我们将在本页面公布更新后的版本。请定期查阅。</p>
+<h2>联系我们</h2>
+<p>如对本隐私政策有任何疑问，请通过网站「联系我们」页面提供的方式与我们联系。</p>','','_self','auto','','','','',0,0,1,1,98,1776652898,0);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (17,'zh-CN',17,0,'服务条款','terms','page',0,'','','','<div class="yk-tpl-notice"><strong>模板提示：</strong>以下为通用样板，请根据贵司实际业务与所在地适用法律修改后再发布。涉及在线交易、会员或订阅服务时，建议咨询法律顾问。</div>
+<h2>条款的接受</h2>
+<p>访问和使用本网站，即表示您已阅读、理解并同意接受本条款的约束。如不同意，请停止使用本网站。</p>
+<h2>网站内容</h2>
+<p>本网站所载的产品资料、技术参数与图片仅供参考，不构成要约。实际产品规格以双方签署的合同或订单确认书为准。我们保留随时修改网站内容而不另行通知的权利。</p>
+<h2>知识产权</h2>
+<p>本网站的文字、图片、标识、版面设计及其它内容，除另有说明外，均归本公司或相应权利人所有。未经书面许可，不得复制、传播或用于商业用途。</p>
+<h2>使用限制</h2>
+<ul>
+<li>不得以任何方式干扰或破坏本网站的正常运行</li>
+<li>不得使用自动化程序大量抓取网站内容</li>
+<li>不得发布违法、侵权或含有恶意代码的信息</li>
+</ul>
+<h2>免责声明</h2>
+<p>本网站按「现状」提供。在法律允许的最大范围内，我们不对网站内容的准确性、完整性或持续可用性作出明示或默示的保证。</p>
+<h2>责任限制</h2>
+<p>在法律允许的最大范围内，对于因使用或无法使用本网站而产生的任何间接、偶然或后果性损失，我们不承担责任。</p>
+<h2>第三方链接</h2>
+<p>本网站可能包含指向第三方网站的链接。这些网站的内容与隐私政策由其各自运营者负责，我们不对其承担责任。</p>
+<h2>条款变更</h2>
+<p>我们可能不时更新本条款，更新后的版本自在本页面公布之日起生效。</p>
+<h2>联系我们</h2>
+<p>如对本条款有任何疑问，请通过网站「联系我们」页面提供的方式与我们联系。</p>','','_self','auto','','','','',0,0,1,1,99,1776652898,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (18,'zh-CN',18,1,'荣誉资质','honor','album',1,'','',NULL,NULL,'','_self','auto','','','','',1,0,1,1,4,1776654080,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (19,'zh-CN',19,1,'组织架构','organization','page',0,'','',NULL,NULL,'','_self','none','','','','',1,0,1,1,5,1776654080,0);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (20,'zh-CN',20,0,'解决方案','solution','case',0,'','','行业解决方案',NULL,'','_self','auto','','','','',1,0,1,1,4,1776654080,0);
@@ -315,8 +358,51 @@ INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id",
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (39,'en',13,0,'Downloads','download-en','download',0,'','','Materials and Software Download',NULL,'','_self','none','','','','',1,0,1,1,3,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (40,'en',14,0,'Careers','job-en','job',0,'','','Join us',NULL,'','_self','auto','','','','',1,0,1,1,6,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (41,'en',15,0,'Contact','contact-en','page',0,'','','Contact info & online inquiry',NULL,'','_self','auto','','','','',1,0,1,1,7,1778434704,1778434704);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (42,'en',16,0,'Privacy','privacy-en','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,98,1778434704,1778434704);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (43,'en',17,0,'Terms','terms-en','page',0,'','','',NULL,'','_self','auto','','','','',0,0,1,1,99,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (42,'en',16,0,'Privacy','privacy-en','page',0,'','','','<div class="yk-tpl-notice"><strong>Template notice:</strong> the text below is a generic starting point. Please revise it to match how your organisation actually collects and uses data, and the laws that apply where you operate. If you handle cross-border transfers or sensitive personal data, seek legal advice.</div>
+<h2>Information We Collect</h2>
+<p>When you browse this website, submit a form or contact us, we may collect: the details you provide, such as your name, company, phone number and email address; and technical information sent automatically by your browser, such as IP address, device and browser type, and the pages and times you visited.</p>
+<h2>How We Use Information</h2>
+<ul>
+<li>To answer your enquiries and provide quotations and after-sales support</li>
+<li>To improve the content and usability of this website</li>
+<li>To send you product and service information, where you have agreed to receive it</li>
+<li>To meet obligations imposed by applicable law</li>
+</ul>
+<h2>Cookies</h2>
+<p>This website uses cookies to maintain your session, remember preferences and measure traffic. You can disable cookies in your browser, though some features may then stop working correctly.</p>
+<h2>Sharing of Information</h2>
+<p>We do not sell or rent your personal information. We share it only where necessary to fulfil your request, for example with logistics, payment or email service providers, or where required by law or by a competent authority.</p>
+<h2>Data Security</h2>
+<p>We apply reasonable technical and organisational measures to protect your information against unauthorised access, disclosure or loss. Please note that no method of transmission over the internet can be guaranteed to be completely secure.</p>
+<h2>Your Rights</h2>
+<p>You may request access to, correction of, or deletion of the personal information we hold about you, and you may withdraw consent you previously gave. Please contact us using the details below.</p>
+<h2>Changes to This Policy</h2>
+<p>If we revise this policy, the updated version will be published on this page. Please review it from time to time.</p>
+<h2>Contact Us</h2>
+<p>If you have any questions about this privacy policy, please reach us through the details on our Contact page.</p>','','_self','auto','','','','',0,0,1,1,98,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (43,'en',17,0,'Terms','terms-en','page',0,'','','','<div class="yk-tpl-notice"><strong>Template notice:</strong> the text below is a generic starting point. Please revise it to match your business and the laws that apply where you operate. If you sell online or run member or subscription services, seek legal advice.</div>
+<h2>Acceptance of Terms</h2>
+<p>By accessing and using this website you confirm that you have read, understood and agree to be bound by these terms. If you do not agree, please stop using this website.</p>
+<h2>Website Content</h2>
+<p>Product descriptions, technical data and images on this website are provided for reference only and do not constitute an offer. Actual specifications are those set out in the contract or order confirmation signed by both parties. We may change the content of this website at any time without notice.</p>
+<h2>Intellectual Property</h2>
+<p>Unless stated otherwise, the text, images, logos, layout and other content on this website belong to us or to the respective rights holders. They may not be copied, redistributed or used commercially without written permission.</p>
+<h2>Acceptable Use</h2>
+<ul>
+<li>Do not interfere with or disrupt the normal operation of this website</li>
+<li>Do not use automated tools to harvest content at scale</li>
+<li>Do not submit unlawful or infringing material, or material containing malicious code</li>
+</ul>
+<h2>Disclaimer</h2>
+<p>This website is provided on an as-is basis. To the fullest extent permitted by law, we make no express or implied warranty as to the accuracy, completeness or continuous availability of its content.</p>
+<h2>Limitation of Liability</h2>
+<p>To the fullest extent permitted by law, we are not liable for any indirect, incidental or consequential loss arising from the use of, or inability to use, this website.</p>
+<h2>Third-Party Links</h2>
+<p>This website may link to third-party sites. Their content and privacy practices are the responsibility of their respective operators, and we accept no liability for them.</p>
+<h2>Changes to These Terms</h2>
+<p>We may update these terms from time to time. The updated version takes effect when published on this page.</p>
+<h2>Contact Us</h2>
+<p>If you have any questions about these terms, please reach us through the details on our Contact page.</p>','','_self','auto','','','','',0,0,1,1,99,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (44,'en',18,27,'Honors','honor-en','album',2,'','','',NULL,'','_self','auto','','','','',1,0,1,1,4,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (45,'en',19,27,'Organization','organization-en','page',0,'','','',NULL,'','_self','none','','','','',1,0,1,1,5,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (46,'en',20,0,'Solutions','solution-en','case',0,'','','Industry Solutions',NULL,'','_self','auto','','','','',1,0,1,1,3,1778434704,1778434704);
@@ -390,8 +476,51 @@ INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id",
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (64,'ja',13,0,'ダウンロード','download-ja','download',0,'','','資料とソフトウェアダウンロード',NULL,'','_self','none','','ダウンロード','','資料とソフトウェアダウンロード',1,0,1,1,3,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (65,'ja',14,0,'採用情報','job-ja','job',0,'','','私たちと一緒に働きませんか',NULL,'','_self','auto','','採用情報','','私たちと一緒に働きませんか',1,0,1,1,6,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (66,'ja',15,0,'お問い合わせ','contact-ja','page',0,'','','お問い合わせフォーム',NULL,'','_self','auto','','','','',1,0,1,1,7,1778434704,1778434704);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (67,'ja',16,0,'プライバシーポリシー','privacy-ja','page',0,'','','個人情報の取り扱いについて',NULL,'','_self','auto','','','','',0,0,1,1,98,1778434704,1778434704);
-INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (68,'ja',17,0,'利用規約','terms-ja','page',0,'','','ウェブサイトのご利用条件',NULL,'','_self','auto','','','','',0,0,1,1,99,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (67,'ja',16,0,'プライバシーポリシー','privacy-ja','page',0,'','','個人情報の取り扱いについて','<div class="yk-tpl-notice"><strong>テンプレートについて：</strong>以下は汎用のひな形です。実際の情報の取得・利用状況および適用される法令に合わせて修正のうえ公開してください。越境移転や要配慮個人情報を扱う場合は、専門家にご相談ください。</div>
+<h2>取得する情報</h2>
+<p>本サイトの閲覧、フォームの送信、お問い合わせの際に、お客様がご提供になるお名前・会社名・電話番号・メールアドレスなどの連絡先、およびブラウザーから自動的に送信される IP アドレス、端末・ブラウザーの種類、閲覧日時とページなどの技術情報を取得することがあります。</p>
+<h2>情報の利用目的</h2>
+<ul>
+<li>お問い合わせへの回答、見積りおよびアフターサポートの提供</li>
+<li>本サイトの内容と使いやすさの改善</li>
+<li>ご同意をいただいた場合の、製品・サービス情報のご案内</li>
+<li>法令上の義務の履行</li>
+</ul>
+<h2>Cookie について</h2>
+<p>本サイトでは、セッションの維持、設定の記憶、アクセス状況の把握のために Cookie を使用しています。ブラウザーの設定で無効にできますが、一部の機能が正しく動作しなくなる場合があります。</p>
+<h2>情報の共有</h2>
+<p>お客様の個人情報を第三者に販売または貸与することはありません。ご依頼の履行に必要な範囲で配送・決済・メール配信などの委託先と共有する場合、および法令や公的機関の要請に基づく場合を除きます。</p>
+<h2>安全管理</h2>
+<p>不正アクセス、漏えい、滅失を防ぐため、合理的な技術的・組織的措置を講じています。ただし、インターネットを通じた通信について完全な安全性を保証することはできません。</p>
+<h2>お客様の権利</h2>
+<p>当社が保有するお客様の個人情報について、開示・訂正・削除をご請求いただけます。また、いただいた同意はいつでも撤回できます。下記の連絡先までお問い合わせください。</p>
+<h2>本ポリシーの改定</h2>
+<p>本ポリシーを改定した場合は、改定後の内容を本ページに掲載します。随時ご確認ください。</p>
+<h2>お問い合わせ</h2>
+<p>本プライバシーポリシーに関するご質問は、「お問い合わせ」ページに記載の方法でご連絡ください。</p>','','_self','auto','','','','',0,0,1,1,98,1778434704,1778434704);
+INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (68,'ja',17,0,'利用規約','terms-ja','page',0,'','','ウェブサイトのご利用条件','<div class="yk-tpl-notice"><strong>テンプレートについて：</strong>以下は汎用のひな形です。実際の事業内容および適用される法令に合わせて修正のうえ公開してください。オンライン取引や会員・定期サービスを扱う場合は、専門家にご相談ください。</div>
+<h2>本規約への同意</h2>
+<p>本サイトをご利用になることで、本規約をお読みになり、理解し、これに従うことに同意されたものとみなします。同意いただけない場合は、本サイトのご利用をお控えください。</p>
+<h2>掲載内容について</h2>
+<p>本サイトに掲載する製品情報・技術仕様・画像は参考情報であり、申込みの誘引ではありません。実際の仕様は、両当事者が締結した契約または注文請書の内容によります。掲載内容は予告なく変更する場合があります。</p>
+<h2>知的財産権</h2>
+<p>本サイトの文章、画像、ロゴ、レイアウトその他の内容は、特段の記載がない限り当社または各権利者に帰属します。書面による許諾なく複製、再配布、商用利用することはできません。</p>
+<h2>禁止事項</h2>
+<ul>
+<li>本サイトの正常な運営を妨げる行為</li>
+<li>自動化されたプログラムによる大量の情報取得</li>
+<li>違法な情報、権利を侵害する情報、悪意あるコードを含む情報の送信</li>
+</ul>
+<h2>免責事項</h2>
+<p>本サイトは現状有姿で提供されます。法令が認める最大限の範囲において、掲載内容の正確性、完全性、継続的な利用可能性について明示・黙示を問わず保証しません。</p>
+<h2>責任の制限</h2>
+<p>法令が認める最大限の範囲において、本サイトの利用または利用不能から生じた間接損害、付随的損害、結果的損害について、当社は責任を負いません。</p>
+<h2>外部リンク</h2>
+<p>本サイトには第三者のサイトへのリンクが含まれる場合があります。それらの内容および個人情報の取扱いは各運営者の責任であり、当社は責任を負いません。</p>
+<h2>本規約の変更</h2>
+<p>本規約は随時改定することがあります。改定後の内容は本ページに掲載した時点から効力を生じます。</p>
+<h2>お問い合わせ</h2>
+<p>本規約に関するご質問は、「お問い合わせ」ページに記載の方法でご連絡ください。</p>','','_self','auto','','','','',0,0,1,1,99,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (69,'ja',18,52,'受賞・認証','honor-ja','album',3,'','','',NULL,'','_self','auto','','受賞・認証','','',1,0,1,1,4,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (70,'ja',19,52,'組織体制','organization-ja','page',0,'','','',NULL,'','_self','none','','組織体制','','',1,0,1,1,5,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (71,'ja',20,0,'ソリューション','solution-ja','case',0,'','','',NULL,'','_self','auto','','ソリューション','','',1,0,1,1,3,1778434704,1778434704);

@@ -61,7 +61,7 @@ $aboutEditPath = $aboutEditMode ? trim((string) ($ykHomePath ?? '')) : '';
 $aboutColumnPathAttr = $aboutEditPath !== ''
     ? ' data-yk-home-path="' . e($aboutEditPath) . '"'
     : '';
-$aboutBreakpointLabel = $aboutBreakpoint === 'md' ? '平板两栏' : '平板单列';
+$aboutBreakpointLabel = __($aboutBreakpoint === 'md' ? 'blox_bp_tablet_two' : 'blox_bp_tablet_one');
 $aboutGridEditAttr = $aboutEditMode
     ? ' data-yk-home-columns="2" data-yk-home-breakpoint="' . e($aboutBreakpoint) . '" data-yk-home-layout-label="' . e(__('blox_home_about_two_columns') . ' · ' . $aboutRatioLabel . ' · ' . $aboutBreakpointLabel) . '"'
     : '';

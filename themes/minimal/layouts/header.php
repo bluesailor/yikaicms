@@ -200,7 +200,7 @@ function getChannelUrl(array $channel): string {
                     <?php $memberInfo = $memberInfo ?? getMemberInfo(); ?>
                     <a href="/member/profile.php" class="text-sm text-gray-500 hover:text-gray-900 transition"><?php echo e($memberInfo['nickname']); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="text-sm text-gray-500 hover:text-gray-900 transition">登录</a>
+                    <a href="/member/login.php" class="text-sm text-gray-500 hover:text-gray-900 transition"><?php echo e(__('login_button')); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
                     <?php if (config('show_lang_switcher', '0') === '1' && count(enabledLanguages()) > 1): ?>
@@ -230,7 +230,7 @@ function getChannelUrl(array $channel): string {
                 </nav>
 
                 <!-- Mobile Hamburger -->
-                <button id="mobileMenuBtn" class="md:hidden p-2 text-gray-600" aria-label="菜单">
+                <button id="mobileMenuBtn" class="md:hidden p-2 text-gray-600" aria-label="<?php echo e(__('menu_label')); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -261,11 +261,11 @@ function getChannelUrl(array $channel): string {
                     <?php if (isMemberLoggedIn()): ?>
                     <?php $memberInfo = $memberInfo ?? getMemberInfo(); ?>
                     <a href="/member/profile.php" class="block text-sm text-gray-600 hover:text-gray-900"><?php echo e($memberInfo['nickname']); ?></a>
-                    <a href="/member/logout.php" class="block text-sm text-gray-400 hover:text-gray-900 mt-2">退出登录</a>
+                    <a href="/member/logout.php" class="block text-sm text-gray-400 hover:text-gray-900 mt-2"><?php echo e(__('admin_logout')); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="block text-sm text-gray-600 hover:text-gray-900">登录</a>
+                    <a href="/member/login.php" class="block text-sm text-gray-600 hover:text-gray-900"><?php echo e(__('login_button')); ?></a>
                     <?php if (config('allow_member_register') === '1'): ?>
-                    <a href="/member/register.php" class="block text-sm text-gray-600 hover:text-gray-900 mt-2">注册</a>
+                    <a href="/member/register.php" class="block text-sm text-gray-600 hover:text-gray-900 mt-2"><?php echo e(__('member_register')); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
                 </div>

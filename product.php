@@ -266,14 +266,14 @@ require_once theme_path('layouts/header.php');
                     <?php endif; ?>
                     <?php if ($hasSpecs): ?>
                     <button type="button" class="product-tab px-6 py-4 font-bold text-gray-500 hover:text-primary border-b-2 border-transparent" data-tab="specs">
-                        规格参数
+                        <?php echo e(__('detail_specs')); ?>
                     </button>
                     <?php endif; ?>
                 </div>
 
                 <!-- Tab 内容 -->
                 <?php if ($hasContent): ?>
-                <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail"<?php echo (!empty($_SESSION['admin_id']) && !empty($product['id'])) ? ' data-yk-edit="/admin/product_edit.php?id=' . (int) $product['id'] . '" data-yk-edit-label="✎ 编辑产品"' : ''; ?>>
+                <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail"<?php echo (!empty($_SESSION['admin_id']) && !empty($product['id'])) ? ' data-yk-edit="/admin/product_edit.php?id=' . (int) $product['id'] . '" data-yk-edit-label="✎ ' . e(__('prod_edit')) . '"' : ''; ?>>
                     <?php if (class_exists('TagEngine')) TagEngine::setItem($product, 'product'); ?>
                     <?php echo renderContent($product['content']); ?>
                 </div>
@@ -309,7 +309,7 @@ require_once theme_path('layouts/header.php');
                 <img loading="lazy" src="<?php echo e($prevProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <div class="min-w-0">
-                    <div class="text-xs text-gray-400 mb-1">上一个产品</div>
+                    <div class="text-xs text-gray-400 mb-1"><?php echo e(__('detail_prev_product')); ?></div>
                     <div class="font-medium text-dark group-hover:text-primary transition truncate"><?php echo e($prevProduct['title']); ?></div>
                 </div>
             </a>
@@ -320,7 +320,7 @@ require_once theme_path('layouts/header.php');
             <?php if ($nextProduct): ?>
             <a href="<?php echo productUrl($nextProduct); ?>" class="flex items-center gap-4 bg-white rounded-lg shadow p-4 hover:shadow-lg transition group justify-end text-right">
                 <div class="min-w-0">
-                    <div class="text-xs text-gray-400 mb-1">下一个产品</div>
+                    <div class="text-xs text-gray-400 mb-1"><?php echo e(__('detail_next_product')); ?></div>
                     <div class="font-medium text-dark group-hover:text-primary transition truncate"><?php echo e($nextProduct['title']); ?></div>
                 </div>
                 <?php if ($nextProduct['cover']): ?>
@@ -337,7 +337,7 @@ require_once theme_path('layouts/header.php');
         <!-- 相关产品 -->
         <?php if (!empty($relatedProducts)): ?>
         <div class="mt-12">
-            <h2 class="text-2xl font-bold text-dark mb-6">相关产品</h2>
+            <h2 class="text-2xl font-bold text-dark mb-6"><?php echo e(__('detail_related_products')); ?></h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <?php foreach ($relatedProducts as $item): ?>
                 <a href="<?php echo productUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition">

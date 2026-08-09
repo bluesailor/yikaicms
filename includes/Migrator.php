@@ -173,6 +173,28 @@ class Migrator
     /**
      * 判断单个迁移是否已应用。
      */
+    /**
+     * 迁移的标题/描述按站点语言取值。
+     *
+     * 迁移文件可另给 title_en / title_ja / desc_en / desc_ja，取不到就回落中文原文。
+     * 为什么把译文放在迁移文件里而不是 lang/：迁移是随版本走的一次性资产，
+     * 装完就再不会变；把它的文案塞进语言包，会让语言包无限膨胀且永远清理不掉。
+     *
+     * @param array<string,mixed> $migration
+     */
+    public static function label(array $migration, string $field = 'title'): string
+    {
+        $lang = function_exists('siteLang') ? siteLang() : 'zh-CN';
+        if ($lang !== 'zh-CN') {
+            $suffixed = $migration[$field . '_' . str_replace('-', '_', $lang)] ?? null;
+            if (is_string($suffixed) && trim($suffixed) !== '') {
+                return $suffixed;
+            }
+        }
+        $base = $migration[$field] ?? '';
+        return is_string($base) ? $base : '';
+    }
+
     public static function isApplied(array $migration): bool
     {
         $check = $migration['check'] ?? null;

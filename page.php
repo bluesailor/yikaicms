@@ -311,7 +311,7 @@ require theme_path('partials/page-hero.php');
                 </div>
                 <?php else: ?>
                 <div class="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-                    暂无图片
+                    <?php echo e(__('no_image')); ?>
                 </div>
                 <?php endif; ?>
 
@@ -336,7 +336,7 @@ require theme_path('partials/page-hero.php');
                     }
                     // 非 blocks 单页：整块内容区悬停编辑 → 富文本编辑器（blocks 页走上面的区块级悬停）
                     $__pageEditAttr = (($content['content_type'] ?? '') !== 'blocks')
-                        ? frontEditAttr($content, $channel, '✎ 编辑此页') : '';
+                        ? frontEditAttr($content, $channel, '✎ ' . __('ab_edit_page')) : '';
                     ?>
                     <div class="prose prose-lg max-w-none"<?php echo $__pageEditAttr; ?>>
                         <?php echo renderContentBody($content); ?>
