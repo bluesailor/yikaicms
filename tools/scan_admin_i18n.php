@@ -4,9 +4,10 @@
  * 提取 UI 中的 CJK 残留（硬编码中文/半翻译体）。
  *
  * 原理与方法论：yikaicms-docs/admin-i18n-audit-methodology-2026-08-09.md
- * 用法（需 smoke 环境已 setup、admin_lang=en、php -S 已在 127.0.0.1:8080）：
- *   php tools/scan_admin_i18n.php            # 摘要（按残留数排序）
- *   php tools/scan_admin_i18n.php -v         # 每页完整片段清单
+ * 用法：优先用包装脚本，它负责准备环境并保证还原 config.php——
+ *   bash tools/scan_admin_i18n.sh            # 摘要（按残留数排序）
+ *   bash tools/scan_admin_i18n.sh -v         # 每页完整片段清单
+ * 直接跑本文件需自备：smoke 环境已 setup、admin_lang=en、php -S 已在 127.0.0.1:8080。
  *
  * 降噪设计：
  *   - 剥 <script src>/<style>/HTML 注释；内联 <script> 先剥 JS 注释再抓引号串
@@ -28,7 +29,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/models/autoload.php';
 
 $verbose = in_array('-v', $argv, true);
-$BASE = 'http://127.0.0.1:8080';
+$BASE = 'http://127.0.0.1:' . (getenv('SCAN_PORT') ?: '8080');
 $JAR = sys_get_temp_dir() . '/i18n_scan_' . getmypid() . '.txt';
 
 function scan_req(string $path, array $post = []): array
