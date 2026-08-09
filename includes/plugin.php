@@ -37,6 +37,28 @@ function getPluginMeta(string $slug): ?array
 /**
  * 获取已启用的插件 slug 列表
  */
+/**
+ * 插件元数据按当前语言取值：plugin.json 里的 name_en / description_ja 等，取不到回落中文原文。
+ *
+ * 抽成函数而不是各处内联：admin/plugin.php 的列表、admin/plugin_page.php 的页面标题
+ * 都要用。同一段逻辑抄两份必然漂移——今天刚在 channel.php 的核心版/主题版两份副本上
+ * 吃过这个亏（主题版修了、核心版没修，英文站标题被切成 Ne|ws）。
+ *
+ * @param array<string,mixed> $meta plugin.json 解析结果
+ */
+function pluginMetaLabel(array $meta, string $field = 'name', string $fallback = ''): string
+{
+    $lang = function_exists('getLang') ? getLang() : 'zh-CN';
+    if ($lang !== 'zh-CN') {
+        $suffixed = $meta[$field . '_' . str_replace('-', '_', $lang)] ?? null;
+        if (is_string($suffixed) && trim($suffixed) !== '') {
+            return $suffixed;
+        }
+    }
+    $base = $meta[$field] ?? '';
+    return (is_string($base) && $base !== '') ? $base : $fallback;
+}
+
 function getActivePlugins(): array
 {
     try {
