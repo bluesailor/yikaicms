@@ -341,6 +341,10 @@ return [
                    . '包含 contact_phone/email/address、nav_home_text、关于我们、stats、testimonials、advantage、cta、partners、footer_columns/nav/copyright、site_description 等共约 60 个 per-lang 键。'
                    . '幂等：检测到 home_about_content_en 已存在则跳过。',
         'check' => function () {
+            // 这套是「中文站的 EN/JA 翻译预填」（base 是中文、_en/_ja 是译文）。
+            // 默认语言非中文的站，base 本就是该语言内容，不需要也不该有 _<默认> 种子——
+            // 否则遮蔽后台修改，还会与 20260810_normalize_default_lang_shadow 反复拆台。视为已应用。
+            if ((string) config('site_lang', 'zh-CN') !== 'zh-CN') return true;
             $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "settings WHERE `key` = 'home_about_content_en' LIMIT 1");
             return !empty($row);
         },
@@ -449,6 +453,10 @@ return [
         'desc'  => '为联系页表单（标题/描述/成功提示/字段标签）和联系卡片（icon+label+value）的 EN/JA 视图预填种子翻译值。'
                    . '幂等：检测到 contact_form_title_en 已存在则跳过。',
         'check' => function () {
+            // 这套是「中文站的 EN/JA 翻译预填」（base 是中文、_en/_ja 是译文）。
+            // 默认语言非中文的站，base 本就是该语言内容，不需要也不该有 _<默认> 种子——
+            // 否则遮蔽后台修改，还会与 20260810_normalize_default_lang_shadow 反复拆台。视为已应用。
+            if ((string) config('site_lang', 'zh-CN') !== 'zh-CN') return true;
             $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "settings WHERE `key` = 'contact_form_title_en' LIMIT 1");
             return !empty($row);
         },
