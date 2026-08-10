@@ -84,10 +84,15 @@ class SettingModel extends Model
             return 0;
         }
         $suffix = '_' . $newDefault;
-        // LIKE 里 _ 是通配符，须转义；语言码含 '-'（zh-CN）无需处理
-        $pattern = '%' . str_replace(['\\', '_', '%'], ['\\\\', '\\_', '\\%'], $suffix);
+        // LIKE 里 _ 与 % 是通配符，须转义；语言码含 '-'（zh-CN）无需处理。
+        //
+        // 转义符特意用 '!' 而不是反斜杠：反斜杠在 MySQL 的字符串字面量里**本身**就是
+        // 转义符，PHP 双引号串里的 "ESCAPE '\\'" 解析后只剩一个反斜杠，SQL 收到
+        // ESCAPE '\' —— 其中 \' 被当成转义的引号，字符串永远闭合不了，直接 1064。
+        // 症状是「切换站点默认语言就 500」。换个不参与转义的字符最省心。
+        $pattern = '%' . str_replace(['!', '_', '%'], ['!!', '!_', '!%'], $suffix);
         $rows = db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} WHERE `key` LIKE ? ESCAPE '\\'",
+            "SELECT * FROM {$this->tableName()} WHERE `key` LIKE ? ESCAPE '!'",
             [$pattern]
         );
         $count = 0;

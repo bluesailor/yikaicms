@@ -35,8 +35,19 @@ if (!function_exists('_columnExists')) {
             }
             return false;
         }
-        $cols = db()->fetchAll("SHOW COLUMNS FROM `{$tableName}` LIKE '{$column}'");
-        return !empty($cols);
+        // 用 information_schema 精确匹配，不走 LIKE。
+        //
+        // 原写法是 SHOW COLUMNS ... LIKE '{$column}'，列名里的 `_` 会被当通配符：
+        // 'deleted_at' 连 'deletedXat' 一起匹配，_columnExists() 就可能对**不存在的列**
+        // 返回 true。在迁移里这意味着「误判已应用 → 跳过 → 列没建 → 上线 500」。
+        // 而 SHOW 语句又不接受占位符（SHOW COLUMNS ... LIKE ? 在 MySQL 上直接 1064），
+        // 想转义就只能拼字符串。information_schema 支持参数化且是精确比较，两个问题一起没了。
+        $row = db()->fetchOne(
+            'SELECT 1 AS ok FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            [$tableName, $column]
+        );
+        return $row !== null;
     }
 }
 

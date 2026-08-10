@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/currencies.php';   // commonCurrencies()：货币下拉的数据源
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -139,7 +140,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <label class="font-medium text-gray-800"><?php echo e(__('psetting_currency')); ?></label>
                 <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('psetting_currency_tip')); ?></p>
                 <?php echo renderAdminLangSwitcher($_viewLang, __('psetting_currency_lang_hint')); ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1"><?php echo e(__('psetting_currency_pick')); ?></label>
+                        <select id="currencyPick" class="w-full border rounded px-4 py-2">
+                            <option value=""><?php echo e(__('psetting_currency_custom')); ?></option>
+                            <?php foreach (commonCurrencies() as $_c): ?>
+                            <option value="<?php echo e($_c['code']); ?>"
+                                    data-symbol="<?php echo e($_c['symbol']); ?>"
+                                    data-decimals="<?php echo (int) $_c['decimals']; ?>"
+                                    <?php echo $_curSymbol !== '' && $_curSymbol === $_c['symbol'] && (string) $_curDecimal === (string) $_c['decimals'] ? 'selected' : ''; ?>>
+                                <?php echo e($_c['code'] . ' · ' . __($_c['name_key']) . ' · ' . $_c['symbol']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1"><?php echo e(__('psetting_currency_symbol')); ?></label>
                         <input type="text" name="currency_symbol" maxlength="8" value="<?php echo e($_curSymbol); ?>"
@@ -151,8 +166,45 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('psetting_currency_decimals_ph')); ?>">
                     </div>
                 </div>
-                <p class="text-xs text-gray-400 mt-2"><?php echo e(__('psetting_currency_preview')); ?>
-                    <span class="font-medium text-gray-700"><?php echo formatPrice(1234.5); ?></span></p>
+                <p class="text-xs text-gray-400 mt-2"><?php echo e(__('psetting_currency_pick_tip')); ?></p>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('psetting_currency_preview')); ?>
+                    <span class="font-medium text-gray-700" id="currencyPreview"><?php echo formatPrice(1234.5); ?></span></p>
+                <script>
+                (function () {
+                    // 选货币 → 自动填符号与小数位。小数位才是这个下拉的价值：日元/韩元/越南盾
+                    // 是 0 位，客户多半不知道，填成 2 位就出现「¥1,234.00」这种一眼假的价格。
+                    var pick = document.getElementById('currencyPick');
+                    if (!pick) return;
+                    var sym = document.querySelector('input[name="currency_symbol"]');
+                    var dec = document.querySelector('input[name="currency_decimals"]');
+                    var prev = document.getElementById('currencyPreview');
+
+                    function render() {
+                        if (!prev) return;
+                        var s = (sym && sym.value) || '';
+                        var d = dec && dec.value !== '' ? Math.max(0, Math.min(4, parseInt(dec.value, 10) || 0)) : 2;
+                        prev.textContent = s === '' ? prev.textContent : s + (1234.5).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/, ',');
+                    }
+                    pick.addEventListener('change', function () {
+                        var o = pick.options[pick.selectedIndex];
+                        if (!o || !o.value) return;            // 「自定义」不覆盖已填内容
+                        if (sym) sym.value = o.dataset.symbol || '';
+                        if (dec) dec.value = o.dataset.decimals || '';
+                        render();
+                    });
+                    // 手动改符号/小数位时，下拉退回「自定义」，避免显示与实际不符
+                    [sym, dec].forEach(function (el) {
+                        if (!el) return;
+                        el.addEventListener('input', function () {
+                            var o = pick.options[pick.selectedIndex];
+                            if (o && o.value && (el === sym ? o.dataset.symbol !== el.value : o.dataset.decimals !== el.value)) {
+                                pick.value = '';
+                            }
+                            render();
+                        });
+                    });
+                })();
+                </script>
             </div>
 
             <hr>
