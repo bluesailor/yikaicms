@@ -487,6 +487,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
 </div>
 
 <form id="settingForm">
+    <?php echo adminLangField(); ?>
     <!-- 导航首页文字 -->
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="p-5 space-y-4">
@@ -1407,7 +1408,7 @@ async function addCustom(preset) {
     var body = new URLSearchParams();
     body.set('action', 'add_custom');
     body.set('preset', preset);
-    try { await fetch('/admin/setting_home.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }); } catch (e) {}
+    try { await fetch(location.pathname + location.search, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }); } catch (e) {}
     location.reload();
 }
 
@@ -1417,7 +1418,7 @@ async function delCustom(n) {
     var body = new URLSearchParams();
     body.set('action', 'del_custom');
     body.set('n', n);
-    try { await fetch('/admin/setting_home.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }); } catch (e) {}
+    try { await fetch(location.pathname + location.search, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body }); } catch (e) {}
     location.reload();
 }
 document.getElementById('settingForm').addEventListener('submit', function (e) {

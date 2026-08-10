@@ -151,6 +151,7 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
 <?php if ($activeTab === 'smtp'): ?>
 <!-- ============ SMTP 配置 ============ -->
 <form id="settingForm" class="space-y-6">
+    <?php echo adminLangField(); ?>
     <input type="hidden" name="_save_tab" value="smtp">
 
     <div class="bg-white rounded-lg shadow">

@@ -70,6 +70,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow">
     <div class="p-6">
         <form id="settingForm" class="space-y-6 max-w-xl">
+    <?php echo adminLangField(); ?>
             <!-- 产品列表版式 -->
             <div>
                 <label class="font-medium text-gray-800"><?php echo e(__('psetting_layout')); ?></label>
