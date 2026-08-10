@@ -100,6 +100,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
 </div>
 
 <form id="settingForm" class="space-y-6">
+    <?php echo adminLangField(); ?>
     <?php if ($tab === 'info'): ?>
     <!-- 联系信息 -->
     <div class="bg-white rounded-lg shadow">

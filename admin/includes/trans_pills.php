@@ -36,11 +36,24 @@ declare(strict_types=1);
  */
 function adminLangView(): array
 {
-    static $cache = null;
-    if ($cache !== null) return $cache;
+    // 缓存按「本次请求的输入」键控：同请求内反复调用仍然只解析一次；
+    // 输入变了（正常请求不会，单元测试会）则重新解析，测试之间不再互相污染。
+    static $cache = [];
+    $cacheKey = (string) ($_POST['view_lang'] ?? '') . '|' . (string) ($_GET['lang'] ?? '');
+    if (isset($cache[$cacheKey])) return $cache[$cacheKey];
 
     $defaultLang = (string) config('site_lang', 'zh-CN');
-    $viewLang    = (string) (function_exists('get') ? get('lang', $defaultLang) : ($_GET['lang'] ?? $defaultLang));
+    // 视图语言的取值顺序：POST view_lang（表单隐藏字段，见 adminLangField()）→ GET lang → 默认语言。
+    //
+    // 为什么 POST 优先：「我在编辑哪个语言槽」原先只存在于 URL 的 ?lang= 里，而它非常易丢——
+    // 任何写死的 tab 链接、fetch('/admin/xxx.php') 都会把它丢掉，于是表单里显示的是英文内容、
+    // 保存却写进默认语言（中文）槽位，且毫无提示（2026-08-10 客户实测：英文版内容改不动，
+    // 中文前台反而显示英文）。表单渲染时把视图语言烙进隐藏字段随 POST 提交，
+    // 保存端以它为准，URL 怎么丢参数都不会错位。
+    $viewLang = (string) ($_POST['view_lang'] ?? '');
+    if ($viewLang === '') {
+        $viewLang = (string) (function_exists('get') ? get('lang', $defaultLang) : ($_GET['lang'] ?? $defaultLang));
+    }
     $enabledRaw  = trim((string) config('enabled_languages', ''));
     $enabled     = $enabledRaw !== '' ? (json_decode($enabledRaw, true) ?: [$defaultLang]) : [$defaultLang];
     if (!in_array($viewLang, $enabled, true)) $viewLang = $defaultLang;
@@ -54,7 +67,7 @@ function adminLangView(): array
     $qs       = $isSource ? '' : ('?lang=' . urlencode($viewLang));
     $qsAmp    = $isSource ? '' : ('&lang=' . urlencode($viewLang));
 
-    return $cache = [
+    return $cache[$cacheKey] = [
         'view'     => $viewLang,
         'default'  => $defaultLang,
         'enabled'  => $enabled,
@@ -63,6 +76,17 @@ function adminLangView(): array
         'qs'       => $qs,
         'qsAmp'    => $qsAmp,
     ];
+}
+
+/**
+ * 表单隐藏字段：把当前视图语言随 POST 提交（adminLangView() 以它为最高优先）。
+ * 所有按 <key>_<lang> 后缀保存设置的表单都必须包含它——否则 URL 丢掉 ?lang=
+ * 时保存会写错语言槽位。
+ */
+function adminLangField(): string
+{
+    $lang = adminLangView();
+    return '<input type="hidden" name="view_lang" value="' . htmlspecialchars($lang['view'], ENT_QUOTES) . '">';
 }
 
 /**

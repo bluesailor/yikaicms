@@ -111,16 +111,17 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('se
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b overflow-x-auto">
         <a href="/admin/setting_seo.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_basic'); ?></a>
-        <a href="/admin/setting_seo.php?tab=social" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'social' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_social'); ?></a>
-        <a href="/admin/setting_seo.php?tab=verify" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'verify' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_verify'); ?></a>
-        <a href="/admin/setting_seo.php?tab=sitemap" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'sitemap' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Sitemap</a>
-        <a href="/admin/setting_seo.php?tab=robots" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'robots' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Robots.txt</a>
+        <a href="/admin/setting_seo.php?tab=social<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'social' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_social'); ?></a>
+        <a href="/admin/setting_seo.php?tab=verify<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'verify' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_verify'); ?></a>
+        <a href="/admin/setting_seo.php?tab=sitemap<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'sitemap' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Sitemap</a>
+        <a href="/admin/setting_seo.php?tab=robots<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'robots' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Robots.txt</a>
     </div>
 </div>
 
 <?php if ($tab === 'basic'): ?>
 <!-- ==================== 基础设置 ==================== -->
 <form id="settingForm" class="space-y-6">
+    <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('seo_basic_title'); ?></h2>
@@ -179,6 +180,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('se
 <?php elseif ($tab === 'social'): ?>
 <!-- ==================== 社交分享 ==================== -->
 <form id="settingForm" class="space-y-6">
+    <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('seo_social_title'); ?></h2>
@@ -226,6 +228,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('se
 <?php elseif ($tab === 'verify'): ?>
 <!-- ==================== 站长验证 ==================== -->
 <form id="settingForm" class="space-y-6">
+    <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('seo_verify_title'); ?></h2>
@@ -289,6 +292,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('se
 <?php elseif ($tab === 'sitemap'): ?>
 <!-- ==================== Sitemap ==================== -->
 <form id="settingForm" class="space-y-6">
+    <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo e(__('seo_sitemap_settings')); ?></h2>

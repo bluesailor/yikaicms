@@ -772,7 +772,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="px-6 py-8 text-center text-gray-400 text-sm"><?= __('admin_footer_nav_empty') ?></div>
                 <?php endif; ?>
                 <div class="px-4 pb-2">
-                    <p class="text-xs text-gray-400"><?= __('admin_footer_nav_tip') ?> <a href="/admin/setting.php?tab=footer" class="text-primary hover:underline"><?php echo __('admin_system_setting_footer'); ?></a></p>
+                    <p class="text-xs text-gray-400"><?= __('admin_footer_nav_tip') ?> <a href="/admin/setting.php?tab=footer<?php echo $_lang['qsAmp'] ?? ''; ?>" class="text-primary hover:underline"><?php echo __('admin_system_setting_footer'); ?></a></p>
                 </div>
             </div>
 

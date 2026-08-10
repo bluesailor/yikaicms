@@ -132,6 +132,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php echo renderAdminLangSwitcher($_viewLang, __('appr_lang_hint')); ?>
 
 <form id="apprForm" class="bg-white rounded-lg shadow p-6 space-y-6">
+    <?php echo adminLangField(); ?>
     <input type="hidden" name="action" value="save">
     <?php echo csrfField(); ?>
 
