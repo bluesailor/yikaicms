@@ -19,6 +19,8 @@ return [
     'title' => '邮件模板：EN/JA 翻译种子',
     'desc'  => '为 4 类邮件（注册/找回/重置/询盘）填 EN/JA 标题与正文模板，避免 /admin/setting_email.php?lang=en|ja 在模板 tab 上字段空白。幂等：检测到 mail_tpl_register_subject_en 已存在则跳过。',
     'check' => function (): bool {
+        // 见 _inline_upgrades 同类种子迁移的说明：非中文默认站不预填 _<默认> 种子。
+        if ((string) config('site_lang', 'zh-CN') !== 'zh-CN') return true;
         $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "settings WHERE `key` = 'mail_tpl_register_subject_en' LIMIT 1");
         return !empty($row);
     },
