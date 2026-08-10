@@ -561,7 +561,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                     </div>
                                     <div>
                                         <div class="text-sm font-bold text-gray-800"><?php echo __('admin_ai_assistant'); ?></div>
-                                        <div class="text-[11px]" :class="busy ? 'text-amber-600' : 'text-gray-400'" x-text="busy ? <?php echo json_encode(__('ai_thinking'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('ai_online'), JSON_UNESCAPED_UNICODE); ?>"></div>
+                                        <div class="text-[11px]" :class="busy ? 'text-amber-600' : 'text-gray-400'" x-text='busy ? <?php echo json_encode(__('ai_thinking'), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS); ?> : <?php echo json_encode(__('ai_online'), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS); ?>'></div>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-0.5">
@@ -581,8 +581,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                 <template x-if="messages.length === 0">
                                     <div class="text-center text-gray-400 text-xs py-6 leading-relaxed">
                                         <?php echo e(__('ai_try_asking')); ?><br>
-                                        <button type="button" @click="quickPrompt(<?php echo json_encode(__('ai_prompt_drafts'), JSON_UNESCAPED_UNICODE); ?>)" class="inline-block mt-2 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">列出最近 5 篇草稿</button><br>
-                                        <button type="button" @click="quickPrompt(<?php echo json_encode(__('ai_prompt_seo'), JSON_UNESCAPED_UNICODE); ?>)" class="inline-block mt-1 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">给文章 #1 生成 SEO 摘要</button>
+                                        <button type="button" @click='quickPrompt(<?php echo json_encode(__('ai_prompt_drafts'), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS); ?>)' class="inline-block mt-2 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">列出最近 5 篇草稿</button><br>
+                                        <button type="button" @click='quickPrompt(<?php echo json_encode(__('ai_prompt_seo'), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS); ?>)' class="inline-block mt-1 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs text-gray-600 hover:border-primary hover:text-primary cursor-pointer">给文章 #1 生成 SEO 摘要</button>
                                     </div>
                                 </template>
                                 <template x-for="(m, i) in messages" :key="i">
@@ -608,7 +608,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                                  :class="m.applied ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'">
                                                 <template x-if="!m.applied">
                                                     <div>
-                                                        <div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1" x-text="<?php echo json_encode(__('ai_pending_changes'), JSON_UNESCAPED_UNICODE); ?> + ' (' + m.proposals.length + ')'"></div>
+                                                        <div class="text-[11px] uppercase tracking-wide text-amber-700 mb-1" x-text='<?php echo json_encode(__('ai_pending_changes'), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS); ?> + " (" + m.proposals.length + ")"' ></div>
                                                         <template x-for="(p, pi) in m.proposals" :key="pi">
                                                             <div class="flex items-start gap-1.5 py-0.5 text-sm text-gray-800"><span class="text-amber-600">✎</span><span x-text="p.summary || p.label"></span></div>
                                                         </template>
