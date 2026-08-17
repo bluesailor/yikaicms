@@ -1,0 +1,48 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "header",
+  "name": "Clean Site Header",
+  "requires": {
+    "elements": ["container", "logo", "nav-mega", "nav-drawer"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {"sticky": false},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "row",
+                  "wrap": "nowrap",
+                  "gap": "md",
+                  "align": "center",
+                  "justify": "between",
+                  "padding": "none",
+                  "radius": "none",
+                  "children": [
+                    {"type": "logo", "data": {"display": "both", "height": "md", "link_home": true}},
+                    {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}},
+                    {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

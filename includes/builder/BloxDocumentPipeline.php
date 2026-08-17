@@ -22,29 +22,16 @@ final class BloxDocumentPipeline
         int $maxBytes = self::MAX_JSON_BYTES,
         int $maxSections = self::MAX_SECTIONS
     ): array {
-        if (strlen($json) > $maxBytes) {
-            throw new RuntimeException(__('blox_doc_too_large'));
-        }
-
-        try {
-            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new RuntimeException(__('blox_doc_invalid_json'));
-        }
-        if (!is_array($decoded)) {
-            throw new RuntimeException(__('blox_doc_invalid_json'));
-        }
-        if (array_key_exists('sections', $decoded) && !is_array($decoded['sections'])) {
-            throw new RuntimeException(__('blox_doc_bad_sections'));
-        }
-
-        $document = self::migrate($decoded);
+        $document = self::decode($json, $maxBytes);
         $sections = $document['sections'];
         if (count($sections) > $maxSections) {
             throw new RuntimeException(__('blox_doc_too_many_sections', ['max' => $maxSections]));
         }
 
         BloxDocumentValidator::assertValidSections($sections);
+        BloxQueryLoopPolicy::assertSectionsAllowed($sections);
+        BloxDisplayConditions::assertSectionsAllowed($sections);
+        BloxDesignSystem::assertSectionsAllowed($sections);
         $normalized = self::normalizeSections($sections, $idPrefix);
         BloxDocumentValidator::assertValidSections($normalized);
 
@@ -65,6 +52,57 @@ final class BloxDocumentPipeline
     }
 
     /**
+     * 只解析并迁移信封，不校验元素注册表、也不重建节点 ID。
+     * 编辑器 boot 与前台渲染用它统一识别旧裸数组/v1 信封，并在未来版本上
+     * fail-closed；保存入口继续用 process() 做完整安检。
+     *
+     * @return array{schema:int,settings:array<string,mixed>,sections:array<int,mixed>}
+     */
+    public static function decode(string $json, int $maxBytes = self::MAX_JSON_BYTES): array
+    {
+        if (strlen($json) > $maxBytes) {
+            throw new RuntimeException(__('blox_doc_too_large'));
+        }
+
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException(__('blox_doc_invalid_json'));
+        }
+        if (!is_array($decoded)) {
+            throw new RuntimeException(__('blox_doc_invalid_json'));
+        }
+        if (array_key_exists('sections', $decoded) && !is_array($decoded['sections'])) {
+            throw new RuntimeException(__('blox_doc_bad_sections'));
+        }
+
+        return self::migrate($decoded);
+    }
+
+    /**
+     * 为乐观并发生成稳定的文档版本令牌。令牌基于迁移后的标准信封，
+     * 因此历史裸数组与等价的 v1 文档不会制造伪冲突。
+     */
+    public static function fingerprint(string $json): string
+    {
+        $document = self::decode($json);
+        $canonical = json_encode([
+            'schema' => self::SCHEMA_VERSION,
+            'settings' => $document['settings'],
+            'sections' => $document['sections'],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return hash('sha256', $canonical);
+    }
+
+    public static function revisionMatches(string $json, string $revision): bool
+    {
+        $revision = strtolower(trim($revision));
+        return preg_match('/^[a-f0-9]{64}$/', $revision) === 1
+            && hash_equals(self::fingerprint($json), $revision);
+    }
+
+    /**
      * schema 迁移管道（有序、纯函数式，Puck/Elementor V4/Gutenberg 同型）：
      * v0（无 schema 键的历史两形态）→ v1 信封；未来 v1→v2 迁移按序排在此处。
      * 高于当前版本一律拒绝（fail-closed：新版本文档在旧代码上报错，不静默丢数据）。
@@ -74,25 +112,75 @@ final class BloxDocumentPipeline
      */
     public static function migrate(array $decoded): array
     {
-        if (isset($decoded['schema'])) {
-            $schema = (int) $decoded['schema'];
-            if ($schema > self::SCHEMA_VERSION) {
-                throw new RuntimeException(__('blox_doc_schema_too_new', [
-                    'found' => $schema,
-                    'supported' => self::SCHEMA_VERSION,
-                ]));
-            }
+        $hasSchema = array_key_exists('schema', $decoded);
+        if ($hasSchema && (!is_int($decoded['schema']) || $decoded['schema'] < 1)) {
+            throw new RuntimeException(__('blox_doc_schema_invalid'));
         }
+        $schema = $hasSchema ? $decoded['schema'] : 0;
+        if ($schema > self::SCHEMA_VERSION) {
+            throw new RuntimeException(__('blox_doc_schema_too_new', [
+                'found' => $schema,
+                'supported' => self::SCHEMA_VERSION,
+            ]));
+        }
+
+        $document = $decoded;
+        while ($schema < self::SCHEMA_VERSION) {
+            $document = match ($schema) {
+                0 => self::migrateV0ToV1($document),
+                default => throw new RuntimeException(__('blox_doc_schema_invalid')),
+            };
+            $schema = (int) $document['schema'];
+        }
+        if (!array_key_exists('sections', $document) || !is_array($document['sections'])) {
+            throw new RuntimeException(__('blox_doc_bad_sections'));
+        }
+
         return [
             'schema' => self::SCHEMA_VERSION,
-            'settings' => self::normalizeDocSettings($decoded['settings'] ?? null),
-            'sections' => self::extractSections($decoded),
+            'settings' => self::normalizeDocSettings($document['settings'] ?? null),
+            'sections' => array_values($document['sections']),
+        ];
+    }
+
+    /** PHP 8.0-compatible list-array check. */
+    public static function isList(array $value): bool
+    {
+        $expected = 0;
+        foreach ($value as $key => $_) {
+            if ($key !== $expected) {
+                return false;
+            }
+            $expected++;
+        }
+        return true;
+    }
+
+    /** @param array<string|int,mixed> $document @return array{schema:int,settings:array<string,mixed>,sections:array<int,mixed>} */
+    private static function migrateV0ToV1(array $document): array
+    {
+        if (array_key_exists('sections', $document)) {
+            if (!is_array($document['sections'])) {
+                throw new RuntimeException(__('blox_doc_bad_sections'));
+            }
+            $sections = $document['sections'];
+        } elseif (self::isList($document)) {
+            $sections = $document;
+        } else {
+            throw new RuntimeException(__('blox_doc_bad_sections'));
+        }
+
+        return [
+            'schema' => 1,
+            'settings' => self::normalizeDocSettings($document['settings'] ?? null),
+            'sections' => array_values($sections),
         ];
     }
 
     /**
      * 文档级 settings 白名单（fail-closed：未知键丢弃，不入库）。
-     * 当前仅 sticky（header 模板吸顶开关）。
+     * 通用信封当前只识别历史 sticky 键；Header/Footer 的类型归属与进一步收窄
+     * 由 BloxAreaDocument 在区域入口统一执行。
      *
      * @return array<string,mixed>
      */
@@ -104,6 +192,18 @@ final class BloxDocumentPipeline
         $clean = [];
         if (array_key_exists('sticky', $settings)) {
             $clean['sticky'] = !empty($settings['sticky']);
+        }
+        if (array_key_exists('sticky_behavior', $settings)) {
+            $clean['sticky_behavior'] = BloxHeaderStates::normalizeStickyBehavior($settings['sticky_behavior']);
+        }
+        if (array_key_exists('sticky_devices', $settings)) {
+            $clean['sticky_devices'] = BloxHeaderStates::normalizeStickyDevices($settings['sticky_devices']);
+        }
+        if (array_key_exists('header_overlay_enabled', $settings)) {
+            $clean['header_overlay_enabled'] = !empty($settings['header_overlay_enabled']);
+        }
+        if (array_key_exists('header_states', $settings)) {
+            $clean['header_states'] = BloxHeaderStates::normalize($settings['header_states']);
         }
         return $clean;
     }
@@ -171,6 +271,7 @@ final class BloxDocumentPipeline
     {
         $prefix = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $idPrefix) ?: 'blox';
         $usedIds = [];
+        $usedAnchors = [];
         $normalized = [];
 
         foreach ($sections as $sectionIndex => $section) {
@@ -209,12 +310,66 @@ final class BloxDocumentPipeline
                     'elements' => $elements,
                 ];
                 if (isset($column['span'])) {
-                    $normalizedColumn['span'] = (int) $column['span'];
+                    $spanChoices = array_fill_keys(range(0, 12), true);
+                    $normalizedColumn['span'] = BloxResponsiveValue::normalizeStored(
+                        $column['span'],
+                        $spanChoices,
+                        0
+                    );
                 }
                 if (isset($column['card_bg'])) {
-                    $normalizedColumn['card_bg'] = (string) $column['card_bg'];
+                    $normalizedColumn['card_bg'] = AbstractElement::cssColor($column['card_bg']) ?? '';
                 }
                 $columns[] = $normalizedColumn;
+            }
+
+            $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
+            foreach (['padding' => 'md', 'gap' => 'lg'] as $responsiveKey => $fallback) {
+                if (array_key_exists($responsiveKey, $settings)) {
+                    $settings[$responsiveKey] = BloxResponsiveValue::normalizeStored(
+                        $settings[$responsiveKey],
+                        array_fill_keys(['none', 'sm', 'md', 'lg', 'xl'], true),
+                        $fallback
+                    );
+                }
+            }
+            foreach (['bg_color', 'bg_overlay_color', 'container_bg', 'title_color', 'subtitle_color'] as $colorKey) {
+                if (array_key_exists($colorKey, $settings)) {
+                    $settings[$colorKey] = AbstractElement::cssColor($settings[$colorKey]) ?? '';
+                }
+            }
+            if (array_key_exists('bg_image', $settings)) {
+                $settings['bg_image'] = AbstractElement::cssImageUrl($settings['bg_image']) ?? '';
+            }
+            if (array_key_exists('container_bg_image', $settings)) {
+                $settings['container_bg_image'] = AbstractElement::cssImageUrl($settings['container_bg_image']) ?? '';
+            }
+            if (array_key_exists('bg_overlay_opacity', $settings)) {
+                $settings['bg_overlay_opacity'] = max(0, min(100, (int) $settings['bg_overlay_opacity']));
+            }
+            foreach ([
+                'bg_position' => ['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'],
+                'min_height' => ['', 'sm', 'md', 'lg', 'screen'],
+                'content_v_align' => ['start', 'center', 'end'],
+            ] as $settingKey => $allowedValues) {
+                if (array_key_exists($settingKey, $settings)
+                    && !in_array((string) $settings[$settingKey], $allowedValues, true)) {
+                    $settings[$settingKey] = '';
+                }
+            }
+            if (array_key_exists('anchor_id', $settings)) {
+                $anchorId = self::normalizeSectionAnchorId($settings['anchor_id']);
+                if ($anchorId !== '') {
+                    $baseAnchor = $anchorId;
+                    $suffix = 2;
+                    while (isset($usedAnchors[strtolower($anchorId)])) {
+                        $suffixText = '-' . $suffix;
+                        $anchorId = substr($baseAnchor, 0, 64 - strlen($suffixText)) . $suffixText;
+                        $suffix++;
+                    }
+                    $usedAnchors[strtolower($anchorId)] = true;
+                }
+                $settings['anchor_id'] = $anchorId;
             }
 
             $normalizedSection = [
@@ -224,7 +379,7 @@ final class BloxDocumentPipeline
                     $usedIds
                 ),
                 'type' => trim((string) ($section['type'] ?? 'section')) ?: 'section',
-                'settings' => is_array($section['settings'] ?? null) ? $section['settings'] : [],
+                'settings' => $settings,
                 'columns' => $columns,
             ];
             if (isset($section['name'])) {
@@ -236,10 +391,35 @@ final class BloxDocumentPipeline
         return $normalized;
     }
 
+    public static function normalizeSectionAnchorId(mixed $value): string
+    {
+        $anchorId = is_string($value) || is_int($value) ? ltrim(trim((string) $value), '#') : '';
+        return preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $anchorId) === 1 ? $anchorId : '';
+    }
+
     /** @param array<string,mixed> $element @param array<string,true> $usedIds @return array<string,mixed> */
     private static function normalizeElement(array $element, string $fallbackId, array &$usedIds): array
     {
+        $type = trim((string) ($element['type'] ?? ''));
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+        $data = BloxDesignSystem::normalizeElementData($data);
+        $registered = BuilderRegistry::get($type);
+        foreach ($registered?->controls() ?? [] as $control) {
+            $key = (string) ($control['key'] ?? '');
+            if (!empty($control['responsive']) && $key !== '' && array_key_exists($key, $data)) {
+                $options = is_array($control['options'] ?? null) ? $control['options'] : [];
+                if ($options !== []) {
+                    $data[$key] = BloxResponsiveValue::normalizeStored(
+                        $data[$key],
+                        $options,
+                        $control['default'] ?? array_key_first($options)
+                    );
+                }
+            }
+            if (($control['type'] ?? '') === 'color' && $key !== '' && array_key_exists($key, $data)) {
+                $data[$key] = AbstractElement::cssColor($data[$key]) ?? '';
+            }
+        }
         if (array_key_exists('children', $data) && is_array($data['children'])) {
             $children = [];
             foreach (array_values($data['children']) as $childIndex => $child) {
@@ -252,7 +432,7 @@ final class BloxDocumentPipeline
 
         return [
             'id' => self::uniqueId($element['id'] ?? null, $fallbackId, $usedIds),
-            'type' => trim((string) ($element['type'] ?? '')),
+            'type' => $type,
             'data' => $data,
         ];
     }

@@ -2,7 +2,10 @@ const path = require('path');
 const { defineConfig } = require('@playwright/test');
 
 const baseURL = process.env.BLOX_E2E_BASE_URL || 'http://127.0.0.1:8080';
-const storageState = path.join(__dirname, 'tests/e2e/.auth/admin.json');
+const storageState = process.env.BLOX_E2E_STORAGE_STATE
+  || path.join(__dirname, 'tests/e2e/.auth/admin.json');
+const outputDir = process.env.BLOX_E2E_OUTPUT_DIR || 'test-results/e2e';
+const reportDir = process.env.BLOX_E2E_REPORT_DIR || 'playwright-report';
 
 module.exports = defineConfig({
   testDir: './tests/e2e',
@@ -11,11 +14,12 @@ module.exports = defineConfig({
   timeout: 45_000,
   expect: { timeout: 8_000 },
   globalSetup: require.resolve('./tests/e2e/global-setup'),
-  outputDir: 'test-results/e2e',
+  outputDir,
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['html', { outputFolder: reportDir, open: 'never' }],
   ],
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}',
   use: {
     baseURL,
     storageState,

@@ -1,0 +1,155 @@
+<?php
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+final class BloxAreaDocumentTest extends TestCase
+{
+    public static function setUpBeforeClass(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+    }
+
+    public function testAreaSettingsAreScopedByTemplateType(): void
+    {
+        $json = json_encode([
+            'schema' => 1,
+            'settings' => ['sticky' => true, 'unknown' => 'drop'],
+            'sections' => [],
+        ], JSON_THROW_ON_ERROR);
+
+        self::assertSame([
+            'sticky' => true,
+            'sticky_behavior' => 'always',
+            'sticky_devices' => ['desktop', 'tablet', 'mobile'],
+            'header_overlay_enabled' => true,
+            'header_states' => BloxHeaderStates::defaults(),
+        ], BloxAreaDocument::process('header', $json)['settings']);
+        self::assertSame([], BloxAreaDocument::process('footer', $json)['settings']);
+    }
+
+    public function testHeaderStatesAreNormalizedAndRenderedByTheSharedShell(): void
+    {
+        $settings = BloxAreaDocument::normalizeSettings('header', [
+            'sticky' => true,
+            'sticky_behavior' => 'scroll-up',
+            'sticky_devices' => ['desktop'],
+            'header_overlay_enabled' => false,
+            'header_states' => [
+                'normal' => ['background' => '#ABC', 'text' => 'javascript:alert(1)', 'shadow' => 'huge'],
+                'overlay' => ['background' => 'rgba(1, 2, 3, .5)', 'shadow' => 'md'],
+            ],
+        ]);
+
+        self::assertSame('#abc', $settings['header_states']['normal']['background']);
+        self::assertSame('', $settings['header_states']['normal']['text']);
+        self::assertSame('none', $settings['header_states']['normal']['shadow']);
+        self::assertSame('rgba(1, 2, 3, .5)', $settings['header_states']['overlay']['background']);
+        self::assertSame('md', $settings['header_states']['overlay']['shadow']);
+        self::assertSame('scroll-up', $settings['sticky_behavior']);
+        self::assertSame(['desktop'], $settings['sticky_devices']);
+
+        BloxAssetCollector::reset();
+        $html = BloxAreaDocument::renderShell('header', $settings, '<nav>Menu</nav>', 'overlay');
+        self::assertStringContainsString('id="siteHeader"', $html);
+        self::assertStringContainsString('yk-blox-header yk-sticky-header yk-header-preview-overlay', $html);
+        self::assertStringContainsString('data-yk-overlay-enabled="0"', $html);
+        self::assertStringContainsString('data-yk-sticky-behavior="scroll-up"', $html);
+        self::assertStringContainsString('data-yk-sticky-desktop="1"', $html);
+        self::assertStringContainsString('data-yk-sticky-tablet="0"', $html);
+        self::assertStringContainsString('data-yk-sticky-mobile="0"', $html);
+        self::assertStringContainsString('--yk-header-normal-bg:#abc', $html);
+        self::assertStringNotContainsString('javascript:', $html);
+        self::assertContains('/assets/js/blox-sticky-header.js', BloxAssetCollector::scripts());
+    }
+
+    public function testInvalidStickyOptionsFallBackToTheLegacyBehavior(): void
+    {
+        $settings = BloxAreaDocument::normalizeSettings('header', [
+            'sticky_behavior' => 'unknown',
+            'sticky_devices' => [],
+        ]);
+
+        self::assertSame('always', $settings['sticky_behavior']);
+        self::assertSame(['desktop', 'tablet', 'mobile'], $settings['sticky_devices']);
+    }
+
+    public function testBundledAreaPackagesPassTheSameImporterAsUploadedTemplates(): void
+    {
+        $expected = [
+            'clean-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'clean-site-footer.json' => ['footer', ['logo', 'nav', 'site-copyright'], 2],
+            'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
+            'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'social-links'], 2],
+        ];
+        foreach ($expected as $file => [$type, $elements, $sectionCount]) {
+            $json = file_get_contents(ROOT_PATH . '/templates/blox/areas/' . $file);
+            self::assertIsString($json);
+            $package = json_decode($json, true, 128, JSON_THROW_ON_ERROR);
+            self::assertArrayNotHasKey('conditions', $package);
+
+            $prepared = BloxTemplateImporter::prepare($json);
+            self::assertSame($type, $prepared['type']);
+            self::assertSame($elements, $prepared['requirements']['elements']);
+            self::assertCount($sectionCount, $prepared['sections']);
+        }
+    }
+
+    public function testPresetCatalogContainsOnlyHeaderAndFooterStarters(): void
+    {
+        $catalog = BloxAreaTemplatePresets::catalog();
+        self::assertSame(
+            ['clean-site-header', 'clean-site-footer', 'corporate-site-header', 'corporate-site-footer'],
+            array_column($catalog, 'slug')
+        );
+        self::assertSame(['header', 'footer', 'header', 'footer'], array_column($catalog, 'type'));
+    }
+
+    /** @runInSeparateProcess @preserveGlobalState disabled */
+    public function testSiteBindingsKeepLanguageHomeUrlAndDynamicNodeUrl(): void
+    {
+        if (!function_exists('configRawLang')) {
+            function configRawLang(string $key, mixed $default = ''): mixed
+            {
+                return match ($key) {
+                    'site_logo' => '',
+                    'site_name' => 'Example',
+                    'nav_home_show' => '1',
+                    default => $default,
+                };
+            }
+        }
+        if (!function_exists('configLang')) {
+            function configLang(string $key, string $fallback = ''): string
+            {
+                return $key === 'nav_home_text' ? 'Home' : $fallback;
+            }
+        }
+        if (!function_exists('langPrefix')) {
+            function langPrefix(?string $lang = null): string
+            {
+                return '/ja';
+            }
+        }
+        if (!function_exists('getNavChannels')) {
+            function getNavChannels(): array
+            {
+                return [['name' => 'Products', 'url' => '/wrong.html', '_url' => '/ja/products.html', 'children' => []]];
+            }
+        }
+
+        $logo = (new LogoElement())->render(['display' => 'text']);
+        self::assertStringContainsString('href="/ja/"', $logo);
+
+        $tree = NavMegaElement::navTree([]);
+        self::assertSame('/ja/', $tree[0]['_url']);
+        $nav = (new NavMegaElement())->render([]);
+        self::assertStringContainsString('yk-mega relative hidden lg:flex min-w-0 flex-1 justify-end', $nav);
+        self::assertStringContainsString('href="/ja/products.html"', $nav);
+        self::assertSame('/ja/products/laser.html', NavMegaElement::nodeHref([
+            'url' => '/wrong.html',
+            '_url' => '/ja/products/laser.html',
+        ]));
+    }
+}

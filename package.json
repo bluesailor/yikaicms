@@ -4,7 +4,8 @@
   "scripts": {
     "css": "tailwindcss -i assets/css/input.css -o assets/css/tailwind.css --minify",
     "css:watch": "tailwindcss -i assets/css/input.css -o assets/css/tailwind.css --watch",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:local": "node tests/e2e/run-local.js"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.2.2",

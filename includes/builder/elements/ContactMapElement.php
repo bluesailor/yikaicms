@@ -8,7 +8,7 @@ final class ContactMapElement extends AbstractElement
     public function type(): string { return 'contact_map'; }
     public function label(): string { return __('blox_el_contact_map'); }
     public function icon(): string { return 'map-pin'; }
-    public function paletteVisible(string $context = 'page'): bool { return false; }
+    public function paletteVisible(string $context = 'page'): bool { return $context === 'contact'; }
     public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array { return []; }

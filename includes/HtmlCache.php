@@ -143,7 +143,27 @@ final class HtmlCache
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $lang = defined('SITE_LANG') ? SITE_LANG : (string)config('site_lang', 'zh-CN');
         $isMobile = self::isMobile() ? 'm' : 'd';
-        return md5($uri . '|' . $lang . '|' . $isMobile);
+        return md5(self::releaseNamespace() . '|' . $uri . '|' . $lang . '|' . $isMobile);
+    }
+
+    private static function releaseNamespace(): string
+    {
+        static $namespace = null;
+        if (is_string($namespace)) {
+            return $namespace;
+        }
+
+        $buildFile = ROOT_PATH . '/config/build.php';
+        if (is_file($buildFile)) {
+            $buildId = require $buildFile;
+            if (is_string($buildId) && $buildId !== '') {
+                return $namespace = $buildId;
+            }
+        }
+
+        $versionFile = ROOT_PATH . '/config/version.php';
+        $version = defined('CMS_VERSION') ? (string) CMS_VERSION : 'dev';
+        return $namespace = $version . ':' . (string) (@filemtime($versionFile) ?: 0);
     }
 
     private static function pathForKey(string $key): string

@@ -158,13 +158,23 @@ if ($redirectType === 'url' && !empty($channel['redirect_url'])) {
 // redirectType === 'none' 时不跳转，显示自身内容
 
 // 单页内容直接从栏目表读取
+$publishedContent = contentModel()->getFirstByChannel($channelId);
+$hasPublishedBlox = is_array($publishedContent)
+    && ($publishedContent['content_type'] ?? '') === 'blocks'
+    && !empty($publishedContent['blocks_data']);
 $content = null;
-if (!empty($channel['content'])) {
+if ($hasPublishedBlox) {
+    // channels.content 只是发布时生成的静态回退 HTML，编辑与动态渲染使用结构化文档。
+    $content = $publishedContent;
+} elseif (!empty($channel['content'])) {
     $content = [
+        'id'      => (int) ($publishedContent['id'] ?? 0),
         'title'   => $channel['name'],
         'cover'   => $channel['image'] ?? '',
         'content' => $channel['content'],
         'images'  => null,
+        'content_type' => 'html',
+        'blocks_data' => null,
     ];
 } else {
     // 向后兼容：如果栏目表没内容，回退到 contents 表
@@ -172,6 +182,15 @@ if (!empty($channel['content'])) {
 }
 
 // 页面信息
+// 在 header 前确定顶部管理条和区块就地编辑目标，避免主题布局分支漏设。
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && is_array($content)) {
+    $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . (int) $channel['id'];
+    if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
+        BlockRenderer::$editChannelId = (int) $channel['id'];
+        $GLOBALS['ik_front_edit_cid'] = (int) $channel['id'];
+    }
+}
+
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
 $pageKeywords = $channel['seo_keywords'] ?: configJsonLang('site_keywords');
 $pageDescription = $channel['seo_description'] ?: configJsonLang('site_description');
@@ -329,11 +348,6 @@ require theme_path('partials/page-hero.php');
                     // 前台就地编辑（P1）：登录管理员浏览 blocks 页时，开启区块定位标记 + 编辑深链。
                     // 非管理员/非 blocks 页不触发；管理员浏览不走 HtmlCache（见 HtmlCache::isCacheable），
                     // 故标记不会写入公开缓存。
-                    if (!empty($_SESSION['admin_id']) && ($content['content_type'] ?? '') === 'blocks') {
-                        BlockRenderer::$editChannelId = (int) $channel['id'];
-                        $GLOBALS['ik_front_edit_cid'] = (int) $channel['id'];
-                        $GLOBALS['ik_edit_url'] = '/admin/page_edit_advance.php?id=' . (int) $channel['id'];
-                    }
                     // 非 blocks 单页：整块内容区悬停编辑 → 富文本编辑器（blocks 页走上面的区块级悬停）
                     $__pageEditAttr = (($content['content_type'] ?? '') !== 'blocks')
                         ? frontEditAttr($content, $channel, '✎ ' . __('ab_edit_page')) : '';

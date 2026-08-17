@@ -426,9 +426,11 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
                             <?php echo e($item['type']); ?>
                         </span>
                         <?php
-                        $editUrl = ($item['channel_type'] ?? '') === 'page'
-                            ? '/admin/page_edit_advance.php?id=' . $item['channel_id']
-                            : '/admin/article_edit.php?id=' . $item['id'];
+                        if (($item['channel_type'] ?? '') === 'page') {
+                            $editUrl = '/admin/blox_editor.php?id=' . $item['channel_id'];
+                        } else {
+                            $editUrl = '/admin/article_edit.php?id=' . $item['id'];
+                        }
                         ?>
                         <a href="<?php echo $editUrl; ?>" class="text-gray-700 hover:text-primary truncate max-w-xs">
                             <?php echo e($item['title']); ?>

@@ -8,12 +8,34 @@
 
 if (!defined('ROOT_PATH')) exit;
 
+/**
+ * 将遗留构建器编辑地址升级到当前 Blox 入口。
+ *
+ * 各主题仍可能写入旧地址，控制条在最后输出前统一收口，避免顶部“编辑”
+ * 与画布就地编辑指向不同编辑器。
+ */
+function adminBarResolveEditUrl(string $editUrl): string
+{
+    if (!str_starts_with($editUrl, '/admin/page_edit_advance.php?')) {
+        return $editUrl;
+    }
+
+    $query = (string) parse_url($editUrl, PHP_URL_QUERY);
+    parse_str($query, $params);
+    $isHome = (string) ($params['home'] ?? '') === '1';
+    if ($isHome) {
+        return bloxAdvancedFeaturesEnabled() ? '/admin/blox_editor.php?' . $query : '/admin/setting_home.php';
+    }
+    return '/admin/blox_editor.php?' . $query;
+}
+
 function renderAdminBar(): void
 {
+    if (isCleanFrontendPreview()) return;
     if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
 
     $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
-    $editUrl = (string) ($GLOBALS['ik_edit_url'] ?? '');
+    $editUrl = adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? ''));
     $brand = config('site_name', '') ?: adminBrandName();
 
     // 「新建」跟随站点实际启用的模块：按 channels 里存在的栏目类型生成

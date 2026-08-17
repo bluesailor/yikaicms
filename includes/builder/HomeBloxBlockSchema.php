@@ -24,6 +24,10 @@ final class HomeBloxBlockSchema
             array_keys($sourceOptions),
             static fn (string $type): bool => str_starts_with($type, 'channel:')
         ));
+        $customSources = array_values(array_filter(
+            array_keys($sourceOptions),
+            static fn (string $type): bool => str_starts_with($type, 'custom:')
+        ));
         $limitedSources = array_merge(['banner'], $collectionSources);
         $titleSources = array_merge([
             'about', 'testimonials', 'advantage', 'cta', 'partners', 'product_categories',
@@ -46,6 +50,162 @@ final class HomeBloxBlockSchema
                 'label' => __('blox_home_block_name'),
                 'default' => __('blox_home_block_label'),
                 'placeholder' => __('blox_home_block_name_placeholder'),
+            ],
+            [
+                'key' => 'custom_title',
+                'type' => 'text',
+                'label' => __('blox_home_override_title'),
+                'default' => '',
+                'required' => ['block_type', '=', $customSources],
+            ],
+            [
+                'key' => 'custom_subtitle',
+                'type' => 'textarea',
+                'label' => __('pea_subtitle'),
+                'default' => '',
+                'rows' => 2,
+                'required' => ['block_type', '=', $customSources],
+            ],
+            [
+                'key' => 'banner_height_mode',
+                'type' => 'select',
+                'label' => __('blox_banner_height_mode'),
+                'default' => 'inherit',
+                'options' => [
+                    'inherit' => __('blox_banner_height_inherit'),
+                    'fixed' => __('blox_banner_height_fixed'),
+                    'screen' => __('blox_banner_height_screen'),
+                    'cover-header' => __('blox_banner_height_cover_header'),
+                ],
+                'option_icons' => [
+                    'inherit' => 'settings',
+                    'fixed' => 'arrows-vertical',
+                    'screen' => 'maximize',
+                    'cover-header' => 'layout-navbar-expand',
+                ],
+                'required' => ['block_type', '=', 'banner'],
+                'help' => __('blox_banner_height_mode_help'),
+            ],
+            [
+                'key' => 'banner_height_pc',
+                'type' => 'number',
+                'label' => __('blox_banner_height_pc'),
+                'default' => 650,
+                'min' => 200,
+                'max' => 1600,
+                'step' => 10,
+                'required' => ['block_type', '=', 'banner'],
+                'visible_when' => ['terms' => [['banner_height_mode', '=', 'fixed']]],
+            ],
+            [
+                'key' => 'banner_height_mobile',
+                'type' => 'number',
+                'label' => __('blox_banner_height_mobile'),
+                'default' => 300,
+                'min' => 180,
+                'max' => 1200,
+                'step' => 10,
+                'required' => ['block_type', '=', 'banner'],
+                'visible_when' => ['terms' => [['banner_height_mode', '=', 'fixed']]],
+            ],
+            [
+                'key' => 'banner_effect',
+                'type' => 'select',
+                'label' => __('blox_banner_effect'),
+                'default' => 'fade',
+                'options' => [
+                    'fade' => __('blox_banner_effect_fade'),
+                    'slide' => __('blox_banner_effect_slide'),
+                ],
+                'option_icons' => ['fade' => 'layers-subtract', 'slide' => 'arrows-horizontal'],
+                'required' => ['block_type', '=', 'banner'],
+            ],
+            [
+                'key' => 'banner_content_motion',
+                'type' => 'select',
+                'label' => __('blox_banner_content_motion'),
+                'default' => 'none',
+                'options' => [
+                    'none' => __('blox_banner_motion_none'),
+                    'fade-up' => __('blox_banner_motion_fade_up'),
+                    'slide-left' => __('blox_banner_motion_slide_left'),
+                    'slide-right' => __('blox_banner_motion_slide_right'),
+                    'zoom-in' => __('blox_banner_motion_zoom_in'),
+                ],
+                'option_icons' => [
+                    'none' => 'ban',
+                    'fade-up' => 'arrow-up',
+                    'slide-left' => 'arrow-left',
+                    'slide-right' => 'arrow-right',
+                    'zoom-in' => 'zoom-in',
+                ],
+                'required' => ['block_type', '=', 'banner'],
+                'help' => __('blox_banner_content_motion_help'),
+            ],
+            [
+                'key' => 'banner_background_motion',
+                'type' => 'select',
+                'label' => __('blox_banner_background_motion'),
+                'default' => 'none',
+                'options' => [
+                    'none' => __('blox_banner_motion_none'),
+                    'zoom-in' => __('blox_banner_background_zoom_in'),
+                    'zoom-out' => __('blox_banner_background_zoom_out'),
+                ],
+                'option_icons' => ['none' => 'ban', 'zoom-in' => 'zoom-in', 'zoom-out' => 'zoom-out'],
+                'required' => ['block_type', '=', 'banner'],
+            ],
+            [
+                'key' => 'banner_autoplay',
+                'type' => 'number',
+                'label' => __('blox_banner_autoplay'),
+                'default' => 5,
+                'min' => 0,
+                'max' => 30,
+                'required' => ['block_type', '=', 'banner'],
+                'help' => __('blox_banner_autoplay_help'),
+            ],
+            [
+                'key' => 'banner_speed',
+                'type' => 'number',
+                'label' => __('blox_banner_speed'),
+                'default' => 700,
+                'min' => 200,
+                'max' => 2000,
+                'step' => 100,
+                'required' => ['block_type', '=', 'banner'],
+            ],
+            [
+                'key' => 'banner_stagger',
+                'type' => 'number',
+                'label' => __('blox_banner_stagger'),
+                'default' => 120,
+                'min' => 0,
+                'max' => 600,
+                'step' => 20,
+                'required' => ['block_type', '=', 'banner'],
+                'help' => __('blox_banner_stagger_help'),
+            ],
+            [
+                'key' => 'banner_navigation',
+                'type' => 'checkbox',
+                'label' => __('blox_banner_navigation'),
+                'default' => true,
+                'required' => ['block_type', '=', 'banner'],
+            ],
+            [
+                'key' => 'banner_pagination',
+                'type' => 'checkbox',
+                'label' => __('blox_banner_pagination'),
+                'default' => true,
+                'required' => ['block_type', '=', 'banner'],
+            ],
+            [
+                'key' => 'banner_pause_hover',
+                'type' => 'checkbox',
+                'label' => __('blox_banner_pause_hover'),
+                'default' => true,
+                'required' => ['block_type', '=', 'banner'],
             ],
             [
                 'key' => 'override_layout',
@@ -243,6 +403,50 @@ final class HomeBloxBlockSchema
                 'help' => __('blox_home_override_inherit_help'),
             ],
             [
+                'key' => 'bg_image',
+                'type' => 'image',
+                'tab' => 'style',
+                'label' => __('blox_home_cta_background_image'),
+                'default' => '',
+                'required' => ['block_type', '=', 'cta'],
+            ],
+            [
+                'key' => 'bg_color',
+                'type' => 'color',
+                'tab' => 'style',
+                'label' => __('blox_bg_color'),
+                'default' => '',
+                'required' => ['block_type', '=', 'cta'],
+            ],
+            [
+                'key' => 'bg_overlay_color',
+                'type' => 'color',
+                'tab' => 'style',
+                'label' => __('blox_bg_overlay_color'),
+                'default' => '#0f172a',
+                'required' => ['block_type', '=', 'cta'],
+            ],
+            [
+                'key' => 'bg_overlay_opacity',
+                'type' => 'range',
+                'tab' => 'style',
+                'label' => __('blox_overlay_opacity'),
+                'default' => 55,
+                'min' => 0,
+                'max' => 100,
+                'step' => 5,
+                'required' => ['block_type', '=', 'cta'],
+                'help' => __('blox_home_cta_overlay_help'),
+            ],
+            [
+                'key' => 'text_light',
+                'type' => 'checkbox',
+                'tab' => 'style',
+                'label' => __('shome_light_text'),
+                'default' => true,
+                'required' => ['block_type', '=', 'cta'],
+            ],
+            [
                 'key' => 'limit',
                 'type' => 'number',
                 'label' => __('blox_home_limit'),
@@ -393,18 +597,35 @@ final class HomeBloxBlockSchema
             ],
             'cta' => [
                 'summary' => __('blox_home_cta_structure'),
-                'groups' => [[
-                    'key' => 'content',
-                    'label' => __('blox_home_block_content'),
-                    'icon' => 'speakerphone',
-                    'fields' => [
-                        ['key' => 'override_title', 'icon' => 'heading', 'label' => __('blox_home_override_title'), 'control' => 'text'],
-                        ['key' => 'title_decor_style', 'icon' => 'minus', 'label' => __('blox_home_title_decor'), 'control' => 'select'],
-                        ['key' => 'override_description', 'icon' => 'align-left', 'label' => __('blox_home_override_description'), 'control' => 'textarea'],
-                        ['key' => 'override_button_text', 'icon' => 'click', 'label' => __('blox_home_override_button_text'), 'control' => 'text'],
-                        ['key' => 'override_button_url', 'icon' => 'link', 'label' => __('blox_home_override_button_url'), 'control' => 'url'],
+                'groups' => [
+                    [
+                        'key' => 'content',
+                        'label' => __('blox_home_block_content'),
+                        'icon' => 'speakerphone',
+                        'fields' => [
+                            ['key' => 'override_title', 'icon' => 'heading', 'label' => __('blox_home_override_title'), 'control' => 'text'],
+                            ['key' => 'title_decor_style', 'icon' => 'minus', 'label' => __('blox_home_title_decor'), 'control' => 'select'],
+                            ['key' => 'override_description', 'icon' => 'align-left', 'label' => __('blox_home_override_description'), 'control' => 'textarea'],
+                            ['key' => 'override_button_text', 'icon' => 'click', 'label' => __('blox_home_override_button_text'), 'control' => 'text'],
+                            ['key' => 'override_button_url', 'icon' => 'link', 'label' => __('blox_home_override_button_url'), 'control' => 'url'],
+                        ],
                     ],
-                ]],
+                    [
+                        'key' => 'background',
+                        'label' => __('blox_home_cta_background'),
+                        'icon' => 'photo',
+                        'tree' => false,
+                        'fields' => [
+                            ['key' => 'bg_image', 'icon' => 'photo', 'label' => __('blox_home_cta_background_image'), 'control' => 'image'],
+                            ['key' => 'bg_color', 'icon' => 'palette', 'label' => __('blox_bg_color'), 'control' => 'color'],
+                            ['key' => 'bg_overlay_color', 'icon' => 'layers-subtract', 'label' => __('blox_bg_overlay_color'), 'control' => 'color'],
+                            ['key' => 'bg_overlay_opacity', 'icon' => 'adjustments-horizontal', 'label' => __('blox_overlay_opacity'), 'control' => 'range'],
+                            // 旧文档兼容白名单；新编辑器不再展示语义不明确的 bg_opacity。
+                            ['key' => 'bg_opacity', 'icon' => 'adjustments-horizontal', 'label' => __('blox_home_cta_overlay'), 'control' => 'range'],
+                            ['key' => 'text_light', 'icon' => 'sun', 'label' => __('shome_light_text'), 'control' => 'checkbox'],
+                        ],
+                    ],
+                ],
             ],
         ];
 
@@ -426,6 +647,25 @@ final class HomeBloxBlockSchema
         foreach (array_keys(self::sourceOptions()) as $type) {
             if (str_starts_with($type, 'channel:')) {
                 $blueprints[$type] = $headingBlueprint;
+            } elseif (str_starts_with($type, 'custom:')) {
+                $contract = self::customEditorContract($type);
+                $blueprints[$type] = [
+                    'summary' => $contract['groups'] === [] && $contract['repeaters'] === []
+                        && $contract['column_repeaters'] === []
+                        ? __('blox_home_heading_structure')
+                        : __('blox_home_custom_columns'),
+                    'groups' => array_merge([[
+                        'key' => 'heading',
+                        'label' => __('blox_home_block_content'),
+                        'icon' => 'heading',
+                        'fields' => [
+                            ['key' => 'custom_title', 'icon' => 'heading', 'label' => __('blox_home_override_title'), 'control' => 'text'],
+                            ['key' => 'custom_subtitle', 'icon' => 'align-left', 'label' => __('pea_subtitle'), 'control' => 'textarea'],
+                        ],
+                    ]], $contract['groups']),
+                    'repeaters' => $contract['repeaters'],
+                    'column_repeaters' => $contract['column_repeaters'],
+                ];
             }
         }
 
@@ -435,6 +675,14 @@ final class HomeBloxBlockSchema
     public static function isEditableFieldPath(string $type, string $path): bool
     {
         return in_array($path, self::editableFieldPaths($type), true);
+    }
+
+    public static function isCustomEditableFieldPath(string $path): bool
+    {
+        return preg_match(
+            '/^custom_overrides\.[a-zA-Z0-9_]+\.\d+\.columns\.\d+\.(?:card_bg|elements\.\d+\.data\.(?:text|html|url|accordion_items\.\d+\.(?:question|answer)))$/',
+            $path
+        ) === 1;
     }
 
     /** @return list<string> */
@@ -464,6 +712,338 @@ final class HomeBloxBlockSchema
             }
         }
         return array_values(array_unique($paths));
+    }
+
+    /**
+     * 自定义首页区块只暴露可安全覆盖的标准元素字段。覆盖路径带语言键，
+     * 因此编辑中文价格方案不会把同一份文字强加到英文或日文首页。
+     *
+     * @param array<int, mixed>|null $blocks
+     * @return array{groups:list<array<string,mixed>>,repeaters:list<array<string,mixed>>,column_repeaters:list<array<string,mixed>>,seeds:array<string,mixed>}
+     */
+    public static function customEditorContract(
+        string $type,
+        ?array $blocks = null,
+        ?string $locale = null
+    ): array {
+        if (!str_starts_with($type, 'custom:')) {
+            return ['groups' => [], 'repeaters' => [], 'column_repeaters' => [], 'seeds' => []];
+        }
+        if ($blocks === null) {
+            try {
+                $customData = json_decode(configJsonLang('home_custom_' . substr($type, 7)), true);
+                $blocks = is_array($customData['blocks'] ?? null) ? $customData['blocks'] : [];
+            } catch (Throwable) {
+                $blocks = [];
+            }
+        }
+
+        $localeKey = self::customLocaleKey($locale);
+        $groups = [];
+        $repeaters = [];
+        $columnRepeaters = [];
+        $seeds = ['custom_overrides' => [$localeKey => []]];
+        foreach (array_slice($blocks, 0, 10) as $sectionIndex => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $columns = is_array($section['columns'] ?? null) ? array_slice($section['columns'], 0, 12) : [];
+            $columnRepeaterKey = null;
+            if (count($columns) >= 2 && self::supportsStructuralColumns($columns)) {
+                $columnRepeaterKey = 'custom-columns-' . $sectionIndex;
+                $sectionPrefix = 'custom_overrides.' . $localeKey . '.' . $sectionIndex . '.';
+                $columnRepeaters[] = [
+                    'key' => $columnRepeaterKey,
+                    'label' => __('blox_home_plan_items'),
+                    'icon' => 'layout-cards',
+                    'items_key' => $sectionPrefix . 'columns',
+                    'mode_key' => $sectionPrefix . 'columns_mode',
+                    'max' => 12,
+                ];
+                self::setNestedValue(
+                    $seeds,
+                    $sectionPrefix . 'columns',
+                    self::normalizeStructuralColumns($columns)
+                );
+            }
+            foreach ($columns as $columnIndex => $column) {
+                if (!is_array($column)) {
+                    continue;
+                }
+                $prefix = 'custom_overrides.' . $localeKey . '.' . $sectionIndex
+                    . '.columns.' . $columnIndex;
+                $fields = [[
+                    'key' => $prefix . '.card_bg',
+                    'icon' => 'palette',
+                    'label' => __('blox_home_custom_card_background'),
+                    'control' => 'color',
+                ]];
+                self::setNestedValue(
+                    $seeds,
+                    $prefix . '.card_bg',
+                    (string) ($column['card_bg'] ?? '')
+                );
+
+                $groupLabel = str_replace(':n', (string) ($columnIndex + 1), __('blox_col_word'));
+                $elements = is_array($column['elements'] ?? null)
+                    ? array_slice($column['elements'], 0, 50) : [];
+                foreach ($elements as $elementIndex => $element) {
+                    if (!is_array($element)) {
+                        continue;
+                    }
+                    $elementType = (string) ($element['type'] ?? '');
+                    $elementData = is_array($element['data'] ?? null) ? $element['data'] : [];
+                    $elementPrefix = $prefix . '.elements.' . $elementIndex . '.data.';
+                    if ($elementType === 'heading') {
+                        $value = (string) ($elementData['text'] ?? '');
+                        if (trim($value) !== '') {
+                            $groupLabel = mb_substr(trim($value), 0, 40);
+                        }
+                        $fields[] = [
+                            'key' => $elementPrefix . 'text',
+                            'icon' => 'heading',
+                            'label' => __('blox_field_title_short'),
+                            'control' => 'text',
+                        ];
+                        self::setNestedValue($seeds, $elementPrefix . 'text', $value);
+                    } elseif ($elementType === 'text') {
+                        $value = (string) ($elementData['html'] ?? '');
+                        $plain = trim((string) preg_replace('/\s+/u', ' ', strip_tags($value)));
+                        $fields[] = [
+                            'key' => $elementPrefix . 'html',
+                            'icon' => 'align-left',
+                            'label' => $plain !== '' ? mb_substr($plain, 0, 28) : __('blox_ctl_body'),
+                            'control' => 'richtext',
+                        ];
+                        self::setNestedValue($seeds, $elementPrefix . 'html', $value);
+                    } elseif ($elementType === 'button') {
+                        $fields[] = [
+                            'key' => $elementPrefix . 'text',
+                            'icon' => 'click',
+                            'label' => __('blox_ctl_btn_text'),
+                            'control' => 'text',
+                        ];
+                        $fields[] = [
+                            'key' => $elementPrefix . 'url',
+                            'icon' => 'link',
+                            'label' => __('blox_ctl_link_url'),
+                            'control' => 'url',
+                        ];
+                        self::setNestedValue($seeds, $elementPrefix . 'text', (string) ($elementData['text'] ?? ''));
+                        self::setNestedValue($seeds, $elementPrefix . 'url', (string) ($elementData['url'] ?? ''));
+                    } elseif ($elementType === 'accordion') {
+                        $accordionItems = array_slice(self::parseAccordionItems($elementData['items'] ?? ''), 0, 30);
+                        foreach ($accordionItems as $itemIndex => $item) {
+                            $itemPrefix = $elementPrefix . 'accordion_items.' . $itemIndex . '.';
+                            self::setNestedValue($seeds, $itemPrefix . 'question', $item['question']);
+                            self::setNestedValue($seeds, $itemPrefix . 'answer', $item['answer']);
+                        }
+                        $repeaters[] = [
+                            'key' => 'custom-faq-' . $sectionIndex . '-' . $columnIndex . '-' . $elementIndex,
+                            'label' => __('blox_home_faq_items'),
+                            'icon' => 'help-circle',
+                            'items_key' => $elementPrefix . 'accordion_items',
+                            'mode_key' => $elementPrefix . 'accordion_mode',
+                            'max' => 30,
+                            'fields' => [
+                                [
+                                    'suffix' => 'question',
+                                    'icon' => 'help-circle',
+                                    'label' => __('blox_home_faq_question'),
+                                    'control' => 'text',
+                                ],
+                                [
+                                    'suffix' => 'answer',
+                                    'icon' => 'message-circle',
+                                    'label' => __('blox_home_faq_answer'),
+                                    'control' => 'textarea',
+                                ],
+                            ],
+                        ];
+                    }
+                }
+                if (count($fields) > 1) {
+                    $groups[] = [
+                        'key' => 'custom-' . $sectionIndex . '-' . $columnIndex,
+                        'label' => $groupLabel,
+                        'icon' => 'columns-1',
+                        'fields' => $fields,
+                        'columnRepeaterKey' => $columnRepeaterKey,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'groups' => $groups,
+            'repeaters' => $repeaters,
+            'column_repeaters' => $columnRepeaters,
+            'seeds' => $seeds,
+        ];
+    }
+
+    public static function customLocaleKey(?string $locale = null): string
+    {
+        $locale = $locale ?? (function_exists('siteLang') ? siteLang() : 'zh-CN');
+        return preg_replace('/[^a-zA-Z0-9_]+/', '_', str_replace('-', '_', $locale)) ?: 'default';
+    }
+
+    /** @param array<int,mixed> $blocks @param array<string,mixed> $data @return array<int,mixed> */
+    public static function applyCustomOverrides(array $blocks, array $data, ?string $locale = null): array
+    {
+        $overrides = $data['custom_overrides'][self::customLocaleKey($locale)] ?? null;
+        if (!is_array($overrides)) {
+            return $blocks;
+        }
+        foreach ($blocks as $sectionIndex => &$section) {
+            if (!is_array($section) || !is_array($section['columns'] ?? null)) {
+                continue;
+            }
+            $sectionOverride = $overrides[$sectionIndex] ?? null;
+            if (is_array($sectionOverride)
+                && ($sectionOverride['columns_mode'] ?? '') === 'custom'
+                && is_array($sectionOverride['columns'] ?? null)) {
+                $section['columns'] = array_values($sectionOverride['columns']);
+            }
+            foreach ($section['columns'] as $columnIndex => &$column) {
+                if (!is_array($column)) {
+                    continue;
+                }
+                $columnOverride = $overrides[$sectionIndex]['columns'][$columnIndex] ?? null;
+                if (!is_array($columnOverride)) {
+                    continue;
+                }
+                if (array_key_exists('card_bg', $columnOverride)) {
+                    $column['card_bg'] = (string) $columnOverride['card_bg'];
+                }
+                if (!is_array($column['elements'] ?? null)) {
+                    continue;
+                }
+                foreach ($column['elements'] as $elementIndex => &$element) {
+                    if (!is_array($element)) {
+                        continue;
+                    }
+                    $value = $columnOverride['elements'][$elementIndex]['data'] ?? null;
+                    if (!is_array($value)) {
+                        continue;
+                    }
+                    $element['data'] = is_array($element['data'] ?? null) ? $element['data'] : [];
+                    $allowed = match ((string) ($element['type'] ?? '')) {
+                        'heading' => ['text'],
+                        'text' => ['html'],
+                        'button' => ['text', 'url'],
+                        default => [],
+                    };
+                    foreach ($allowed as $key) {
+                        if (array_key_exists($key, $value)) {
+                            $element['data'][$key] = (string) $value[$key];
+                        }
+                    }
+                    if (($element['type'] ?? '') === 'accordion'
+                        && ($value['accordion_mode'] ?? '') === 'custom') {
+                        $items = [];
+                        foreach (array_slice((array) ($value['accordion_items'] ?? []), 0, 30) as $item) {
+                            if (!is_array($item)) {
+                                continue;
+                            }
+                            $question = self::sanitizeAccordionPart((string) ($item['question'] ?? ''), 500, true);
+                            $answer = self::sanitizeAccordionPart((string) ($item['answer'] ?? ''), 5000);
+                            $items[] = ['question' => $question, 'answer' => $answer];
+                        }
+                        $element['data']['items'] = $items;
+                    } elseif (($element['type'] ?? '') === 'accordion'
+                        && is_array($value['accordion_items'] ?? null)) {
+                        $items = self::parseAccordionItems($element['data']['items'] ?? '');
+                        foreach (array_slice($value['accordion_items'], 0, 30, true) as $itemIndex => $itemOverride) {
+                            if (!is_numeric($itemIndex) || !isset($items[(int) $itemIndex]) || !is_array($itemOverride)) {
+                                continue;
+                            }
+                            foreach (['question', 'answer'] as $field) {
+                                if (array_key_exists($field, $itemOverride)) {
+                                    $items[(int) $itemIndex][$field] = self::sanitizeAccordionPart(
+                                        (string) $itemOverride[$field],
+                                        $field === 'question' ? 500 : 5000,
+                                        $field === 'question'
+                                    );
+                                }
+                            }
+                        }
+                        $element['data']['items'] = $items;
+                    }
+                }
+                unset($element);
+            }
+            unset($column);
+        }
+        unset($section);
+        return $blocks;
+    }
+
+    /** @param array<string,mixed> $target */
+    private static function setNestedValue(array &$target, string $path, mixed $value): void
+    {
+        $parts = explode('.', $path);
+        $cursor = &$target;
+        foreach ($parts as $index => $part) {
+            if ($index === count($parts) - 1) {
+                $cursor[$part] = $value;
+                break;
+            }
+            if (!is_array($cursor[$part] ?? null)) {
+                $cursor[$part] = [];
+            }
+            $cursor = &$cursor[$part];
+        }
+        unset($cursor);
+    }
+
+    /** @return list<array{question:string,answer:string}> */
+    private static function parseAccordionItems(mixed $value): array
+    {
+        $items = [];
+        if (is_array($value)) {
+            foreach (array_slice($value, 0, 30) as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $question = self::sanitizeAccordionPart((string) ($item['question'] ?? ''), 500, true);
+                if ($question !== '') {
+                    $items[] = [
+                        'question' => $question,
+                        'answer' => self::sanitizeAccordionPart((string) ($item['answer'] ?? ''), 5000),
+                    ];
+                }
+            }
+            return $items;
+        }
+        foreach (preg_split('/\r\n|\r|\n/', (string) $value) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            [$question, $answer] = array_pad(explode('|', $line, 2), 2, '');
+            $question = self::sanitizeAccordionPart($question, 500, true);
+            if ($question !== '') {
+                $items[] = [
+                    'question' => $question,
+                    'answer' => self::sanitizeAccordionPart($answer, 5000),
+                ];
+            }
+        }
+        return $items;
+    }
+
+    private static function sanitizeAccordionPart(string $value, int $maxLength, bool $singleLine = false): string
+    {
+        $value = trim(strip_tags($value));
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+        if ($singleLine) {
+            $value = (string) preg_replace('/\s+/u', ' ', $value);
+        } else {
+            $value = (string) preg_replace('/[^\S\n]{2,}/u', ' ', $value);
+            $value = (string) preg_replace('/\n{3,}/u', "\n\n", $value);
+        }
+        return mb_substr($value, 0, $maxLength);
     }
 
 
@@ -578,6 +1158,19 @@ final class HomeBloxBlockSchema
         $emptyText = trim(strip_tags((string) ($data['empty_text'] ?? '')));
         $data['empty_text'] = mb_substr($emptyText, 0, 200);
 
+        foreach (['custom_title' => 200, 'custom_subtitle' => 500] as $key => $length) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $value = trim(strip_tags((string) $data[$key]));
+            $data[$key] = mb_substr($value, 0, $length);
+        }
+        if (str_starts_with($type, 'custom:')) {
+            $data['custom_overrides'] = self::normalizeCustomOverrides($data['custom_overrides'] ?? null);
+        } else {
+            unset($data['custom_overrides']);
+        }
+
         foreach ([
             'override_title' => 200,
             'override_description' => 500,
@@ -607,13 +1200,37 @@ final class HomeBloxBlockSchema
         $data['title_decor_align'] = in_array($decorAlign, ['inherit', 'left', 'center', 'right'], true)
             ? $decorAlign
             : 'inherit';
-        $decorColor = strtolower(trim((string) ($data['title_decor_color'] ?? '')));
-        $data['title_decor_color'] = preg_match('/^#[0-9a-f]{6}$/', $decorColor) === 1 ? $decorColor : '';
+        $data['title_decor_color'] = AbstractElement::cssColor($data['title_decor_color'] ?? null) ?? '';
         $data['title_decor_width'] = max(0, min(240, (int) ($data['title_decor_width'] ?? 0)));
         $data['title_decor_gap'] = max(0, min(80, (int) ($data['title_decor_gap'] ?? 0)));
+        $hadLegacyOpacity = array_key_exists('bg_opacity', $data);
+        $hadOverlayColor = array_key_exists('bg_overlay_color', $data);
+        $hadOverlayOpacity = array_key_exists('bg_overlay_opacity', $data);
         $data['bg_image'] = self::safeUrl((string) ($data['bg_image'] ?? ''), false);
-        $data['bg_color'] = mb_substr(trim(strip_tags((string) ($data['bg_color'] ?? ''))), 0, 200);
+        $data['bg_color'] = AbstractElement::cssColor(
+            trim(strip_tags((string) ($data['bg_color'] ?? '')))
+        ) ?? '';
         $data['bg_opacity'] = max(0, min(100, (int) ($data['bg_opacity'] ?? 100)));
+        if ($type === 'cta') {
+            $legacyOverlayColor = $data['bg_color'] !== '' ? $data['bg_color'] : '#000000';
+            $data['bg_overlay_color'] = AbstractElement::cssColor(
+                trim(strip_tags((string) ($data['bg_overlay_color'] ?? '')))
+            )
+                ?? ($hadOverlayColor ? '' : $legacyOverlayColor);
+            if ($hadOverlayOpacity) {
+                $overlayOpacity = (int) $data['bg_overlay_opacity'];
+            } elseif ($hadLegacyOpacity) {
+                // 旧 getBlockBg() 在没有 bg_color 时使用了反向的“图片可见度”语义。
+                $overlayOpacity = $data['bg_color'] !== ''
+                    ? $data['bg_opacity']
+                    : 100 - $data['bg_opacity'];
+            } else {
+                $overlayOpacity = 55;
+            }
+            $data['bg_overlay_opacity'] = max(0, min(100, $overlayOpacity));
+        } else {
+            unset($data['bg_overlay_color'], $data['bg_overlay_opacity']);
+        }
         $data['text_light'] = !empty($data['text_light']);
         $data['layout'] = (string) ($data['layout'] ?? 'container') === 'full' ? 'full' : 'container';
         $data['counter_enabled'] = !array_key_exists('counter_enabled', $data) || !empty($data['counter_enabled']);
@@ -623,6 +1240,10 @@ final class HomeBloxBlockSchema
         $data['stats_mobile_columns'] = in_array($mobileColumns, ['1', '2'], true) ? $mobileColumns : '2';
         $tabletColumns = (string) ($data['stats_tablet_columns'] ?? '4');
         $data['stats_tablet_columns'] = in_array($tabletColumns, ['2', '4'], true) ? $tabletColumns : '4';
+
+        if ($type === 'banner') {
+            $data = array_replace($data, self::bannerRuntimeConfig($data));
+        }
 
         $stats = [];
         $statDefaults = [
@@ -702,6 +1323,107 @@ final class HomeBloxBlockSchema
         return $data;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, int|string|bool>
+     */
+    public static function bannerRuntimeConfig(array $data): array
+    {
+        $effect = (string) ($data['banner_effect'] ?? 'fade');
+        $contentMotion = (string) ($data['banner_content_motion'] ?? 'none');
+        $backgroundMotion = (string) ($data['banner_background_motion'] ?? 'none');
+        $heightMode = (string) ($data['banner_height_mode'] ?? 'inherit');
+        $autoplay = (int) ($data['banner_autoplay'] ?? 5);
+
+        return [
+            'banner_height_mode' => in_array($heightMode, ['inherit', 'fixed', 'screen', 'cover-header'], true)
+                ? $heightMode
+                : 'inherit',
+            'banner_height_pc' => max(200, min(1600, (int) ($data['banner_height_pc'] ?? 650))),
+            'banner_height_mobile' => max(180, min(1200, (int) ($data['banner_height_mobile'] ?? 300))),
+            'banner_effect' => in_array($effect, ['fade', 'slide'], true) ? $effect : 'fade',
+            'banner_content_motion' => in_array(
+                $contentMotion,
+                ['none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in'],
+                true
+            ) ? $contentMotion : 'none',
+            'banner_background_motion' => in_array($backgroundMotion, ['none', 'zoom-in', 'zoom-out'], true)
+                ? $backgroundMotion
+                : 'none',
+            'banner_autoplay' => $autoplay > 0 ? max(2, min(30, $autoplay)) : 0,
+            'banner_speed' => max(200, min(2000, (int) ($data['banner_speed'] ?? 700))),
+            'banner_stagger' => max(0, min(600, (int) ($data['banner_stagger'] ?? 120))),
+            'banner_navigation' => !array_key_exists('banner_navigation', $data) || !empty($data['banner_navigation']),
+            'banner_pagination' => !array_key_exists('banner_pagination', $data) || !empty($data['banner_pagination']),
+            'banner_pause_hover' => !array_key_exists('banner_pause_hover', $data) || !empty($data['banner_pause_hover']),
+        ];
+    }
+
+    /**
+     * 将传统轮播分组映射到统一的 Banner 运行参数。
+     *
+     * @param array<string, mixed> $group
+     * @return array<string, int|string|bool>
+     */
+    public static function bannerGroupRuntimeConfig(array $group): array
+    {
+        $delay = max(0, min(30000, (int) ($group['autoplay_delay'] ?? 5000)));
+        $heightMode = (string) ($group['height_mode'] ?? '');
+        if (!in_array($heightMode, ['fixed', 'screen', 'cover-header'], true)) {
+            $heightMode = !empty($group['fullscreen']) ? 'screen' : 'fixed';
+        }
+
+        return self::bannerRuntimeConfig([
+            'banner_height_mode' => $heightMode,
+            'banner_height_pc' => $group['height_pc'] ?? 500,
+            'banner_height_mobile' => $group['height_mobile'] ?? 250,
+            'banner_effect' => $group['effect'] ?? 'fade',
+            'banner_content_motion' => $group['content_motion'] ?? 'none',
+            'banner_background_motion' => $group['background_motion'] ?? 'none',
+            'banner_autoplay' => $delay > 0 ? (int) round($delay / 1000) : 0,
+            'banner_speed' => $group['speed'] ?? 700,
+            'banner_stagger' => $group['stagger'] ?? 120,
+            'banner_navigation' => !array_key_exists('navigation', $group) || !empty($group['navigation']),
+            'banner_pagination' => !array_key_exists('pagination', $group) || !empty($group['pagination']),
+            'banner_pause_hover' => !array_key_exists('pause_hover', $group) || !empty($group['pause_hover']),
+        ]);
+    }
+
+    /** @param array<string, mixed> $block */
+    public static function bannerRuntimeAttributes(array $block): string
+    {
+        $config = self::bannerRuntimeConfig($block);
+        $autoplayMs = (int) $config['banner_autoplay'] * 1000;
+        $holdMs = $autoplayMs > 0 ? $autoplayMs + (int) $config['banner_speed'] : 6000;
+        $attributes = [
+            'data-blox-banner' => '',
+            'data-blox-height-mode' => (string) $config['banner_height_mode'],
+            'data-blox-effect' => (string) $config['banner_effect'],
+            'data-blox-autoplay' => (string) $config['banner_autoplay'],
+            'data-blox-speed' => (string) $config['banner_speed'],
+            'data-blox-navigation' => $config['banner_navigation'] ? '1' : '0',
+            'data-blox-pagination' => $config['banner_pagination'] ? '1' : '0',
+            'data-blox-pause-hover' => $config['banner_pause_hover'] ? '1' : '0',
+            'data-blox-content-motion' => (string) $config['banner_content_motion'],
+            'data-blox-background-motion' => (string) $config['banner_background_motion'],
+        ];
+        $html = '';
+        foreach ($attributes as $name => $value) {
+            $html .= ' ' . $name;
+            if ($value !== '') {
+                $html .= '="' . htmlspecialchars($value, ENT_QUOTES) . '"';
+            }
+        }
+        $style = '--blox-banner-speed:' . (int) $config['banner_speed'] . 'ms;'
+            . '--blox-banner-stagger:' . (int) $config['banner_stagger'] . 'ms;'
+            . '--blox-banner-hold:' . $holdMs . 'ms;'
+            . '--blox-banner-height-pc:' . (int) $config['banner_height_pc'] . 'px;'
+            . '--blox-banner-height-mobile:' . (int) $config['banner_height_mobile'] . 'px;'
+            . '--blox-banner-offset:70px';
+
+        return $html . ' style="' . $style . '"';
+    }
+
     /** @param array<string, mixed> $block */
     public static function overrideText(array $block, string $key, string $fallback): string
     {
@@ -763,14 +1485,13 @@ final class HomeBloxBlockSchema
         if (self::supportsTitleDecoration($type)) {
             $decorStyle = (string) ($block['title_decor_style'] ?? 'inherit');
             $decorAlign = (string) ($block['title_decor_align'] ?? 'inherit');
-            $decorColor = strtolower(trim((string) ($block['title_decor_color'] ?? '')));
             $overrides['home_title_decor_style'] = in_array($decorStyle, ['inherit', 'line', 'dot', 'none'], true)
                 ? $decorStyle
                 : 'inherit';
             $overrides['home_title_decor_align'] = in_array($decorAlign, ['inherit', 'left', 'center', 'right'], true)
                 ? $decorAlign
                 : 'inherit';
-            $overrides['home_title_decor_color'] = preg_match('/^#[0-9a-f]{6}$/', $decorColor) === 1 ? $decorColor : '';
+            $overrides['home_title_decor_color'] = AbstractElement::cssColor($block['title_decor_color'] ?? null) ?? '';
             $overrides['home_title_decor_width'] = (string) max(0, min(240, (int) ($block['title_decor_width'] ?? 0)));
             $overrides['home_title_decor_gap'] = (string) max(0, min(80, (int) ($block['title_decor_gap'] ?? 0)));
         }
@@ -877,6 +1598,189 @@ final class HomeBloxBlockSchema
         }
 
         return $options;
+    }
+
+    /** @param array<int,mixed> $columns */
+    private static function supportsStructuralColumns(array $columns): bool
+    {
+        foreach ($columns as $column) {
+            if (!is_array($column) || !is_array($column['elements'] ?? null) || $column['elements'] === []) {
+                return false;
+            }
+            $hasHeading = false;
+            foreach ($column['elements'] as $element) {
+                $type = is_array($element) ? (string) ($element['type'] ?? '') : '';
+                if (!in_array($type, ['heading', 'text', 'button'], true)) {
+                    return false;
+                }
+                $hasHeading = $hasHeading || $type === 'heading';
+            }
+            if (!$hasHeading) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** @return list<array<string,mixed>> */
+    private static function normalizeStructuralColumns(array $columns): array
+    {
+        $clean = [];
+        foreach (array_slice(array_values($columns), 0, 12) as $column) {
+            if (!is_array($column)) {
+                continue;
+            }
+            $normalized = ['elements' => []];
+            if (array_key_exists('card_bg', $column)) {
+                $normalized['card_bg'] = AbstractElement::cssColor($column['card_bg']) ?? '';
+            }
+            foreach (array_slice((array) ($column['elements'] ?? []), 0, 50) as $element) {
+                if (!is_array($element)) {
+                    continue;
+                }
+                $type = (string) ($element['type'] ?? '');
+                $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+                if ($type === 'heading') {
+                    $level = in_array(($data['level'] ?? ''), ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true)
+                        ? (string) $data['level'] : 'h3';
+                    $align = in_array(($data['align'] ?? ''), ['left', 'center', 'right'], true)
+                        ? (string) $data['align'] : 'left';
+                    $normalized['elements'][] = [
+                        'type' => 'heading',
+                        'data' => [
+                            'text' => mb_substr(trim(strip_tags((string) ($data['text'] ?? ''))), 0, 500),
+                            'level' => $level,
+                            'align' => $align,
+                        ],
+                    ];
+                } elseif ($type === 'text') {
+                    $normalized['elements'][] = [
+                        'type' => 'text',
+                        'data' => ['html' => self::sanitizeCustomHtml(substr((string) ($data['html'] ?? ''), 0, 50_000))],
+                    ];
+                } elseif ($type === 'button') {
+                    $normalized['elements'][] = [
+                        'type' => 'button',
+                        'data' => [
+                            'text' => mb_substr(trim(strip_tags((string) ($data['text'] ?? ''))), 0, 500),
+                            'url' => self::safeUrl((string) ($data['url'] ?? ''), true),
+                            'new_tab' => !empty($data['new_tab']),
+                        ],
+                    ];
+                }
+            }
+            if ($normalized['elements'] !== []) {
+                $clean[] = $normalized;
+            }
+        }
+        return $clean;
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeCustomOverrides(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+        $clean = [];
+        foreach (array_slice($value, 0, 10, true) as $locale => $sections) {
+            $localeKey = preg_replace('/[^a-zA-Z0-9_]+/', '_', (string) $locale) ?: '';
+            if ($localeKey === '' || !is_array($sections)) {
+                continue;
+            }
+            foreach (array_slice($sections, 0, 10, true) as $sectionIndex => $section) {
+                if (!is_numeric($sectionIndex) || !is_array($section)) {
+                    continue;
+                }
+                $columns = is_array($section['columns'] ?? null) ? $section['columns'] : [];
+                if (($section['columns_mode'] ?? '') === 'custom') {
+                    $sectionPrefix = $localeKey . '.' . (int) $sectionIndex . '.';
+                    self::setNestedValue($clean, $sectionPrefix . 'columns_mode', 'custom');
+                    self::setNestedValue(
+                        $clean,
+                        $sectionPrefix . 'columns',
+                        self::normalizeStructuralColumns($columns)
+                    );
+                    continue;
+                }
+                foreach (array_slice($columns, 0, 12, true) as $columnIndex => $column) {
+                    if (!is_numeric($columnIndex) || !is_array($column)) {
+                        continue;
+                    }
+                    $prefix = $localeKey . '.' . (int) $sectionIndex . '.columns.' . (int) $columnIndex;
+                    if (array_key_exists('card_bg', $column)) {
+                        self::setNestedValue(
+                            $clean,
+                            $prefix . '.card_bg',
+                            AbstractElement::cssColor($column['card_bg']) ?? ''
+                        );
+                    }
+                    $elements = is_array($column['elements'] ?? null) ? $column['elements'] : [];
+                    foreach (array_slice($elements, 0, 50, true) as $elementIndex => $element) {
+                        if (!is_numeric($elementIndex) || !is_array($element)) {
+                            continue;
+                        }
+                        $elementData = is_array($element['data'] ?? null) ? $element['data'] : [];
+                        $elementPrefix = $prefix . '.elements.' . (int) $elementIndex . '.data.';
+                        foreach (['text' => 500, 'url' => 1000] as $key => $maxLength) {
+                            if (!array_key_exists($key, $elementData)) {
+                                continue;
+                            }
+                            $raw = (string) $elementData[$key];
+                            $sanitized = $key === 'url'
+                                ? self::safeUrl($raw, true)
+                                : mb_substr(trim(strip_tags($raw)), 0, $maxLength);
+                            self::setNestedValue($clean, $elementPrefix . $key, $sanitized);
+                        }
+                        if (array_key_exists('html', $elementData)) {
+                            $html = substr((string) $elementData['html'], 0, 50_000);
+                            self::setNestedValue($clean, $elementPrefix . 'html', self::sanitizeCustomHtml($html));
+                        }
+                        $accordionMode = ($elementData['accordion_mode'] ?? '') === 'custom';
+                        $accordionItems = is_array($elementData['accordion_items'] ?? null)
+                            ? $elementData['accordion_items'] : [];
+                        if ($accordionMode) {
+                            self::setNestedValue($clean, $elementPrefix . 'accordion_mode', 'custom');
+                            self::setNestedValue($clean, $elementPrefix . 'accordion_items', []);
+                        }
+                        $itemSource = $accordionMode
+                            ? array_values(array_slice($accordionItems, 0, 30, true))
+                            : array_slice($accordionItems, 0, 30, true);
+                        foreach ($itemSource as $itemIndex => $item) {
+                            if (!is_numeric($itemIndex) || !is_array($item)) {
+                                continue;
+                            }
+                            foreach (['question' => 500, 'answer' => 5000] as $key => $maxLength) {
+                                if (!array_key_exists($key, $item)) {
+                                    continue;
+                                }
+                                self::setNestedValue(
+                                    $clean,
+                                    $elementPrefix . 'accordion_items.' . (int) $itemIndex . '.' . $key,
+                                    self::sanitizeAccordionPart(
+                                        (string) $item[$key],
+                                        $maxLength,
+                                        $key === 'question'
+                                    )
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $clean;
+    }
+
+    private static function sanitizeCustomHtml(string $html): string
+    {
+        if (function_exists('sanitizeHtml')) {
+            return sanitizeHtml($html);
+        }
+        $html = (string) preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
+        $html = strip_tags($html, '<p><br><b><i><u><s><em><strong><small><sub><sup><h1><h2><h3><h4><h5><h6><ul><ol><li><a><div><span>');
+        $html = (string) preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html);
+        return (string) preg_replace('/(?:href|src)\s*=\s*["\']?\s*javascript\s*:/i', 'data-removed="1"', $html);
     }
 
     private static function safeUrl(string $value, bool $allowActionSchemes): string

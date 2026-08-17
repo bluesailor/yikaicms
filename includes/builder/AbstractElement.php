@@ -10,6 +10,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BloxResponsiveValue.php';
+
 abstract class AbstractElement
 {
     /** 元素类型标识（对应 blocks_data 里 element.type） */
@@ -120,6 +122,63 @@ abstract class AbstractElement
         }
         $sign = $allowNegative ? '-?' : '';
         return preg_match('/^' . $sign . '\d{1,4}(\.\d{1,2})?(px|rem|em|%|vw|vh)$/', $value) ? $value : null;
+    }
+
+    /**
+     * 可安全写入 style 声明的颜色值。
+     *
+     * 除颜色控件现有的 hex 外，保留合法 rgb/hsl 与站点颜色变量兼容；锚定白名单
+     * 明确拒绝分号、注释和额外声明。返回 null 表示不输出该样式。
+     */
+    public static function cssColor(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $value) === 1) {
+            return strtolower($value);
+        }
+        if (in_array(strtolower($value), ['transparent', 'currentcolor'], true)) {
+            return strtolower($value);
+        }
+        if (preg_match('/^(?:rgb|rgba|hsl|hsla)\([0-9.,%+\-\s]+\)$/i', $value) === 1) {
+            return $value;
+        }
+        return preg_match('/^var\(--(?:yk-color|color)-[a-z0-9_-]+\)$/i', $value) === 1 ? $value : null;
+    }
+
+    /**
+     * 可用于 CSS background-image 的图片地址。
+     *
+     * 仅允许站内绝对路径与 http(s)；协议相对、data/javascript 及控制字符一律拒绝。
+     */
+    public static function cssImageUrl(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $value = trim(strip_tags($value));
+        if ($value === '' || mb_strlen($value) > 1000
+            || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
+            return null;
+        }
+        if ($value[0] === '/' && !str_starts_with($value, '//')) {
+            return $value;
+        }
+        return preg_match('#^https?://#i', $value) === 1 ? $value : null;
+    }
+
+    /** 把已校验 URL 编码成不会逃出 url() 的 CSS 字符串。 */
+    public static function cssUrlLiteral(string $url): string
+    {
+        return 'url(' . json_encode(
+            $url,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP
+        ) . ')';
     }
 
     /**
@@ -344,10 +403,11 @@ abstract class AbstractElement
      */
     public static function respClasses(mixed $value, array $map, string $fallback): string
     {
+        $responsive = BloxResponsiveValue::normalize($value, $map, $fallback);
         if (is_array($value)) {
-            $d = isset($map[$value['d'] ?? '']) ? $value['d'] : $fallback;
-            $t = isset($map[$value['t'] ?? '']) ? $value['t'] : $d;
-            $m = isset($map[$value['m'] ?? '']) ? $value['m'] : $t;
+            $d = $responsive['d'];
+            $t = $responsive['t'];
+            $m = $responsive['m'];
             if ($m === $t && $t === $d) {
                 return $map[$m][0];
             }
@@ -360,8 +420,7 @@ abstract class AbstractElement
             }
             return $cls;
         }
-        $key = is_string($value) && isset($map[$value]) ? $value : $fallback;
-        return $map[$key][0];
+        return $map[$responsive['d']][0];
     }
 
     /** respClasses 的实例快捷方式，元素 render() 内用 */

@@ -169,6 +169,34 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('style="background-color:rgba(255,136,0,0.5);"', $full);
     }
 
+    public function testSectionAnchorRendersOnceAndRejectsUnsafeValues(): void
+    {
+        $out = BlockRenderer::render((string) json_encode([
+            [
+                'settings' => ['anchor_id' => 'features'],
+                'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+            ],
+            [
+                'settings' => ['anchor_id' => 'FEATURES'],
+                'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]]],
+            ],
+            [
+                'settings' => ['anchor_id' => 'bad\" onclick=\"x'],
+                'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'C']]]]],
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        $this->assertSame(1, substr_count($out, 'yk-blox-anchor'));
+        $this->assertStringContainsString('id="features"', $out);
+        $this->assertStringNotContainsString('onclick=', $out);
+
+        $visibleDuplicate = BlockRenderer::render((string) json_encode([
+            ['settings' => ['anchor_id' => 'contact', 'hidden' => true], 'columns' => [['elements' => []]]],
+            ['settings' => ['anchor_id' => 'contact'], 'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Visible']]]]]],
+        ], JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString('id="contact"', $visibleDuplicate);
+    }
+
     public function testMultiColumnGridAndCard(): void
     {
         $out = BlockRenderer::render(json_encode([[
@@ -492,9 +520,16 @@ final class BuilderRenderTest extends TestCase
         $this->assertNotEmpty($presets['sections']);
         $this->assertNotEmpty($presets['pages']);
         $keys = array_column($presets['sections'], 'key');
-        foreach (['hero', 'features', 'cta', 'team', 'gallery', 'stats', 'testimonial'] as $k) {
+        foreach (['hero', 'features', 'cta', 'team', 'gallery', 'stats', 'testimonial', 'faq'] as $k) {
             $this->assertContains($k, $keys, "缺少区块预设 $k");
         }
+        $faqPreset = array_values(array_filter(
+            $presets['sections'],
+            static fn(array $preset): bool => ($preset['key'] ?? '') === 'faq'
+        ))[0];
+        $faqItems = $faqPreset['sections'][0]['columns'][0]['elements'][0]['data']['items'];
+        $this->assertIsArray($faqItems);
+        $this->assertSame(['question', 'answer'], array_keys($faqItems[0]));
         $this->assertContains('company_intro', array_column($presets['pages'], 'key'));
 
         foreach (array_merge($presets['sections'], $presets['pages']) as $preset) {
@@ -528,12 +563,20 @@ final class BuilderRenderTest extends TestCase
     {
         $h = BuilderRegistry::get('heading');
         $keys = array_column($h->controls(), 'key');
-        $this->assertSame(['text', 'loop_field', 'level', 'align', 'animation', 'animation_speed', 'animation_delay'], $keys);
+        $this->assertSame([
+            'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
+            'level', 'visual_size', 'color', 'align', 'animation', 'animation_speed', 'animation_delay',
+        ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
             'text' => '',
+            'site_field' => 'none',
+            'site_fallback' => '',
             'loop_field' => 'title',
+            'loop_fallback' => '',
             'level' => 'h2',
+            'visual_size' => 'auto',
+            'color' => '',
             'align' => 'left',
             'animation' => '',
             'animation_speed' => 'normal',
@@ -805,6 +848,127 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('data-yk-el-type', BlockRenderer::render($json));
     }
 
+    public function testNestedCustomBlockUsesNamespacedHomeFieldsInsteadOfInnerCoordinates(): void
+    {
+        $json = json_encode([[
+            'settings' => ['col_card' => true],
+            'columns' => [[
+                'elements' => [
+                    ['type' => 'heading', 'data' => ['text' => 'Professional']],
+                    ['type' => 'text', 'data' => ['html' => '<p>$299</p>']],
+                    ['type' => 'button', 'data' => ['text' => 'Choose', 'url' => '/contact.html']],
+                ],
+            ], [
+                'elements' => [['type' => 'heading', 'data' => ['text' => 'Enterprise']]],
+            ]],
+        ]]);
+
+        $oldContext = BlockRenderer::$homeFieldEditContext;
+        try {
+            BlockRenderer::$homeFieldEditContext = [
+                'path' => '7.0.0',
+                'type' => 'custom:1',
+                'locale' => 'zh_CN',
+            ];
+            $out = BlockRenderer::render($json);
+        } finally {
+            BlockRenderer::$homeFieldEditContext = $oldContext;
+        }
+
+        $this->assertStringContainsString(
+            'data-yk-home-field="custom_overrides.zh_CN.0.columns.0.card_bg"',
+            $out
+        );
+        $this->assertStringContainsString('data-yk-home-path="7.0.0"', $out);
+        $this->assertStringContainsString(
+            'data-yk-home-field="custom_overrides.zh_CN.0.columns.0.elements.0.data.text"',
+            $out
+        );
+        $this->assertStringContainsString(
+            'data-yk-home-field="custom_overrides.zh_CN.0.columns.0.elements.1.data.html"',
+            $out
+        );
+        $this->assertSame(3, substr_count($out, 'data-yk-home-inline="1"'));
+        $this->assertSame(3, substr_count($out, 'data-yk-home-inline="0"'));
+        $this->assertStringNotContainsString('data-yk-el="0.0.', $out);
+    }
+
+    public function testNestedCustomAccordionMarksEachQuestionAndAnswer(): void
+    {
+        $json = json_encode([[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'accordion',
+                    'data' => [
+                        'items' => "First question?|First answer.\nSecond question?|Second answer.",
+                        'open_first' => true,
+                        'seo_schema' => true,
+                    ],
+                ]],
+            ]],
+        ]]);
+
+        $oldContext = BlockRenderer::$homeFieldEditContext;
+        try {
+            BlockRenderer::$homeFieldEditContext = [
+                'path' => '8.0.0',
+                'type' => 'custom:2',
+                'locale' => 'en',
+            ];
+            $out = BlockRenderer::render($json);
+        } finally {
+            BlockRenderer::$homeFieldEditContext = $oldContext;
+        }
+
+        foreach ([
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items.0.question',
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items.0.answer',
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items.1.question',
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items.1.answer',
+        ] as $field) {
+            $this->assertStringContainsString('data-yk-home-field="' . $field . '"', $out);
+        }
+        $this->assertSame(4, substr_count($out, 'data-yk-home-inline="1"'));
+        $this->assertStringNotContainsString('data-yk-el="0.0.0"', $out);
+        $this->assertStringContainsString('"@type":"FAQPage"', $out);
+    }
+
+    public function testAccordionExposesStructuredFaqControlWithoutChangingItsOutput(): void
+    {
+        $element = BuilderRegistry::get('accordion');
+        $this->assertNotNull($element);
+        $controls = array_column($element->controls(), null, 'key');
+
+        $this->assertSame('faq_repeater', $controls['items']['type']);
+        $this->assertSame(30, $controls['items']['max']);
+        $this->assertSame('question', array_key_first($controls['items']['default'][0]));
+
+        $out = $this->inner($this->oneEl([
+            'type' => 'accordion',
+            'data' => [
+                'items' => "Question one|Answer one\nQuestion two|Answer two",
+                'open_first' => true,
+                'seo_schema' => true,
+            ],
+        ]));
+        $this->assertStringContainsString('<span>Question one</span>', $out);
+        $this->assertStringContainsString('Answer two', $out);
+        $this->assertStringContainsString('"@type":"FAQPage"', $out);
+
+        $structured = $this->inner($this->oneEl([
+            'type' => 'accordion',
+            'data' => [
+                'items' => [
+                    ['question' => 'Structured question', 'answer' => "Structured\nanswer"],
+                ],
+                'seo_schema' => true,
+            ],
+        ]));
+        $this->assertStringContainsString('<span>Structured question</span>', $structured);
+        $this->assertStringContainsString("Structured<br />\nanswer", $structured);
+        $this->assertStringContainsString('"name":"Structured question"', $structured);
+    }
+
     public function testSectionTitleFieldStyles(): void
     {
         $out = BlockRenderer::render(json_encode([[
@@ -853,14 +1017,61 @@ final class BuilderRenderTest extends TestCase
             'settings' => ['bg_gradient' => $grad, 'bg_image' => '/uploads/a.jpg'],
             'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
         ]]));
-        $this->assertStringContainsString('background-image:' . $grad . ',url(/uploads/a.jpg);background-size:cover', $out2);
+        $this->assertStringContainsString('background-image:' . $grad . ',url(&quot;/uploads/a.jpg&quot;);background-size:cover', $out2);
         // 非法值（可注入 style 的内容）被丢弃，退回背景图分支
         $out3 = BlockRenderer::render(json_encode([[
             'settings' => ['bg_gradient' => 'url(javascript:alert(1))', 'bg_image' => '/uploads/a.jpg'],
             'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
         ]]));
         $this->assertStringNotContainsString('javascript', $out3);
-        $this->assertStringContainsString('background-image:url(/uploads/a.jpg)', $out3);
+        $this->assertStringContainsString('background-image:url(&quot;/uploads/a.jpg&quot;)', $out3);
+    }
+
+    public function testSectionImageOverlayFocalPointAndHeight(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [
+                'bg_image' => '/uploads/hero.jpg',
+                'bg_overlay_color' => '#102030',
+                'bg_overlay_opacity' => 55,
+                'bg_position' => 'top-right',
+                'min_height' => 'lg',
+                'content_v_align' => 'end',
+            ],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString(
+            'background-position:right top;min-height:640px;',
+            $out
+        );
+        $this->assertStringContainsString(
+            '<section class="py-8 flex items-end relative overflow-hidden"',
+            $out
+        );
+        $this->assertStringContainsString(
+            '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background-color:#102030;opacity:0.55;"></div>',
+            $out
+        );
+        $this->assertStringContainsString(
+            '<div class="max-w-6xl mx-auto px-4 w-full relative z-10">',
+            $out
+        );
+    }
+
+    public function testLegacyBackgroundOpacityActsAsImageOverlay(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [
+                'bg_color' => '#000000',
+                'bg_image' => '/uploads/legacy.jpg',
+                'bg_opacity' => 40,
+            ],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString('background-color:rgba(0,0,0,0.4);', $out);
+        $this->assertStringContainsString('style="background-color:#000000;opacity:0.4;"', $out);
     }
 
     public function testSectionContainerLayer(): void
@@ -868,11 +1079,12 @@ final class BuilderRenderTest extends TestCase
         // 自定义容器宽度 + 容器层独立样式
         $out = BlockRenderer::render(json_encode([[
             'settings' => ['max_width' => 'custom', 'max_width_px' => 1280,
-                'container_bg' => '#ffffff', 'container_padding' => 'md', 'container_radius' => 'md'],
+                'container_bg' => '#ffffff', 'container_bg_image' => '/uploads/container.jpg',
+                'container_padding' => 'md', 'container_radius' => 'md'],
             'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
         ]]));
         $this->assertStringContainsString(
-            '<div class="mx-auto px-4 p-6 rounded-xl" style="max-width:1280px;background-color:#ffffff;">',
+            '<div class="mx-auto px-4 p-6 rounded-xl" style="max-width:1280px;background-color:#ffffff;background-image:url(&quot;/uploads/container.jpg&quot;);background-size:cover;background-position:center;background-repeat:no-repeat;">',
             $out
         );
         // 非法 px 回退预设宽度类

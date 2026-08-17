@@ -101,6 +101,17 @@
         return null;
     }
 
+    function quickAddPayload(value) {
+        if (!isObject(value)) return null;
+        if (value.kind === "column" && isIndex(value.sec) && isIndex(value.col)) {
+            return { kind: "column", sec: value.sec, col: value.col };
+        }
+        if (value.kind === "container" && isElementPath(value.path)) {
+            return { kind: "container", path: value.path };
+        }
+        return null;
+    }
+
     function dropPayload(value) {
         if (!isObject(value) || value.version !== 1) return null;
         if (typeof value.type !== "string" || !/^[a-zA-Z0-9_][a-zA-Z0-9_\/-]{0,99}$/.test(value.type)) return null;
@@ -139,6 +150,7 @@
         this.onClear = options.onClear || noop;
         this.onAreaHit = options.onAreaHit || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
+        this.onQuickAdd = options.onQuickAdd || noop;
         this.onInsertAt = options.onInsertAt || noop;
         this.onDropRejected = options.onDropRejected || noop;
         this.lastDropId = "";
@@ -255,6 +267,11 @@
         }
         if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {
             this.onEmptyAction(data.ykEmptyAction);
+            return true;
+        }
+        payload = quickAddPayload(data.ykQuickAdd);
+        if (payload) {
+            this.onQuickAdd(payload);
             return true;
         }
         if (data.ykDropRejected === "restricted-children" || data.ykDropRejected === "no-nested-container" || data.ykDropRejected === "invalid") {

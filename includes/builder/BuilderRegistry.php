@@ -119,6 +119,11 @@ final class BuilderRegistry
             new AccordionElement(),
             new StatItemElement(),
             new LogoElement(),
+            new SiteCopyrightElement(),
+            new SiteContactElement(),
+            new SocialLinksElement(),
+            new SiteSearchElement(),
+            new LanguageSwitcherElement(),
             new NavDrawerElement(),
             new NavMegaElement(),
             // 布局容器（一层嵌套；子元素在 data.children）

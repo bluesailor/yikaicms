@@ -126,6 +126,10 @@ function bloxTemplateModel(): BloxTemplateModel {
     static $i; return $i ??= new BloxTemplateModel();
 }
 
+function bloxPageDraftModel(): BloxPageDraftModel {
+    static $i; return $i ??= new BloxPageDraftModel();
+}
+
 function contentModelModel(): ContentModelModel {
     static $i; return $i ??= new ContentModelModel();
 }

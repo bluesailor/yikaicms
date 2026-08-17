@@ -12,6 +12,9 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+require_once __DIR__ . '/frontend_preview.php';
+require_once __DIR__ . '/ThemeRuntime.php';
+
 // ============================================================
 // 全局错误自检测（装在这里而非 config.php：升级不覆盖客户的
 // config.php，装这里老站升级后立即生效）
@@ -30,7 +33,9 @@ function currentTheme(): string
 {
     static $theme = null;
     if ($theme === null) {
-        $theme = config('current_theme', 'default');
+        // 市场主题可能被卸载，老数据库仍保留其 slug。运行时只认完整安装的主题，
+        // 缺目录或基础壳时统一回退 default，避免拼凑 includes 模板导致前台样式半失效。
+        $theme = ThemeRuntime::resolve((string) config('current_theme', 'default'), ROOT_PATH . '/themes');
     }
     return $theme;
 }
@@ -294,13 +299,14 @@ function config(string $key, mixed $default = ''): mixed
 }
 
 /**
- * Blox 编辑器（实验 / 授权功能）是否可用。
+ * Blox 高级编辑能力是否可用。
  *
  * 两道闸，必须同时满足：
- *   1. 显式开关 system.blox_editor_enabled = 1（默认 0，即全新安装看不到任何入口）；
+ *   1. Blox 总开关 system.blox_editor_enabled = 1（默认 1）；
  *   2. 持有有效授权——优先认 blox 付费模块，其次认整体授权有效。
  *
- * 关闭时后台不出现任何 Blox 入口，编辑器页面本身也拒绝访问。
+ * 关闭时首页布局、模板库与 Header/Footer 等高级入口不可用；基础单页编辑
+ * 是 CMS 核心能力，不继承此授权状态。
  * 本机开发（DEBUG=true）跳过授权检查，便于无授权环境继续开发；
  * 该常量只能由 config/config.php 设置，改得动它的人本来就控制了整站。
  */
@@ -318,6 +324,14 @@ function config(string $key, mixed $default = ''): mixed
 function bloxAreaHtml(string $area): string
 {
     if (!in_array($area, ['header', 'footer'], true)) {
+        return '';
+    }
+    // 停用仅改变前台接管状态，不取消发布或删除模板，便于随时恢复原设计。
+    $areaEnabledSetting = [
+        'header' => 'blox_custom_header_enabled',
+        'footer' => 'blox_custom_footer_enabled',
+    ][$area];
+    if ((string) config($areaEnabledSetting, '1') !== '1') {
         return '';
     }
     try {
@@ -338,31 +352,35 @@ function bloxAreaHtml(string $area): string
         if ($row === null) {
             return '';
         }
-        $body = BlockRenderer::render((string) ($row['published_data'] ?? ''));
+        $publishedData = (string) ($row['published_data'] ?? '');
+        $document = BloxAreaDocument::decode($area, $publishedData);
+        $body = BlockRenderer::render($publishedData);
         if ($body === '') {
             return '';
         }
         // 文档级 settings（v1 信封）：sticky 吸顶只对 header 有意义。
         // 壳层消费 settings，渲染器只管 sections——存量裸数组文档无 settings，自然不吸顶。
-        $doc = json_decode((string) ($row['published_data'] ?? ''), true);
-        $docSettings = is_array($doc) && is_array($doc['settings'] ?? null) ? $doc['settings'] : [];
-        $sticky = $area === 'header' && !empty($docSettings['sticky']);
-        if ($sticky && class_exists('BloxAssetCollector')) {
-            BloxAssetCollector::addScript('/assets/js/blox-sticky-header.js');
-        }
-        $tag = $area === 'header' ? 'header' : 'footer';
-        $idAttr = $area === 'header' ? ' id="siteHeader"' : '';
-        $cls = 'yk-blox-area yk-blox-' . $area . ($sticky ? ' yk-sticky-header' : '');
-        return '<' . $tag . $idAttr . ' class="' . $cls . '">' . $body . '</' . $tag . '>';
+        return BloxAreaDocument::renderShell($area, $document['settings'], $body);
     } catch (Throwable $e) {
         error_log('[bloxAreaHtml] ' . $e->getMessage());
         return ''; // 任何异常回退旧模板，头尾故障不白屏
     }
 }
 
-function bloxEditorEnabled(): bool
+function bloxPageEditorEnabled(): bool
 {
-    if ((string) config('blox_editor_enabled', '0') !== '1') {
+    return (string) config('blox_editor_enabled', '1') === '1';
+}
+
+/**
+ * Blox 的商业高级能力边界。
+ *
+ * 编辑器本身对免费版开放；全站布局、模板管理、全局样式与高级数据能力
+ * 仍通过此函数统一校验，避免再次把“能否进入编辑器”和授权状态绑在一起。
+ */
+function bloxAdvancedFeaturesEnabled(): bool
+{
+    if (!bloxPageEditorEnabled()) {
         return false;
     }
     if (defined('DEBUG') && DEBUG) {
@@ -372,6 +390,17 @@ function bloxEditorEnabled(): bool
         return false;
     }
     return license_has_module('blox') || license_valid();
+}
+
+/**
+ * 兼容旧版高级模块的能力入口。
+ *
+ * 历史高级文件会直接调用 bloxEditorEnabled()。该别名必须继续返回高级授权结果，
+ * 否则客户站残留的旧模板/首页模块会把免费编辑器开关误当成高级授权。
+ */
+function bloxEditorEnabled(): bool
+{
+    return bloxAdvancedFeaturesEnabled();
 }
 
 /**
@@ -951,6 +980,67 @@ function getNavChannels(): array
 }
 
 /**
+ * 默认导航树：在栏目投影中按后台保存的位置插入“首页”虚拟项。
+ * 菜单组是完全自定义的数据源，不经过这里。
+ *
+ * @param array<int,array<string,mixed>>|null $channels
+ * @return array<int,array<string,mixed>>
+ */
+function getDefaultNavigation(?array $channels = null): array
+{
+    $channels ??= getNavChannels();
+    $byToken = [];
+    foreach ($channels as $channel) {
+        if (!is_array($channel) || !empty($channel['_is_home'])) {
+            continue;
+        }
+        $byToken[(string) ((int) ($channel['id'] ?? 0))] = $channel;
+    }
+
+    $ordered = [];
+    $homeVisible = configRawLang('nav_home_show', '1') !== '0';
+    $home = [
+        'id' => 0,
+        'parent_id' => 0,
+        'name' => configLang('nav_home_text', 'nav_home'),
+        'slug' => '',
+        'type' => 'link',
+        'link_url' => langPrefix() . '/',
+        'link_target' => '_self',
+        '_url' => langPrefix() . '/',
+        '_is_home' => true,
+        'children' => [],
+    ];
+
+    $sequence = json_decode(configRawLang('nav_root_order', ''), true);
+    $sequence = is_array($sequence) ? array_values(array_unique(array_map('strval', $sequence))) : [];
+    if ($sequence === []) {
+        $sequence[] = 'home';
+    }
+
+    foreach ($sequence as $token) {
+        if ($token === 'home') {
+            if ($homeVisible) {
+                $ordered[] = $home;
+            }
+            continue;
+        }
+        if (isset($byToken[$token])) {
+            $ordered[] = $byToken[$token];
+            unset($byToken[$token]);
+        }
+    }
+    foreach ($byToken as $channel) {
+        $ordered[] = $channel;
+    }
+    if ($homeVisible && !in_array('home', $sequence, true)) {
+        $ordered[] = $home;
+    }
+
+    return $ordered;
+}
+
+/**
  * 获取栏目树
  */
 function getChannelTree(int $parentId = 0): array
@@ -1466,12 +1556,26 @@ function getBlockBg(array $block, string $defaultClass = ''): array
 
     $style = '';
     $overlay = '';
+    $hasExplicitOverlay = $bgImage && (
+        array_key_exists('bg_overlay_color', $block)
+        || array_key_exists('bg_overlay_opacity', $block)
+    );
 
     if ($bgImage) {
         $style = "background:url('" . e($bgImage) . "') center/cover no-repeat;";
     }
 
-    if ($bgColor && ($bgImage || $bgOpacity < 100)) {
+    if ($hasExplicitOverlay) {
+        $overlayColor = trim((string) ($block['bg_overlay_color'] ?? ''));
+        $safeOverlayColor = class_exists('AbstractElement')
+            ? AbstractElement::cssColor($overlayColor)
+            : (preg_match('/^#[0-9a-f]{3,8}$/i', $overlayColor) === 1 ? strtolower($overlayColor) : null);
+        $overlayOpacity = max(0, min(100, (int) ($block['bg_overlay_opacity'] ?? 0)));
+        if ($safeOverlayColor !== null && $overlayOpacity > 0) {
+            $overlay = '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:'
+                . e($safeOverlayColor) . ';opacity:' . ($overlayOpacity / 100) . '"></div>';
+        }
+    } elseif ($bgColor && ($bgImage || $bgOpacity < 100)) {
         $opacity = $bgOpacity / 100;
         $overlay = '<div class="absolute inset-0" style="background:' . e($bgColor) . ';opacity:' . $opacity . '"></div>';
     } elseif ($bgColor) {
@@ -1574,8 +1678,10 @@ function homeTitleDeco(bool $light = false, string $extra = '', ?string $inherit
         $inline[] = 'margin-right:0';
     }
 
-    $color = strtolower(trim((string) config('home_title_decor_color', '')));
-    if (preg_match('/^#[0-9a-f]{6}$/', $color) === 1) {
+    $color = class_exists('AbstractElement')
+        ? AbstractElement::cssColor(config('home_title_decor_color', ''))
+        : null;
+    if ($color !== null) {
         $inline[] = 'background:' . $color;
     }
 
@@ -2769,42 +2875,43 @@ function renderBannerShortcode(string $slug): string
         return '<!-- banner empty: ' . e($slug) . ' -->';
     }
 
-    $heightPc = (int)($group['height_pc'] ?: 500);
-    $heightMobile = (int)($group['height_mobile'] ?: 250);
-    $autoplayDelay = (int)($group['autoplay_delay'] ?? 5000);
+    $runtime = HomeBloxBlockSchema::bannerGroupRuntimeConfig($group);
+    $runtimeAttributes = HomeBloxBlockSchema::bannerRuntimeAttributes($runtime);
+    if (!empty($group['fullscreen'])) {
+        // 传统分组的既有语义是仅桌面满屏；移动端仍采用分组的移动高度。
+        $runtimeAttributes .= ' data-blox-screen-desktop="1"';
+    }
     $uid = 'banner-sc-' . $slug . '-' . mt_rand(1000, 9999);
 
     $html = '';
 
-    // Swiper CSS（浏览器自动去重相同 href 的 link）
+    // 短代码可出现在非首页，资源需要自包含；加载器会复用页面已有脚本。
     $html .= '<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">';
-
-    // 内联样式：该实例的高度
-    $html .= '<style>.' . $uid . '{height:' . $heightMobile . 'px;position:relative}';
-    $html .= '@media(min-width:768px){.' . $uid . '{height:' . $heightPc . 'px}}</style>';
+    $html .= '<link rel="stylesheet" href="' . e(assetVer('/assets/css/blox-banner.css')) . '">';
 
     // Swiper 容器
-    $html .= '<div class="swiper ' . $uid . '">';
+    $html .= '<div id="' . e($uid) . '" class="swiper ' . e($uid) . '"' . $runtimeAttributes . '>';
     $html .= '<div class="swiper-wrapper">';
 
     foreach ($banners as $b) {
-        $html .= '<div class="swiper-slide">';
+        $html .= '<div class="swiper-slide"' . HomeBannerItemElement::motionAttributes($b) . '>';
+        $imageHtml = HomeBannerItemElement::responsiveImageHtml($b);
         if ($b['link_url']) {
             $html .= '<a href="' . e($b['link_url']) . '" target="' . e($b['link_target']) . '" class="block w-full h-full">';
-            $html .= '<img src="' . e($b['image']) . '" alt="' . e($b['title']) . '" class="w-full h-full object-cover">';
+            $html .= $imageHtml;
             $html .= '</a>';
         } else {
-            $html .= '<img src="' . e($b['image']) . '" alt="' . e($b['title']) . '" class="w-full h-full object-cover">';
+            $html .= $imageHtml;
         }
         if ($b['title']) {
             $html .= '<div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">';
             $html .= '<div class="text-center text-white px-4 w-full max-w-4xl">';
-            $html .= '<h2 class="text-2xl md:text-4xl font-bold mb-3">' . e($b['title']) . '</h2>';
+            $html .= '<h2 class="text-2xl md:text-4xl font-bold mb-3" data-blox-layer style="--blox-layer-order:1">' . e($b['title']) . '</h2>';
             if ($b['subtitle']) {
-                $html .= '<p class="text-base md:text-xl">' . e($b['subtitle']) . '</p>';
+                $html .= '<p class="text-base md:text-xl" data-blox-layer style="--blox-layer-order:2">' . e($b['subtitle']) . '</p>';
             }
             if (!empty($b['btn1_text']) || !empty($b['btn2_text'])) {
-                $html .= '<div class="flex flex-wrap justify-center gap-4 mt-5 pointer-events-auto">';
+                $html .= '<div class="flex flex-wrap justify-center gap-4 mt-5 pointer-events-auto" data-blox-layer style="--blox-layer-order:3">';
                 if (!empty($b['btn1_text'])) {
                     $html .= '<a href="' . e($b['btn1_url'] ?: '#') . '" class="bg-white text-gray-800 hover:bg-gray-100 px-6 py-2.5 rounded-full font-semibold transition">' . e($b['btn1_text']) . '</a>';
                 }
@@ -2826,17 +2933,18 @@ function renderBannerShortcode(string $slug): string
     }
     $html .= '</div>';
 
-    // 自包含 JS：加载 Swiper 并初始化
-    $autoplayCfg = $autoplayDelay > 0
-        ? 'autoplay:{delay:' . $autoplayDelay . ',disableOnInteraction:false},'
-        : '';
-
+    $uidJson = json_encode($uid, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+    $swiperJsJson = json_encode(assetVer('/assets/swiper/swiper-bundle.min.js'), JSON_UNESCAPED_SLASHES);
+    $runtimeJsJson = json_encode(assetVer('/assets/js/blox-banner.js'), JSON_UNESCAPED_SLASHES);
     $html .= '<script>(function(){';
-    $html .= 'function init(){new Swiper(".' . $uid . '",{loop:true,' . $autoplayCfg . 'effect:"fade",fadeEffect:{crossFade:true},pagination:{el:".' . $uid . ' .swiper-pagination",clickable:true},navigation:{nextEl:".' . $uid . ' .swiper-button-next",prevEl:".' . $uid . ' .swiper-button-prev"}});}';
-    $html .= 'if(window.Swiper){init();}';
-    $html .= 'else if(!document.querySelector("script[src*=swiper-bundle]")){';
-    $html .= 'var s=document.createElement("script");s.src="/assets/swiper/swiper-bundle.min.js";s.onload=init;document.body.appendChild(s);';
-    $html .= '}else{var si=setInterval(function(){if(window.Swiper){clearInterval(si);init();}},100);}';
+    $html .= 'var root=document.getElementById(' . $uidJson . ');if(!root)return;';
+    $html .= 'function init(){if(window.BloxBanner)window.BloxBanner.init(root);}';
+    $html .= 'function load(src,ready,next){if(ready()){next();return;}';
+    $html .= 'var found=Array.prototype.some.call(document.scripts,function(s){return s.src&&s.src.indexOf(src.split("?")[0])!==-1;});';
+    $html .= 'if(!found){var script=document.createElement("script");script.src=src;script.onload=next;document.body.appendChild(script);return;}';
+    $html .= 'var tries=0,timer=setInterval(function(){if(ready()||++tries>100){clearInterval(timer);if(ready())next();}},50);}';
+    $html .= 'load(' . $swiperJsJson . ',function(){return typeof window.Swiper==="function";},function(){';
+    $html .= 'load(' . $runtimeJsJson . ',function(){return !!window.BloxBanner;},init);});';
     $html .= '})();</script>';
 
     return $html;
@@ -2864,6 +2972,9 @@ function jsonFieldsToTemplate(array $fields): string
     $inGrid = false;
 
     foreach ($fields as $field) {
+        if (array_key_exists('enabled', $field) && empty($field['enabled'])) {
+            continue;
+        }
         $key = $field['key'] ?? '';
         $label = $field['label'] ?? $key;
         $type = $field['type'] ?? 'text';
@@ -3252,7 +3363,9 @@ function frontEditUrl(array $content, array $channel): string
         case 'download': return '/admin/download_edit.php?id=' . $id;
         case 'job':      return '/admin/job_edit.php?id=' . $id;
         case 'list':     return '/admin/article_edit.php?id=' . $id;
-        case 'page':     return '/admin/page_edit.php?id=' . (int) ($channel['id'] ?? $id);
+        case 'page':
+            $pageId = (int) ($channel['id'] ?? $id);
+            return '/admin/blox_editor.php?id=' . $pageId;
         default:         return '/admin/content_edit.php?id=' . $id; // case + 自定义模型
     }
 }
@@ -3264,7 +3377,7 @@ function frontEditAttr(array $content, array $channel, string $label = ''): stri
     if ($label === '') {
         $label = '✎ ' . __('fe_edit_content');
     }
-    if (empty($_SESSION['admin_id'])) {
+    if (isCleanFrontendPreview() || empty($_SESSION['admin_id'])) {
         return '';
     }
     $url = frontEditUrl($content, $channel);

@@ -47,19 +47,19 @@ final class NavDrawerElement extends AbstractElement
             if (!is_array($channel)) {
                 continue;
             }
-            $url = htmlspecialchars((string) ($channel['url'] ?? '#'), ENT_QUOTES);
+            $url = htmlspecialchars(NavMegaElement::nodeHref($channel), ENT_QUOTES);
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? $channel['children'] : [];
             $items .= '<li class="border-b border-gray-100">';
-            $items .= '<a href="' . $url . '" class="block px-5 py-3 text-gray-800 hover:text-primary no-underline">' . $name . '</a>';
+            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="block px-5 py-3 text-gray-800 hover:text-primary no-underline">' . $name . '</a>';
             if ($kids !== []) {
                 $items .= '<ul class="pb-2">';
                 foreach ($kids as $kid) {
                     if (!is_array($kid)) {
                         continue;
                     }
-                    $items .= '<li><a href="' . htmlspecialchars((string) ($kid['url'] ?? '#'), ENT_QUOTES)
-                        . '" class="block pl-10 pr-5 py-2 text-sm text-gray-500 hover:text-primary no-underline">'
+                    $items .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($kid), ENT_QUOTES)
+                        . '"' . NavMegaElement::targetAttr($kid) . ' class="block pl-10 pr-5 py-2 text-sm text-gray-500 hover:text-primary no-underline">'
                         . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
                 }
                 $items .= '</ul>';

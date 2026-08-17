@@ -8,12 +8,17 @@ final class BloxTemplateModel extends Model
     protected string $table = 'blox_templates';
     protected string $defaultOrder = 'updated_at DESC, id DESC';
 
-    public const TYPES = ['section', 'page', 'header', 'footer'];
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool
     {
         return in_array($type, self::TYPES, true);
+    }
+
+    public static function conditionalType(string $type): bool
+    {
+        return in_array($type, ['header', 'footer', 'popup'], true);
     }
 
     /**
@@ -73,12 +78,12 @@ final class BloxTemplateModel extends Model
         try {
             if ($type === null) {
                 return db()->fetchAll(
-                    'SELECT id,type,name,source,source_ref,schema_version,thumbnail,status,admin_id,created_at,updated_at,published_at'
+                    'SELECT id,type,name,source,source_ref,schema_version,requirements,conditions,thumbnail,status,admin_id,created_at,updated_at,published_at'
                     . ' FROM ' . DB_PREFIX . 'blox_templates ORDER BY updated_at DESC, id DESC'
                 );
             }
             return db()->fetchAll(
-                'SELECT id,type,name,source,source_ref,schema_version,thumbnail,status,admin_id,created_at,updated_at,published_at'
+                'SELECT id,type,name,source,source_ref,schema_version,requirements,conditions,thumbnail,status,admin_id,created_at,updated_at,published_at'
                 . ' FROM ' . DB_PREFIX . 'blox_templates WHERE type = ? ORDER BY updated_at DESC, id DESC',
                 [$type]
             );
@@ -109,12 +114,12 @@ final class BloxTemplateModel extends Model
      */
     public function publishedAreaTemplates(string $area): array
     {
-        if (!in_array($area, ['header', 'footer'], true)) {
+        if (!self::conditionalType($area)) {
             return [];
         }
         try {
             return db()->fetchAll(
-                'SELECT id,name,published_data,conditions FROM ' . DB_PREFIX . 'blox_templates'
+                'SELECT id,name,published_data,conditions,published_at FROM ' . DB_PREFIX . 'blox_templates'
                 . ' WHERE status = 1 AND type = ? AND published_data IS NOT NULL'
                 . ' ORDER BY id ASC',
                 [$area]
@@ -155,18 +160,36 @@ final class BloxTemplateModel extends Model
     }
 
     /** 保存草稿正文（编辑器模板模式）；requirements 由重扫推导保持最新。 */
-    public function updateDraft(int $id, string $sectionsJson, array $requirements): void
+    public function updateDraft(
+        int $id,
+        string $sectionsJson,
+        array $requirements,
+        ?string $expectedDraft = null
+    ): void
     {
+        $where = ' WHERE id = ?';
+        $params = [
+            $sectionsJson,
+            json_encode($requirements, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            time(),
+            $id,
+        ];
+        if ($expectedDraft !== null) {
+            $where .= ' AND draft_data = ?';
+            $params[] = $expectedDraft;
+        }
         $affected = db()->execute(
-            'UPDATE ' . DB_PREFIX . 'blox_templates SET draft_data = ?, requirements = ?, updated_at = ? WHERE id = ?',
-            [
-                $sectionsJson,
-                json_encode($requirements, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                time(),
-                $id,
-            ]
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET draft_data = ?, requirements = ?, updated_at = ?' . $where,
+            $params
         );
         if ($affected < 1) {
+            $current = $this->findForExport($id);
+            if ($current && (string) ($current['draft_data'] ?? '') === $sectionsJson) {
+                return;
+            }
+            if ($expectedDraft !== null && $current) {
+                throw new RuntimeException(__('blox_save_conflict'));
+            }
             throw new RuntimeException(__('blox_tpl_draft_missing'));
         }
     }
@@ -214,8 +237,8 @@ final class BloxTemplateModel extends Model
         ]);
     }
 
-    /** @param array{elements?:list<string>,plugins?:list<string>} $requirements
-     *  @return array{elements:list<string>,plugins:list<string>}
+    /** @param array{elements?:list<string>,plugins?:list<string>,design_tokens?:list<string>,design_styles?:list<string>} $requirements
+     *  @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>}
      */
     private static function normalizeRequirements(array $requirements): array
     {
@@ -237,6 +260,8 @@ final class BloxTemplateModel extends Model
         return [
             'elements' => $normalize($requirements['elements'] ?? []),
             'plugins' => $normalize($requirements['plugins'] ?? []),
+            'design_tokens' => $normalize($requirements['design_tokens'] ?? []),
+            'design_styles' => $normalize($requirements['design_styles'] ?? []),
         ];
     }
 }

@@ -274,6 +274,47 @@ final class TagEngineTest extends TestCase
         $this->assertSame('佚名', $out);
     }
 
+    public function testFieldDefaultAlsoAppliesToEmptyValues(): void
+    {
+        $this->insertRow('channels', ['name' => 'n', 'slug' => 'news', 'type' => 'list']);
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 't', 'summary' => '']);
+        $out = TagEngine::render('{yk:list type=article cat=news}{yk:field name=summary default="暂无摘要" /}{/yk:list}');
+        $this->assertSame('暂无摘要', $out);
+        $encoded = TagEngine::render('{yk:list type=article cat=news}{yk:field name=summary fallback=No%20summary /}{/yk:list}');
+        $this->assertSame('No summary', $encoded);
+    }
+
+    public function testListPaginationUsesIndependentQueryParamAndPreservesQueryString(): void
+    {
+        $this->insertRow('channels', ['name' => 'n', 'slug' => 'news', 'type' => 'list']);
+        foreach ([500 => 'A', 400 => 'B', 300 => 'C', 200 => 'D', 100 => 'E'] as $time => $title) {
+            $this->insertRow('contents', ['channel_id' => 1, 'title' => $title, 'publish_time' => $time]);
+        }
+        $oldGet = $_GET;
+        $oldUri = $_SERVER['REQUEST_URI'] ?? null;
+        $_GET['ykq_test'] = '2';
+        $_SERVER['REQUEST_URI'] = '/news.html?foo=bar&ykq_test=2';
+        try {
+            $out = TagEngine::render(
+                '{yk:list type=article cat=news limit=2 page_param=ykq_test}'
+                . '[{yk:field name=title /}]{/yk:list}'
+                . '{yk:list-pagination type=article cat=news limit=2 page_param=ykq_test /}'
+            );
+        } finally {
+            $_GET = $oldGet;
+            if ($oldUri === null) {
+                unset($_SERVER['REQUEST_URI']);
+            } else {
+                $_SERVER['REQUEST_URI'] = $oldUri;
+            }
+        }
+
+        $this->assertStringStartsWith('[C][D]', $out);
+        $this->assertStringContainsString('aria-current="page">2</span>', $out);
+        $this->assertStringContainsString('href="/news.html?foo=bar" rel="prev"', $out);
+        $this->assertStringContainsString('foo=bar&amp;ykq_test=3', $out);
+    }
+
     // ---- {yk:channel} / {yk:banner} / {yk:config} ----
 
     public function testChannelTagBySlugFieldUrl(): void
@@ -295,6 +336,7 @@ final class TagEngineTest extends TestCase
         $this->assertSame('易凯', TagEngine::render('{yk:config name=site_name /}'));
         // 白名单外的键（如邮箱密码）绝不输出
         $this->assertSame('', TagEngine::render('{yk:config name=smtp_pass /}'));
+        $this->assertSame('', TagEngine::render('{yk:config name=smtp_pass default=hidden /}'));
     }
 
     // ---- {yk:nav} ----

@@ -3,7 +3,7 @@
  * 折叠面板（FAQ）：问答条目点击展开/收起。
  * 原生 <details>/<summary> 实现——零 JS、语义化、搜索引擎可读；
  * 可选输出 FAQPage 结构化数据（JSON-LD，搜索结果富摘要）。
- * 条目编辑格式：textarea 每行一条「问题|答案」（schema 表单无 repeater 控件，此为最轻表示）。
+ * 后台与新安装数据使用 question/answer 数组；同时兼容旧版每行「问题|答案」格式。
  */
 
 declare(strict_types=1);
@@ -17,19 +17,36 @@ final class AccordionElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'items', 'type' => 'textarea', 'label' => __('blox_faq_items'), 'rows' => 8,
-             'default' => __('blox_faq_seed_q1') . '|' . __('blox_faq_seed_a1') . "\n" . __('blox_faq_seed_q2') . '|' . __('blox_faq_seed_a2'),
-             'placeholder' => __('blox_faq_ph') . "\n" . __('blox_faq_ph')],
+            [
+                'key' => 'items', 'type' => 'faq_repeater', 'label' => __('blox_faq_items'), 'max' => 30,
+                'default' => [
+                    ['question' => __('blox_faq_seed_q1'), 'answer' => __('blox_faq_seed_a1')],
+                    ['question' => __('blox_faq_seed_q2'), 'answer' => __('blox_faq_seed_a2')],
+                ],
+            ],
             ['key' => 'open_first', 'type' => 'checkbox', 'label' => __('blox_faq_open_first'), 'default' => true],
             ['key' => 'seo_schema', 'type' => 'checkbox', 'label' => __('blox_faq_schema'), 'default' => true],
         ];
     }
 
-    /** 解析「问题|答案」行 → [[q, a], ...] */
+    /** @return list<array{0:string,1:string}> */
     private function items(array $data): array
     {
+        $value = $data['items'] ?? [];
         $out = [];
-        foreach (preg_split('/\r\n|\r|\n/', (string) ($data['items'] ?? '')) ?: [] as $line) {
+        if (is_array($value)) {
+            foreach (array_slice($value, 0, 30) as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $question = trim((string) ($item['question'] ?? ''));
+                if ($question !== '') {
+                    $out[] = [$question, trim((string) ($item['answer'] ?? ''))];
+                }
+            }
+            return $out;
+        }
+        foreach (preg_split('/\r\n|\r|\n/', (string) $value) ?: [] as $line) {
             $line = trim($line);
             if ($line === '') {
                 continue;

@@ -265,7 +265,7 @@ final class BloxRemoteTemplateProvider
     {
         $slug = trim((string) ($raw['slug'] ?? ''));
         $type = trim((string) ($raw['type'] ?? ''));
-        $allowed = $allTypes ? ['section', 'page', 'header', 'footer'] : ['section', 'page'];
+        $allowed = $allTypes ? ['section', 'page', 'header', 'footer', 'popup'] : ['section', 'page'];
         if (!$this->validSlug($slug) || !in_array($type, $allowed, true)) {
             return null;
         }
@@ -280,7 +280,8 @@ final class BloxRemoteTemplateProvider
             'description' => $this->localized($raw, 'description', ''),
             'source' => 'remote',
             'provider' => self::PROVIDER,
-            'category' => trim((string) ($raw['category'] ?? '')),
+            'category' => $this->safeCategory($raw['category'] ?? $type, $type),
+            'thumbnail' => $this->safeThumbnail($raw['thumbnail'] ?? $raw['thumbnail_url'] ?? ''),
             'version' => trim((string) ($raw['version'] ?? '')),
             'paid' => $paid,
             'locked' => !$entitled,
@@ -313,6 +314,40 @@ final class BloxRemoteTemplateProvider
     private function validSlug(string $slug): bool
     {
         return preg_match('/^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/', $slug) === 1;
+    }
+
+    private function safeCategory(mixed $raw, string $fallback): string
+    {
+        $category = is_string($raw) ? strtolower(trim($raw)) : '';
+        return preg_match('/^[a-z][a-z0-9-]{0,49}$/', $category) === 1 ? $category : $fallback;
+    }
+
+    private function safeThumbnail(mixed $raw): string
+    {
+        if (!is_string($raw)) {
+            return '';
+        }
+        $value = trim($raw);
+        if ($value === '' || strlen($value) > 500 || str_contains($value, "\\")) {
+            return '';
+        }
+        if (str_starts_with($value, '/')) {
+            $value = 'https://' . self::PROVIDER . $value;
+        }
+        $parts = parse_url($value);
+        if (!is_array($parts)
+            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || strtolower((string) ($parts['host'] ?? '')) !== self::PROVIDER
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['port'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            return '';
+        }
+        $path = rawurldecode((string) ($parts['path'] ?? ''));
+        if (str_contains($path, '..')
+            || preg_match('#^/(?:assets|uploads)/templates/[a-zA-Z0-9/_-]+\.(?:avif|gif|jpe?g|png|webp)$#', $path) !== 1) {
+            return '';
+        }
+        return $value;
     }
 
     private function safeDownloadUrl(string $url): bool

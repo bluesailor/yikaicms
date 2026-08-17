@@ -1,0 +1,13 @@
+{
+    "name": "LOGO 制作",
+    "name_ja": "ロゴメーカー",
+    "name_en": "Logo Maker",
+    "version": "1.0.0",
+    "description": "无需 API 和字体文件，在后台生成基础 LOGO、SVG、PNG 与 ICO；复杂设计可打开 Logo Lab。",
+    "description_ja": "API やフォントファイルなしで基本ロゴ、SVG、PNG、ICO を作成できます。高度なデザインは Logo Lab で行えます。",
+    "description_en": "Create basic logos, SVG, PNG, and ICO files without an API or bundled fonts; open Logo Lab for advanced design.",
+    "tier": "free",
+    "author": "Yikai CMS",
+    "requires_php": "8.2",
+    "requires_cms": "1.17.0"
+}

@@ -8,7 +8,7 @@ final class ContactCardsElement extends AbstractElement
     public function type(): string { return 'contact_cards'; }
     public function label(): string { return __('blox_el_contact_cards'); }
     public function icon(): string { return 'address-book'; }
-    public function paletteVisible(string $context = 'page'): bool { return false; }
+    public function paletteVisible(string $context = 'page'): bool { return $context === 'contact'; }
     public function supportsBoxStyles(): bool { return false; }
 
     public function controls(): array

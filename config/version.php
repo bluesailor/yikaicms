@@ -8,5 +8,5 @@
  */
 
 if (!defined('CMS_VERSION')) {
-    define('CMS_VERSION', '1.17.4');
+    define('CMS_VERSION', '1.18.10');
 }

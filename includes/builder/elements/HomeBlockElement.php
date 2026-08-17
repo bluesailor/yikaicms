@@ -37,10 +37,19 @@ final class HomeBlockElement extends AbstractElement
 
     public function scriptsFor(array $data): array
     {
+        if ((string) ($data['block_type'] ?? '') === 'banner') {
+            return ['/assets/js/blox-banner.js'];
+        }
         $counterEnabled = !array_key_exists('counter_enabled', $data) || !empty($data['counter_enabled']);
 
         return (string) ($data['block_type'] ?? '') === 'stats' && $counterEnabled
             ? ['/assets/js/blox-counter.js'] : [];
+    }
+
+    public function stylesFor(array $data): array
+    {
+        return (string) ($data['block_type'] ?? '') === 'banner'
+            ? ['/assets/css/blox-banner.css'] : [];
     }
 
     public function controls(): array

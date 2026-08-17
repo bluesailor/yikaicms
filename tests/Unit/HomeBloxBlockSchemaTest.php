@@ -103,18 +103,30 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('', $normalized['bg_image']);
         $this->assertSame('#0f172a', $normalized['bg_color']);
         $this->assertSame(100, $normalized['bg_opacity']);
+        $this->assertSame('#0f172a', $normalized['bg_overlay_color']);
+        $this->assertSame(100, $normalized['bg_overlay_opacity']);
         $this->assertTrue($normalized['text_light']);
         $this->assertSame('container', $normalized['layout']);
 
         $valid = HomeBloxBlockSchema::normalize([
             'block_type' => 'cta',
             'bg_image' => 'https://example.com/cta.jpg',
-            'bg_opacity' => 55,
+            'bg_overlay_color' => '#334155',
+            'bg_overlay_opacity' => 55,
             'layout' => 'full',
         ]);
         $this->assertSame('https://example.com/cta.jpg', $valid['bg_image']);
-        $this->assertSame(55, $valid['bg_opacity']);
+        $this->assertSame('#334155', $valid['bg_overlay_color']);
+        $this->assertSame(55, $valid['bg_overlay_opacity']);
         $this->assertSame('full', $valid['layout']);
+
+        $legacyWithoutColor = HomeBloxBlockSchema::normalize([
+            'block_type' => 'cta',
+            'bg_image' => '/uploads/legacy-cta.jpg',
+            'bg_opacity' => 55,
+        ]);
+        $this->assertSame('#000000', $legacyWithoutColor['bg_overlay_color']);
+        $this->assertSame(45, $legacyWithoutColor['bg_overlay_opacity']);
     }
     public function testControlsExposeConditionalQueryAndEmptyStateFields(): void
     {
@@ -142,6 +154,19 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('lg', $controls['override_breakpoint']['default']);
         $this->assertArrayNotHasKey('options', $controls['override_layout']);
         $this->assertSame(['block_type', '=', 'about'], $controls['override_layout']['required']);
+        $this->assertSame('image', $controls['bg_image']['type']);
+        $this->assertSame('color', $controls['bg_color']['type']);
+        $this->assertSame('color', $controls['bg_overlay_color']['type']);
+        $this->assertSame('range', $controls['bg_overlay_opacity']['type']);
+        $this->assertSame(55, $controls['bg_overlay_opacity']['default']);
+        $this->assertSame(100, $controls['bg_overlay_opacity']['max']);
+        $this->assertSame('checkbox', $controls['text_light']['type']);
+        $this->assertSame(['block_type', '=', 'cta'], $controls['bg_image']['required']);
+        $this->assertSame('style', $controls['bg_image']['tab']);
+        $this->assertSame('style', $controls['bg_color']['tab']);
+        $this->assertSame('style', $controls['bg_overlay_color']['tab']);
+        $this->assertSame('style', $controls['bg_overlay_opacity']['tab']);
+        $this->assertSame('style', $controls['text_light']['tab']);
         $this->assertSame('text', $controls['override_title']['type']);
         $this->assertContains('about', $controls['override_title']['required'][2]);
         $this->assertSame('select', $controls['title_decor_style']['type']);
@@ -155,6 +180,21 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame(['block_type', '=', 'about'], $controls['override_content']['required']);
         $this->assertSame(['block_type', '=', 'about'], $controls['override_tag_title']['required']);
         $this->assertSame(['block_type', '=', 'about'], $controls['override_tag_description']['required']);
+        $this->assertSame(['block_type', '=', 'banner'], $controls['banner_effect']['required']);
+        $this->assertSame('fade', $controls['banner_effect']['default']);
+        $this->assertSame(5, $controls['banner_autoplay']['default']);
+        $this->assertSame(2000, $controls['banner_speed']['max']);
+        $this->assertSame(600, $controls['banner_stagger']['max']);
+        $this->assertSame('checkbox', $controls['banner_navigation']['type']);
+        $this->assertSame('inherit', $controls['banner_height_mode']['default']);
+        $this->assertSame('maximize', $controls['banner_height_mode']['option_icons']['screen']);
+        $this->assertSame('layout-navbar-expand', $controls['banner_height_mode']['option_icons']['cover-header']);
+        $this->assertSame(1600, $controls['banner_height_pc']['max']);
+        $this->assertSame(1200, $controls['banner_height_mobile']['max']);
+        $this->assertSame(
+            ['terms' => [['banner_height_mode', '=', 'fixed']]],
+            $controls['banner_height_pc']['visible_when']
+        );
     }
 
     public function testAboutLayoutRatioIsWhitelistedAndMappedToRuntimeConfig(): void
@@ -219,6 +259,127 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame(6, $normalized['per_row']);
         $this->assertSame(2, $normalized['autoplay']);
         $this->assertSame([3, 2], $normalized['product_ids']);
+    }
+
+    public function testBannerMotionSettingsAreWhitelistedBoundedAndBackwardCompatible(): void
+    {
+        $normalized = HomeBloxBlockSchema::normalize([
+            'block_type' => 'banner',
+            'banner_height_mode' => 'unsafe-mode',
+            'banner_height_pc' => 9999,
+            'banner_height_mobile' => -5,
+            'banner_effect' => 'cube',
+            'banner_content_motion' => 'javascript:alert(1)',
+            'banner_background_motion' => 'zoom-out',
+            'banner_autoplay' => 1,
+            'banner_speed' => 9999,
+            'banner_stagger' => -20,
+            'banner_navigation' => false,
+            'banner_pagination' => false,
+            'banner_pause_hover' => false,
+        ]);
+
+        $this->assertSame('inherit', $normalized['banner_height_mode']);
+        $this->assertSame(1600, $normalized['banner_height_pc']);
+        $this->assertSame(180, $normalized['banner_height_mobile']);
+        $this->assertSame('fade', $normalized['banner_effect']);
+        $this->assertSame('none', $normalized['banner_content_motion']);
+        $this->assertSame('zoom-out', $normalized['banner_background_motion']);
+        $this->assertSame(2, $normalized['banner_autoplay']);
+        $this->assertSame(2000, $normalized['banner_speed']);
+        $this->assertSame(0, $normalized['banner_stagger']);
+        $this->assertFalse($normalized['banner_navigation']);
+        $this->assertFalse($normalized['banner_pagination']);
+        $this->assertFalse($normalized['banner_pause_hover']);
+
+        $coverHeader = HomeBloxBlockSchema::normalize([
+            'block_type' => 'banner',
+            'banner_height_mode' => 'cover-header',
+        ]);
+        $this->assertSame('cover-header', $coverHeader['banner_height_mode']);
+        $this->assertStringContainsString(
+            'data-blox-height-mode="cover-header"',
+            HomeBloxBlockSchema::bannerRuntimeAttributes($coverHeader)
+        );
+
+        $legacy = HomeBloxBlockSchema::normalize(['block_type' => 'banner']);
+        $this->assertSame('inherit', $legacy['banner_height_mode']);
+        $this->assertSame(650, $legacy['banner_height_pc']);
+        $this->assertSame(300, $legacy['banner_height_mobile']);
+        $this->assertSame('fade', $legacy['banner_effect']);
+        $this->assertSame(5, $legacy['banner_autoplay']);
+        $this->assertSame(700, $legacy['banner_speed']);
+        $this->assertTrue($legacy['banner_navigation']);
+        $this->assertTrue($legacy['banner_pagination']);
+        $this->assertTrue($legacy['banner_pause_hover']);
+
+        $attributes = HomeBloxBlockSchema::bannerRuntimeAttributes($normalized);
+        $this->assertStringContainsString(' data-blox-banner', $attributes);
+        $this->assertStringContainsString('data-blox-effect="fade"', $attributes);
+        $this->assertStringContainsString('data-blox-height-mode="inherit"', $attributes);
+        $this->assertStringContainsString('data-blox-navigation="0"', $attributes);
+        $this->assertStringContainsString('--blox-banner-speed:2000ms', $attributes);
+        $this->assertStringContainsString('--blox-banner-height-pc:1600px', $attributes);
+    }
+
+    public function testHomeBannerBlockCollectsOnlyItsPublishedRuntimeAssets(): void
+    {
+        $element = new \HomeBlockElement();
+        $this->assertSame(['/assets/js/blox-banner.js'], $element->scriptsFor(['block_type' => 'banner']));
+        $this->assertSame(['/assets/css/blox-banner.css'], $element->stylesFor(['block_type' => 'banner']));
+        $this->assertSame([], $element->scriptsFor(['block_type' => 'about']));
+        $this->assertSame([], $element->stylesFor(['block_type' => 'about']));
+    }
+
+    public function testTraditionalBannerGroupMapsToSharedRuntimeWithoutChangingBloxDefaults(): void
+    {
+        $runtime = HomeBloxBlockSchema::bannerGroupRuntimeConfig([
+            'height_pc' => 880,
+            'height_mobile' => 360,
+            'fullscreen' => 1,
+            'autoplay_delay' => 6500,
+            'effect' => 'slide',
+            'speed' => 900,
+            'content_motion' => 'fade-up',
+            'background_motion' => 'zoom-out',
+            'stagger' => 180,
+            'navigation' => 0,
+            'pagination' => 1,
+            'pause_hover' => 0,
+        ]);
+
+        $this->assertSame('screen', $runtime['banner_height_mode']);
+        $this->assertSame(880, $runtime['banner_height_pc']);
+        $this->assertSame(360, $runtime['banner_height_mobile']);
+        $this->assertSame(7, $runtime['banner_autoplay']);
+        $this->assertSame('slide', $runtime['banner_effect']);
+        $this->assertSame(900, $runtime['banner_speed']);
+        $this->assertSame('fade-up', $runtime['banner_content_motion']);
+        $this->assertSame('zoom-out', $runtime['banner_background_motion']);
+        $this->assertSame(180, $runtime['banner_stagger']);
+        $this->assertFalse($runtime['banner_navigation']);
+        $this->assertTrue($runtime['banner_pagination']);
+        $this->assertFalse($runtime['banner_pause_hover']);
+
+        $coverHeader = HomeBloxBlockSchema::bannerGroupRuntimeConfig([
+            'height_mode' => 'cover-header',
+            'fullscreen' => 1,
+        ]);
+        $this->assertSame('cover-header', $coverHeader['banner_height_mode']);
+
+        $invalidMode = HomeBloxBlockSchema::bannerGroupRuntimeConfig([
+            'height_mode' => 'unsafe',
+            'fullscreen' => 1,
+        ]);
+        $this->assertSame('screen', $invalidMode['banner_height_mode']);
+
+        $legacy = HomeBloxBlockSchema::bannerGroupRuntimeConfig([]);
+        $this->assertSame('fixed', $legacy['banner_height_mode']);
+        $this->assertSame('fade', $legacy['banner_effect']);
+        $this->assertSame(5, $legacy['banner_autoplay']);
+        $this->assertTrue($legacy['banner_navigation']);
+        $this->assertTrue($legacy['banner_pagination']);
+        $this->assertTrue($legacy['banner_pause_hover']);
     }
 
     public function testStatsItemsAreBoundedNormalizedAndMapped(): void
@@ -637,6 +798,12 @@ PHP);
         $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('stats', 'stats_items.0.number'));
         $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('advantage', 'advantage_items.3.description'));
         $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('cta', 'override_button_url'));
+        $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('cta', 'bg_image'));
+        $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('cta', 'bg_opacity'));
+        $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('cta', 'bg_overlay_color'));
+        $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('cta', 'bg_overlay_opacity'));
+        $this->assertSame('background', $blueprints['cta']['groups'][1]['key']);
+        $this->assertFalse($blueprints['cta']['groups'][1]['tree']);
         $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('about', 'title_decor_style'));
         $this->assertTrue(HomeBloxBlockSchema::isEditableFieldPath('testimonials', 'title_decor_style'));
         $this->assertFalse(HomeBloxBlockSchema::isEditableFieldPath('stats', 'stats_items.4.number'));
@@ -644,6 +811,249 @@ PHP);
         $this->assertFalse(HomeBloxBlockSchema::isEditableFieldPath('unknown', 'override_title'));
         $this->assertCount(4, HomeBloxBlockSchema::statsSeedItems());
         $this->assertCount(4, HomeBloxBlockSchema::advantageSeedItems());
+    }
+
+    public function testCustomColumnContractExposesEditablePricingFieldsByLocale(): void
+    {
+        $blocks = [[
+            'columns' => [[
+                'card_bg' => '#fffbeb',
+                'elements' => [
+                    ['type' => 'heading', 'data' => ['text' => 'Professional']],
+                    ['type' => 'text', 'data' => ['html' => '<p>$299 / month</p>']],
+                    ['type' => 'button', 'data' => ['text' => 'Choose', 'url' => '/contact.html']],
+                ],
+            ]],
+        ]];
+
+        $contract = HomeBloxBlockSchema::customEditorContract('custom:1', $blocks, 'ja');
+
+        $this->assertCount(1, $contract['groups']);
+        $this->assertSame('Professional', $contract['groups'][0]['label']);
+        $fields = $contract['groups'][0]['fields'];
+        $this->assertSame('color', $fields[0]['control']);
+        $this->assertSame('richtext', $fields[2]['control']);
+        $this->assertSame(
+            'custom_overrides.ja.0.columns.0.elements.2.data.url',
+            $fields[4]['key']
+        );
+        $this->assertSame(
+            '$299 / month',
+            strip_tags($contract['seeds']['custom_overrides']['ja'][0]['columns'][0]['elements'][1]['data']['html'])
+        );
+    }
+
+    public function testCustomAccordionContractExposesEachQuestionAndAnswer(): void
+    {
+        $blocks = [[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'accordion',
+                    'data' => ['items' => "How do I buy?|Contact our team.\nIs support included?|Yes, for one year."],
+                ]],
+            ]],
+        ]];
+
+        $contract = HomeBloxBlockSchema::customEditorContract('custom:2', $blocks, 'en');
+
+        $this->assertCount(0, $contract['groups']);
+        $this->assertCount(1, $contract['repeaters']);
+        $repeater = $contract['repeaters'][0];
+        $this->assertSame('help-circle', $repeater['icon']);
+        $this->assertSame('text', $repeater['fields'][0]['control']);
+        $this->assertSame('textarea', $repeater['fields'][1]['control']);
+        $this->assertSame(
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items',
+            $repeater['items_key']
+        );
+        $this->assertSame(
+            'Yes, for one year.',
+            $contract['seeds']['custom_overrides']['en'][0]['columns'][0]['elements'][0]
+                ['data']['accordion_items'][1]['answer']
+        );
+        $this->assertTrue(HomeBloxBlockSchema::isCustomEditableFieldPath(
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items.1.question'
+        ));
+        $this->assertFalse(HomeBloxBlockSchema::isCustomEditableFieldPath(
+            'custom_overrides.en.0.columns.0.elements.0.data.accordion_items.1.open_first'
+        ));
+    }
+
+    public function testPricingColumnsCanOptIntoSanitizedStructuralOverrides(): void
+    {
+        $blocks = [[
+            'columns' => [[
+                'elements' => [
+                    ['type' => 'heading', 'data' => ['text' => 'Basic', 'level' => 'h3']],
+                    ['type' => 'button', 'data' => ['text' => 'Choose', 'url' => '/contact.html']],
+                ],
+            ], [
+                'elements' => [
+                    ['type' => 'heading', 'data' => ['text' => 'Pro', 'level' => 'h3']],
+                    ['type' => 'text', 'data' => ['html' => '<p>$299</p>']],
+                ],
+            ]],
+        ]];
+        $contract = HomeBloxBlockSchema::customEditorContract('custom:1', $blocks, 'en');
+
+        $this->assertCount(1, $contract['column_repeaters']);
+        $this->assertSame(
+            'custom_overrides.en.0.columns',
+            $contract['column_repeaters'][0]['items_key']
+        );
+        $this->assertSame('custom-columns-0', $contract['groups'][0]['columnRepeaterKey']);
+        $this->assertSame(
+            'heading',
+            $contract['seeds']['custom_overrides']['en'][0]['columns'][0]['elements'][0]['type']
+        );
+
+        $normalized = HomeBloxBlockSchema::normalize([
+            'block_type' => 'custom:1',
+            'custom_overrides' => ['en' => [0 => [
+                'columns_mode' => 'custom',
+                'columns' => [[
+                    'card_bg' => '#FFFBEB',
+                    'elements' => [[
+                        'type' => 'heading',
+                        'data' => ['text' => '<b>Enterprise</b>', 'level' => 'bad', 'align' => 'center'],
+                    ], [
+                        'type' => 'button',
+                        'data' => ['text' => 'Contact', 'url' => 'javascript:bad()', 'new_tab' => true],
+                    ], [
+                        'type' => 'code',
+                        'data' => ['code' => '<script>bad()</script>'],
+                    ]],
+                ]],
+            ]]],
+        ]);
+        $result = HomeBloxBlockSchema::applyCustomOverrides($blocks, $normalized, 'en');
+
+        $this->assertCount(1, $result[0]['columns']);
+        $this->assertSame('#fffbeb', $result[0]['columns'][0]['card_bg']);
+        $this->assertSame('Enterprise', $result[0]['columns'][0]['elements'][0]['data']['text']);
+        $this->assertSame('h3', $result[0]['columns'][0]['elements'][0]['data']['level']);
+        $this->assertSame('', $result[0]['columns'][0]['elements'][1]['data']['url']);
+        $this->assertCount(2, $result[0]['columns'][0]['elements']);
+    }
+
+    public function testCustomAccordionOverridesStaySparseAndWriteStructuredItems(): void
+    {
+        $normalized = HomeBloxBlockSchema::normalize([
+            'block_type' => 'custom:2',
+            'custom_overrides' => [
+                'zh_CN' => [0 => ['columns' => [0 => ['elements' => [0 => ['data' => [
+                    'accordion_items' => [
+                        0 => ['question' => '<b>怎样购买|产品？</b>'],
+                        1 => ['answer' => "<i>包含售后</i>\n与技术支持|服务"],
+                        8 => ['question' => '不存在的条目'],
+                    ],
+                ]]]]]]],
+            ],
+        ]);
+
+        $items = $normalized['custom_overrides']['zh_CN'][0]['columns'][0]['elements'][0]
+            ['data']['accordion_items'];
+        $this->assertSame('怎样购买|产品？', $items[0]['question']);
+        $this->assertSame("包含售后\n与技术支持|服务", $items[1]['answer']);
+
+        $source = [[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'accordion',
+                    'data' => ['items' => "如何购买？|联系销售。\n提供售后吗？|提供一年质保。"],
+                ]],
+            ]],
+        ]];
+        $result = HomeBloxBlockSchema::applyCustomOverrides($source, $normalized, 'zh-CN');
+
+        $this->assertSame([
+            ['question' => '怎样购买|产品？', 'answer' => '联系销售。'],
+            ['question' => '提供售后吗？', 'answer' => "包含售后\n与技术支持|服务"],
+        ], $result[0]['columns'][0]['elements'][0]['data']['items']);
+    }
+
+    public function testCustomAccordionStructuralOverrideCanAddDeleteAndClearItems(): void
+    {
+        $source = [[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'accordion',
+                    'data' => ['items' => "Question 1|Answer 1\nQuestion 2|Answer 2"],
+                ]],
+            ]],
+        ]];
+        $normalized = HomeBloxBlockSchema::normalize([
+            'block_type' => 'custom:2',
+            'custom_overrides' => [
+                'en' => [0 => ['columns' => [0 => ['elements' => [0 => ['data' => [
+                    'accordion_mode' => 'custom',
+                    'accordion_items' => [
+                        ['question' => 'Added question', 'answer' => 'Added answer'],
+                    ],
+                ]]]]]]],
+            ],
+        ]);
+
+        $result = HomeBloxBlockSchema::applyCustomOverrides($source, $normalized, 'en');
+        $this->assertSame([
+            ['question' => 'Added question', 'answer' => 'Added answer'],
+        ], $result[0]['columns'][0]['elements'][0]['data']['items']);
+        $this->assertSame(
+            'custom',
+            $normalized['custom_overrides']['en'][0]['columns'][0]['elements'][0]['data']['accordion_mode']
+        );
+
+        $empty = HomeBloxBlockSchema::normalize([
+            'block_type' => 'custom:2',
+            'custom_overrides' => [
+                'en' => [0 => ['columns' => [0 => ['elements' => [0 => ['data' => [
+                    'accordion_mode' => 'custom',
+                    'accordion_items' => [],
+                ]]]]]]],
+            ],
+        ]);
+        $cleared = HomeBloxBlockSchema::applyCustomOverrides($source, $empty, 'en');
+        $this->assertSame([], $cleared[0]['columns'][0]['elements'][0]['data']['items']);
+    }
+
+    public function testCustomOverridesAreSparseSanitizedAndLanguageScoped(): void
+    {
+        $normalized = HomeBloxBlockSchema::normalize([
+            'block_type' => 'custom:1',
+            'custom_overrides' => [
+                'zh_CN' => [0 => ['columns' => [1 => [
+                    'card_bg' => '#FFFBEB',
+                    'elements' => [
+                        0 => ['data' => ['text' => '<b>专业版</b>']],
+                        1 => ['data' => ['html' => '<p onclick="bad()">¥299</p><script>bad()</script>']],
+                        2 => ['data' => ['url' => 'javascript:bad()']],
+                    ],
+                ]]]],
+                'ja' => [0 => ['columns' => [1 => [
+                    'elements' => [0 => ['data' => ['text' => 'プロ']]],
+                ]]]],
+            ],
+        ]);
+
+        $overrides = $normalized['custom_overrides'];
+        $this->assertSame('#fffbeb', $overrides['zh_CN'][0]['columns'][1]['card_bg']);
+        $this->assertSame('专业版', $overrides['zh_CN'][0]['columns'][1]['elements'][0]['data']['text']);
+        $this->assertSame('<p >¥299</p>', $overrides['zh_CN'][0]['columns'][1]['elements'][1]['data']['html']);
+        $this->assertSame('', $overrides['zh_CN'][0]['columns'][1]['elements'][2]['data']['url']);
+        $this->assertSame('プロ', $overrides['ja'][0]['columns'][1]['elements'][0]['data']['text']);
+
+        $source = [[
+            'columns' => [[
+                'elements' => [['type' => 'heading', 'data' => ['text' => 'Base']]],
+            ], [
+                'elements' => [['type' => 'heading', 'data' => ['text' => 'Original']]],
+            ]],
+        ]];
+        $zh = HomeBloxBlockSchema::applyCustomOverrides($source, $normalized, 'zh-CN');
+        $ja = HomeBloxBlockSchema::applyCustomOverrides($source, $normalized, 'ja');
+        $this->assertSame('Base', $zh[0]['columns'][0]['elements'][0]['data']['text']);
+        $this->assertSame('专业版', $zh[0]['columns'][1]['elements'][0]['data']['text']);
+        $this->assertSame('プロ', $ja[0]['columns'][1]['elements'][0]['data']['text']);
     }
 
 }

@@ -46,6 +46,18 @@ async function openEditor(page) {
   await expect(page.getByTestId('blox-rollback')).toBeAttached();
 }
 
+async function openPageEditor(page, pageId) {
+  await page.goto(`/admin/blox_editor.php?id=${encodeURIComponent(pageId)}`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+  await expect(page.getByTestId('blox-tree')).toBeAttached();
+  await page.waitForFunction(() => {
+    const canvas = document.querySelector('[data-testid="blox-canvas"]');
+    return canvas && canvas.contentDocument && canvas.contentDocument.readyState === 'complete';
+  });
+  await expect(page.getByTestId('blox-save')).toBeAttached();
+  await expect(page.getByTestId('blox-publish-page')).toBeAttached();
+}
+
 async function frame(page) {
   const handle = await page.getByTestId('blox-canvas').elementHandle();
   const contentFrame = handle && await handle.contentFrame();
@@ -110,13 +122,14 @@ async function clearSelection(page) {
 async function addTemporaryHeading(page, columns = 1) {
   await clearSelection(page);
   const before = await countSections(page);
+  const headingBefore = await (await frame(page)).locator('[data-yk-el-type="heading"]').count();
   await page.getByTestId(`blox-add-section-${columns}`).click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const section = page.getByTestId('blox-tree-section').last();
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-heading').click();
   await expect(section.getByTestId('blox-tree-element')).toHaveCount(1);
-  await expect((await frame(page)).locator('[data-yk-el-type="heading"]')).toHaveCount(1);
+  await expect((await frame(page)).locator('[data-yk-el-type="heading"]')).toHaveCount(headingBefore + 1);
   return { before, section, sectionIndex: before };
 }
 
@@ -124,8 +137,21 @@ async function performPreviewUpdate(page, action) {
   const response = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
     return candidate.request().method() === 'POST'
-      && url.pathname === '/admin/page_edit_advance.php'
+      && url.pathname === '/admin/blox_preview.php'
       && url.searchParams.get('home') === '1';
+  });
+  await action();
+  await response;
+  await page.waitForTimeout(80);
+}
+
+async function performPagePreviewUpdate(page, action) {
+  const response = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    const body = new URLSearchParams(candidate.request().postData() || '');
+    return candidate.request().method() === 'POST'
+      && url.pathname === '/admin/blox_page_api.php'
+      && body.get('action') === 'preview';
   });
   await action();
   await response;
@@ -168,6 +194,8 @@ module.exports = {
   observeConsole,
   observeUnsafeWrites,
   openEditor,
+  openPageEditor,
+  performPagePreviewUpdate,
   performPreviewUpdate,
   restoreClean,
   scrollCanvasToBottom,

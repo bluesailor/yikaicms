@@ -1,0 +1,8 @@
+[
+  {"name":"scalar","value":"md","fallback":"sm","expected":{"d":"md","t":"md","m":"md"}},
+  {"name":"desktop-only","value":{"d":"lg"},"fallback":"sm","expected":{"d":"lg","t":"lg","m":"lg"}},
+  {"name":"mobile-override","value":{"d":"md","m":"none"},"fallback":"sm","expected":{"d":"md","t":"md","m":"none"}},
+  {"name":"long-device-aliases","value":{"desktop":"lg","tablet":"md","mobile":"sm"},"fallback":"none","expected":{"d":"lg","t":"md","m":"sm"}},
+  {"name":"invalid-tier","value":{"d":"bad","t":"lg","m":"bad"},"fallback":"sm","expected":{"d":"sm","t":"lg","m":"lg"}},
+  {"name":"invalid-scalar","value":"bad","fallback":"md","expected":{"d":"md","t":"md","m":"md"}}
+]

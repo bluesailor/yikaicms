@@ -1,0 +1,149 @@
+[data-blox-banner] {
+    --blox-banner-speed: 700ms;
+    --blox-banner-stagger: 120ms;
+    --blox-banner-hold: 5700ms;
+    --blox-banner-height-pc: 650px;
+    --blox-banner-height-mobile: 300px;
+    --blox-banner-offset: 70px;
+}
+
+[data-blox-banner][data-blox-height-mode="fixed"] {
+    height: var(--blox-banner-height-mobile);
+    min-height: 0;
+}
+
+[data-blox-banner][data-blox-height-mode="screen"] {
+    height: max(240px, calc(100vh - var(--blox-banner-offset)));
+    height: max(240px, calc(100svh - var(--blox-banner-offset)));
+    min-height: 240px;
+}
+
+[data-blox-banner][data-blox-height-mode="cover-header"] {
+    height: max(320px, 100vh);
+    height: max(320px, 100svh);
+    min-height: 320px;
+}
+
+@media (min-width: 768px) {
+    [data-blox-banner][data-blox-height-mode="fixed"] {
+        height: var(--blox-banner-height-pc);
+    }
+}
+
+/* 传统分组的 fullscreen 历史契约只影响桌面端。 */
+[data-blox-banner][data-blox-height-mode="screen"][data-blox-screen-desktop="1"] {
+    height: var(--blox-banner-height-mobile);
+    min-height: 0;
+}
+
+@media (min-width: 768px) {
+    [data-blox-banner][data-blox-height-mode="screen"][data-blox-screen-desktop="1"] {
+        height: max(240px, calc(100vh - var(--blox-banner-offset)));
+        height: max(240px, calc(100svh - var(--blox-banner-offset)));
+        min-height: 240px;
+    }
+}
+
+[data-blox-banner] .swiper-slide {
+    overflow: hidden;
+}
+
+[data-blox-navigation="0"] .swiper-button-prev,
+[data-blox-navigation="0"] .swiper-button-next,
+[data-blox-pagination="0"] .swiper-pagination {
+    display: none;
+}
+
+[data-blox-banner] [data-blox-layer],
+[data-blox-banner] [data-blox-banner-bg] {
+    will-change: opacity, transform;
+}
+
+[data-blox-content-motion="fade-up"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="fade-up"] [data-blox-layer],
+[data-blox-content-motion="fade-up"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="fade-up"] [data-blox-layer] {
+    animation: blox-banner-fade-up var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-content-motion="slide-left"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="slide-left"] [data-blox-layer],
+[data-blox-content-motion="slide-left"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="slide-left"] [data-blox-layer] {
+    animation: blox-banner-slide-left var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-content-motion="slide-right"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="slide-right"] [data-blox-layer],
+[data-blox-content-motion="slide-right"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="slide-right"] [data-blox-layer] {
+    animation: blox-banner-slide-right var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-content-motion="zoom-in"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="zoom-in"] [data-blox-layer],
+[data-blox-content-motion="zoom-in"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="zoom-in"] [data-blox-layer] {
+    animation: blox-banner-zoom-in var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-background-motion="zoom-in"] .swiper-slide-active:not([data-blox-slide-background-motion]) [data-blox-banner-bg],
+[data-blox-background-motion="zoom-in"].blox-banner-static-active:not([data-blox-slide-background-motion]) [data-blox-banner-bg],
+.swiper-slide-active[data-blox-slide-background-motion="zoom-in"] [data-blox-banner-bg],
+.blox-banner-static-active[data-blox-slide-background-motion="zoom-in"] [data-blox-banner-bg] {
+    animation: blox-banner-bg-zoom-in var(--blox-banner-hold) linear both;
+}
+
+[data-blox-background-motion="zoom-out"] .swiper-slide-active:not([data-blox-slide-background-motion]) [data-blox-banner-bg],
+[data-blox-background-motion="zoom-out"].blox-banner-static-active:not([data-blox-slide-background-motion]) [data-blox-banner-bg],
+.swiper-slide-active[data-blox-slide-background-motion="zoom-out"] [data-blox-banner-bg],
+.blox-banner-static-active[data-blox-slide-background-motion="zoom-out"] [data-blox-banner-bg] {
+    animation: blox-banner-bg-zoom-out var(--blox-banner-hold) linear both;
+}
+
+.swiper-slide-active[data-blox-slide-background-motion="none"] [data-blox-banner-bg],
+.blox-banner-static-active[data-blox-slide-background-motion="none"] [data-blox-banner-bg] {
+    animation: none;
+}
+
+@keyframes blox-banner-fade-up {
+    from { opacity: 0; transform: translate3d(0, 28px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes blox-banner-slide-left {
+    from { opacity: 0; transform: translate3d(44px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes blox-banner-slide-right {
+    from { opacity: 0; transform: translate3d(-44px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes blox-banner-zoom-in {
+    from { opacity: 0; transform: scale(.92); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes blox-banner-bg-zoom-in {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+}
+
+@keyframes blox-banner-bg-zoom-out {
+    from { transform: scale(1.08); }
+    to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-blox-banner] [data-blox-layer],
+    [data-blox-banner] [data-blox-banner-bg] {
+        animation: none !important;
+        transform: none !important;
+    }
+}

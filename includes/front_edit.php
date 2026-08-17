@@ -3,7 +3,8 @@
  * 前台就地编辑覆盖层（P1）
  *
  * 登录管理员浏览「构建器页面」(content_type=blocks) 时，悬停区块高亮边框 + 浮出「编辑此区块」
- * 按钮，点击深链到后台构建器并定位到该区块（page_edit_advance.php?id=X&focus=N）。
+ * 按钮，点击深链到 Blox 并定位到该区块（blox_editor.php?id=X&focus=N）。首页统一使用
+ * 顶部管理条的「编辑此页」，不在真实页面上叠加区块操作层。
  *
  * 仅在 page.php 为管理员设置了 $GLOBALS['ik_front_edit_cid'] 时输出（BlockRenderer 同时给
  * section 打了 data-yk-sec 索引）。普通访客/非 blocks 页无任何输出，也不写入公开缓存。
@@ -13,6 +14,7 @@ if (!defined('ROOT_PATH')) exit;
 
 function renderFrontEdit(): void
 {
+    if (isCleanFrontendPreview()) return;
     if (empty($_SESSION['admin_id'])) return;
     $cid  = (int) ($GLOBALS['ik_front_edit_cid'] ?? 0);   // 构建器页面 channel id
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
@@ -43,24 +45,12 @@ function renderFrontEdit(): void
       .yk-logo-btn:hover { background: #1d4ed8; color: #fff; }
       .yk-logo-btn--make { background: #7c3aed; }
       .yk-logo-btn--make:hover { background: #6d28d9; }
-      .yk-edit-extra { margin-left: 6px; background: #475569; color: #fff; font-size: 12px; line-height: 1;
-        font-weight: 600; padding: 5px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
-        text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-      .yk-edit-extra:hover { background: #334155; color: #fff; }
-      .yk-edit-extra--danger { background: #dc2626; }
-      .yk-edit-extra--danger:hover { background: #b91c1c; }
       @media print { #yk-edit-outline, .yk-logo-btns { display: none !important; } }
     </style>
     <script>
     (function () {
       var cid = <?php echo $cid; ?>;
-      // Blox 编辑器未启用/无授权时，首页区块回落到「首页设置」，不给出无效入口
-      var bloxOn = <?php echo bloxEditorEnabled() ? 'true' : 'false'; ?>;
       var current = null, hideTimer = null;
-
-      // 首页版块的就地「隐藏 / 删除」需要提交到后台，故带上 CSRF token。
-      // 这段脚本只对已登录管理员输出，token 不会暴露给访客。
-      var csrf = <?php echo json_encode(function_exists('csrfToken') ? csrfToken() : (string) ($_SESSION['_token'] ?? ''), JSON_UNESCAPED_SLASHES); ?>;
 
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
@@ -69,67 +59,14 @@ function renderFrontEdit(): void
       btn.innerHTML = '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
       box.appendChild(btn);
 
-      // 首页版块专用：隐藏（系统自带与自定义通用）/ 删除（仅自定义）
-      var btnHide = document.createElement('a');
-      btnHide.id = 'yk-hide-btn';
-      btnHide.className = 'yk-edit-extra';
-      btnHide.textContent = '⃠ ' + <?php echo json_encode(__('admin_hide'), JSON_UNESCAPED_UNICODE); ?>;
-      btnHide.style.display = 'none';
-      box.appendChild(btnHide);
-
-      var btnDel = document.createElement('a');
-      btnDel.id = 'yk-del-btn';
-      btnDel.className = 'yk-edit-extra yk-edit-extra--danger';
-      btnDel.textContent = '✕ ' + <?php echo json_encode(__('admin_delete'), JSON_UNESCAPED_UNICODE); ?>;
-      btnDel.style.display = 'none';
-      box.appendChild(btnDel);
-
-      function homePost(action, data, okMsg) {
-        var fd = new FormData();
-        fd.append('action', action);
-        fd.append('ajax', '1');
-        fd.append('_token', csrf);
-        Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
-        return fetch('/admin/setting_home.php', { method: 'POST', body: fd, credentials: 'same-origin' })
-          .then(function (r) { return r.json().catch(function () { return { success: false, message: <?php echo json_encode(__('fe_bad_response'), JSON_UNESCAPED_UNICODE); ?> }; }); })
-          .then(function (j) {
-            if (j && j.success) { location.reload(); }
-            else { alert((j && j.message) || <?php echo json_encode(__('admin_action_failed'), JSON_UNESCAPED_UNICODE); ?>); }
-          })
-          .catch(function (e) { alert(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + '：' + e.message); });
-      }
-
-      btnHide.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (!current) return;
-        var type = current.getAttribute('data-yk-home') || '';
-        if (!type) return;
-        if (!confirm(<?php echo json_encode(__('fe_hide_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
-        homePost('toggle_block', { type: type, enabled: '0' });
-      });
-
-      btnDel.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (!current) return;
-        var type = current.getAttribute('data-yk-home') || '';
-        if (type.indexOf('custom:') !== 0) return;
-        if (!confirm(<?php echo json_encode(__('fe_delete_confirm'), JSON_UNESCAPED_UNICODE); ?>)) return;
-        homePost('del_custom', { n: type.slice(7) });
-      });
-
       document.body.appendChild(box);
 
       function hide() { box.style.display = 'none'; current = null; }
 
-      // 按元素上的标记算编辑链接：构建器区块 data-yk-sec / 首页区块 data-yk-home / 导航 data-yk-nav
+      // 按元素上的标记算编辑链接：构建器区块 / 导航 / 页脚 / 通用内容。
       function editUrl(el) {
         if (el.hasAttribute('data-yk-sec')) {
-          return '/admin/page_edit_advance.php?id=' + cid + '&focus=' + el.getAttribute('data-yk-sec');
-        }
-        if (el.hasAttribute('data-yk-home')) {
-          return bloxOn
-            ? '/admin/blox_editor.php?home=1&focus=' + encodeURIComponent(el.getAttribute('data-yk-home'))
-            : '/admin/setting_home.php';
+          return '/admin/blox_editor.php?id=' + cid + '&focus=' + el.getAttribute('data-yk-sec');
         }
         if (el.hasAttribute('data-yk-nav')) {
           return '/admin/channel.php';
@@ -163,12 +100,6 @@ function renderFrontEdit(): void
         btn.href = editUrl(sec);
         btn.textContent = editLabel(sec);
 
-        // 按元素类型决定附加动作：
-        //   隐藏 → 仅首页版块（系统自带与自定义通用，只改 enabled 不删数据）
-        //   删除 → 仅自定义版块（custom:N，内容一并删除）
-        var homeType = sec.getAttribute('data-yk-home') || '';
-        btnHide.style.display = homeType ? 'inline-block' : 'none';
-        btnDel.style.display  = homeType.indexOf('custom:') === 0 ? 'inline-block' : 'none';
       }
 
       function attach(sec) {
@@ -182,7 +113,7 @@ function renderFrontEdit(): void
         else document.addEventListener('DOMContentLoaded', fn);
       }
       onReady(function () {
-        document.querySelectorAll('[data-yk-sec],[data-yk-home],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
+        document.querySelectorAll('[data-yk-sec],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
@@ -197,7 +128,7 @@ function renderFrontEdit(): void
       fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
       document.body.appendChild(fileInput);
 
-      var hasIconMaker = <?php echo json_encode(function_exists('getActivePlugins') && in_array('icon-maker', getActivePlugins(), true)); ?>;
+      var hasLogoMaker = <?php echo json_encode(function_exists('getActivePlugins') && in_array('logo-maker', getActivePlugins(), true)); ?>;
       onReady(function () {
         document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
           var wrap = document.createElement('span');
@@ -215,12 +146,12 @@ function renderFrontEdit(): void
             fileInput.click();
           });
           wrap.appendChild(b);
-          if (hasIconMaker) {
-            // 图标工坊在线制作入口（做好后可一键设为站点 Logo）
+          if (hasLogoMaker) {
+            // LOGO 制作在线入口（做好后可一键设为站点 Logo）
             var mk = document.createElement('a');
             mk.className = 'yk-logo-btn yk-logo-btn--make';
             mk.textContent = '★ ' + <?php echo json_encode(__('fe_make_logo'), JSON_UNESCAPED_UNICODE); ?>;
-            mk.href = '/admin/plugin_page.php?plugin=icon-maker#logo';
+            mk.href = '/admin/plugin_page.php?plugin=logo-maker#logoMakerLocalForm';
             mk.addEventListener('click', function (e) { e.stopPropagation(); });
             wrap.appendChild(mk);
           }

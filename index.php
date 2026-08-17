@@ -93,12 +93,14 @@ $aboutChannel = getChannelBySlug('about', true);
 $bannerHeightPC = (int)config('banner_height_pc', 650);
 $bannerHeightMobile = (int)config('banner_height_mobile', 300);
 $bannerFullscreen = config('banner_fullscreen', '0') === '1';
+$homeBannerRuntime = null;
 // 首页 banner 优先采用「home 分组」自身的高度 / 全屏设置（后台 轮播图→分组管理→编辑 可配），回退到全局
 $homeBannerGroup = getBannerGroup('home');
 if ($homeBannerGroup) {
+    $homeBannerRuntime = HomeBloxBlockSchema::bannerGroupRuntimeConfig($homeBannerGroup);
     if (!empty($homeBannerGroup['height_pc']))     { $bannerHeightPC = (int)$homeBannerGroup['height_pc']; }
     if (!empty($homeBannerGroup['height_mobile'])) { $bannerHeightMobile = (int)$homeBannerGroup['height_mobile']; }
-    if (isset($homeBannerGroup['fullscreen']))     { $bannerFullscreen = (int)$homeBannerGroup['fullscreen'] === 1; }
+    $bannerFullscreen = ($homeBannerRuntime['banner_height_mode'] ?? 'fixed') === 'screen';
 }
 
 // 主题色
@@ -166,6 +168,23 @@ $blockTemplates = [
     'product_categories' => theme_path('blocks/product_categories.php'),
 ];
 
+// 首页文档必须在 Header 输出前解析：全屏 Banner 可据此让页头叠放在首屏底图上。
+$homeLayoutActive = HomeLayoutDocument::isActive() && HomeLayoutDocument::hasPublished();
+$homeBloxActive = !$homeLayoutActive && HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished();
+$homeBloxDocument = null;
+if ($homeLayoutActive) {
+    $homeBloxDocument = HomeLayoutDocument::loadPublished();
+} elseif ($homeBloxActive) {
+    $homeBloxDocument = HomeBloxDocument::loadPublished();
+}
+$ykHomeHeaderOverlay = is_array($homeBloxDocument)
+    ? HomeBloxRenderer::startsWithHeaderOverlayBanner(
+        $homeBloxDocument['sections'],
+        is_array($homeBannerGroup) ? $homeBannerGroup : []
+    )
+    : (is_array($homeBannerGroup)
+        && HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner($blocksConfig, $homeBannerGroup));
+
 // Swiper轮播图资源
 // banner 高度：全屏模式用 100svh-头部(JS 量)，否则用配置的像素高度
 $bannerHeightCss = $bannerFullscreen
@@ -175,6 +194,7 @@ $bannerHeightCss = $bannerFullscreen
 @media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }';
 $extraCss = '
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
+<link rel="stylesheet" href="' . e(assetVer('/assets/css/blox-banner.css')) . '">
 <style>
 ' . $bannerHeightCss . '
 .banner-swiper .swiper-pagination-bullet-active { opacity: 1; background: ' . $primaryColor . '; width: 24px; border-radius: 6px; }
@@ -183,6 +203,41 @@ $extraCss = '
 .banner-swiper .swiper-slide:not(.swiper-slide-active) * { pointer-events: none !important; }
 .banner-swiper .swiper-slide-active .pointer-events-auto { pointer-events: auto !important; }
 </style>';
+if ($ykHomeHeaderOverlay) {
+    $extraCss .= '
+<script>document.documentElement.classList.add("yk-home-header-overlay");</script>
+<style>
+html.yk-home-header-overlay body > [data-yk-topbar] {
+    position: absolute !important;
+    inset: 0 0 auto;
+    z-index: 60;
+    background: rgba(15, 23, 42, .42) !important;
+    color: #fff !important;
+}
+html.yk-home-header-overlay body > [data-yk-topbar] * { color: inherit !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) {
+    position: absolute !important;
+    inset: 0 0 auto;
+    z-index: 55;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, .18) !important;
+}
+html.yk-home-header-overlay body > [data-yk-topbar] + #siteHeader { top: 2rem; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) button,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a > span { color: #fff !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .hamburger span { background-color: #fff !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-dropdown-menu a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-submenu a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #langDropdown a { color: #374151 !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu {
+    background: rgba(15, 23, 42, .96) !important;
+    border-color: rgba(255, 255, 255, .14) !important;
+}
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu a { color: #fff !important; }
+</style>';
+}
 if ($bannerFullscreen) {
     // 满屏 banner：量出头部（通栏+导航）总高度写入 --hg-banner-offset；svh 适配移动端浏览器地址栏
     $extraCss .= '
@@ -191,17 +246,8 @@ if ($bannerFullscreen) {
 
 $extraJs = '
 <script src="/assets/swiper/swiper-bundle.min.js"></script>
+<script src="' . e(assetVer('/assets/js/blox-banner.js')) . '"></script>
 <script>
-new Swiper(".banner-swiper", {
-    loop: false,
-    rewind: true,
-    autoplay: { delay: 5000, disableOnInteraction: false },
-    effect: "fade",
-    fadeEffect: { crossFade: true },
-    pagination: { el: ".swiper-pagination", clickable: true },
-    navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }
-});
-
 // 首页产品分类筛选
 (function() {
     const nav = document.getElementById("productCategoryNav");
@@ -242,23 +288,16 @@ new Swiper(".banner-swiper", {
 // 引入头部
 require_once theme_path('layouts/header.php');
 
-// 前台就地编辑（P1）：登录管理员浏览首页时，给每个区块打编辑标记 + 开启悬停编辑覆盖层
-$ykHomeEdit = !empty($_SESSION['admin_id']);
-if ($ykHomeEdit) {
-    $GLOBALS['ik_front_edit_home'] = true;
-    $GLOBALS['ik_edit_url'] = '/admin/page_edit_advance.php?home=1';
+// 首页统一从顶部管理条进入 Blox，不再给每个区块叠加悬停编辑框。
+// 该变量仍传给主题区块，明确关闭仅供编辑器预览使用的字段标记。
+$ykHomeEdit = false;
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
+    $GLOBALS['ik_edit_url'] = bloxAdvancedFeaturesEnabled()
+        ? '/admin/blox_editor.php?home=1'
+        : '/admin/setting_home.php';
 }
 
 // 动态渲染首页：已发布 Blox 时按文档树输出，未发布时保留旧首页链路。
-$homeLayoutActive = HomeLayoutDocument::isActive() && HomeLayoutDocument::hasPublished();
-$homeBloxActive = !$homeLayoutActive && HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished();
-$homeBloxDocument = null;
-if ($homeLayoutActive) {
-    $homeBloxDocument = HomeLayoutDocument::loadPublished();
-} elseif ($homeBloxActive) {
-    $homeBloxDocument = HomeBloxDocument::loadPublished();
-}
-
 $homeBloxRenderContext = HomeBloxRenderContext::fromHomePageData(
     $blocksConfig,
     $blockTemplates,
@@ -276,8 +315,6 @@ if (($homeLayoutActive || $homeBloxActive) && is_array($homeBloxDocument)) {
     foreach ($blocksConfig as $block) {
         if (empty($block['enabled'])) continue;
         $type = $block['type'] ?? '';
-
-        if ($ykHomeEdit) ob_start();
 
         // 独立栏目区块仍由旧主题模板负责实际数据查询与输出。
         if (str_starts_with($type, 'channel:')) {
@@ -298,23 +335,15 @@ if (($homeLayoutActive || $homeBloxActive) && is_array($homeBloxDocument)) {
                 echo renderBlocksToHtml(json_encode($customData['blocks'], JSON_UNESCAPED_UNICODE));
             }
         } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
+            if ($type === 'banner' && is_array($homeBannerRuntime)) {
+                $block = array_merge($block, $homeBannerRuntime);
+            }
             require $blockTemplates[$type];
         } else {
             // 插件版块前台渲染扩展点：内置类型不匹配时交给插件。
             echo (string) apply_filters('home_block_render', '', $type, $block);
         }
 
-        if ($ykHomeEdit) {
-            $blockHtml = ob_get_clean();
-            if ($blockHtml !== '') {
-                if (str_starts_with($type, 'custom:')) {
-                    $blockHtml = (string) preg_replace('/<section\b/', '<section data-yk-home="' . e($type) . '"', $blockHtml);
-                } else {
-                    $blockHtml = (string) preg_replace('/<(\w+)/', '<$1 data-yk-home="' . e($type) . '"', $blockHtml, 1);
-                }
-            }
-            echo $blockHtml;
-        }
     }
 }
 

@@ -14,6 +14,8 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
+require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+require_once ROOT_PATH . '/includes/HomeSettingsLanguageDefaults.php';
 
 // ============== 多语言视图（settings 表无 lang 列，per-lang 用 <key>_<lang> 后缀约定） ==============
 $_lang        = adminLangView();
@@ -22,19 +24,13 @@ $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 
 // 哪些 key 走 per-lang（文案 + 客户评价 JSON）；剩下（区块顺序/开关/样式/图片/数字/图标/颜色）全局共享
-$LANG_KEYS = [
-    'nav_home_text',
-    'home_about_title', 'home_about_content', 'home_about_tag_title', 'home_about_tag_desc',
-    'home_stat_1_text', 'home_stat_2_text', 'home_stat_3_text', 'home_stat_4_text',
-    'home_testimonials_title', 'home_testimonials_desc', 'home_testimonials',
-    'home_advantage_title', 'home_advantage_desc',
-    'home_adv_1_title', 'home_adv_1_desc',
-    'home_adv_2_title', 'home_adv_2_desc',
-    'home_adv_3_title', 'home_adv_3_desc',
-    'home_adv_4_title', 'home_adv_4_desc',
-    'home_cta_title', 'home_cta_desc',
-    'home_links_title',
-];
+$LANG_KEYS = HomeSettingsLanguageDefaults::keys();
+$HOME_DEFAULTS = getDefaults('home');
+$HOME_STORED_ROWS = settingModel()->getByGroup('home');
+$HOME_STORED_BY_KEY = [];
+foreach ($HOME_STORED_ROWS as $row) {
+    $HOME_STORED_BY_KEY[(string) $row['key']] = $row;
+}
 
 // 自定义版块：从预设复制一份 section 并重生成各级唯一 id（对齐构建器 freshSection）
 function homeFreshSection(array $s): array
@@ -58,6 +54,21 @@ function homeFreshSection(array $s): array
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // 经典首页只转换为 Blox 草稿；前台继续使用经典首页，直到用户在 Blox 中明确发布。
+    if (($_POST['action'] ?? '') === 'convert_to_blox') {
+        if (!bloxAdvancedFeaturesEnabled()) {
+            error(__('blox_feature_disabled'));
+        }
+        $hadDraft = HomeBloxDocument::hasDraft();
+        $document = HomeBloxDocument::createDraftFromLegacy();
+        adminLog(
+            'home',
+            $hadDraft ? 'continue_blox_draft' : 'convert_to_blox',
+            $hadDraft ? '继续编辑首页 Blox 草稿' : '经典首页转换为 Blox 草稿'
+        );
+        redirect('/admin/blox_editor.php?home=1&classic_import=' . ($hadDraft ? 'existing' : 'created'));
+    }
 
     // ── 新建自定义版块（从预设库或空白）──
     if (($_POST['action'] ?? '') === 'add_custom') {
@@ -148,43 +159,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 按视图 lang 把 lang-able key 重定向到 <key>_<lang>
     $remapped = [];
+    $deleteSyntheticKeys = [];
     foreach ($settings as $k => $v) {
+        $k = (string) $k;
         $isLangAble = in_array($k, $LANG_KEYS, true);
-        $targetKey = ($isLangAble && $_viewLang !== $_defaultLang) ? ($k . '_' . $_viewLang) : (string) $k;
+        $storedRow = $HOME_STORED_BY_KEY[$k] ?? null;
+        if ($isLangAble
+            && $_viewLang === $_defaultLang
+            && HomeSettingsLanguageDefaults::shouldSkipSyntheticWrite(
+                $k,
+                $v,
+                $_defaultLang,
+                $storedRow !== null,
+                $storedRow === null ? null : (string) $storedRow['value'],
+                $HOME_DEFAULTS
+            )
+        ) {
+            if ($storedRow !== null) {
+                $deleteSyntheticKeys[] = $k;
+            }
+            continue;
+        }
+        $targetKey = ($isLangAble && $_viewLang !== $_defaultLang) ? ($k . '_' . $_viewLang) : $k;
         $remapped[$targetKey] = $v;
     }
     settingModel()->saveBatch($remapped);
-
-    // 更新页脚导航中的"首页"链接（按当前 lang 写入对应 footer_nav[_<lang>]）
-    $homeInFooterNav = (int)($_POST['home_footer_nav'] ?? 0);
-    $homeUrl = '/';
-    $footerNavKey = ($_viewLang !== $_defaultLang) ? ('footer_nav_' . $_viewLang) : 'footer_nav';
-    $footerNav = json_decode(config($footerNavKey) ?: '[]', true) ?: [];
-
-    // 移除已有的"首页"链接
-    foreach ($footerNav as &$group) {
-        $group['links'] = array_values(array_filter($group['links'] ?? [], function($link) use ($homeUrl) {
-            return ($link['url'] ?? '') !== $homeUrl;
-        }));
+    foreach ($deleteSyntheticKeys as $key) {
+        db()->delete('settings', '`key` = ?', [$key]);
     }
-    unset($group);
-
-    if ($homeInFooterNav) {
-        // 取当前 lang 下的 nav_home_text，没有则回退到默认 lang 的 nav_home_text
-        $submittedHomeText = trim($settings['nav_home_text'] ?? '');
-        $fallbackHomeText  = (string) config('nav_home_text', '');
-        $homeText = $submittedHomeText ?: ($fallbackHomeText ?: __('nav_home'));
-        if (empty($footerNav)) {
-            $footerNav[] = ['title' => '', 'links' => []];
-        }
-        $footerNav[0]['links'][] = ['name' => $homeText, 'url' => '/', 'target' => '_self'];
-    }
-
-    // 清理空分组
-    $footerNav = array_values(array_filter($footerNav, function($g) {
-        return !empty($g['links']);
-    }));
-    settingModel()->set($footerNavKey, json_encode($footerNav, JSON_UNESCAPED_UNICODE));
 
     adminLog('setting', 'update', '更新首页设置 (' . $_viewLang . ')');
     success();
@@ -200,15 +202,28 @@ $readLang = function (string $base, string $default = '') use ($LANG_KEYS, $_vie
 };
 
 // 获取全部 home 组设置
-$allSettings = settingModel()->getByGroup('home');
+$allSettings = $HOME_STORED_ROWS;
 
 // 构建 key => row 映射：先用 defaults.php 兜底（保证新增的默认设置项也出现在表单，
 // 即使 DB 尚无该行），再用 DB 已存的值覆盖。
 $settingsMap = [];
-foreach (getDefaults('home') as $key => $def) {
+foreach ($HOME_DEFAULTS as $key => $def) {
+    $value = (string) ($def['value'] ?? '');
+    $storedRow = $HOME_STORED_BY_KEY[$key] ?? null;
+    if (!in_array($_defaultLang, ['zh-CN', 'zh-TW'], true)
+        && in_array($key, $LANG_KEYS, true)
+        && ($storedRow === null || HomeSettingsLanguageDefaults::isLeakedFactoryValue(
+            $key,
+            (string) $storedRow['value'],
+            $_defaultLang,
+            $HOME_DEFAULTS
+        ))
+    ) {
+        $value = HomeSettingsLanguageDefaults::localizedValue($key, $_defaultLang, $HOME_DEFAULTS);
+    }
     $settingsMap[$key] = [
         'key'     => $key,
-        'value'   => (string) ($def['value'] ?? ''),
+        'value'   => $value,
         'type'    => $def['type'] ?? 'text',
         'name'    => $def['name'] ?? $key,
         'tip'     => $def['tip'] ?? '',
@@ -461,6 +476,9 @@ if ($__bGroups) {
 
 $pageTitle = __('shome_title');
 $currentMenu = 'setting_home';
+$homeBloxAvailable = bloxAdvancedFeaturesEnabled();
+$homeBloxHasDraft = $homeBloxAvailable && HomeBloxDocument::hasDraft();
+$homeBloxActive = $homeBloxAvailable && HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished();
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -471,64 +489,42 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
 <div class="mb-6">
     <div class="flex items-center justify-between gap-4 flex-wrap">
         <p class="text-gray-500"><?php echo __('home_editor_hint'); ?></p>
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="/admin/page_edit_advance.php?home=1"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-secondary transition">
-                <i class="ti ti-layout-board text-base"></i><?php echo e(__('page_mode_blocks_edit')); ?>
-            </a>
-            <?php if (bloxEditorEnabled()): ?>
-            <a href="/admin/blox_editor.php?home=1"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50 hover:border-gray-400 transition">
-                <i class="ti ti-stack-2 text-base text-blue-600"></i><?php echo e(__('page_mode_blox')); ?>
-            </a>
-            <?php endif; ?>
-        </div>
     </div>
 </div>
 
+<?php if ($homeBloxAvailable): ?>
+<div data-testid="classic-home-blox-state" class="mb-5 border rounded-lg p-4 <?php echo $homeBloxActive ? 'border-blue-200 bg-blue-50' : ($homeBloxHasDraft ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-white'); ?>">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="min-w-0">
+            <div class="flex items-center gap-2 font-medium <?php echo $homeBloxActive ? 'text-blue-800' : ($homeBloxHasDraft ? 'text-amber-800' : 'text-gray-800'); ?>">
+                <i class="ti <?php echo $homeBloxActive ? 'ti-circle-check' : ($homeBloxHasDraft ? 'ti-file-pencil' : 'ti-wand'); ?> text-lg"></i>
+                <?php echo e($homeBloxActive ? __('shome_blox_active_title') : ($homeBloxHasDraft ? __('shome_blox_draft_title') : __('shome_blox_convert_title'))); ?>
+            </div>
+            <p class="mt-1 text-sm <?php echo $homeBloxActive ? 'text-blue-700' : ($homeBloxHasDraft ? 'text-amber-700' : 'text-gray-500'); ?>">
+                <?php echo e($homeBloxActive ? __('shome_blox_active_tip') : ($homeBloxHasDraft ? __('shome_blox_draft_tip') : __('shome_blox_convert_tip'))); ?>
+            </p>
+        </div>
+        <?php if ($homeBloxHasDraft): ?>
+            <a href="/admin/blox_editor.php?home=1" data-testid="classic-home-blox-open"
+               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-secondary transition">
+                <i class="ti ti-stack-2 text-base"></i><?php echo e($homeBloxActive ? __('shome_blox_open') : __('shome_blox_continue')); ?>
+            </a>
+        <?php else: ?>
+            <form method="post" action="/admin/setting_home.php">
+                <input type="hidden" name="_token" value="<?php echo e(csrfToken()); ?>">
+                <input type="hidden" name="action" value="convert_to_blox">
+                <button type="submit" data-testid="classic-home-blox-convert"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-secondary transition cursor-pointer">
+                    <i class="ti ti-wand text-base"></i><?php echo e(__('shome_blox_convert_action')); ?>
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <form id="settingForm">
     <?php echo adminLangField(); ?>
-    <!-- 导航首页文字 -->
-    <div class="bg-white rounded-lg shadow mb-6">
-        <div class="p-5 space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                <label class="text-gray-700 text-sm">
-                    <?php echo e(__('shome_nav_home_text')); ?>
-                    <span class="text-gray-400 text-xs block"><?php echo e(__('shome_nav_home_hint')); ?></span>
-                </label>
-                <div class="md:col-span-3">
-                    <input type="text" name="settings[nav_home_text]"
-                           value="<?php echo e($readLang('nav_home_text')); ?>"
-                           class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('nav_home')); ?>">
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                <label class="text-gray-700 text-sm"><?php echo e(__('shome_menu_position')); ?></label>
-                <div class="md:col-span-3 flex gap-4">
-                    <label class="flex items-center">
-                        <input type="hidden" name="settings[nav_home_show]" value="0">
-                        <input type="checkbox" name="settings[nav_home_show]" value="1" <?php echo config('nav_home_show', '1') !== '0' ? 'checked' : ''; ?> class="mr-2">
-                        <?php echo e(__('shome_main_menu')); ?>
-                    </label>
-                    <label class="flex items-center">
-                        <?php
-                        $homeInFooter = false;
-                        $footerNavCheckKey = ($_viewLang !== $_defaultLang) ? ('footer_nav_' . $_viewLang) : 'footer_nav';
-                        $footerNavCheck = json_decode(config($footerNavCheckKey) ?: '[]', true) ?: [];
-                        foreach ($footerNavCheck as $fGroup) {
-                            foreach (($fGroup['links'] ?? []) as $fLink) {
-                                if (($fLink['url'] ?? '') === '/') { $homeInFooter = true; break 2; }
-                            }
-                        }
-                        ?>
-                        <input type="hidden" name="home_footer_nav" value="0">
-                        <input type="checkbox" name="home_footer_nav" value="1" <?php echo $homeInFooter ? 'checked' : ''; ?> class="mr-2">
-                        <?php echo e(__('shome_footer_nav')); ?>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 

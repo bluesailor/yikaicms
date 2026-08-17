@@ -120,7 +120,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </dl>
     </div>
 
-    <!-- Blox 编辑器开关：随授权语义放本页（三道闸中的显式开关；授权是另一道） -->
+    <!-- Blox 总开关默认开启且不依赖授权；高级能力由独立授权闸控制。 -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
             <div>
@@ -129,16 +129,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <form method="post" id="bloxSwitchForm">
                 <input type="hidden" name="action" value="blox_toggle">
-                <input type="hidden" name="enabled" value="<?php echo config('blox_editor_enabled', '0') === '1' ? '0' : '1'; ?>">
+                <input type="hidden" name="enabled" value="<?php echo config('blox_editor_enabled', '1') === '1' ? '0' : '1'; ?>">
                 <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
-                <button type="submit" class="px-5 py-2 rounded text-sm font-medium transition <?php echo config('blox_editor_enabled', '0') === '1'
+                <button type="submit" class="px-5 py-2 rounded text-sm font-medium transition <?php echo config('blox_editor_enabled', '1') === '1'
                     ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-700'; ?>">
-                    <?php echo config('blox_editor_enabled', '0') === '1' ? __('blox_switch_on') : __('blox_switch_off'); ?>
+                    <?php echo config('blox_editor_enabled', '1') === '1' ? __('blox_switch_on') : __('blox_switch_off'); ?>
                 </button>
             </form>
         </div>
-        <?php if (config('blox_editor_enabled', '0') === '1' && !bloxEditorEnabled()): ?>
+        <?php if (bloxPageEditorEnabled() && !bloxAdvancedFeaturesEnabled()): ?>
         <p class="mt-3 text-sm text-amber-600"><i class="ti ti-alert-triangle mr-1"></i><?php echo __('blox_switch_needs_license'); ?></p>
         <?php endif; ?>
     </div>
@@ -215,6 +215,14 @@ function licHideInput() {
     f.classList.add('hidden');
     f.querySelector('input[name="license_key"]').value = '';
 }
+document.getElementById('bloxSwitchForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    adminSave(this, {
+        successMsg: <?php echo json_encode(__('blox_switch_saved'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>,
+        reload: true,
+        button: this.querySelector('button[type="submit"]')
+    });
+});
 document.getElementById('licenseForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var v = this.querySelector('input[name="license_key"]').value.trim();

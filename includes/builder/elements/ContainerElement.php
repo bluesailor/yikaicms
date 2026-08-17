@@ -13,8 +13,28 @@ declare(strict_types=1);
 final class ContainerElement extends AbstractElement
 {
     /** 类名全部字面量写死：Tailwind 独立编译靠扫描源码提取 */
-    private const GAP_MAP = ['none' => 'gap-0', 'sm' => 'gap-2', 'md' => 'gap-4', 'lg' => 'gap-8', 'xl' => 'gap-12'];
-    private const PAD_MAP = ['none' => '', 'sm' => 'p-3', 'md' => 'p-6', 'lg' => 'p-10', 'xl' => 'p-16'];
+    private const DIRECTION_MAP = [
+        'column' => ['flex-col', 'md:flex-col', 'lg:flex-col'],
+        'row' => ['flex-row', 'md:flex-row', 'lg:flex-row'],
+    ];
+    private const AUTO_WRAP_MAP = [
+        'column' => ['', 'md:flex-nowrap', 'lg:flex-nowrap'],
+        'row' => ['flex-wrap', 'md:flex-wrap', 'lg:flex-wrap'],
+    ];
+    private const GAP_MAP = [
+        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0'],
+        'sm' => ['gap-2', 'md:gap-2', 'lg:gap-2'],
+        'md' => ['gap-4', 'md:gap-4', 'lg:gap-4'],
+        'lg' => ['gap-8', 'md:gap-8', 'lg:gap-8'],
+        'xl' => ['gap-12', 'md:gap-12', 'lg:gap-12'],
+    ];
+    private const PAD_MAP = [
+        'none' => ['', 'md:p-0', 'lg:p-0'],
+        'sm' => ['p-3', 'md:p-3', 'lg:p-3'],
+        'md' => ['p-6', 'md:p-6', 'lg:p-6'],
+        'lg' => ['p-10', 'md:p-10', 'lg:p-10'],
+        'xl' => ['p-16', 'md:p-16', 'lg:p-16'],
+    ];
     private const RADIUS_MAP = ['none' => '', 'md' => 'rounded-lg', 'xl' => 'rounded-2xl'];
     private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end', 'baseline' => 'items-baseline'];
     private const JUSTIFY_MAP = ['start' => '', 'center' => 'justify-center', 'end' => 'justify-end', 'between' => 'justify-between', 'around' => 'justify-around', 'evenly' => 'justify-evenly'];
@@ -33,12 +53,12 @@ final class ContainerElement extends AbstractElement
         // option_icons：编辑器把该 select 显示为图标按钮组（键与 options 对应，
         // 值为 Tabler 图标名）；不认识此键的编辑器仍按普通下拉渲染，向后兼容
         return [
-            ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style',
+            ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style', 'responsive' => true,
                 'options' => ['column' => __('blox_dir_column_stack'), 'row' => __('blox_dir_row_wrap')],
                 'option_icons' => ['column' => 'layout-list', 'row' => 'layout-columns']],
             ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
-            ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style',
+            ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')],
@@ -47,7 +67,7 @@ final class ContainerElement extends AbstractElement
                 'options' => ['start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')],
                 'option_icons' => ['start' => 'align-left', 'center' => 'align-center', 'end' => 'align-right', 'between' => 'align-justified', 'around' => 'spacing-horizontal', 'evenly' => 'space']],
             ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style'],
-            ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style',
+            ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
@@ -57,19 +77,27 @@ final class ContainerElement extends AbstractElement
     public function render(array $data, string $children = ''): string
     {
         // yk-container 是编辑态定位钩子（画布空容器占位用），前台无样式含义——与 yk-col-card 同例
-        $isRow = ($data['direction'] ?? 'column') === 'row';
-        $cls = 'yk-container flex ' . ($isRow ? 'flex-row' : 'flex-col');
+        $direction = $data['direction'] ?? 'column';
+        $cls = 'yk-container flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
         $wrap = $data['wrap'] ?? 'auto';
-        if ($wrap === 'wrap' || ($wrap === 'auto' && $isRow)) {
+        if ($wrap === 'auto') {
+            $wrapClass = $this->resp($direction, self::AUTO_WRAP_MAP, 'column');
+            if ($wrapClass !== '') {
+                $cls .= ' ' . $wrapClass;
+            }
+        } elseif ($wrap === 'wrap') {
             $cls .= ' flex-wrap';
         } elseif ($wrap === 'nowrap') {
             $cls .= ' flex-nowrap';
         }
-        $cls .= ' ' . (self::GAP_MAP[$data['gap'] ?? 'md'] ?? self::GAP_MAP['md']);
+        $gapClass = $this->resp($data['gap'] ?? 'md', self::GAP_MAP, 'md');
+        if ($gapClass !== '') {
+            $cls .= ' ' . $gapClass;
+        }
         foreach ([
             self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',
             self::JUSTIFY_MAP[$data['justify'] ?? 'start'] ?? '',
-            self::PAD_MAP[$data['padding'] ?? 'none'] ?? '',
+            $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
             self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '',
         ] as $c) {
             if ($c !== '') {
@@ -77,8 +105,9 @@ final class ContainerElement extends AbstractElement
             }
         }
         $style = '';
-        if (!empty($data['bg_color'])) {
-            $style = ' style="background-color:' . htmlspecialchars((string) $data['bg_color'], ENT_QUOTES) . ';"';
+        $background = self::cssColor($data['bg_color'] ?? null);
+        if ($background !== null) {
+            $style = ' style="background-color:' . htmlspecialchars($background, ENT_QUOTES) . ';"';
         }
         return '<div class="' . $cls . '"' . $style . '>' . $children . '</div>';
     }

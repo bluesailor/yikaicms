@@ -1,0 +1,143 @@
+<?php
+/** Blox preview, style and template authorization security boundaries. */
+
+declare(strict_types=1);
+
+namespace Yikai\Tests\Unit;
+
+use AbstractElement;
+use BloxDocumentPipeline;
+use BlockRenderer;
+use PHPUnit\Framework\TestCase;
+
+require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
+final class BloxSecurityBoundaryTest extends TestCase
+{
+    public function testStyleValueWhitelistRejectsAdditionalDeclarationsAndUnsafeSchemes(): void
+    {
+        self::assertSame('#aabbcc', AbstractElement::cssColor('#AABBCC'));
+        self::assertSame('rgba(10, 20, 30, .5)', AbstractElement::cssColor('rgba(10, 20, 30, .5)'));
+        self::assertSame('var(--color-primary)', AbstractElement::cssColor('var(--color-primary)'));
+        self::assertNull(AbstractElement::cssColor('#fff;position:fixed;inset:0'));
+        self::assertNull(AbstractElement::cssColor('red/* injected */'));
+
+        self::assertSame('/uploads/images/hero.jpg', AbstractElement::cssImageUrl('/uploads/images/hero.jpg'));
+        self::assertSame('https://cdn.example.test/hero.jpg', AbstractElement::cssImageUrl('https://cdn.example.test/hero.jpg'));
+        self::assertNull(AbstractElement::cssImageUrl('//evil.example.test/hero.jpg'));
+        self::assertNull(AbstractElement::cssImageUrl('javascript:alert(1)'));
+        self::assertNull(AbstractElement::cssImageUrl('data:image/svg+xml;base64,PHN2Zz4='));
+    }
+
+    public function testDocumentPipelineDropsUnsafeSectionColumnAndContainerStyles(): void
+    {
+        $processed = BloxDocumentPipeline::process((string) json_encode([[
+            'settings' => [
+                'bg_color' => '#fff;position:fixed',
+                'bg_overlay_color' => '#000;position:fixed',
+                'bg_overlay_opacity' => 999,
+                'container_bg' => 'red;background:url(//evil.test)',
+                'container_bg_image' => 'javascript:alert(1)',
+                'bg_image' => 'javascript:alert(1)',
+                'bg_position' => 'center;position:fixed',
+                'min_height' => '10000px',
+                'content_v_align' => 'end;position:fixed',
+            ],
+            'columns' => [[
+                'card_bg' => '#fff;inset:0',
+                'elements' => [[
+                    'type' => 'container',
+                    'data' => [
+                        'bg_color' => '#000;position:absolute',
+                        'children' => [],
+                    ],
+                ]],
+            ]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $section = $processed['sections'][0];
+        self::assertSame('', $section['settings']['bg_color']);
+        self::assertSame('', $section['settings']['bg_overlay_color']);
+        self::assertSame(100, $section['settings']['bg_overlay_opacity']);
+        self::assertSame('', $section['settings']['container_bg']);
+        self::assertSame('', $section['settings']['container_bg_image']);
+        self::assertSame('', $section['settings']['bg_image']);
+        self::assertSame('', $section['settings']['bg_position']);
+        self::assertSame('', $section['settings']['min_height']);
+        self::assertSame('', $section['settings']['content_v_align']);
+        self::assertSame('', $section['columns'][0]['card_bg']);
+        self::assertSame('', $section['columns'][0]['elements'][0]['data']['bg_color']);
+    }
+
+    public function testRendererDefendsLegacyDocumentsThatBypassSaveNormalization(): void
+    {
+        $html = BlockRenderer::render((string) json_encode([[
+            'settings' => [
+                'bg_color' => '#fff;position:fixed',
+                'container_bg' => '#fff;inset:0',
+                'bg_image' => 'javascript:alert(1)',
+                'col_card' => true,
+            ],
+            'columns' => [[
+                'card_bg' => '#fff;z-index:9999',
+                'elements' => [[
+                    'type' => 'div',
+                    'data' => ['bg_color' => '#fff;position:absolute', 'children' => []],
+                ]],
+            ]],
+        ]], JSON_THROW_ON_ERROR));
+
+        self::assertStringNotContainsString('position:', $html);
+        self::assertStringNotContainsString('inset:', $html);
+        self::assertStringNotContainsString('z-index:', $html);
+        self::assertStringNotContainsString('javascript:', $html);
+    }
+
+    public function testPreviewCsrfChecksRunBeforeSubmittedDocumentRendering(): void
+    {
+        $home = $this->source('admin/blox_home_api.php');
+        $page = $this->source('admin/blox_page_api.php');
+        $preview = $this->source('admin/blox_preview.php');
+
+        $this->assertBefore($home, 'verifyCsrf();', "(\$_POST['action'] ?? '') === 'preview'");
+        $this->assertBefore($page, 'verifyCsrf();', "\$action === 'preview'");
+        $this->assertBefore($preview, 'verifyCsrf();', 'outputBloxCanvasPreview(');
+
+        self::assertStringContainsString('Content-Security-Policy', $this->source('includes/builder/BloxCanvasPreview.php'));
+        self::assertStringContainsString("script-src 'self' 'nonce-", $this->source('includes/builder/BloxCanvasPreview.php'));
+    }
+
+    public function testTemplateAndMediaMutationEndpointsKeepTheirServerSideGates(): void
+    {
+        $auth = $this->source('admin/includes/auth.php');
+        $editor = $this->source('admin/blox_editor.php');
+        $templates = $this->source('admin/blox_template_api.php');
+        $templateManager = $this->source('admin/blox_templates.php');
+        $media = $this->source('admin/media_api.php');
+        $upload = $this->source('admin/upload.php');
+
+        self::assertStringContainsString("['header', 'footer', 'popup']", $auth);
+        self::assertStringContainsString("requirePermission('*');", $editor);
+        self::assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
+        self::assertStringContainsString("function_exists('bloxAdvancedFeaturesEnabled')", $templates);
+        self::assertStringContainsString(': bloxEditorEnabled();', $templates);
+        self::assertGreaterThanOrEqual(4, substr_count($templates, 'requireBloxTemplateTypePermission('));
+        self::assertStringContainsString("if (\$_SERVER['REQUEST_METHOD'] === 'POST') {\n    verifyCsrf();", $templateManager);
+        self::assertSame(2, substr_count($media, 'verifyCsrf();'));
+        self::assertSame(1, substr_count($upload, 'verifyCsrf();'));
+    }
+
+    private function assertBefore(string $source, string $first, string $second): void
+    {
+        $firstPosition = strpos($source, $first);
+        $secondPosition = strpos($source, $second);
+        self::assertNotFalse($firstPosition, $first);
+        self::assertNotFalse($secondPosition, $second);
+        self::assertLessThan($secondPosition, $firstPosition);
+    }
+
+    private function source(string $path): string
+    {
+        return (string) file_get_contents(ROOT_PATH . '/' . $path);
+    }
+}

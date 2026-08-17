@@ -95,6 +95,15 @@ class ContentModel extends Model
             $params[] = '%' . $filters['keyword'] . '%';
             $params[] = '%' . $filters['keyword'] . '%';
         }
+        if (!empty($filters['is_recommend'])) {
+            $where[] = 'is_recommend = 1';
+        }
+        if (!empty($filters['is_hot'])) {
+            $where[] = 'is_hot = 1';
+        }
+        if (!empty($filters['is_top'])) {
+            $where[] = 'is_top = 1';
+        }
 
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard();
         return (int) db()->fetchColumn(

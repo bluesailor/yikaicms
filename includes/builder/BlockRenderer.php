@@ -58,6 +58,17 @@ final class BlockRenderer
     private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
     private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];
+    private const BG_POSITION_MAP = [
+        'top-left' => 'left top', 'top' => 'center top', 'top-right' => 'right top',
+        'left' => 'left center', 'center' => 'center', 'right' => 'right center',
+        'bottom-left' => 'left bottom', 'bottom' => 'center bottom', 'bottom-right' => 'right bottom',
+    ];
+    private const SECTION_MIN_HEIGHT_MAP = [
+        'sm' => '320px', 'md' => '480px', 'lg' => '640px', 'screen' => '100vh',
+    ];
+    private const SECTION_V_ALIGN_MAP = [
+        'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end',
+    ];
 
     /**
      * 前台就地编辑上下文（P1）：>0 时给每个 section 输出 data-yk-sec 索引，供管理员悬停编辑覆盖层定位。
@@ -68,18 +79,24 @@ final class BlockRenderer
     /** 编辑器画布/预览专用：为 true 时隐藏的区块也渲染（前台永远不渲染，含登录管理员）。 */
     public static bool $showHidden = false;
 
+    /**
+     * 嵌套自定义首页区块的画布字段上下文。它输出 home-field 标记而非内部 Blox 坐标，
+     * 防止内部 section 0 被父编辑器误认为首页 section 0。
+     * @var array{path:string,type:string,locale:string}|null
+     */
+    public static ?array $homeFieldEditContext = null;
+
     public static function render(string $blocksJson): string
     {
-        $decoded = json_decode($blocksJson, true);
-        if (!is_array($decoded) || empty($decoded)) {
+        try {
+            $document = BloxDocumentPipeline::decode($blocksJson);
+        } catch (RuntimeException $e) {
+            error_log('[BlockRenderer] Rejected Blox document: ' . $e->getMessage());
             return '';
         }
-        // v1 信封 {schema,settings,sections} 与存量裸数组共存：渲染端宽容解包
-        //（保存端 BloxDocumentPipeline::migrate 严格迁移；文档级 settings 由壳层
-        //  bloxAreaHtml() 消费，渲染器只关心 sections）
-        $sections = isset($decoded['sections']) && is_array($decoded['sections'])
-            ? array_values($decoded['sections'])
-            : $decoded;
+        // 渲染端不做元素注册表校验，允许停用插件元素走既有缺失态；但信封版本
+        // 必须先经统一迁移门，避免未来版本被旧渲染器误读。
+        $sections = $document['sections'];
         if (empty($sections)) {
             return '';
         }
@@ -88,6 +105,7 @@ final class BlockRenderer
         $editMode = self::$editChannelId > 0 && !empty($_SESSION['admin_id']);
 
         $html = '';
+        $renderedAnchors = [];
         foreach ($sections as $secIndex => $section) {
             // 可复用块引用：{library_id: N} → 渲染时从块库展开（改库一处全站生效）。
             // 库块被删/表缺失 → 静默跳过；展开结果里再出现 library_id 一律忽略（防嵌套循环）。
@@ -99,7 +117,7 @@ final class BlockRenderer
                 unset($lib['library_id']);
                 $section = $lib;
             }
-            $settings = $section['settings'] ?? [];
+            $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
 
             // 隐藏区块：前台不输出，后台编辑器里仍可见可恢复（比删掉再重建友好）。
             // 可选键，缺省即显示——老数据没有此键，渲染结果不变。
@@ -108,12 +126,28 @@ final class BlockRenderer
                 continue;
             }
 
+            $sectionConditions = $settings['_conditions'] ?? null;
+            if (BloxDisplayConditions::hasInput($sectionConditions)
+                && !self::$showHidden
+                && !BloxDisplayConditions::matches($sectionConditions)) {
+                continue;
+            }
+
+            $anchorId = BloxDocumentPipeline::normalizeSectionAnchorId($settings['anchor_id'] ?? '');
+            $anchorKey = strtolower($anchorId);
+            if ($anchorId !== '' && isset($renderedAnchors[$anchorKey])) {
+                $anchorId = '';
+            } elseif ($anchorId !== '') {
+                $renderedAnchors[$anchorKey] = true;
+            }
+
             $padding = AbstractElement::respClasses($settings['padding'] ?? 'md', self::PADDING_MAP, 'md');
             $maxWidth = self::MAXWIDTH_MAP[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';
 
             $style = '';
-            if (!empty($settings['bg_color'])) {
-                $bgColor = htmlspecialchars($settings['bg_color']);
+            $bgColor = AbstractElement::cssColor($settings['bg_color'] ?? null);
+            $bgImage = AbstractElement::cssImageUrl($settings['bg_image'] ?? null);
+            if ($bgColor !== null) {
                 $bgOpacity = isset($settings['bg_opacity']) ? (int) $settings['bg_opacity'] : 100;
                 if ($bgOpacity < 100 && preg_match('/^#([0-9a-fA-F]{6})$/', $bgColor, $m)) {
                     $r = hexdec(substr($m[1], 0, 2));
@@ -133,15 +167,38 @@ final class BlockRenderer
                 $bgGrad = '';
             }
             if ($bgGrad !== '') {
-                if (!empty($settings['bg_image'])) {
-                    $style .= 'background-image:' . $bgGrad . ',url(' . htmlspecialchars($settings['bg_image']) . ');background-size:cover;background-position:center;';
+                if ($bgImage !== null) {
+                    $bgPosition = self::BG_POSITION_MAP[$settings['bg_position'] ?? 'center'] ?? self::BG_POSITION_MAP['center'];
+                    $style .= 'background-image:' . $bgGrad . ',' . AbstractElement::cssUrlLiteral($bgImage)
+                        . ';background-size:cover;background-position:' . $bgPosition . ';';
                 } else {
                     $style .= 'background-image:' . $bgGrad . ';';
                 }
-            } elseif (!empty($settings['bg_image'])) {
-                $style .= 'background-image:url(' . htmlspecialchars($settings['bg_image']) . ');background-size:cover;background-position:center;';
+            } elseif ($bgImage !== null) {
+                $bgPosition = self::BG_POSITION_MAP[$settings['bg_position'] ?? 'center'] ?? self::BG_POSITION_MAP['center'];
+                $style .= 'background-image:' . AbstractElement::cssUrlLiteral($bgImage)
+                    . ';background-size:cover;background-position:' . $bgPosition . ';';
             }
-            $styleAttr = $style ? ' style="' . $style . '"' : '';
+
+            $minHeight = self::SECTION_MIN_HEIGHT_MAP[$settings['min_height'] ?? ''] ?? '';
+            if ($minHeight !== '') {
+                $style .= 'min-height:' . $minHeight . ';';
+            }
+
+            $overlayColor = AbstractElement::cssColor($settings['bg_overlay_color'] ?? null);
+            $overlayOpacity = max(0, min(100, (int) ($settings['bg_overlay_opacity'] ?? 0)));
+            // 旧编辑器曾把 bg_opacity 标成“遮罩”，但只把颜色画在图片后方。
+            // 对尚未写入新字段的旧文档补回用户原本看到的设置语义。
+            if ($bgImage !== null
+                && !array_key_exists('bg_overlay_color', $settings)
+                && !array_key_exists('bg_overlay_opacity', $settings)
+                && $bgColor !== null
+                && array_key_exists('bg_opacity', $settings)) {
+                $overlayColor = $bgColor;
+                $overlayOpacity = max(0, min(100, (int) $settings['bg_opacity']));
+            }
+            $hasOverlay = $bgImage !== null && $overlayColor !== null && $overlayOpacity > 0;
+            $styleAttr = $style ? ' style="' . htmlspecialchars($style, ENT_QUOTES) . '"' : '';
 
             $columns = $section['columns'] ?? [];
             $colCount = count($columns);
@@ -172,13 +229,39 @@ final class BlockRenderer
             }
 
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
+            if ($editMode && BloxDisplayConditions::hasInput($sectionConditions)) {
+                $editAttr .= ' data-yk-conditions="'
+                    . htmlspecialchars(BloxDisplayConditions::badge($sectionConditions), ENT_QUOTES) . '"';
+            }
             [$secHideCls, $secHideAttr] = self::hideOn($settings['hide_on'] ?? null, $editMode);
-            $html .= '<section class="' . $padding . $secHideCls . '"' . $styleAttr . $editAttr . $secHideAttr . '>';
+            $anchorAttr = $anchorId !== '' ? ' id="' . htmlspecialchars($anchorId, ENT_QUOTES) . '"' : '';
+            $anchorClass = $anchorId !== '' ? ' yk-blox-anchor' : '';
+            $sectionLayoutClass = '';
+            if ($minHeight !== '') {
+                $sectionLayoutClass = ' flex '
+                    . (self::SECTION_V_ALIGN_MAP[$settings['content_v_align'] ?? 'center'] ?? self::SECTION_V_ALIGN_MAP['center']);
+            }
+            if ($hasOverlay) {
+                $sectionLayoutClass .= ' relative overflow-hidden';
+            }
+            $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
+                . $anchorAttr . $styleAttr . $editAttr . $secHideAttr . '>';
+            if ($hasOverlay) {
+                $overlayStyle = 'background-color:' . $overlayColor . ';opacity:' . round($overlayOpacity / 100, 2) . ';';
+                $html .= '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="'
+                    . htmlspecialchars($overlayStyle, ENT_QUOTES) . '"></div>';
+            }
 
             // ── 容器层：宽度自定义 px + 独立背景/内边距/圆角。全部是新增可选键，
             //    一个不设时输出仍为 <div class="max-w-* mx-auto px-4">（黄金对拍不破）──
             $containerGutter = ($settings['container_gutter'] ?? 'default') === 'none' ? '' : ' px-4';
             $innerCls = $maxWidth . ' mx-auto' . $containerGutter;
+            if ($minHeight !== '') {
+                $innerCls .= ' w-full';
+            }
+            if ($hasOverlay) {
+                $innerCls .= ' relative z-10';
+            }
             $innerStyle = '';
             if (($settings['max_width'] ?? '') === 'custom') {
                 $px = (int) ($settings['max_width_px'] ?? 0);
@@ -193,11 +276,18 @@ final class BlockRenderer
             if (!empty(self::CONTAINER_RADIUS_MAP[$settings['container_radius'] ?? ''])) {
                 $innerCls .= ' ' . self::CONTAINER_RADIUS_MAP[$settings['container_radius']];
             }
-            if (!empty($settings['container_bg'])) {
-                $innerStyle .= 'background-color:' . htmlspecialchars((string) $settings['container_bg'], ENT_QUOTES) . ';';
+            $containerBg = AbstractElement::cssColor($settings['container_bg'] ?? null);
+            if ($containerBg !== null) {
+                $innerStyle .= 'background-color:' . $containerBg . ';';
+            }
+            $containerBgImage = AbstractElement::cssImageUrl($settings['container_bg_image'] ?? null);
+            if ($containerBgImage !== null) {
+                $innerStyle .= 'background-image:' . AbstractElement::cssUrlLiteral($containerBgImage)
+                    . ';background-size:cover;background-position:center;background-repeat:no-repeat;';
             }
             $containerEditAttr = $editMode ? ' data-yk-con="' . (int) $secIndex . '"' : '';
-            $html .= '<div class="' . $innerCls . '"' . $containerEditAttr . ($innerStyle !== '' ? ' style="' . $innerStyle . '"' : '') . '>';
+            $html .= '<div class="' . $innerCls . '"' . $containerEditAttr
+                . ($innerStyle !== '' ? ' style="' . htmlspecialchars($innerStyle, ENT_QUOTES) . '"' : '') . '>';
             // section 级标题（可选）：有 title 才渲染 —— 让"总标题 + 多列"在同一 section 内完成，
             // 无 title 的 section 输出与旧版完全一致（黄金对拍不变）。
             $secTitle = trim((string) ($settings['title'] ?? ''));
@@ -242,13 +332,20 @@ final class BlockRenderer
                     $colEditAttr = $editMode
                         ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '" data-yk-col-span="' . $editSpan . '"'
                         : '';
+                    $customColumnField = self::customHomeFieldPath(
+                        [(int) $secIndex, (int) $ci],
+                        'card_bg'
+                    );
+                    if ($customColumnField !== null) {
+                        $colEditAttr .= self::customHomeFieldAttributes($customColumnField, false);
+                    }
                     [$colHideCls, $colHideAttr] = self::hideOn(is_array($col) ? ($col['hide_on'] ?? null) : null, $editMode);
                     $spanClass = trim($spanClass . $colHideCls);
                     $colEditAttr .= $colHideAttr;
                     if ($colCard) {
                         // Column card background highlights a specific column without affecting other columns.
-                        $cbg = isset($col['card_bg']) && (string) $col['card_bg'] !== '' ? (string) $col['card_bg'] : '';
-                        $html .= $cbg !== ''
+                        $cbg = AbstractElement::cssColor($col['card_bg'] ?? null);
+                        $html .= $cbg !== null
                             ? '<div class="' . trim($spanClass . ' rounded-xl border border-gray-100 shadow-md p-6 h-full text-center flex flex-col yk-col-card') . '"' . $colEditAttr . ' style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
                             : '<div class="' . trim($spanClass . ' bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center flex flex-col yk-col-card') . '"' . $colEditAttr . '>';
                     } else {
@@ -274,9 +371,7 @@ final class BlockRenderer
         return $html;
     }
 
-    /**
-     * 标题字段只接受预设字号和十六进制颜色，避免任意设置值进入 style 属性。
-     */
+    /** 标题字段只接受预设字号和 cssColor() 白名单颜色。 */
     private static function sectionFieldStyle(mixed $size, mixed $color, array $sizeMap): string
     {
         $style = '';
@@ -284,8 +379,8 @@ final class BlockRenderer
         if ($sizeKey !== '' && isset($sizeMap[$sizeKey])) {
             $style .= 'font-size:' . $sizeMap[$sizeKey] . ';';
         }
-        $colorValue = is_string($color) ? trim($color) : '';
-        if ($colorValue !== '' && preg_match('/^#[0-9a-fA-F]{6}$/', $colorValue)) {
+        $colorValue = AbstractElement::cssColor($color);
+        if ($colorValue !== null) {
             $style .= 'color:' . $colorValue . ';';
         }
         return $style !== '' ? ' style="' . $style . '"' : '';
@@ -385,6 +480,27 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    private static function applyGlobalStyle(string $html, array $data, string $type): string
+    {
+        $id = trim((string) ($data['_global_style'] ?? ''));
+        $declarations = BloxDesignSystem::styleDeclarations($id, $data['_global_style_snapshot'] ?? null);
+        if ($html === '' || $id === '' || $declarations === '' || $type === 'code') {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $existing = $processor->getAttribute('style');
+        $style = is_string($existing) ? trim($existing) : '';
+        if ($style !== '' && !str_ends_with($style, ';')) {
+            $style .= ';';
+        }
+        $processor->setAttribute('style', $style . $declarations);
+        $processor->setAttribute('data-yk-global-style', $id);
+        return $processor->getUpdatedHtml();
+    }
+
     public static function renderElementNode(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
     {
         return self::renderElement($el, $depth, $editMode, $path);
@@ -393,6 +509,12 @@ final class BlockRenderer
     private static function renderElement(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
     {
         $type = trim((string) ($el['type'] ?? ''));
+        $data = is_array($el['data'] ?? null) ? $el['data'] : [];
+        $conditions = $data['_conditions'] ?? null;
+        $hasConditions = BloxDisplayConditions::hasInput($conditions);
+        if ($hasConditions && !$editMode && !self::$showHidden && !BloxDisplayConditions::matches($conditions)) {
+            return '';
+        }
         $element = BuilderRegistry::get($type);
         if ($element === null) {
             $missing = BloxPluginRegistry::declaration($type);
@@ -402,12 +524,15 @@ final class BlockRenderer
             $pathAttr = htmlspecialchars(implode('.', array_map('strval', $path)), ENT_QUOTES);
             $typeAttr = htmlspecialchars($type, ENT_QUOTES);
             $label = htmlspecialchars($missing['label'], ENT_QUOTES);
+            $conditionAttr = $hasConditions
+                ? ' data-yk-conditions="' . htmlspecialchars(BloxDisplayConditions::badge($conditions), ENT_QUOTES) . '"'
+                : '';
             return '<div class="yk-edit-el yk-missing-element" data-yk-el="' . $pathAttr
-                . '" data-yk-el-type="' . $typeAttr . '"><div class="border-2 border-dashed border-amber-300'
+                . '"' . $conditionAttr
+                . ' data-yk-el-type="' . $typeAttr . '"><div class="border-2 border-dashed border-amber-300'
                 . ' bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
                 . '<strong>' . $label . '</strong><br>' . __('blox_plugin_missing_front') . '</div></div>';
         }
-        $data = is_array($el['data'] ?? null) ? $el['data'] : [];
         BloxAssetCollector::collectElement($element, $data);
 
         $children = '';
@@ -424,8 +549,14 @@ final class BlockRenderer
             'edit_mode' => $editMode,
             'path' => $path,
             'depth' => $depth,
+            'node_id' => (string) ($el['id'] ?? ''),
         ]);
         $html = self::applyElementBoxStyle($html, $data, $element->type());
+        $html = self::applyGlobalStyle($html, $data, $element->type());
+        $html = self::markCustomHomeElement($html, $element->type(), $path);
+        if ($editMode && $hasConditions) {
+            $html = self::markElementConditions($html, BloxDisplayConditions::badge($conditions));
+        }
         if (!$editMode || $path === []) {
             return $html;
         }
@@ -437,5 +568,125 @@ final class BlockRenderer
         $typeAttr = htmlspecialchars($element->type(), ENT_QUOTES);
         return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '" data-yk-el-type="' . $typeAttr
             . '" style="display:contents">' . $html . '</div>';
+    }
+
+    private static function markElementConditions(string $html, string $badge): string
+    {
+        if ($html === '' || $badge === '') {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $processor->setAttribute('data-yk-conditions', $badge);
+        return $processor->getUpdatedHtml();
+    }
+
+    /** @param list<int> $path */
+    private static function customHomeFieldPath(array $path, string $field): ?string
+    {
+        $context = self::$homeFieldEditContext;
+        if ($context === null || count($path) < 2) {
+            return null;
+        }
+        $base = 'custom_overrides.' . $context['locale'] . '.' . $path[0]
+            . '.columns.' . $path[1];
+        if (count($path) >= 3) {
+            $base .= '.elements.' . $path[2] . '.data';
+        }
+        $fieldPath = $base . '.' . $field;
+        return str_starts_with($context['type'], 'custom:')
+            && HomeBloxBlockSchema::isCustomEditableFieldPath($fieldPath)
+                ? $fieldPath : null;
+    }
+
+    private static function customHomeFieldAttributes(string $field, bool $inline): string
+    {
+        $context = self::$homeFieldEditContext;
+        if ($context === null) {
+            return '';
+        }
+        return ' data-yk-home-path="' . htmlspecialchars($context['path'], ENT_QUOTES)
+            . '" data-yk-home-field="' . htmlspecialchars($field, ENT_QUOTES)
+            . '" data-yk-home-inline="' . ($inline ? '1' : '0') . '"';
+    }
+
+    /** @param list<int> $path */
+    private static function markCustomHomeElement(string $html, string $type, array $path): string
+    {
+        if ($type === 'accordion') {
+            return self::markCustomHomeAccordion($html, $path);
+        }
+        $field = match ($type) {
+            'heading', 'button' => 'text',
+            'text' => 'html',
+            default => '',
+        };
+        if ($field === '') {
+            return $html;
+        }
+        $fieldPath = self::customHomeFieldPath($path, $field);
+        if ($fieldPath === null) {
+            return $html;
+        }
+        $tags = match ($type) {
+            'heading' => ['H1', 'H2', 'H3', 'H4'],
+            'button' => ['A'],
+            default => ['DIV'],
+        };
+        foreach ($tags as $tag) {
+            $rewriter = new HtmlTagRewriter($html);
+            if (!$rewriter->nextTag($tag)) {
+                continue;
+            }
+            $context = self::$homeFieldEditContext;
+            if ($context === null) {
+                return $html;
+            }
+            $rewriter->setAttribute('data-yk-home-path', $context['path']);
+            $rewriter->setAttribute('data-yk-home-field', $fieldPath);
+            $rewriter->setAttribute('data-yk-home-inline', $type === 'text' ? '0' : '1');
+            return $rewriter->getUpdatedHtml();
+        }
+        return $html;
+    }
+
+    /** @param list<int> $path */
+    private static function markCustomHomeAccordion(string $html, array $path): string
+    {
+        $context = self::$homeFieldEditContext;
+        if ($context === null) {
+            return $html;
+        }
+        $rewriter = new HtmlTagRewriter($html);
+        $questionIndex = 0;
+        $answerIndex = 0;
+        while ($rewriter->nextTag()) {
+            $tag = $rewriter->getTag();
+            $fieldPath = null;
+            if ($tag === 'SPAN' && $questionIndex < 30) {
+                $fieldPath = self::customHomeFieldPath(
+                    $path,
+                    'accordion_items.' . $questionIndex++ . '.question'
+                );
+            } elseif ($tag === 'DIV' && $answerIndex < 30) {
+                $classes = $rewriter->getAttribute('class');
+                $tokens = is_string($classes) ? preg_split('/\s+/', trim($classes)) : [];
+                if (in_array('pb-4', is_array($tokens) ? $tokens : [], true)) {
+                    $fieldPath = self::customHomeFieldPath(
+                        $path,
+                        'accordion_items.' . $answerIndex++ . '.answer'
+                    );
+                }
+            }
+            if ($fieldPath === null) {
+                continue;
+            }
+            $rewriter->setAttribute('data-yk-home-path', $context['path']);
+            $rewriter->setAttribute('data-yk-home-field', $fieldPath);
+            $rewriter->setAttribute('data-yk-home-inline', '1');
+        }
+        return $rewriter->getUpdatedHtml();
     }
 }

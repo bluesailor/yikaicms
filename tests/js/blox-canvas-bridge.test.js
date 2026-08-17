@@ -120,6 +120,21 @@ test('ykEmptyAction 白名单：templates/section 过，其余拒', function () 
     assert.deepEqual(actions, ['templates', 'section']);
 });
 
+test('ykQuickAdd 只接受列或容器的规范目标（r18 画布空态快捷添加）', function () {
+    const got = [];
+    const current = fixture({ onQuickAdd: function (target) { got.push(target); } });
+    const send = (target) => current.bridge.handleMessage({ source: current.frameWindow, data: { ykQuickAdd: target } });
+    assert.equal(send({ kind: 'column', sec: 2, col: 1, ignored: true }), true);
+    assert.equal(send({ kind: 'container', path: '3.0.2' }), true);
+    assert.equal(send({ kind: 'column', sec: -1, col: 0 }), false);
+    assert.equal(send({ kind: 'container', path: '3.0' }), false);
+    assert.equal(send({ kind: 'element', path: '3.0.2' }), false);
+    assert.deepEqual(got, [
+        { kind: 'column', sec: 2, col: 1 },
+        { kind: 'container', path: '3.0.2' },
+    ]);
+});
+
 test('ykInsertAt 白名单：index/kind/spans 全校验（r13 插入轨道）', function () {
     const got = [];
     const current = fixture({ onInsertAt: function (p) { got.push(p); } });

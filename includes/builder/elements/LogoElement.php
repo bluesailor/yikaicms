@@ -27,6 +27,8 @@ final class LogoElement extends AbstractElement
                 ]],
             ['key' => 'height', 'type' => 'select', 'label' => __('blox_ctl_height'), 'default' => 'md',
                 'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg')]],
+            ['key' => 'tone', 'type' => 'select', 'label' => __('blox_site_tone'), 'default' => 'dark',
+                'options' => ['dark' => __('blox_site_tone_dark'), 'light' => __('blox_site_tone_light')]],
             ['key' => 'link_home', 'type' => 'checkbox', 'label' => __('blox_logo_link_home'), 'default' => true],
             ...$this->animationControls(),
         ];
@@ -36,6 +38,7 @@ final class LogoElement extends AbstractElement
     {
         $display = in_array($data['display'] ?? '', ['both', 'image', 'text'], true) ? $data['display'] : 'both';
         $height = self::HEIGHT_MAP[$data['height'] ?? ''] ?? self::HEIGHT_MAP['md'];
+        $textClass = ($data['tone'] ?? 'dark') === 'light' ? 'text-white' : 'text-gray-900';
         $logo = function_exists('configRawLang') ? (string) configRawLang('site_logo', '') : '';
         $name = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
 
@@ -46,7 +49,7 @@ final class LogoElement extends AbstractElement
         if ($display !== 'image' || ($logo === '' && $name !== '')) {
             // 无 logo 图时任何模式都降级到站名文字，保证头部不空洞
             if ($display !== 'image' || $logo === '') {
-                $inner .= '<span class="text-xl font-bold text-gray-900">' . htmlspecialchars($name, ENT_QUOTES) . '</span>';
+                $inner .= '<span class="text-xl font-bold ' . $textClass . '">' . htmlspecialchars($name, ENT_QUOTES) . '</span>';
             }
         }
         if ($inner === '') {
@@ -54,8 +57,9 @@ final class LogoElement extends AbstractElement
         }
 
         $wrap = 'inline-flex items-center gap-2';
+        $homeUrl = function_exists('langPrefix') ? langPrefix() . '/' : '/';
         $body = !isset($data['link_home']) || (string) $data['link_home'] !== '0'
-            ? '<a href="/" class="' . $wrap . ' no-underline">' . $inner . '</a>'
+            ? '<a href="' . htmlspecialchars($homeUrl, ENT_QUOTES) . '" class="' . $wrap . ' no-underline">' . $inner . '</a>'
             : '<span class="' . $wrap . '">' . $inner . '</span>';
         return '<div' . $this->animationAttrs($data) . '>' . $body . '</div>';
     }

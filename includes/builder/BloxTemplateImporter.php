@@ -91,9 +91,12 @@ final class BloxTemplateImporter
         );
         // 文档级 settings（如 sticky）随包导出——document 输出 v1 信封；
         // 无 settings 的存量文档仍导出裸 sections（包格式向后兼容，老版本可导入）
-        $docSettings = BloxDocumentPipeline::normalizeDocSettings(
-            is_array($decoded) ? ($decoded['settings'] ?? null) : null
-        );
+        $rawSettings = is_array($decoded) ? ($decoded['settings'] ?? null) : null;
+        $docSettings = BloxAreaDocument::isArea($type)
+            ? BloxAreaDocument::normalizeSettings($type, $rawSettings)
+            : ($type === 'popup'
+                ? BloxPopupDocument::normalizeSettings($rawSettings)
+                : BloxDocumentPipeline::normalizeDocSettings($rawSettings));
         $document = $docSettings !== []
             ? ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $sections]
             : $sections;
@@ -115,23 +118,25 @@ final class BloxTemplateImporter
         ];
     }
 
-    /** @return array{elements:list<string>,plugins:list<string>} */
+    /** @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} */
     private static function decodeStoredRequirements(mixed $value): array
     {
         if (!is_string($value) || trim($value) === '') {
-            return ['elements' => [], 'plugins' => []];
+            return self::emptyRequirements();
         }
         try {
             $decoded = json_decode($value, true, 64, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            return ['elements' => [], 'plugins' => []];
+            return self::emptyRequirements();
         }
         if (!is_array($decoded)) {
-            return ['elements' => [], 'plugins' => []];
+            return self::emptyRequirements();
         }
         return [
             'elements' => self::stringList($decoded['elements'] ?? []),
             'plugins' => self::stringList($decoded['plugins'] ?? []),
+            'design_tokens' => self::stringList($decoded['design_tokens'] ?? []),
+            'design_styles' => self::stringList($decoded['design_styles'] ?? []),
         ];
     }
 
@@ -147,7 +152,7 @@ final class BloxTemplateImporter
      * @return array{
      *   type:string,name:string,schema_version:int,thumbnail:string,
      *   sections:array<int,array<string,mixed>>,draft_json:string,
-     *   requirements:array{elements:list<string>,plugins:list<string>}
+     *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>}
      * }
      */
     public static function prepare(string $json): array
@@ -208,17 +213,28 @@ final class BloxTemplateImporter
 
         $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
         // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
-        $docSettings = BloxDocumentPipeline::normalizeDocSettings(
-            is_array($package['document']) ? ($package['document']['settings'] ?? null) : null
-        );
+        $rawSettings = is_array($package['document']) ? ($package['document']['settings'] ?? null) : null;
+        $docSettings = BloxAreaDocument::isArea($type)
+            ? BloxAreaDocument::normalizeSettings($type, $rawSettings)
+            : ($type === 'popup'
+                ? BloxPopupDocument::normalizeSettings($rawSettings)
+                : BloxDocumentPipeline::normalizeDocSettings($rawSettings));
         $documentJson = json_encode(
             ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $withoutIds],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
         $prefix = 'tpl_' . bin2hex(random_bytes(6));
-        $processed = BloxDocumentPipeline::process($documentJson, $prefix);
+        $processed = BloxAreaDocument::isArea($type)
+            ? BloxAreaDocument::process($type, $documentJson, $prefix)
+            : ($type === 'popup'
+                ? BloxPopupDocument::process($documentJson, $prefix)
+                : BloxDocumentPipeline::process($documentJson, $prefix));
         $requiredPlugins = array_values(array_unique(array_merge($declared['plugins'], $pluginOwners)));
         sort($requiredPlugins);
+        $requiredTokens = array_values(array_unique(array_merge($declared['design_tokens'], $inferred['design_tokens'])));
+        $requiredStyles = array_values(array_unique(array_merge($declared['design_styles'], $inferred['design_styles'])));
+        sort($requiredTokens);
+        sort($requiredStyles);
 
         return [
             'type' => $type,
@@ -230,6 +246,8 @@ final class BloxTemplateImporter
             'requirements' => [
                 'elements' => $requiredTypes,
                 'plugins' => $requiredPlugins,
+                'design_tokens' => $requiredTokens,
+                'design_styles' => $requiredStyles,
             ],
         ];
     }
@@ -255,11 +273,11 @@ final class BloxTemplateImporter
         }
     }
 
-    /** @return array{elements:list<string>,plugins:list<string>} */
+    /** @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} */
     private static function declaredRequirements(mixed $requires): array
     {
         if ($requires === null || $requires === []) {
-            return ['elements' => [], 'plugins' => []];
+            return self::emptyRequirements();
         }
         if (!is_array($requires)) {
             throw new RuntimeException(__('blox_tpl_bad_requires'));
@@ -267,6 +285,8 @@ final class BloxTemplateImporter
         return [
             'elements' => self::stringList($requires['elements'] ?? []),
             'plugins' => self::stringList($requires['plugins'] ?? []),
+            'design_tokens' => self::stringList($requires['design_tokens'] ?? []),
+            'design_styles' => self::stringList($requires['design_styles'] ?? []),
         ];
     }
 
@@ -325,12 +345,12 @@ final class BloxTemplateImporter
         return $types;
     }
 
-    /** @param array<int,mixed> $sections @return array{elements:list<string>,plugins:list<string>} */
+    /** @param array<int,mixed> $sections @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} */
     /**
      * 从实际文档推导依赖（编辑器模板模式存草稿时刷新 requirements 用）。
      *
      * @param array<int,mixed> $sections
-     * @return array{elements:list<string>,plugins:list<string>}
+     * @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>}
      */
     public static function deriveRequirements(array $sections): array
     {
@@ -340,7 +360,13 @@ final class BloxTemplateImporter
     private static function inferRequirements(array $sections): array
     {
         $elements = self::collectElementTypes($sections);
-        return ['elements' => $elements, 'plugins' => self::pluginOwners($elements)];
+        $design = BloxDesignDependencies::referencesFromSections($sections);
+        return [
+            'elements' => $elements,
+            'plugins' => self::pluginOwners($elements),
+            'design_tokens' => $design['design_tokens'],
+            'design_styles' => $design['design_styles'],
+        ];
     }
 
     /** @param list<string> $elements @return list<string> */
@@ -359,18 +385,33 @@ final class BloxTemplateImporter
     }
 
     /**
-     * @param array{elements:list<string>,plugins:list<string>} $left
-     * @param array{elements:list<string>,plugins:list<string>} $right
-     * @return array{elements:list<string>,plugins:list<string>}
+     * @param array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} $left
+     * @param array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} $right
+     * @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>}
      */
     private static function mergeRequirements(array $left, array $right): array
     {
         $elements = array_values(array_unique(array_merge($left['elements'], $right['elements'])));
         $plugins = array_values(array_unique(array_merge($left['plugins'], $right['plugins'])));
+        $designTokens = array_values(array_unique(array_merge($left['design_tokens'], $right['design_tokens'])));
+        $designStyles = array_values(array_unique(array_merge($left['design_styles'], $right['design_styles'])));
         sort($elements);
         sort($plugins);
+        sort($designTokens);
+        sort($designStyles);
 
-        return ['elements' => $elements, 'plugins' => $plugins];
+        return [
+            'elements' => $elements,
+            'plugins' => $plugins,
+            'design_tokens' => $designTokens,
+            'design_styles' => $designStyles,
+        ];
+    }
+
+    /** @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} */
+    private static function emptyRequirements(): array
+    {
+        return ['elements' => [], 'plugins' => [], 'design_tokens' => [], 'design_styles' => []];
     }
 
     /** @param array<int,mixed> $sections */

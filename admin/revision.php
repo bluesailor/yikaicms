@@ -83,6 +83,10 @@ if ($action === 'restore') {
             (int) ($_SESSION['admin_id'] ?? 0),
             (string) ($_SESSION['admin_username'] ?? '')
         );
+        if ($type === 'page' && db()->tableExists('blox_page_drafts')) {
+            require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+            PageBloxDocument::syncDraftFromPublished($targetId, (int) ($_SESSION['admin_id'] ?? 0));
+        }
         adminLog($type, 'restore', "恢复版本 #{$rev['id']} → {$type} #{$targetId}");
         cacheClear();
         success(['restored' => $n]);

@@ -58,14 +58,17 @@ final class NavMegaElement extends AbstractElement
                 return [];
             }
         }
+        if (function_exists('getDefaultNavigation')) {
+            return getDefaultNavigation();
+        }
         $tree = function_exists('getNavChannels') ? getNavChannels() : [];
-        // 首页项：与主题导航同源吃站点设置（nav_home_show 开关 + nav_home_text 文案），
-        // 行为一致——主题头部显示首页，Blox 头部也显示；设置里关掉则都不显示
         if (function_exists('configRawLang') && configRawLang('nav_home_show', '1') !== '0') {
+            $homeUrl = function_exists('langPrefix') ? langPrefix() . '/' : '/';
             array_unshift($tree, [
-                'name' => function_exists('configLang') ? (string) configLang('nav_home_text', 'nav_home') : __('nav_home'),
-                'url' => '/',
-                '_url' => '/',
+                'name' => function_exists('configLang') ? configLang('nav_home_text', 'nav_home') : __('nav_home'),
+                'url' => $homeUrl,
+                '_url' => $homeUrl,
+                '_is_home' => true,
                 'children' => [],
             ]);
         }
@@ -96,7 +99,7 @@ final class NavMegaElement extends AbstractElement
                 continue;
             }
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
-            $url = htmlspecialchars($this->channelHref($channel), ENT_QUOTES);
+            $url = htmlspecialchars(self::nodeHref($channel), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? array_values(array_filter($channel['children'], 'is_array')) : [];
 
             if ($kids === []) {
@@ -124,7 +127,7 @@ final class NavMegaElement extends AbstractElement
                 . '</div></div></li>';
         }
 
-        return '<nav class="yk-mega relative hidden lg:flex" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
+        return '<nav class="yk-mega relative hidden lg:flex min-w-0 flex-1 justify-end" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
             . '<ul class="flex flex-wrap items-center gap-1">' . $items . '</ul></nav>';
     }
 
@@ -132,7 +135,7 @@ final class NavMegaElement extends AbstractElement
     private function renderColumn(array $kid, bool $showDesc): string
     {
         $name = htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES);
-        $url = htmlspecialchars($this->channelHref($kid), ENT_QUOTES);
+        $url = htmlspecialchars(self::nodeHref($kid), ENT_QUOTES);
         $grand = is_array($kid['children'] ?? null) ? array_values(array_filter($kid['children'], 'is_array')) : [];
 
         $html = '<div class="min-w-0">'
@@ -144,7 +147,7 @@ final class NavMegaElement extends AbstractElement
         if ($grand !== []) {
             $html .= '<ul class="mt-3 space-y-2 border-t border-gray-50 pt-3">';
             foreach ($grand as $g) {
-                $html .= '<li><a href="' . htmlspecialchars($this->channelHref($g), ENT_QUOTES)
+                $html .= '<li><a href="' . htmlspecialchars(self::nodeHref($g), ENT_QUOTES)
                     . '"' . self::targetAttr($g) . ' class="block text-sm text-gray-500 hover:text-primary no-underline">'
                     . htmlspecialchars((string) ($g['name'] ?? ''), ENT_QUOTES) . '</a></li>';
             }
@@ -154,7 +157,7 @@ final class NavMegaElement extends AbstractElement
     }
 
     /** 与主题导航同一 URL 语义：动态注入的 _url（产品分类树）优先，回退 channelUrl() */
-    private function channelHref(array $channel): string
+    public static function nodeHref(array $channel): string
     {
         if (!empty($channel['_url'])) {
             return (string) $channel['_url'];

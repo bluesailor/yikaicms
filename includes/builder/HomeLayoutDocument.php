@@ -17,28 +17,38 @@ final class HomeLayoutDocument
     private const VERSION = 1;
     private const MAX_JSON_BYTES = 2_000_000;
 
-    /** @return array{version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
+    /** @return array<int,array<string,mixed>> */
+    public static function legacySectionsForImport(): array
+    {
+        return self::legacySections();
+    }
+
+    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
     public static function load(): array
     {
         $raw = trim((string) config(self::DATA_KEY, ''));
         if ($raw !== '' && strlen($raw) <= self::MAX_JSON_BYTES) {
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
+                $migrated = BloxDocumentPipeline::decode($raw);
                 $hasDocumentSections = isset($decoded['sections']) && is_array($decoded['sections']);
-                $sections = self::extractSections($decoded);
-                if ($hasDocumentSections || $sections !== []) {
+                if ($hasDocumentSections || BloxDocumentPipeline::isList($decoded)) {
                     return [
+                        'schema'     => $migrated['schema'],
+                        'settings'   => $migrated['settings'],
                         'version'    => (int) ($decoded['version'] ?? self::VERSION),
                         'source'     => (string) ($decoded['source'] ?? 'layout'),
                         'active'     => self::isActive(),
                         'updated_at' => (int) ($decoded['updated_at'] ?? 0),
-                        'sections'   => self::normalizeSections($sections),
+                        'sections'   => self::normalizeSections($migrated['sections']),
                     ];
                 }
             }
         }
 
         return [
+            'schema'     => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings'   => [],
             'version'    => self::VERSION,
             'source'     => 'legacy',
             'active'     => self::isActive(),
@@ -56,7 +66,7 @@ public static function isActive(): bool
         return self::readStoredDocument(self::PUBLISHED_KEY) !== null;
     }
 
-    /** @return array{version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
+    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
     /** @psalm-suppress PossiblyUnusedMethod The public homepage entry point is invoked from the root index script. */
     public static function loadPublished(): array
     {
@@ -139,12 +149,14 @@ public static function isActive(): bool
     /**
      * 保存编辑器提交的 sections。P0 不启用首页，只写入草稿。
      *
-     * @return array{version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
+     * @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
      */
     public static function saveDraft(string $blocksJson): array
     {
         $processed = BloxDocumentPipeline::process($blocksJson, 'home');
         $document = [
+            'schema'     => $processed['schema'],
+            'settings'   => $processed['settings'],
             'version'    => self::VERSION,
             'source'     => 'layout',
             'active'     => self::isActive(),
@@ -170,16 +182,22 @@ public static function isActive(): bool
         }
 
         $decoded = json_decode($raw, true);
-        if (!is_array($decoded) || !isset($decoded['sections']) || !is_array($decoded['sections'])) {
+        if (!is_array($decoded)) {
+            return null;
+        }
+        $migrated = BloxDocumentPipeline::decode($raw);
+        if (!isset($decoded['sections']) && !BloxDocumentPipeline::isList($decoded)) {
             return null;
         }
 
         return [
+            'schema' => $migrated['schema'],
+            'settings' => $migrated['settings'],
             'version' => (int) ($decoded['version'] ?? self::VERSION),
             'source' => (string) ($decoded['source'] ?? 'layout'),
             'active' => self::isActive(),
             'updated_at' => (int) ($decoded['updated_at'] ?? 0),
-            'sections' => self::normalizeSections(self::extractSections($decoded)),
+            'sections' => self::normalizeSections($migrated['sections']),
         ];
     }
 
@@ -202,15 +220,6 @@ public static function isActive(): bool
         ));
     }
 
-    /** @param array<string|int,mixed> $data @return array<int,array<string,mixed>> */
-    private static function extractSections(array $data): array
-    {
-        $sections = isset($data['sections']) && is_array($data['sections'])
-            ? $data['sections']
-            : $data;
-
-        return array_values(array_filter($sections, static fn (mixed $section): bool => is_array($section)));
-    }
 
     /** @param array<int,array<string,mixed>> $sections @return array<int,array<string,mixed>> */
     private static function normalizeSections(array $sections): array
@@ -240,7 +249,11 @@ public static function isActive(): bool
                     'elements' => $normalizedElements,
                 ];
                 if (isset($column['span'])) {
-                    $normalizedColumn['span'] = (int) $column['span'];
+                    $normalizedColumn['span'] = BloxResponsiveValue::normalizeStored(
+                        $column['span'],
+                        array_fill_keys(range(0, 12), true),
+                        0
+                    );
                 }
                 if (isset($column['card_bg'])) {
                     $normalizedColumn['card_bg'] = (string) $column['card_bg'];
@@ -308,6 +321,8 @@ public static function isActive(): bool
             ];
         }
 
+        $blocks = self::appendImplicitLegacyBlocks(array_values($blocks));
+        $blocks = self::expandLegacyChannelBlocks($blocks);
         $sections = [];
         foreach (array_values($blocks) as $index => $block) {
             if (!is_array($block)) {
@@ -347,6 +362,93 @@ public static function isActive(): bool
             ];
         }
         return $sections;
+    }
+
+    /**
+     * The classic settings screen exposes partners even on installations
+     * whose stored block list predates that block. Keep the Blox import in
+     * sync with the classic editor instead of silently dropping the option.
+     *
+     * @param array<int,mixed> $blocks
+     * @return array<int,mixed>
+     */
+    private static function appendImplicitLegacyBlocks(array $blocks): array
+    {
+        foreach ($blocks as $block) {
+            if (is_array($block) && ($block['type'] ?? '') === 'partners') {
+                return $blocks;
+            }
+        }
+
+        $blocks[] = [
+            'type' => 'partners',
+            'enabled' => (string) config('home_show_links', '0') === '1',
+        ];
+
+        return $blocks;
+    }
+
+    /**
+     * The classic renderer expands the old aggregate `channels` slot into
+     * every top-level channel marked for homepage display. The Blox import
+     * must do the same or product/news sections become an empty placeholder.
+     *
+     * @param array<int,mixed> $blocks
+     * @return array<int,array<string,mixed>>
+     */
+    private static function expandLegacyChannelBlocks(array $blocks): array
+    {
+        try {
+            $homeChannels = channelModel()->getHomeChannels();
+        } catch (Throwable) {
+            $homeChannels = [];
+        }
+        if ($homeChannels === []) {
+            return $blocks;
+        }
+
+        $explicitIds = [];
+        foreach ($blocks as $block) {
+            $type = is_array($block) ? (string) ($block['type'] ?? '') : '';
+            if (str_starts_with($type, 'channel:')) {
+                $explicitIds[(int) substr($type, 8)] = true;
+            }
+        }
+
+        $expanded = [];
+        $includedIds = $explicitIds;
+        $hadAggregate = false;
+        foreach ($blocks as $block) {
+            if (!is_array($block) || ($block['type'] ?? '') !== 'channels') {
+                $expanded[] = $block;
+                continue;
+            }
+
+            $hadAggregate = true;
+            foreach ($homeChannels as $channel) {
+                $channelId = (int) ($channel['id'] ?? 0);
+                if ($channelId < 1 || isset($explicitIds[$channelId])) {
+                    continue;
+                }
+                $channelBlock = $block;
+                $channelBlock['type'] = 'channel:' . $channelId;
+                $expanded[] = $channelBlock;
+                $includedIds[$channelId] = true;
+            }
+        }
+
+        if (!$hadAggregate) {
+            foreach ($homeChannels as $channel) {
+                $channelId = (int) ($channel['id'] ?? 0);
+                if ($channelId < 1 || isset($includedIds[$channelId])) {
+                    continue;
+                }
+                $expanded[] = ['type' => 'channel:' . $channelId, 'enabled' => true];
+                $includedIds[$channelId] = true;
+            }
+        }
+
+        return $expanded;
     }
 
     /**

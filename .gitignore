@@ -114,8 +114,9 @@ storage/parity-*.sqlite
 # 2026-08-07 起这些文件由私有仓库 yikaicms-blox 经 .git-blox 就地跟踪
 # （bin/blox-git 操作；CI 用 deploy key 注入），本仓库继续排除。
 admin/blox_editor.php
+admin/blox_editor/
 admin/blox_home_api.php
-themes/blox/
+/marketplace/retired/
 # 付费契约测试是固定清单（见私库 BLOX-README.md），显式列出——
 # Blox*Test.php 通配曾误伤公开类的新测试（BloxAreaResolverTest, 2026-08-07）
 tests/Unit/BloxEditorHistoryContractTest.php
@@ -134,6 +135,7 @@ opencode.json
 config/config.php.bak.*
 storage/backup_*.sql
 storage/*.sql
+storage/lang-shadow-backup-*.json
 # 只匹配仓库根目录：不加前导斜杠会匹配任意层级，
 # 将来的 api/v1/_helpers.php 之类会被静默忽略（已踩过「文件在本地不在包里」的坑）
 /_*.lftp

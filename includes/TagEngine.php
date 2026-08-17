@@ -159,6 +159,7 @@ final class TagEngine
         self::$booted = true;
 
         self::register('list', [self::class, 'tagList'], true);
+        self::register('list-pagination', [self::class, 'tagListPagination']);
         self::register('nav', [self::class, 'tagNav'], true);
         self::register('subnav', [self::class, 'tagSubnav'], true);
         self::register('if', [self::class, 'tagIf'], true);
@@ -183,27 +184,12 @@ final class TagEngine
     public static function tagList(array $attrs, ?string $inner): string
     {
         $inner = (string) $inner;
-        $type = strtolower($attrs['type'] ?? 'article');
-        $limit = max(1, min(self::MAX_LIMIT, (int) ($attrs['limit'] ?? 6)));
-        $offset = max(0, (int) ($attrs['offset'] ?? 0));
-        $cat = trim((string) ($attrs['cat'] ?? ''));
-
-        $where = [];
-        if (!empty($attrs['keyword'])) {
-            $where['keyword'] = (string) $attrs['keyword'];
-        }
-        foreach (['recommend' => 'is_recommend', 'hot' => 'is_hot', 'top' => 'is_top'] as $attr => $flag) {
-            if (!empty($attrs[$attr])) {
-                $where[$flag] = 1;
-            }
-        }
-
-        $isProduct = ($type === 'product');
+        $query = self::listQueryContext($attrs);
+        $type = $query['type'];
+        $limit = $query['limit'];
+        $where = $query['filters'];
+        $isProduct = $query['is_product'];
         $ctxType = $isProduct ? 'product' : 'content';
-        if ($isProduct && !empty($attrs['order']) && class_exists('ProductModel')
-            && isset(ProductModel::SORT_MAP[(string) $attrs['order']])) {
-            $where['sort'] = (string) $attrs['order'];
-        }
 
         $idsAttr = trim((string) ($attrs['id'] ?? ''));
         if ($idsAttr !== '') {
@@ -236,29 +222,18 @@ final class TagEngine
                 );
             }
         } elseif ($isProduct) {
-            $categoryId = 0;
-            if ($cat !== '') {
-                if (ctype_digit($cat)) {
-                    $categoryId = (int) $cat;
-                } else {
-                    $pc = function_exists('getProductCategoryBySlug') ? getProductCategoryBySlug($cat) : null;
-                    $categoryId = $pc ? (int) $pc['id'] : -1; // 分类不存在 → 空结果
-                }
-            }
-            $items = $categoryId >= 0 ? getProducts($categoryId, $limit, $offset, $where) : [];
+            [, , $page] = self::listPageState($query);
+            $effectiveOffset = $query['offset'] + (($page - 1) * $limit);
+            $items = $query['valid']
+                ? getProducts($query['source_id'], $limit, $effectiveOffset, $where)
+                : [];
         } else {
             // article / case / 自定义模型 等内容类型统一走 contents（按 type 聚合，如 {yk:list type=team}）
-            $where['type'] = $type;
-            $channelId = 0;
-            if ($cat !== '') {
-                if (ctype_digit($cat)) {
-                    $channelId = (int) $cat;
-                } else {
-                    $ch = getChannelBySlug($cat);
-                    $channelId = $ch ? (int) $ch['id'] : -1;
-                }
-            }
-            $items = $channelId >= 0 ? getContents($channelId, $limit, $offset, $where) : [];
+            [, , $page] = self::listPageState($query);
+            $effectiveOffset = $query['offset'] + (($page - 1) * $limit);
+            $items = $query['valid']
+                ? getContents($query['source_id'], $limit, $effectiveOffset, $where)
+                : [];
         }
 
         if ($items === []) {
@@ -277,6 +252,147 @@ final class TagEngine
             }
         }
         return $out;
+    }
+
+    /** 与 {yk:list} 使用同一查询契约输出数字分页。 */
+    public static function tagListPagination(array $attrs, ?string $inner): string
+    {
+        $query = self::listQueryContext($attrs);
+        if ($query['page_param'] === '' || !$query['valid']) {
+            return '';
+        }
+        [$total, $pages, $page] = self::listPageState($query);
+        if ($total <= $query['limit'] || $pages <= 1) {
+            return '';
+        }
+
+        $pageSet = [1, $pages];
+        for ($i = max(1, $page - 2); $i <= min($pages, $page + 2); $i++) {
+            $pageSet[] = $i;
+        }
+        $pageSet = array_values(array_unique($pageSet));
+        sort($pageSet);
+
+        $items = [];
+        if ($page > 1) {
+            $items[] = self::paginationLink($query['page_param'], $page - 1, __('pager_prev'), 'prev');
+        }
+        $previous = 0;
+        foreach ($pageSet as $number) {
+            if ($previous > 0 && $number > $previous + 1) {
+                $items[] = '<span class="px-2 text-gray-400" aria-hidden="true">…</span>';
+            }
+            if ($number === $page) {
+                $items[] = '<span class="inline-flex min-w-9 items-center justify-center rounded border border-primary bg-primary px-3 py-2 text-sm text-white" aria-current="page">'
+                    . $number . '</span>';
+            } else {
+                $items[] = self::paginationLink($query['page_param'], $number, (string) $number);
+            }
+            $previous = $number;
+        }
+        if ($page < $pages) {
+            $items[] = self::paginationLink($query['page_param'], $page + 1, __('pager_next'), 'next');
+        }
+
+        return '<nav class="yk-query-pagination mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="'
+            . e(__('blox_dynamic_pagination_label')) . '">' . implode('', $items) . '</nav>';
+    }
+
+    /**
+     * @return array{type:string,is_product:bool,source_id:int,valid:bool,limit:int,offset:int,page_param:string,filters:array<string,mixed>}
+     */
+    private static function listQueryContext(array $attrs): array
+    {
+        $type = strtolower(trim((string) ($attrs['type'] ?? 'article')));
+        if (preg_match('/^[a-z][a-z0-9_-]{0,31}$/', $type) !== 1) {
+            $type = 'article';
+        }
+        $limit = max(1, min(self::MAX_LIMIT, (int) ($attrs['limit'] ?? 6)));
+        $offset = max(0, min(5000, (int) ($attrs['offset'] ?? 0)));
+        $cat = trim((string) ($attrs['cat'] ?? ''));
+        $isProduct = $type === 'product';
+        $filters = [];
+        if (!empty($attrs['keyword'])) {
+            $filters['keyword'] = mb_substr((string) $attrs['keyword'], 0, 200);
+        }
+        foreach (['recommend' => 'is_recommend', 'hot' => 'is_hot', 'top' => 'is_top'] as $attr => $flag) {
+            if (!empty($attrs[$attr])) {
+                $filters[$flag] = 1;
+            }
+        }
+        if ($isProduct && !empty($attrs['order']) && class_exists('ProductModel')
+            && isset(ProductModel::SORT_MAP[(string) $attrs['order']])) {
+            $filters['sort'] = (string) $attrs['order'];
+        }
+        if (!$isProduct) {
+            $filters['type'] = $type;
+        }
+
+        $sourceId = 0;
+        $valid = true;
+        if ($cat !== '') {
+            if (ctype_digit($cat)) {
+                $sourceId = (int) $cat;
+            } elseif ($isProduct) {
+                $row = function_exists('getProductCategoryBySlug') ? getProductCategoryBySlug($cat) : null;
+                $sourceId = $row ? (int) $row['id'] : -1;
+                $valid = $sourceId >= 0;
+            } else {
+                $row = getChannelBySlug($cat);
+                $sourceId = $row ? (int) $row['id'] : -1;
+                $valid = $sourceId >= 0;
+            }
+        }
+
+        $pageParam = preg_replace('/[^a-zA-Z0-9_]/', '', (string) ($attrs['page_param'] ?? '')) ?? '';
+        if (strlen($pageParam) > 40) {
+            $pageParam = '';
+        }
+
+        return [
+            'type' => $type,
+            'is_product' => $isProduct,
+            'source_id' => max(0, $sourceId),
+            'valid' => $valid,
+            'limit' => $limit,
+            'offset' => $offset,
+            'page_param' => $pageParam,
+            'filters' => $filters,
+        ];
+    }
+
+    /** @param array{is_product:bool,source_id:int,valid:bool,limit:int,offset:int,page_param:string,filters:array<string,mixed>} $query @return array{int,int,int} */
+    private static function listPageState(array $query): array
+    {
+        if ($query['page_param'] === '' || !$query['valid']) {
+            return [0, 1, 1];
+        }
+        $count = $query['is_product']
+            ? productModel()->getCount($query['source_id'], $query['filters'])
+            : contentModel()->getCount($query['source_id'], $query['filters']);
+        $total = max(0, $count - $query['offset']);
+        $pages = max(1, (int) ceil($total / $query['limit']));
+        $rawPage = $_GET[$query['page_param']] ?? 1;
+        $requestedPage = is_scalar($rawPage) ? (int) $rawPage : 1;
+        $page = max(1, min($pages, $requestedPage));
+        return [$total, $pages, $page];
+    }
+
+    private static function paginationLink(string $param, int $page, string $label, string $rel = ''): string
+    {
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        $path = (string) (parse_url($requestUri, PHP_URL_PATH) ?: '/');
+        $query = [];
+        parse_str((string) (parse_url($requestUri, PHP_URL_QUERY) ?? ''), $query);
+        if ($page <= 1) {
+            unset($query[$param]);
+        } else {
+            $query[$param] = $page;
+        }
+        $url = $path . ($query === [] ? '' : '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986));
+        $relAttr = $rel !== '' ? ' rel="' . $rel . '"' : '';
+        return '<a class="inline-flex min-w-9 items-center justify-center rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 no-underline hover:border-primary hover:text-primary" href="'
+            . e($url) . '"' . $relAttr . '>' . e($label) . '</a>';
     }
 
     /**
@@ -464,6 +580,9 @@ final class TagEngine
             return '';
         }
         $default = (string) ($attrs['default'] ?? '');
+        if (isset($attrs['fallback'])) {
+            $default = mb_substr(rawurldecode((string) $attrs['fallback']), 0, 200);
+        }
 
         // 虚拟字段：url（按当前循环条目的来源类型选对应链接生成器）
         if ($name === 'url') {
@@ -473,13 +592,14 @@ final class TagEngine
                 'channel' => channelUrl($ctx),
                 default   => contentUrl($ctx),
             };
-            return e($url);
+            return e($url !== '' ? $url : $default);
         }
 
         // 虚拟字段：date（publish_time 优先，回退 created_at）
         if ($name === 'date') {
             $rawTime = $ctx['publish_time'] ?? $ctx['created_at'] ?? '';
-            return e(self::formatDate($rawTime, (string) ($attrs['dateformat'] ?? 'Y-m-d')));
+            $date = self::formatDate($rawTime, (string) ($attrs['dateformat'] ?? 'Y-m-d'));
+            return e($date !== '' ? $date : $default);
         }
 
         // 原生列优先；不是原生列时回退查扩展字段（metas），支持自定义模型字段
@@ -487,7 +607,7 @@ final class TagEngine
         if ($value === null) {
             $value = self::metaFallback($ctx, $name);
         }
-        if ($value === null) {
+        if ($value === null || (is_scalar($value) && trim((string) $value) === '')) {
             $value = $default;
         }
         if (!is_scalar($value)) {
@@ -558,17 +678,26 @@ final class TagEngine
      */
     public static function tagConfig(array $attrs, ?string $inner): string
     {
+        return e(self::configValue(
+            (string) ($attrs['name'] ?? ''),
+            (string) ($attrs['default'] ?? '')
+        ));
+    }
+
+    /** 返回可公开展示的站点设置原值，供构建器的可视化字段绑定复用。 */
+    public static function configValue(string $name, string $default = ''): string
+    {
         static $allowed = [
             'site_name', 'site_url', 'site_logo', 'site_keywords', 'site_description',
             'contact_phone', 'contact_email', 'contact_address', 'contact_qq', 'contact_wechat',
             'icp_number', 'police_number', 'copyright',
         ];
-        $name = strtolower(trim((string) ($attrs['name'] ?? '')));
+        $name = strtolower(trim($name));
         if ($name === '' || !in_array($name, $allowed, true)) {
             return '';
         }
-        $value = config($name, (string) ($attrs['default'] ?? ''));
-        return is_scalar($value) ? e((string) $value) : '';
+        $value = config($name, $default);
+        return is_scalar($value) ? (string) $value : $default;
     }
 
     private static function formatDate(mixed $raw, string $format): string

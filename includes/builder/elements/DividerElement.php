@@ -27,7 +27,7 @@ final class DividerElement extends AbstractElement
     {
         $divStyle = htmlspecialchars($data['style'] ?? 'solid');
         $divWidth = max(1, min(3, (int) ($data['width'] ?? 1)));
-        $divColor = htmlspecialchars($data['color'] ?? '#e5e7eb');
+        $divColor = self::cssColor($data['color'] ?? null) ?? '#e5e7eb';
         $divSpacing = self::SPACING_MAP[$data['spacing'] ?? 'md'] ?? 'my-4';
         return '<hr class="' . $divSpacing . ' border-0" style="border-top:' . $divWidth . 'px ' . $divStyle . ' ' . $divColor . '">';
     }

@@ -218,4 +218,39 @@ final class DynamicListItemSchemaTest extends TestCase
         $this->assertStringContainsString('data-yk-el="2.0.1.0"', $html);
         $this->assertStringContainsString('data-yk-el-type="heading"', $html);
     }
+
+    public function testControlledChildrenExposeSafeFieldFallbacks(): void
+    {
+        $html = (new \ListDynamicElement())->buildMarkup([
+            'children' => [
+                ['type' => 'heading', 'data' => ['loop_field' => 'title', 'loop_fallback' => 'Untitled']],
+                ['type' => 'text', 'data' => ['loop_field' => 'summary', 'loop_fallback' => 'No summary']],
+                ['type' => 'image', 'data' => [
+                    'loop_field' => 'cover',
+                    'loop_fallback' => '/assets/placeholder.jpg',
+                    'loop_alt_field' => 'title',
+                    'loop_alt_fallback' => 'Placeholder',
+                ]],
+            ],
+        ]);
+
+        $this->assertStringContainsString('{yk:field name=title fallback=Untitled /}', $html);
+        $this->assertStringContainsString('{yk:field name=summary len=80 fallback=No%20summary /}', $html);
+        $this->assertStringContainsString('{yk:field name=cover fallback=%2Fassets%2Fplaceholder.jpg /}', $html);
+        $this->assertStringContainsString('{yk:field name=title fallback=Placeholder /}', $html);
+    }
+
+    public function testNumberedPaginationUsesAStablePerNodeParameter(): void
+    {
+        $element = new \ListDynamicElement();
+        $data = ['pagination_mode' => 'numbers', 'limit' => 4];
+        $first = $element->buildMarkup($data, null, ['node_id' => 'list-one']);
+        $same = $element->buildMarkup($data, null, ['node_id' => 'list-one']);
+        $second = $element->buildMarkup($data, null, ['node_id' => 'list-two']);
+
+        $this->assertSame($first, $same);
+        $this->assertMatchesRegularExpression('/page_param=ykq_[a-f0-9]{10}/', $first);
+        $this->assertStringContainsString('{yk:list-pagination ', $first);
+        $this->assertNotSame($first, $second);
+    }
 }
