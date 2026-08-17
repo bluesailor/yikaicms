@@ -21,17 +21,70 @@ final class HomeBannerItemElementTest extends TestCase
             'title' => '<b>Launch</b>',
             'subtitle' => '<script>alert(1)</script>Welcome',
             'image' => '/uploads/banner.jpg',
+            'image_mobile' => 'https://example.com/banner-mobile.jpg',
             'btn1_url' => 'javascript:alert(1)',
             'btn2_url' => 'mailto:sales@example.com',
             'link_target' => 'popup',
+            'content_motion' => 'javascript:alert(1)',
+            'background_motion' => 'rotate',
         ]);
 
         $this->assertSame('Launch', $item['title']);
         $this->assertSame('alert(1)Welcome', $item['subtitle']);
         $this->assertSame('/uploads/banner.jpg', $item['image']);
+        $this->assertSame('https://example.com/banner-mobile.jpg', $item['image_mobile']);
         $this->assertSame('', $item['btn1_url']);
         $this->assertSame('mailto:sales@example.com', $item['btn2_url']);
         $this->assertSame('_self', $item['link_target']);
+        $this->assertSame('inherit', $item['content_motion']);
+        $this->assertSame('inherit', $item['background_motion']);
+    }
+
+    public function testEachBannerItemCanOverrideOrInheritContentMotion(): void
+    {
+        $element = new HomeBannerItemElement();
+        $controls = [];
+        foreach ($element->controls() as $control) {
+            $controls[$control['key']] = $control;
+        }
+
+        $this->assertSame('inherit', $controls['content_motion']['default']);
+        $this->assertSame('inherit', $controls['background_motion']['default']);
+        $this->assertSame('', $controls['image_mobile']['default']);
+        $this->assertSame('settings', $controls['content_motion']['option_icons']['inherit']);
+        $this->assertSame('', HomeBannerItemElement::contentMotionAttribute([]));
+        $this->assertSame(
+            ' data-blox-slide-content-motion="slide-left"',
+            HomeBannerItemElement::contentMotionAttribute(['content_motion' => 'slide-left'])
+        );
+        $this->assertSame(
+            ' data-blox-slide-content-motion="none"',
+            HomeBannerItemElement::contentMotionAttribute(['content_motion' => 'none'])
+        );
+        $this->assertSame(
+            ' data-blox-slide-content-motion="fade-up" data-blox-slide-background-motion="zoom-out"',
+            HomeBannerItemElement::motionAttributes([
+                'content_motion' => 'fade-up',
+                'background_motion' => 'zoom-out',
+            ])
+        );
+    }
+
+    public function testResponsiveImageUsesMobileSourceWithSafeFallback(): void
+    {
+        $html = HomeBannerItemElement::responsiveImageHtml([
+            'title' => 'Launch',
+            'image' => '/uploads/desktop.jpg',
+            'image_mobile' => '/uploads/mobile.jpg',
+        ]);
+
+        $this->assertStringContainsString('<picture class="block w-full h-full" data-blox-banner-bg>', $html);
+        $this->assertStringContainsString('media="(max-width: 767px)"', $html);
+        $this->assertStringContainsString('srcset="/uploads/mobile.jpg"', $html);
+        $this->assertStringContainsString('src="/uploads/desktop.jpg"', $html);
+        $this->assertStringNotContainsString('<source', HomeBannerItemElement::responsiveImageHtml([
+            'image' => '/uploads/desktop.jpg',
+        ]));
     }
 
     public function testCustomChildrenReplaceLiveBannersInDocumentOrder(): void
@@ -41,7 +94,13 @@ final class HomeBannerItemElementTest extends TestCase
         file_put_contents((string) $fixture, '<?php echo json_encode($banners, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);');
 
         $children = [
-            ['type' => 'home-banner-item', 'data' => ['title' => 'Second', 'image' => '/second.jpg']],
+            ['type' => 'home-banner-item', 'data' => [
+                'title' => 'Second',
+                'image' => '/second.jpg',
+                'image_mobile' => '/second-mobile.jpg',
+                'content_motion' => 'zoom-in',
+                'background_motion' => 'zoom-out',
+            ]],
             ['type' => 'heading', 'data' => ['text' => 'Ignored']],
             ['type' => 'home-banner-item', 'data' => ['title' => 'First', 'image' => '/first.jpg']],
         ];
@@ -68,6 +127,11 @@ final class HomeBannerItemElementTest extends TestCase
             $items = json_decode($html, true, 512, JSON_THROW_ON_ERROR);
 
             $this->assertSame(['Second', 'First'], array_column($items, 'title'));
+            $this->assertSame('zoom-in', $items[0]['content_motion']);
+            $this->assertSame('zoom-out', $items[0]['background_motion']);
+            $this->assertSame('/second-mobile.jpg', $items[0]['image_mobile']);
+            $this->assertSame('inherit', $items[1]['content_motion']);
+            $this->assertSame('inherit', $items[1]['background_motion']);
             $this->assertArrayNotHasKey('_blox_path', $items[0]);
 
             $editContext = HomeBloxRenderContext::fromHomePageData(

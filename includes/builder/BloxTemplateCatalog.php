@@ -9,7 +9,7 @@ final class BloxTemplateCatalog
     private const EDITOR_TYPES = ['section', 'page'];
     private static string $remoteError = '';
 
-    /** @return list<array{key:string,type:string,name:string,source:string,provider:string,updated_at:int}> */
+    /** @return list<array<string,mixed>> */
     public static function items(
         string $context = 'page',
         bool $includeRemote = false,
@@ -32,11 +32,18 @@ final class BloxTemplateCatalog
                     'key' => 'local:' . $id,
                     'type' => $type,
                     'name' => (string) ($row['name'] ?? ''),
+                    'description' => '',
                     'source' => 'local',
                     'provider' => (string) ($row['source'] ?? 'user'),
+                    'category' => $type,
+                    'thumbnail' => self::safeLocalThumbnail($row['thumbnail'] ?? ''),
                     'updated_at' => (int) ($row['updated_at'] ?? 0),
                 ];
             }
+        }
+
+        foreach ((new BloxBuiltinTemplateProvider())->items($context) as $item) {
+            $items[] = $item;
         }
 
         foreach (BloxPluginRegistry::templates($context) as $template) {
@@ -51,8 +58,11 @@ final class BloxTemplateCatalog
                 'key' => 'plugin:' . $slug . ':' . $key,
                 'type' => $type,
                 'name' => trim((string) ($template['name'] ?? $key)),
+                'description' => mb_substr(trim((string) ($template['description'] ?? '')), 0, 300),
                 'source' => 'plugin',
                 'provider' => $slug,
+                'category' => mb_substr(trim((string) ($template['category'] ?? $type)), 0, 50),
+                'thumbnail' => self::safeLocalThumbnail($template['thumbnail'] ?? ''),
                 'updated_at' => 0,
             ];
         }
@@ -90,6 +100,9 @@ final class BloxTemplateCatalog
 
         if (preg_match('/^local:(\d+)$/', $key, $match) === 1) {
             return self::resolveLocal((int) $match[1], $key);
+        }
+        if (preg_match('/^builtin:([a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?)$/', $key, $match) === 1) {
+            return (new BloxBuiltinTemplateProvider())->resolve($match[1], $context);
         }
         if (preg_match('/^plugin:([a-z0-9][a-z0-9-]*):([a-zA-Z0-9][a-zA-Z0-9._-]*)$/', $key, $match) === 1) {
             return self::resolvePlugin($match[1], $match[2], $key, $context);
@@ -197,6 +210,32 @@ final class BloxTemplateCatalog
     private static function validProviderPart(string $value): bool
     {
         return preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$/', $value) === 1;
+    }
+
+    private static function safeLocalThumbnail(mixed $raw): string
+    {
+        if (!is_string($raw)) {
+            return '';
+        }
+        $value = trim($raw);
+        if ($value === '' || strlen($value) > 500 || str_contains($value, "\\")) {
+            return '';
+        }
+        $parts = parse_url($value);
+        if (!is_array($parts) || isset($parts['scheme']) || isset($parts['host'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            return '';
+        }
+        $path = rawurldecode((string) ($parts['path'] ?? ''));
+        if (str_contains($path, '..')) {
+            return '';
+        }
+        foreach (['/uploads/', '/assets/', '/plugins/'] as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                return $value;
+            }
+        }
+        return '';
     }
 
     private static function requirementsAvailable(mixed $raw): bool

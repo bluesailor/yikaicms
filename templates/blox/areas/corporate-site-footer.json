@@ -1,0 +1,78 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "footer",
+  "name": "Corporate Site Footer",
+  "requires": {
+    "elements": ["container", "logo", "nav", "site-contact", "site-copyright", "social-links"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "xl",
+          "max_width": "wide",
+          "gap": "lg",
+          "bg_color": "#111827",
+          "align_items": "start",
+          "tablet_stack": true
+        },
+        "columns": [
+          {
+            "span": 4,
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "column",
+                  "wrap": "nowrap",
+                  "gap": "md",
+                  "align": "start",
+                  "justify": "start",
+                  "padding": "none",
+                  "radius": "none",
+                  "children": [
+                    {"type": "logo", "data": {"display": "image", "height": "md", "tone": "light", "link_home": true}},
+                    {"type": "social-links", "data": {"style": "outline", "align": "left", "tone": "light"}}
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "span": 3,
+            "elements": [
+              {"type": "nav", "data": {"menu_group": 0, "parent": "", "nav_only": true, "dropdown": false, "wrap_class": "flex flex-col gap-2 text-sm text-gray-300"}}
+            ]
+          },
+          {
+            "span": 5,
+            "elements": [
+              {"type": "site-contact", "data": {"show_phone": true, "show_email": true, "show_address": true, "show_hours": true, "show_icons": true, "layout": "stacked", "tone": "light"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#030712"
+        },
+        "columns": [
+          {
+            "elements": [
+              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "light"}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

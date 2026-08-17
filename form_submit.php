@@ -65,7 +65,12 @@ if (!empty($template['captcha'])) {
     }
 }
 
-$fieldsRaw = $template['fields'] ?? '';
+$fieldsLang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+$fieldsRaw = (string) ($template['fields'] ?? '');
+$localizedFields = (string) ($template['fields_' . $fieldsLang] ?? '');
+if (trim($localizedFields) !== '') {
+    $fieldsRaw = $localizedFields;
+}
 
 // 从模板解析字段定义（兼容旧 JSON 和新 CF7 模板）
 if (isJsonFields($fieldsRaw)) {
@@ -77,6 +82,9 @@ if (isJsonFields($fieldsRaw)) {
 // 验证必填字段
 $formData = [];
 foreach ($fields as $field) {
+    if (array_key_exists('enabled', $field) && empty($field['enabled'])) {
+        continue;
+    }
     $key = $field['key'] ?? $field['name'] ?? '';
     if ($key === '') continue;
     $type = $field['type'] ?? 'text';

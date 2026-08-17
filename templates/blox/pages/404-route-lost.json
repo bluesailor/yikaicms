@@ -1,0 +1,109 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "404 Route Lost",
+  "thumbnail": "/assets/images/blox-templates/404-route-lost.png",
+  "requires": {
+    "elements": ["button", "divider", "div", "heading", "text"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "404 Access Panel",
+        "settings": {
+          "padding": {"d": "xl", "m": "lg"},
+          "gap": "none",
+          "max_width": "custom",
+          "max_width_px": 760,
+          "min_height": "screen",
+          "content_v_align": "center",
+          "bg_color": "#f7f7f5"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "404",
+                  "level": "h1",
+                  "visual_size": {"d": "display", "t": "6xl", "m": "5xl"},
+                  "color": "#dededb",
+                  "align": "center",
+                  "style_margin_bottom": "-2rem"
+                }
+              },
+              {
+                "type": "div",
+                "data": {
+                  "display": "flex",
+                  "direction": "column",
+                  "wrap": "nowrap",
+                  "gap": "sm",
+                  "align": "stretch",
+                  "justify": "start",
+                  "bg_color": "#dededddd",
+                  "padding": {"d": "lg", "m": "md"},
+                  "radius": "xl",
+                  "children": [
+                    {
+                      "type": "text",
+                      "data": {
+                        "html": "<p style=\"display:flex;justify-content:space-between;gap:1rem;margin:0;color:#686866;font-size:.75rem;text-transform:uppercase\"><span>Return route</span><span>Access denied</span></p>"
+                      }
+                    },
+                    {
+                      "type": "divider",
+                      "data": {"color": "#b9b9b5", "style": "solid", "width": 1, "spacing": "sm"}
+                    },
+                    {
+                      "type": "text",
+                      "data": {"html": "<p style=\"margin:0;color:#777773;font-size:.75rem;text-transform:uppercase\">Destination</p>"}
+                    },
+                    {
+                      "type": "heading",
+                      "data": {
+                        "text": "Page 404",
+                        "level": "h2",
+                        "visual_size": {"d": "4xl", "m": "3xl"},
+                        "color": "#50504d",
+                        "align": "left",
+                        "style_margin_bottom": "none"
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "data": {"html": "<p style=\"margin:0;text-align:right;color:#686866\">地址有效，但此页面未抵达。</p>"}
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"max-width:34rem;margin:2rem auto .75rem;text-align:center;color:#666663\">你访问的页面可能已移动、删除，或从未存在。</p>"
+                }
+              },
+              {
+                "type": "button",
+                "data": {
+                  "text": "返回首页",
+                  "url": "/",
+                  "new_tab": false,
+                  "align": "center",
+                  "variant": "dark",
+                  "shape": "pill"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -36,7 +36,7 @@ final class IconElement extends AbstractElement
             $iconValue = self::FEATHER_ALIAS[$iconValue] ?? $iconValue;
         }
         $iconSize = self::SIZE_MAP[$data['size'] ?? 'md'] ?? '32px';
-        $iconColor = htmlspecialchars($data['color'] ?? '');
+        $iconColor = AbstractElement::cssColor($data['color'] ?? null) ?? '';
         $style = 'font-size:' . $iconSize . ';line-height:1;' . ($iconColor ? 'color:' . $iconColor . ';' : '');
         $iconText = htmlspecialchars($data['text'] ?? '');
         $html = '<div class="text-center my-2">';

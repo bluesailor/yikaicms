@@ -1,7 +1,8 @@
 <?php
 /**
  * 导航元素 —— {yk:nav parent=} 的可拖拽版。
- * data：parent（父栏目 id/slug，空=顶级）、nav_only、wrap_class（外层 ul class）。
+ * data：menu_group（0=栏目投影）、parent（父栏目 id/slug，空=顶级）、
+ * nav_only、wrap_class（外层 ul class）。
  * 无内层模板时用默认 <li><a>，需要专属样式可在 template[] 放子元素（同 list-dynamic）。
  */
 
@@ -19,6 +20,8 @@ final class NavElement extends AbstractElement
     public function controls(): array
     {
         return [
+            ['key' => 'menu_group', 'type' => 'select', 'label' => __('blox_menu_source'), 'default' => 0,
+                'options' => [0 => __('blox_menu_source_default')] + NavMegaElement::menuGroupOptions()],
             ['key' => 'parent', 'type' => 'text', 'label' => __('blox_nav_parent'), 'default' => '', 'placeholder' => __('blox_empty_top_level')],
             ['key' => 'nav_only', 'type' => 'checkbox', 'label' => __('blox_nav_only'), 'default' => true],
             ['key' => 'dropdown', 'type' => 'checkbox', 'label' => __('blox_nav_dropdown'), 'default' => false],
@@ -27,8 +30,58 @@ final class NavElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
+        $usesDefaultRoot = trim((string) ($data['parent'] ?? '')) === ''
+            && (string) ($data['nav_only'] ?? '1') !== '0'
+            && empty($data['template'])
+            && function_exists('getDefaultNavigation');
+        if ((int) ($data['menu_group'] ?? 0) > 0 || $usesDefaultRoot) {
+            return $this->renderMenuGroup($data);
+        }
         $markup = $this->buildMarkup($data);
         return class_exists('TagEngine') ? \TagEngine::render($markup) : $markup;
+    }
+
+    private function renderMenuGroup(array $data): string
+    {
+        $nodes = NavMegaElement::navTree($data);
+        if ($nodes === []) {
+            return '';
+        }
+        $items = '';
+        foreach ($nodes as $node) {
+            if (!is_array($node)) {
+                continue;
+            }
+            $items .= $this->renderMenuNode($node, !empty($data['dropdown']));
+        }
+        $wrapClass = htmlspecialchars((string) ($data['wrap_class'] ?? 'flex flex-wrap gap-4'), ENT_QUOTES);
+        return '<ul class="' . $wrapClass . '">' . $items . '</ul>';
+    }
+
+    /** @param array<string,mixed> $node */
+    private function renderMenuNode(array $node, bool $dropdown): string
+    {
+        $name = htmlspecialchars((string) ($node['name'] ?? ''), ENT_QUOTES);
+        $url = htmlspecialchars(NavMegaElement::nodeHref($node), ENT_QUOTES);
+        $children = is_array($node['children'] ?? null)
+            ? array_values(array_filter($node['children'], 'is_array'))
+            : [];
+        if (!$dropdown || $children === []) {
+            return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
+                . ' class="hover:text-primary">' . $name . '</a></li>';
+        }
+
+        $nested = '';
+        foreach ($children as $child) {
+            $nested .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($child), ENT_QUOTES) . '"'
+                . NavMegaElement::targetAttr($child)
+                . ' class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary">'
+                . htmlspecialchars((string) ($child['name'] ?? ''), ENT_QUOTES) . '</a></li>';
+        }
+        return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
+            . ' class="inline-flex items-center gap-1 hover:text-primary">' . $name . '</a>'
+            . '<ul class="absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block">'
+            . $nested . '</ul></li>';
     }
 
     public function buildMarkup(array $data): string

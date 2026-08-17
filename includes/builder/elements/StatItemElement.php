@@ -51,9 +51,10 @@ final class StatItemElement extends AbstractElement
 
     private static function colorStyle(mixed $value): string
     {
-        if (!is_string($value) || preg_match('/^#[0-9a-fA-F]{6}$/', $value) !== 1) {
+        $color = self::cssColor($value);
+        if ($color === null) {
             return '';
         }
-        return ' style="color:' . strtolower($value) . ';"';
+        return ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"';
     }
 }

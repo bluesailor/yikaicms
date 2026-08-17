@@ -72,6 +72,7 @@ async function run() {
         getFrame: function () { return frame; },
         getHost: function () { return host; },
         getDocument: function () { return [{ id: "section" }]; },
+        getParams: function () { return { header_state: "overlay" }; },
         setLoading: function (value) { loading.push(value); },
         onLoaded: function () { loaded++; },
         onError: function (error) { errors.push(error); },
@@ -94,6 +95,7 @@ async function run() {
     assert.equal(pending[1].request.body.get("blox"), "1");
     assert.equal(pending[1].request.body.get("_token"), "token");
     assert.equal(pending[1].request.body.get("blocks_data"), '[{"id":"section"}]');
+    assert.equal(pending[1].request.body.get("header_state"), "overlay");
 
     host.scrollLeft = 12;
     host.scrollTop = 34;

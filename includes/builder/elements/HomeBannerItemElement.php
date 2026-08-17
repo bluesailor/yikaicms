@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 final class HomeBannerItemElement extends AbstractElement
 {
+    private const CONTENT_MOTIONS = ['inherit', 'none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in'];
+    private const BACKGROUND_MOTIONS = ['inherit', 'none', 'zoom-in', 'zoom-out'];
+
     public function type(): string { return 'home-banner-item'; }
     public function label(): string { return __('blox_home_banner_item'); }
     public function icon(): string { return 'photo'; }
@@ -18,7 +21,49 @@ final class HomeBannerItemElement extends AbstractElement
         return [
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_home_banner_title'), 'default' => ''],
             ['key' => 'subtitle', 'type' => 'textarea', 'label' => __('blox_home_banner_subtitle'), 'default' => ''],
+            [
+                'key' => 'content_motion',
+                'type' => 'select',
+                'label' => __('blox_home_banner_content_motion'),
+                'default' => 'inherit',
+                'options' => [
+                    'inherit' => __('blox_banner_motion_inherit'),
+                    'none' => __('blox_banner_motion_none'),
+                    'fade-up' => __('blox_banner_motion_fade_up'),
+                    'slide-left' => __('blox_banner_motion_slide_left'),
+                    'slide-right' => __('blox_banner_motion_slide_right'),
+                    'zoom-in' => __('blox_banner_motion_zoom_in'),
+                ],
+                'option_icons' => [
+                    'inherit' => 'settings',
+                    'none' => 'ban',
+                    'fade-up' => 'arrow-up',
+                    'slide-left' => 'arrow-left',
+                    'slide-right' => 'arrow-right',
+                    'zoom-in' => 'zoom-in',
+                ],
+                'help' => __('blox_home_banner_content_motion_help'),
+            ],
             ['key' => 'image', 'type' => 'image', 'label' => __('blox_home_banner_image'), 'default' => ''],
+            ['key' => 'image_mobile', 'type' => 'image', 'label' => __('bn_mobile_image'), 'default' => ''],
+            [
+                'key' => 'background_motion',
+                'type' => 'select',
+                'label' => __('blox_banner_background_motion'),
+                'default' => 'inherit',
+                'options' => [
+                    'inherit' => __('blox_banner_motion_inherit'),
+                    'none' => __('blox_banner_motion_none'),
+                    'zoom-in' => __('blox_banner_background_zoom_in'),
+                    'zoom-out' => __('blox_banner_background_zoom_out'),
+                ],
+                'option_icons' => [
+                    'inherit' => 'settings',
+                    'none' => 'ban',
+                    'zoom-in' => 'zoom-in',
+                    'zoom-out' => 'zoom-out',
+                ],
+            ],
             ['key' => 'btn1_text', 'type' => 'text', 'label' => __('blox_home_banner_primary_text'), 'default' => ''],
             ['key' => 'btn1_url', 'type' => 'text', 'label' => __('blox_home_banner_primary_url'), 'default' => ''],
             ['key' => 'btn2_text', 'type' => 'text', 'label' => __('blox_home_banner_secondary_text'), 'default' => ''],
@@ -56,11 +101,73 @@ final class HomeBannerItemElement extends AbstractElement
             $item[$key] = mb_substr(trim(strip_tags((string) ($data[$key] ?? ''))), 0, $limit);
         }
         $item['image'] = self::safeUrl((string) ($data['image'] ?? ''), false);
+        $item['image_mobile'] = self::safeUrl((string) ($data['image_mobile'] ?? ''), false);
         foreach (['btn1_url', 'btn2_url', 'link_url'] as $key) {
             $item[$key] = self::safeUrl((string) ($data[$key] ?? ''), true);
         }
         $item['link_target'] = ($data['link_target'] ?? '_self') === '_blank' ? '_blank' : '_self';
+        $item['content_motion'] = self::contentMotion($data);
+        $item['background_motion'] = self::backgroundMotion($data);
         return $item;
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function contentMotion(array $data): string
+    {
+        $motion = (string) ($data['content_motion'] ?? 'inherit');
+        return in_array($motion, self::CONTENT_MOTIONS, true) ? $motion : 'inherit';
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function contentMotionAttribute(array $data): string
+    {
+        $motion = self::contentMotion($data);
+        return $motion === 'inherit'
+            ? ''
+            : ' data-blox-slide-content-motion="' . htmlspecialchars($motion, ENT_QUOTES) . '"';
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function backgroundMotion(array $data): string
+    {
+        $motion = (string) ($data['background_motion'] ?? 'inherit');
+        return in_array($motion, self::BACKGROUND_MOTIONS, true) ? $motion : 'inherit';
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function backgroundMotionAttribute(array $data): string
+    {
+        $motion = self::backgroundMotion($data);
+        return $motion === 'inherit'
+            ? ''
+            : ' data-blox-slide-background-motion="' . htmlspecialchars($motion, ENT_QUOTES) . '"';
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function motionAttributes(array $data): string
+    {
+        return self::contentMotionAttribute($data) . self::backgroundMotionAttribute($data);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function responsiveImageHtml(array $data, string $class = 'w-full h-full object-cover'): string
+    {
+        $item = self::normalize($data);
+        if ($item['image'] === '') {
+            return '';
+        }
+
+        $class = htmlspecialchars($class, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $alt = htmlspecialchars($item['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $html = '<picture class="block w-full h-full" data-blox-banner-bg>';
+        if ($item['image_mobile'] !== '') {
+            $html .= '<source media="(max-width: 767px)" srcset="'
+                . htmlspecialchars($item['image_mobile'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
+        }
+        $html .= '<img src="' . htmlspecialchars($item['image'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '" alt="' . $alt . '" class="' . $class . '"></picture>';
+
+        return $html;
     }
 
     /** @param array<string, mixed> $banner @return array<string, string> */

@@ -6,12 +6,21 @@ namespace Yikai\Tests\Unit;
 
 use HomeBloxRenderContext;
 use HomeBloxRenderer;
+use BloxAssetCollector;
+use BlockRenderer;
 use PHPUnit\Framework\TestCase;
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 final class HomeBloxRendererTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        BlockRenderer::$showHidden = false;
+        BloxAssetCollector::reset();
+        parent::tearDown();
+    }
+
     public function testDynamicHomeBlocksKeepOrderAndColumnStructure(): void
     {
         $called = [];
@@ -61,6 +70,129 @@ final class HomeBloxRendererTest extends TestCase
         $this->assertSame(0, $called);
         $this->assertStringNotContainsString('unexpected', $html);
     }
+
+    public function testDisabledDynamicHomeBlocksRemainVisibleInTheEditorCanvas(): void
+    {
+        BlockRenderer::$showHidden = true;
+        $sections = [[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'home-block',
+                    'data' => [
+                        'block_type' => 'testimonials',
+                        'label' => 'Customer reviews',
+                        'enabled' => false,
+                    ],
+                ]],
+            ]],
+        ]];
+
+        $html = HomeBloxRenderer::render($sections, static fn (): string => 'unexpected');
+
+        $this->assertStringNotContainsString('unexpected', $html);
+        $this->assertStringContainsString('data-home-block="testimonials"', $html);
+        $this->assertStringContainsString('Customer reviews', $html);
+        $this->assertStringContainsString('blox_home_disabled', $html);
+    }
+
+    public function testHeaderOverlayRequiresCoverBannerAsFirstVisibleElement(): void
+    {
+        $coverBanner = [
+            'type' => 'home-block',
+            'data' => [
+                'block_type' => 'banner',
+                'enabled' => true,
+                'banner_height_mode' => 'cover-header',
+            ],
+        ];
+        $section = static fn (array $elements, array $settings = []): array => [
+            'settings' => $settings,
+            'columns' => [['elements' => $elements]],
+        ];
+
+        $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner([$section([$coverBanner])]));
+        $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner([
+            $section([['type' => 'heading', 'data' => ['text' => 'Hidden']]], ['hidden' => true]),
+            $section([
+                ['type' => 'home-block', 'data' => ['block_type' => 'about', 'enabled' => false]],
+                $coverBanner,
+            ]),
+        ]));
+        $this->assertFalse(HomeBloxRenderer::startsWithHeaderOverlayBanner([
+            $section([['type' => 'heading', 'data' => ['text' => 'Before']], $coverBanner]),
+        ]));
+        $this->assertFalse(HomeBloxRenderer::startsWithHeaderOverlayBanner([
+            $section([array_replace_recursive($coverBanner, ['data' => ['banner_height_mode' => 'screen']])]),
+        ]));
+
+        $inheritBanner = array_replace_recursive($coverBanner, ['data' => ['banner_height_mode' => 'inherit']]);
+        $this->assertTrue(HomeBloxRenderer::startsWithVisibleBanner([$section([$inheritBanner])]));
+        $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner(
+            [$section([$inheritBanner])],
+            ['height_mode' => 'cover-header']
+        ));
+        $this->assertFalse(HomeBloxRenderer::startsWithHeaderOverlayBanner(
+            [$section([$inheritBanner])],
+            ['height_mode' => 'screen']
+        ));
+    }
+
+    public function testLegacyHeaderOverlayRequiresCoverGroupAndFirstEnabledBanner(): void
+    {
+        $coverGroup = ['height_mode' => 'cover-header'];
+
+        $this->assertTrue(HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner([
+            ['type' => 'about', 'enabled' => false],
+            ['type' => 'banner', 'enabled' => true],
+        ], $coverGroup));
+        $this->assertTrue(HomeBloxRenderer::legacyStartsWithVisibleBanner([
+            ['type' => 'about', 'enabled' => false],
+            ['type' => 'banner', 'enabled' => true],
+        ]));
+        $this->assertFalse(HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner([
+            ['type' => 'about', 'enabled' => true],
+            ['type' => 'banner', 'enabled' => true],
+        ], $coverGroup));
+        $this->assertFalse(HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner([
+            ['type' => 'banner', 'enabled' => true],
+        ], ['height_mode' => 'screen']));
+    }
+
+    public function testRenderedBannerCollectsRuntimeAssetsBeforeCodeConversion(): void
+    {
+        BloxAssetCollector::reset();
+        $sections = [[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'home-block',
+                    'data' => ['block_type' => 'banner', 'enabled' => true],
+                ]],
+            ]],
+        ]];
+
+        HomeBloxRenderer::render($sections, static fn (array $element): string => '<div>Banner</div>');
+
+        $this->assertSame(['/assets/css/blox-banner.css'], BloxAssetCollector::styles());
+        $this->assertSame(['/assets/js/blox-banner.js'], BloxAssetCollector::scripts());
+    }
+
+    public function testEmptyDynamicBlockDoesNotCollectUnusedRuntimeAssets(): void
+    {
+        BloxAssetCollector::reset();
+        $sections = [[
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'home-block',
+                    'data' => ['block_type' => 'banner', 'enabled' => true],
+                ]],
+            ]],
+        ]];
+
+        HomeBloxRenderer::render($sections, static fn (array $element): string => '');
+
+        $this->assertSame([], BloxAssetCollector::styles());
+        $this->assertSame([], BloxAssetCollector::scripts());
+    }
     public function testSharedContextDispatchesTheSameDynamicTemplateEntryPoint(): void
     {
         $fixture = tempnam(sys_get_temp_dir(), 'yk-home-render-');
@@ -87,6 +219,93 @@ final class HomeBloxRendererTest extends TestCase
             @unlink((string) $fixture);
         }
     }
+
+    public function testCustomBlockPreviewDoesNotLeakNestedEditorCoordinates(): void
+    {
+        $configKey = 'home_custom_99';
+        if (!isset($GLOBALS['_test_config']) || !is_array($GLOBALS['_test_config'])) {
+            $GLOBALS['_test_config'] = [];
+        }
+        $hadConfig = array_key_exists($configKey, $GLOBALS['_test_config']);
+        $oldConfig = $GLOBALS['_test_config'][$configKey] ?? null;
+        $oldEditChannelId = \BlockRenderer::$editChannelId;
+        if (!isset($_SESSION) || !is_array($_SESSION)) {
+            $_SESSION = [];
+        }
+        $hadAdminId = array_key_exists('admin_id', $_SESSION);
+        $oldAdminId = $_SESSION['admin_id'] ?? null;
+
+        $GLOBALS['_test_config'][$configKey] = json_encode(['blocks' => [[
+            'id' => 's_custom',
+            'settings' => ['title' => 'Pricing', 'subtitle' => 'Pick a plan'],
+            'columns' => [[
+                'id' => 'c_custom',
+                'elements' => [[
+                    'id' => 'e_custom',
+                    'type' => 'heading',
+                    'data' => ['text' => 'Price plans'],
+                ]],
+            ]],
+        ]]], JSON_UNESCAPED_UNICODE);
+        \BlockRenderer::$editChannelId = 7;
+        $_SESSION['admin_id'] = 1;
+
+        try {
+            $html = HomeBloxRenderContext::fromHomePageData([], [], [], [], null, [], true)
+                ->renderLegacyBlock(['data' => [
+                    'block_type' => 'custom:99',
+                    'enabled' => true,
+                    '_blox_path' => '7.0.0',
+                ]]);
+
+            $this->assertStringContainsString('data-yk-home="custom:99"', $html);
+            $this->assertStringContainsString('Price plans', $html);
+            $this->assertStringContainsString('data-yk-home-path="7.0.0"', $html);
+            $this->assertStringContainsString('data-yk-home-field="custom_title"', $html);
+            $this->assertStringContainsString('data-yk-home-field="custom_subtitle"', $html);
+            $locale = \HomeBloxBlockSchema::customLocaleKey();
+            $this->assertStringContainsString(
+                'data-yk-home-field="custom_overrides.' . $locale . '.0.columns.0.elements.0.data.text"',
+                $html
+            );
+            foreach (['data-yk-sec=', 'data-yk-con=', 'data-yk-col=', 'data-yk-el=', 'data-yk-sec-field='] as $marker) {
+                $this->assertStringNotContainsString($marker, $html);
+            }
+            $this->assertSame(7, \BlockRenderer::$editChannelId);
+
+            $overridden = HomeBloxRenderContext::fromHomePageData([], [], [], [], null, [], true)
+                ->renderLegacyBlock(['data' => [
+                    'block_type' => 'custom:99',
+                    'enabled' => true,
+                    '_blox_path' => '7.0.0',
+                    'custom_title' => 'Edited pricing',
+                    'custom_subtitle' => 'Edited subtitle',
+                    'custom_overrides' => [
+                        $locale => [0 => ['columns' => [0 => ['elements' => [
+                            0 => ['data' => ['text' => 'Edited plan']],
+                        ]]]]],
+                    ],
+                ]]);
+            $this->assertStringContainsString('Edited pricing', $overridden);
+            $this->assertStringContainsString('Edited subtitle', $overridden);
+            $this->assertStringContainsString('Edited plan', $overridden);
+            $this->assertStringNotContainsString('>Pricing<', $overridden);
+            $this->assertStringNotContainsString('>Pick a plan<', $overridden);
+        } finally {
+            \BlockRenderer::$editChannelId = $oldEditChannelId;
+            if ($hadAdminId) {
+                $_SESSION['admin_id'] = $oldAdminId;
+            } else {
+                unset($_SESSION['admin_id']);
+            }
+            if ($hadConfig) {
+                $GLOBALS['_test_config'][$configKey] = $oldConfig;
+            } else {
+                unset($GLOBALS['_test_config'][$configKey]);
+            }
+        }
+    }
+
     public function testContainerGutterCanBeRemovedWithoutChangingLegacyDefault(): void
     {
         $section = static fn (array $settings): array => [[

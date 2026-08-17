@@ -6,6 +6,7 @@
 @source "../../../admin/**/*.php";
 @source "../../../plugins/**/*.php";
 @source "../../../themes/**/*.php";
+@source "../../../marketplace/themes/**/*.php";
 
 /* 构建器渲染引擎动态拼接列数类（BlockRenderer: 'md:grid-cols-' . $colCount），
    扫描器看不见拼出来的 5/6 列，显式登记 1–6 全档 */
@@ -25,6 +26,11 @@
     *, ::before, ::after, ::backdrop {
         border-color: var(--color-gray-200, #e5e7eb);
     }
+}
+
+.yk-blox-anchor { scroll-margin-top: 6rem; }
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
 }
 
 /* 富文本内容样式（替代 @tailwindcss/typography 的 prose） */
@@ -186,13 +192,76 @@
 }
 
 /* Blox 吸顶头部（文档 settings.sticky）：定位纯 CSS，JS 只切 .yk-stuck 滚动态 */
-.yk-sticky-header {
+.yk-blox-header {
+    width: 100%;
+    z-index: 55;
+    transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.yk-blox-header.yk-sticky-header {
     position: sticky;
     top: 0;
-    z-index: 40;
-    background: #fff;
-    transition: box-shadow .2s ease;
 }
-.yk-sticky-header.yk-stuck {
-    box-shadow: 0 2px 12px rgba(15, 23, 42, .08);
+.yk-blox-header.yk-sticky-hidden {
+    transform: translateY(-100%);
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+    .yk-blox-header.yk-sticky-header[data-yk-sticky-tablet="0"] { position: relative; }
+}
+@media (max-width: 767px) {
+    .yk-blox-header.yk-sticky-header[data-yk-sticky-mobile="0"] { position: relative; }
+}
+@media (min-width: 1024px) {
+    .yk-blox-header.yk-sticky-header[data-yk-sticky-desktop="0"] { position: relative; }
+}
+.yk-blox-header[data-yk-normal-bg="1"] {
+    background: var(--yk-header-normal-bg);
+    box-shadow: var(--yk-header-normal-shadow, none);
+}
+.yk-blox-header[data-yk-normal-bg="1"] > section { background: transparent !important; }
+.yk-blox-header[data-yk-normal-border="1"] { border-bottom: 1px solid var(--yk-header-normal-border); }
+.yk-blox-header[data-yk-normal-text="1"] :is(a, button, [class*="text-"]) { color: var(--yk-header-normal-text) !important; }
+
+html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck),
+.yk-blox-header.yk-header-preview-overlay {
+    background: var(--yk-header-overlay-bg, transparent) !important;
+    border-bottom: 1px solid var(--yk-header-overlay-border, transparent) !important;
+    box-shadow: var(--yk-header-overlay-shadow, none) !important;
+}
+html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) {
+    position: absolute !important;
+    inset: 0 0 auto;
+}
+html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) > section,
+.yk-blox-header.yk-header-preview-overlay > section { background: transparent !important; }
+html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) :is(a, button, [class*="text-"]),
+.yk-blox-header.yk-header-preview-overlay :is(a, button, [class*="text-"]) {
+    color: var(--yk-header-overlay-text, #fff) !important;
+}
+
+html.yk-home-header-overlay .yk-blox-header.yk-stuck {
+    position: fixed !important;
+    inset: 0 0 auto;
+}
+html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
+    top: 0 !important;
+}
+.yk-blox-header.yk-stuck,
+.yk-blox-header.yk-header-preview-stuck {
+    background: var(--yk-header-stuck-bg, #fff) !important;
+    border-bottom: 1px solid var(--yk-header-stuck-border, #e5e7eb) !important;
+    box-shadow: var(--yk-header-stuck-shadow, 0 2px 12px rgba(15,23,42,.08)) !important;
+}
+.yk-blox-header.yk-stuck > section,
+.yk-blox-header.yk-header-preview-stuck > section { background: transparent !important; }
+.yk-blox-header.yk-stuck :is(a, button, [class*="text-"]),
+.yk-blox-header.yk-header-preview-stuck :is(a, button, [class*="text-"]) {
+    color: var(--yk-header-stuck-text, #111827) !important;
+}
+
+/* Dropdowns and mobile drawers are independent surfaces, not header-state text. */
+.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) {
+    color: #374151 !important;
+}
+.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(a, button, [class*="text-"]) {
+    color: inherit !important;
 }

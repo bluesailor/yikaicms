@@ -27,6 +27,7 @@ $type = post('type', 'images');
 if (!canUploadType($type)) {
     error($type === 'images' ? '没有上传图片的权限' : '没有上传文档/压缩包的权限', 403);
 }
+verifyCsrf();
 
 if (empty($_FILES['file'])) {
     error('请选择文件');

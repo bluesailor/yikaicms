@@ -2,8 +2,8 @@
 /**
  * 主题包校验器测试（规范见 yikaicms-docs/theme-schema.md）。
  *
- * 最要紧的一条是 testBundledThemesAllValid：**五套内置主题必须零错通过**。
- * 以后谁改坏了 theme.json，CI 当场红——不然又会退回「五套主题五种字段组合」的状态。
+ * 核心包只内置 default；可选主题源码放 marketplace/themes，由市场签名分发。
+ * 两处都必须通过同一套主题包校验，避免“移到市场后就不测”的质量降级。
  */
 
 declare(strict_types=1);
@@ -45,13 +45,29 @@ final class ThemeValidatorTest extends TestCase
     public function testBundledThemesAllValid(): void
     {
         $dirs = glob(ROOT_PATH . '/themes/*', GLOB_ONLYDIR) ?: [];
-        $this->assertNotEmpty($dirs, '一套内置主题都没找到，路径可能不对');
+        $this->assertSame(['default'], array_map('basename', $dirs), '核心包运行时只能内置 default 主题');
 
         foreach ($dirs as $dir) {
             $slug = basename($dir);
             $r = ThemeValidator::validateDir($dir, $slug);
             $this->assertSame([], $r['errors'], "内置主题 {$slug} 校验不通过：" . implode('；', $r['errors']));
             $this->assertSame([], $r['warnings'], "内置主题 {$slug} 有警告：" . implode('；', $r['warnings']));
+        }
+    }
+
+    public function testMarketplaceThemeSourcesAllValid(): void
+    {
+        $dirs = glob(ROOT_PATH . '/marketplace/themes/*', GLOB_ONLYDIR) ?: [];
+        $this->assertSame(
+            ['aurora', 'business', 'minimal', 'trade'],
+            array_map('basename', $dirs),
+            '市场主题源码清单发生变化时必须同步调整签名发布清单'
+        );
+        foreach ($dirs as $dir) {
+            $slug = basename($dir);
+            $r = ThemeValidator::validateDir($dir, $slug);
+            $this->assertSame([], $r['errors'], "市场主题 {$slug} 校验不通过：" . implode('；', $r['errors']));
+            $this->assertSame([], $r['warnings'], "市场主题 {$slug} 有警告：" . implode('；', $r['warnings']));
         }
     }
 
@@ -170,16 +186,13 @@ final class ThemeValidatorTest extends TestCase
         $this->assertContains('partners', $cov['own']);
         $this->assertContains('product_categories', $cov['own']);
 
-        // aurora 声明过 testimonials/channel 但没有对应文件 → 应落在回退里
-        $cov = themeBlockCoverage('aurora');
-        $this->assertContains('testimonials', $cov['fallback']);
-        $this->assertContains('channel', $cov['fallback']);
+        $this->assertContains('timeline', $cov['fallback']);
         $this->assertContains('banner', $cov['own']);
     }
 
     public function testBlockCoveragePartitionsAllCoreBlocks(): void
     {
-        $cov = themeBlockCoverage('minimal');
+        $cov = themeBlockCoverage('default');
         $all = array_merge($cov['own'], $cov['fallback']);
         sort($all);
         $core = array_map(

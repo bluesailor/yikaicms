@@ -179,6 +179,12 @@ final class HomeBloxRenderContext
         $block = HomeBloxBlockSchema::normalize($merged);
         $block['type'] = $type;
         $block['enabled'] = true;
+        if ($type === 'banner' && ($block['banner_height_mode'] ?? 'inherit') === 'inherit') {
+            $group = function_exists('getBannerGroup') ? getBannerGroup('home') : null;
+            if (is_array($group)) {
+                $block = array_merge($block, HomeBloxBlockSchema::bannerGroupRuntimeConfig($group));
+            }
+        }
 
         $blockTemplates = $this->blockTemplates;
         $homeChannelsMap = $this->homeChannelsMap;
@@ -285,9 +291,45 @@ final class HomeBloxRenderContext
                     require $blockTemplates['channel'] ?? theme_path('blocks/channel.php');
                 }
             } elseif (str_starts_with($type, 'custom:')) {
-                $customData = json_decode((string) config('home_custom_' . substr($type, 7), ''), true);
-                if (!empty($customData['blocks']) && function_exists('renderBlocksToHtml')) {
-                    echo renderBlocksToHtml(json_encode($customData['blocks'], JSON_UNESCAPED_UNICODE));
+                // Language-aware: read home_custom_<N>_<lang> first, fall back to
+                // the base row (= default language). Sites without per-language
+                // variants render the base unchanged (fully backward compatible).
+                $customData = json_decode(configJsonLang('home_custom_' . substr($type, 7)), true);
+                if (!empty($customData['blocks'])) {
+                    $customBlocks = HomeBloxBlockSchema::applyCustomOverrides(
+                        $customData['blocks'],
+                        $block
+                    );
+                    if (is_array($customBlocks[0] ?? null)) {
+                        $customBlocks[0]['settings'] = is_array($customBlocks[0]['settings'] ?? null)
+                            ? $customBlocks[0]['settings'] : [];
+                        if (array_key_exists('custom_title', $block)) {
+                            $customBlocks[0]['settings']['title'] = (string) $block['custom_title'];
+                        }
+                        if (array_key_exists('custom_subtitle', $block)) {
+                            $customBlocks[0]['settings']['subtitle'] = (string) $block['custom_subtitle'];
+                        }
+                    }
+                    $customJson = json_encode($customBlocks, JSON_UNESCAPED_UNICODE);
+                    if (!is_string($customJson)) {
+                        $customJson = '[]';
+                    }
+                    // 自定义首页区块嵌在外层 Blox 文档中。内部坐标若也从 0 开始输出，
+                    // 画布点击标题会把内部 section 0 误认成首页区块 1。
+                    $savedEditChannelId = BlockRenderer::$editChannelId;
+                    $savedHomeFieldContext = BlockRenderer::$homeFieldEditContext;
+                    BlockRenderer::$editChannelId = 0;
+                    BlockRenderer::$homeFieldEditContext = $this->editMode && $path !== '' ? [
+                        'path' => $path,
+                        'type' => $type,
+                        'locale' => HomeBloxBlockSchema::customLocaleKey(),
+                    ] : null;
+                    try {
+                        echo BlockRenderer::render($customJson);
+                    } finally {
+                        BlockRenderer::$editChannelId = $savedEditChannelId;
+                        BlockRenderer::$homeFieldEditContext = $savedHomeFieldContext;
+                    }
                 }
             } elseif (isset($blockTemplates[$type]) && file_exists($blockTemplates[$type])) {
                 require $blockTemplates[$type];
@@ -410,9 +452,41 @@ final class HomeBloxRenderContext
             }
         }
         if (str_starts_with($type, 'custom:')) {
+            if ($path !== '') {
+                $html = $this->withCustomFieldMarkers($html, $path);
+            }
             return (string) preg_replace('/<section\b/', '<section data-yk-home="' . self::escape($type) . '"', $html);
         }
         return (string) preg_replace('/<(\w+)/', '<$1 data-yk-home="' . self::escape($type) . '"', $html, 1);
+    }
+
+    private function withCustomFieldMarkers(string $html, string $path): string
+    {
+        foreach ([
+            ['tags' => ['H2', 'H3', 'H4'], 'class' => 'blk-title', 'field' => 'custom_title'],
+            ['tags' => ['P'], 'class' => 'blk-sub', 'field' => 'custom_subtitle'],
+        ] as $marker) {
+            $matched = false;
+            foreach ($marker['tags'] as $tag) {
+                $rewriter = new HtmlTagRewriter($html);
+                while ($rewriter->nextTag($tag)) {
+                    $classes = preg_split('/\s+/', trim((string) ($rewriter->getAttribute('class') ?? ''))) ?: [];
+                    if (!in_array($marker['class'], $classes, true)) {
+                        continue;
+                    }
+                    $rewriter->setAttribute('data-yk-home-path', $path);
+                    $rewriter->setAttribute('data-yk-home-field', $marker['field']);
+                    $html = $rewriter->getUpdatedHtml();
+                    $matched = true;
+                    break;
+                }
+                if ($matched) {
+                    break;
+                }
+            }
+        }
+
+        return $html;
     }
 
     private function withAboutFieldMarkers(string $html, string $path): string

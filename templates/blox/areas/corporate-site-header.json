@@ -1,0 +1,87 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "header",
+  "name": "Corporate Site Header",
+  "requires": {
+    "elements": ["container", "language-switcher", "logo", "nav-drawer", "nav-mega", "site-contact", "site-search"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {"sticky": true},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "md",
+          "bg_color": "#111827",
+          "align_items": "center"
+        },
+        "columns": [
+          {
+            "span": 7,
+            "elements": [
+              {"type": "site-contact", "data": {"show_phone": true, "show_email": true, "show_address": false, "show_hours": false, "show_icons": true, "layout": "inline", "tone": "light"}}
+            ]
+          },
+          {
+            "span": 5,
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "row",
+                  "wrap": "wrap",
+                  "gap": "sm",
+                  "align": "center",
+                  "justify": "end",
+                  "padding": "none",
+                  "radius": "none",
+                  "children": [
+                    {"type": "language-switcher", "data": {"layout": "dropdown", "display": "name", "tone": "light"}},
+                    {"type": "site-search", "data": {"layout": "compact", "show_label": false, "tone": "light"}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "row",
+                  "wrap": "nowrap",
+                  "gap": "md",
+                  "align": "center",
+                  "justify": "between",
+                  "padding": "none",
+                  "radius": "none",
+                  "children": [
+                    {"type": "logo", "data": {"display": "image", "height": "md", "tone": "dark", "link_home": true}},
+                    {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}},
+                    {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

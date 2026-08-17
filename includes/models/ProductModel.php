@@ -93,6 +93,18 @@ class ProductModel extends Model
             $params[] = $kw;
             $params[] = $kw;
         }
+        if (!empty($filters['is_recommend'])) {
+            $where[] = 'is_recommend = 1';
+        }
+        if (!empty($filters['is_hot'])) {
+            $where[] = 'is_hot = 1';
+        }
+        if (!empty($filters['is_new'])) {
+            $where[] = 'is_new = 1';
+        }
+        if (!empty($filters['is_top'])) {
+            $where[] = 'is_top = 1';
+        }
 
         $this->applyFacetFilters($filters, '', $where, $params);
 

@@ -43,7 +43,9 @@ require_once ROOT_PATH . '/includes/models/autoload.php';
  * defined, so a test that needs the real helper can still load it.
  */
 if (!function_exists('siteLang')) {
-    function siteLang(): string { return defined('SITE_LANG') ? SITE_LANG : 'zh-CN'; }
+    // 镜像 includes/functions.php 的 siteLang()：SITE_LANG 常量优先，否则回落 config('site_lang')。
+    // 早期桩硬编码 'zh-CN'，令依赖当前语言的读取（configJsonLang 等）无法在测试里切换语言。
+    function siteLang(): string { return defined('SITE_LANG') ? SITE_LANG : (string) config('site_lang', 'zh-CN'); }
 }
 if (!function_exists('isMultiLangEnabled')) {
     // Tests run against a single-language schema; disable the lang filter.
@@ -56,6 +58,22 @@ if (!function_exists('config')) {
             return $runtimeOverrides[$key];
         }
         return $GLOBALS['_test_config'][$key] ?? $default;
+    }
+}
+if (!function_exists('configJsonLang')) {
+    // 镜像 includes/functions.php 的 configJsonLang()：非默认语言优先读 {key}_{siteLang}，
+    // 空则回落 base。首页自定义区块（home_custom_<N>）的按语言分流渲染依赖它。
+    function configJsonLang(string $configKey): string {
+        $langVal = config($configKey . '_' . siteLang(), '');
+        if ($langVal !== '') return $langVal;
+        return config($configKey, '') ?: '';
+    }
+}
+if (!function_exists('configLang')) {
+    function configLang(string $configKey, string $langKey = ''): string {
+        $langKey = $langKey !== '' ? $langKey : $configKey;
+        $langValue = config($configKey . '_' . siteLang(), '');
+        return $langValue !== '' ? (string) $langValue : (string) (config($configKey, '') ?: __($langKey));
     }
 }
 if (!function_exists('__')) {

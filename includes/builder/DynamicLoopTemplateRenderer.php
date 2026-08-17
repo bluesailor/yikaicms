@@ -45,22 +45,22 @@ final class DynamicLoopTemplateRenderer
         if ($type === 'heading') {
             $field = self::field($data, 'loop_field', 'title', $source);
             if ($field !== 'none') {
-                $data['text'] = self::tag($field);
+                $data['text'] = self::tag($field, '', (string) ($data['loop_fallback'] ?? ''));
             }
         } elseif ($type === 'text') {
             $field = self::field($data, 'loop_field', 'summary', $source);
             if ($field !== 'none') {
                 $length = max(20, min(300, (int) ($data['loop_length'] ?? 80)));
-                $data['html'] = '<p>' . self::tag($field, ' len=' . $length) . '</p>';
+                $data['html'] = '<p>' . self::tag($field, ' len=' . $length, (string) ($data['loop_fallback'] ?? '')) . '</p>';
             }
         } elseif ($type === 'image') {
             $field = self::field($data, 'loop_field', 'image', $source);
             if ($field !== 'none') {
-                $data['src'] = self::tag($field);
+                $data['src'] = self::tag($field, '', (string) ($data['loop_fallback'] ?? ''));
             }
             $alt = self::field($data, 'loop_alt_field', 'title', $source);
             if ($alt !== 'none') {
-                $data['alt'] = self::tag($alt);
+                $data['alt'] = self::tag($alt, '', (string) ($data['loop_alt_fallback'] ?? ''));
             }
             $link = self::field($data, 'loop_link_field', 'link', $source);
             if ($link !== 'none') {
@@ -70,7 +70,7 @@ final class DynamicLoopTemplateRenderer
         } elseif ($type === 'button') {
             $text = self::field($data, 'loop_text_field', 'title', $source);
             if ($text !== 'none') {
-                $data['text'] = self::tag($text);
+                $data['text'] = self::tag($text, '', (string) ($data['loop_text_fallback'] ?? ''));
             }
             $url = self::field($data, 'loop_url_field', 'link', $source);
             if ($url !== 'none') {
@@ -90,8 +90,17 @@ final class DynamicLoopTemplateRenderer
         return array_key_exists($value, $options) ? $value : 'none';
     }
 
-    private static function tag(string $field, string $attrs = ''): string
+    private static function tag(string $field, string $attrs = '', string $fallback = ''): string
     {
+        $fallback = self::attr($fallback);
+        if ($fallback !== '') {
+            $attrs .= ' fallback=' . rawurlencode($fallback);
+        }
         return '{yk:field name=' . $field . $attrs . ' /}';
+    }
+
+    private static function attr(string $value): string
+    {
+        return mb_substr(trim(str_replace(['"', '{', '}', "\r", "\n"], '', $value)), 0, 200);
     }
 }

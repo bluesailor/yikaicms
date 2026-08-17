@@ -47,9 +47,7 @@ if ($ogImage && !str_starts_with($ogImage, 'http')) {
 $ogDescription = $pageDescription ?? $siteDescription;
 
 // 获取导航栏目（带子栏目）
-if (!isset($navChannels)) {
-    $navChannels = getNavChannels();
-}
+$navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);
 
 // 当前栏目
 $currentChannelId = $currentChannelId ?? 0;
@@ -155,7 +153,7 @@ function getChannelUrl(array $channel): string {
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- top banner -->
     <?php if ($topbarEnabled): ?>
-    <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>">
+    <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>" data-yk-topbar>
         <div class="container mx-auto px-4 flex items-center justify-between h-8 text-gray-600">
             <div class="topbar-left text-xs"><?php echo $topbarLeft; ?></div>
             <div class="flex items-center gap-3">
@@ -224,15 +222,12 @@ function getChannelUrl(array $channel): string {
         <nav class="hidden md:block border-t" style="border-color: rgba(0,0,0,0.06)"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
             <div class="container mx-auto px-4">
                 <div class="flex items-center gap-1">
-                    <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
-                    <a href="/" class="px-4 py-3 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
-                        <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
-                    </a>
-                    <?php endif; ?>
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
-                    $isActive = isChannelActive($navItem, $currentChannelId, $currentSlug);
+                    $isActive = !empty($navItem['_is_home'])
+                        ? !empty($isHomePage)
+                        : isChannelActive($navItem, $currentChannelId, $currentSlug);
                     $navUrl = getChannelUrl($navItem);
                     $linkTarget = $navItem['type'] === 'link' ? ' target="' . e($navItem['link_target'] ?: '_self') . '"' : '';
                     ?>
@@ -271,15 +266,12 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </a>
                 <nav class="hidden md:flex items-center gap-1"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
-                    <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
-                    <a href="/" class="px-4 py-2 hover:text-primary transition <?php echo isset($isHomePage) && $isHomePage ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo isset($isHomePage) && $isHomePage ? '' : e($headerTextColor); ?>">
-                        <?php echo e(configLang('nav_home_text', 'nav_home')); ?>
-                    </a>
-                    <?php endif; ?>
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
-                    $isActive = isChannelActive($navItem, $currentChannelId, $currentSlug);
+                    $isActive = !empty($navItem['_is_home'])
+                        ? !empty($isHomePage)
+                        : isChannelActive($navItem, $currentChannelId, $currentSlug);
                     $navUrl = getChannelUrl($navItem);
                     $linkTarget = $navItem['type'] === 'link' ? ' target="' . e($navItem['link_target'] ?: '_self') . '"' : '';
                     ?>
@@ -348,9 +340,6 @@ function getChannelUrl(array $channel): string {
         <!-- Mobile menu -->
         <nav id="mobileMenu" class="md:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
-                <?php if (configRawLang('nav_home_show', '1') !== '0'): ?>
-                <a href="/" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo e(configLang('nav_home_text', 'nav_home')); ?></a>
-                <?php endif; ?>
                 <?php foreach ($navChannels as $navItem): ?>
                 <?php $hasChildren = !empty($navItem['children']); ?>
                 <div class="<?php echo $hasChildren ? 'border-b border-gray-100 pb-2 mb-2' : ''; ?>">

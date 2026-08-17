@@ -85,14 +85,18 @@ $_enabledList = $_lang['enabled'];
 
 // 获取当前视图语言下的单页 + 图库相册类型栏目
 // （album 型栏目本身是导航入口，内容在相册里维护，一并列出避免用户在「单页」找不到入口）
-// 顺带取回每页的编辑方式（content_type 在 contents 表）：单页可以用普通编辑器
-// 或排版编辑器维护，两者数据结构不同，列表上必须看得出来是哪种——
-// 否则点「编辑」进去才发现走错编辑器，而在普通编辑器里保存会清掉排版数据。
+// content_type 与草稿只用于展示 Blox 状态；普通单页的主编辑入口统一进入 Blox。
+$hasBloxDraftStorage = db()->tableExists('blox_page_drafts');
+$draftSelect = $hasBloxDraftStorage ? ', bd.id AS blox_draft_id' : ', 0 AS blox_draft_id';
+$draftJoin = $hasBloxDraftStorage
+    ? ' LEFT JOIN ' . DB_PREFIX . 'blox_page_drafts bd ON bd.page_id = c.id'
+    : '';
 $pages = channelModel()->query(
-    'SELECT c.*, p.name as parent_name, ct.content_type FROM ' . channelModel()->tableName() . ' c
+    'SELECT c.*, p.name as parent_name, ct.content_type' . $draftSelect . ' FROM ' . channelModel()->tableName() . ' c
      LEFT JOIN ' . channelModel()->tableName() . ' p ON c.parent_id = p.id
      LEFT JOIN ' . contentModel()->tableName() . ' ct
             ON ct.channel_id = c.id AND ct.lang = c.lang AND ct.deleted_at IS NULL
+     ' . $draftJoin . '
      WHERE c.type IN (\'page\', \'album\') AND c.lang = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
     [$_viewLang]
 );
@@ -186,13 +190,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                             <i class="ti ti-settings text-sm"></i>
                             <?php echo __('admin_setting_home'); ?>
                         </a>
-                        <a href="/admin/page_edit_advance.php?home=1"
-                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
-                           title="<?php echo e(__('page_mode_blocks_tip')); ?>">
-                            <i class="ti ti-layout-board text-sm"></i>
-                            <?php echo __('page_mode_blocks_edit'); ?>
-                        </a>
-                        <?php if (bloxEditorEnabled()): ?>
+                        <?php if (bloxPageEditorEnabled()): ?>
                         <a href="/admin/blox_editor.php?home=1"
                            class="text-gray-500 hover:text-gray-900 hover:underline text-sm mr-2 inline-flex items-center gap-1"
                            title="<?php echo e(__('page_mode_blox_tip')); ?>">
@@ -269,7 +267,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         <?php if (($item['type'] ?? '') === 'album'): ?>
                         <span class="text-xs text-gray-300">—</span>
                         <?php else: ?>
-                        <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/page_edit.php'); ?>
+                        <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/blox_editor.php'); ?>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -282,40 +280,16 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                             <?php echo __('admin_content_edit'); ?>
                         </a>
                         <?php else: ?>
-                        <?php
-                        // 按该页实际的编辑方式直达对应编辑器：排版页点「编辑」不该落到
-                        // 普通编辑器里（那里一保存就会清掉排版数据）
-                        $__isBlocks = ($item['content_type'] ?? 'html') === 'blocks';
-                        $__editUrl  = ($__isBlocks ? '/admin/page_edit_advance.php?id=' : '/admin/page_edit.php?id=') . $item['id'];
-                        ?>
-                        <a href="<?php echo $__editUrl; ?>"
-                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                            <i class="ti ti-<?php echo $__isBlocks ? 'layout-board' : 'pencil'; ?> text-sm"></i>
-                            <?php echo $__isBlocks ? __('page_mode_blocks_edit') : __('admin_content_edit'); ?>
-                        </a>
-                        <?php // 联系页：卡片/表单/地图在「联系我们设置」里，这里额外给排版入口，
-                              // 用于在其下方追加区块（交通指引、团队介绍等）。 ?>
-                        <?php if (!$__isBlocks && ($item['slug'] ?? '') === 'contact'): ?>
-                        <a href="/admin/page_edit_advance.php?id=<?php echo $item['id']; ?>"
-                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
-                           title="<?php echo e(__('page_contact_blocks_notice')); ?>">
-                            <i class="ti ti-layout-board text-sm"></i>
-                            <?php echo __('page_mode_blocks_edit'); ?>
-                        </a>
-                        <?php endif; ?>
-                        <?php if ($__isBlocks): ?>
-                        <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
-                              title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
-                        <?php // Blox 全屏编辑器（实验）：仅排版页可用——它编辑的就是 blocks_data。
-                              // 富文本页没有可编辑的区块结构，给入口只会让人点进去看到空画布。 ?>
-                        <?php if (bloxEditorEnabled()): ?>
+                        <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
                         <a href="/admin/blox_editor.php?id=<?php echo $item['id']; ?>"
-                           class="text-gray-500 hover:text-gray-900 hover:underline text-sm mr-2 inline-flex items-center gap-1"
-                           title="<?php echo e(__('page_mode_blox_tip')); ?>">
+                           data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
+                            class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-stack-2 text-sm"></i>
                             <?php echo __('page_mode_blox'); ?>
                         </a>
-                        <?php endif; ?>
+                        <?php if ($__isBlox): ?>
+                        <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
+                              title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
                         <?php endif; ?>
                         <?php endif; ?>
                         <a href="/<?php echo e($item['slug']); ?>.html" target="_blank"
@@ -367,9 +341,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-400">/<?php echo e($item['slug']); ?>.html</code>
             <span class="flex-1"></span>
             <?php if (($item['type'] ?? '') !== 'album'): ?>
-            <a href="/admin/page_edit.php?id=<?php echo $item['id']; ?>"
+            <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
+            <a href="/admin/blox_editor.php?id=<?php echo $item['id']; ?>"
+               data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                class="text-primary hover:underline text-sm inline-flex items-center gap-1 whitespace-nowrap">
-                <i class="ti ti-pencil text-sm"></i><?php echo __('admin_content_edit'); ?>
+                <i class="ti ti-stack-2 text-sm"></i><?php echo __('page_mode_blox'); ?>
             </a>
             <?php endif; ?>
             <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
@@ -444,7 +420,7 @@ async function createPage() {
     var data = await safeJson(response);
     if (data.code === 0) {
         showMessage(<?php echo json_encode(__('pg_created'), JSON_UNESCAPED_UNICODE); ?>);
-        setTimeout(function() { location.href = '/admin/page_edit.php?id=' + data.data.id; }, 500);
+        setTimeout(function() { location.href = '/admin/blox_editor.php?id=' + data.data.id; }, 500);
     } else {
         showMessage(data.msg, 'error');
     }

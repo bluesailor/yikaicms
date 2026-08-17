@@ -113,6 +113,26 @@ class InstallSeedDemoTest extends TestCase
     }
 
     /**
+     * 新安装的公司简介 FAQ 应直接使用结构化数据，不能再回退为竖线分隔文本。
+     *
+     * @dataProvider driverProvider
+     */
+    public function testCompanyFaqUsesStructuredItems(string $driver): void
+    {
+        $sql = $this->seed($driver);
+        $this->assertStringContainsString(
+            '"items":[{"question":"能否针对我们的产线做定制开发？","answer":',
+            $sql,
+            "公司简介 FAQ 应使用 question/answer 数组 ({$driver})"
+        );
+        $this->assertStringNotContainsString(
+            '"items":"能否针对我们的产线做定制开发？|',
+            $sql,
+            "公司简介 FAQ 不应继续使用竖线分隔格式 ({$driver})"
+        );
+    }
+
+    /**
      * SQLite 种子（含演示数据）能被 install/index.php 的 $pdo->exec($sql) 整体加载。
      * 内存库执行，验证语法可用。
      */
@@ -125,6 +145,26 @@ class InstallSeedDemoTest extends TestCase
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $pdo->exec($this->seed('sqlite')); // 不抛异常即通过
         $this->assertSame('1', (string) $pdo->query('SELECT 1')->fetchColumn());
+
+        foreach ([
+            26 => ['lang' => 'en', 'marker' => 'Frequently asked questions'],
+            51 => ['lang' => 'ja', 'marker' => 'よくある質問'],
+        ] as $contentId => $expected) {
+            $statement = $pdo->prepare(
+                'SELECT lang, content_type, blocks_data FROM yikai_contents WHERE id = ? LIMIT 1'
+            );
+            $statement->execute([$contentId]);
+            $row = $statement->fetch(\PDO::FETCH_ASSOC);
+            $this->assertIsArray($row);
+            $this->assertSame($expected['lang'], $row['lang']);
+            $this->assertSame('blocks', $row['content_type']);
+            $document = json_decode((string) $row['blocks_data'], true, 512, JSON_THROW_ON_ERROR);
+            $this->assertCount(4, $document);
+            $this->assertStringContainsString($expected['marker'], (string) $row['blocks_data']);
+            $faqItems = $document[2]['columns'][0]['elements'][0]['data']['items'] ?? null;
+            $this->assertIsArray($faqItems);
+            $this->assertSame(['question', 'answer'], array_keys($faqItems[0]));
+        }
     }
 
     /**

@@ -172,12 +172,71 @@ final class BuilderPluginPipelineTest extends TestCase
     }
 
     /** 文档级 settings 白名单：sticky 布尔化，未知键丢弃不入库 */
+    public function testDecodeRejectsMalformedSchemaAndIncompleteEnvelope(): void
+    {
+        foreach (['0', '-1', '"1"', '1.5', 'null'] as $schema) {
+            try {
+                BloxDocumentPipeline::decode('{"schema":' . $schema . ',"sections":[]}');
+                $this->fail('Malformed schema should be rejected: ' . $schema);
+            } catch (RuntimeException $e) {
+                $this->assertStringContainsString('blox_doc_schema_invalid', $e->getMessage());
+            }
+        }
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('blox_doc_bad_sections');
+        BloxDocumentPipeline::decode('{"schema":1,"settings":{}}');
+    }
+
+    public function testDecodeMigratesWithoutRebuildingNodeIds(): void
+    {
+        $decoded = BloxDocumentPipeline::decode('[{"id":"keep-me","columns":[]}]');
+
+        $this->assertSame(1, $decoded['schema']);
+        $this->assertSame('keep-me', $decoded['sections'][0]['id']);
+    }
+
+    public function testDocumentFingerprintSupportsOptimisticConcurrency(): void
+    {
+        $legacy = '[{"id":"stable","columns":[]}]';
+        $envelope = '{"schema":1,"settings":{},"sections":[{"id":"stable","columns":[]}]}';
+        $revision = BloxDocumentPipeline::fingerprint($legacy);
+
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $revision);
+        $this->assertSame($revision, BloxDocumentPipeline::fingerprint($envelope));
+        $this->assertTrue(BloxDocumentPipeline::revisionMatches($envelope, strtoupper($revision)));
+        $this->assertFalse(BloxDocumentPipeline::revisionMatches('[]', $revision));
+        $this->assertFalse(BloxDocumentPipeline::revisionMatches($legacy, 'not-a-revision'));
+    }
+
+    public function testRendererRejectsFutureSchemaInsteadOfReadingItsSections(): void
+    {
+        $this->assertSame('', BlockRenderer::render(
+            '{"schema":99,"sections":[{"columns":[{"elements":[{"type":"heading","data":{"text":"must-not-render"}}]}]}]}'
+        ));
+    }
+
     public function testDocSettingsWhitelist(): void
     {
         $this->assertSame(['sticky' => true], BloxDocumentPipeline::normalizeDocSettings(['sticky' => 1, 'evil' => 'x']));
         $this->assertSame(['sticky' => false], BloxDocumentPipeline::normalizeDocSettings(['sticky' => 0]));
         $this->assertSame([], BloxDocumentPipeline::normalizeDocSettings(['unknown' => 'y']));
         $this->assertSame([], BloxDocumentPipeline::normalizeDocSettings('junk'));
+    }
+
+    public function testSectionAnchorsAreSanitizedAndMadeUnique(): void
+    {
+        $document = BloxDocumentPipeline::process((string) json_encode([
+            ['settings' => ['anchor_id' => '#features'], 'columns' => []],
+            ['settings' => ['anchor_id' => 'FEATURES'], 'columns' => []],
+            ['settings' => ['anchor_id' => 'bad id\" onclick=\"x'], 'columns' => []],
+        ], JSON_THROW_ON_ERROR), 'anchor');
+
+        $this->assertSame('features', $document['sections'][0]['settings']['anchor_id']);
+        $this->assertSame('FEATURES-2', $document['sections'][1]['settings']['anchor_id']);
+        $this->assertSame('', $document['sections'][2]['settings']['anchor_id']);
+        $this->assertSame('', BloxDocumentPipeline::normalizeSectionAnchorId('9-starts-with-number'));
+        $this->assertSame('pricing_2026', BloxDocumentPipeline::normalizeSectionAnchorId('pricing_2026'));
     }
 
     /** 渲染黄金对拍：信封输入与裸数组输入输出逐字节一致（settings 不影响 sections 渲染） */
@@ -195,6 +254,25 @@ final class BuilderPluginPipelineTest extends TestCase
         ));
         $this->assertNotSame('', $bareHtml);
         $this->assertSame($bareHtml, $envelopeHtml);
+    }
+
+    public function testDocumentListDetectionSupportsPhp80(): void
+    {
+        $builderPath = ROOT_PATH . '/includes/builder/';
+        $forbiddenCall = 'array_' . 'is_list(';
+
+        foreach (['BloxDocumentPipeline.php', 'HomeBloxDocument.php', 'HomeLayoutDocument.php'] as $file) {
+            $source = file_get_contents($builderPath . $file);
+            $this->assertIsString($source);
+            $this->assertStringNotContainsString($forbiddenCall, $source, $file);
+        }
+
+        $this->assertTrue(BloxDocumentPipeline::isList([]));
+        $this->assertTrue(BloxDocumentPipeline::isList([['columns' => []]]));
+        $this->assertFalse(BloxDocumentPipeline::isList(['sections' => []]));
+        $this->assertFalse(BloxDocumentPipeline::isList([
+            1 => ['columns' => []],
+        ]));
     }
 
     public function testPipelineRejectsOversizedDocuments(): void

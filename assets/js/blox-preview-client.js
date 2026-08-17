@@ -8,6 +8,7 @@
         this.getFrame = options.getFrame;
         this.getHost = options.getHost;
         this.getDocument = options.getDocument;
+        this.getParams = options.getParams || function () { return {}; };
         this.setLoading = options.setLoading || function () {};
         this.onLoaded = options.onLoaded || function () {};
         this.onError = options.onError || function () {};
@@ -200,6 +201,10 @@
         body.set("blox", "1");
         body.set("blocks_data", JSON.stringify(this.getDocument()));
         body.set("_token", this.csrf);
+        var extraParams = this.getParams() || {};
+        Object.keys(extraParams).forEach(function (key) {
+            body.set(key, String(extraParams[key]));
+        });
         var request = { method: "POST", body: body };
         if (controller) request.signal = controller.signal;
 

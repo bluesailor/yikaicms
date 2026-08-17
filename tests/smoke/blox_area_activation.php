@@ -81,12 +81,21 @@ $pageChannel = db()->fetchOne(
 $pageId = (int) ($pageChannel['id'] ?? 0);
 $pagePath = '/page.php?id=' . $pageId;
 $listPath = '/list.php?id=' . $listChannel;
+$settings = new SettingModel();
+$originalCustomHeaderRow = db()->fetchOne(
+    'SELECT `value` FROM ' . DB_PREFIX . 'settings WHERE `key` = ?',
+    ['blox_custom_header_enabled']
+);
+$originalCustomFooterRow = db()->fetchOne(
+    'SELECT `value` FROM ' . DB_PREFIX . 'settings WHERE `key` = ?',
+    ['blox_custom_footer_enabled']
+);
 
 echo "Blox 头尾激活生命周期冒烟\n";
 
 // 0) 基线
 $home = fetch('/');
-check('基线：首页无 blox 头尾', !str_contains($home, 'yk-blox-'));
+check('基线：首页无 Blox 网页头尾', !str_contains($home, 'yk-blox-header') && !str_contains($home, 'yk-blox-footer'));
 check('基线：原生 siteHeader 在场', str_contains($home, 'id="siteHeader"'));
 
 // 1) home 条件：接管首页、不泄漏到栏目/单页
@@ -95,6 +104,14 @@ check('home 条件：首页接管', str_contains(fetch('/'), 'SMK-HOME-HEADER'))
 check('home 条件：siteHeader 恰 1 个（无双头）', substr_count(fetch('/'), 'id="siteHeader"') === 1);
 check('home 条件：栏目页不受影响', !str_contains(fetch($listPath), 'SMK-HOME-HEADER'));
 check('home 条件：单页不受影响', $pageId === 0 || !str_contains(fetch($pagePath), 'SMK-HOME-HEADER'));
+
+// 1.5) 全局停用只暂停前台接管，不能改写模板发布状态；重新启用后原规则立即恢复。
+$settings->saveBatch(['blox_custom_header_enabled' => '0']);
+$disabledHeaderHome = fetch('/');
+check('自定义网页头停用：前台恢复主题默认网页头', !str_contains($disabledHeaderHome, 'SMK-HOME-HEADER') && str_contains($disabledHeaderHome, 'id="siteHeader"'));
+check('自定义网页头停用：模板仍保持发布', (int) (db()->fetchOne('SELECT status FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?', [$idHome])['status'] ?? 0) === 1);
+$settings->saveBatch(['blox_custom_header_enabled' => '1']);
+check('自定义网页头重启：原模板和条件恢复生效', str_contains(fetch('/'), 'SMK-HOME-HEADER'));
 
 // 2) 单页条件（P1-a 回归：真实 page.php 上下文必须取到 page_id）
 if ($pageId > 0) {
@@ -123,7 +140,14 @@ dropTemplate($idBroken);
 $idFooter = makeTemplate('footer', 'SMK-FOOTER', '[{"main":"any"}]');
 $homeF = fetch('/');
 check('footer：全站接管', str_contains($homeF, 'SMK-FOOTER') && str_contains($homeF, 'yk-blox-footer'));
-check('footer：原生 footer 让位（data-yk-footer 消失）', !str_contains($homeF, 'data-yk-footer'));
+check('footer：原生 footer 让位', !str_contains($homeF, '<footer class="mt-auto"'));
+
+$settings->saveBatch(['blox_custom_footer_enabled' => '0']);
+$disabledFooterHome = fetch('/');
+check('自定义网页尾停用：前台恢复主题默认网页尾', !str_contains($disabledFooterHome, 'SMK-FOOTER') && str_contains($disabledFooterHome, '<footer class="mt-auto"'));
+check('自定义网页尾停用：模板仍保持发布', (int) (db()->fetchOne('SELECT status FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?', [$idFooter])['status'] ?? 0) === 1);
+$settings->saveBatch(['blox_custom_footer_enabled' => '1']);
+check('自定义网页尾重启：原模板和条件恢复生效', str_contains(fetch('/'), 'SMK-FOOTER'));
 
 // 5.5) sticky（r10）：文档 settings.sticky → 壳类 + 前台脚本；不开则两者都不出现
 $idSticky = makeTemplate('header', 'SMK-STICKY', '[{"main":"home"}]', ['sticky' => true]);
@@ -136,19 +160,29 @@ $homeP = fetch('/');
 check('sticky 关：无壳类无脚本', !str_contains($homeP, 'yk-sticky-header') && !str_contains($homeP, 'blox-sticky-header.js'));
 dropTemplate($idPlainH);
 
-// 6) 旧主题回退：非 default 主题未挂壳 → 即使有已发布模板也走原生（红线 5 实证）
-$settings = new SettingModel();
+// 6) 市场主题被卸载后，老数据库残留 slug 必须完整回退 default，而非拼凑 includes 模板。
 $originalTheme = (string) $settings->get('current_theme', 'default');
 $settings->set('current_theme', 'business');
 $bizHome = fetch('/');
-check('旧主题回退：business 主题无 blox 注入', !str_contains($bizHome, 'yk-blox-'));
-check('旧主题回退：页面仍正常渲染', str_contains($bizHome, '</html>'));
+check('缺失主题回退：继续使用 default 的 Blox 网页尾接管点', str_contains($bizHome, 'SMK-FOOTER') && str_contains($bizHome, 'yk-blox-footer'));
+check('缺失主题回退：default 页面壳仍正常渲染', str_contains($bizHome, 'id="siteHeader"') && str_contains($bizHome, '</html>'));
 $settings->set('current_theme', $originalTheme ?: 'default');
 dropTemplate($idFooter);
 
+if ($originalCustomHeaderRow) {
+    $settings->saveBatch(['blox_custom_header_enabled' => (string) $originalCustomHeaderRow['value']]);
+} else {
+    db()->execute('DELETE FROM ' . DB_PREFIX . 'settings WHERE `key` = ?', ['blox_custom_header_enabled']);
+}
+if ($originalCustomFooterRow) {
+    $settings->saveBatch(['blox_custom_footer_enabled' => (string) $originalCustomFooterRow['value']]);
+} else {
+    db()->execute('DELETE FROM ' . DB_PREFIX . 'settings WHERE `key` = ?', ['blox_custom_footer_enabled']);
+}
+
 // 7) 终态恢复
 $final = fetch('/');
-check('终态：基线恢复（无 blox 残留）', !str_contains($final, 'yk-blox-') && str_contains($final, 'id="siteHeader"'));
+check('终态：基线恢复（无 Blox 网页头尾残留）', !str_contains($final, 'yk-blox-header') && !str_contains($final, 'yk-blox-footer') && str_contains($final, 'id="siteHeader"'));
 
 echo $failures === 0 ? "BLOX AREA ACTIVATION OK\n" : "FAILURES: {$failures}\n";
 exit($failures === 0 ? 0 : 1);

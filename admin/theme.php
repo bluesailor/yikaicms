@@ -300,7 +300,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             class="px-4 py-2 -mb-px border-b-2 font-medium text-sm cursor-pointer transition">
             <i class="ti ti-layout-grid mr-1"></i><?php echo __('theme_tab_local'); ?>
         </button>
-        <button type="button" @click="openMarket()"
+        <button type="button" @click="openMarket()" data-testid="theme-market-tab"
             :class="tab==='market' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
             class="px-4 py-2 -mb-px border-b-2 font-medium text-sm cursor-pointer transition">
             <i class="ti ti-shopping-bag mr-1"></i><?php echo __('theme_tab_market'); ?>
@@ -316,7 +316,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="text-xs mt-2"><?php echo __('theme_none_hint'); ?></p>
     </div>
     <?php else: ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="theme-local-list">
         <?php foreach ($themes as $theme):
             $isActive = ($theme['slug'] === $currentTheme);
             $screenshot = '';
@@ -327,7 +327,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 }
             }
         ?>
-        <div class="bg-white rounded-lg shadow overflow-hidden <?php echo $isActive ? 'ring-2 ring-primary' : ''; ?>">
+        <div class="bg-white rounded-lg shadow overflow-hidden <?php echo $isActive ? 'ring-2 ring-primary' : ''; ?>" data-theme-slug="<?php echo e($theme['slug']); ?>">
             <div class="aspect-[16/10] bg-gray-100 relative overflow-hidden">
                 <?php if ($screenshot): ?>
                 <img src="<?php echo e($screenshot); ?>" alt="<?php echo e($theme['name']); ?>" class="w-full h-full object-cover">
@@ -443,9 +443,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500"><?php echo __('theme_market_empty'); ?></div>
         </template>
 
-        <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="theme-market-list">
             <template x-for="t in items" :key="t.slug">
-                <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+                <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col" :data-theme-slug="t.slug">
                     <div class="aspect-[16/10] bg-gray-100 relative overflow-hidden">
                         <img x-show="t.screenshot" :src="t.screenshot" :alt="t.name" class="w-full h-full object-cover">
                         <div x-show="!t.screenshot" class="w-full h-full flex items-center justify-center text-gray-300">

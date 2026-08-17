@@ -1,4 +1,4 @@
-# Yikai CMS v1.17.4
+# Yikai CMS v1.18.10
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%20%7C%208.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4.svg?logo=php)](https://www.php.net/)
@@ -30,7 +30,7 @@
 - **案例展示** — 行业方案与成功案例
 - **招聘管理** — 职位发布，薪资/学历/经验/工作性质筛选
 - **下载中心** — 文件分类管理，本地上传与外链，下载计数
-- **单页管理** — 企业简介、服务流程等静态页面，富文本 / 排版编辑器双模式；停用页收纳不占列表
+- **单页管理** — 企业简介、服务流程等静态页面，富文本与 Blox 可视化编辑；停用页收纳不占列表
 - **发展历程时间线 v1.7** — 3 种布局可切换：竖向双边 / 横向 Swiper 滑块 / 紧凑列表，`[timeline]` 短码可在任意页面嵌入
 
 ### 页面构建器 v1.11
@@ -207,7 +207,8 @@ location / {
 ├── install/        # 安装向导 + SQL 脚本（MySQL / SQLite）
 ├── lang/           # 语言包
 ├── plugins/        # 插件目录
-├── themes/         # 主题目录（default / business / aurora）
+├── themes/         # 运行时主题目录（核心包仅内置 default）
+├── marketplace/    # 可选主题市场源码（不进入 CMS 发布包）
 ├── uploads/        # 用户上传文件
 └── storage/        # 缓存与日志
 ```

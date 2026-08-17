@@ -157,4 +157,19 @@ class SidebarMenuApiTest extends TestCase
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('&amp;', $html);
     }
+
+    public function testWebsiteDesignGroupOwnsDesignEntries(): void
+    {
+        $menu = resolveAdminSidebar();
+
+        $this->assertArrayHasKey('design', $menu);
+        $this->assertSame(65, $menu['design']['priority']);
+        $this->assertSame(
+            ['site_design', 'blox_design', 'setting_home', 'blox_templates'],
+            array_column($menu['design']['items'], 'key')
+        );
+        $this->assertNotContains('setting_home', array_column($menu['site']['items'], 'key'));
+        $this->assertNotContains('blox_templates', array_column($menu['appearance']['items'], 'key'));
+        $this->assertContains('recipe', array_column($menu['appearance']['items'], 'key'));
+    }
 }

@@ -14,6 +14,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/BundledMediaLibrary.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -54,14 +55,24 @@ if ($action === 'list') {
         'keyword' => $keyword,
     ]);
 
-    $result = mediaModel()->getList($filters, $perPage, $offset);
-    $total  = $result['total'];
+    // 内置主题图片排在上传媒体前面，并与数据库结果共用一套连续分页。
+    // 即使当前页已被内置图片填满，仍查询一次媒体模型以取得准确总数。
+    $bundledItems = BundledMediaLibrary::search((string) $type, (string) $keyword);
+    $bundledTotal = count($bundledItems);
+    $pageBundled = array_slice($bundledItems, $offset, $perPage);
+    $databaseLimit = $perPage - count($pageBundled);
+    $databaseOffset = max(0, $offset - $bundledTotal);
+    $result = mediaModel()->getList($filters, max(1, $databaseLimit), $databaseOffset);
+    $databaseItems = $databaseLimit > 0 ? array_slice($result['items'], 0, $databaseLimit) : [];
+
+    $items  = array_merge($pageBundled, $databaseItems);
+    $total  = $bundledTotal + (int) $result['total'];
     $pages  = (int)ceil($total / $perPage);
 
     echo json_encode([
         'code' => 0,
         'data' => [
-            'items' => $result['items'],
+            'items' => $items,
             'total' => $total,
             'page'  => $page,
             'pages' => $pages,
@@ -77,6 +88,7 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!canManageMedia()) {
         ma_deny('没有媒体管理权限');
     }
+    verifyCsrf();
     $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     $fileExts  = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z'];
 
@@ -152,6 +164,7 @@ if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!canUploadType($type)) {
         ma_deny($type === 'images' ? '没有上传图片的权限' : '没有上传文档/压缩包的权限');
     }
+    verifyCsrf();
 
     if (empty($_FILES['file'])) {
         echo json_encode(['code' => 1, 'msg' => '请选择文件'], JSON_UNESCAPED_UNICODE);

@@ -129,6 +129,15 @@ final class ListDynamicElement extends AbstractElement
                 'default' => __('blox_dynamic_empty_default'), 'required' => ['empty_mode', '=', 'message'],
             ],
             [
+                'key' => 'pagination_mode', 'type' => 'select', 'label' => __('blox_dynamic_pagination_mode'),
+                'default' => 'none', 'advanced' => true,
+                'options' => [
+                    'none' => __('blox_dynamic_pagination_none'),
+                    'numbers' => __('blox_dynamic_pagination_numbers'),
+                ],
+                'help' => __('blox_dynamic_pagination_help'),
+            ],
+            [
                 'key' => 'item_preset', 'type' => 'select', 'label' => __('blox_dynamic_item_preset'),
                 'default' => 'card', 'options' => DynamicListItemSchema::presetOptions(), 'tab' => 'style',
                 'help' => __('blox_dynamic_item_preset_help'),
@@ -204,16 +213,21 @@ final class ListDynamicElement extends AbstractElement
             $attrs .= ' empty=' . self::attr((string) $data['empty']);
         }
 
+        $pagination = (string) ($data['pagination_mode'] ?? 'none') === 'numbers';
+        if ($pagination) {
+            $attrs .= ' page_param=' . self::attr(self::paginationParam($data, $context));
+        }
         $list = '{yk:list ' . $attrs . '}' . $tpl . '{/yk:list}';
+        $pager = $pagination ? '{yk:list-pagination ' . $attrs . ' /}' : '';
         if (!empty($data['template']) && empty($data['children'])) {
-            return $list;
+            return $list . $pager;
         }
 
         $columns = max(1, min(8, (int) ($data['columns'] ?? 3)));
         $layout = $columns === 1
             ? 'space-y-6'
             : 'grid ' . AbstractElement::gridClasses($columns, 3, true) . ' gap-6';
-        return '<div class="' . $layout . '">' . $list . '</div>';
+        return '<div class="' . $layout . '">' . $list . '</div>' . $pager;
     }
 
     /** 循环模板：template[] 子元素优先，否则按字段开关拼内置卡片 */
@@ -293,6 +307,21 @@ final class ListDynamicElement extends AbstractElement
     {
         $type = strtolower(trim($type));
         return preg_match('/^[a-z][a-z0-9_-]{0,31}$/', $type) ? $type : 'article';
+    }
+
+    /** 每个列表使用独立、稳定的 GET 参数，避免同页多个 Query Loop 串页。 */
+    private static function paginationParam(array $data, array $context): string
+    {
+        $identity = trim((string) ($context['node_id'] ?? $data['pagination_key'] ?? ''));
+        if ($identity === '') {
+            $identity = json_encode([
+                $data['query_source'] ?? $data['source_type'] ?? 'article',
+                $data['cat'] ?? '',
+                $data['limit'] ?? 6,
+                $data['offset'] ?? 0,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'query';
+        }
+        return 'ykq_' . substr(hash('sha256', $identity), 0, 10);
     }
 
     /** 属性值：含空格用引号包，否则裸值（TagEngine parseAttrs 两者都认） */

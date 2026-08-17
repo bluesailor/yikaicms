@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i class="ti ti-eye text-base"></i>
             <?php echo __('page_preview'); ?>
         </a>
-        <a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
+        <a href="/admin/blox_editor.php?id=<?php echo $id; ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1 cursor-pointer transition">
             <i class="ti ti-layout-columns text-base"></i>
             <?php echo __('page_switch_advance'); ?>
         </a>
@@ -181,7 +181,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <i class="ti ti-info-circle text-lg text-amber-500 mt-0.5 shrink-0"></i>
     <div class="text-sm text-amber-800">
         <p><?php echo __('pe_advance_warning'); ?></p>
-        <p class="mt-1"><a href="/admin/page_edit_advance.php?id=<?php echo $id; ?>" class="text-primary hover:underline font-medium"><?php echo __('pe_go_advance'); ?></a></p>
+        <p class="mt-1"><a href="/admin/blox_editor.php?id=<?php echo $id; ?>" class="text-primary hover:underline font-medium"><?php echo __('pe_go_advance'); ?></a></p>
     </div>
 </div>
 <?php endif; ?>

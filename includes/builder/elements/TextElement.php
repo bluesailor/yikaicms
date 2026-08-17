@@ -15,6 +15,16 @@ final class TextElement extends AbstractElement
         return [
             ['key' => 'html', 'type' => 'richtext', 'label' => __('blox_ctl_body'), 'default' => ''],
             [
+                'key' => 'site_field', 'type' => 'select', 'label' => __('blox_dynamic_site_binding'),
+                'default' => 'none', 'options' => DynamicSiteData::fieldOptions('text'),
+                'outside_loop_only' => true, 'advanced' => true,
+            ],
+            [
+                'key' => 'site_fallback', 'type' => 'text', 'label' => __('blox_dynamic_fallback'),
+                'default' => '', 'outside_loop_only' => true, 'advanced' => true,
+                'required' => ['site_field', '!=', 'none'],
+            ],
+            [
                 'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_text_binding'),
                 'default' => 'summary', 'loop_only' => true,
                 'options' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('summary', 'content'),
@@ -28,12 +38,23 @@ final class TextElement extends AbstractElement
                 'default' => 80, 'min' => 20, 'max' => 300, 'loop_only' => true,
                 'required' => ['loop_field', '!=', 'none'],
             ],
+            [
+                'key' => 'loop_fallback', 'type' => 'text', 'label' => __('blox_dynamic_fallback'),
+                'default' => '', 'loop_only' => true, 'advanced' => true,
+                'required' => ['loop_field', '!=', 'none'],
+            ],
             ...$this->animationControls(),
         ];
     }
 
     public function render(array $data, string $children = ''): string
     {
-        return '<div class="prose prose-lg max-w-none"' . $this->animationAttrs($data) . '>' . ($data['html'] ?? '') . '</div>';
+        $html = (string) ($data['html'] ?? '');
+        $siteField = (string) ($data['site_field'] ?? 'none');
+        if ($siteField !== 'none') {
+            $value = DynamicSiteData::value($siteField, 'text', (string) ($data['site_fallback'] ?? ''));
+            $html = '<p>' . e($value) . '</p>';
+        }
+        return '<div class="prose prose-lg max-w-none"' . $this->animationAttrs($data) . '>' . $html . '</div>';
     }
 }

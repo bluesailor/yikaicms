@@ -17,6 +17,11 @@ final class ImageElement extends AbstractElement
             ['key' => 'src', 'type' => 'image', 'label' => __('blox_el_image'), 'default' => ''],
             ['key' => 'alt', 'type' => 'text', 'label' => __('blox_ctl_desc'), 'default' => ''],
             [
+                'key' => 'site_image_field', 'type' => 'select', 'label' => __('blox_dynamic_site_image_binding'),
+                'default' => 'none', 'options' => DynamicSiteData::fieldOptions('image'),
+                'outside_loop_only' => true, 'advanced' => true,
+            ],
+            [
                 'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_image_binding'),
                 'default' => 'cover', 'loop_only' => true,
                 'options' => DynamicListItemSchema::fieldOptions('image', 'content'),
@@ -26,6 +31,11 @@ final class ImageElement extends AbstractElement
                 ],
             ],
             [
+                'key' => 'loop_fallback', 'type' => 'text', 'label' => __('blox_dynamic_fallback'),
+                'default' => '', 'loop_only' => true, 'advanced' => true,
+                'required' => ['loop_field', '!=', 'none'],
+            ],
+            [
                 'key' => 'loop_alt_field', 'type' => 'select', 'label' => __('blox_loop_alt_binding'),
                 'default' => 'title', 'loop_only' => true,
                 'options' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('title', 'content'),
@@ -33,6 +43,11 @@ final class ImageElement extends AbstractElement
                     'content' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('title', 'content'),
                     'product' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('title', 'product'),
                 ],
+            ],
+            [
+                'key' => 'loop_alt_fallback', 'type' => 'text', 'label' => __('blox_dynamic_fallback'),
+                'default' => '', 'loop_only' => true, 'advanced' => true,
+                'required' => ['loop_alt_field', '!=', 'none'],
             ],
             [
                 'key' => 'loop_link_field', 'type' => 'select', 'label' => __('blox_loop_link_binding'),
@@ -55,7 +70,12 @@ final class ImageElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $src = htmlspecialchars($data['src'] ?? '');
+        $rawSrc = (string) ($data['src'] ?? '');
+        $siteImageField = (string) ($data['site_image_field'] ?? 'none');
+        if ($siteImageField !== 'none') {
+            $rawSrc = DynamicSiteData::value($siteImageField, 'image');
+        }
+        $src = htmlspecialchars($rawSrc);
         $alt = htmlspecialchars($data['alt'] ?? '');
         if (!$src) {
             return '';

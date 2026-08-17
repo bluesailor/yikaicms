@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * 模板解析完整性：根模板里 require 的每个 theme_path() 目标，
- * 在**每一套主题**下都必须能解析到真实文件。
+ * 在核心 default 与每套市场主题源码下都必须能解析到真实文件。
  *
  * 起因：v1.16.0 新增 partials/contact-hero.php 只放进了 themes/default，
  * 其余四套主题既无自带文件、回落目录 includes/partials/ 也没有，
@@ -22,6 +22,19 @@ final class ThemeTemplateResolutionTest extends TestCase
     {
         $out = [];
         foreach ((array) glob(ROOT_PATH . '/themes/*', GLOB_ONLYDIR) as $dir) {
+            if (is_file($dir . '/theme.json')) {
+                $out[] = basename($dir);
+            }
+        }
+        sort($out);
+        return $out;
+    }
+
+    /** @return list<string> 市场主题源码目录名 */
+    private function marketThemes(): array
+    {
+        $out = [];
+        foreach ((array) glob(ROOT_PATH . '/marketplace/themes/*', GLOB_ONLYDIR) as $dir) {
             if (is_file($dir . '/theme.json')) {
                 $out[] = basename($dir);
             }
@@ -51,11 +64,11 @@ final class ThemeTemplateResolutionTest extends TestCase
     }
 
     /** 复刻 theme_path() 的解析顺序：覆盖层 → 主题目录 → includes 回落 */
-    private function resolve(string $theme, string $file): ?string
+    private function resolve(string $theme, string $file, string $themeRoot = 'themes'): ?string
     {
         $candidates = [
             ROOT_PATH . '/overrides/' . $file,
-            ROOT_PATH . '/themes/' . $theme . '/' . $file,
+            ROOT_PATH . '/' . $themeRoot . '/' . $theme . '/' . $file,
             str_starts_with($file, 'layouts/')
                 ? ROOT_PATH . '/includes/' . basename($file)
                 : (str_starts_with($file, 'pages/')
@@ -75,7 +88,7 @@ final class ThemeTemplateResolutionTest extends TestCase
         $themes    = $this->themes();
         $templates = $this->requiredTemplates();
 
-        self::assertNotEmpty($themes, '未扫描到任何主题');
+        self::assertSame(['default'], $themes, '核心运行时主题只能包含 default');
         self::assertNotEmpty($templates, '未扫描到任何 theme_path() 引用');
 
         $missing = [];
@@ -88,5 +101,23 @@ final class ThemeTemplateResolutionTest extends TestCase
         }
 
         self::assertSame([], $missing, "以下主题解析不到模板，该主题的对应页面会直接 require 失败：\n  " . implode("\n  ", $missing));
+    }
+
+    public function testEveryMarketplaceThemeSourceResolvesEveryRequiredTemplate(): void
+    {
+        $themes = $this->marketThemes();
+        $templates = $this->requiredTemplates();
+        self::assertSame(['aurora', 'business', 'minimal', 'trade'], $themes);
+
+        $missing = [];
+        foreach ($themes as $theme) {
+            foreach ($templates as $tpl) {
+                if ($this->resolve($theme, $tpl, 'marketplace/themes') === null) {
+                    $missing[] = $theme . ' → ' . $tpl;
+                }
+            }
+        }
+
+        self::assertSame([], $missing, "以下市场主题源码解析不到模板：\n  " . implode("\n  ", $missing));
     }
 }

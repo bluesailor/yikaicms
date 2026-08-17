@@ -28,6 +28,11 @@ else
     fi
 fi
 
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+    echo "Error: 非法版本号 '$VERSION'"
+    exit 1
+fi
+
 PACKAGE_NAME="yikaicms-v${VERSION}"
 RELEASE_DIR="$ROOT_DIR/releases"
 TMP_DIR="/tmp/yikaicms-build-$$"
@@ -63,18 +68,29 @@ if [ $VER_ERRORS -gt 0 ]; then
 fi
 echo "  ✓ 版本号一致（README / install SQL 均为 v${VERSION}）"
 
+# ---- 首页多语言默认值硬关卡 ----
+# 直接发布到 update 时可能不经过 GitHub CI，因此打包本身也必须阻止：
+# 缺语言键、英日站回落中文、或新文案未登记语言属性。
+echo "[0b/5] 校验首页多语言默认值..."
+php tools/check_lang_keys.php
+php tools/check_home_language_defaults.php
+
 # ---- 清理临时目录 ----
 rm -rf "$TMP_DIR"
 mkdir -p "$PKG_DIR"
 mkdir -p "$RELEASE_DIR"
 
-# ---- 复制文件（仅 git 跟踪的文件 + vendor 生产依赖）----
-# 用 git ls-files 取「已跟踪文件」的当前工作树内容打包：
-#   - 天然排除任何未跟踪 / 被 gitignore 的散落文件（测试 rar、截图、临时脚本等）
-#   - 仍是工作树内容，未提交的改动照样进包（与旧 cp -r 行为一致）
-echo "[1/5] 复制项目文件（git 跟踪 + vendor 生产依赖）..."
+# ---- 复制文件（当前工作树源码 + vendor 生产依赖）----
+# tracked + 未忽略的新文件构成当前源码；再过滤已从工作树移走但索引尚未提交删除的路径。
+# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等，不会把市场源码带进运行包。
+echo "[1/5] 复制项目文件（当前工作树源码 + vendor 生产依赖）..."
 if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    git -C "$ROOT_DIR" ls-files -z | tar -C "$ROOT_DIR" --null -T - -cf - | tar -xf - -C "$PKG_DIR"
+    FILE_LIST="$TMP_DIR/worktree-files.list"
+    : > "$FILE_LIST"
+    while IFS= read -r -d '' item; do
+        [ -e "$ROOT_DIR/$item" ] && printf '%s\0' "$item" >> "$FILE_LIST"
+    done < <(git -C "$ROOT_DIR" ls-files --cached --others --exclude-standard -z)
+    tar -C "$ROOT_DIR" --null -T "$FILE_LIST" -cf - | tar -xf - -C "$PKG_DIR"
 else
     echo "  ⚠️ 非 git 仓库，回退到 cp -r（注意：可能打入根目录散落文件）"
     cp -r "$ROOT_DIR"/* "$PKG_DIR/" 2>/dev/null || true
@@ -82,6 +98,33 @@ else
 fi
 # vendor 被 gitignore 但运行时需要（overtrue/pinyin 生成中文 slug），单独复制，随后裁剪为生产依赖
 cp -r "$ROOT_DIR/vendor" "$PKG_DIR/" 2>/dev/null || true
+
+# 基础单页编辑器与前台运行时属于免费能力，但源码可由私库在发版工作树中注入，
+# 未必出现在公开仓库的 git ls-files 结果里。按策略显式复制，缺任一项直接中止。
+for scope in core runtime; do
+    while IFS= read -r item; do
+        item="${item%$'\r'}"
+        [ -z "$item" ] && continue
+        source_path="$ROOT_DIR/$item"
+        target_path="$PKG_DIR/$item"
+        if [ ! -e "$source_path" ]; then
+            echo "Error: 缺少 Blox 免费 ${scope} 资产: $item"
+            exit 1
+        fi
+        mkdir -p "$(dirname "$target_path")"
+        if [ -d "$source_path" ]; then
+            mkdir -p "$target_path"
+            cp -a "$source_path/." "$target_path/"
+        else
+            cp "$source_path" "$target_path"
+        fi
+    done < <(php "bin/blox-assets.php" list "$scope")
+done
+
+# 缓存命名空间随每个全量/增量发行包变化。HtmlCache 将它纳入缓存键，部署覆盖后
+# 自动绕开上一版 HTML；同版本手工热修仍需执行 php bin/yikai.php cache:clear。
+BUILD_ID="${VERSION}-$(date -u +%Y%m%d%H%M%S)"
+printf "<?php\n\ndeclare(strict_types=1);\n\nreturn '%s';\n" "$BUILD_ID" > "$PKG_DIR/config/build.php"
 
 # ---- 排除文件 ----
 echo "[2/5] 排除不需要的文件..."
@@ -160,7 +203,7 @@ EXCLUDES=(
     "tailwind.config.js"
     "postcss.config.js"
 
-    # 插件：包内只预装核心体验两件（back-to-top 返回顶部、cookie-consent Cookie 同意），
+    # 插件：包内预装核心体验（back-to-top 返回顶部、cookie-consent Cookie 同意、logo-maker LOGO 制作），
     # 其余走插件市场按需安装（update.yikaicms.com/api/plugins/）。源码保留在仓库供开发与市场打包。
     "plugins/_example"
     "plugins/announcement"
@@ -168,36 +211,18 @@ EXCLUDES=(
     "plugins/search-replace"
     "plugins/stats"
     "plugins/product-carousel"
+    "plugins/icon-maker"
 
-    # 主题：随包只发英文命名的 default / business / aurora 三套。
-    #   minimal —— 已上架模板市场（update.yikaicms.com/api/themes/），按需安装。
-    #   trade（外贸通）—— **有意既不随包、也暂不上架**（2026-07-30 决定），
-    #     只保留源码在仓库。看到它「哪儿都装不到」不是 bug，别去补上架。
-    "themes/minimal"
-    "themes/trade"
+    # 图标工坊不随 CMS 核心包发布，需从插件市场单独安装。
 
-    # Blox 三栏编辑器自 v1.16.0 起**不再随免费包发布**，转为付费插件（2026-08-04 决定）。
-    #   排除的只是编辑器 UI 与其接口；首页排版数据模型（includes/builder/HomeBlox*）保留，
-    #   因为免费的排版编辑器 page_edit_advance.php?home=1 依赖它，且首页发布/回退是免费能力。
-    #   后台各处的 Blox 入口由 bloxEditorEnabled() 统一挡住（默认关 + 需授权），
-    #   包里没有这两个文件时入口本就不显示，不会出现死链。
-    "admin/blox_editor.php"
-    "admin/blox_home_api.php"
-    "themes/blox"
-    #   r7 之后新增的编辑器侧文件（1.16.2 免费包均无，1.17.0 首次被扫进包里——
-    #   排除清单必须随文件新增同步维护）。前台渲染运行时的三个 JS 保留：
-    #   blox-counter（统计动画）/ blox-sticky-header（吸顶头）/ blox-nav-drawer（移动端抽屉），
-    #   它们由 includes/builder 元素与主题区块引用，已发布内容离了会 404。
-    "admin/blox_template_api.php"
-    "admin/blox_templates.php"
-    "assets/js/blox-preview-client.js"
-    "assets/js/blox-canvas-bridge.js"
-    "assets/js/blox-command-runner.js"
-    "assets/js/blox-control-rules.js"
-    "assets/js/blox-history-store.js"
-    "assets/js/blox-template-library.js"
-    "plugins/blox-example"
-    #   双仓工作流脚本——纯内部工具
+    # 主题：运行包只内置 default。aurora/business/minimal/trade 的源码集中在
+    # marketplace/themes/，由 update.yikaicms.com 主题市场签名分发，不进入 CMS 包。
+    "marketplace"
+
+    # Blox 资产由 config/blox-assets.json 单一登记。core/runtime 随免费包，pro 排除。
+    "config/blox-assets.json"
+    "bin/blox-assets.php"
+    # 双仓工作流脚本——纯内部工具
     "bin/blox-git"
 
     # 临时测试文件（如本地 dev 时手写的）
@@ -210,6 +235,11 @@ EXCLUDES=(
     "storage/logs"
     "storage/cache"
 )
+
+while IFS= read -r item; do
+    item="${item%$'\r'}"
+    [ -n "$item" ] && EXCLUDES+=("$item")
+done < <(php "bin/blox-assets.php" list pro)
 
 for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
@@ -237,6 +267,15 @@ echo "[3/5] 验证打包内容..."
 
 ERRORS=0
 
+VERIFY_PKG_DIR="$PKG_DIR"
+# WSL 中项目惯用 Windows php.exe；脚本可用相对路径，但 /tmp 参数必须转成 UNC 路径。
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    VERIFY_PKG_DIR="$(wslpath -w "$PKG_DIR")"
+fi
+if ! php "bin/blox-assets.php" verify-free "$VERIFY_PKG_DIR"; then
+    ERRORS=$((ERRORS + 1))
+fi
+
 # 不应存在的文件
 MUST_NOT_EXIST=(
     "installed.lock"
@@ -259,11 +298,14 @@ MUST_EXIST=(
     "config/config.sample.php"
     "config/config.php.example"
     "config/database.php"
+    "config/build.php"
     "includes/functions.php"
+    "includes/HomeSettingsLanguageDefaults.php"
     "admin/index.php"
     "install/index.php"
     "install/sql/mysql.sql"
     "install/sql/sqlite.sql"
+    "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
     "uploads/.gitkeep"
     "storage/.gitkeep"
@@ -323,8 +365,8 @@ if command -v zip &>/dev/null; then
     zip -r -q "$ZIP_FILE" "$PACKAGE_NAME"
     cd "$ROOT_DIR"
 else
-    # WSL 环境：将路径转换为 Windows 格式给 PowerShell
-    WIN_SOURCE=$(wslpath -w "$PKG_DIR")
+    # WSL 环境：压缩临时根目录，保持与 zip 分支相同的版本目录外壳。
+    WIN_SOURCE=$(wslpath -w "$TMP_DIR")
     WIN_ZIP=$(wslpath -w "$ZIP_FILE")
     powershell.exe -Command "
         Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -376,20 +418,24 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
         PAYLOAD="$DELTA_DIR/payload"
         mkdir -p "$PAYLOAD"
         DELETED=()
-        ADDED=0
+        # build.php 不在 git diff 中，但每个增量包都必须覆盖它来切换 HTML 缓存命名空间。
+        mkdir -p "$PAYLOAD/config"
+        cp "$PKG_DIR/config/build.php" "$PAYLOAD/config/build.php"
+        ADDED=1
         # name-status：A/M/C 复制新内容；D 记删除；R 旧路径删、新路径复制
         while IFS=$'\t' read -r status path newpath; do
             [ -z "$status" ] && continue
             case "$status" in
                 D)
-                    case "$path" in config/config.php|storage/*|uploads/*|install/*) continue;; esac
+                    # 市场主题安装后属于站点资产，核心增量包不得将其卸载。
+                    case "$path" in config/config.php|storage/*|uploads/*|install/*|themes/*) continue;; esac
                     DELETED+=("$path")
                     ;;
                 R*)
                     if [ -f "$PKG_DIR/$newpath" ]; then
                         ( cd "$PKG_DIR" && cp --parents "$newpath" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
                     fi
-                    case "$path" in config/config.php|storage/*|uploads/*|install/*) ;; *) DELETED+=("$path");; esac
+                    case "$path" in config/config.php|storage/*|uploads/*|install/*|themes/*) ;; *) DELETED+=("$path");; esac
                     ;;
                 *)  # A / M / C：仅当该文件确实进了包（未被打包排除）才纳入
                     if [ -f "$PKG_DIR/$path" ]; then
@@ -398,6 +444,42 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
                     ;;
             esac
         done < <(git -C "$ROOT_DIR" diff --name-status "$tag" -- . 2>/dev/null)
+
+        # 发版工作树可能包含尚未提交的新文件；完整包会纳入它们，delta 也必须保持一致。
+        # 被打包规则排除的源码在 PKG_DIR 不存在，因此这里天然跳过 tests/marketplace 等。
+        while IFS= read -r -d '' path; do
+            if [ -f "$PKG_DIR/$path" ]; then
+                ( cd "$PKG_DIR" && cp --parents "$path" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
+            fi
+        done < <(git -C "$ROOT_DIR" ls-files --others --exclude-standard -z)
+
+        # Blox 基础编辑器可由私库注入并被公开仓库忽略，永远不会出现在 git diff 中。
+        # 每个 delta 强制携带完整 core/runtime，避免升级成功后编辑器因缺文件白屏。
+        for scope in core runtime; do
+            while IFS= read -r item; do
+                item="${item%$'\r'}"
+                [ -z "$item" ] && continue
+                if [ -d "$PKG_DIR/$item" ]; then
+                    ( cd "$PKG_DIR" && cp -a --parents "$item" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
+                elif [ -f "$PKG_DIR/$item" ]; then
+                    ( cd "$PKG_DIR" && cp --parents "$item" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
+                else
+                    echo "Error: delta $base 缺少 Blox 免费 ${scope} 资产: $item"
+                    exit 1
+                fi
+            done < <(php "bin/blox-assets.php" list "$scope")
+        done
+
+        # payload 不是完整 CMS，但对 Blox 免费资产必须是自洽的全集。
+        # WSL 调 Windows php.exe 时要把 /tmp 路径转成 Windows 可识别路径。
+        VERIFY_DELTA_PAYLOAD="$PAYLOAD"
+        if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+            VERIFY_DELTA_PAYLOAD="$(wslpath -w "$PAYLOAD")"
+        fi
+        if ! php "bin/blox-assets.php" verify-free "$VERIFY_DELTA_PAYLOAD"; then
+            echo "Error: delta $base → $VERSION 的 Blox 资产不完整"
+            exit 1
+        fi
 
         if [ "$ADDED" -eq 0 ] && [ ${#DELETED[@]} -eq 0 ]; then
             echo "  （$base → $VERSION 无打包内变化，跳过）"
@@ -417,6 +499,28 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
         else
             WIN_SRC=$(wslpath -w "$DELTA_DIR"); WIN_DZ=$(wslpath -w "$DELTA_ZIP")
             powershell.exe -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory('$WIN_SRC', '$WIN_DZ')"
+        fi
+
+        # 必须用客户端同样的 ZipArchive 语义复验。Windows Compress-Archive 会把条目写成
+        # payload\...，哈希虽正确，但升级器按 payload/ 匹配时会得到 0 个文件。
+        VERIFY_DELTA_ZIP="$DELTA_ZIP"
+        if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+            VERIFY_DELTA_ZIP="$(wslpath -w "$DELTA_ZIP")"
+        fi
+        if ! php -r '
+            $zip = new ZipArchive();
+            if ($zip->open($argv[1]) !== true || $zip->getFromName(".delta-manifest.json") === false) exit(2);
+            $files = 0;
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                if ($name === false || strpos($name, "\\") !== false) exit(3);
+                if (strncmp($name, "payload/", 8) === 0 && substr($name, -1) !== "/") $files++;
+            }
+            $zip->close();
+            exit($files > 0 ? 0 : 4);
+        ' "$VERIFY_DELTA_ZIP"; then
+            echo "Error: delta $base → $VERSION 的 ZIP 条目结构不兼容升级器"
+            exit 1
         fi
         sha256sum "$DELTA_ZIP" > "${DELTA_ZIP%.zip}.sha256"
         DHASH=$(cut -d' ' -f1 "${DELTA_ZIP%.zip}.sha256")

@@ -17,28 +17,32 @@ final class HomeBloxDocument
     private const VERSION = 1;
     private const MAX_JSON_BYTES = 2_000_000;
 
-    /** @return array{version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
+    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
     public static function load(): array
     {
         $raw = trim((string) config(self::DATA_KEY, ''));
         if ($raw !== '' && strlen($raw) <= self::MAX_JSON_BYTES) {
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
+                $migrated = BloxDocumentPipeline::decode($raw);
                 $hasDocumentSections = isset($decoded['sections']) && is_array($decoded['sections']);
-                $sections = self::extractSections($decoded);
-                if ($hasDocumentSections || $sections !== []) {
+                if ($hasDocumentSections || BloxDocumentPipeline::isList($decoded)) {
                     return [
+                        'schema'     => $migrated['schema'],
+                        'settings'   => $migrated['settings'],
                         'version'    => (int) ($decoded['version'] ?? self::VERSION),
                         'source'     => (string) ($decoded['source'] ?? 'blox'),
                         'active'     => self::isActive(),
                         'updated_at' => (int) ($decoded['updated_at'] ?? 0),
-                        'sections'   => self::normalizeSections($sections),
+                        'sections'   => self::normalizeSections($migrated['sections']),
                     ];
                 }
             }
         }
 
         return [
+            'schema'     => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings'   => [],
             'version'    => self::VERSION,
             'source'     => 'legacy',
             'active'     => self::isActive(),
@@ -56,7 +60,84 @@ public static function isActive(): bool
         return self::readStoredDocument(self::PUBLISHED_KEY) !== null;
     }
 
-    /** @return array{version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
+    public static function hasDraft(): bool
+    {
+        return self::readStoredDocument(self::DATA_KEY) !== null;
+    }
+
+    /**
+     * 将当前经典首页固化为 Blox 草稿，不启用 Blox，也不覆盖已有草稿。
+     *
+     * @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
+     */
+    public static function createDraftFromLegacy(): array
+    {
+        $existing = self::readStoredDocument(self::DATA_KEY);
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $payload = json_encode([
+            'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings' => [],
+            'sections' => self::legacySections(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $document = self::prepareDocument($payload, false);
+        $document['source'] = 'legacy-import';
+
+        settingModel()->set(
+            self::DATA_KEY,
+            json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            'home'
+        );
+
+        return $document;
+    }
+
+    /**
+     * Whether the automatic legacy draft can still be rebuilt without
+     * overwriting user work or an existing publication.
+     */
+    public static function canRefreshLegacyImportDraft(): bool
+    {
+        $draft = self::readStoredDocument(self::DATA_KEY);
+
+        return $draft !== null
+            && in_array((string) ($draft['source'] ?? ''), ['legacy-import', 'legacy-import-complete'], true)
+            && !self::isActive()
+            && !self::hasPublished();
+    }
+
+    /**
+     * Rebuilds only an untouched automatic import from the current classic
+     * homepage settings. Returns null once the user has saved or published.
+     *
+     * @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}|null
+     */
+    public static function refreshLegacyImportDraft(): ?array
+    {
+        if (!self::canRefreshLegacyImportDraft()) {
+            return null;
+        }
+
+        $payload = json_encode([
+            'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings' => [],
+            'sections' => self::legacySections(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $document = self::prepareDocument($payload, false);
+        $document['source'] = 'legacy-import-complete-v2';
+
+        settingModel()->set(
+            self::DATA_KEY,
+            json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            'home'
+        );
+
+        return $document;
+    }
+
+    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
     /** @psalm-suppress PossiblyUnusedMethod The public homepage entry point is invoked from the root index script. */
     public static function loadPublished(): array
     {
@@ -111,6 +192,61 @@ public static function isActive(): bool
     }
 
     /**
+     * 校验当前编辑内容，并在同一事务中更新草稿、发布快照和回滚历史。
+     *
+     * @return array{active:bool,has_published:bool,sections:int,base_revision:string}
+     */
+    public static function saveAndPublish(string $blocksJson): array
+    {
+        $document = self::prepareDocument($blocksJson, true);
+        $previous = self::readStoredDocument(self::PUBLISHED_KEY);
+        $history = self::readHistory();
+
+        if ($previous !== null) {
+            array_unshift($history, $previous);
+            $history = array_slice($history, 0, 10);
+        }
+
+        $documentJson = json_encode(
+            $document,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
+        $db = db();
+        $db->beginTransaction();
+        try {
+            settingModel()->set(self::DATA_KEY, $documentJson, 'home');
+            settingModel()->set(self::PUBLISHED_KEY, $documentJson, 'home');
+            settingModel()->set(
+                self::HISTORY_KEY,
+                json_encode($history, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                'home'
+            );
+            settingModel()->set(self::ACTIVE_KEY, '1', 'home');
+            if (class_exists(HomeLayoutDocument::class)) {
+                settingModel()->set(HomeLayoutDocument::ACTIVE_KEY, '0', 'home');
+            }
+            $db->commit();
+            do_action('data_changed', DB_PREFIX . 'settings', 0);
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+
+        $revisionJson = json_encode([
+            'schema' => $document['schema'],
+            'settings' => $document['settings'],
+            'sections' => $document['sections'],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return [
+            'active' => true,
+            'has_published' => true,
+            'sections' => count($document['sections']),
+            'base_revision' => BloxDocumentPipeline::fingerprint($revisionJson),
+        ];
+    }
+
+    /**
      * Disables the Blox homepage publication and restores the legacy homepage
      * without deleting the draft or the last published document.
      *
@@ -139,18 +275,11 @@ public static function isActive(): bool
     /**
      * 保存编辑器提交的 sections。P0 不启用首页，只写入草稿。
      *
-     * @return array{version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
+     * @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
      */
     public static function saveDraft(string $blocksJson): array
     {
-        $processed = BloxDocumentPipeline::process($blocksJson, 'home');
-        $document = [
-            'version'    => self::VERSION,
-            'source'     => 'blox',
-            'active'     => self::isActive(),
-            'updated_at' => time(),
-            'sections'   => $processed['sections'],
-        ];
+        $document = self::prepareDocument($blocksJson, self::isActive());
 
         settingModel()->set(
             self::DATA_KEY,
@@ -159,6 +288,22 @@ public static function isActive(): bool
         );
 
         return $document;
+    }
+
+    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
+    private static function prepareDocument(string $blocksJson, bool $active): array
+    {
+        $processed = BloxDocumentPipeline::process($blocksJson, 'home');
+
+        return [
+            'schema' => $processed['schema'],
+            'settings' => $processed['settings'],
+            'version' => self::VERSION,
+            'source' => 'blox',
+            'active' => $active,
+            'updated_at' => time(),
+            'sections' => $processed['sections'],
+        ];
     }
 
     /** @return array<string,mixed>|null */
@@ -170,16 +315,22 @@ public static function isActive(): bool
         }
 
         $decoded = json_decode($raw, true);
-        if (!is_array($decoded) || !isset($decoded['sections']) || !is_array($decoded['sections'])) {
+        if (!is_array($decoded)) {
+            return null;
+        }
+        $migrated = BloxDocumentPipeline::decode($raw);
+        if (!isset($decoded['sections']) && !BloxDocumentPipeline::isList($decoded)) {
             return null;
         }
 
         return [
+            'schema' => $migrated['schema'],
+            'settings' => $migrated['settings'],
             'version' => (int) ($decoded['version'] ?? self::VERSION),
             'source' => (string) ($decoded['source'] ?? 'blox'),
             'active' => self::isActive(),
             'updated_at' => (int) ($decoded['updated_at'] ?? 0),
-            'sections' => self::normalizeSections(self::extractSections($decoded)),
+            'sections' => self::normalizeSections($migrated['sections']),
         ];
     }
 
@@ -202,15 +353,6 @@ public static function isActive(): bool
         ));
     }
 
-    /** @param array<string|int,mixed> $data @return array<int,array<string,mixed>> */
-    private static function extractSections(array $data): array
-    {
-        $sections = isset($data['sections']) && is_array($data['sections'])
-            ? $data['sections']
-            : $data;
-
-        return array_values(array_filter($sections, static fn (mixed $section): bool => is_array($section)));
-    }
 
     /** @param array<int,array<string,mixed>> $sections @return array<int,array<string,mixed>> */
     private static function normalizeSections(array $sections): array
@@ -240,7 +382,11 @@ public static function isActive(): bool
                     'elements' => $normalizedElements,
                 ];
                 if (isset($column['span'])) {
-                    $normalizedColumn['span'] = (int) $column['span'];
+                    $normalizedColumn['span'] = BloxResponsiveValue::normalizeStored(
+                        $column['span'],
+                        array_fill_keys(range(0, 12), true),
+                        0
+                    );
                 }
                 if (isset($column['card_bg'])) {
                     $normalizedColumn['card_bg'] = (string) $column['card_bg'];
@@ -295,55 +441,7 @@ public static function isActive(): bool
     /** @return array<int,array<string,mixed>> */
     private static function legacySections(): array
     {
-        $blocks = json_decode((string) config('home_blocks_config', ''), true);
-        if (!is_array($blocks) || $blocks === []) {
-            $blocks = [
-                ['type' => 'banner', 'enabled' => true],
-                ['type' => 'about', 'enabled' => true],
-                ['type' => 'stats', 'enabled' => true],
-                ['type' => 'channels', 'enabled' => true],
-                ['type' => 'testimonials', 'enabled' => true],
-                ['type' => 'advantage', 'enabled' => true],
-                ['type' => 'cta', 'enabled' => true],
-            ];
-        }
-
-        $sections = [];
-        foreach (array_values($blocks) as $index => $block) {
-            if (!is_array($block)) {
-                continue;
-            }
-            $type = trim((string) ($block['type'] ?? ''));
-            if ($type === '') {
-                continue;
-            }
-            $sections[] = [
-                'id'       => 'home_s_' . $index,
-                'type'     => 'section',
-                'name'     => self::legacyLabel($type),
-                'settings' => [
-                    'title'     => '',
-                    'subtitle'  => '',
-                    'padding'   => 'none',
-                    'max_width' => 'full',
-                    'container_gutter' => 'none',
-                    'gap'       => 'none',
-                ],
-                'columns' => [[
-                    'id' => 'home_c_' . $index,
-                    'elements' => [[
-                        'id'   => 'home_e_' . $index,
-                        'type' => 'home-block',
-                        'data' => [
-                            'block_type' => $type,
-                            'enabled'    => !empty($block['enabled']),
-                            'label'      => self::legacyLabel($type),
-                        ],
-                    ]],
-                ]],
-            ];
-        }
-        return $sections;
+        return HomeLayoutDocument::legacySectionsForImport();
     }
 
     public static function legacyLabel(string $type): string

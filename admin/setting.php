@@ -609,11 +609,11 @@ async function saveAdminLanguages() {
                     <?php if ($item['value']): ?>
                     <img src="<?php echo e($item['value']); ?>" class="h-16 mt-2 rounded" id="preview_<?php echo e($item['key']); ?>">
                     <?php endif; ?>
-                    <?php // 站点图标 / LOGO：附「图标工坊」在线制作入口（插件启用时才显示） ?>
-                    <?php if (in_array($item['key'], ['site_favicon', 'site_logo'], true) && function_exists('getActivePlugins') && in_array('icon-maker', getActivePlugins(), true)): ?>
+                    <?php // 站点图标 / LOGO：附 LOGO 制作在线入口（插件启用时才显示） ?>
+                    <?php if (in_array($item['key'], ['site_favicon', 'site_logo'], true) && function_exists('getActivePlugins') && in_array('logo-maker', getActivePlugins(), true)): ?>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="ti ti-wand"></i>
-                        <a href="/admin/plugin_page.php?plugin=icon-maker<?php echo $item['key'] === 'site_logo' ? '#logo' : '#text'; ?>" class="text-primary hover:underline"><?php echo __($item['key'] === 'site_logo' ? 'setting_logo_make' : 'setting_favicon_make'); ?></a>
+                        <a href="/admin/plugin_page.php?plugin=logo-maker#logoMakerLocalForm" class="text-primary hover:underline"><?php echo __($item['key'] === 'site_logo' ? 'setting_logo_make' : 'setting_favicon_make'); ?></a>
                     </p>
                     <?php endif; ?>
 

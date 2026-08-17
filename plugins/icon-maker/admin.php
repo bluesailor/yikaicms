@@ -16,7 +16,10 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+loadPluginLang('icon-maker');
 require_once __DIR__ . '/lib.php';   // im_scaled / im_png / im_ico（纯 GD，无 CMS 依赖）
+require_once __DIR__ . '/random_logo.php';
+require_once __DIR__ . '/logo_api.php';
 
 // 2026-08-04：图标工坊全部功能免费开放，不再按授权分层（保留变量以免大改模板分支）
 $imHasPro = true;
@@ -74,8 +77,110 @@ function im_pack_files(GdImage $master): array
 // ============================================================
 // POST 动作
 // ============================================================
+$imRandomIndustries = iconMakerRandomIndustries();
+$imRandomSchemes = iconMakerRandomColorSchemes();
+$imRandomMonoColors = iconMakerRandomMonoColors();
+$imRandomColorModes = iconMakerRandomColorModes();
+$imRandomLetterStyles = iconMakerRandomLetterStyles();
+$imRandomEffects = iconMakerRandomEffects();
+$imRandomBackgroundModes = iconMakerRandomBackgroundModes();
+$imRandomIndustryInput = (string) ($_GET['industry'] ?? $_GET['random_industry'] ?? 'technology');
+$imRandomIndustry = isset($imRandomIndustries[$imRandomIndustryInput]) ? $imRandomIndustryInput : 'technology';
+$imRandomScheme = (string) ($_GET['scheme'] ?? $_GET['random_scheme'] ?? 'industry');
+if ($imRandomScheme !== 'industry' && $imRandomScheme !== 'custom' && !isset($imRandomSchemes[$imRandomScheme])) {
+    $imRandomScheme = 'industry';
+}
+$imRandomColorMode = (string) ($_GET['color_mode'] ?? 'trio');
+if (!isset($imRandomColorModes[$imRandomColorMode])) {
+    $imRandomColorMode = 'trio';
+}
+$imRandomMonoColor = (string) ($_GET['mono_color'] ?? 'industry');
+if ($imRandomMonoColor !== 'industry' && $imRandomMonoColor !== 'custom' && !isset($imRandomMonoColors[$imRandomMonoColor])) {
+    $imRandomMonoColor = 'industry';
+}
+$imRandomCustomColors = [
+    iconMakerRandomNormalizeHexColor((string) ($_GET['custom_color1'] ?? ''), '#1D4ED8'),
+    iconMakerRandomNormalizeHexColor((string) ($_GET['custom_color2'] ?? ''), '#22D3EE'),
+    iconMakerRandomNormalizeHexColor((string) ($_GET['custom_color3'] ?? ''), '#0F172A'),
+];
+$imRandomLetterStyle = (string) ($_GET['letter_style'] ?? $_GET['random_letter_style'] ?? 'abstract');
+if (!isset($imRandomLetterStyles[$imRandomLetterStyle])) {
+    $imRandomLetterStyle = 'abstract';
+}
+$imRandomEffect = (string) ($_GET['effect'] ?? 'auto');
+if (!isset($imRandomEffects[$imRandomEffect])) {
+    $imRandomEffect = 'auto';
+}
+$imRandomBackgroundMode = (string) ($_GET['background'] ?? 'transparent');
+if (!isset($imRandomBackgroundModes[$imRandomBackgroundMode])) {
+    $imRandomBackgroundMode = 'transparent';
+}
+$imRandomRecommendedSchemes = $imRandomIndustries[$imRandomIndustry]['schemes'];
+$imRandomName = trim((string) ($_GET['mark'] ?? $_GET['random_name'] ?? configRawLang('site_name', 'Yikai')));
+$imRandomName = mb_substr($imRandomName !== '' ? $imRandomName : 'YK', 0, 24, 'UTF-8');
+$imRandomSeed = max(1, min(2_147_483_647, (int) ($_GET['seed'] ?? $_GET['random_seed'] ?? random_int(10_000, 9_999_999))));
+
+if (($_GET['im_action'] ?? '') === 'random_svg') {
+    $industry = isset($_GET['industry'], $imRandomIndustries[(string) $_GET['industry']]) ? (string) $_GET['industry'] : 'technology';
+    $name = mb_substr(trim((string) ($_GET['mark'] ?? $_GET['name'] ?? configRawLang('site_name', 'Yikai'))), 0, 24, 'UTF-8');
+    $schemeInput = (string) ($_GET['scheme'] ?? 'industry');
+    $scheme = $schemeInput === 'custom' || isset($imRandomSchemes[$schemeInput]) ? $schemeInput : 'industry';
+    $letterStyle = isset($_GET['letter_style'], $imRandomLetterStyles[(string) $_GET['letter_style']]) ? (string) $_GET['letter_style'] : 'abstract';
+    $effect = isset($_GET['effect'], $imRandomEffects[(string) $_GET['effect']]) ? (string) $_GET['effect'] : 'auto';
+    $background = isset($_GET['background'], $imRandomBackgroundModes[(string) $_GET['background']]) ? (string) $_GET['background'] : 'transparent';
+    $colorMode = isset($_GET['color_mode'], $imRandomColorModes[(string) $_GET['color_mode']]) ? (string) $_GET['color_mode'] : 'trio';
+    $monoColorInput = (string) ($_GET['mono_color'] ?? 'industry');
+    $monoColor = $monoColorInput === 'custom' || isset($imRandomMonoColors[$monoColorInput]) ? $monoColorInput : 'industry';
+    $customColors = [
+        iconMakerRandomNormalizeHexColor((string) ($_GET['custom_color1'] ?? ''), '#1D4ED8'),
+        iconMakerRandomNormalizeHexColor((string) ($_GET['custom_color2'] ?? ''), '#22D3EE'),
+        iconMakerRandomNormalizeHexColor((string) ($_GET['custom_color3'] ?? ''), '#0F172A'),
+    ];
+    $seed = max(1, min(2_147_483_647, (int) ($_GET['seed'] ?? 1)));
+    $index = max(0, min(99, (int) ($_GET['i'] ?? 0)));
+    header('Content-Type: image/svg+xml; charset=utf-8');
+    header('Cache-Control: private, max-age=86400');
+    header('Content-Disposition: inline; filename="logo-icon-' . ($index + 1) . '.svg"');
+    echo iconMakerRandomSvg($industry, $name, $seed, $index, $scheme, $letterStyle, $effect, $background, $colorMode, $monoColor, $customColors);
+    exit;
+}
+
 $imAction = (string) ($_POST['im_action'] ?? '');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $imAction !== '') {
+    if ($imAction === 'save_api_config') {
+        $url = rtrim(trim((string) ($_POST['api_url'] ?? '')), '/');
+        $parts = parse_url($url);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (!is_array($parts) || !in_array($scheme, ['http', 'https'], true) || !in_array($host, ['logo.yikaicms.com', 'logo.yikai', 'www.logo.yikai'], true)) {
+            error('LOGO LAB API 地址只允许使用 logo.yikaicms.com。');
+        }
+        $key = trim((string) ($_POST['api_key'] ?? ''));
+        if ($key === '') {
+            $key = iconMakerLogoApiConfig()['key'];
+        }
+        if (strlen($key) < 16) {
+            error('API Key 至少需要 16 个字符。');
+        }
+        settingModel()->set('iconmaker_logo_api_url', $url, 'plugin');
+        settingModel()->set('iconmaker_logo_api_key', $key, 'plugin');
+        success([], 'LOGO LAB API 设置已保存。');
+    }
+    if ($imAction === 'remote_candidates') {
+        $payload = json_decode((string) ($_POST['payload'] ?? ''), true);
+        if (!is_array($payload)) {
+            error('LOGO LAB 请求参数无效。');
+        }
+        $payload['action'] = 'candidates';
+        $payload['limit'] = 12;
+        $payload['pool_size'] = 96;
+        try {
+            $remote = iconMakerLogoApiRequest($payload);
+            success($remote['data'] ?? [], 'LOGO LAB 候选已生成。');
+        } catch (Throwable $exception) {
+            error($exception->getMessage());
+        }
+    }
     if (!function_exists('imagecreatetruecolor')) {
         error('服务器缺少 GD 扩展，无法生成图标');
     }
@@ -181,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $imAction !== '') {
 
 $imApplied   = (string) config('iconmaker_applied', '') === '1';
 $imAppliedAt = (int) config('iconmaker_applied_at', 0);
+$imLogoApiConfig = iconMakerLogoApiConfig();
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
@@ -191,6 +297,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow">
         <div class="flex border-b text-sm font-medium" id="imTabs">
             <button data-tab="logo"  class="im-tab px-6 py-3 border-b-2 border-primary text-primary"><i class="ti ti-badge mr-1"></i>LOGO 制作</button>
+            <button data-tab="random" class="im-tab px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700"><i class="ti ti-sparkles mr-1"></i>随机图标</button>
             <button data-tab="text"  class="im-tab px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700"><i class="ti ti-typography mr-1"></i>图标(favicon)</button>
             <?php /* 「图片转图标」暂不开放：入口隐藏，面板与上传逻辑保留，放开时恢复此按钮即可
             <button data-tab="image" class="im-tab px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700"><i class="ti ti-photo mr-1"></i>图片转图标(favicon)</button>
@@ -282,12 +389,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
+            <!-- 随机 SVG 图标 -->
+            <div id="im-pane-random" class="im-pane hidden">
+                <details class="mb-5 border rounded-lg bg-gray-50 p-4">
+                    <summary class="cursor-pointer text-sm font-medium text-gray-700">LOGO LAB API 设置</summary>
+                    <div class="grid md:grid-cols-2 gap-3 mt-3">
+                        <label class="text-sm text-gray-600">API 地址
+                            <input type="url" id="imLogoApiUrl" value="<?php echo e($imLogoApiConfig['url']); ?>" class="mt-1 w-full border rounded px-3 py-2" placeholder="https://logo.yikaicms.com/logo-api.php">
+                        </label>
+                        <label class="text-sm text-gray-600">API Key（留空保留原值）
+                            <input type="password" id="imLogoApiKey" value="" class="mt-1 w-full border rounded px-3 py-2" autocomplete="new-password">
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-3 mt-3">
+                        <button type="button" id="imLogoApiSave" data-token="<?php echo e(csrfToken()); ?>" class="px-3 py-1.5 rounded bg-primary text-white text-xs hover:bg-secondary transition">保存 API 设置</button>
+                        <small id="imLogoApiStatus" class="text-xs text-gray-400" role="status" aria-live="polite"></small>
+                    </div>
+                </details>
+                <?php require __DIR__ . '/random_ui.php'; ?>
+            </div>
+
             <!-- 文字 LOGO：画布式编辑器（多文字元素，独立样式，拖动定位） -->
             <div id="im-pane-logo" class="im-pane space-y-4">
                 <div class="flex flex-wrap items-center gap-3 text-sm">
                     <button id="imLAdd" class="px-3 py-1.5 bg-primary hover:bg-secondary text-white rounded transition"><i class="ti ti-plus mr-0.5"></i>添加文字</button>
                     <button id="imLDel" class="px-3 py-1.5 bg-white border text-gray-600 hover:text-red-500 hover:border-red-300 rounded transition"><i class="ti ti-trash mr-0.5"></i>删除选中</button>
                     <button id="imLReset" class="px-3 py-1.5 bg-white border text-gray-600 hover:text-primary hover:border-primary rounded transition" title="恢复 站名 + 网址 两行示例"><i class="ti ti-restore mr-0.5"></i>恢复默认</button>
+                    <button id="imLIconRemove" class="hidden px-3 py-1.5 bg-white border text-gray-600 hover:text-red-500 hover:border-red-300 rounded transition" title="移除左侧图标"><i class="ti ti-photo-off mr-0.5"></i>移除图标</button>
+                    <label id="imLIconSizeWrap" class="hidden inline-flex items-center gap-2 text-gray-600">
+                        图标大小 <input type="range" id="imLIconSize" min="24" max="160" value="112" class="w-24">
+                        <span id="imLIconSizeVal" class="w-10 text-xs text-gray-400">112px</span>
+                    </label>
                     <label class="inline-flex items-center gap-1.5 text-gray-600 ml-2">
                         <input type="checkbox" id="imLBgOn">背景色
                         <input type="color" id="imLBg" value="#ffffff" class="w-9 h-7 border rounded cursor-pointer">
@@ -298,7 +430,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="md:col-span-2">
                         <canvas id="imLogoStage" width="960" height="320" class="w-full border-2 border-gray-200 rounded-lg cursor-move touch-none"
                                 style="background-image:conic-gradient(#f1f5f9 25%,#fff 0 50%,#f1f5f9 0 75%,#fff 0);background-size:16px 16px"></canvas>
-                        <p class="text-xs text-gray-400 mt-1.5"><i class="ti ti-hand-move"></i> 点击文字选中，按住拖动调整位置；导出时自动裁掉四周空白</p>
+                        <p class="text-xs text-gray-400 mt-1.5"><i class="ti ti-hand-move"></i> 点击图案或文字即可选中；拖动图案可定位，拖动四角控制点可等比缩放，导出时自动裁掉四周空白</p>
                     </div>
                     <div id="imLPanel" class="space-y-3 text-sm bg-gray-50 border rounded-lg p-4">
                         <div>
@@ -323,6 +455,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div>
                             <label class="block font-medium text-gray-700 mb-1">字间距 <span id="imLSpaceVal" class="text-gray-400 text-xs"></span></label>
                             <input type="range" id="imLSpace" min="0.8" max="2" step="0.1" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-gray-700 mb-1"><?= e(__('iconmaker_text_direction')) ?></label>
+                            <div id="imLDirection" class="inline-flex rounded border overflow-hidden" role="group" aria-label="<?= e(__('iconmaker_text_direction')) ?>">
+                                <button type="button" data-orientation="horizontal" data-testid="iconmaker-text-horizontal"
+                                        class="px-3 py-1.5 bg-white text-gray-700 hover:bg-blue-50 hover:text-primary inline-flex items-center gap-1.5">
+                                    <i class="ti ti-arrows-horizontal" aria-hidden="true"></i><?= e(__('iconmaker_text_horizontal')) ?>
+                                </button>
+                                <button type="button" data-orientation="vertical" data-testid="iconmaker-text-vertical"
+                                        class="px-3 py-1.5 bg-white text-gray-700 hover:bg-blue-50 hover:text-primary border-l inline-flex items-center gap-1.5">
+                                    <i class="ti ti-arrows-vertical" aria-hidden="true"></i><?= e(__('iconmaker_text_vertical')) ?>
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <div class="flex items-center gap-4 mb-1.5">
@@ -453,20 +598,23 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     const sctx = stage.getContext('2d');
     const VIEW_W = 480, VIEW_H = 160, DPR = 2;
     const LOGO = {
+        icon: null, iconSvg: '', iconUrl: '', iconX: 16, iconY: 24, iconSize: 112,
         layers: [
-            { text: <?php echo json_encode(configRawLang('site_name', 'Yikai CMS')); ?>, x: 24, y: 84, size: 56, color: '#1f2937', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: true, spacing: 1 },
+            { text: <?php echo json_encode(configRawLang('site_name', 'Yikai CMS')); ?>, x: 24, y: 84, size: 56, color: '#1f2937', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: true, spacing: 1, orientation: 'horizontal' },
             <?php
             // 第二行默认放站点网址：site_url 优先，取不到用当前访问域名
             $imHost = (string) parse_url((string) config('site_url', ''), PHP_URL_HOST) ?: (string) ($_SERVER['HTTP_HOST'] ?? 'www.example.com');
             ?>
-            { text: <?php echo json_encode($imHost); ?>, x: 26, y: 126, size: 20, color: '#9ca3af', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: false, spacing: 1 }
+            { text: <?php echo json_encode($imHost); ?>, x: 26, y: 126, size: 20, color: '#9ca3af', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: false, spacing: 1, orientation: 'horizontal' }
         ],
-        sel: 0, drag: null
+        sel: 0, active: 'text', drag: null
     };
     const LOGO_DEFAULTS = JSON.parse(JSON.stringify(LOGO.layers));   // 「恢复默认」用的初始两行快照
     function lyFont(ly) { return (ly.bold ? 'bold ' : '') + ly.size + 'px ' + ly.font; }
     // 字间距：倍率 1 = 正常；每 +0.1 增加 0.1 字号的字符间隙（逐字绘制实现，兼容所有浏览器）
     function lySpacing(ly) { return Math.round(((ly.spacing || 1) - 1) * ly.size * 10) / 10; }
+    function lyIsVertical(ly) { return ly.orientation === 'vertical'; }
+    function lyChars(ly) { return Array.from(ly.text || ''); }
     function lyTextWidth(ctx, ly) {
         ctx.font = lyFont(ly);
         const extra = lySpacing(ly);
@@ -475,23 +623,90 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         for (const ch of ly.text) { w += ctx.measureText(ch).width + extra; n++; }
         return n ? w - extra : 0;
     }
+    function lyMetrics(ctx, ly) {
+        ctx.font = lyFont(ly);
+        if (!lyIsVertical(ly)) {
+            return { w: lyTextWidth(ctx, ly), h: ly.size * 1.05, advance: 0 };
+        }
+        const chars = lyChars(ly);
+        let width = 0;
+        chars.forEach(ch => { width = Math.max(width, ctx.measureText(ch).width); });
+        const advance = ly.size + lySpacing(ly);
+        return {
+            w: width,
+            h: chars.length ? ly.size * 1.05 + (chars.length - 1) * advance : 0,
+            advance
+        };
+    }
     function lyDrawText(ctx, ly) {
+        ctx.save();
         ctx.font = lyFont(ly);
         ctx.fillStyle = ly.color;
         ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
         const extra = lySpacing(ly);
-        if (!extra) { ctx.fillText(ly.text, ly.x, ly.y); return; }   // 正常间距走整串绘制，保留字距微调
-        let x = ly.x;
-        for (const ch of ly.text) { ctx.fillText(ch, x, ly.y); x += ctx.measureText(ch).width + extra; }
+        if (lyIsVertical(ly)) {
+            const metrics = lyMetrics(ctx, ly);
+            lyChars(ly).forEach((ch, index) => {
+                const glyphWidth = ctx.measureText(ch).width;
+                ctx.fillText(ch, ly.x + (metrics.w - glyphWidth) / 2, ly.y + index * metrics.advance);
+            });
+        } else if (!extra) {
+            ctx.fillText(ly.text, ly.x, ly.y);
+        } else {
+            let x = ly.x;
+            for (const ch of lyChars(ly)) { ctx.fillText(ch, x, ly.y); x += ctx.measureText(ch).width + extra; }
+        }
+        ctx.restore();
     }
     // 图层包围盒（近似：基线上方 0.8 字号，下方 0.25 字号容纳降部）
     function lyBounds(ctx, ly) {
-        return { x: ly.x, y: ly.y - ly.size * 0.8, w: lyTextWidth(ctx, ly), h: ly.size * 1.05 };
+        const metrics = lyMetrics(ctx, ly);
+        return { x: ly.x, y: ly.y - ly.size * 0.8, w: metrics.w, h: metrics.h };
+    }
+    function iconBounds() {
+        return { x: LOGO.iconX, y: LOGO.iconY, w: LOGO.iconSize, h: LOGO.iconSize };
+    }
+    function iconHandles() {
+        const b = iconBounds();
+        return {
+            nw: { x: b.x, y: b.y, cursor: 'nwse-resize' },
+            ne: { x: b.x + b.w, y: b.y, cursor: 'nesw-resize' },
+            sw: { x: b.x, y: b.y + b.h, cursor: 'nesw-resize' },
+            se: { x: b.x + b.w, y: b.y + b.h, cursor: 'nwse-resize' }
+        };
+    }
+    function hitIconHandle(p) {
+        if (!LOGO.icon || LOGO.active !== 'icon') return null;
+        const handles = iconHandles();
+        for (const [corner, handle] of Object.entries(handles)) {
+            if (Math.abs(p.x - handle.x) <= 7 && Math.abs(p.y - handle.y) <= 7) return { corner, ...handle };
+        }
+        return null;
     }
     function drawLayers(ctx, w, h, ui) {
         ctx.clearRect(0, 0, w, h);
         if ($('imLBgOn').checked) { ctx.fillStyle = $('imLBg').value; ctx.fillRect(0, 0, w, h); }
-        if (ui && !LOGO.layers.length) {
+        if (LOGO.icon) {
+            ctx.drawImage(LOGO.icon, LOGO.iconX, LOGO.iconY, LOGO.iconSize, LOGO.iconSize);
+            if (ui && LOGO.active === 'icon') {
+                const b = iconBounds();
+                ctx.save();
+                ctx.strokeStyle = '#2563eb';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 3]);
+                ctx.strokeRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+                ctx.setLineDash([]);
+                Object.values(iconHandles()).forEach(handle => {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(handle.x - 4, handle.y - 4, 8, 8);
+                    ctx.strokeStyle = '#2563eb';
+                    ctx.strokeRect(handle.x - 4, handle.y - 4, 8, 8);
+                });
+                ctx.restore();
+            }
+        }
+        if (ui && !LOGO.layers.length && !LOGO.icon) {
             // 空画布引导：告诉用户怎么加回来
             ctx.save();
             ctx.font = '15px "Microsoft YaHei",sans-serif';
@@ -504,7 +719,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         }
         LOGO.layers.forEach((ly, i) => {
             lyDrawText(ctx, ly);
-            if (ui && i === LOGO.sel) {
+            if (ui && LOGO.active === 'text' && i === LOGO.sel) {
                 const b = lyBounds(ctx, ly);
                 ctx.save();
                 ctx.strokeStyle = '#2563eb';
@@ -528,9 +743,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         });
     }
     function renderLogo() { sctx.setTransform(DPR, 0, 0, DPR, 0, 0); drawLayers(sctx, VIEW_W, VIEW_H, true); }
+    function syncIconControls() {
+        const visible = !!LOGO.icon;
+        $('imLIconRemove').classList.toggle('hidden', !visible);
+        $('imLIconSizeWrap').classList.toggle('hidden', !visible);
+        $('imLIconSize').value = LOGO.iconSize;
+        $('imLIconSizeVal').textContent = LOGO.iconSize + 'px';
+    }
     function syncPanel() {
-        const ly = LOGO.layers[LOGO.sel];
+        const ly = LOGO.active === 'text' ? LOGO.layers[LOGO.sel] : null;
         ['imLText', 'imLFont', 'imLSize', 'imLSpace', 'imLColor', 'imLBold'].forEach(id => $(id).disabled = !ly);
+        document.querySelectorAll('#imLSwatches button, .im-align, #imLDirection button').forEach(control => { control.disabled = !ly; });
         $('imLPanel').classList.toggle('opacity-40', !ly);
         if (!ly) return;
         $('imLText').value = ly.text;
@@ -541,10 +764,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         $('imLSpaceVal').textContent = '×' + (ly.spacing || 1).toFixed(1);
         $('imLColor').value = ly.color;
         $('imLBold').checked = ly.bold;
+        document.querySelectorAll('#imLDirection [data-orientation]').forEach(control => {
+            const active = control.dataset.orientation === (ly.orientation || 'horizontal');
+            control.classList.toggle('bg-blue-600', active);
+            control.classList.toggle('text-white', active);
+            control.classList.toggle('bg-white', !active);
+            control.classList.toggle('text-gray-700', !active);
+            control.classList.toggle('hover:bg-blue-50', !active);
+            control.classList.toggle('hover:text-primary', !active);
+            control.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        stage.dataset.textOrientation = ly.orientation || 'horizontal';
     }
     // 导出：按图层包围盒并集裁剪（四周留 12px 边距），不带选中框
     function logoTrimBox() {
         let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+        if (LOGO.icon) {
+            x1 = LOGO.iconX; y1 = LOGO.iconY;
+            x2 = LOGO.iconX + LOGO.iconSize; y2 = LOGO.iconY + LOGO.iconSize;
+        }
         LOGO.layers.forEach(ly => {
             const b = lyBounds(sctx, ly);
             x1 = Math.min(x1, b.x); y1 = Math.min(y1, b.y);
@@ -556,7 +794,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         return { x: x1, y: y1, w: Math.max(1, Math.round(x2 - x1)), h: Math.max(1, Math.round(y2 - y1)) };
     }
     function logoExportCanvas() {
-        if (!LOGO.layers.length) return null;
+        if (!LOGO.layers.length && !LOGO.icon) return null;
         const box = logoTrimBox();
         const c = document.createElement('canvas');
         c.width = box.w * DPR; c.height = box.h * DPR;   // 2 倍图导出，高清屏不发虚
@@ -564,6 +802,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         ctx.scale(DPR, DPR);
         if ($('imLBgOn').checked) { ctx.fillStyle = $('imLBg').value; ctx.fillRect(0, 0, box.w, box.h); }
         ctx.translate(-box.x, -box.y);
+        if (LOGO.icon) {
+            ctx.drawImage(LOGO.icon, LOGO.iconX, LOGO.iconY, LOGO.iconSize, LOGO.iconSize);
+        }
         LOGO.layers.forEach(ly => lyDrawText(ctx, ly));
         return c;
     }
@@ -572,46 +813,108 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         const r = stage.getBoundingClientRect();
         return { x: (e.clientX - r.left) * VIEW_W / r.width, y: (e.clientY - r.top) * VIEW_H / r.height };
     }
+    function removeIcon() {
+        if (!LOGO.icon) return;
+        if (LOGO.iconUrl) URL.revokeObjectURL(LOGO.iconUrl);
+        LOGO.icon = null; LOGO.iconSvg = ''; LOGO.iconUrl = '';
+        LOGO.drag = null;
+        LOGO.active = LOGO.layers.length ? 'text' : null;
+        syncIconControls(); syncPanel(); renderLogo();
+    }
     function deleteSelected() {
+        if (LOGO.active === 'icon') { removeIcon(); return; }
         if (!LOGO.layers.length) return;
         LOGO.layers.splice(LOGO.sel, 1);
         LOGO.sel = Math.max(0, LOGO.sel - 1);
+        LOGO.active = LOGO.layers.length ? 'text' : (LOGO.icon ? 'icon' : null);
         syncPanel(); renderLogo();
     }
     stage.addEventListener('pointerdown', e => {
         const p = stagePos(e);
         LOGO.drag = null;
+        const iconHandle = hitIconHandle(p);
+        if (iconHandle) {
+            const b = iconBounds();
+            const anchors = {
+                nw: { x: b.x + b.w, y: b.y + b.h },
+                ne: { x: b.x, y: b.y + b.h },
+                sw: { x: b.x + b.w, y: b.y },
+                se: { x: b.x, y: b.y }
+            };
+            LOGO.drag = { type: 'icon-resize', corner: iconHandle.corner, anchor: anchors[iconHandle.corner] };
+            stage.setPointerCapture(e.pointerId);
+            return;
+        }
         // 先判断是否点在选中框右上角的 × 删除钮上
-        const selLy = LOGO.layers[LOGO.sel];
+        const selLy = LOGO.active === 'text' ? LOGO.layers[LOGO.sel] : null;
         if (selLy) {
             const b = lyBounds(sctx, selLy);
             if (Math.hypot(p.x - (b.x + b.w + 5), p.y - (b.y - 5)) <= 11) { deleteSelected(); return; }
         }
+        let hit = false;
         for (let i = LOGO.layers.length - 1; i >= 0; i--) {
             const b = lyBounds(sctx, LOGO.layers[i]);
             if (p.x >= b.x - 5 && p.x <= b.x + b.w + 5 && p.y >= b.y - 5 && p.y <= b.y + b.h + 5) {
                 LOGO.sel = i;
-                LOGO.drag = { dx: p.x - LOGO.layers[i].x, dy: p.y - LOGO.layers[i].y };
+                LOGO.active = 'text';
+                LOGO.drag = { type: 'text-move', dx: p.x - LOGO.layers[i].x, dy: p.y - LOGO.layers[i].y };
+                hit = true;
                 break;
             }
         }
+        if (!hit && LOGO.icon) {
+            const b = iconBounds();
+            if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+                LOGO.active = 'icon';
+                LOGO.drag = { type: 'icon-move', dx: p.x - LOGO.iconX, dy: p.y - LOGO.iconY };
+                hit = true;
+            }
+        }
         // 空画布：点哪里就在哪里新建一行文字
-        if (!LOGO.layers.length) {
-            LOGO.layers.push({ text: '新文字', x: Math.round(p.x), y: Math.round(p.y), size: 28, color: '#4b5563', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: false, spacing: 1 });
+        if (!hit && !LOGO.layers.length && !LOGO.icon) {
+            LOGO.layers.push({ text: '新文字', x: Math.round(p.x), y: Math.round(p.y), size: 28, color: '#4b5563', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: false, spacing: 1, orientation: 'horizontal' });
             LOGO.sel = 0;
+            LOGO.active = 'text';
         }
         syncPanel(); renderLogo();
         stage.setPointerCapture(e.pointerId);
     });
     stage.addEventListener('pointermove', e => {
-        if (!LOGO.drag) return;
-        const p = stagePos(e), ly = LOGO.layers[LOGO.sel];
-        if (!ly) return;
-        ly.x = Math.round(p.x - LOGO.drag.dx);
-        ly.y = Math.round(p.y - LOGO.drag.dy);
+        const p = stagePos(e);
+        if (!LOGO.drag) {
+            const handle = hitIconHandle(p);
+            if (handle) { stage.style.cursor = handle.cursor; return; }
+            const b = LOGO.icon ? iconBounds() : null;
+            stage.style.cursor = b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h ? 'move' : 'default';
+            return;
+        }
+        if (LOGO.drag.type === 'text-move') {
+            const ly = LOGO.layers[LOGO.sel];
+            if (!ly) return;
+            ly.x = Math.round(p.x - LOGO.drag.dx);
+            ly.y = Math.round(p.y - LOGO.drag.dy);
+        }
+        if (LOGO.drag.type === 'icon-move') {
+            LOGO.iconX = Math.round(Math.max(0, Math.min(VIEW_W - LOGO.iconSize, p.x - LOGO.drag.dx)));
+            LOGO.iconY = Math.round(Math.max(0, Math.min(VIEW_H - LOGO.iconSize, p.y - LOGO.drag.dy)));
+        }
+        if (LOGO.drag.type === 'icon-resize') {
+            const { corner, anchor } = LOGO.drag;
+            const horizontal = corner.includes('w') ? anchor.x - p.x : p.x - anchor.x;
+            const vertical = corner.includes('n') ? anchor.y - p.y : p.y - anchor.y;
+            const maxSize = Math.min(
+                corner.includes('w') ? anchor.x : VIEW_W - anchor.x,
+                corner.includes('n') ? anchor.y : VIEW_H - anchor.y
+            );
+            const size = Math.round(Math.max(24, Math.min(maxSize, (horizontal + vertical) / 2)));
+            LOGO.iconSize = size;
+            LOGO.iconX = corner.includes('w') ? anchor.x - size : anchor.x;
+            LOGO.iconY = corner.includes('n') ? anchor.y - size : anchor.y;
+            syncIconControls();
+        }
         renderLogo();
     });
-    stage.addEventListener('pointerup', () => { LOGO.drag = null; });
+    ['pointerup', 'pointercancel'].forEach(type => stage.addEventListener(type, () => { LOGO.drag = null; }));
     // 属性面板 → 选中图层
     $('imLText').addEventListener('input', () => { const ly = LOGO.layers[LOGO.sel]; if (ly) { ly.text = $('imLText').value; renderLogo(); } });
     $('imLFont').addEventListener('input', () => { const ly = LOGO.layers[LOGO.sel]; if (ly) { ly.font = $('imLFont').value; renderLogo(); } });
@@ -626,31 +929,59 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         renderLogo();
     });
     $('imLBold').addEventListener('input', () => { const ly = LOGO.layers[LOGO.sel]; if (ly) { ly.bold = $('imLBold').checked; renderLogo(); } });
+    document.querySelectorAll('#imLDirection [data-orientation]').forEach(control => control.addEventListener('click', () => {
+        const ly = LOGO.layers[LOGO.sel];
+        if (!ly) return;
+        ly.orientation = control.dataset.orientation === 'vertical' ? 'vertical' : 'horizontal';
+        syncPanel(); renderLogo();
+    }));
     ['imLBgOn', 'imLBg'].forEach(id => $(id).addEventListener('input', renderLogo));
+    $('imLIconSize').addEventListener('input', () => {
+        const oldSize = LOGO.iconSize;
+        const centerX = LOGO.iconX + oldSize / 2, centerY = LOGO.iconY + oldSize / 2;
+        LOGO.iconSize = +$('imLIconSize').value;
+        LOGO.iconX = Math.round(Math.max(0, Math.min(VIEW_W - LOGO.iconSize, centerX - LOGO.iconSize / 2)));
+        LOGO.iconY = Math.round(Math.max(0, Math.min(VIEW_H - LOGO.iconSize, centerY - LOGO.iconSize / 2)));
+        LOGO.active = 'icon';
+        $('imLIconSizeVal').textContent = LOGO.iconSize + 'px';
+        syncPanel(); renderLogo();
+    });
+    $('imLIconRemove').onclick = removeIcon;
     // 快速定位：按包围盒对齐到画布（12px 边距；垂直中线取包围盒中心）
     document.querySelectorAll('.im-align').forEach(b => b.onclick = () => {
         const ly = LOGO.layers[LOGO.sel];
         if (!ly) return;
         const bd = lyBounds(sctx, ly), pad = 12;
         const h = b.dataset.alignH, v = b.dataset.alignV;
-        if (h === 'left')   ly.x = pad;
-        if (h === 'center') ly.x = Math.round((VIEW_W - bd.w) / 2);
-        if (h === 'right')  ly.x = Math.round(VIEW_W - pad - bd.w);
-        if (v === 'top')    ly.y = Math.round(pad + ly.size * 0.8);
-        if (v === 'middle') ly.y = Math.round(VIEW_H / 2 + ly.size * 0.275);
-        if (v === 'bottom') ly.y = Math.round(VIEW_H - pad - ly.size * 0.25);
+        if (h === 'left')   ly.x += (LOGO.icon ? LOGO.iconX + LOGO.iconSize + 16 : pad) - bd.x;
+        if (h === 'center') ly.x += VIEW_W / 2 - (bd.x + bd.w / 2);
+        if (h === 'right')  ly.x += VIEW_W - pad - (bd.x + bd.w);
+        if (v === 'top')    ly.y += pad - bd.y;
+        if (v === 'middle') ly.y += VIEW_H / 2 - (bd.y + bd.h / 2);
+        if (v === 'bottom') ly.y += VIEW_H - pad - (bd.y + bd.h);
+        ly.x = Math.round(ly.x); ly.y = Math.round(ly.y);
         renderLogo();
     });
     // 添加 / 删除图层
     $('imLAdd').onclick = () => {
-        LOGO.layers.push({ text: '新文字', x: 24, y: Math.min(150, 40 + LOGO.layers.length * 44), size: 28, color: '#4b5563', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: false, spacing: 1 });
+        LOGO.layers.push({ text: '新文字', x: LOGO.icon ? LOGO.iconX + LOGO.iconSize + 16 : 24, y: Math.min(150, 40 + LOGO.layers.length * 44), size: 28, color: '#4b5563', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: false, spacing: 1, orientation: 'horizontal' });
         LOGO.sel = LOGO.layers.length - 1;
+        LOGO.active = 'text';
         syncPanel(); renderLogo();
     };
     $('imLDel').onclick = deleteSelected;
     $('imLReset').onclick = () => {
         LOGO.layers = JSON.parse(JSON.stringify(LOGO_DEFAULTS));
+        if (LOGO.icon) {
+            const minTextX = LOGO.iconX + LOGO.iconSize + 16;
+            LOGO.layers.forEach((layer, index) => {
+                layer.x = minTextX;
+                if (index === 0) layer.y = 84;
+                if (index === 1) layer.y = 126;
+            });
+        }
         LOGO.sel = 0;
+        LOGO.active = 'text';
         syncPanel(); renderLogo();
     };
     // Delete / Backspace 删除选中文字（输入框聚焦时不触发）
@@ -698,9 +1029,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         b.className = 'im-tab px-6 py-3 border-b-2 border-primary text-primary';
         document.querySelectorAll('.im-pane').forEach(p => p.classList.add('hidden'));
         $('im-pane-' + b.dataset.tab).classList.remove('hidden');
-        const isLogo = b.dataset.tab === 'logo';
-        $('imIconOut').classList.toggle('hidden', isLogo);
-        if (!isLogo) { mode = b.dataset.tab; renderMaster(); } else renderLogo();
+        const isStandalone = b.dataset.tab === 'logo' || b.dataset.tab === 'random';
+        $('imIconOut').classList.toggle('hidden', isStandalone);
+        if (b.dataset.tab === 'logo') renderLogo();
+        else if (!isStandalone) { mode = b.dataset.tab; renderMaster(); }
     });
     document.querySelectorAll('.im-shape').forEach(b => b.onclick = () => {
         document.querySelectorAll('.im-shape').forEach(x => x.className = 'im-shape px-4 py-1.5 border rounded text-sm');
@@ -764,28 +1096,42 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     };
     $('imLogoDl').onclick = () => {
         const c = logoExportCanvas();
-        if (!c) return alert('画布为空，请先添加文字');
+        if (!c) return alert('画布为空，请先添加图标或文字');
         c.toBlob(b => dlBlob(b, 'logo.png', 'image/png'));
     };
     const logoSvg = $('imLogoSvg');
     if (logoSvg) logoSvg.onclick = () => {
-        if (!LOGO.layers.length) return alert('画布为空，请先添加文字');
+        if (!LOGO.layers.length && !LOGO.icon) return alert('画布为空，请先添加图标或文字');
         const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         const box = logoTrimBox();
-        const texts = LOGO.layers.map(ly =>
-            '<text x="' + (ly.x - box.x) + '" y="' + (ly.y - box.y) + '" font-size="' + ly.size + '"'
-            + (ly.bold ? ' font-weight="bold"' : '')
-            + (lySpacing(ly) ? ' letter-spacing="' + lySpacing(ly) + '"' : '')
-            + ' font-family=\'' + esc(ly.font) + '\' fill="' + esc(ly.color) + '">' + esc(ly.text) + '</text>'
-        ).join('');
+        const texts = LOGO.layers.map(ly => {
+            const attrs = ' font-size="' + ly.size + '"'
+                + (ly.bold ? ' font-weight="bold"' : '')
+                + ' font-family=\'' + esc(ly.font) + '\' fill="' + esc(ly.color) + '"';
+            if (!lyIsVertical(ly)) {
+                return '<text x="' + (ly.x - box.x) + '" y="' + (ly.y - box.y) + '"' + attrs
+                    + (lySpacing(ly) ? ' letter-spacing="' + lySpacing(ly) + '"' : '')
+                    + '>' + esc(ly.text) + '</text>';
+            }
+            const metrics = lyMetrics(sctx, ly);
+            const centerX = ly.x - box.x + metrics.w / 2;
+            return lyChars(ly).map((ch, index) =>
+                '<text x="' + centerX + '" y="' + (ly.y - box.y + index * metrics.advance) + '" text-anchor="middle"'
+                + attrs + '>' + esc(ch) + '</text>'
+            ).join('');
+        }).join('');
         const bg = $('imLBgOn').checked ? '<rect width="100%" height="100%" fill="' + esc($('imLBg').value) + '"/>' : '';
-        dlBlob('<svg xmlns="http://www.w3.org/2000/svg" width="' + box.w + '" height="' + box.h + '">' + bg + texts + '</svg>',
+        const iconHref = LOGO.iconSvg ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO.iconSvg) : '';
+        const icon = iconHref
+            ? '<image x="' + (LOGO.iconX - box.x) + '" y="' + (LOGO.iconY - box.y) + '" width="' + LOGO.iconSize + '" height="' + LOGO.iconSize + '" href="' + esc(iconHref) + '"/>'
+            : '';
+        dlBlob('<svg xmlns="http://www.w3.org/2000/svg" width="' + box.w + '" height="' + box.h + '" viewBox="0 0 ' + box.w + ' ' + box.h + '">' + bg + icon + texts + '</svg>',
             'logo.svg', 'image/svg+xml');
     };
     const logoApply = $('imLogoApply');
     if (logoApply) logoApply.onclick = async function () {
         const c = logoExportCanvas();
-        if (!c) return alert('画布为空，请先添加文字');
+        if (!c) return alert('画布为空，请先添加图标或文字');
         if (!confirm('将把当前 LOGO 保存到 uploads/brand/ 并设为站点 LOGO。继续？')) return;
         busy(this, true);
         const j = await post('apply_logo', { canvas: c });
@@ -793,13 +1139,64 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         if (j) alert(j.msg + '（' + j.data.path + '）');
     };
 
+    document.querySelectorAll('.im-random-use').forEach(btn => {
+        btn.onclick = async function () {
+            busy(this, true);
+            try {
+                const response = await fetch(this.dataset.src, { credentials: 'same-origin' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const svg = await response.text();
+                const objectUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+                const image = new Image();
+                await new Promise((resolve, reject) => {
+                    image.onload = resolve;
+                    image.onerror = () => { URL.revokeObjectURL(objectUrl); reject(); };
+                    image.src = objectUrl;
+                });
+                if (LOGO.iconUrl) URL.revokeObjectURL(LOGO.iconUrl);
+                LOGO.icon = image;
+                LOGO.iconSvg = svg;
+                LOGO.iconUrl = objectUrl;
+                LOGO.iconSize = 112;
+                LOGO.iconX = 16;
+                LOGO.iconY = Math.round((VIEW_H - LOGO.iconSize) / 2);
+                if (!LOGO.layers.length) {
+                    LOGO.layers.push({ text: <?php echo json_encode($imRandomName, JSON_UNESCAPED_UNICODE); ?>, x: 150, y: 92, size: 52, color: '#1f2937', font: '"Microsoft YaHei","PingFang SC",sans-serif', bold: true, spacing: 1, orientation: 'horizontal' });
+                }
+                LOGO.layers.forEach((layer, index) => {
+                    layer.x = Math.max(150, layer.x);
+                    if (index === 0) layer.y = 84;
+                    if (index === 1) layer.y = 126;
+                });
+                LOGO.sel = 0;
+                LOGO.active = 'icon';
+                syncIconControls();
+                syncPanel();
+                document.querySelector('#imTabs .im-tab[data-tab="logo"]').click();
+                renderLogo();
+                stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (error) {
+                alert('图标载入失败，请重新生成后再试');
+            }
+            busy(this, false);
+        };
+    });
+
     renderMaster();
     syncPanel();
+    syncIconControls();
     renderLogo();
     // 支持 #logo / #image 锚点直达对应标签（站点设置页的制作链接会带锚点跳转）
     const hashTab = document.querySelector('#imTabs .im-tab[data-tab="' + location.hash.slice(1) + '"]');
     if (hashTab) hashTab.click();
+    if (new URLSearchParams(location.search).has('random_tab')) {
+        const randomTab = document.querySelector('#imTabs .im-tab[data-tab="random"]');
+        if (randomTab) randomTab.click();
+    }
 })();
 </script>
+<script src="/assets/sortable/Sortable.min.js"></script>
+<script src="/plugins/icon-maker/random-order.js?v=20260812a"></script>
+<script src="/plugins/icon-maker/random-logo.js?v=20260817a1"></script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

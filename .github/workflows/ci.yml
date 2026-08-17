@@ -80,6 +80,9 @@ jobs:
       - name: composer install
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Verify Blox asset classification
+        run: php bin/blox-assets.php verify-policy .
+
       - name: Run PHPUnit
         run: vendor/bin/phpunit --colors=never
 
@@ -109,6 +112,9 @@ jobs:
             lang: 'en'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The default-theme upgrade gate reads real historical install SQL from tags.
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -143,6 +149,13 @@ jobs:
       - name: Schema parity（install SQL ↔ migrations 双向对拍）
         run: php tests/smoke/schema_parity.php
 
+      - name: Default theme → Blox upgrade compatibility
+        if: ${{ matrix.php == '8.2' && matrix.lang == 'zh-CN' }}
+        run: |
+          for tag in v1.12.9 v1.14.0 v1.17.0 v1.17.3.2; do
+            php tests/smoke/blox_upgrade_compat.php --from="$tag"
+          done
+
       - name: Prepare fresh SQLite install
         run: php tests/smoke/setup.php --lang=${{ matrix.lang }}
 
@@ -173,8 +186,6 @@ jobs:
           echo "=== storage/logs ==="; cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="; tail -50 /tmp/php-server.log 2>/dev/null || true
 
-  # Browser regression baseline for Blox. It is intentionally non-blocking until the suite proves stable.
-
   # ─── Blox 付费套件（注入后全量 PHPUnit）：付费源码与公开代码的契约测试
   # ─── （BloxEditor*Contract / TemplateImporter / Catalog / RemoteProvider，
   # ─── 55 tests）只有注入后才存在。secret 不在场 → guard 显式 skip，不假红。
@@ -191,20 +202,7 @@ jobs:
       - name: Inject Blox paid sources
         env:
           BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
-        run: |
-          if [ -z "$BLOX_DEPLOY_KEY" ]; then
-            echo "::notice::BLOX_DEPLOY_KEY absent; paid sources not injected."
-            exit 0
-          fi
-          mkdir -p ~/.ssh
-          printf '%s\n' "$BLOX_DEPLOY_KEY" > ~/.ssh/blox_key
-          chmod 600 ~/.ssh/blox_key
-          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/blox_key -o IdentitiesOnly=yes" \
-            git clone --depth 1 git@github.com:bluesailor/yikaicms-blox.git /tmp/blox-src
-          rsync -a --exclude .git --exclude BLOX-README.md /tmp/blox-src/ ./
-          rm -rf /tmp/blox-src ~/.ssh/blox_key
-          echo "Injected: $(ls admin/blox_editor.php 2>/dev/null || echo FAILED)"
+        run: bash .github/scripts/inject-blox.sh
 
       - name: Check Blox source presence
         id: blox_src
@@ -229,6 +227,10 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Verify Blox paid asset composition
+        if: steps.blox_src.outputs.present == 'true'
+        run: php bin/blox-assets.php verify-source .
+
       - name: Run PHPUnit (full suite incl. Blox contracts)
         if: steps.blox_src.outputs.present == 'true'
         run: vendor/bin/phpunit --colors=never
@@ -237,6 +239,84 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: php tools/check_blox_i18n.php
 
+  # ─── 真实免费发行包：不能只在源工作树上验证资产分类。注入完整源码后运行
+  # ─── build.sh，校验 ZIP 哈希，再解包对最终产物执行 verify-free。
+  free-package:
+    name: Blox Free Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Inject Blox paid sources
+        env:
+          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
+        run: bash .github/scripts/inject-blox.sh
+
+      - name: Check Blox source presence
+        id: blox_src
+        run: |
+          if [ -f admin/blox_editor.php ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Blox free package skipped::paid sources not injected (no BLOX_DEPLOY_KEY). SKIPPED, not failed."
+          fi
+
+      - name: Setup PHP
+        if: steps.blox_src.outputs.present == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, json, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Install production dependencies
+        if: steps.blox_src.outputs.present == 'true'
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      - name: Build free release package
+        if: steps.blox_src.outputs.present == 'true'
+        env:
+          DELTA_BASES: '0'
+        run: bash build.sh
+
+      - name: Verify final ZIP composition
+        if: steps.blox_src.outputs.present == 'true'
+        id: package
+        run: |
+          VERSION="$(php -r "require 'config/version.php'; echo CMS_VERSION;")"
+          ZIP="releases/yikaicms-v${VERSION}.zip"
+          SHA="releases/yikaicms-v${VERSION}.sha256"
+          test -f "$ZIP" && test -f "$SHA"
+          sha256sum -c "$SHA"
+          rm -rf /tmp/yikaicms-free-package
+          mkdir -p /tmp/yikaicms-free-package
+          unzip -q "$ZIP" -d /tmp/yikaicms-free-package
+          PACKAGE_ROOT="/tmp/yikaicms-free-package/yikaicms-v${VERSION}"
+          test -d "$PACKAGE_ROOT"
+          php bin/blox-assets.php verify-free "$PACKAGE_ROOT"
+          test ! -e "$PACKAGE_ROOT/config/config.php"
+          test ! -e "$PACKAGE_ROOT/tests"
+          test ! -e "$PACKAGE_ROOT/admin/blox_home_api.php"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Upload verified free package
+        if: steps.blox_src.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: yikaicms-free-${{ github.sha }}
+          path: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.sha }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # ─── R31 已完成本地稳定期，R32 将同一受保护运行器提升为强制 CI 门禁。
   e2e:
     name: Blox Browser Regression
     runs-on: ubuntu-latest
@@ -252,20 +332,7 @@ jobs:
       - name: Inject Blox paid sources
         env:
           BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
-        run: |
-          if [ -z "$BLOX_DEPLOY_KEY" ]; then
-            echo "::notice::BLOX_DEPLOY_KEY absent; paid sources not injected."
-            exit 0
-          fi
-          mkdir -p ~/.ssh
-          printf '%s\n' "$BLOX_DEPLOY_KEY" > ~/.ssh/blox_key
-          chmod 600 ~/.ssh/blox_key
-          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/blox_key -o IdentitiesOnly=yes" \
-            git clone --depth 1 git@github.com:bluesailor/yikaicms-blox.git /tmp/blox-src
-          rsync -a --exclude .git --exclude BLOX-README.md /tmp/blox-src/ ./
-          rm -rf /tmp/blox-src ~/.ssh/blox_key
-          echo "Injected: $(ls admin/blox_editor.php 2>/dev/null || echo FAILED)"
+        run: bash .github/scripts/inject-blox.sh
 
       # Blox 编辑器源码属付费包，不随公开仓库分发（.gitignore 付费源码规则）。
       # 干净 checkout 里没有它时，后续步骤全部跳过并显式标注 skipped——
@@ -300,6 +367,10 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
+      - name: Verify Blox paid asset composition
+        if: steps.blox_src.outputs.present == 'true'
+        run: php bin/blox-assets.php verify-source .
+
       - name: Install Node dependencies
         if: steps.blox_src.outputs.present == 'true'
         run: npm ci
@@ -308,22 +379,15 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Prepare disposable SQLite install
-        if: steps.blox_src.outputs.present == 'true'
-        run: php tests/smoke/setup.php
-
-      - name: Start PHP built-in server
-        if: steps.blox_src.outputs.present == 'true'
-        run: |
-          php -S 127.0.0.1:8080 -t . > /tmp/php-server.log 2>&1 &
-          for i in $(seq 1 20); do
-            curl -sf http://127.0.0.1:8080/admin/login.php > /dev/null && break
-            sleep 0.5
-          done
-
       - name: Run Blox browser regression
         if: steps.blox_src.outputs.present == 'true'
-        run: npx playwright test --grep @ci
+        env:
+          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e
+          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report
+          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e/php-server.log
+        run: |
+          node tests/e2e/run-local.js --grep "@ci"
+          node tests/e2e/run-local.js --free tests/e2e/blox-page.spec.js --project=desktop-1440
 
       - name: Dump application logs on failure
         if: failure() && steps.blox_src.outputs.present == 'true'
@@ -331,7 +395,7 @@ jobs:
           echo "=== storage/logs ==="
           cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="
-          tail -100 /tmp/php-server.log 2>/dev/null || true
+          cat test-results/e2e/php-server.log 2>/dev/null || echo "(no server log)"
 
       - name: Upload Playwright diagnostics
         if: failure() && steps.blox_src.outputs.present == 'true'
@@ -341,6 +405,7 @@ jobs:
           path: |
             test-results/e2e
             playwright-report
+            storage/logs
           if-no-files-found: ignore
           retention-days: 7
 
@@ -404,6 +469,9 @@ jobs:
           coverage: none
       - name: Run lang key check
         run: php tools/check_lang_keys.php
+
+      - name: Home language default fallback gate
+        run: php tools/check_home_language_defaults.php
 
       - name: Hardcoded currency symbol gate
         run: php tools/check_currency_symbols.php

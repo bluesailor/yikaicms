@@ -1,0 +1,56 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "footer",
+  "name": "Clean Site Footer",
+  "requires": {
+    "elements": ["logo", "nav", "site-copyright"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "lg",
+          "max_width": "wide",
+          "gap": "lg",
+          "bg_color": "#f9fafb",
+          "align_items": "center"
+        },
+        "columns": [
+          {
+            "span": 4,
+            "elements": [
+              {"type": "logo", "data": {"display": "both", "height": "md", "link_home": true}}
+            ]
+          },
+          {
+            "span": 8,
+            "elements": [
+              {"type": "nav", "data": {"menu_group": 0, "parent": "", "nav_only": true, "dropdown": false, "wrap_class": "flex flex-wrap gap-4 text-gray-600"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#f3f4f6"
+        },
+        "columns": [
+          {
+            "elements": [
+              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "dark"}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -27,6 +27,56 @@ $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 
 $activeGroup = (int) ($_GET['group'] ?? 0);
+$homeTextKey = $_viewLang === $_defaultLang ? 'nav_home_text' : 'nav_home_text_' . $_viewLang;
+$homeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
+$footerNavKey = $_viewLang === $_defaultLang ? 'footer_nav' : 'footer_nav_' . $_viewLang;
+$rootOrderKey = $_viewLang === $_defaultLang ? 'nav_root_order' : 'nav_root_order_' . $_viewLang;
+
+$defaultHomeLabel = static function () use ($_viewLang): string {
+    $viewLangFile = ROOT_PATH . '/lang/' . basename($_viewLang) . '.php';
+    $viewLangData = is_file($viewLangFile) ? require $viewLangFile : [];
+    return is_array($viewLangData) && isset($viewLangData['nav_home'])
+        ? (string) $viewLangData['nav_home']
+        : __('nav_home');
+};
+$currentHomeLabel = static function () use ($homeTextKey, $defaultHomeLabel): string {
+    $label = trim((string) config($homeTextKey, ''));
+    return $label !== '' ? $label : $defaultHomeLabel();
+};
+$syncFooterHome = static function (?bool $visible, string $label) use ($footerNavKey): void {
+    $groups = json_decode((string) config($footerNavKey, '[]'), true);
+    $groups = is_array($groups) ? $groups : [];
+    $wasVisible = false;
+    foreach ($groups as &$group) {
+        $links = is_array($group['links'] ?? null) ? $group['links'] : [];
+        foreach ($links as $link) {
+            if (is_array($link) && (string) ($link['url'] ?? '') === '/') {
+                $wasVisible = true;
+            }
+        }
+        $group['links'] = array_values(array_filter(
+            $links,
+            static fn (mixed $link): bool => is_array($link) && (string) ($link['url'] ?? '') !== '/'
+        ));
+    }
+    unset($group);
+
+    $visible ??= $wasVisible;
+    if ($visible) {
+        if ($groups === []) {
+            $groups[] = ['title' => '', 'links' => []];
+        }
+        $groups[0]['links'] = is_array($groups[0]['links'] ?? null) ? $groups[0]['links'] : [];
+        $groups[0]['links'][] = ['name' => $label, 'url' => '/', 'target' => '_self'];
+    }
+    $groups = array_values(array_filter(
+        $groups,
+        static fn (mixed $group): bool => is_array($group) && !empty($group['links'])
+    ));
+    settingModel()->saveBatch([
+        $footerNavKey => json_encode($groups, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+    ]);
+};
 
 // 升级期守卫：文件已更新但迁移未跑（nav_menus 表缺）→ 菜单组功能降级隐藏，
 // 页面显示升级引导而不是 500（默认导航 Tab 只依赖 channels 表，照常可用）
@@ -45,9 +95,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'sort_nav') {
-        // 拖拽落下即存：同层 ids 顺序重排（updateSort 走 Model → 缓存自动失效）
-        $ids = is_array($_POST['ids'] ?? null) ? array_map('intval', $_POST['ids']) : [];
+        // 首页只参与一级菜单排序，不允许成为子菜单；栏目顺序仍写回原 sort_order。
+        $tokens = is_array($_POST['ids'] ?? null) ? array_values(array_map('strval', $_POST['ids'])) : [];
+        $parentId = postInt('parent');
+        $ids = array_values(array_filter(array_map('intval', $tokens), static fn (int $id): bool => $id > 0));
         channelModel()->updateSort($ids);
+        if ($parentId === 0 && in_array('home', $tokens, true)) {
+            $cleanTokens = array_values(array_unique(array_filter(
+                $tokens,
+                static fn (string $token): bool => $token === 'home' || ctype_digit($token) && (int) $token > 0
+            )));
+            settingModel()->saveBatch([
+                $rootOrderKey => json_encode($cleanTokens, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            ]);
+        }
         success();
     }
 
@@ -60,11 +121,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'toggle_home_nav') {
-        $homeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
         $homeShow = postInt('val') === 1 ? '1' : '0';
-        settingModel()->set($homeShowKey, $homeShow);
+        settingModel()->saveBatch([$homeShowKey => $homeShow]);
         adminLog('setting', 'nav_home_show', '切换 ' . $homeShowKey . ' = ' . $homeShow);
         success();
+    }
+
+    if ($action === 'toggle_home_footer_nav') {
+        $visible = postInt('val') === 1;
+        $syncFooterHome($visible, $currentHomeLabel());
+        adminLog('setting', 'nav_home_footer', '切换 ' . $footerNavKey . ' 首页入口 = ' . ($visible ? '1' : '0'));
+        success();
+    }
+
+    if ($action === 'save_home_nav') {
+        $label = mb_substr(trim((string) ($_POST['label'] ?? '')), 0, 100);
+        settingModel()->saveBatch([$homeTextKey => $label]);
+        $syncFooterHome(null, $label !== '' ? $label : $defaultHomeLabel());
+        adminLog('setting', 'nav_home_text', '更新 ' . $homeTextKey);
+        header('Location: /admin/nav_menu.php?saved=1' . $backLang);
+        exit;
     }
 
     if ($action === 'save_nav') {
@@ -168,6 +244,34 @@ foreach ($rows as $row) {
     $byParent[(int) $row['parent_id']][] = $row;
 }
 
+$rootSequence = json_decode((string) config($rootOrderKey, ''), true);
+$rootSequence = is_array($rootSequence) ? array_values(array_unique(array_map('strval', $rootSequence))) : [];
+$rootRowsById = [];
+foreach ($byParent[0] ?? [] as $rootRow) {
+    $rootRowsById[(string) ((int) $rootRow['id'])] = $rootRow;
+}
+$orderedRootRows = [];
+$homePosition = 0;
+$homeFound = false;
+foreach ($rootSequence as $token) {
+    if ($token === 'home') {
+        $homePosition = count($orderedRootRows);
+        $homeFound = true;
+        continue;
+    }
+    if (isset($rootRowsById[$token])) {
+        $orderedRootRows[] = $rootRowsById[$token];
+        unset($rootRowsById[$token]);
+    }
+}
+foreach ($rootRowsById as $rootRow) {
+    $orderedRootRows[] = $rootRow;
+}
+if (!$homeFound) {
+    $homePosition = $rootSequence === [] ? 0 : count($orderedRootRows);
+}
+$byParent[0] = $orderedRootRows;
+
 // 组编辑器：栏目平面下拉（缩进层级）+ id→名称映射（前端展示引用项）
 $flatChannels = [];
 $walkFlat = static function (array $byParent, int $pid, int $level) use (&$walkFlat, &$flatChannels): void {
@@ -191,17 +295,19 @@ $typeLabels = [
     'download' => __('channel_type_download'),
     'job' => __('channel_type_job'),
 ];
-$homeTextKey = $_viewLang === $_defaultLang ? 'nav_home_text' : 'nav_home_text_' . $_viewLang;
-$homeShowKey = $_viewLang === $_defaultLang ? 'nav_home_show' : 'nav_home_show_' . $_viewLang;
-$homeName = trim((string) config($homeTextKey, ''));
-if ($homeName === '') {
-    $viewLangFile = ROOT_PATH . '/lang/' . basename($_viewLang) . '.php';
-    $viewLangData = is_file($viewLangFile) ? require $viewLangFile : [];
-    $homeName = is_array($viewLangData) && isset($viewLangData['nav_home'])
-        ? (string) $viewLangData['nav_home']
-        : __('nav_home');
-}
+$homeTextValue = trim((string) config($homeTextKey, ''));
+$homeName = $currentHomeLabel();
 $homeVisible = (string) config($homeShowKey, '1') !== '0';
+$footerNav = json_decode((string) config($footerNavKey, '[]'), true);
+$homeInFooter = false;
+foreach (is_array($footerNav) ? $footerNav : [] as $footerGroup) {
+    foreach (is_array($footerGroup['links'] ?? null) ? $footerGroup['links'] : [] as $footerLink) {
+        if (is_array($footerLink) && (string) ($footerLink['url'] ?? '') === '/') {
+            $homeInFooter = true;
+            break 2;
+        }
+    }
+}
 $totalChannels = count($rows) + 1;
 $visibleChannels = count(array_filter($rows, static fn (array $row): bool => (int) $row['is_nav'] === 1))
     + ($homeVisible ? 1 : 0);
@@ -313,25 +419,56 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="px-5 py-4" data-nm-tree>
-        <div class="nm-home-item mb-1" data-name="<?php echo e(mb_strtolower($homeName)); ?>" data-visible="<?php echo $homeVisible ? '1' : '0'; ?>" data-testid="nav-menu-home-row">
+        <?php ob_start(); ?>
+        <div class="nm-menu-item nm-home-item" data-id="home" data-name="<?php echo e(mb_strtolower($homeName)); ?>" data-visible="<?php echo $homeVisible ? '1' : '0'; ?>" data-testid="nav-menu-home-row">
             <div class="nm-item-row nm-home-row min-h-11 flex items-center gap-2 rounded border border-blue-200 px-2.5 py-1.5 bg-blue-50/60 hover:bg-blue-50 transition <?php echo $homeVisible ? '' : 'opacity-60'; ?>">
+                <span class="nm-drag w-7 h-7 cursor-grab text-gray-300 hover:text-gray-600 inline-flex items-center justify-center rounded hover:bg-blue-100" title="<?php echo e(__('nav_menu_drag_handle')); ?>">
+                    <i class="ti ti-grip-vertical"></i>
+                </span>
                 <span class="w-7 h-7 text-blue-400 inline-flex items-center justify-center rounded" aria-hidden="true"><i class="ti ti-home"></i></span>
-                <span class="w-7 h-7" aria-hidden="true"></span>
                 <span class="min-w-0 text-sm font-semibold text-gray-800 truncate"><?php echo e($homeName); ?></span>
-                <span class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600"><?php echo e(__('nav_menu_home_fixed')); ?></span>
                 <span class="ml-auto flex items-center gap-1 shrink-0">
-                    <label class="relative inline-flex items-center gap-2 cursor-pointer px-1.5" title="<?php echo e(__('nav_menu_show')); ?>">
+                    <label class="relative inline-flex items-center gap-2 cursor-pointer px-1.5" title="<?php echo e(__('nav_menu_main_nav')); ?>">
                         <input type="checkbox" class="nm-home-toggle sr-only peer" aria-label="<?php echo e(__('nav_menu_show_item', ['name' => $homeName])); ?>" <?php echo $homeVisible ? 'checked' : ''; ?>>
                         <span class="relative w-9 h-5 rounded-full bg-gray-200 transition peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></span>
-                        <span class="hidden xl:inline text-xs text-gray-500"><?php echo e(__('nav_menu_show')); ?></span>
+                        <span class="hidden xl:inline text-xs text-gray-500"><?php echo e(__('nav_menu_main_nav')); ?></span>
                     </label>
-                    <a href="/admin/setting_home.php" class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-100 hover:text-primary" title="<?php echo e(__('edit')); ?>" aria-label="<?php echo e(__('nav_menu_edit_item', ['name' => $homeName])); ?>"><i class="ti ti-pencil"></i></a>
+                    <label class="relative inline-flex items-center gap-2 cursor-pointer px-1.5" title="<?php echo e(__('nav_menu_footer_nav')); ?>">
+                        <input type="checkbox" class="nm-home-footer-toggle sr-only peer" aria-label="<?php echo e(__('nav_menu_footer_home_item', ['name' => $homeName])); ?>" <?php echo $homeInFooter ? 'checked' : ''; ?>>
+                        <span class="relative w-9 h-5 rounded-full bg-gray-200 transition peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></span>
+                        <span class="hidden xl:inline text-xs text-gray-500"><?php echo e(__('nav_menu_footer_nav')); ?></span>
+                    </label>
+                    <button type="button" class="nm-move w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-100 hover:text-primary disabled:opacity-25" data-dir="-1" title="<?php echo e(__('nav_menu_move_up')); ?>" aria-label="<?php echo e(__('nav_menu_move_up_item', ['name' => $homeName])); ?>"><i class="ti ti-arrow-up"></i></button>
+                    <button type="button" class="nm-move w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-100 hover:text-primary disabled:opacity-25" data-dir="1" title="<?php echo e(__('nav_menu_move_down')); ?>" aria-label="<?php echo e(__('nav_menu_move_down_item', ['name' => $homeName])); ?>"><i class="ti ti-arrow-down"></i></button>
+                    <button type="button" data-nm-home-edit class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:bg-blue-100 hover:text-primary" title="<?php echo e(__('edit')); ?>" aria-label="<?php echo e(__('nav_menu_edit_item', ['name' => $homeName])); ?>"><i class="ti ti-pencil"></i></button>
                 </span>
             </div>
+            <form method="post" data-nm-home-form class="hidden mt-2 rounded border border-blue-100 bg-blue-50/50 p-3" data-testid="nav-menu-home-form">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="save_home_nav">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5" for="nav-home-label"><?php echo e(__('nav_menu_home_label')); ?></label>
+                <div class="flex items-center gap-2">
+                    <input id="nav-home-label" type="text" name="label" maxlength="100" value="<?php echo e($homeTextValue); ?>"
+                           placeholder="<?php echo e($defaultHomeLabel()); ?>"
+                           class="min-w-0 flex-1 h-9 rounded border border-gray-200 bg-white px-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15"
+                           data-testid="nav-menu-home-label">
+                    <button type="button" data-nm-home-cancel class="h-9 px-3 rounded border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50"><?php echo e(__('cancel')); ?></button>
+                    <button type="submit" class="h-9 px-3 rounded bg-primary text-white text-sm hover:opacity-90 inline-flex items-center gap-1.5" data-testid="nav-menu-home-save"><i class="ti ti-device-floppy"></i><?php echo e(__('save')); ?></button>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-500"><?php echo e(__('nav_menu_home_label_hint')); ?></p>
+            </form>
         </div>
+        <?php $homeItemHtml = (string) ob_get_clean(); ?>
         <?php
         /** @param array<int,array<int,array<string,mixed>>> $byParent */
-        function ykRenderNavTree(array $byParent, int $parentId, int $level, array $typeLabels): void
+        function ykRenderNavTree(
+            array $byParent,
+            int $parentId,
+            int $level,
+            array $typeLabels,
+            string $homeItemHtml = '',
+            int $homePosition = 0
+        ): void
         {
             $rows = $byParent[$parentId] ?? [];
             if ($rows === [] && $level > 0) {
@@ -341,14 +478,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 ? ' ml-5 pl-5 mt-1 border-l border-gray-200'
                 : '';
             echo '<div class="nm-nav-sort space-y-1' . $treeClass . '" data-nm-parent="' . $parentId . '"' . ($level > 0 ? ' data-nm-children' : '') . '>';
-            foreach ($rows as $row) {
+            foreach ($rows as $index => $row) {
+                if ($level === 0 && $index === $homePosition) {
+                    echo $homeItemHtml;
+                }
                 $id = (int) $row['id'];
                 $name = (string) $row['name'];
                 $isVisible = (int) $row['is_nav'] === 1;
                 $hasChildren = ($byParent[$id] ?? []) !== [];
                 $rowBorder = $level === 0 ? 'border-gray-200' : 'border-gray-100';
                 ?>
-                <div class="nm-nav-item" data-id="<?php echo $id; ?>" data-name="<?php echo e(mb_strtolower($name)); ?>" data-visible="<?php echo $isVisible ? '1' : '0'; ?>" data-level="<?php echo $level; ?>" data-testid="nav-menu-row">
+                <div class="nm-menu-item nm-nav-item" data-id="<?php echo $id; ?>" data-name="<?php echo e(mb_strtolower($name)); ?>" data-visible="<?php echo $isVisible ? '1' : '0'; ?>" data-level="<?php echo $level; ?>" data-testid="nav-menu-row">
                     <div class="nm-item-row nm-nav-row min-h-11 flex items-center gap-2 rounded border <?php echo $rowBorder; ?> px-2.5 py-1.5 hover:border-gray-300 hover:bg-gray-50/70 bg-white transition <?php echo $isVisible ? '' : 'opacity-60'; ?>">
                         <span class="nm-drag w-7 h-7 cursor-grab text-gray-300 hover:text-gray-600 inline-flex items-center justify-center rounded hover:bg-gray-100" title="<?php echo e(__('nav_menu_drag_handle')); ?>">
                             <i class="ti ti-grip-vertical"></i>
@@ -380,9 +520,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <?php
             }
+            if ($level === 0 && $homePosition >= count($rows)) {
+                echo $homeItemHtml;
+            }
             echo '</div>';
         }
-        ykRenderNavTree($byParent, 0, 0, $typeLabels);
+        ykRenderNavTree($byParent, 0, 0, $typeLabels, $homeItemHtml, $homePosition);
         ?>
         <div class="hidden py-12 text-center text-sm text-gray-500" data-nm-empty>
             <i class="ti ti-search-off block text-2xl text-gray-300 mb-2"></i>
@@ -415,6 +558,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     var status = root.querySelector('[data-nm-status]');
     var empty = root.querySelector('[data-nm-empty]');
     var homeItem = root.querySelector('.nm-home-item');
+    var homeEditButton = root.querySelector('[data-nm-home-edit]');
+    var homeForm = root.querySelector('[data-nm-home-form]');
+    var homeCancelButton = root.querySelector('[data-nm-home-cancel]');
     var currentFilter = 'all';
     var statusTimer = 0;
 
@@ -448,7 +594,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     }
 
     function directItems(list) {
-        return Array.prototype.filter.call(list.children, function (node) { return node.classList.contains('nm-nav-item'); });
+        return Array.prototype.filter.call(list.children, function (node) { return node.classList.contains('nm-menu-item'); });
+    }
+
+    function directNavItems(list) {
+        return directItems(list).filter(function (node) { return node.classList.contains('nm-nav-item'); });
     }
 
     function childList(item) {
@@ -468,7 +618,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     function updateMoveButtons(list) {
         var items = directItems(list);
         items.forEach(function (item, index) {
-            var buttons = item.querySelectorAll(':scope > .nm-nav-row .nm-move');
+            var buttons = item.querySelectorAll(':scope > .nm-item-row .nm-move');
             if (buttons[0]) buttons[0].disabled = index === 0;
             if (buttons[1]) buttons[1].disabled = index === items.length - 1;
         });
@@ -513,7 +663,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             return show;
         }
 
-        directItems(rootList).forEach(visit);
+        directNavItems(rootList).forEach(visit);
         var total = root.querySelectorAll('.nm-nav-item').length + (homeItem ? 1 : 0);
         resultCount.textContent = ui.results.replace(':shown', String(ownMatches)).replace(':total', String(total));
         empty.classList.toggle('hidden', ownMatches !== 0);
@@ -535,7 +685,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     function saveOrder(list, before) {
         setStatus('loading', ui.saving);
-        return post({ action: 'sort_nav', ids: orderOf(list) })
+        return post({ action: 'sort_nav', ids: orderOf(list), parent: list.dataset.nmParent || 0 })
             .then(function () {
                 setStatus('success', ui.saved);
                 updateMoveButtons(list);
@@ -570,11 +720,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     root.querySelectorAll('.nm-move').forEach(function (button) {
         button.addEventListener('click', function () {
-            var item = button.closest('.nm-nav-item');
+            var item = button.closest('.nm-menu-item');
             var list = item.parentElement;
             var before = orderOf(list);
             var sibling = Number(button.dataset.dir) < 0 ? item.previousElementSibling : item.nextElementSibling;
-            if (!sibling || !sibling.classList.contains('nm-nav-item')) return;
+            if (!sibling || !sibling.classList.contains('nm-menu-item')) return;
             if (Number(button.dataset.dir) < 0) list.insertBefore(item, sibling);
             else list.insertBefore(sibling, item);
             saveOrder(list, before);
@@ -611,6 +761,47 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     });
     bindVisibilityToggle(root.querySelector('.nm-home-toggle'), homeItem, {
         action: 'toggle_home_nav'
+    });
+
+    function bindSettingToggle(checkbox, fields) {
+        if (!checkbox) return;
+        checkbox.addEventListener('change', function () {
+            var previous = !checkbox.checked;
+            checkbox.disabled = true;
+            setStatus('loading', ui.saving);
+            post(Object.assign({}, fields, { val: checkbox.checked ? 1 : 0 }))
+                .then(function () { setStatus('success', ui.saved); })
+                .catch(function () {
+                    checkbox.checked = previous;
+                    setStatus('error', ui.failed);
+                })
+                .finally(function () { checkbox.disabled = false; });
+        });
+    }
+    bindSettingToggle(root.querySelector('.nm-home-footer-toggle'), {
+        action: 'toggle_home_footer_nav'
+    });
+
+    function setHomeEditor(open) {
+        if (!homeForm) return;
+        homeForm.classList.toggle('hidden', !open);
+        if (open) {
+            var input = homeForm.querySelector('input[name="label"]');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        } else if (homeEditButton) {
+            homeEditButton.focus();
+        }
+    }
+    if (homeEditButton) homeEditButton.addEventListener('click', function () { setHomeEditor(homeForm.classList.contains('hidden')); });
+    if (homeCancelButton) homeCancelButton.addEventListener('click', function () { setHomeEditor(false); });
+    if (homeForm) homeForm.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setHomeEditor(false);
+        }
     });
 
     filterButtons.forEach(function (button) {

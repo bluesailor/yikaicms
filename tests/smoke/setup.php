@@ -155,11 +155,111 @@ if ($smokeLang !== 'zh-CN') {
 
 if (!$i18nOnly) {
     // 浏览器回归必须显式通过设置闸；i18n 扫描不加载 Blox。
+    $advancedBlox = getenv('SMOKE_BLOX_ADVANCED') === '0' ? '0' : '1';
     $enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
-    $enabled->execute(['1', 'blox_editor_enabled']);
+    $enabled->execute([$advancedBlox, 'blox_editor_enabled']);
+
+    $homeBlocksJson = (string) $pdo->query(
+        "SELECT value FROM yikai_settings WHERE \"key\" = 'home_blocks_config' LIMIT 1"
+    )->fetchColumn();
+    $homeBlocks = json_decode($homeBlocksJson, true);
+    $homeBlocks = is_array($homeBlocks) ? array_values($homeBlocks) : [];
+    $hasPricingFixture = false;
+    $hasFaqFixture = false;
+    foreach ($homeBlocks as $homeBlock) {
+        $blockType = is_array($homeBlock) ? (string) ($homeBlock['type'] ?? '') : '';
+        if ($blockType === 'custom:1') {
+            $hasPricingFixture = true;
+        } elseif ($blockType === 'custom:2') {
+            $hasFaqFixture = true;
+        }
+    }
+    if (!$hasPricingFixture) {
+        $homeBlocks[] = ['type' => 'custom:1', 'enabled' => true];
+    }
+    if (!$hasFaqFixture) {
+        $homeBlocks[] = ['type' => 'custom:2', 'enabled' => true];
+    }
+
+    $pricingColumn = static function (string $title, string $price): array {
+        return [
+            'elements' => [[
+                'type' => 'heading',
+                'data' => ['text' => $title, 'level' => 'h3', 'align' => 'center'],
+            ], [
+                'type' => 'text',
+                'data' => ['html' => '<p>' . $price . ' / 月</p>'],
+            ], [
+                'type' => 'button',
+                'data' => ['text' => '选择方案', 'url' => '/contact.html', 'new_tab' => false],
+            ]],
+        ];
+    };
+    $pricingFixture = [
+        'title' => '价格方案',
+        'blocks' => [[
+            'id' => 'smoke_pricing_section',
+            'settings' => ['title' => '价格方案', 'padding' => 'lg', 'max_width' => 'default', 'col_card' => true],
+            'columns' => [
+                $pricingColumn('基础版', '¥99'),
+                $pricingColumn('专业版', '¥299'),
+                $pricingColumn('旗舰版', '¥999'),
+            ],
+        ]],
+    ];
+    $faqFixture = [
+        'title' => 'FAQ fixture',
+        'blocks' => [[
+            'id' => 'smoke_faq_section',
+            'settings' => ['title' => 'FAQ fixture', 'padding' => 'lg', 'max_width' => 'default'],
+            'columns' => [[
+                'id' => 'smoke_faq_column',
+                'elements' => [[
+                    'id' => 'smoke_faq_accordion',
+                    'type' => 'accordion',
+                    'data' => [
+                        'items' => "Smoke question one|Smoke answer one\nSmoke question two|Smoke answer two",
+                        'open_first' => true,
+                    ],
+                ]],
+            ]],
+        ]],
+    ];
+    $fixtureSettings = [
+        'home_blocks_config' => json_encode(
+            $homeBlocks,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        ),
+        'home_custom_1' => json_encode(
+            $pricingFixture,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        ),
+        'home_custom_2' => json_encode(
+            $faqFixture,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        ),
+    ];
+    $settingExists = $pdo->prepare('SELECT COUNT(*) FROM yikai_settings WHERE "key" = ?');
+    $updateSetting = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
+    $insertSetting = $pdo->prepare(
+        'INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order)'
+        . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    foreach ($fixtureSettings as $key => $value) {
+        $settingExists->execute([$key]);
+        $exists = (int) $settingExists->fetchColumn() > 0;
+        $settingExists->closeCursor();
+        if ($exists) {
+            $updateSetting->execute([$value, $key]);
+            continue;
+        }
+        $insertSetting->execute(['home', $key, $value, 'text', $key, '', null, 0]);
+    }
+    unset($settingExists, $updateSetting, $insertSetting);
+
     if ($enabled->rowCount() === 0) {
         $pdo->prepare('INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute(['page', 'blox_editor_enabled', '1', 'switch', 'Blox 编辑器（实验）', '', null, 3]);
+            ->execute(['system', 'blox_editor_enabled', $advancedBlox, 'switch', 'Blox 高级功能', '', null, 4]);
     }
 }
 
@@ -190,6 +290,27 @@ if (!$i18nOnly) {
 }
 
 // 6) 报告可用的 parent id（供冒烟客户端引用）
+$pageStmt = $pdo->prepare(
+    "SELECT c.id, c.slug FROM yikai_channels c"
+    . " WHERE c.type = 'page' AND c.lang = ? AND c.status = 1 AND c.slug <> 'contact'"
+    . " AND NOT EXISTS (SELECT 1 FROM yikai_channels child WHERE child.parent_id = c.id AND child.status = 1)"
+    . " ORDER BY c.id LIMIT 1"
+);
+$pageStmt->execute([$smokeLang]);
+$bloxPage = $pageStmt->fetch(PDO::FETCH_ASSOC);
+if (!$bloxPage) {
+    $pageStmt = $pdo->prepare(
+        "SELECT c.id, c.slug FROM yikai_channels c"
+        . " WHERE c.type = 'page' AND c.status = 1 AND c.slug <> 'contact'"
+        . " AND NOT EXISTS (SELECT 1 FROM yikai_channels child WHERE child.parent_id = c.id AND child.status = 1)"
+        . " ORDER BY c.id LIMIT 1"
+    );
+    $pageStmt->execute();
+    $bloxPage = $pageStmt->fetch(PDO::FETCH_ASSOC);
+}
+$bloxPageId = (int) ($bloxPage['id'] ?? 0);
+$bloxPageUrl = '/page.php?id=' . $bloxPageId . '&_lang=' . rawurlencode($smokeLang);
+
 $out = [
     // 按站点语言挑 fixture：种子数据是三语的，随手取第一行会拿到中文栏目，
     // 而英文站建的内容 lang=en——父子语言不一致，列表页永远查不到（这不是产品
@@ -204,6 +325,8 @@ $out = [
     'tables'       => (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")->fetchColumn(),
     'blox_template' => $templateId,
     'blox_header_template' => $headerTemplateId,
+    'blox_page' => $bloxPageId,
+    'blox_page_url' => $bloxPageUrl,
 ];
 file_put_contents(__DIR__ . '/fixtures.json', json_encode($out));
 echo "SMOKE SETUP OK: " . json_encode($out) . "\n";

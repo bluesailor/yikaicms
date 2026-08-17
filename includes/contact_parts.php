@@ -30,10 +30,113 @@ $iconPaths = [
     return $iconPaths;
 }
 
+/** 联系页设置键：默认语言写 base，其余受支持语言写 <key>_<lang>。 */
+function contactSettingKey(string $baseKey, ?string $lang = null): string
+{
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    $lang = trim((string) ($lang ?? siteLang()));
+    if ($lang !== '' && !preg_match('/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/', $lang)) {
+        $lang = $defaultLang;
+    }
+    return $lang === '' || $lang === $defaultLang ? $baseKey : $baseKey . '_' . $lang;
+}
+
+function contactCardsSettingKey(?string $lang = null): string
+{
+    return contactSettingKey('contact_cards', $lang);
+}
+
+/**
+ * 统一清洗联系卡片。后台设置页、Blox API 与前台渲染共用同一份边界。
+ *
+ * @return list<array{icon:string,label:string,value:string}>
+ */
+function normalizeContactCards(mixed $input): array
+{
+    if (!is_array($input)) {
+        return [];
+    }
+    $allowedIcons = array_keys(contactIconPaths());
+    $cut = static function (string $value, int $limit): string {
+        $value = trim($value);
+        return function_exists('mb_substr') ? mb_substr($value, 0, $limit) : substr($value, 0, $limit);
+    };
+    $cards = [];
+    foreach ($input as $card) {
+        if (count($cards) >= 4) {
+            break;
+        }
+        if (!is_array($card)) {
+            continue;
+        }
+        $label = $cut((string) ($card['label'] ?? ''), 80);
+        $value = $cut((string) ($card['value'] ?? ''), 1000);
+        if ($label === '' || $value === '') {
+            continue;
+        }
+        $icon = (string) ($card['icon'] ?? '');
+        $cards[] = [
+            'icon' => in_array($icon, $allowedIcons, true) ? $icon : '',
+            'label' => $label,
+            'value' => $value,
+        ];
+    }
+    return $cards;
+}
+
 /** 联系卡片数据（lang-aware）。 */
+function contactCardsDataForLang(?string $lang = null): array
+{
+    $key = contactCardsSettingKey($lang);
+    $raw = (string) config($key, '');
+    if ($raw === '' && $key !== 'contact_cards') {
+        $raw = (string) config('contact_cards', '[]');
+    }
+    return normalizeContactCards(json_decode($raw !== '' ? $raw : '[]', true));
+}
+
 function contactCardsData(): array
 {
-    return json_decode(configJsonLang('contact_cards') ?: '[]', true) ?: [];
+    return contactCardsDataForLang();
+}
+
+/** @return list<array{key:string,label:string,type:string,placeholder:string,required:bool,enabled:bool}> */
+function normalizeContactFormFields(mixed $input): array
+{
+    if (!is_array($input)) {
+        return [];
+    }
+    $allowedTypes = ['text', 'email', 'tel', 'textarea', 'number', 'date', 'url'];
+    $cut = static function (string $value, int $limit): string {
+        $value = trim($value);
+        return function_exists('mb_substr') ? mb_substr($value, 0, $limit) : substr($value, 0, $limit);
+    };
+    $fields = [];
+    $usedKeys = [];
+    foreach ($input as $field) {
+        if (count($fields) >= 12 || !is_array($field)) {
+            break;
+        }
+        $key = strtolower($cut((string) ($field['key'] ?? ''), 40));
+        $label = $cut((string) ($field['label'] ?? ''), 80);
+        if (!preg_match('/^[a-z][a-z0-9_-]*$/', $key) || isset($usedKeys[$key]) || $label === '') {
+            continue;
+        }
+        $type = (string) ($field['type'] ?? 'text');
+        if (!in_array($type, $allowedTypes, true)) {
+            continue;
+        }
+        $fields[] = [
+            'key' => $key,
+            'label' => $label,
+            'type' => $type,
+            'placeholder' => $cut((string) ($field['placeholder'] ?? ''), 160),
+            'required' => !empty($field['required']),
+            'enabled' => !array_key_exists('enabled', $field) || !empty($field['enabled']),
+        ];
+        $usedKeys[$key] = true;
+    }
+    return $fields;
 }
 
 /** 按卡片数量决定列数。 */
@@ -230,4 +333,68 @@ function contactSeedSections(): array
             ]],
         ]],
     ];
+}
+
+/**
+ * 为旧联系页补齐专用元素，同时保留已转换正文和用户已有布局。
+ *
+ * @param array<int,array<string,mixed>> $sections
+ * @return array<int,array<string,mixed>>
+ */
+function completeContactSeedSections(array $sections): array
+{
+    $requiredTypes = ['contact_cards', 'contact_form', 'contact_map'];
+    $foundTypes = [];
+    $scanElements = static function (array $elements) use (&$scanElements, &$foundTypes, $requiredTypes): void {
+        foreach ($elements as $element) {
+            if (!is_array($element)) {
+                continue;
+            }
+            $type = (string) ($element['type'] ?? '');
+            if (in_array($type, $requiredTypes, true)) {
+                $foundTypes[$type] = true;
+            }
+            if (isset($element['children']) && is_array($element['children'])) {
+                $scanElements($element['children']);
+            }
+        }
+    };
+
+    foreach ($sections as $section) {
+        foreach ((array) ($section['columns'] ?? []) as $column) {
+            if (is_array($column)) {
+                $scanElements((array) ($column['elements'] ?? []));
+            }
+        }
+    }
+
+    $missingTypes = array_values(array_filter(
+        $requiredTypes,
+        static fn (string $type): bool => empty($foundTypes[$type])
+    ));
+    if ($missingTypes === []) {
+        return $sections;
+    }
+
+    $seedSections = contactSeedSections();
+    if (in_array('contact_cards', $missingTypes, true)) {
+        $sections[] = $seedSections[0];
+    }
+
+    $mainSection = $seedSections[1];
+    $mainSection['columns'] = array_values(array_filter(
+        $mainSection['columns'],
+        static function (array $column) use ($missingTypes): bool {
+            $type = (string) ($column['elements'][0]['type'] ?? '');
+            return in_array($type, $missingTypes, true);
+        }
+    ));
+    if (count($mainSection['columns']) === 1) {
+        $mainSection['columns'][0]['span'] = 12;
+    }
+    if ($mainSection['columns'] !== []) {
+        $sections[] = $mainSection;
+    }
+
+    return $sections;
 }

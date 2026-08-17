@@ -175,10 +175,12 @@ function builderPresets(): array
                     'columns' => [[
                         'id' => 'c', 'elements' => [
                             ['id' => 'e', 'type' => 'accordion', 'data' => [
-                                'items' => __('blox_faq_seed_q1') . '|' . __('blox_ps_faq_a1') . "\n"
-                                    . __('blox_faq_seed_q2') . '|' . __('blox_ps_faq_a2') . "\n"
-                                    . __('blox_ps_faq_q3') . '|' . __('blox_ps_faq_a3') . "\n"
-                                    . __('blox_ps_faq_q4') . '|' . __('blox_ps_faq_a4'),
+                                'items' => [
+                                    ['question' => __('blox_faq_seed_q1'), 'answer' => __('blox_ps_faq_a1')],
+                                    ['question' => __('blox_faq_seed_q2'), 'answer' => __('blox_ps_faq_a2')],
+                                    ['question' => __('blox_ps_faq_q3'), 'answer' => __('blox_ps_faq_a3')],
+                                    ['question' => __('blox_ps_faq_q4'), 'answer' => __('blox_ps_faq_a4')],
+                                ],
                                 'open_first' => true,
                                 'seo_schema' => true,
                             ]],

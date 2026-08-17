@@ -223,8 +223,11 @@ return [
     'system' => [
         'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
         'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],
-        // Blox 编辑器（实验）：默认关闭，入口与页面均不可见；置 1 后才出现在栏目/单页管理等处
-        'blox_editor_enabled' => ['value' => '0', 'type' => 'switch', 'name' => 'Blox 编辑器（实验）', 'tip' => '默认关闭。开启后在栏目管理、单页管理与排版编辑器中显示 Blox 入口', 'sort_order' => 3],
+        // 编辑器默认对免费版开放；首页布局、模板库与头尾模板等高级能力另行校验授权。
+        'blox_editor_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 可视化编辑器', 'tip' => '默认开启，免费版也可编辑、预览和发布单页；高级能力单独校验授权', 'sort_order' => 4],
+        'blox_design_system' => ['value' => '', 'type' => 'json', 'name' => 'Blox 设计系统', 'tip' => '颜色令牌与命名样式预设，由 Blox 编辑器维护', 'sort_order' => 5],
+        'blox_custom_header_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页头', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页头', 'sort_order' => 6],
+        'blox_custom_footer_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页尾', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页尾', 'sort_order' => 7],
     ],
 
 ];
