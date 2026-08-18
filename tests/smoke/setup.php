@@ -163,6 +163,12 @@ if (!$i18nOnly) {
     $enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
     $enabled->execute([$advancedBlox, 'blox_editor_enabled']);
 
+    // 发行种子把演示 Blox 首页以「已发布+激活」出厂（全新安装即新版首页）；
+    // 编辑器契约测试的基线是「未发布的经典首页 + 合法转换草稿」（rollback 置灰、
+    // 树节点由转换生成的带标题版块构成），故 smoke 站中和这三键——发布/回滚流程
+    // 由用例自行走一遍，不吃出厂态。
+    $pdo->exec("DELETE FROM yikai_settings WHERE \"key\" IN ('home_blox_data', 'home_blox_published', 'home_blox_active')");
+
     $homeBlocksJson = (string) $pdo->query(
         "SELECT value FROM yikai_settings WHERE \"key\" = 'home_blocks_config' LIMIT 1"
     )->fetchColumn();
