@@ -38,6 +38,10 @@ final class ProductCatalogElementTest extends TestCase
 
     public function testProductPageFlowUsesPublishedBlocksWithoutReplacingClassicPageEarly(): void
     {
+        if (!is_file(ROOT_PATH . '/admin/blox_editor.php')) {
+            // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
+            self::markTestSkipped('付费 Blox 源码未注入：admin/blox_editor.php');
+        }
         $document = (string) file_get_contents(ROOT_PATH . '/includes/builder/PageBloxDocument.php');
         $frontend = (string) file_get_contents(ROOT_PATH . '/list.php');
         $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');

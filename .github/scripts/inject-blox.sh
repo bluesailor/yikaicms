@@ -25,6 +25,8 @@ GIT_SSH_COMMAND="ssh -i $key_path -o IdentitiesOnly=yes" \
     git clone --depth 1 git@github.com:bluesailor/yikaicms-blox.git "$source_path"
 
 echo "Blox private SHA: $(git -C "$source_path" rev-parse HEAD)"
-rsync -a --exclude .git --exclude BLOX-README.md "$source_path/" ./
+# BLOX-README.md 一并注入：registry private 作用域登记了它，verify-source 要求在场；
+# 主仓 .gitignore 覆盖该文件，git ls-files 打包路径不会把它带进发行 zip。
+rsync -a --exclude .git "$source_path/" ./
 test -f admin/blox_editor.php
 echo "Injected: admin/blox_editor.php"
