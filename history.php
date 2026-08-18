@@ -50,7 +50,15 @@ if ($aboutChannel) {
     $breadcrumbItems[] = ['name' => $aboutChannel['name'], 'url' => channelUrl($aboutChannel)];
 }
 $breadcrumbItems[] = ['name' => __('nav_history'), 'url' => ''];
-$channel = ['name' => __('nav_history'), 'description' => __('history_hero_desc'), 'image' => ''];
+// 标题/描述沿用语言包既有行为；横幅相关字段透传真实栏目行，
+// 使 hero_bg/show_hero/栏目图 在发展历程页同样生效（此前合成数组把 image 写死为空）。
+$channel = [
+    'name' => __('nav_history'),
+    'description' => __('history_hero_desc'),
+    'image' => (string) ($historyChannel['image'] ?? ''),
+    'hero_bg' => (string) ($historyChannel['hero_bg'] ?? ''),
+    'show_hero' => (int) ($historyChannel['show_hero'] ?? 1),
+];
 require theme_path('partials/page-hero.php');
 ?>
 

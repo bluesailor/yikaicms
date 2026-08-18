@@ -301,6 +301,8 @@ CREATE TABLE "yikai_channels" (
   "created_at" INTEGER NOT NULL DEFAULT '0',
   "updated_at" INTEGER NOT NULL DEFAULT '0',
   "show_cover" INTEGER NOT NULL DEFAULT 1,
+  "hero_bg" TEXT NOT NULL DEFAULT '',
+  "show_hero" INTEGER NOT NULL DEFAULT 1,
   "list_options" TEXT DEFAULT ''
 );
 CREATE UNIQUE INDEX "uk_slug_yikai_channels" ON "yikai_channels" ("slug");

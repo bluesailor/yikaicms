@@ -76,6 +76,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'updated_at' => time(),
         ];
 
+        // 内页横幅字段（hero_bg/show_hero 列由 20260819 迁移新增；未跑迁移的库跳过，避免保存整体失败）
+        try {
+            db()->fetchOne("SELECT hero_bg FROM " . DB_PREFIX . "channels LIMIT 1");
+            $data['hero_bg'] = post('hero_bg');
+            $data['show_hero'] = isset($_POST['show_hero']) ? 1 : 0;
+        } catch (\Throwable $e) {
+            // 列不存在：不写该字段
+        }
+
         // 列表显示元素（list_options 列由 20260726 迁移新增；未跑迁移的库跳过，避免保存整体失败）
         try {
             db()->fetchOne("SELECT list_options FROM " . DB_PREFIX . "channels LIMIT 1");
@@ -995,6 +1004,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?= __('admin_description') ?></label>
                     <textarea name="description" rows="2" class="w-full border rounded px-3 py-2"><?php echo e($editChannel['description'] ?? ''); ?></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 text-sm mb-1"><?php echo __('page_hero_bg'); ?></label>
+                    <input type="text" name="hero_bg" value="<?php echo e($editChannel['hero_bg'] ?? ''); ?>"
+                           class="w-full border rounded px-3 py-2" placeholder="/uploads/images/xxx.jpg">
+                    <p class="text-xs text-gray-400 mt-1"><?php echo __('page_hero_bg_tip'); ?></p>
+                    <label class="flex items-center mt-2 cursor-pointer">
+                        <input type="checkbox" name="show_hero" value="1" <?php echo (int)($editChannel['show_hero'] ?? 1) === 1 ? 'checked' : ''; ?> class="mr-2">
+                        <span class="text-sm text-gray-700"><?php echo __('page_show_hero'); ?></span>
+                    </label>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">

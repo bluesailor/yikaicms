@@ -95,6 +95,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
+    // 内页横幅字段（hero_bg/show_hero 列由 20260819 迁移新增；未跑迁移的库跳过，避免保存整体失败）
+    try {
+        db()->fetchOne("SELECT hero_bg FROM " . DB_PREFIX . "channels LIMIT 1");
+        $channelData['hero_bg'] = post('hero_bg');
+        $channelData['show_hero'] = isset($_POST['show_hero']) ? 1 : 0;
+    } catch (\Throwable $e) {
+        // 列不存在：不写该字段
+    }
+
     // 保存即存档：覆盖前把旧版本快照下来（channels + 同步的 contents 行）
     $revTargets = [[
         'table'  => 'channels',
@@ -104,6 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'content'         => $page['content'] ?? '',
             'description'     => $page['description'] ?? '',
             'image'           => $page['image'] ?? '',
+            'hero_bg'         => $page['hero_bg'] ?? '',
+            'show_hero'       => $page['show_hero'] ?? 1,
             'seo_title'       => $page['seo_title'] ?? '',
             'seo_keywords'    => $page['seo_keywords'] ?? '',
             'seo_description' => $page['seo_description'] ?? '',
@@ -250,6 +261,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div>
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_hero_bg'); ?></label>
+                <input type="text" name="hero_bg" id="heroBgInput" value="<?php echo e($page['hero_bg'] ?? ''); ?>"
+                       class="w-full border rounded px-3 py-2 text-sm mb-2">
+                <div class="flex gap-2">
+                    <button type="button" onclick="uploadHeroBg()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
+                        <i class="ti ti-upload text-base"></i>
+                        <?php echo __('admin_upload_image'); ?></button>
+                    <button type="button" onclick="pickHeroBgFromMedia()"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
+                        <i class="ti ti-photo text-base"></i>
+                        <?php echo __('admin_media_library'); ?></button>
+                </div>
+                <?php if (!empty($page['hero_bg'])): ?>
+                <img src="<?php echo e($page['hero_bg']); ?>" id="heroBgPreview" class="h-24 mt-2 rounded">
+                <?php endif; ?>
+                <p class="text-xs text-gray-400 mt-1"><?php echo __('page_hero_bg_tip'); ?></p>
+                <label class="flex items-center gap-2 cursor-pointer mt-3">
+                    <input type="checkbox" name="show_hero" value="1" <?php echo (int)($page['show_hero'] ?? 1) === 1 ? 'checked' : ''; ?>
+                           class="rounded border-gray-300 text-primary focus:ring-primary">
+                    <span class="text-sm text-gray-700"><?php echo __('page_show_hero'); ?></span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1"><?php echo __('page_show_hero_tip'); ?></p>
+            </div>
+
+            <div>
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="show_sidebar" value="1" <?php echo (int)($page['show_sidebar'] ?? 1) === 1 ? 'checked' : ''; ?>
                            class="rounded border-gray-300 text-primary focus:ring-primary">
@@ -321,6 +358,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </form>
 
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
+<input type="file" id="heroBgFileInput" class="hidden" accept="image/*">
 
 <script>
 function uploadImage() {
@@ -367,6 +405,45 @@ function pickImageFromMedia() {
         }
         preview.src = url;
     });
+}
+
+function setHeroBg(url) {
+    document.getElementById('heroBgInput').value = url;
+    var preview = document.getElementById('heroBgPreview');
+    if (!preview) {
+        preview = document.createElement('img');
+        preview.id = 'heroBgPreview';
+        preview.className = 'h-24 mt-2 rounded';
+        document.getElementById('heroBgInput').parentNode.parentNode.appendChild(preview);
+    }
+    preview.src = url;
+}
+
+function uploadHeroBg() {
+    document.getElementById('heroBgFileInput').click();
+}
+
+document.getElementById('heroBgFileInput').addEventListener('change', async function() {
+    if (!this.files[0]) return;
+    const formData = new FormData();
+    formData.append('file', this.files[0]);
+    formData.append('type', 'images');
+    try {
+        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const data = await safeJson(response);
+        if (data.code === 0) {
+            setHeroBg(data.data.url);
+        } else {
+            alert(data.msg);
+        }
+    } catch (e) {
+        alert(e.message || e);
+    }
+    this.value = '';
+});
+
+function pickHeroBgFromMedia() {
+    openMediaPicker(setHeroBg);
 }
 
 <?php

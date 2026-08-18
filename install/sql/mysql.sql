@@ -366,6 +366,8 @@ CREATE TABLE `yikai_channels` (
   `created_at` int(11) unsigned NOT NULL DEFAULT '0',
   `updated_at` int(11) unsigned NOT NULL DEFAULT '0',
   `show_cover` tinyint(1) NOT NULL DEFAULT 1 COMMENT '正文顶部显示头图：1是 0否（图始终作hero背景）',
+  `hero_bg` varchar(500) NOT NULL DEFAULT '' COMMENT '内页横幅背景图：空=栏目图→全局默认→渐变',
+  `show_hero` tinyint(1) NOT NULL DEFAULT 1 COMMENT '内页横幅（面包屑+标题）显示：1是 0否',
   `list_options` varchar(255) DEFAULT '' COMMENT '列表显示元素配置(JSON数组,空=全显示)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_slug` (`slug`),
