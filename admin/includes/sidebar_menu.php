@@ -278,13 +278,6 @@ return [
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a1.5 1.5 0 000-3H12a2 2 0 010-4h3a6 6 0 000-12h-3zM7.5 10h.01M9 6.5h.01M14.5 6.5h.01M17 10h.01"></path>',
             ],
             [
-                'key'   => 'setting_home',
-                'perm'  => '*',
-                'label' => __('admin_setting_home'),
-                'url'   => '/admin/setting_home.php',
-                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>',
-            ],
-            [
                 'key'     => 'blox_templates',
                 'perm'    => '*',
                 'visible' => !function_exists('bloxAdvancedFeaturesEnabled') || bloxAdvancedFeaturesEnabled(),

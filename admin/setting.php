@@ -613,7 +613,7 @@ async function saveAdminLanguages() {
                     <?php if (in_array($item['key'], ['site_favicon', 'site_logo'], true) && function_exists('getActivePlugins') && in_array('logo-maker', getActivePlugins(), true)): ?>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="ti ti-wand"></i>
-                        <a href="/admin/plugin_page.php?plugin=logo-maker#logoMakerLocalForm" class="text-primary hover:underline"><?php echo __($item['key'] === 'site_logo' ? 'setting_logo_make' : 'setting_favicon_make'); ?></a>
+                        <a href="/admin/plugin_page.php?plugin=logo-maker#<?php echo $item['key'] === 'site_logo' ? 'logo' : 'text'; ?>" class="text-primary hover:underline"><?php echo __($item['key'] === 'site_logo' ? 'setting_logo_make' : 'setting_favicon_make'); ?></a>
                     </p>
                     <?php endif; ?>
 

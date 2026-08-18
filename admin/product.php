@@ -127,6 +127,12 @@ $currentMenu = 'product';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 $transStatus = loadTransStatus('products');
+$productPageChannel = channelModel()->findWhere([
+    'type' => 'product',
+    'parent_id' => 0,
+    'lang' => $_viewLang,
+    'status' => 1,
+]);
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
@@ -180,10 +186,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </button>
         </form>
 
-        <a href="/admin/product_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
-            <i class="ti ti-plus text-base"></i>
-            <?php echo __('admin_add'); ?>
-        </a>
+        <div class="flex items-center gap-2">
+            <?php if ($productPageChannel && bloxPageEditorEnabled() && hasPermission('edit_page')): ?>
+            <a href="/admin/blox_editor.php?id=<?php echo (int) $productPageChannel['id']; ?>"
+               class="border border-primary text-primary hover:bg-primary hover:text-white px-4 py-2 rounded inline-flex items-center gap-1">
+                <i class="ti ti-layout-dashboard text-base"></i>
+                <?php echo e(__('blox_edit_product_page')); ?>
+            </a>
+            <?php endif; ?>
+            <a href="/admin/product_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
+                <i class="ti ti-plus text-base"></i>
+                <?php echo __('admin_add'); ?>
+            </a>
+        </div>
     </div>
 </div>
 

@@ -66,6 +66,7 @@ final class Cron
 
     /**
      * 运行所有到点任务（$force=true 时无视间隔全部运行）。
+     * @psalm-suppress PossiblyUnusedMethod 由根目录 cron.php 计划任务入口与 CLI 命令分发调用，Psalm 看不见调用点
      * @return array<int, array{name: string, ran: bool, ok: bool, msg: string, ms: int}>
      */
     public static function runDue(bool $force = false): array

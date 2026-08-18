@@ -9,6 +9,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/Backup.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -45,45 +46,8 @@ $backupDir = ROOT_PATH . '/storage/backups';
 if (!is_dir($backupDir)) @mkdir($backupDir, 0755, true);
 
 // 生成备份SQL内容
-function generateBackupSql(array $tables, bool $structure = true, bool $data = true): string {
-    $isSqlite = db()->isSqlite();
-    $sql = "-- Yikai CMS 数据库备份\n-- 时间: " . date('Y-m-d H:i:s') . "\n";
-    if ($isSqlite) {
-        $sql .= "-- 数据库: SQLite\n\n";
-    } else {
-        $sql .= "-- 数据库: " . DB_NAME . "\n\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
-    }
-    foreach ($tables as $table) {
-        if ($structure) {
-            if ($isSqlite) {
-                $row = db()->fetchOne("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", [$table]);
-                $sql .= "DROP TABLE IF EXISTS {$table};\n" . ($row['sql'] ?? '') . ";\n\n";
-            } else {
-                $create = db()->fetchOne("SHOW CREATE TABLE `{$table}`");
-                $sql .= "DROP TABLE IF EXISTS `{$table}`;\n" . ($create['Create Table'] ?? '') . ";\n\n";
-            }
-        }
-        if ($data) {
-            $dataRows = db()->fetchAll("SELECT * FROM `{$table}`");
-            if (!empty($dataRows)) {
-                $q = $isSqlite ? '"' : '`';
-                $cols = $q . implode("{$q}, {$q}", array_keys($dataRows[0])) . $q;
-                foreach (array_chunk($dataRows, 100) as $chunk) {
-                    $sql .= "INSERT INTO {$q}{$table}{$q} ({$cols}) VALUES\n";
-                    $vals = [];
-                    foreach ($chunk as $dr) {
-                        $escaped = array_map(fn($v) => $v === null ? 'NULL' : "'" . addslashes((string)$v) . "'", array_values($dr));
-                        $vals[] = '(' . implode(', ', $escaped) . ')';
-                    }
-                    $sql .= implode(",\n", $vals) . ";\n\n";
-                }
-            }
-        }
-    }
-    if (!$isSqlite) {
-        $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
-    }
-    return $sql;
+function generateBackupSql(array $tables, bool $structure = true, bool $data = true, string $format = 'default'): string {
+    return Backup::generateSql($tables, $structure, $data, $format);
 }
 
 // ============ POST 处理 ============
@@ -96,14 +60,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedTables = $_POST['tables'] ?? array_column($allTables, 'name');
         $includeStructure = !empty($_POST['structure'] ?? 1);
         $includeData = !empty($_POST['data'] ?? 1);
+        $backupFormat = post('backup_format', 'default');
 
         $validNames = array_column($allTables, 'name');
         $selectedTables = array_filter($selectedTables, fn($t) => in_array($t, $validNames));
         if (empty($selectedTables)) { error(__('db_no_valid_tables')); }
 
-        $sql = generateBackupSql($selectedTables, $includeStructure, $includeData);
-        $filename = 'backup_' . date('Ymd_His') . '.sql';
-        file_put_contents($backupDir . '/' . $filename, $sql);
+        $sql = generateBackupSql($selectedTables, $includeStructure, $includeData, $backupFormat);
+        $formatSuffix = $backupFormat === 'mysql57_utf8' ? '_mysql57_utf8' : '';
+        $filename = 'backup_' . date('Ymd_His') . $formatSuffix . '.sql';
 
         adminLog('database', 'backup', '备份: ' . count($selectedTables) . '个表, ' . round(strlen($sql)/1024) . 'KB');
 
@@ -114,6 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo $sql;
             exit;
         }
+
+        if (file_put_contents($backupDir . '/' . $filename, $sql) === false) {
+            error('备份文件写入失败，请检查 storage/backups 目录权限');
+        }
+
         // 快速备份：返回页面
         header('Location: /admin/database.php?tab=backup&saved=' . urlencode($filename));
         exit;
@@ -329,11 +299,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) count($allTables), e(__('db_n_tables'))); ?> · <?php echo str_replace(':n', number_format($totalRows), e(__('admin_total_n'))); ?> · <?php echo round($totalSize / 1024 / 1024, 2); ?> MB · <?php echo e(DB_NAME); ?></span>
         <span class="text-xs text-gray-400"><?php echo str_replace(':n', (string) count($backupFiles), e(__('db_n_backups'))); ?></span>
     </div>
-    <form method="post" class="inline">
+    <form method="post" class="inline-flex flex-wrap items-center gap-2">
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="backup">
         <input type="hidden" name="structure" value="1">
         <input type="hidden" name="data" value="1">
+        <select name="backup_format" class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white">
+            <option value="default"><?php echo e(__('db_backup_format_default')); ?></option>
+            <option value="mysql57_utf8"><?php echo e(__('db_backup_format_mysql57')); ?></option>
+        </select>
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> <?php echo e(__('db_backing_up')); ?>'">
             <i class="ti ti-database text-lg"></i>
             <?php echo e(__('db_backup_now')); ?>
@@ -436,6 +410,13 @@ async function deleteBackup(file) {
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('db_custom_export'); ?></h2>
             <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 text-sm">
+                    <span><?php echo e(__('db_backup_format')); ?></span>
+                    <select name="backup_format" class="border border-gray-300 rounded px-2 py-1 text-sm bg-white">
+                        <option value="default"><?php echo e(__('db_backup_format_default')); ?></option>
+                        <option value="mysql57_utf8"><?php echo e(__('db_backup_format_mysql57')); ?></option>
+                    </select>
+                </label>
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="structure" value="1" checked> <?php echo e(__('db_structure')); ?></label>
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="data" value="1" checked> <?php echo e(__('db_rows')); ?></label>
                 <button type="button" onclick="document.querySelectorAll('.tbl-check').forEach(c=>c.checked=true)" class="text-xs text-primary hover:underline cursor-pointer"><?php echo __('btn_select_all'); ?></button>

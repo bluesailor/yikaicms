@@ -254,7 +254,11 @@ final class TagEngine
         return $out;
     }
 
-    /** 与 {yk:list} 使用同一查询契约输出数字分页。 */
+    /**
+     * 与 {yk:list} 使用同一查询契约输出数字分页。
+     * @psalm-suppress PossiblyUnusedReturnValue （handler 经 callable 动态调用，Psalm 看不见调用点）
+     * @psalm-suppress UnusedParam （$inner 是标签 handler 统一契约的一部分）
+     */
     public static function tagListPagination(array $attrs, ?string $inner): string
     {
         $query = self::listQueryContext($attrs);
@@ -361,7 +365,7 @@ final class TagEngine
         ];
     }
 
-    /** @param array{is_product:bool,source_id:int,valid:bool,limit:int,offset:int,page_param:string,filters:array<string,mixed>} $query @return array{int,int,int} */
+    /** @param array{type:string,is_product:bool,source_id:int,valid:bool,limit:int,offset:int,page_param:string,filters:array<string,mixed>} $query @return array{int,int,int} */
     private static function listPageState(array $query): array
     {
         if ($query['page_param'] === '' || !$query['valid']) {

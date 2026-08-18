@@ -181,7 +181,7 @@ $__adminId = (int) (getAdminInfo()['id'] ?? 0);
 // ── 常用面板默认清单：按安装预置角色分套（1超管/2投稿者/3内容编辑/4内容主管/5运营），
 //    自建角色回退超管清单；无论哪套都再过一遍权限闸兜底。管理员收藏过（☆）则收藏优先。──
 $__qkCatalog = [
-    '/admin/setting_home.php'    => ['ti-home',             'bg-green-50 group-hover:bg-green-100',   'text-green-600',   'dashboard_quick_home',    '*'],
+    '/admin/site_design.php'     => ['ti-palette',          'bg-indigo-50 group-hover:bg-indigo-100', 'text-indigo-600',  'site_design_title',       'edit_page'],
     '/admin/setting_contact.php' => ['ti-phone',            'bg-cyan-50 group-hover:bg-cyan-100',     'text-cyan-600',    'dashboard_quick_contact', '*'],
     '/admin/setting.php'         => ['ti-settings',         'bg-blue-50 group-hover:bg-blue-100',     'text-blue-600',    'dashboard_quick_setting', '*'],
     '/admin/database.php'        => ['ti-database',         'bg-purple-50 group-hover:bg-purple-100', 'text-purple-600',  'dashboard_quick_database','*'],
@@ -201,18 +201,18 @@ $__qkCatalog = [
 ];
 $__qkByRole = [
     // 1 超级管理员：站点管理全景
-    1 => ['/admin/setting_home.php', '/admin/setting_contact.php', '/admin/setting.php', '/admin/database.php',
+    1 => ['/admin/site_design.php', '/admin/setting_contact.php', '/admin/setting.php', '/admin/database.php',
           '/admin/banner.php', '/admin/channel.php', '/admin/page.php', '/admin/product.php', '/admin/download.php'],
     // 2 投稿者：只写文章相关
     2 => ['/admin/article.php', '/admin/job.php', '/admin/timeline.php'],
     // 3 内容编辑：全类内容 + 媒体
-    3 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
+    3 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/site_design.php', '/admin/case.php',
           '/admin/download.php', '/admin/media.php'],
     // 4 内容主管：内容编辑 + 招聘/时间轴
-    4 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
+    4 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/site_design.php', '/admin/case.php',
           '/admin/download.php', '/admin/job.php', '/admin/media.php'],
     // 5 运营：内容 + 表单/会员/轮播/友链
-    5 => ['/admin/article.php', '/admin/product.php', '/admin/banner.php', '/admin/form.php',
+    5 => ['/admin/article.php', '/admin/product.php', '/admin/site_design.php', '/admin/banner.php', '/admin/form.php',
           '/admin/member.php', '/admin/link.php', '/admin/media.php', '/admin/page.php'],
 ];
 $__roleId = (int) (getAdminInfo()['role_id'] ?? 0);
