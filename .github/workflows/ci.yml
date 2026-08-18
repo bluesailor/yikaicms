@@ -301,7 +301,11 @@ jobs:
           php bin/blox-assets.php verify-free "$PACKAGE_ROOT"
           test ! -e "$PACKAGE_ROOT/config/config.php"
           test ! -e "$PACKAGE_ROOT/tests"
-          test ! -e "$PACKAGE_ROOT/admin/blox_home_api.php"
+          # v1.18.0 起 Blox 编辑器及其 API（含 blox_home_api.php）随免费包分发；
+          # 付费边界改为 icon-maker 与 blox-example，另防 admin-local 开发残留入包。
+          test ! -e "$PACKAGE_ROOT/plugins/icon-maker"
+          test ! -e "$PACKAGE_ROOT/plugins/blox-example"
+          test ! -e "$PACKAGE_ROOT/plugins/logo-maker/admin-local.php"
           echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
