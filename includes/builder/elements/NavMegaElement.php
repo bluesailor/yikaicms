@@ -10,7 +10,7 @@
  * **元素根**展开 → 面板天然与导航容器同宽，零边界溢出（Avada 边界感知的
  * 零成本替代）。开闭：CSS hover + focus-within（键盘可达），无 JS。
  *
- * 内建 `hidden lg:flex`：mega menu 语义即桌面导航——移动端配 nav-drawer（r8），
+ * 内建 `hidden xl:flex`：mega menu 语义即桌面导航——较窄屏幕配 nav-drawer（r8），
  * 与 NavElement+hide_on 的组合同一模式。
  * 数据同源 getNavChannels()（含孙级，ChannelModel::getNav r12 起提供）。
  */
@@ -127,8 +127,8 @@ final class NavMegaElement extends AbstractElement
                 . '</div></div></li>';
         }
 
-        return '<nav class="yk-mega relative hidden lg:flex min-w-0 flex-1 justify-end" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
-            . '<ul class="flex flex-wrap items-center gap-1">' . $items . '</ul></nav>';
+        return '<nav class="yk-mega relative hidden xl:flex min-w-0 flex-1 justify-end" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
+            . '<ul class="flex flex-nowrap items-center gap-1 whitespace-nowrap">' . $items . '</ul></nav>';
     }
 
     /** @param array<string,mixed> $kid 面板列：子栏目标题（可点）+ 可选描述 + 孙级链接列表 */

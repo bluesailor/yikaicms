@@ -245,7 +245,7 @@ final class BuilderRenderTest extends TestCase
         ]]));
         $this->assertStringContainsString('data-yk-nav-drawer', $out);
         $this->assertStringContainsString('data-yk-drawer-open', $out);
-        $this->assertStringContainsString('lg:hidden', $out);
+        $this->assertStringContainsString('xl:hidden', $out);
         // 面板与遮罩初始 hidden；左侧抽屉贴左
         $this->assertStringContainsString('data-yk-drawer-panel class="hidden fixed top-0 left-0', $out);
         $this->assertStringContainsString('data-yk-drawer-backdrop class="hidden', $out);
@@ -280,7 +280,7 @@ final class BuilderRenderTest extends TestCase
             'columns'  => [[ 'elements' => [['type' => 'nav-mega', 'data' => []]] ]],
         ]], JSON_UNESCAPED_UNICODE));
 
-        $this->assertStringContainsString('hidden lg:flex', $out); // 内建桌面 only（移动配 nav-drawer）
+        $this->assertStringContainsString('hidden xl:flex', $out); // 桌面导航；较窄屏幕配 nav-drawer
         $this->assertStringContainsString('>首页<', $out); // 无子级=普通链接，无面板
         $this->assertStringContainsString('grid-cols-2', $out); // 两个子栏目=两列
         $this->assertStringContainsString('inset-x-0', $out); // 默认通栏面板（相对元素根）
@@ -1093,6 +1093,42 @@ final class BuilderRenderTest extends TestCase
             'columns'  => [['elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]]],
         ]]));
         $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4">', $out2);
+    }
+
+    public function testContainerAndColumnBackgroundImagesHaveIndependentOverlays(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [
+                'container_bg_image' => '/uploads/container.jpg',
+                'container_bg_overlay_color' => '#102030',
+                'container_bg_overlay_opacity' => 35,
+            ],
+            'columns' => [[
+                'card_bg_image' => '/uploads/column.jpg',
+                'card_bg_overlay_color' => '#405060',
+                'card_bg_overlay_opacity' => 60,
+                'elements' => [['type' => 'heading', 'data' => ['text' => 'Above overlays']]],
+            ]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString(
+            'class="max-w-6xl mx-auto px-4 relative overflow-hidden" style="background-image:url(&quot;/uploads/container.jpg&quot;);',
+            $out
+        );
+        $this->assertStringContainsString(
+            'style="background-color:#102030;opacity:0.35;"',
+            $out
+        );
+        $this->assertStringContainsString(
+            'class="relative overflow-hidden" style="background-image:url(&quot;/uploads/column.jpg&quot;);',
+            $out
+        );
+        $this->assertStringContainsString(
+            'style="background-color:#405060;opacity:0.6;"',
+            $out
+        );
+        $this->assertSame(2, substr_count($out, '<div class="relative z-10">'));
+        $this->assertStringContainsString('<h2 class="text-2xl font-bold mb-4">Above overlays</h2>', $out);
     }
 
     public function testCommonElementsExposeAndRenderAnimations(): void

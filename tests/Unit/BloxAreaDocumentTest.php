@@ -145,7 +145,8 @@ final class BloxAreaDocumentTest extends TestCase
         $tree = NavMegaElement::navTree([]);
         self::assertSame('/ja/', $tree[0]['_url']);
         $nav = (new NavMegaElement())->render([]);
-        self::assertStringContainsString('yk-mega relative hidden lg:flex min-w-0 flex-1 justify-end', $nav);
+        self::assertStringContainsString('yk-mega relative hidden xl:flex min-w-0 flex-1 justify-end', $nav);
+        self::assertStringContainsString('flex-nowrap items-center gap-1 whitespace-nowrap', $nav);
         self::assertStringContainsString('href="/ja/products.html"', $nav);
         self::assertSame('/ja/products/laser.html', NavMegaElement::nodeHref([
             'url' => '/wrong.html',
