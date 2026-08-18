@@ -65,6 +65,13 @@
             <errorLevel type="suppress">
                 <file name="plugins/seo/ai.php" />
                 <file name="admin/nav_menu.php" />
+                <!-- v1.18.0 新增/改写的独立入口（Blox 设计系统/栏目 API 等） -->
+                <file name="admin/blox_contact_api.php" />
+                <file name="admin/blox_design.php" />
+                <file name="admin/blox_design_api.php" />
+                <file name="admin/blox_page_api.php" />
+                <file name="admin/blox_preview.php" />
+                <file name="admin/site_design.php" />
                 <!-- 不要在此登记 admin/blox_editor.php 等不随仓库分发的文件：
                      Psalm 在解析配置时就要求 <file> 路径真实存在，文件不在仓库里
                      会直接「Could not resolve config path」导致整个 CI 红。 -->

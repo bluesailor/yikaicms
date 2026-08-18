@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+/** @psalm-suppress ParadoxicalCondition 直接访问该文件时不经过 Psalm 分析到的后台入口。 */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
