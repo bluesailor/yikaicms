@@ -136,6 +136,52 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('ti ti-shield', $ib);
     }
 
+    public function testCtaBackgroundBannerVariant(): void
+    {
+        // 设了 bg_image → 首页同款横幅（遮罩+白字+胶囊按钮）；未设 → 维持灰卡（上一用例已覆盖）。
+        $cta = $this->inner($this->oneEl(['type' => 'cta', 'data' => [
+            'title' => 'T', 'text' => 'S', 'btn_text' => 'Go', 'btn_url' => '/x',
+            'bg_image' => '/images/case-demo.jpg',
+        ]]));
+        $this->assertStringContainsString('bg-cover bg-center', $cta);
+        $this->assertStringContainsString('bg-black/60', $cta);
+        $this->assertStringContainsString('text-3xl font-bold text-white', $cta);
+        $this->assertStringContainsString('rounded-full', $cta);
+        $this->assertStringContainsString('/images/case-demo.jpg', $cta);
+        // 非法背景（javascript:）拒绝 → 回落灰卡形态
+        $bad = $this->inner($this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'bg_image' => 'javascript:alert(1)']]));
+        $this->assertStringContainsString('bg-gray-50', $bad);
+        $this->assertStringNotContainsString('javascript:', $bad);
+    }
+
+    public function testCtaFollowsHomeSettings(): void
+    {
+        $GLOBALS['_test_config']['home_cta_title'] = '首页标题';
+        $GLOBALS['_test_config']['home_cta_desc'] = '首页副文';
+        $GLOBALS['_test_config']['home_cta_button'] = '立即咨询';
+        $GLOBALS['_test_config']['home_cta_link'] = '/contact.html';
+        try {
+            $cta = $this->inner($this->oneEl(['type' => 'cta', 'data' => [
+                'use_home_text' => true,
+                // 开启跟随后，本地文案字段被忽略：
+                'title' => '本地标题', 'btn_text' => '本地按钮', 'btn_url' => '/local',
+            ]]));
+            $this->assertStringContainsString('>首页标题</h3>', $cta);
+            $this->assertStringContainsString('首页副文', $cta);
+            $this->assertStringContainsString('>立即咨询</a>', $cta);
+            $this->assertStringContainsString('href="/contact.html"', $cta);
+            $this->assertStringNotContainsString('本地标题', $cta);
+            $this->assertStringNotContainsString('/local', $cta);
+        } finally {
+            unset(
+                $GLOBALS['_test_config']['home_cta_title'],
+                $GLOBALS['_test_config']['home_cta_desc'],
+                $GLOBALS['_test_config']['home_cta_button'],
+                $GLOBALS['_test_config']['home_cta_link']
+            );
+        }
+    }
+
     public function testVideoEmbedConversion(): void
     {
         $yt = $this->inner($this->oneEl(['type' => 'video', 'data' => ['url' => 'https://youtu.be/abc123']]));

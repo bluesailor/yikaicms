@@ -32,25 +32,27 @@ class AiService
             'default'  => '',
             'format'   => 'openai',
         ],
+        // 内置清单 2026-08 校准：优先滚动别名（不绑日期，最抗过期）；带日期/代次的型号
+        // 由「同步最新模型」从中心源拉取覆盖。改动后用设置页「测试连接」逐家实测。
         'deepseek' => [
             'name'     => 'DeepSeek',
             'base_url' => 'https://api.deepseek.com/v1',
-            'models'   => ['deepseek-v4-flash', 'deepseek-v4-pro', 'deepseek-chat', 'deepseek-reasoner'],
-            'default'  => 'deepseek-v4-flash',
+            'models'   => ['deepseek-chat', 'deepseek-reasoner', 'deepseek-v4-flash', 'deepseek-v4-pro'],
+            'default'  => 'deepseek-chat',
             'format'   => 'openai',
         ],
         'openai' => [
             'name'     => 'OpenAI',
             'base_url' => 'https://api.openai.com/v1',
-            'models'   => ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-            'default'  => 'gpt-4o-mini',
+            'models'   => ['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-4.1'],
+            'default'  => 'gpt-5.6-sol',
             'format'   => 'openai',
         ],
         'claude' => [
             'name'     => 'Claude (Anthropic)',
             'base_url' => 'https://api.anthropic.com/v1',
-            'models'   => ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414', 'claude-3-5-sonnet-20241022'],
-            'default'  => 'claude-sonnet-4-20250514',
+            'models'   => ['claude-sonnet-5', 'claude-haiku-4-5-20251001', 'claude-opus-5', 'claude-fable-5'],
+            'default'  => 'claude-sonnet-5',
             'format'   => 'anthropic',
         ],
         'qwen' => [
@@ -65,7 +67,7 @@ class AiService
             'name_key' => 'ai_provider_zhipu_name',
             'name'     => 'Zhipu AI',
             'base_url' => 'https://open.bigmodel.cn/api/paas/v4',
-            'models'   => ['glm-4-flash', 'glm-4', 'glm-4-plus'],
+            'models'   => ['glm-4-flash', 'glm-4-plus', 'glm-4.6', 'glm-5.2'],
             'default'  => 'glm-4-flash',
             'format'   => 'openai',
         ],
