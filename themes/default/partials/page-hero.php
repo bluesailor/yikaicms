@@ -8,8 +8,13 @@
  */
 ?>
 <?php
-// 头部背景：栏目自带 image 优先；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
-$heroBg = ($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', '');
+// 横幅开关：show_hero=0 时整条横幅（含面包屑与标题）不渲染——适合 Blox 排版自带首屏的页面。
+if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
+    return;
+}
+// 头部背景：本页专属 hero_bg 最优先（与正文头图 image 解耦，可单独定制）；
+// 其次栏目自带 image；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
+$heroBg = ($channel['hero_bg'] ?? '') ?: (($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', ''));
 ?>
 <?php if ($heroBg): ?>
 <section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($heroBg); ?>')">

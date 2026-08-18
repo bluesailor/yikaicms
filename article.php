@@ -89,7 +89,16 @@ if ($article['channel_name'] ?? '') {
     $breadcrumbItems[] = ['name' => $article['channel_name'], 'url' => '/news/' . e($article['channel_slug'] ?? '') . '.html'];
 }
 $breadcrumbItems[] = ['name' => cutStr($article['title'], 30), 'url' => ''];
-$channel = ['name' => $article['title'], 'description' => '', 'image' => ''];
+// image 维持历史行为（详情页不拿栏目图当横幅）；hero_bg/show_hero 透传所属栏目行，
+// 让「栏目横幅定制」同样覆盖其下详情页——存量站两字段为默认值，观感不变。
+$articleHeroChannel = getChannel((int) ($article['channel_id'] ?? 0)) ?: [];
+$channel = [
+    'name' => $article['title'],
+    'description' => '',
+    'image' => '',
+    'hero_bg' => (string) ($articleHeroChannel['hero_bg'] ?? ''),
+    'show_hero' => (int) ($articleHeroChannel['show_hero'] ?? 1),
+];
 require theme_path('partials/page-hero.php');
 ?>
 
