@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'position' => post('position', 'home'),
             'start_time' => $startTime,
             'end_time' => $endTime,
-            'content_motion' => in_array($contentMotion, ['inherit', 'none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in'], true)
+            'content_motion' => in_array($contentMotion, ['inherit', 'none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in', 'clip-reveal', 'blur-up', 'pop-in'], true)
                 ? $contentMotion
                 : 'inherit',
             'background_motion' => in_array($backgroundMotion, ['inherit', 'none', 'zoom-in', 'zoom-out'], true)
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'autoplay_delay' => max(0, min(30, $autoplaySeconds)) * 1000,
             'effect'         => in_array($effect, ['fade', 'slide'], true) ? $effect : 'fade',
             'speed'          => max(200, min(2000, postInt('speed', 700))),
-            'content_motion' => in_array($contentMotion, ['none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in'], true)
+            'content_motion' => in_array($contentMotion, ['none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in', 'clip-reveal', 'blur-up', 'pop-in'], true)
                 ? $contentMotion
                 : 'none',
             'background_motion' => in_array($backgroundMotion, ['none', 'zoom-in', 'zoom-out'], true)
@@ -550,6 +550,9 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
                         <option value="slide-left"><?php echo e(__('blox_banner_motion_slide_left')); ?></option>
                         <option value="slide-right"><?php echo e(__('blox_banner_motion_slide_right')); ?></option>
                         <option value="zoom-in"><?php echo e(__('blox_banner_motion_zoom_in')); ?></option>
+                        <option value="clip-reveal"><?php echo e(__('blox_banner_motion_clip_reveal')); ?></option>
+                        <option value="blur-up"><?php echo e(__('blox_banner_motion_blur_up')); ?></option>
+                        <option value="pop-in"><?php echo e(__('blox_banner_motion_pop_in')); ?></option>
                     </select>
                 </div>
                 <div>
@@ -1136,6 +1139,9 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                         <button type="button" data-group-choice="content" data-value="slide-left" onclick="setGroupChoice('content', 'slide-left')" class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false"><i class="ti ti-arrow-left"></i><?php echo e(__('blox_banner_motion_slide_left')); ?></button>
                         <button type="button" data-group-choice="content" data-value="slide-right" onclick="setGroupChoice('content', 'slide-right')" class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false"><i class="ti ti-arrow-right"></i><?php echo e(__('blox_banner_motion_slide_right')); ?></button>
                         <button type="button" data-group-choice="content" data-value="zoom-in" onclick="setGroupChoice('content', 'zoom-in')" class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false"><i class="ti ti-zoom-in"></i><?php echo e(__('blox_banner_motion_zoom_in')); ?></button>
+                        <button type="button" data-group-choice="content" data-value="clip-reveal" onclick="setGroupChoice('content', 'clip-reveal')" class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false"><i class="ti ti-scan"></i><?php echo e(__('blox_banner_motion_clip_reveal')); ?></button>
+                        <button type="button" data-group-choice="content" data-value="blur-up" onclick="setGroupChoice('content', 'blur-up')" class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false"><i class="ti ti-blur"></i><?php echo e(__('blox_banner_motion_blur_up')); ?></button>
+                        <button type="button" data-group-choice="content" data-value="pop-in" onclick="setGroupChoice('content', 'pop-in')" class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false"><i class="ti ti-sparkles"></i><?php echo e(__('blox_banner_motion_pop_in')); ?></button>
                     </div>
                     <p class="text-xs text-gray-400 mt-1"><?php echo e(__('blox_banner_content_motion_help')); ?></p>
                 </div>

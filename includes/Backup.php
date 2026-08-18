@@ -20,7 +20,7 @@ class Backup
      * @param bool $structure   包含 CREATE TABLE 语句
      * @param bool $data        包含 INSERT 数据
      */
-    public static function generateSql(array $tables, bool $structure = true, bool $data = true): string
+    public static function generateSql(array $tables, bool $structure = true, bool $data = true, string $format = 'default'): string
     {
         // Defense-in-depth：表名拼到 SQL 里无法参数化，强制 allowlist 校验。
         // 调用方都该从 information_schema / sqlite_master 取，但万一直接传 POST 数据进来。
@@ -31,11 +31,17 @@ class Backup
         }
 
         $isSqlite = db()->isSqlite();
-        $sql = "-- Yikai CMS 数据库备份\n-- 时间: " . date('Y-m-d H:i:s') . "\n";
+        $format = self::normalizeFormat($format);
+        $sql = self::buildHeader($format, $isSqlite);
         if ($isSqlite) {
             $sql .= "-- 数据库: SQLite\n\n";
         } else {
-            $sql .= "-- 数据库: " . DB_NAME . "\n\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
+            $charset = $format === 'mysql57_utf8' ? 'utf8' : 'utf8mb4';
+            $sql .= "SET NAMES {$charset};\n";
+            if ($format === 'default') {
+                $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n";
+            }
+            $sql .= "\n";
         }
 
         foreach ($tables as $table) {
@@ -45,7 +51,8 @@ class Backup
                     $sql .= "DROP TABLE IF EXISTS {$table};\n" . ($row['sql'] ?? '') . ";\n\n";
                 } else {
                     $create = db()->fetchOne("SHOW CREATE TABLE `{$table}`");
-                    $sql .= "DROP TABLE IF EXISTS `{$table}`;\n" . ($create['Create Table'] ?? '') . ";\n\n";
+                    $createSql = (string) ($create['Create Table'] ?? '');
+                    $sql .= "DROP TABLE IF EXISTS `{$table}`;\n" . self::normalizeCreateSql($createSql, $format) . ";\n\n";
                 }
             }
             if ($data) {
@@ -66,9 +73,46 @@ class Backup
             }
         }
 
-        if (!$isSqlite) {
+        if (!$isSqlite && $format === 'default') {
             $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
         }
+        return $sql;
+    }
+
+    private static function normalizeFormat(string $format): string
+    {
+        return in_array($format, ['default', 'mysql57_utf8'], true) ? $format : 'default';
+    }
+
+    private static function buildHeader(string $format, bool $isSqlite): string
+    {
+        if ($isSqlite) {
+            return "-- Yikai CMS 数据库备份\n-- 时间: " . date('Y-m-d H:i:s') . "\n";
+        }
+
+        if ($format === 'default') {
+            return "-- Yikai CMS 数据库备份\n-- 时间: " . date('Y-m-d H:i:s') . "\n-- 数据库: " . DB_NAME . "\n\n";
+        }
+
+        return "-- MySQL dump 10.13  Distrib 5.7.26, for Linux (x86_64)\n"
+            . "--\n"
+            . "-- Host: localhost    Database: " . DB_NAME . "\n"
+            . "-- ------------------------------------------------------\n"
+            . "-- Server version\t5.7.26-log\n\n";
+    }
+
+    private static function normalizeCreateSql(string $sql, string $format): string
+    {
+        if ($format !== 'mysql57_utf8') {
+            return $sql;
+        }
+
+        $sql = preg_replace('/utf8mb4_0900_[a-z0-9_]+/i', 'utf8_general_ci', $sql) ?? $sql;
+        $sql = str_replace('utf8mb4_general_ci', 'utf8_general_ci', $sql);
+        $sql = str_replace('utf8mb4_unicode_ci', 'utf8_general_ci', $sql);
+        $sql = str_replace('utf8mb4', 'utf8', $sql);
+        $sql = preg_replace('/\s+ROW_FORMAT=\w+/i', '', $sql) ?? $sql;
+
         return $sql;
     }
 

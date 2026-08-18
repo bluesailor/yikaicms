@@ -20,7 +20,6 @@ $pageCount = (int) db()->fetchColumn(
     'SELECT COUNT(*) FROM ' . DB_PREFIX . 'channels WHERE type = ?',
     ['page']
 );
-$bloxPageCount = 0;
 $draftCount = 0;
 if (db()->tableExists('blox_page_drafts')) {
     $bloxPageCount = (int) db()->fetchColumn(

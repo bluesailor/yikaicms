@@ -208,7 +208,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php echo e(__('shome_drag_sort')); ?> · <?php echo str_replace(':n', (string) count($timelines), e(__('admin_total_n'))); ?>
         </div>
         <div class="flex gap-2">
-            <a href="/history.php" target="_blank" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
+            <a href="/about/history.html" target="_blank" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
                 <i class="ti ti-eye text-base"></i>
                 <?php echo e(__('tl_preview')); ?>
             </a>
@@ -410,7 +410,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <i class="ti ti-refresh text-sm"></i>
                         <?php echo e(__('tl_refresh')); ?>
                     </button>
-                    <a href="/history.php" target="_blank" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
+                    <a href="/about/history.html" target="_blank" class="text-sm border px-3 py-1 rounded hover:bg-gray-50 inline-flex items-center gap-1">
                         <i class="ti ti-external-link text-sm"></i>
                         <?php echo e(__('tl_full_page')); ?>
                     </a>

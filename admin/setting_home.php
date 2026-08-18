@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('blox_feature_disabled'));
         }
         $hadDraft = HomeBloxDocument::hasDraft();
-        $document = HomeBloxDocument::createDraftFromLegacy();
+        HomeBloxDocument::createDraftFromLegacy();
         adminLog(
             'home',
             $hadDraft ? 'continue_blox_draft' : 'convert_to_blox',
@@ -191,15 +191,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     adminLog('setting', 'update', '更新首页设置 (' . $_viewLang . ')');
     success();
 }
-
-// lang-aware 读取：非默认语言时优先 <key>_<lang>，空则回退到 base
-$readLang = function (string $base, string $default = '') use ($LANG_KEYS, $_viewLang, $_defaultLang): string {
-    if (in_array($base, $LANG_KEYS, true) && $_viewLang !== $_defaultLang) {
-        $v = (string) config($base . '_' . $_viewLang, '');
-        if ($v !== '') return $v;
-    }
-    return (string) config($base, $default);
-};
 
 // 获取全部 home 组设置
 $allSettings = $HOME_STORED_ROWS;

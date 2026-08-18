@@ -91,7 +91,7 @@ return [
         'map_amap_key'          => ['value' => '', 'type' => 'text', 'name' => '高德地图 JS Key', 'tip' => '中文版选 amap 时填，lbs.amap.com 申请「Web端(JS API)」Key', 'sort_order' => 8],
         'map_baidu_ak'          => ['value' => '', 'type' => 'text', 'name' => '百度地图 ak', 'tip' => '中文版选 baidu 时填，lbsyun.baidu.com 申请「JavaScript API」ak', 'sort_order' => 8],
         'contact_form_title'    => ['value' => '在线留言', 'type' => 'text', 'name' => '表单标题', 'tip' => '', 'sort_order' => 10],
-        'contact_form_desc'     => ['value' => '', 'type' => 'textarea', 'name' => '表单描述', 'tip' => '标题下方的说明文字', 'sort_order' => 11],
+        'contact_form_desc'     => ['value' => '给我们留言，我们会尽快与您联系。', 'type' => 'textarea', 'name' => '表单描述', 'tip' => '标题下方的说明文字', 'sort_order' => 11],
         'contact_form_fields'   => ['value' => '[{"key":"name","label":"您的姓名","type":"text","required":true,"enabled":true},{"key":"phone","label":"联系电话","type":"tel","required":true,"enabled":true},{"key":"email","label":"电子邮箱","type":"email","required":false,"enabled":true},{"key":"company","label":"公司名称","type":"text","required":false,"enabled":true},{"key":"content","label":"留言内容","type":"textarea","required":true,"enabled":true}]', 'type' => 'contact_form_fields', 'name' => '表单字段', 'tip' => '联系表单的字段配置', 'sort_order' => 12],
         'contact_form_success'  => ['value' => '提交成功，我们会尽快与您联系！', 'type' => 'text', 'name' => '提交成功提示', 'tip' => '表单提交后显示的消息', 'sort_order' => 13],
     ],

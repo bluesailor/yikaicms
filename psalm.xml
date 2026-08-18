@@ -42,8 +42,23 @@
                 <file name="admin/page_edit.php" />
                 <file name="admin/page_edit_advance.php" />
                 <file name="plugins/seo/admin.php" />
+                <!-- 首页控制器：变量供 require 的主题布局/版块模板使用 -->
+                <file name="index.php" />
+                <!-- $imRandom* 系列变量供 require 的 random_ui.php 面板模板使用 -->
+                <file name="plugins/logo-maker/admin.php" />
             </errorLevel>
         </UnusedVariable>
+        <!-- random_ui.php 由 logo-maker/admin.php require，$imRandom* 变量在引入前定义 -->
+        <UndefinedVariable>
+            <errorLevel type="suppress">
+                <file name="plugins/logo-maker/random_ui.php" />
+            </errorLevel>
+        </UndefinedVariable>
+        <UndefinedGlobalVariable>
+            <errorLevel type="suppress">
+                <file name="plugins/logo-maker/random_ui.php" />
+            </errorLevel>
+        </UndefinedGlobalVariable>
         <!-- CI 无 config.php：入口文件的 require 均在 baseline 豁免；baseline 只能在
              无 config 环境重生成（见 v1.12.0 教训），新增的独立入口在此定点豁免 -->
         <MissingFile>

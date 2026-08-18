@@ -70,19 +70,27 @@ foreach ($scope as $file) {
         // 规则 2：PHP 字符串
         if ($id === T_CONSTANT_ENCAPSED_STRING || $id === T_ENCAPSED_AND_WHITESPACE) {
             $inner = trim($text, "'\"");
-            if (preg_match($cjk, $inner) !== 1) {
+            $scanText = $inner;
+            if ($id === T_ENCAPSED_AND_WHITESPACE) {
+                // Heredoc/nowdoc often contains HTML/JS. Keep checking its UI strings,
+                // but do not treat developer comments as visible copy.
+                $scanText = preg_replace('/<!--.*?-->/s', '', $scanText) ?? $scanText;
+                $scanText = preg_replace('#/\*.*?\*/#s', '', $scanText) ?? $scanText;
+                $scanText = preg_replace('#(^|\s)//.*$#m', '', $scanText) ?? $scanText;
+            }
+            if (preg_match($cjk, $scanText) !== 1) {
                 continue;
             }
             if (isset($adminLogLines[$line])) {
                 continue; // adminLog 运营日志
             }
-            if (preg_match($cjkPunctOnly, $inner) === 1) {
+            if (preg_match($cjkPunctOnly, $scanText) === 1) {
                 continue; // 纯 CJK 标点（分隔符）
             }
-            if (in_array($inner, $sentinels, true)) {
+            if (in_array($scanText, $sentinels, true)) {
                 continue;
             }
-            $violations[] = "$rel:$line PHP 字符串含中文「" . mb_substr($inner, 0, 24) . "」——请走 __() + 三语 lang key";
+            $violations[] = "$rel:$line PHP 字符串含中文「" . mb_substr($scanText, 0, 24) . "」——请走 __() + 三语 lang key";
         }
 
         // 规则 3：内联 HTML/JS（剥注释后扫）

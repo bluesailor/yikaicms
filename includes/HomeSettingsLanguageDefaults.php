@@ -119,6 +119,7 @@ final class HomeSettingsLanguageDefaults
     }
 
     /**
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 migrations/ 与 tools/（均不在 Psalm projectFiles 内）
      * @param array<string, array<string, mixed>> $defaults
      * @return array<string, string> key => leaked zh-CN factory value
      */

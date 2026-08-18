@@ -232,9 +232,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </button>
         </div>
 
-        <a href="/admin/article_edit.php" class="ml-auto bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition">
-            + <?php echo __('admin_add'); ?>
-        </a>
+        <div class="ml-auto flex items-center gap-2">
+            <?php if ($newsChannel && bloxPageEditorEnabled() && hasPermission('edit_page')): ?>
+            <a href="/admin/blox_editor.php?id=<?php echo (int) $newsChannel['id']; ?>"
+               class="border border-primary text-primary hover:bg-primary hover:text-white px-4 py-2 rounded text-sm transition inline-flex items-center gap-1">
+                <i class="ti ti-layout-dashboard text-base"></i>
+                <?php echo e(__('blox_edit_news_page')); ?>
+            </a>
+            <?php endif; ?>
+            <a href="/admin/article_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition">
+                + <?php echo __('admin_add'); ?>
+            </a>
+        </div>
     </form>
 </div>
 
