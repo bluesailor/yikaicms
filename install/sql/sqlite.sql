@@ -83,8 +83,6 @@ INSERT INTO "yikai_album_photos" ("id", "album_id", "title", "image", "thumb", "
 DROP TABLE IF EXISTS "yikai_albums";
 CREATE TABLE "yikai_albums" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "layout" TEXT NOT NULL DEFAULT 'grid',
-  "deleted_at" INTEGER DEFAULT NULL,
   "category_id" INTEGER DEFAULT '0',
   "name" TEXT NOT NULL,
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
@@ -96,8 +94,11 @@ CREATE TABLE "yikai_albums" (
   "sort_order" INTEGER DEFAULT '0',
   "status" INTEGER DEFAULT '1',
   "created_at" INTEGER DEFAULT '0',
-  "updated_at" INTEGER DEFAULT '0'
+  "updated_at" INTEGER DEFAULT '0',
+  "layout" TEXT NOT NULL DEFAULT 'grid',
+  "deleted_at" INTEGER DEFAULT NULL
 );
+CREATE INDEX "idx_albums_deleted_yikai_albums" ON "yikai_albums" ("deleted_at");
 CREATE INDEX "idx_category_yikai_albums" ON "yikai_albums" ("category_id");
 CREATE INDEX "idx_status_yikai_albums" ON "yikai_albums" ("status");
 CREATE INDEX "idx_sort_yikai_albums" ON "yikai_albums" ("sort_order" DESC,"id" DESC);
@@ -109,6 +110,7 @@ INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_gr
 INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (2,0,'Honors & Certifications','en',1,'honor','https://picsum.photos/400/300?random=401','A selection of awards and certifications the company has earned.',6,1,1,1778539841,1778539841);
 INSERT INTO "yikai_albums" ("id", "category_id", "name", "lang", "translation_group_id", "slug", "cover", "description", "photo_count", "sort_order", "status", "created_at", "updated_at") VALUES (3,0,'受賞・認証','ja',1,'honor','https://picsum.photos/400/300?random=401','当社が取得した各種の受賞・認証一覧。',6,1,1,1778539841,1778539841);
 -- @demo:end
+DROP TABLE IF EXISTS "yikai_banner_groups";
 CREATE TABLE "yikai_banner_groups" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "name" TEXT NOT NULL,
@@ -182,68 +184,76 @@ INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "
 DROP TABLE IF EXISTS "yikai_blocks_library";
 CREATE TABLE "yikai_blocks_library" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "name" varchar(100) NOT NULL,
-  "data" longtext,
+  "name" TEXT NOT NULL,
+  "data" TEXT,
   "created_at" INTEGER NOT NULL DEFAULT 0,
   "updated_at" INTEGER NOT NULL DEFAULT 0
 );
 
+
 DROP TABLE IF EXISTS "yikai_blox_templates";
 CREATE TABLE "yikai_blox_templates" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "type" varchar(20) NOT NULL,
-  "name" varchar(150) NOT NULL,
-  "source" varchar(30) NOT NULL DEFAULT 'user',
-  "source_ref" varchar(100) NOT NULL DEFAULT '',
+  "type" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "source" TEXT NOT NULL DEFAULT 'user',
+  "source_ref" TEXT NOT NULL DEFAULT '',
   "schema_version" INTEGER NOT NULL DEFAULT 1,
-  "draft_data" longtext NOT NULL,
-  "published_data" longtext,
-  "requirements" longtext,
-  "conditions" longtext,
-  "thumbnail" varchar(500) NOT NULL DEFAULT '',
+  "draft_data" TEXT NOT NULL,
+  "published_data" TEXT,
+  "requirements" TEXT,
+  "conditions" TEXT,
+  "thumbnail" TEXT NOT NULL DEFAULT '',
   "status" INTEGER NOT NULL DEFAULT 0,
   "admin_id" INTEGER NOT NULL DEFAULT 0,
   "created_at" INTEGER NOT NULL DEFAULT 0,
   "updated_at" INTEGER NOT NULL DEFAULT 0,
   "published_at" INTEGER NOT NULL DEFAULT 0
 );
-CREATE INDEX "idx_blox_templates_type" ON "yikai_blox_templates" ("type", "status", "updated_at");
-CREATE INDEX "idx_blox_templates_source" ON "yikai_blox_templates" ("source");
+CREATE INDEX "idx_blox_templates_type_yikai_blox_templates" ON "yikai_blox_templates" ("type","status","updated_at");
+CREATE INDEX "idx_blox_templates_source_yikai_blox_templates" ON "yikai_blox_templates" ("source");
+
 
 DROP TABLE IF EXISTS "yikai_blox_page_drafts";
 CREATE TABLE "yikai_blox_page_drafts" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "page_id" INTEGER NOT NULL UNIQUE,
-  "draft_data" longtext NOT NULL,
-  "published_data" longtext,
+  "page_id" INTEGER NOT NULL,
+  "draft_data" TEXT NOT NULL,
+  "published_data" TEXT NULL,
   "admin_id" INTEGER NOT NULL DEFAULT 0,
   "created_at" INTEGER NOT NULL DEFAULT 0,
   "updated_at" INTEGER NOT NULL DEFAULT 0,
   "published_at" INTEGER NOT NULL DEFAULT 0
 );
+CREATE UNIQUE INDEX "uk_blox_page_draft_page_yikai_blox_page_drafts" ON "yikai_blox_page_drafts" ("page_id");
+
 
 DROP TABLE IF EXISTS "yikai_nav_menus";
 CREATE TABLE "yikai_nav_menus" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "name" varchar(100) NOT NULL,
-  "items" longtext,
+  "name" TEXT NOT NULL,
+  "items" TEXT,
   "sort_order" INTEGER NOT NULL DEFAULT 0,
   "created_at" INTEGER NOT NULL DEFAULT 0,
   "updated_at" INTEGER NOT NULL DEFAULT 0
 );
 
+
+
 DROP TABLE IF EXISTS "yikai_content_revisions";
 CREATE TABLE "yikai_content_revisions" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "target_type" varchar(20) NOT NULL,
+  "target_type" TEXT NOT NULL,
   "target_id" INTEGER NOT NULL,
-  "lang" varchar(10) NOT NULL DEFAULT '',
-  "snapshot" longtext,
-  "summary" varchar(255) NOT NULL DEFAULT '',
+  "lang" TEXT NOT NULL DEFAULT '',
+  "snapshot" TEXT,
+  "summary" TEXT NOT NULL DEFAULT '',
   "admin_id" INTEGER NOT NULL DEFAULT 0,
-  "admin_name" varchar(50) NOT NULL DEFAULT '',
+  "admin_name" TEXT NOT NULL DEFAULT '',
   "created_at" INTEGER NOT NULL DEFAULT 0
 );
+CREATE INDEX "idx_target_yikai_content_revisions" ON "yikai_content_revisions" ("target_type","target_id","id");
+
 
 DROP TABLE IF EXISTS "yikai_brands";
 CREATE TABLE "yikai_brands" (
@@ -264,8 +274,6 @@ CREATE TABLE "yikai_brands" (
 DROP TABLE IF EXISTS "yikai_channels";
 CREATE TABLE "yikai_channels" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "show_cover" INTEGER NOT NULL DEFAULT 1,
-  "list_options" TEXT DEFAULT '',
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "parent_id" INTEGER NOT NULL DEFAULT '0',
@@ -291,7 +299,9 @@ CREATE TABLE "yikai_channels" (
   "is_system" INTEGER NOT NULL DEFAULT '0',
   "sort_order" INTEGER NOT NULL DEFAULT '0',
   "created_at" INTEGER NOT NULL DEFAULT '0',
-  "updated_at" INTEGER NOT NULL DEFAULT '0'
+  "updated_at" INTEGER NOT NULL DEFAULT '0',
+  "show_cover" INTEGER NOT NULL DEFAULT 1,
+  "list_options" TEXT DEFAULT ''
 );
 CREATE UNIQUE INDEX "uk_slug_yikai_channels" ON "yikai_channels" ("slug");
 CREATE INDEX "idx_parent_yikai_channels" ON "yikai_channels" ("parent_id");
@@ -549,12 +559,11 @@ INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id",
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (71,'ja',20,0,'ソリューション','solution-ja','case',0,'','','',NULL,'','_self','auto','','ソリューション','','',1,0,1,1,3,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (72,'ja',21,71,'業界別ソリューション','industry-ja','case',0,'','','',NULL,'','_self','auto','','業界別ソリューション','','',1,0,1,1,1,1778434704,1778434704);
 INSERT INTO "yikai_channels" ("id", "lang", "translation_group_id", "parent_id", "name", "slug", "type", "album_id", "icon", "image", "description", "content", "link_url", "link_target", "redirect_type", "redirect_url", "seo_title", "seo_keywords", "seo_description", "is_nav", "is_home", "status", "is_system", "sort_order", "created_at", "updated_at") VALUES (73,'ja',22,58,'技術情報','tech-share-ja','list',0,'','','',NULL,'','_self','auto','','技術情報','','',1,0,1,0,3,1778434704,1778434704);
--- 组织架构页（内置栏目，含中/英/日）默认不显示侧边栏
-UPDATE "yikai_channels" SET "show_sidebar" = 0 WHERE "translation_group_id" = 19;
+-- 组织架构页（内置栏目，含中/英/日）默认不显示侧边栏：组织架构图较宽，全宽展示更佳
+UPDATE `yikai_channels` SET `show_sidebar` = 0 WHERE `translation_group_id` = 19;
 DROP TABLE IF EXISTS "yikai_contents";
 CREATE TABLE "yikai_contents" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "deleted_at" INTEGER DEFAULT NULL,
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "channel_id" INTEGER NOT NULL DEFAULT '0',
@@ -599,8 +608,10 @@ CREATE TABLE "yikai_contents" (
   "client_name" TEXT NOT NULL DEFAULT '',
   "industry" TEXT NOT NULL DEFAULT '',
   "duration" TEXT NOT NULL DEFAULT '',
-  "result_metric" TEXT NOT NULL DEFAULT ''
+  "result_metric" TEXT NOT NULL DEFAULT '',
+  "deleted_at" INTEGER DEFAULT NULL
 );
+CREATE INDEX "idx_contents_deleted_yikai_contents" ON "yikai_contents" ("deleted_at");
 CREATE INDEX "idx_channel_yikai_contents" ON "yikai_contents" ("channel_id");
 CREATE INDEX "idx_type_yikai_contents" ON "yikai_contents" ("type");
 CREATE INDEX "idx_status_yikai_contents" ON "yikai_contents" ("status");
@@ -684,7 +695,77 @@ INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id"
 <p>诚信、专业、高效、创新</p>
 <h3>工作理念</h3>
 <p>以客户需求为导向，以技术创新为驱动，以团队协作为基础，持续为客户创造价值。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
-INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (8,'zh-CN',8,15,'article','联系我们','','contact','',NULL,NULL,'<p>欢迎通过以下方式联系我们。</p>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'','','',1,0,1776652898,1776652898,1776652898,1,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (8,'zh-CN',8,15,'article','联系我们','','contact','',NULL,NULL,'<section class="py-8"><div class="max-w-6xl mx-auto px-4">        <!-- 联系信息卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-lg shadow p-6 text-center">
+                                <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>                    </svg>
+                </div>
+                                <h3 class="font-bold text-dark mb-2">联系电话</h3>
+                                <p class="text-gray-600">400-888-8888</p>
+                            </div>
+                        <div class="bg-white rounded-lg shadow p-6 text-center">
+                                <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>                    </svg>
+                </div>
+                                <h3 class="font-bold text-dark mb-2">电子邮箱</h3>
+                                <p class="text-gray-600">contact@example.com</p>
+                            </div>
+                        <div class="bg-white rounded-lg shadow p-6 text-center">
+                                <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>                    </svg>
+                </div>
+                                <h3 class="font-bold text-dark mb-2">公司地址</h3>
+                                <p class="text-gray-600">上海市浦东新区XX路XX号</p>
+                            </div>
+                    </div>
+        </div></section><section class="py-4"><div class="max-w-6xl mx-auto px-4"><div class="grid grid-cols-1 md:grid-cols-12 gap-8"><div class="md:col-span-7">            <!-- 留言表单 -->
+            <div class="bg-white rounded-lg shadow p-6 md:p-8 h-full">
+                                <h2 class="text-xl font-bold text-dark mb-2">在线留言</h2>
+                                <div class="mb-4"></div>
+                
+                <div class="shortcode-form" id="shortcode-form-contact-wrap"><form id="shortcode-form-contact" onsubmit="return submitShortcodeForm(event, ''contact'')"><input type="hidden" name="form_slug" value="contact"><input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none"><input type="hidden" name="form_ts" value="1785884078"><input type="hidden" name="form_sig" value="08ce528b054e506d"><div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+    <label>您的姓名 <span class="text-red-500">*</span></label>
+    <input type="text" name="name" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" placeholder="" required>
+</div>
+<div>
+    <label>联系电话 <span class="text-red-500">*</span></label>
+    <input type="tel" name="phone" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" placeholder="" required>
+</div>
+<div>
+    <label>电子邮箱</label>
+    <input type="email" name="email" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" placeholder="">
+</div>
+<div>
+    <label>公司名称</label>
+    <input type="text" name="company" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" placeholder="">
+</div>
+</div>
+
+<div class="mt-4">
+    <label>留言内容 <span class="text-red-500">*</span></label>
+    <textarea name="content" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" placeholder="" required></textarea>
+</div>
+
+<div class="mt-4">
+    <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition">提交</button>
+</div></form><div id="shortcode-form-contact-msg" class="hidden mt-4 p-4 rounded-lg text-sm"></div></div><script>if(!window._shortcodeFormInit){window._shortcodeFormInit=true;window.submitShortcodeForm=function(e,slug){e.preventDefault();var form=e.target;var btn=form.querySelector("button[type=submit]");btn.disabled=true;btn.textContent="\u63d0\u4ea4\u4e2d...";var fd=new FormData(form);fetch("/form_submit.php",{method:"POST",body:fd}).then(r=>r.json()).then(function(data){var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}else{msgEl.className+=" bg-red-50 text-red-600";msgEl.textContent=data.msg;}var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="/captcha.php?"+Date.now();msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent="\u63d0\u4ea4";}).catch(function(){btn.disabled=false;btn.textContent="\u63d0\u4ea4";});return false;};}</script>            </div>
+</div><div class="md:col-span-5">            <!-- 地图 / 二维码：交互地图按语言切服务商（中文 高德/百度，日英 Google），未配置则回退静态图/二维码/占位 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden h-full">
+                                <div class="h-full flex items-center justify-center bg-gray-100 min-h-[400px]">
+                    <div class="text-center text-gray-400">
+                        <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                        <p>可在后台设置地图图片</p>
+                    </div>
+                </div>
+                            </div>
+</div></div></div></section>','blocks','[{"id":"s_0a7949929","settings":{"padding":"md","max_width":"default","gap":"lg","align_items":"stretch","justify_items":"stretch"},"columns":[{"id":"c_04692d9ea","elements":[{"id":"e_8315bf455","type":"contact_cards","data":{"cols":"auto"}}]}]},{"id":"s_b8ef5e165","settings":{"padding":"sm","max_width":"default","gap":"lg","align_items":"stretch","justify_items":"stretch"},"columns":[{"id":"c_f77b691e1","span":7,"elements":[{"id":"e_f39158922","type":"contact_form","data":[]}]},{"id":"c_15085b631","span":5,"elements":[{"id":"e_9e870b013","type":"contact_map","data":[]}]}]}]','','','','',0,'0.00',NULL,'','',NULL,'','','','',0,0,0,3,0,'','','',1,0,1776652898,1776652898,1785884078,1,'','','','');
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (9,'zh-CN',9,16,'article','隐私政策','','privacy','',NULL,NULL,'<h2>隐私政策</h2>
 <p><em>最后更新日期：[更新日期]</em></p>
 <p>[公司名称]（下称"我们"）非常重视您的个人信息保护。本隐私政策说明我们如何收集、使用、存储和保护您在使用本网站及相关服务时提供的个人信息。请您仔细阅读本政策，以了解我们对个人信息的处理方式。</p>
@@ -826,65 +907,7 @@ INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id"
 <li>边缘AI套件：集成视觉检测和预测性维护</li>
 <li>数字孪生平台：实时3D可视化</li>
 </ul>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,3,0,'公司参加2024国际物联��博览会','物联网博览会,IoT,5G','公司携全系列物联网产品亮相2024国际物联网博览会。',1,0,1776481280,1776654080,1776654080,1,'','','','');
-INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (14,'zh-CN',14,19,'article','组织架构','','organization','',NULL,NULL,'<style>
-.org-chart { text-align: center; }
-.org-chart ul { padding-top: 20px; position: relative; display: flex; justify-content: center; list-style: none; margin: 0; padding-left: 0; }
-.org-chart ul::before { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 20px; border-left: 2px solid #cbd5e1; }
-.org-chart li { position: relative; padding: 20px 5px 0; display: flex; flex-direction: column; align-items: center; }
-.org-chart li::before, .org-chart li::after { content: ""; position: absolute; top: 0; width: 50%; height: 20px; border-top: 2px solid #cbd5e1; }
-.org-chart li::before { left: 0; border-left: 2px solid #cbd5e1; }
-.org-chart li::after { right: 0; border-right: 2px solid #cbd5e1; }
-.org-chart li:first-child::before { display: none; }
-.org-chart li:last-child::after { display: none; }
-.org-chart li:only-child::before, .org-chart li:only-child::after { display: none; }
-.org-chart li:first-child::after { border-radius: 5px 0 0 0; }
-.org-chart li:last-child::before { border-radius: 0 5px 0 0; }
-.org-chart .org-node { display: inline-block; padding: 10px 20px; border-radius: 8px; text-align: center; min-width: 120px; }
-.org-chart .org-ceo { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; font-size: 16px; font-weight: 700; padding: 14px 28px; }
-.org-chart .org-vp { background: linear-gradient(135deg, #0f766e, #14b8a6); color: #fff; font-weight: 600; }
-.org-chart .org-dept { background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; font-size: 14px; }
-.org-chart .org-title { display: block; font-size: 11px; opacity: 0.85; margin-top: 2px; font-weight: 400; }
-</style>
-<div class="org-chart">
-  <ul style="padding-top:0">
-    <li style="padding-top:0">
-      <ul style="padding-top:0"><li style="padding-top:0">
-        <div class="org-node org-ceo">张伟<span class="org-title">董事长 / CEO</span></div>
-        <ul>
-          <li>
-            <div class="org-node org-vp">李明<span class="org-title">副总裁 · 技术</span></div>
-            <ul>
-              <li><div class="org-node org-dept">研发部</div></li>
-              <li><div class="org-node org-dept">测试部</div></li>
-              <li><div class="org-node org-dept">运维部</div></li>
-            </ul>
-          </li>
-          <li>
-            <div class="org-node org-vp">王芳<span class="org-title">副总裁 · 营销</span></div>
-            <ul>
-              <li><div class="org-node org-dept">市场部</div></li>
-              <li><div class="org-node org-dept">销售部</div></li>
-              <li><div class="org-node org-dept">客服部</div></li>
-            </ul>
-          </li>
-          <li>
-            <div class="org-node org-vp">赵强<span class="org-title">副总裁 · 运营</span></div>
-            <ul>
-              <li><div class="org-node org-dept">财务部</div></li>
-              <li><div class="org-node org-dept">人力资源部</div></li>
-              <li><div class="org-node org-dept">行政部</div></li>
-            </ul>
-          </li>
-        </ul>
-      </li></ul>
-    </li>
-  </ul>
-</div>
-<div style="margin-top:40px;padding:24px;background:#f8fafc;border-radius:8px;">
-  <h3 style="margin-top:0;">组织概况</h3>
-  <p>公司设有<strong>技术中心</strong>、<strong>营销中心</strong>、<strong>运营中心</strong>三大业务板块，下辖9个职能部门。现有员工50余人，其中技术研发人员占比超过60%。</p>
-  <p>我们秉承扁平化管理理念，鼓励跨部门协作，确保信息高效流通和快速决策。</p>
-</div>','html',NULL,'','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'组织架构','组织架构,公司架构,团队结构','公司组织架构图，设有技术、营销、运营三大中心及9个职能部门。',1,0,0,1776727823,1776727823,0,'','','','');
+INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (14,'zh-CN',14,19,'article','组织架构','','organization','',NULL,NULL,'<section class="py-8"><div class="max-w-6xl mx-auto px-4"><div class="yk-org-chart yk-org-style-default" data-blox-org-chart><div class="yk-org-chart-toolbar"><button type="button" data-org-action="zoom-in" title="放大" aria-label="放大"><i class="ti ti-zoom-in"></i></button><button type="button" data-org-action="zoom-out" title="缩小" aria-label="缩小"><i class="ti ti-zoom-out"></i></button><button type="button" data-org-action="fit" title="适应画布" aria-label="适应画布"><i class="ti ti-focus-2"></i></button></div><div class="yk-org-chart-stage"></div><div class="yk-org-chart-fallback"><ul><li><div class="yk-org-fallback-node"><strong>张伟</strong><span>董事长 / CEO</span></div><ul><li><div class="yk-org-fallback-node"><strong>李明</strong><span>副总裁 · 技术</span></div><ul><li><div class="yk-org-fallback-node"><strong>研发部</strong></div></li><li><div class="yk-org-fallback-node"><strong>测试部</strong></div></li><li><div class="yk-org-fallback-node"><strong>运维部</strong></div></li></ul></li><li><div class="yk-org-fallback-node"><strong>王芳</strong><span>副总裁 · 营销</span></div><ul><li><div class="yk-org-fallback-node"><strong>市场部</strong></div></li><li><div class="yk-org-fallback-node"><strong>销售部</strong></div></li><li><div class="yk-org-fallback-node"><strong>客服部</strong></div></li></ul></li><li><div class="yk-org-fallback-node"><strong>赵强</strong><span>副总裁 · 运营</span></div><ul><li><div class="yk-org-fallback-node"><strong>财务部</strong></div></li><li><div class="yk-org-fallback-node"><strong>人力资源部</strong></div></li><li><div class="yk-org-fallback-node"><strong>行政部</strong></div></li></ul></li></ul></li></ul></div><script type="application/json" data-org-chart-data>{"nodes":[{"id":"org_1","parent_id":"","name":"张伟","title":"董事长 / CEO"},{"id":"org_2","parent_id":"org_1","name":"李明","title":"副总裁 · 技术"},{"id":"org_3","parent_id":"org_2","name":"研发部","title":""},{"id":"org_4","parent_id":"org_2","name":"测试部","title":""},{"id":"org_5","parent_id":"org_2","name":"运维部","title":""},{"id":"org_6","parent_id":"org_1","name":"王芳","title":"副总裁 · 营销"},{"id":"org_7","parent_id":"org_6","name":"市场部","title":""},{"id":"org_8","parent_id":"org_6","name":"销售部","title":""},{"id":"org_9","parent_id":"org_6","name":"客服部","title":""},{"id":"org_10","parent_id":"org_1","name":"赵强","title":"副总裁 · 运营"},{"id":"org_11","parent_id":"org_10","name":"财务部","title":""},{"id":"org_12","parent_id":"org_10","name":"人力资源部","title":""},{"id":"org_13","parent_id":"org_10","name":"行政部","title":""}],"layout":"top","compact":false,"initial_depth":4}</script></div><div class="prose prose-lg max-w-none"><p style="margin-top: 32px; padding: 20px; background: #f8fafc; border-radius: 8px;">公司设有<strong>技术中心</strong>、<strong>营销中心</strong>、<strong>运营中心</strong>三大业务板块，下辖 9 个职能部门。请按实际情况修改上方图中的姓名与部门。</p></div></div></section>','blocks','{"schema":1,"settings":[],"sections":[{"id":"s_legacy","type":"section","settings":{"bg_color":"","bg_image":"","padding":"md","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c_legacy","elements":[{"id":"e_legacy_org","type":"org-chart","data":{"label":"组织架构","nodes":[{"id":"org_1","parent_id":"","name":"张伟","title":"董事长 / CEO"},{"id":"org_2","parent_id":"org_1","name":"李明","title":"副总裁 · 技术"},{"id":"org_3","parent_id":"org_2","name":"研发部","title":""},{"id":"org_4","parent_id":"org_2","name":"测试部","title":""},{"id":"org_5","parent_id":"org_2","name":"运维部","title":""},{"id":"org_6","parent_id":"org_1","name":"王芳","title":"副总裁 · 营销"},{"id":"org_7","parent_id":"org_6","name":"市场部","title":""},{"id":"org_8","parent_id":"org_6","name":"销售部","title":""},{"id":"org_9","parent_id":"org_6","name":"客服部","title":""},{"id":"org_10","parent_id":"org_1","name":"赵强","title":"副总裁 · 运营"},{"id":"org_11","parent_id":"org_10","name":"财务部","title":""},{"id":"org_12","parent_id":"org_10","name":"人力资源部","title":""},{"id":"org_13","parent_id":"org_10","name":"行政部","title":""}],"style":"default","layout":"top","compact":false,"initial_depth":4}},{"id":"e_legacy_text","type":"text","data":{"html":"<p style=\"margin-top: 32px; padding: 20px; background: #f8fafc; border-radius: 8px;\">公司设有<strong>技术中心</strong>、<strong>营销中心</strong>、<strong>运营中心</strong>三大业务板块，下辖 9 个职能部门。请按实际情况修改上方图中的姓名与部门。</p>"}}]}]}]}','','','','',0,'0.00',NULL,'','',NULL,'','','','',0,0,0,3,0,'组织架构','组织架构,公司架构,团队结构','公司组织架构图，设有技术、营销、运营三大中心及9个职能部门。',1,0,0,1776727823,1787005251,0,'','','','');
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (15,'zh-CN',15,11,'article','服务流程','','process','',NULL,NULL,'<div style="max-width:800px;margin:0 auto;">
 <p style="text-align:center;color:#6b7280;margin-bottom:2em;">我们以标准化的服务流程，确保每一个项目高效交付、客户满意。</p>
 
@@ -1608,8 +1631,8 @@ INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id"
 <h2>導入効果</h2>
 <p>稼働1年後：店舗の日次売上12%向上、欠品率8.2%から2.1%へ低減、在庫回転率25%向上、会員リピート率18%向上。</p>','html',NULL,'','','小売,プラットフォーム,補充,会員','',0,0.00,NULL,'','',NULL,'','','','',0,1,0,0,0,'','','',1,0,1778497239,1778497239,1778497239,0,'','','','');
 -- 英文、日文公司简介预置独立 Blox 文档；结构共享，内容按语言分别维护。
-UPDATE "yikai_contents" SET "content_type"='blocks', "blocks_data"='[{"id":"s_en_intro","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"center","justify_items":"center","gap":"lg"},"columns":[{"id":"c_en_intro","elements":[{"id":"e_en_title","type":"heading","data":{"text":"Technology and quality for long-term partnerships","level":"h1","align":"center"}},{"id":"e_en_lead","type":"text","data":{"html":"<p>We develop and manufacture industrial smart devices, sensor modules, control terminals, and supporting software. For more than a decade, we have delivered reliable products and services to customers worldwide.</p>"}}]}]},{"id":"s_en_strengths","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"xl","max_width":"default","align_items":"stretch","justify_items":"center","gap":"lg","col_card":true,"title":"Why choose us","subtitle":"More than products, we solve problems with you"},"columns":[{"id":"c_en_rd","elements":[{"id":"e_en_rd","type":"icon-box","data":{"icon":"cpu","title":"Independent R&D","text":"Core algorithms and firmware are developed in-house for deep customization."}}]},{"id":"c_en_quality","elements":[{"id":"e_en_quality","type":"icon-box","data":{"icon":"shield-check","title":"Traceable quality","text":"Every device has complete production and inspection records."}}]},{"id":"c_en_support","elements":[{"id":"e_en_support","type":"icon-box","data":{"icon":"headset","title":"Responsive support","text":"Our technical team responds within one business day."}}]}]},{"id":"s_en_faq","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"stretch","justify_items":"stretch","gap":"lg","title":"Frequently asked questions"},"columns":[{"id":"c_en_faq","elements":[{"id":"e_en_faq","type":"accordion","data":{"items":[{"question":"Can you customize a solution for our production line?","answer":"Yes. We adapt interface protocols, firmware, and enclosure design to your requirements."},{"question":"How long is the product warranty?","answer":"Standard equipment includes a two-year warranty, with lifetime paid maintenance available afterward."},{"question":"Do you support international shipping and certification?","answer":"Yes. Our products meet CE, FCC, and RoHS requirements, and we can assist with local compliance."},{"question":"How can I get product selection advice?","answer":"Send us the application, measurement range, and environment. An engineer will respond within one business day."}],"open_first":true,"seo_schema":true}}]}]},{"id":"s_en_cta","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c_en_cta","elements":[{"id":"e_en_cta","type":"cta","data":{"title":"Ready to discuss your application?","text":"Tell us what you need. Our engineers will recommend a practical solution.","btn_text":"Contact us","btn_url":"/en/contact-en.html"}}]}]}]' WHERE "id"=26 AND "lang"='en';
-UPDATE "yikai_contents" SET "content_type"='blocks', "blocks_data"='[{"id":"s_ja_intro","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"center","justify_items":"center","gap":"lg"},"columns":[{"id":"c_ja_intro","elements":[{"id":"e_ja_title","type":"heading","data":{"text":"技術と品質で、長期的なパートナーへ","level":"h1","align":"center"}},{"id":"e_ja_lead","type":"text","data":{"html":"<p>当社は産業用スマートデバイス、センサーモジュール、制御端末、関連ソフトウェアを開発・製造しています。10年以上にわたり、世界各地のお客様へ信頼性の高い製品とサービスを提供してきました。</p>"}}]}]},{"id":"s_ja_strengths","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"xl","max_width":"default","align_items":"stretch","justify_items":"center","gap":"lg","col_card":true,"title":"選ばれる理由","subtitle":"製品提供だけでなく、課題解決まで伴走します"},"columns":[{"id":"c_ja_rd","elements":[{"id":"e_ja_rd","type":"icon-box","data":{"icon":"cpu","title":"自社開発","text":"コアアルゴリズムとファームウェアを自社開発し、用途に合わせた高度なカスタマイズに対応します。"}}]},{"id":"c_ja_quality","elements":[{"id":"e_ja_quality","type":"icon-box","data":{"icon":"shield-check","title":"追跡可能な品質","text":"すべての製品に製造・検査記録を残し、品質を追跡できる体制を整えています。"}}]},{"id":"c_ja_support","elements":[{"id":"e_ja_support","type":"icon-box","data":{"icon":"headset","title":"迅速なサポート","text":"技術チームが1営業日以内に対応し、導入後も継続的に支援します。"}}]}]},{"id":"s_ja_faq","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"stretch","justify_items":"stretch","gap":"lg","title":"よくある質問"},"columns":[{"id":"c_ja_faq","elements":[{"id":"e_ja_faq","type":"accordion","data":{"items":[{"question":"生産ライン向けのカスタマイズは可能ですか？","answer":"可能です。通信プロトコル、ファームウェア、筐体設計まで要件に合わせて対応します。"},{"question":"製品の保証期間はどのくらいですか？","answer":"標準製品は2年間保証です。保証期間後も有償修理と技術サポートを継続して提供します。"},{"question":"海外発送や各国認証に対応していますか？","answer":"対応しています。CE、FCC、RoHSに適合し、現地の輸入・規制対応も支援します。"},{"question":"製品選定の相談方法を教えてください。","answer":"用途、測定範囲、使用環境をお知らせください。技術担当が1営業日以内にご提案します。"}],"open_first":true,"seo_schema":true}}]}]},{"id":"s_ja_cta","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c_ja_cta","elements":[{"id":"e_ja_cta","type":"cta","data":{"title":"導入について相談しませんか？","text":"ご要望をお聞かせください。技術担当が最適な構成をご提案します。","btn_text":"お問い合わせ","btn_url":"/ja/contact-ja.html"}}]}]}]' WHERE "id"=51 AND "lang"='ja';
+UPDATE `yikai_contents` SET `content_type`='blocks', `blocks_data`='[{"id":"s_en_intro","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"center","justify_items":"center","gap":"lg"},"columns":[{"id":"c_en_intro","elements":[{"id":"e_en_title","type":"heading","data":{"text":"Technology and quality for long-term partnerships","level":"h1","align":"center"}},{"id":"e_en_lead","type":"text","data":{"html":"<p>We develop and manufacture industrial smart devices, sensor modules, control terminals, and supporting software. For more than a decade, we have delivered reliable products and services to customers worldwide.</p>"}}]}]},{"id":"s_en_strengths","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"xl","max_width":"default","align_items":"stretch","justify_items":"center","gap":"lg","col_card":true,"title":"Why choose us","subtitle":"More than products, we solve problems with you"},"columns":[{"id":"c_en_rd","elements":[{"id":"e_en_rd","type":"icon-box","data":{"icon":"cpu","title":"Independent R&D","text":"Core algorithms and firmware are developed in-house for deep customization."}}]},{"id":"c_en_quality","elements":[{"id":"e_en_quality","type":"icon-box","data":{"icon":"shield-check","title":"Traceable quality","text":"Every device has complete production and inspection records."}}]},{"id":"c_en_support","elements":[{"id":"e_en_support","type":"icon-box","data":{"icon":"headset","title":"Responsive support","text":"Our technical team responds within one business day."}}]}]},{"id":"s_en_faq","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"stretch","justify_items":"stretch","gap":"lg","title":"Frequently asked questions"},"columns":[{"id":"c_en_faq","elements":[{"id":"e_en_faq","type":"accordion","data":{"items":[{"question":"Can you customize a solution for our production line?","answer":"Yes. We adapt interface protocols, firmware, and enclosure design to your requirements."},{"question":"How long is the product warranty?","answer":"Standard equipment includes a two-year warranty, with lifetime paid maintenance available afterward."},{"question":"Do you support international shipping and certification?","answer":"Yes. Our products meet CE, FCC, and RoHS requirements, and we can assist with local compliance."},{"question":"How can I get product selection advice?","answer":"Send us the application, measurement range, and environment. An engineer will respond within one business day."}],"open_first":true,"seo_schema":true}}]}]},{"id":"s_en_cta","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c_en_cta","elements":[{"id":"e_en_cta","type":"cta","data":{"title":"Ready to discuss your application?","text":"Tell us what you need. Our engineers will recommend a practical solution.","btn_text":"Contact us","btn_url":"/en/contact-en.html"}}]}]}]' WHERE `id`=26 AND `lang`='en';
+UPDATE `yikai_contents` SET `content_type`='blocks', `blocks_data`='[{"id":"s_ja_intro","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"center","justify_items":"center","gap":"lg"},"columns":[{"id":"c_ja_intro","elements":[{"id":"e_ja_title","type":"heading","data":{"text":"技術と品質で、長期的なパートナーへ","level":"h1","align":"center"}},{"id":"e_ja_lead","type":"text","data":{"html":"<p>当社は産業用スマートデバイス、センサーモジュール、制御端末、関連ソフトウェアを開発・製造しています。10年以上にわたり、世界各地のお客様へ信頼性の高い製品とサービスを提供してきました。</p>"}}]}]},{"id":"s_ja_strengths","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"xl","max_width":"default","align_items":"stretch","justify_items":"center","gap":"lg","col_card":true,"title":"選ばれる理由","subtitle":"製品提供だけでなく、課題解決まで伴走します"},"columns":[{"id":"c_ja_rd","elements":[{"id":"e_ja_rd","type":"icon-box","data":{"icon":"cpu","title":"自社開発","text":"コアアルゴリズムとファームウェアを自社開発し、用途に合わせた高度なカスタマイズに対応します。"}}]},{"id":"c_ja_quality","elements":[{"id":"e_ja_quality","type":"icon-box","data":{"icon":"shield-check","title":"追跡可能な品質","text":"すべての製品に製造・検査記録を残し、品質を追跡できる体制を整えています。"}}]},{"id":"c_ja_support","elements":[{"id":"e_ja_support","type":"icon-box","data":{"icon":"headset","title":"迅速なサポート","text":"技術チームが1営業日以内に対応し、導入後も継続的に支援します。"}}]}]},{"id":"s_ja_faq","settings":{"bg_color":"","bg_image":"","padding":"xl","max_width":"narrow","align_items":"stretch","justify_items":"stretch","gap":"lg","title":"よくある質問"},"columns":[{"id":"c_ja_faq","elements":[{"id":"e_ja_faq","type":"accordion","data":{"items":[{"question":"生産ライン向けのカスタマイズは可能ですか？","answer":"可能です。通信プロトコル、ファームウェア、筐体設計まで要件に合わせて対応します。"},{"question":"製品の保証期間はどのくらいですか？","answer":"標準製品は2年間保証です。保証期間後も有償修理と技術サポートを継続して提供します。"},{"question":"海外発送や各国認証に対応していますか？","answer":"対応しています。CE、FCC、RoHSに適合し、現地の輸入・規制対応も支援します。"},{"question":"製品選定の相談方法を教えてください。","answer":"用途、測定範囲、使用環境をお知らせください。技術担当が1営業日以内にご提案します。"}],"open_first":true,"seo_schema":true}}]}]},{"id":"s_ja_cta","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c_ja_cta","elements":[{"id":"e_ja_cta","type":"cta","data":{"title":"導入について相談しませんか？","text":"ご要望をお聞かせください。技術担当が最適な構成をご提案します。","btn_text":"お問い合わせ","btn_url":"/ja/contact-ja.html"}}]}]}]' WHERE `id`=51 AND `lang`='ja';
 -- @demo:end
 DROP TABLE IF EXISTS "yikai_download_categories";
 CREATE TABLE "yikai_download_categories" (
@@ -1621,15 +1644,16 @@ CREATE TABLE "yikai_download_categories" (
   "status" INTEGER DEFAULT '1',
   "created_at" INTEGER DEFAULT '0'
 );
-INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES (1,'软件下载','software','',1,1,1776654080);
-INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES (2,'文档资料','document','',2,1,1776654080);
-INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES (3,'驱动程序','driver','',3,1,1776654080);
+CREATE INDEX "idx_dlcat_slug_yikai_download_categories" ON "yikai_download_categories" ("slug");
 
 
+INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES
+(1,'软件下载','software','',1,1,1776654080),
+(2,'文档资料','document','',2,1,1776654080),
+(3,'驱动程序','driver','',3,1,1776654080);
 DROP TABLE IF EXISTS "yikai_downloads";
 CREATE TABLE "yikai_downloads" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "deleted_at" INTEGER DEFAULT NULL,
   "category_id" INTEGER DEFAULT '0',
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
@@ -1647,8 +1671,10 @@ CREATE TABLE "yikai_downloads" (
   "status" INTEGER DEFAULT '1',
   "created_at" INTEGER DEFAULT '0',
   "updated_at" INTEGER DEFAULT '0',
-  "admin_id" INTEGER DEFAULT '0'
+  "admin_id" INTEGER DEFAULT '0',
+  "deleted_at" INTEGER DEFAULT NULL
 );
+CREATE INDEX "idx_downloads_deleted_yikai_downloads" ON "yikai_downloads" ("deleted_at");
 CREATE INDEX "idx_category_yikai_downloads" ON "yikai_downloads" ("category_id");
 CREATE INDEX "idx_status_yikai_downloads" ON "yikai_downloads" ("status");
 CREATE INDEX "idx_sort_yikai_downloads" ON "yikai_downloads" ("sort_order" DESC,"id" DESC);
@@ -1664,7 +1690,7 @@ INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_i
 INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (7,0,'ja',1,'製品マニュアル V2.0','最新版ユーザーマニュアル','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
 INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (8,0,'ja',2,'クライアントソフトウェア V3.5.1','Windows 用クライアント','','','',0,'exe',0,0,0,0,1,1778457949,1778457949,0);
 INSERT INTO "yikai_downloads" ("id", "category_id", "lang", "translation_group_id", "title", "description", "cover", "file_url", "file_name", "file_size", "file_ext", "download_count", "is_external", "require_login", "sort_order", "status", "created_at", "updated_at", "admin_id") VALUES (9,0,'ja',3,'API ドキュメント','完全な API リファレンス','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
-DROP TABLE IF EXISTS "yikai_content_models";
+DROP TABLE IF EXISTS "yikai_extfields";
 CREATE TABLE "yikai_content_models" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "model_key" TEXT NOT NULL,
@@ -1682,7 +1708,7 @@ CREATE TABLE "yikai_content_models" (
 );
 CREATE UNIQUE INDEX "uk_model_key_yikai_content_models" ON "yikai_content_models" ("model_key");
 
-DROP TABLE IF EXISTS "yikai_extfields";
+
 CREATE TABLE "yikai_extfields" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "owner_type" TEXT NOT NULL,
@@ -1753,7 +1779,6 @@ CREATE INDEX "idx_source_yikai_forms" ON "yikai_forms" ("source");
 DROP TABLE IF EXISTS "yikai_jobs";
 CREATE TABLE "yikai_jobs" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "deleted_at" INTEGER DEFAULT NULL,
   "title" TEXT NOT NULL,
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
@@ -1774,8 +1799,10 @@ CREATE TABLE "yikai_jobs" (
   "publish_time" INTEGER NOT NULL DEFAULT '0',
   "created_at" INTEGER NOT NULL DEFAULT '0',
   "updated_at" INTEGER NOT NULL DEFAULT '0',
-  "admin_id" INTEGER NOT NULL DEFAULT '0'
+  "admin_id" INTEGER NOT NULL DEFAULT '0',
+  "deleted_at" INTEGER DEFAULT NULL
 );
+CREATE INDEX "idx_jobs_deleted_yikai_jobs" ON "yikai_jobs" ("deleted_at");
 CREATE INDEX "idx_status_yikai_jobs" ON "yikai_jobs" ("status");
 CREATE INDEX "idx_top_yikai_jobs" ON "yikai_jobs" ("is_top" DESC,"sort_order" DESC,"id" DESC);
 CREATE INDEX "idx_job_lang_yikai_jobs" ON "yikai_jobs" ("lang");
@@ -1889,9 +1916,10 @@ CREATE TABLE "yikai_plugins" (
   "activated_at" INTEGER NOT NULL DEFAULT '0'
 );
 CREATE UNIQUE INDEX "uk_slug_yikai_plugins" ON "yikai_plugins" ("slug");
+
+
 INSERT INTO "yikai_plugins" ("slug", "status", "installed_at", "activated_at") VALUES ('logo-maker', 1, 0, 0);
-
-
+INSERT INTO "yikai_plugins" ("slug", "status", "installed_at", "activated_at") VALUES ('product-carousel', 1, 0, 0);
 DROP TABLE IF EXISTS "yikai_product_categories";
 CREATE TABLE "yikai_product_categories" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1956,7 +1984,6 @@ CREATE INDEX "idx_group_yikai_product_tags" ON "yikai_product_tags" ("group_name
 DROP TABLE IF EXISTS "yikai_products";
 CREATE TABLE "yikai_products" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "deleted_at" INTEGER DEFAULT NULL,
   "lang" TEXT NOT NULL DEFAULT 'zh-CN',
   "translation_group_id" INTEGER NOT NULL DEFAULT '0',
   "category_id" INTEGER NOT NULL DEFAULT '0',
@@ -1985,8 +2012,10 @@ CREATE TABLE "yikai_products" (
   "sort_order" INTEGER NOT NULL DEFAULT '0',
   "created_at" INTEGER NOT NULL DEFAULT '0',
   "updated_at" INTEGER NOT NULL DEFAULT '0',
-  "admin_id" INTEGER NOT NULL DEFAULT '0'
+  "admin_id" INTEGER NOT NULL DEFAULT '0',
+  "deleted_at" INTEGER DEFAULT NULL
 );
+CREATE INDEX "idx_products_deleted_yikai_products" ON "yikai_products" ("deleted_at");
 CREATE INDEX "idx_category_yikai_products" ON "yikai_products" ("category_id");
 CREATE INDEX "idx_status_yikai_products" ON "yikai_products" ("status");
 CREATE INDEX "idx_top_yikai_products" ON "yikai_products" ("is_top");
@@ -2200,10 +2229,10 @@ CREATE TABLE "yikai_roles" (
 
 
 INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (1,'超级管理员','Super Admin','スーパー管理者','拥有全部权限','Full access to all features','すべての機能にアクセス可能','["*"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (2,'投稿者','Contributor','投稿者','仅可撰写文章并插图，不能删除内容','Write and illustrate articles only; cannot delete','記事の作成と画像挿入のみ（削除不可）','["edit_article","edit_job","edit_timeline"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (3,'内容编辑','Editor','編集者','编辑各类内容并上传媒体（不含删除）','Edit all content and upload media (no delete)','各種コンテンツの編集とメディア（削除不可）','["edit_article","edit_product","edit_case","edit_download","edit_page","media","edit_job","edit_timeline"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (4,'内容主管','Content Manager','コンテンツ管理者','各类内容的增删改与媒体','Full content management incl. delete','コンテンツの追加・編集・削除とメディア','["edit_article","edit_product","edit_case","edit_download","edit_page","delete_article","delete_product","delete_case","delete_download","delete_page","media","edit_job","edit_timeline","delete_job","delete_timeline"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (5,'运营','Operations','運営','内容主管 + 横幅/友链/表单/会员','Content Manager plus banner/link/form/member','コンテンツ管理者＋バナー/リンク/フォーム/会員','["edit_article","edit_product","edit_case","edit_download","edit_page","delete_article","delete_product","delete_case","delete_download","delete_page","media","banner","link","form","member","edit_job","edit_timeline","delete_job","delete_timeline"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (2,'投稿者','Contributor','投稿者','仅可撰写文章并插图，不能删除内容','Write and illustrate articles only; cannot delete','記事の作成と画像挿入のみ（削除不可）','["edit_article", "edit_job", "edit_timeline"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (3,'内容编辑','Editor','編集者','编辑各类内容并上传媒体（不含删除）','Edit all content and upload media (no delete)','各種コンテンツの編集とメディア（削除不可）','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "media", "edit_job", "edit_timeline"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (4,'内容主管','Content Manager','コンテンツ管理者','各类内容的增删改与媒体','Full content management incl. delete','コンテンツの追加・編集・削除とメディア','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "delete_article", "delete_product", "delete_case", "delete_download", "delete_page", "media", "edit_job", "edit_timeline", "delete_job", "delete_timeline"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (5,'运营','Operations','運営','内容主管 + 横幅/友链/表单/会员','Content Manager plus banner/link/form/member','コンテンツ管理者＋バナー/リンク/フォーム/会員','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "delete_article", "delete_product", "delete_case", "delete_download", "delete_page", "media", "banner", "link", "form", "member", "edit_job", "edit_timeline", "delete_job", "delete_timeline"]',1,1776652898);
 DROP TABLE IF EXISTS "yikai_settings";
 CREATE TABLE "yikai_settings" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2260,7 +2289,7 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (38,'contact','contact_form_fields','[{"key":"name","label":"您的姓名","type":"text","required":true,"enabled":true},{"key":"phone","label":"联系电话","type":"tel","required":true,"enabled":true},{"key":"email","label":"电子邮箱","type":"email","required":false,"enabled":true},{"key":"company","label":"公司名称","type":"text","required":false,"enabled":true},{"key":"content","label":"留言内容","type":"textarea","required":true,"enabled":true}]','contact_form_fields','表单字段','',NULL,12);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (39,'contact','contact_form_success','提交成功，我们会尽快与您联系！','text','提交成功提示','',NULL,13);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (40,'home','home_about_content','我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。','textarea','关于我们简介','',NULL,1);
-INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (41,'home','home_about_image','https://picsum.photos/800/600?random=42','image','关于我们图片','',NULL,2);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (41,'home','home_about_image','https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80','image','关于我们图片','',NULL,2);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (42,'home','home_about_tag_title','专业服务','text','角标标题','',NULL,3);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (43,'home','home_about_tag_desc','品质 · 创新 · 共赢','text','角标描述','',NULL,4);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (44,'home','home_about_layout','text_left','select','关于我们布局','','{"text_left":"左文右图","image_left":"左图右文"}',6);
@@ -2299,7 +2328,21 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (77,'home','home_show_channels','1','select','显示栏目区块','',NULL,33);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (78,'home','home_show_advantage','1','select','显示优势展示','',NULL,34);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (79,'home','home_show_cta','1','select','显示行动号召','',NULL,35);
-INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (80,'home','home_blocks_config','[{"type":"banner","enabled":true},{"type":"about","enabled":true},{"type":"stats","enabled":true},{"type":"channels","enabled":true},{"type":"testimonials","enabled":true},{"type":"advantage","enabled":true},{"type":"cta","enabled":true}]','home_blocks','首页区块配置','',NULL,40);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (80,'home','home_blocks_config','[{"type":"banner","enabled":true},{"type":"about","enabled":true,"bg_opacity":100,"text_light":false,"layout":"container"},{"type":"stats","enabled":true,"bg_color":"radial-gradient(circle at 30% 30%,#60a5fa,#1e3a8a)","bg_opacity":100,"text_light":false,"layout":"container"},{"type":"product_carousel","enabled":true,"bg_opacity":100,"text_light":false,"layout":"container","title":"Products","per_row":4,"autoplay":0,"product_ids":[1,2,3,4,5,6]},{"type":"advantage","enabled":true,"bg_color":"linear-gradient(135deg, #0f2027, #2c5364)","bg_opacity":100,"text_light":true,"layout":"container"},{"type":"cta","enabled":true,"bg_opacity":100,"text_light":true,"layout":"container"},{"type":"custom:1","enabled":true,"bg_opacity":100,"text_light":false,"layout":"container"},{"type":"custom:2","enabled":true,"bg_opacity":100,"text_light":false,"layout":"container"},{"type":"partners","enabled":false,"bg_opacity":100,"text_light":false,"layout":"container"},{"type":"testimonials","enabled":false,"bg_opacity":100,"text_light":false,"layout":"container"}]','home_blocks','首页区块配置','',NULL,40);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (223,'home','home_blox_data','{"schema":1,"settings":[],"version":1,"source":"blox","active":true,"updated_at":1786989699,"sections":[{"id":"home_s_0","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_0","elements":[{"id":"home_e_0","type":"home-block","data":{"block_type":"banner","enabled":true,"label":"Banner 轮播图","banner_effect":"slide","items_mode":"custom","children":[{"id":"e_n8any76tu","type":"home-banner-item","data":{"title":"数字化转型解决方案","subtitle":"助力企业实现智能化升级","btn1_text":"了解更多","btn2_text":"","image":"https://picsum.photos/1920/600?random=1","btn1_url":"/about.html","btn2_url":"","link_url":"","link_target":"_self","content_motion":"clip-reveal"}},{"id":"e_bh6a0lcfd","type":"home-banner-item","data":{"title":"专业的技术服务团队","subtitle":"7x24小时为您保驾护航","btn1_text":"","btn2_text":"","image":"https://picsum.photos/1920/600?random=2","btn1_url":"","btn2_url":"","link_url":"","link_target":"_self","content_motion":"slide-left"}},{"id":"e_zelexkirr","type":"home-banner-item","data":{"title":"创新引领未来","subtitle":"持续创新，追求卓越","btn1_text":"","btn2_text":"","image":"https://picsum.photos/1920/600?random=3","btn1_url":"","btn2_url":"","link_url":"","link_target":"_self","content_motion":"slide-right"}}],"banner_content_motion":"clip-reveal","banner_background_motion":"zoom-in","banner_height_mode":"inherit"}}]}],"name":"Banner 轮播图"},{"id":"home_s_1","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_1","elements":[{"id":"home_e_1","type":"home-block","data":{"block_type":"about","enabled":true,"label":"关于我们","override_ratio":"2_1"}}],"span":12}],"name":"关于我们"},{"id":"home_s_2","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_2","elements":[{"id":"home_e_2","type":"home-block","data":{"block_type":"stats","enabled":true,"label":"数据统计"}}]}],"name":"数据统计"},{"id":"home_s_3","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_3","elements":[{"id":"home_e_3","type":"home-block","data":{"block_type":"channel:31","enabled":true,"label":"产品中心","limit":8,"per_row":4,"sort":"recommend"}}]}],"name":"产品中心"},{"id":"home_s_4","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_4","elements":[{"id":"home_e_4","type":"home-block","data":{"block_type":"channel:33","enabled":true,"label":"栏目内容 #7"}}]}],"name":"栏目内容 #7"},{"id":"home_s_5","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_5","elements":[{"id":"home_e_5","type":"home-block","data":{"block_type":"advantage","enabled":true,"label":"我们的优势"}}]}],"name":"我们的优势"},{"id":"home_s_8","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_8","elements":[{"id":"home_e_8","type":"home-block","data":{"block_type":"custom:2","enabled":true,"label":"自定义版块 #2","custom_overrides":{"zh_CN":[{"columns":[{"elements":[{"data":{"accordion_items":[{"question":"如何购买你们的产品？","answer":"您可以通过在线表单留言或直接致电我们，客服团队会在一个工作日内回复。"},{"question":"你们提供售后服务吗？","answer":"提供。所有产品均含一年质保和终身技术支持。"},{"question":"支持定制吗？","answer":"支持。告诉我们您的需求，我们会评估并给出带报价的方案。"},{"question":"交货周期是多久？","answer":"标准产品 3 个工作日内发货，定制订单按合同排期。"},{"question":"新问题OK?","answer":"请填写答案!"}],"accordion_mode":"custom"}}]}]}]}}}]}],"name":"自定义版块 #2"},{"id":"home_s_7","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_7","elements":[{"id":"home_e_7","type":"home-block","data":{"block_type":"custom:1","enabled":true,"label":"自定义版块 #1"}}]}],"name":"自定义版块 #1"},{"id":"home_s_6","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_6","elements":[{"id":"home_e_6","type":"home-block","data":{"block_type":"cta","enabled":true,"label":"行动号召","bg_image":"/themes/default/assets/themes/default/assets/images/cta/cta-smart-manufacturing.png","bg_color":"#0f172a","bg_opacity":52,"text_light":true,"layout":"container"}}]}],"name":"行动号召"}]}','text','home_blox_data','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (224,'home','home_blox_published','{"schema":1,"settings":[],"version":1,"source":"blox","active":true,"updated_at":1786989699,"sections":[{"id":"home_s_0","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_0","elements":[{"id":"home_e_0","type":"home-block","data":{"block_type":"banner","enabled":true,"label":"Banner 轮播图","banner_effect":"slide","items_mode":"custom","children":[{"id":"e_n8any76tu","type":"home-banner-item","data":{"title":"数字化转型解决方案","subtitle":"助力企业实现智能化升级","btn1_text":"了解更多","btn2_text":"","image":"https://picsum.photos/1920/600?random=1","btn1_url":"/about.html","btn2_url":"","link_url":"","link_target":"_self","content_motion":"clip-reveal"}},{"id":"e_bh6a0lcfd","type":"home-banner-item","data":{"title":"专业的技术服务团队","subtitle":"7x24小时为您保驾护航","btn1_text":"","btn2_text":"","image":"https://picsum.photos/1920/600?random=2","btn1_url":"","btn2_url":"","link_url":"","link_target":"_self","content_motion":"slide-left"}},{"id":"e_zelexkirr","type":"home-banner-item","data":{"title":"创新引领未来","subtitle":"持续创新，追求卓越","btn1_text":"","btn2_text":"","image":"https://picsum.photos/1920/600?random=3","btn1_url":"","btn2_url":"","link_url":"","link_target":"_self","content_motion":"slide-right"}}],"banner_content_motion":"clip-reveal","banner_background_motion":"zoom-in","banner_height_mode":"inherit"}}]}],"name":"Banner 轮播图"},{"id":"home_s_1","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_1","elements":[{"id":"home_e_1","type":"home-block","data":{"block_type":"about","enabled":true,"label":"关于我们","override_ratio":"2_1"}}],"span":12}],"name":"关于我们"},{"id":"home_s_2","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_2","elements":[{"id":"home_e_2","type":"home-block","data":{"block_type":"stats","enabled":true,"label":"数据统计"}}]}],"name":"数据统计"},{"id":"home_s_3","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_3","elements":[{"id":"home_e_3","type":"home-block","data":{"block_type":"channel:31","enabled":true,"label":"产品中心","limit":8,"per_row":4,"sort":"recommend"}}]}],"name":"产品中心"},{"id":"home_s_4","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_4","elements":[{"id":"home_e_4","type":"home-block","data":{"block_type":"channel:33","enabled":true,"label":"栏目内容 #7"}}]}],"name":"栏目内容 #7"},{"id":"home_s_5","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_5","elements":[{"id":"home_e_5","type":"home-block","data":{"block_type":"advantage","enabled":true,"label":"我们的优势"}}]}],"name":"我们的优势"},{"id":"home_s_8","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_8","elements":[{"id":"home_e_8","type":"home-block","data":{"block_type":"custom:2","enabled":true,"label":"自定义版块 #2","custom_overrides":{"zh_CN":[{"columns":[{"elements":[{"data":{"accordion_items":[{"question":"如何购买你们的产品？","answer":"您可以通过在线表单留言或直接致电我们，客服团队会在一个工作日内回复。"},{"question":"你们提供售后服务吗？","answer":"提供。所有产品均含一年质保和终身技术支持。"},{"question":"支持定制吗？","answer":"支持。告诉我们您的需求，我们会评估并给出带报价的方案。"},{"question":"交货周期是多久？","answer":"标准产品 3 个工作日内发货，定制订单按合同排期。"},{"question":"新问题OK?","answer":"请填写答案!"}],"accordion_mode":"custom"}}]}]}]}}}]}],"name":"自定义版块 #2"},{"id":"home_s_7","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_7","elements":[{"id":"home_e_7","type":"home-block","data":{"block_type":"custom:1","enabled":true,"label":"自定义版块 #1"}}]}],"name":"自定义版块 #1"},{"id":"home_s_6","type":"section","settings":{"title":"","subtitle":"","padding":"none","max_width":"full","container_gutter":"none","gap":"none"},"columns":[{"id":"home_c_6","elements":[{"id":"home_e_6","type":"home-block","data":{"block_type":"cta","enabled":true,"label":"行动号召","bg_image":"/themes/default/assets/themes/default/assets/images/cta/cta-smart-manufacturing.png","bg_color":"#0f172a","bg_opacity":52,"text_light":true,"layout":"container"}}]}],"name":"行动号召"}]}','text','home_blox_published','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (225,'home','home_blox_active','1','text','home_blox_active','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (226,'basic','home_custom_1','{"title":"价格方案","blocks":[{"id":"s_6a62e4e34e07c","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","gap":"md","col_card":true,"title":"价格方案","subtitle":"选择最适合你的方案，随时可升级"},"columns":[{"id":"c_6a62e4e34e07d","elements":[{"id":"e_6a62e4e34e07e","type":"heading","data":{"text":"基础版","level":"h3","align":"left"}},{"id":"e_6a62e4e34e07f","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700\">¥99</span> <span style=\"color:#888\">/ 月</span></p>"}},{"id":"e_6a62e4e34e080","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>核心功能</li><li>5 个项目</li><li>邮件支持</li></ul>"}},{"id":"e_6a62e4e34e081","type":"button","data":{"text":"选择基础版","url":"/contact.html","new_tab":false}}]},{"id":"c_6a62e4e34e082","elements":[{"id":"e_6a62e4e34e083","type":"text","data":{"html":"<div style=\"text-align:center;margin-bottom:6px\"><span style=\"display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px\">★ 推荐</span></div>"}},{"id":"e_6a62e4e34e084","type":"heading","data":{"text":"专业版","level":"h3","align":"left"}},{"id":"e_6a62e4e34e085","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700;color:#4f46e5\">¥299</span> <span style=\"color:#888\">/ 月</span></p>"}},{"id":"e_6a62e4e34e086","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>全部基础版功能</li><li>无限项目</li><li>优先支持</li><li>数据分析</li></ul>"}},{"id":"e_6a62e4e34e087","type":"button","data":{"text":"选择专业版","url":"/contact.html","new_tab":false}}],"card_bg":"#fffbeb"},{"id":"c_6a62e4e34e088","elements":[{"id":"e_6a62e4e34e089","type":"heading","data":{"text":"旗舰版","level":"h3","align":"left"}},{"id":"e_6a62e4e34e08a","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700\">¥999</span> <span style=\"color:#888\">/ 月</span></p>"}},{"id":"e_6a62e4e34e08b","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>全部专业版功能</li><li>专属客户经理</li><li>定制开发</li><li>SLA 保障</li></ul>"}},{"id":"e_6a62e4e34e08c","type":"button","data":{"text":"联系销售","url":"/contact.html","new_tab":false}}]}]}]}','text','home_custom_1','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (227,'basic','home_custom_2','{"title":"常见问题","blocks":[{"id":"s_6a65dab852428","settings":{"title":"常见问题","subtitle":"关于购买、售后与定制的常见问题解答","bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"md"},"columns":[{"id":"c_6a65dab85242b","elements":[{"id":"e_6a65dab85242c","type":"accordion","data":{"items":"如何购买你们的产品？|您可以通过在线表单留言或直接致电我们，客服团队会在一个工作日内回复。\n你们提供售后服务吗？|提供。所有产品均含一年质保和终身技术支持。\n支持定制吗？|支持。告诉我们您的需求，我们会评估并给出带报价的方案。\n交货周期是多久？|标准产品 3 个工作日内发货，定制订单按合同排期。","open_first":true,"seo_schema":true}}]}]}]}','text','home_custom_2','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (228,'basic','home_custom_1_en','{"title":"Pricing Plans","blocks":[{"id":"s_6a62e4e34e07c","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","gap":"md","col_card":true,"title":"Pricing Plans","subtitle":"Choose the plan that fits you best — upgrade anytime"},"columns":[{"id":"c_6a62e4e34e07d","elements":[{"id":"e_6a62e4e34e07e","type":"heading","data":{"text":"Basic","level":"h3","align":"left"}},{"id":"e_6a62e4e34e07f","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700\">$99</span> <span style=\"color:#888\">/ mo</span></p>"}},{"id":"e_6a62e4e34e080","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>Core features</li><li>5 projects</li><li>Email support</li></ul>"}},{"id":"e_6a62e4e34e081","type":"button","data":{"text":"Choose Basic","url":"/contact.html","new_tab":false}}]},{"id":"c_6a62e4e34e082","elements":[{"id":"e_6a62e4e34e083","type":"text","data":{"html":"<div style=\"text-align:center;margin-bottom:6px\"><span style=\"display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px\">★ Recommended</span></div>"}},{"id":"e_6a62e4e34e084","type":"heading","data":{"text":"Professional","level":"h3","align":"left"}},{"id":"e_6a62e4e34e085","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700;color:#4f46e5\">$299</span> <span style=\"color:#888\">/ mo</span></p>"}},{"id":"e_6a62e4e34e086","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>All Basic features</li><li>Unlimited projects</li><li>Priority support</li><li>Analytics</li></ul>"}},{"id":"e_6a62e4e34e087","type":"button","data":{"text":"Choose Professional","url":"/contact.html","new_tab":false}}],"card_bg":"#fffbeb"},{"id":"c_6a62e4e34e088","elements":[{"id":"e_6a62e4e34e089","type":"heading","data":{"text":"Flagship","level":"h3","align":"left"}},{"id":"e_6a62e4e34e08a","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700\">$999</span> <span style=\"color:#888\">/ mo</span></p>"}},{"id":"e_6a62e4e34e08b","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>All Professional features</li><li>Dedicated account manager</li><li>Custom development</li><li>SLA guarantee</li></ul>"}},{"id":"e_6a62e4e34e08c","type":"button","data":{"text":"Contact Sales","url":"/contact.html","new_tab":false}}]}]}]}','text','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (229,'basic','home_custom_2_en','{"title":"FAQ","blocks":[{"id":"s_6a65dab852428","settings":{"title":"FAQ","subtitle":"Answers to common questions about purchasing, after-sales and customization","bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"md"},"columns":[{"id":"c_6a65dab85242b","elements":[{"id":"e_6a65dab85242c","type":"accordion","data":{"items":"How can I purchase your products?|You can leave a message via the online form or call us directly. Our support team will reply within one business day.\nDo you provide after-sales service?|Yes. All products include a one-year warranty and lifetime technical support.\nDo you offer customization?|Yes. Tell us your requirements and we will evaluate and provide a solution with a quote.\nWhat is the delivery time?|Ships within 3 business days for standard products; custom orders follow the contract schedule.","open_first":true,"seo_schema":true}}]}]}]}','text','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (230,'basic','home_custom_1_ja','{"title":"料金プラン","blocks":[{"id":"s_6a62e4e34e07c","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","gap":"md","col_card":true,"title":"料金プラン","subtitle":"最適なプランをお選びください。いつでもアップグレードできます"},"columns":[{"id":"c_6a62e4e34e07d","elements":[{"id":"e_6a62e4e34e07e","type":"heading","data":{"text":"ベーシック","level":"h3","align":"left"}},{"id":"e_6a62e4e34e07f","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700\">¥99</span> <span style=\"color:#888\">/ 月</span></p>"}},{"id":"e_6a62e4e34e080","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>基本機能</li><li>5 プロジェクト</li><li>メールサポート</li></ul>"}},{"id":"e_6a62e4e34e081","type":"button","data":{"text":"ベーシックを選ぶ","url":"/contact.html","new_tab":false}}]},{"id":"c_6a62e4e34e082","elements":[{"id":"e_6a62e4e34e083","type":"text","data":{"html":"<div style=\"text-align:center;margin-bottom:6px\"><span style=\"display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px\">★ おすすめ</span></div>"}},{"id":"e_6a62e4e34e084","type":"heading","data":{"text":"プロフェッショナル","level":"h3","align":"left"}},{"id":"e_6a62e4e34e085","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700;color:#4f46e5\">¥299</span> <span style=\"color:#888\">/ 月</span></p>"}},{"id":"e_6a62e4e34e086","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>ベーシックの全機能</li><li>無制限プロジェクト</li><li>優先サポート</li><li>アクセス解析</li></ul>"}},{"id":"e_6a62e4e34e087","type":"button","data":{"text":"プロを選ぶ","url":"/contact.html","new_tab":false}}],"card_bg":"#fffbeb"},{"id":"c_6a62e4e34e088","elements":[{"id":"e_6a62e4e34e089","type":"heading","data":{"text":"フラッグシップ","level":"h3","align":"left"}},{"id":"e_6a62e4e34e08a","type":"text","data":{"html":"<p style=\"text-align:center\"><span style=\"font-size:2rem;font-weight:700\">¥999</span> <span style=\"color:#888\">/ 月</span></p>"}},{"id":"e_6a62e4e34e08b","type":"text","data":{"html":"<ul style=\"list-style:none;padding:0;margin:0;line-height:2.2;color:#555\"><li>プロの全機能</li><li>専任アカウントマネージャー</li><li>カスタム開発</li><li>SLA 保証</li></ul>"}},{"id":"e_6a62e4e34e08c","type":"button","data":{"text":"営業に問い合わせ","url":"/contact.html","new_tab":false}}]}]}]}','text','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (231,'basic','home_custom_2_ja','{"title":"よくある質問","blocks":[{"id":"s_6a65dab852428","settings":{"title":"よくある質問","subtitle":"ご購入・アフターサービス・カスタマイズに関するよくあるご質問","bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"md"},"columns":[{"id":"c_6a65dab85242b","elements":[{"id":"e_6a65dab85242c","type":"accordion","data":{"items":"製品はどのように購入できますか？|オンラインフォームからメッセージを送るか、直接お電話ください。サポートチームが1営業日以内に返信いたします。\nアフターサービスはありますか？|はい。すべての製品に1年間の保証と永年の技術サポートが付属します。\nカスタマイズは可能ですか？|はい。ご要望をお知らせいただければ、検討のうえお見積り付きでご提案します。\n納期はどのくらいですか？|標準製品は3営業日以内に出荷します。カスタム注文は契約のスケジュールに従います。","open_first":true,"seo_schema":true}}]}]}]}','text','','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (232,'basic','home_stat_1_icon','award','text','home_stat_1_icon','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (233,'basic','home_stat_2_icon','users','text','home_stat_2_icon','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (234,'basic','home_stat_3_icon','briefcase','text','home_stat_3_icon','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (235,'basic','home_stat_4_icon','thumb-up','text','home_stat_4_icon','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (236,'basic','home_title_style','split','text','home_title_style','',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (81,'email','smtp_host','','text','SMTP服务器','',NULL,1);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (82,'email','smtp_port','465','text','SMTP端口','',NULL,2);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (83,'email','smtp_secure','ssl','text','加密方式','',NULL,3);
@@ -2567,7 +2610,6 @@ INSERT INTO "yikai_timelines" ("id", "lang", "translation_group_id", "year", "mo
 DROP TABLE IF EXISTS "yikai_users";
 CREATE TABLE "yikai_users" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-  "totp_secret" TEXT NOT NULL DEFAULT '',
   "username" TEXT NOT NULL,
   "password" TEXT NOT NULL,
   "nickname" TEXT NOT NULL DEFAULT '',
@@ -2579,7 +2621,8 @@ CREATE TABLE "yikai_users" (
   "last_login_ip" TEXT NOT NULL DEFAULT '',
   "login_count" INTEGER NOT NULL DEFAULT '0',
   "created_at" INTEGER NOT NULL DEFAULT '0',
-  "updated_at" INTEGER NOT NULL DEFAULT '0'
+  "updated_at" INTEGER NOT NULL DEFAULT '0',
+  "totp_secret" TEXT NOT NULL DEFAULT ''
 );
 CREATE UNIQUE INDEX "uk_username_yikai_users" ON "yikai_users" ("username");
 CREATE INDEX "idx_status_yikai_users" ON "yikai_users" ("status");
@@ -2596,15 +2639,8 @@ PRAGMA foreign_keys = ON;
 INSERT INTO "yikai_contents" ("id", "lang", "translation_group_id", "channel_id", "type", "title", "subtitle", "slug", "cover", "images", "summary", "content", "content_type", "blocks_data", "author", "source", "tags", "attachment", "download_count", "price", "specs", "location", "salary", "requirements", "headcount", "job_type", "education", "experience", "is_top", "is_recommend", "is_hot", "views", "likes", "seo_title", "seo_keywords", "seo_description", "status", "sort_order", "publish_time", "created_at", "updated_at", "admin_id", "client_name", "industry", "duration", "result_metric") VALUES (67,'zh-CN',67,1,'page','关于我们','','about','',NULL,'了解我们的企业文化与发展历程','<section class="py-12"><div class="max-w-6xl mx-auto px-4"><h2 class="text-2xl font-bold mb-4">公司简介</h2><div class="prose prose-lg max-w-none"><p style="text-align:center">我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。</p></div></div></section><section class="py-12"><div class="max-w-6xl mx-auto px-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center"><div><img class="w-full rounded-lg" src="https://picsum.photos/800/533?random=210" alt="公司环境 / 团队照片" loading="lazy"></div><div><h3 class="text-xl font-bold mb-4">我们的故事</h3><div class="prose prose-lg max-w-none"><p>多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。</p><p>未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。</p></div><div class="mt-2"><a class="inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg transition no-underline" style="color:#fff;text-decoration:none" href="#">了解更多</a></div></div></div></div></section><section class="py-12" style="background-color:#f8fafc;"><div class="max-w-6xl mx-auto px-4"><div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center"><div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center"><div class="text-center my-2"><i class="ti ti-award inline-block" style="font-size:48px;line-height:1;"></i></div><h4 class="text-lg font-bold mb-4">专业团队</h4><div class="prose prose-lg max-w-none"><p style="text-align:center">经验丰富的专业团队，为您提供全流程的贴心支持。</p></div></div><div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center"><div class="text-center my-2"><i class="ti ti-shield inline-block" style="font-size:48px;line-height:1;"></i></div><h4 class="text-lg font-bold mb-4">品质保证</h4><div class="prose prose-lg max-w-none"><p style="text-align:center">严格的品质管理体系，确保每一个环节都值得信赖。</p></div></div><div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center"><div class="text-center my-2"><i class="ti ti-users inline-block" style="font-size:48px;line-height:1;"></i></div><h4 class="text-lg font-bold mb-4">贴心服务</h4><div class="prose prose-lg max-w-none"><p style="text-align:center">快速响应的售前售后服务，与您携手共创价值。</p></div></div></div></div></section><section class="py-8"><div class="max-w-6xl mx-auto px-4"><div style="background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))" class="rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl"><div style="color:#fff" class="text-2xl md:text-4xl font-bold mb-3">想进一步了解我们？</div><div style="color:rgba(255,255,255,.9)" class="text-base md:text-lg mb-8 max-w-2xl mx-auto">欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。</div><a href="/contact.html" style="background:#fff;color:var(--color-primary);text-decoration:none" class="inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition">立即联系我们 <i class="ti ti-arrow-right text-lg"></i></a></div></div></section>','blocks','[{"id":"s","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"center","justify_items":"center","gap":"lg"},"columns":[{"id":"c","elements":[{"id":"e","type":"heading","data":{"text":"公司简介","level":"h2"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E我们是一家专注于行业领域的企业，自成立以来始终坚持以客户为中心，凭借专业的团队与可靠的品质，为国内外客户提供优质的产品与服务。\u003C\/p\u003E"}}]}]},{"id":"s","settings":{"bg_color":"","bg_image":"","padding":"lg","max_width":"default","align_items":"center","justify_items":"stretch","gap":"lg"},"columns":[{"id":"c","elements":[{"id":"e","type":"image","data":{"src":"https:\/\/picsum.photos\/800\/533?random=210","alt":"公司环境 \/ 团队照片","click_action":"","link_url":"","link_new_tab":false}}]},{"id":"c","elements":[{"id":"e","type":"heading","data":{"text":"我们的故事","level":"h3"}},{"id":"e","type":"text","data":{"html":"\u003Cp\u003E多年来，我们深耕行业，持续投入研发与创新，建立了完善的品质管理体系。我们相信，只有真正理解客户需求，才能创造长久的价值。\u003C\/p\u003E\u003Cp\u003E未来，我们将继续秉持匠心，为客户与合作伙伴带来更卓越的体验。\u003C\/p\u003E"}},{"id":"e","type":"button","data":{"text":"了解更多","url":"#","new_tab":false}}]}]},{"id":"s","settings":{"bg_color":"#f8fafc","bg_image":"","padding":"lg","max_width":"default","align_items":"stretch","justify_items":"center","gap":"lg","col_card":true},"columns":[{"id":"c","elements":[{"id":"e","type":"icon","data":{"icon":"award","size":"lg","color":"","text":""}},{"id":"e","type":"heading","data":{"text":"专业团队","level":"h4"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E经验丰富的专业团队，为您提供全流程的贴心支持。\u003C\/p\u003E"}}]},{"id":"c","elements":[{"id":"e","type":"icon","data":{"icon":"shield","size":"lg","color":"","text":""}},{"id":"e","type":"heading","data":{"text":"品质保证","level":"h4"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E严格的品质管理体系，确保每一个环节都值得信赖。\u003C\/p\u003E"}}]},{"id":"c","elements":[{"id":"e","type":"icon","data":{"icon":"users","size":"lg","color":"","text":""}},{"id":"e","type":"heading","data":{"text":"贴心服务","level":"h4"}},{"id":"e","type":"text","data":{"html":"\u003Cp style=\"text-align:center\"\u003E快速响应的售前售后服务，与您携手共创价值。\u003C\/p\u003E"}}]}]},{"id":"s","settings":{"bg_color":"","bg_image":"","padding":"md","max_width":"default","align_items":"stretch","justify_items":"stretch","gap":"md"},"columns":[{"id":"c","elements":[{"id":"e","type":"code","data":{"html":"\u003Cdiv style=\"background:linear-gradient(120deg,var(--color-primary),var(--color-secondary))\" class=\"rounded-2xl px-6 py-14 md:py-16 text-center shadow-xl\"\u003E\u003Cdiv style=\"color:#fff\" class=\"text-2xl md:text-4xl font-bold mb-3\"\u003E想进一步了解我们？\u003C\/div\u003E\u003Cdiv style=\"color:rgba(255,255,255,.9)\" class=\"text-base md:text-lg mb-8 max-w-2xl mx-auto\"\u003E欢迎随时与我们联系，专业团队将竭诚为您提供咨询与解决方案。\u003C\/div\u003E\u003Ca href=\"\/contact.html\" style=\"background:#fff;color:var(--color-primary);text-decoration:none\" class=\"inline-flex items-center gap-2 font-semibold px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-1 transition\"\u003E立即联系我们 \u003Ci class=\"ti ti-arrow-right text-lg\"\u003E\u003C\/i\u003E\u003C\/a\u003E\u003C\/div\u003E"}}]}]}]','','','','',0,0.00,NULL,'','',NULL,'','','','',0,0,0,0,0,'关于我们','公司简介,企业文化,核心优势','了解我们的企业文化、发展历程与核心优势。',1,0,1776652898,1776652898,1776652898,1,'','','','');
 -- 「关于我们」为父栏目，默认自动跳转到第一个子栏目（公司简介）。
 -- 其自带的排版内容保留：把跳转方式改为「不跳转」即可直接展示，无需从零搭。
-UPDATE "yikai_channels" SET "redirect_type"='auto', "show_sidebar"=0 WHERE "id"=1;
+UPDATE `yikai_channels` SET `redirect_type`='auto', `show_sidebar`=0 WHERE `id`=1;
 -- @demo:end
-
--- 回收站软删除索引（补装）
-CREATE INDEX "idx_contents_deleted" ON "yikai_contents" ("deleted_at");
-CREATE INDEX "idx_products_deleted" ON "yikai_products" ("deleted_at");
-CREATE INDEX "idx_downloads_deleted" ON "yikai_downloads" ("deleted_at");
-CREATE INDEX "idx_jobs_deleted" ON "yikai_jobs" ("deleted_at");
-CREATE INDEX "idx_albums_deleted" ON "yikai_albums" ("deleted_at");
 
 -- contact_map_settings（补装）
 INSERT OR IGNORE INTO "yikai_settings" ("group", "key", "value", "type", "name", "tip", "sort_order") VALUES
@@ -2623,7 +2659,8 @@ CREATE TABLE "yikai_admin_menu_usage" (
   "title" TEXT NOT NULL DEFAULT '',
   "icon" TEXT NOT NULL DEFAULT '',
   "used_count" INTEGER NOT NULL DEFAULT 0,
-  "last_used_at" TEXT NOT NULL,
-  UNIQUE("admin_id", "url")
+  "last_used_at" TEXT NOT NULL
 );
-CREATE INDEX "idx_yikai_admin_menu_usage_admin_last" ON "yikai_admin_menu_usage" ("admin_id", "last_used_at");
+CREATE UNIQUE INDEX "uniq_admin_url_yikai_admin_menu_usage" ON "yikai_admin_menu_usage" ("admin_id", "url");
+CREATE INDEX "idx_admin_last_yikai_admin_menu_usage" ON "yikai_admin_menu_usage" ("admin_id", "last_used_at");
+
