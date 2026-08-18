@@ -182,7 +182,9 @@ while ($i < $N) {
     }
 
     // INSERT INTO `table` (`col1`, `col2`, ...) VALUES (...);
-    if (preg_match('/^INSERT INTO `(\w+)`/i', $line)) {
+    // MySQL 的 INSERT IGNORE → SQLite 的 INSERT OR IGNORE（如 contact 地图设置的幂等种子）
+    $line = preg_replace('/^INSERT IGNORE INTO /i', 'INSERT OR IGNORE INTO ', $line);
+    if (preg_match('/^INSERT (?:OR IGNORE )?INTO `(\w+)`/i', $line)) {
         // 反引号 → 双引号
         $converted = preg_replace_callback('/`(\w+)`/', fn($m) => '"' . $m[1] . '"', $line);
         // 转换字符串字面量中的 MySQL 转义到 SQLite 兼容
