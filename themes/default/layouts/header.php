@@ -210,7 +210,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
-                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
+                <button id="mobileMenuBtn" class="xl:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -219,9 +219,9 @@ function getChannelUrl(array $channel): string {
                 </button>
             </div>
         </div>
-        <nav class="hidden md:block border-t" style="border-color: rgba(0,0,0,0.06)"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
+        <nav class="hidden xl:block border-t" style="border-color: rgba(0,0,0,0.06)"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
             <div class="container mx-auto px-4">
-                <div class="flex items-center gap-1">
+                <div class="flex flex-nowrap items-center gap-1 whitespace-nowrap">
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
@@ -234,7 +234,7 @@ function getChannelUrl(array $channel): string {
                     <?php if ($hasChildren): ?>
                     <div class="nav-dropdown">
                         <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
-                           class="flex items-center gap-1 px-4 py-3 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
+                           class="flex items-center gap-1 px-2 py-3 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                             <?php echo e($navItem['name']); ?>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -246,7 +246,7 @@ function getChannelUrl(array $channel): string {
                     </div>
                     <?php else: ?>
                     <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
-                       class="px-4 py-3 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
+                       class="px-2 py-3 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
                     <?php endif; ?>
@@ -265,7 +265,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <nav class="hidden md:flex items-center gap-1"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
+                <nav class="hidden xl:flex flex-nowrap items-center gap-1 min-w-0 whitespace-nowrap"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
@@ -278,7 +278,7 @@ function getChannelUrl(array $channel): string {
                     <?php if ($hasChildren): ?>
                     <div class="nav-dropdown">
                         <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
-                           class="flex items-center gap-1 px-4 py-2 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
+                           class="flex items-center gap-1 px-2 py-2 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                             <?php echo e($navItem['name']); ?>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -290,7 +290,7 @@ function getChannelUrl(array $channel): string {
                     </div>
                     <?php else: ?>
                     <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
-                       class="px-4 py-2 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
+                       class="px-2 py-2 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
                     <?php endif; ?>
@@ -326,7 +326,7 @@ function getChannelUrl(array $channel): string {
                     <script>document.addEventListener('click',function(e){if(!document.getElementById('langSwitcher').contains(e.target))document.getElementById('langDropdown').classList.add('hidden')});</script>
                     <?php endif; ?>
                 </nav>
-                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
+                <button id="mobileMenuBtn" class="xl:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -338,7 +338,7 @@ function getChannelUrl(array $channel): string {
         <?php endif; ?>
 
         <!-- Mobile menu -->
-        <nav id="mobileMenu" class="md:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
+        <nav id="mobileMenu" class="xl:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
                 <?php foreach ($navChannels as $navItem): ?>
                 <?php $hasChildren = !empty($navItem['children']); ?>

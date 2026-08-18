@@ -2,7 +2,7 @@
 /**
  * 移动抽屉导航 —— 汉堡按钮 + 侧滑抽屉 + 遮罩，自足渲染（含二级子栏目）。
  *
- * 头模板生态件（r8）：内建 lg:hidden（仅移动/平板显示）——桌面导航由 NavElement
+ * 头模板生态件（r8）：内建 xl:hidden（移动/平板及窄桌面显示）——桌面导航由 NavElement
  * 承担（配 hide_on=['m'] 隐藏移动端），两件组合即完整响应式头部导航。
  * 子栏目直接吃 getNavChannels() 树（与 default 主题同源），不经 TagEngine——
  * {yk:nav} 目前无子级循环能力（多级下拉排期 r9）。
@@ -75,7 +75,7 @@ final class NavDrawerElement extends AbstractElement
 
         // 类名全部字面量（Tailwind 扫描）；抽屉初始 hidden，JS 切换
         $panelSide = $side === 'left' ? 'left-0' : 'right-0';
-        return '<div class="lg:hidden" data-yk-nav-drawer data-side="' . $side . '"' . $this->animationAttrs($data) . '>'
+        return '<div class="xl:hidden" data-yk-nav-drawer data-side="' . $side . '"' . $this->animationAttrs($data) . '>'
             . '<button type="button" data-yk-drawer-open aria-label="' . htmlspecialchars(__('blox_drawer_open'), ENT_QUOTES) . '"'
             . ' class="inline-flex items-center justify-center w-10 h-10 rounded text-gray-700 hover:bg-gray-100">'
             . '<i class="ti ti-menu-2 text-2xl"></i></button>'
