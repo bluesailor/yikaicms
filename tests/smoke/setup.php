@@ -120,7 +120,10 @@ $cfg = preg_replace(
 // SITE_URL 指向本地冒烟服务器
 $smokeSiteUrl = getenv('SMOKE_SITE_URL') ?: 'http://127.0.0.1:8080';
 $cfg = preg_replace("/define\('SITE_URL',\s*'[^']*'\)/", "define('SITE_URL', '" . addslashes($smokeSiteUrl) . "')", $cfg);
-$cfg = preg_replace("/define\('DEBUG',\s*(?:true|false)\)/", "define('DEBUG', true)", $cfg);
+// 免费模式（SMOKE_BLOX_ADVANCED=0）关掉 DEBUG：bloxAdvancedFeaturesEnabled() 的 DEBUG
+// 旁路会无条件放行高级能力，只有走真实授权判定（无 key → license_free）才能模拟免费版。
+$smokeDebug = getenv('SMOKE_BLOX_ADVANCED') === '0' ? 'false' : 'true';
+$cfg = preg_replace("/define\('DEBUG',\s*(?:true|false)\)/", "define('DEBUG', " . $smokeDebug . ")", $cfg);
 file_put_contents($root . '/config/config.php', $cfg);
 
 // 2) 重建 sqlite 数据库文件 + 导入 schema
@@ -154,8 +157,9 @@ if ($smokeLang !== 'zh-CN') {
 }
 
 if (!$i18nOnly) {
-    // 浏览器回归必须显式通过设置闸；i18n 扫描不加载 Blox。
-    $advancedBlox = getenv('SMOKE_BLOX_ADVANCED') === '0' ? '0' : '1';
+    // v1.18 起 blox_editor_enabled 只管「基础编辑器」（免费能力），任何模式都保持开启；
+    // 免费/高级的区分由上方 DEBUG 开关 + 真实授权判定承担（SMOKE_BLOX_ADVANCED=0 → DEBUG=false → 高级关）。
+    $advancedBlox = '1';
     $enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
     $enabled->execute([$advancedBlox, 'blox_editor_enabled']);
 
