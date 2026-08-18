@@ -26,11 +26,19 @@ $pageDescription = sprintf(__('history_page_description'), configRawLang('site_n
 $isHistoryPage = true;
 
 // 获取"关于我们"父栏目及子栏目（用于侧边栏）
-$aboutChannel = channelModel()->findBy('slug', 'about');
+$historyChannel = getChannelBySlug('history', true);
+$aboutChannel = $historyChannel && !empty($historyChannel['parent_id'])
+    ? getChannel((int) $historyChannel['parent_id'])
+    : channelModel()->findBy('slug', 'about');
 $sidebarChannels = [];
 if ($aboutChannel) {
     $sidebarChannels = getChannels((int)$aboutChannel['id'], false);
 }
+
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && $historyChannel) {
+    $GLOBALS['ik_edit_url'] = pagePrimaryEditUrl($historyChannel);
+}
+$GLOBALS['ykBloxPageId'] = (int) ($historyChannel['id'] ?? 0);
 
 require_once theme_path('layouts/header.php');
 ?>

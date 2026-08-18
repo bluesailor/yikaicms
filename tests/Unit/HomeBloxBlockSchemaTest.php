@@ -285,6 +285,12 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('fade', $normalized['banner_effect']);
         $this->assertSame('none', $normalized['banner_content_motion']);
         $this->assertSame('zoom-out', $normalized['banner_background_motion']);
+
+        $impactMotion = HomeBloxBlockSchema::normalize([
+            'block_type' => 'banner',
+            'banner_content_motion' => 'pop-in',
+        ]);
+        $this->assertSame('pop-in', $impactMotion['banner_content_motion']);
         $this->assertSame(2, $normalized['banner_autoplay']);
         $this->assertSame(2000, $normalized['banner_speed']);
         $this->assertSame(0, $normalized['banner_stagger']);

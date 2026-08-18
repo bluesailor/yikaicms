@@ -75,4 +75,37 @@ final class PageBloxLegacyImportTest extends TestCase
         );
         self::assertNull(bloxPageDraftModel()->findByPageId($pageId));
     }
+
+    public function testLegacyOrganizationChartIsSeededAsStructuredElementWithoutWritingADraft(): void
+    {
+        $pageId = $this->insertRow('channels', [
+            'type' => 'page',
+            'lang' => 'zh-CN',
+            'name' => 'Organization',
+            'content' => '',
+            'updated_at' => 1,
+        ]);
+        $this->insertRow('contents', [
+            'channel_id' => $pageId,
+            'status' => 1,
+            'deleted_at' => null,
+            'is_top' => 0,
+            'content_type' => 'html',
+            'content' => '<div class="org-chart"><ul><li><div class="org-node org-ceo">CEO'
+                . '<span class="org-title">Chief executive</span></div><ul><li>'
+                . '<div class="org-node org-dept">Engineering</div></li></ul></li></ul></div>'
+                . '<p>Additional copy</p>',
+            'blocks_data' => null,
+        ]);
+
+        $state = PageBloxDocument::load($pageId);
+        $document = BloxDocumentPipeline::decode($state['document_json']);
+        $elements = $document['sections'][0]['columns'][0]['elements'];
+
+        self::assertFalse($state['has_draft']);
+        self::assertSame(['org-chart', 'text'], array_column($elements, 'type'));
+        self::assertSame(['CEO', 'Engineering'], array_column($elements[0]['data']['nodes'], 'name'));
+        self::assertStringContainsString('Additional copy', $elements[1]['data']['html']);
+        self::assertNull(bloxPageDraftModel()->findByPageId($pageId));
+    }
 }

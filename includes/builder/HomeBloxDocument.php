@@ -68,6 +68,7 @@ public static function isActive(): bool
     /**
      * 将当前经典首页固化为 Blox 草稿，不启用 Blox，也不覆盖已有草稿。
      *
+     * @psalm-suppress PossiblyUnusedReturnValue 返回值由 migrations/ 与隔离测试消费（不在 Psalm projectFiles 内）
      * @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
      */
     public static function createDraftFromLegacy(): array

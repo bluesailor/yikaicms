@@ -320,6 +320,20 @@ final class BloxDocumentPipeline
                 if (isset($column['card_bg'])) {
                     $normalizedColumn['card_bg'] = AbstractElement::cssColor($column['card_bg']) ?? '';
                 }
+                if (isset($column['card_bg_image'])) {
+                    $normalizedColumn['card_bg_image'] = AbstractElement::cssImageUrl($column['card_bg_image']) ?? '';
+                }
+                if (isset($column['card_bg_overlay_color'])) {
+                    $normalizedColumn['card_bg_overlay_color'] = AbstractElement::cssColor(
+                        $column['card_bg_overlay_color']
+                    ) ?? '';
+                }
+                if (isset($column['card_bg_overlay_opacity'])) {
+                    $normalizedColumn['card_bg_overlay_opacity'] = max(
+                        0,
+                        min(100, (int) $column['card_bg_overlay_opacity'])
+                    );
+                }
                 $columns[] = $normalizedColumn;
             }
 
@@ -333,7 +347,14 @@ final class BloxDocumentPipeline
                     );
                 }
             }
-            foreach (['bg_color', 'bg_overlay_color', 'container_bg', 'title_color', 'subtitle_color'] as $colorKey) {
+            foreach ([
+                'bg_color',
+                'bg_overlay_color',
+                'container_bg',
+                'container_bg_overlay_color',
+                'title_color',
+                'subtitle_color',
+            ] as $colorKey) {
                 if (array_key_exists($colorKey, $settings)) {
                     $settings[$colorKey] = AbstractElement::cssColor($settings[$colorKey]) ?? '';
                 }
@@ -346,6 +367,12 @@ final class BloxDocumentPipeline
             }
             if (array_key_exists('bg_overlay_opacity', $settings)) {
                 $settings['bg_overlay_opacity'] = max(0, min(100, (int) $settings['bg_overlay_opacity']));
+            }
+            if (array_key_exists('container_bg_overlay_opacity', $settings)) {
+                $settings['container_bg_overlay_opacity'] = max(
+                    0,
+                    min(100, (int) $settings['container_bg_overlay_opacity'])
+                );
             }
             foreach ([
                 'bg_position' => ['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'],

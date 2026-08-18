@@ -151,7 +151,7 @@ function renderFrontEdit(): void
             var mk = document.createElement('a');
             mk.className = 'yk-logo-btn yk-logo-btn--make';
             mk.textContent = '★ ' + <?php echo json_encode(__('fe_make_logo'), JSON_UNESCAPED_UNICODE); ?>;
-            mk.href = '/admin/plugin_page.php?plugin=logo-maker#logoMakerLocalForm';
+            mk.href = '/admin/plugin_page.php?plugin=logo-maker#logo';
             mk.addEventListener('click', function (e) { e.stopPropagation(); });
             wrap.appendChild(mk);
           }

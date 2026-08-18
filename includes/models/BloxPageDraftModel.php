@@ -46,4 +46,38 @@ final class BloxPageDraftModel extends Model
             $this->updateById((int) $current['id'], ['published_at' => $publishedAt]);
         }
     }
+
+    public function hasPublishedStorage(): bool
+    {
+        if (!db()->tableExists('blox_page_drafts')) {
+            return false;
+        }
+        $table = $this->tableName();
+        if (db()->isSqlite()) {
+            foreach (db()->fetchAll("PRAGMA table_info('{$table}')") as $column) {
+                if ((string) ($column['name'] ?? '') === 'published_data') {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return db()->fetchOne(
+            'SELECT 1 AS ok FROM information_schema.COLUMNS'
+            . ' WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            [$table, 'published_data']
+        ) !== null;
+    }
+
+    public function publishForPage(int $pageId, string $documentJson, int $adminId = 0): int
+    {
+        if (!$this->hasPublishedStorage()) {
+            throw new RuntimeException(__('blox_channel_storage_missing'));
+        }
+        $id = $this->saveForPage($pageId, $documentJson, $adminId);
+        $this->updateById($id, [
+            'published_data' => $documentJson,
+            'published_at' => time(),
+        ]);
+        return $id;
+    }
 }

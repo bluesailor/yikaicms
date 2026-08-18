@@ -23,6 +23,7 @@ class JobDetailControllerTest extends TestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 parent_id INTEGER DEFAULT 0,
                 name TEXT, slug TEXT, type TEXT DEFAULT 'list',
+                lang TEXT DEFAULT 'zh-CN',
                 status INTEGER DEFAULT 1, is_nav INTEGER DEFAULT 1,
                 sort_order INTEGER DEFAULT 0
             )",
@@ -65,6 +66,19 @@ class JobDetailControllerTest extends TestCase
 
         $views = (int) db()->fetchColumn('SELECT views FROM jobs WHERE id = 1');
         $this->assertSame(6, $views, '浏览量应自增一次（5 → 6）');
+    }
+
+    public function testJobUsesChannelFromItsOwnLanguage(): void
+    {
+        $this->insertRow('channels', ['name' => 'Careers', 'slug' => 'job-en', 'type' => 'job', 'lang' => 'en', 'status' => 1]);
+        $this->insertRow('channels', ['name' => '採用情報', 'slug' => 'job-ja', 'type' => 'job', 'lang' => 'ja', 'status' => 1]);
+        $this->insertRow('jobs', ['lang' => 'ja', 'title' => 'PHP エンジニア', 'status' => 1, 'views' => 0]);
+
+        $vars = (new \JobDetailController())->prepare(1);
+
+        $this->assertNotNull($vars);
+        $this->assertSame('採用情報', $vars['channel']['name']);
+        $this->assertSame('job-ja', $vars['channel']['slug']);
     }
 
     public function testReturnsNullForUnpublishedJob(): void

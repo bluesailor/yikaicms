@@ -71,6 +71,16 @@ function tableExists(PDO $pdo, string $table): bool
     return $stmt->fetchColumn() !== false;
 }
 
+function columnExists(PDO $pdo, string $table, string $column): bool
+{
+    foreach ($pdo->query("PRAGMA table_info('{$table}')")->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if ((string) ($row['name'] ?? '') === $column) {
+            return true;
+        }
+    }
+    return false;
+}
+
 $safeTag = preg_replace('/[^a-zA-Z0-9_.-]/', '-', $from) ?: 'legacy';
 $dbPath = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR
     . 'yikaicms-blox-upgrade-' . $safeTag . '-' . bin2hex(random_bytes(5)) . '.sqlite';
@@ -151,6 +161,7 @@ echo "  migrations applied: {$ran}\n";
 
 $pdo = db()->getPdo();
 upgradeCheck(tableExists($pdo, 'yikai_blox_page_drafts'), 'Blox page draft storage exists after migration');
+upgradeCheck(columnExists($pdo, 'yikai_blox_page_drafts', 'published_data'), 'Blox channel publication storage exists after migration');
 upgradeCheck(settingValue($pdo, 'current_theme') === 'default', 'migration keeps the selected default theme');
 upgradeCheck(currentTheme() === 'default', 'runtime resolves the upgraded site to default');
 upgradeCheck(is_file(theme_path('layouts/header.php')), 'default header remains available');

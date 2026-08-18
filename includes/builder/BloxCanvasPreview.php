@@ -3,7 +3,11 @@
 
 declare(strict_types=1);
 
-function outputBloxCanvasPreview(bool $isHomeLayout, int $id): never
+/**
+ * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
+ * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
+ */
+function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 {
     // blox=1：Blox 画布请求。开编辑上下文让渲染器输出 data-yk-sec 定位标记，
     // 并注入点选/高亮/空区块占位脚本；排版编辑器的纯预览不带此参数，输出不变。
@@ -99,7 +103,126 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): never
         }
         $previewSections = is_array($previewSections) ? $previewSections : [];
         $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
-        $body = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+        $homeBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+
+        // 首页画布同时展示当前生效的 Blox 页头/页尾，帮助管理员判断首屏和整页比例。
+        // 它们是只读上下文，不进入首页 sections，也不参与首页保存；头尾模板仍在各自模板编辑器中修改。
+        $renderPublishedArea = static function (string $area): string {
+            if (!in_array($area, ['header', 'footer'], true)) {
+                return '';
+            }
+            if (!db()->tableExists('blox_templates')) {
+                return '';
+            }
+            $templates = bloxTemplateModel()->publishedAreaTemplates($area);
+            $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, [
+                'home' => true,
+                'channel_id' => 0,
+                'page_id' => 0,
+            ]);
+            if ($resolved === null) {
+                return '';
+            }
+            $publishedData = (string) ($resolved['published_data'] ?? '');
+            if ($publishedData === '') {
+                return '';
+            }
+            try {
+                $document = BloxAreaDocument::decode($area, $publishedData);
+                $html = BlockRenderer::render($publishedData);
+                if ($html === '') {
+                    return '';
+                }
+                return BloxAreaDocument::renderShell($area, $document['settings'], $html);
+            } catch (Throwable $e) {
+                error_log('[bloxCanvasPreview] area context: ' . $e->getMessage());
+                return '';
+            }
+        };
+
+        // 自定义区域未启用或没有命中时，画布仍需显示当前主题的默认头尾，
+        // 否则管理员看到的页面比例会与前台不一致。这里只截取主题布局的 body 区域，
+        // 不把主题的 html/head/main 外壳嵌入预览 iframe。
+        /** @psalm-suppress UnusedVariable 本闭包内变量均供 require 的主题布局模板使用 */
+        $renderThemeArea = static function (string $area): string {
+            $layout = theme_path_optional('layouts/' . $area . '.php');
+            if ($layout === null || !is_file($layout)) {
+                return '';
+            }
+            $pageTitle = __('home');
+            $pageDescription = '';
+            $pageKeywords = '';
+            $canonicalUrl = siteBaseUrl() . '/';
+            $ogType = 'website';
+            $ogImage = '';
+            $jsonLd = [];
+            $extraCss = '';
+            $extraJs = '';
+            $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+            $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
+            $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
+            $_SERVER['SCRIPT_NAME'] = '/index.php';
+            $GLOBALS['currentChannelId'] = 0;
+            $GLOBALS['ykBloxPageId'] = 0;
+            ob_start();
+            try {
+                require $layout;
+                $rendered = (string) ob_get_clean();
+            } catch (Throwable $e) {
+                ob_end_clean();
+                error_log('[bloxCanvasPreview] theme ' . $area . ': ' . $e->getMessage());
+                $rendered = '';
+            } finally {
+                $_SERVER['SCRIPT_NAME'] = $savedScriptName;
+                if ($savedChannelId === null) {
+                    unset($GLOBALS['currentChannelId']);
+                } else {
+                    $GLOBALS['currentChannelId'] = $savedChannelId;
+                }
+                if ($savedPageId === null) {
+                    unset($GLOBALS['ykBloxPageId']);
+                } else {
+                    $GLOBALS['ykBloxPageId'] = $savedPageId;
+                }
+            }
+            if ($rendered === '') {
+                return '';
+            }
+            if ($area === 'header') {
+                $bodyStart = stripos($rendered, '<body');
+                $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
+                $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
+                return $bodyEnd !== false && $mainStart !== false
+                    ? substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
+                    : '';
+            }
+            $footerStart = stripos($rendered, '<footer');
+            $footerEnd = $footerStart === false ? false : stripos($rendered, '</footer>', $footerStart);
+            return $footerStart !== false && $footerEnd !== false
+                ? substr($rendered, $footerStart, $footerEnd + strlen('</footer>') - $footerStart)
+                : '';
+        };
+
+        $wrapContextArea = static function (string $area, string $html, string $source): string {
+            if ($html === '') {
+                return '';
+            }
+            $label = $area === 'header' ? __('site_design_area_header') : __('site_design_area_footer');
+            $label .= ' · ' . ($source === 'theme' ? __('blox_preview_theme_default') : __('blox_preview_readonly'));
+            return '<div class="yk-home-context-area" data-yk-preview-label="'
+                . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">' . $html . '</div>';
+        };
+
+        $savedEditChannel = BlockRenderer::$editChannelId;
+        BlockRenderer::$editChannelId = 0;
+        $headerEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
+        $footerEnabled = (string) config('blox_custom_footer_enabled', '1') === '1';
+        $headerBlox = $headerEnabled ? $renderPublishedArea('header') : '';
+        $footerBlox = $footerEnabled ? $renderPublishedArea('footer') : '';
+        $headerBody = $wrapContextArea('header', $headerBlox !== '' ? $headerBlox : $renderThemeArea('header'), $headerBlox !== '' ? 'blox' : 'theme');
+        $footerBody = $wrapContextArea('footer', $footerBlox !== '' ? $footerBlox : $renderThemeArea('footer'), $footerBlox !== '' ? 'blox' : 'theme');
+        BlockRenderer::$editChannelId = $savedEditChannel;
+        $body = $headerBody . $homeBody . $footerBody;
     } else {
         $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
     }
@@ -116,6 +239,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): never
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
 .yk-ctx-dim{opacity:.42;pointer-events:none;user-select:none;filter:grayscale(.35);position:relative}
 .yk-ctx-dim:before{content:'';position:absolute;inset:0;z-index:20;background:repeating-linear-gradient(135deg,transparent 0 14px,rgba(100,116,139,.05) 14px 28px)}
+.yk-home-context-area{position:relative;pointer-events:none;user-select:none;opacity:.86;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1}
+.yk-home-context-area:before{content:attr(data-yk-preview-label);position:absolute;z-index:40;top:6px;left:8px;padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;background:rgba(248,250,252,.94);color:#64748b;font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0;pointer-events:none}
 [data-yk-hide-on]{position:relative}
 [data-yk-hide-on]:before{content:'\2298 ' attr(data-yk-hide-on);position:absolute;z-index:28;top:4px;left:4px;padding:2px 7px;border-radius:4px;background:#64748b;color:#fff;font:700 10px/1.4 system-ui,sans-serif;pointer-events:none;opacity:.85}
 [data-yk-conditions]{position:relative}
@@ -206,7 +331,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         window.parent.postMessage(message, editorOrigin);
     }
 
-    // 头尾模板画布：把服务端算出的「当前上下文命中的已发布模板 id」上报编辑器（黄条提示用）
+    // Report the published header/footer template IDs matched by the current preview context.
     var ykAreaHost = document.querySelector('[data-yk-area][data-yk-ctx-hit]');
     if (ykAreaHost) {
         postToEditor({ ykAreaHit: parseInt(ykAreaHost.getAttribute('data-yk-ctx-hit'), 10) || 0 });
@@ -1351,6 +1476,7 @@ HTML;
         '<script' . $nonceAttr,
         BloxAssetCollector::renderScripts()
     );
+    $body = (string) preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script' . $nonceAttr, $body);
     $bloxInject = (string) preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script' . $nonceAttr, $bloxInject);
     $csp = "default-src 'self'; script-src 'self' 'nonce-" . $scriptNonce . "' 'strict-dynamic'; "
         . "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; "

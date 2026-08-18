@@ -285,9 +285,27 @@ final class BlockRenderer
                 $innerStyle .= 'background-image:' . AbstractElement::cssUrlLiteral($containerBgImage)
                     . ';background-size:cover;background-position:center;background-repeat:no-repeat;';
             }
+            $containerOverlayColor = AbstractElement::cssColor($settings['container_bg_overlay_color'] ?? null);
+            $containerOverlayOpacity = max(
+                0,
+                min(100, (int) ($settings['container_bg_overlay_opacity'] ?? 0))
+            );
+            $hasContainerOverlay = $containerBgImage !== null
+                && $containerOverlayColor !== null
+                && $containerOverlayOpacity > 0;
+            if ($hasContainerOverlay) {
+                $innerCls .= ($hasOverlay ? '' : ' relative') . ' overflow-hidden';
+            }
             $containerEditAttr = $editMode ? ' data-yk-con="' . (int) $secIndex . '"' : '';
             $html .= '<div class="' . $innerCls . '"' . $containerEditAttr
                 . ($innerStyle !== '' ? ' style="' . htmlspecialchars($innerStyle, ENT_QUOTES) . '"' : '') . '>';
+            if ($hasContainerOverlay) {
+                $containerOverlayStyle = 'background-color:' . $containerOverlayColor . ';opacity:'
+                    . round($containerOverlayOpacity / 100, 2) . ';';
+                $html .= '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="'
+                    . htmlspecialchars($containerOverlayStyle, ENT_QUOTES) . '"></div>';
+                $html .= '<div class="relative z-10">';
+            }
             // section 级标题（可选）：有 title 才渲染 —— 让"总标题 + 多列"在同一 section 内完成，
             // 无 title 的 section 输出与旧版完全一致（黄金对拍不变）。
             $secTitle = trim((string) ($settings['title'] ?? ''));
@@ -322,47 +340,90 @@ final class BlockRenderer
 
             $colCard = $colCount > 1 && !empty($settings['col_card']);
             foreach ($columns as $ci => $col) {
-                if ($colCount > 1) {
-                    $spanClass = $useCustomSpans && is_array($col)
-                        ? self::colSpanClass($col['span'] ?? 0, !empty($settings['tablet_stack']))
-                        : '';
-                    $editSpan = $useCustomSpans
-                        ? max(1, self::spanValue($col['span'] ?? 1, 'd'))
-                        : intdiv(12, $colCount) + ($ci < (12 % $colCount) ? 1 : 0);
-                    $colEditAttr = $editMode
-                        ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '" data-yk-col-span="' . $editSpan . '"'
-                        : '';
-                    $customColumnField = self::customHomeFieldPath(
-                        [(int) $secIndex, (int) $ci],
-                        'card_bg'
-                    );
-                    if ($customColumnField !== null) {
-                        $colEditAttr .= self::customHomeFieldAttributes($customColumnField, false);
-                    }
-                    [$colHideCls, $colHideAttr] = self::hideOn(is_array($col) ? ($col['hide_on'] ?? null) : null, $editMode);
-                    $spanClass = trim($spanClass . $colHideCls);
-                    $colEditAttr .= $colHideAttr;
+                $column = is_array($col) ? $col : [];
+                $spanClass = $colCount > 1 && $useCustomSpans
+                    ? self::colSpanClass($column['span'] ?? 0, !empty($settings['tablet_stack']))
+                    : '';
+                $editSpan = $colCount > 1
+                    ? ($useCustomSpans
+                        ? max(1, self::spanValue($column['span'] ?? 1, 'd'))
+                        : intdiv(12, $colCount) + ($ci < (12 % $colCount) ? 1 : 0))
+                    : 12;
+                $colEditAttr = $editMode
+                    ? ' data-yk-col="' . (int) $secIndex . '.' . (int) $ci . '" data-yk-col-span="' . $editSpan . '"'
+                    : '';
+                $customColumnField = self::customHomeFieldPath([(int) $secIndex, (int) $ci], 'card_bg');
+                if ($customColumnField !== null) {
+                    $colEditAttr .= self::customHomeFieldAttributes($customColumnField, false);
+                }
+                [$colHideCls, $colHideAttr] = self::hideOn($column['hide_on'] ?? null, $editMode);
+                $spanClass = trim($spanClass . $colHideCls);
+                $colEditAttr .= $colHideAttr;
+
+                $columnBg = AbstractElement::cssColor($column['card_bg'] ?? null);
+                $columnBgImage = AbstractElement::cssImageUrl($column['card_bg_image'] ?? null);
+                $columnOverlayColor = AbstractElement::cssColor($column['card_bg_overlay_color'] ?? null);
+                $columnOverlayOpacity = max(
+                    0,
+                    min(100, (int) ($column['card_bg_overlay_opacity'] ?? 0))
+                );
+                $hasColumnOverlay = $columnBgImage !== null
+                    && $columnOverlayColor !== null
+                    && $columnOverlayOpacity > 0;
+                $hasColumnVisual = $columnBg !== null || $columnBgImage !== null || $hasColumnOverlay;
+                $wrapColumn = $colCount > 1 || $editMode || $hasColumnVisual
+                    || $colHideCls !== '' || $colHideAttr !== '';
+
+                if ($wrapColumn) {
+                    $columnClass = $spanClass;
                     if ($colCard) {
-                        // Column card background highlights a specific column without affecting other columns.
-                        $cbg = AbstractElement::cssColor($col['card_bg'] ?? null);
-                        $html .= $cbg !== null
-                            ? '<div class="' . trim($spanClass . ' rounded-xl border border-gray-100 shadow-md p-6 h-full text-center flex flex-col yk-col-card') . '"' . $colEditAttr . ' style="background:' . htmlspecialchars($cbg, ENT_QUOTES) . '">'
-                            : '<div class="' . trim($spanClass . ' bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center flex flex-col yk-col-card') . '"' . $colEditAttr . '>';
-                    } else {
-                        $html .= '<div' . ($spanClass !== '' ? ' class="' . $spanClass . '"' : '') . $colEditAttr . '>';
+                        $columnClass = trim($columnClass
+                            . ($hasColumnVisual
+                                ? ' rounded-xl border border-gray-100 shadow-md p-6 h-full text-center flex flex-col yk-col-card'
+                                : ' bg-white rounded-xl border border-gray-100 shadow-sm p-6 h-full text-center flex flex-col yk-col-card'));
+                    }
+                    if ($hasColumnOverlay) {
+                        $columnClass = trim($columnClass . ' relative overflow-hidden');
+                    }
+
+                    $columnStyle = '';
+                    if ($columnBg !== null) {
+                        $columnStyle .= 'background-color:' . $columnBg . ';';
+                    }
+                    if ($columnBgImage !== null) {
+                        $columnStyle .= 'background-image:' . AbstractElement::cssUrlLiteral($columnBgImage)
+                            . ';background-size:cover;background-position:center;background-repeat:no-repeat;';
+                    }
+                    $html .= '<div'
+                        . ($columnClass !== '' ? ' class="' . $columnClass . '"' : '')
+                        . $colEditAttr
+                        . ($columnStyle !== '' ? ' style="' . htmlspecialchars($columnStyle, ENT_QUOTES) . '"' : '')
+                        . '>';
+                    if ($hasColumnOverlay) {
+                        $columnOverlayStyle = 'background-color:' . $columnOverlayColor . ';opacity:'
+                            . round($columnOverlayOpacity / 100, 2) . ';';
+                        $html .= '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="'
+                            . htmlspecialchars($columnOverlayStyle, ENT_QUOTES) . '"></div>';
+                        $html .= '<div class="relative z-10' . ($colCard ? ' flex h-full flex-col' : '') . '">';
                     }
                 }
-                foreach (($col['elements'] ?? []) as $ei => $el) {
+                foreach (($column['elements'] ?? []) as $ei => $el) {
                     if (is_array($el)) {
                         $html .= self::renderElement($el, 0, $editMode, [$secIndex, (int) $ci, (int) $ei]);
                     }
                 }
-                if ($colCount > 1) {
+                if ($wrapColumn) {
+                    if ($hasColumnOverlay) {
+                        $html .= '</div>';
+                    }
                     $html .= '</div>';
                 }
             }
 
             if ($gridClass) {
+                $html .= '</div>';
+            }
+            if ($hasContainerOverlay) {
                 $html .= '</div>';
             }
             $html .= '</div></section>';

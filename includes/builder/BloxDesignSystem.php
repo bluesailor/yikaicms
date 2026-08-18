@@ -102,6 +102,7 @@ final class BloxDesignSystem
         return $declarations === '' ? '' : '<style id="yk-blox-design-tokens">:root{' . $declarations . '}</style>';
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod 公开设计令牌 API（付费 Blox 编辑器/插件消费，不随本仓库分发） */
     public static function colorReference(string $id): string
     {
         return preg_match(self::ID_PATTERN, $id) === 1 ? 'var(--yk-color-' . $id . ')' : '';

@@ -206,6 +206,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                     </td>
                 </tr>
                 <?php foreach ($pages as $item): ?>
+                <?php
+                $itemUrl = channelUrl($item);
+                $itemEditUrl = pagePrimaryEditUrl($item);
+                $isTimelinePage = isTimelinePageChannel($item);
+                ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
                     <td class="px-4 py-3">
@@ -236,11 +241,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <code class="text-xs bg-gray-100 px-2 py-1 rounded">/<?php echo e($item['slug']); ?>.html</code>
+                        <code class="text-xs bg-gray-100 px-2 py-1 rounded"><?php echo e($itemUrl); ?></code>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <?php
-                        $itemUrl = '/' . $item['slug'] . '.html';
                         $inMain = !empty($item['is_nav']);
                         $inFooter = in_array($itemUrl, $footerNavUrls);
                         ?>
@@ -281,18 +285,18 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         </a>
                         <?php else: ?>
                         <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
-                        <a href="/admin/blox_editor.php?id=<?php echo $item['id']; ?>"
+                        <a href="<?php echo e($itemEditUrl); ?>"
                            data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                             class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
-                            <i class="ti ti-stack-2 text-sm"></i>
-                            <?php echo __('page_mode_blox'); ?>
+                            <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i>
+                            <?php echo $isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox')); ?>
                         </a>
-                        <?php if ($__isBlox): ?>
+                        <?php if ($__isBlox && !$isTimelinePage): ?>
                         <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
                               title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
                         <?php endif; ?>
                         <?php endif; ?>
-                        <a href="/<?php echo e($item['slug']); ?>.html" target="_blank"
+                        <a href="<?php echo e($itemUrl); ?>" target="_blank"
                            class="text-gray-500 hover:underline text-sm inline-flex items-center gap-1">
                             <i class="ti ti-external-link text-sm"></i>
                             <?php echo __('admin_preview'); ?>
@@ -329,6 +333,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
     </div>
     <div class="p-4 space-y-2">
         <?php foreach ($hiddenPages as $item): ?>
+        <?php
+        $itemUrl = channelUrl($item);
+        $itemEditUrl = pagePrimaryEditUrl($item);
+        $isTimelinePage = isTimelinePageChannel($item);
+        ?>
         <div class="flex items-center gap-3 px-4 py-2.5 bg-gray-50/70 rounded-lg border border-dashed hover:shadow-sm">
             <span class="text-gray-300"><i class="ti ti-eye-off text-base"></i></span>
             <span class="text-gray-400 font-medium"><?php echo e($item['name']); ?></span>
@@ -338,14 +347,14 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <?php if ($item['parent_name']): ?>
             <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400"><?php echo __('page_parent'); ?>：<?php echo e($item['parent_name']); ?></span>
             <?php endif; ?>
-            <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-400">/<?php echo e($item['slug']); ?>.html</code>
+            <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-400"><?php echo e($itemUrl); ?></code>
             <span class="flex-1"></span>
             <?php if (($item['type'] ?? '') !== 'album'): ?>
             <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
-            <a href="/admin/blox_editor.php?id=<?php echo $item['id']; ?>"
+            <a href="<?php echo e($itemEditUrl); ?>"
                data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                class="text-primary hover:underline text-sm inline-flex items-center gap-1 whitespace-nowrap">
-                <i class="ti ti-stack-2 text-sm"></i><?php echo __('page_mode_blox'); ?>
+                <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i><?php echo $isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox')); ?>
             </a>
             <?php endif; ?>
             <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"

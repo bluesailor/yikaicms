@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class HomeBannerItemElement extends AbstractElement
 {
-    private const CONTENT_MOTIONS = ['inherit', 'none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in'];
+    private const CONTENT_MOTIONS = ['inherit', 'none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in', 'clip-reveal', 'blur-up', 'pop-in'];
     private const BACKGROUND_MOTIONS = ['inherit', 'none', 'zoom-in', 'zoom-out'];
 
     public function type(): string { return 'home-banner-item'; }
@@ -33,6 +33,9 @@ final class HomeBannerItemElement extends AbstractElement
                     'slide-left' => __('blox_banner_motion_slide_left'),
                     'slide-right' => __('blox_banner_motion_slide_right'),
                     'zoom-in' => __('blox_banner_motion_zoom_in'),
+                    'clip-reveal' => __('blox_banner_motion_clip_reveal'),
+                    'blur-up' => __('blox_banner_motion_blur_up'),
+                    'pop-in' => __('blox_banner_motion_pop_in'),
                 ],
                 'option_icons' => [
                     'inherit' => 'settings',
@@ -41,6 +44,9 @@ final class HomeBannerItemElement extends AbstractElement
                     'slide-left' => 'arrow-left',
                     'slide-right' => 'arrow-right',
                     'zoom-in' => 'zoom-in',
+                    'clip-reveal' => 'scan',
+                    'blur-up' => 'blur',
+                    'pop-in' => 'sparkles',
                 ],
                 'help' => __('blox_home_banner_content_motion_help'),
             ],
@@ -93,7 +99,7 @@ final class HomeBannerItemElement extends AbstractElement
             . '<p class="text-sm text-gray-500 mt-1">' . e($item['subtitle']) . '</p></div></article>';
     }
 
-    /** @param array<string, mixed> $data @return array<string, string> */
+    /** @param array<string, mixed> $data @return array<string, mixed> */
     public static function normalize(array $data): array
     {
         $item = [];
@@ -108,6 +114,12 @@ final class HomeBannerItemElement extends AbstractElement
         $item['link_target'] = ($data['link_target'] ?? '_self') === '_blank' ? '_blank' : '_self';
         $item['content_motion'] = self::contentMotion($data);
         $item['background_motion'] = self::backgroundMotion($data);
+        $item['source_banner_id'] = max(0, (int) ($data['source_banner_id'] ?? $data['id'] ?? 0));
+        $item['translation_group_id'] = max(0, (int) ($data['translation_group_id'] ?? 0));
+        if ($item['translation_group_id'] === 0) {
+            $item['translation_group_id'] = $item['source_banner_id'];
+        }
+        $item['lang'] = mb_substr(trim(strip_tags((string) ($data['lang'] ?? ''))), 0, 20);
         return $item;
     }
 
@@ -170,15 +182,69 @@ final class HomeBannerItemElement extends AbstractElement
         return $html;
     }
 
-    /** @param array<string, mixed> $banner @return array<string, string> */
+    /** @param array<string, mixed> $banner @return array<string, mixed> */
     public static function fromLegacy(array $banner): array
     {
         return self::normalize($banner);
     }
 
     /**
+     * 只替换语言相关内容，保留 Blox 中设置的图片和逐张动效。
+     * 新文档按翻译组匹配；没有来源标识的旧文档按原顺序回退。
+     *
+     * @param array<int, array<string, mixed>> $customItems
+     * @param array<int, array<string, mixed>> $localizedBanners
+     * @return array<int, array<string, mixed>>
+     */
+    public static function applyLocalizedContent(array $customItems, array $localizedBanners): array
+    {
+        $localizedItems = [];
+        $localizedByGroup = [];
+        foreach ($localizedBanners as $banner) {
+            if (!is_array($banner)) {
+                continue;
+            }
+            $item = self::fromLegacy($banner);
+            $localizedItems[] = $item;
+            $groupId = (int) ($item['translation_group_id'] ?? 0);
+            if ($groupId > 0) {
+                $localizedByGroup[$groupId] = $item;
+            }
+        }
+
+        $localizedFields = [
+            'title',
+            'subtitle',
+            'btn1_text',
+            'btn1_url',
+            'btn2_text',
+            'btn2_url',
+            'link_url',
+            'link_target',
+        ];
+        foreach ($customItems as $index => &$customItem) {
+            if (!is_array($customItem)) {
+                continue;
+            }
+            $groupId = (int) ($customItem['translation_group_id'] ?? 0);
+            $localizedItem = $groupId > 0
+                ? ($localizedByGroup[$groupId] ?? null)
+                : ($localizedItems[$index] ?? null);
+            if (!is_array($localizedItem)) {
+                continue;
+            }
+            foreach ($localizedFields as $field) {
+                $customItem[$field] = $localizedItem[$field];
+            }
+        }
+        unset($customItem);
+
+        return $customItems;
+    }
+
+    /**
      * @param array<int, mixed> $children
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, mixed>>
      */
     public static function normalizeChildren(array $children, string $parentPath = ''): array
     {

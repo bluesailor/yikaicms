@@ -41,6 +41,7 @@ require_once __DIR__ . '/DynamicLoopTemplateRenderer.php';
 require_once __DIR__ . '/BlocksLibrary.php';
 require_once __DIR__ . '/HomeBloxDocument.php';
 require_once __DIR__ . '/PageBloxDocument.php';
+require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/HomeLayoutDocument.php';
 require_once __DIR__ . '/HomeBloxRenderContext.php';
 require_once __DIR__ . '/BlockRenderer.php';

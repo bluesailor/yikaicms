@@ -29,9 +29,17 @@ final class JobDetailController extends DetailController
         // 副作用：每次渲染自增一次浏览量。
         jobModel()->incrementViews($id);
 
-        // 招聘栏目：取第一个启用的 job 类型栏目（招聘通常只有一个）。
-        $channel  = null;
-        $channels = channelModel()->where(['type' => 'job', 'status' => 1]);
+        // 多语言站每种语言各有一个招聘栏目，优先跟随职位语言。
+        $channel = null;
+        $jobLang = trim((string) ($job['lang'] ?? ''));
+        $channelFilters = ['type' => 'job', 'status' => 1];
+        if ($jobLang !== '') {
+            $channelFilters['lang'] = $jobLang;
+        }
+        $channels = channelModel()->where($channelFilters);
+        if ($channels === [] && $jobLang !== '') {
+            $channels = channelModel()->where(['type' => 'job', 'status' => 1]);
+        }
         if (!empty($channels)) {
             $channel = $channels[0];
         }

@@ -3349,6 +3349,50 @@ function renderContentBody(array $content): string
 }
 
 /**
+ * 判断单页是否由独立的时间轴数据源渲染。
+ *
+ * 翻译页 slug 会变化，因此以源语言栏目的 slug 为准；查询结果按翻译组缓存，
+ * 避免后台列表逐行判断时产生重复查询。
+ */
+function isTimelinePageChannel(array $channel): bool
+{
+    if (($channel['type'] ?? '') !== 'page') {
+        return false;
+    }
+
+    $slug = (string) ($channel['slug'] ?? '');
+    $id = (int) ($channel['id'] ?? 0);
+    $sourceId = (int) ($channel['translation_group_id'] ?? 0);
+    if ($slug === 'history' || $sourceId <= 0 || $sourceId === $id) {
+        return $slug === 'history';
+    }
+
+    static $sourceSlugCache = [];
+    if (!array_key_exists($sourceId, $sourceSlugCache)) {
+        $source = channelModel()->find($sourceId);
+        $sourceSlugCache[$sourceId] = (string) ($source['slug'] ?? '');
+    }
+    return $sourceSlugCache[$sourceId] === 'history';
+}
+
+/** 单页的真实主编辑入口；动态时间轴不应进入不会生效的普通 Blox 正文。 */
+function pagePrimaryEditUrl(array $channel): string
+{
+    if (isTimelinePageChannel($channel)) {
+        $url = '/admin/timeline.php';
+        $lang = (string) ($channel['lang'] ?? '');
+        $defaultLang = (string) config('site_lang', 'zh-CN');
+        if ($lang !== '' && $lang !== $defaultLang) {
+            $url .= '?lang=' . rawurlencode($lang);
+        }
+        return $url;
+    }
+
+    $pageId = (int) ($channel['id'] ?? 0);
+    return $pageId > 0 ? '/admin/blox_editor.php?id=' . $pageId : '';
+}
+
+/**
  * 前台就地编辑：内容/产品详情 → 对应后台编辑器 URL（按栏目类型）。空 = 无编辑入口。
  * 供 detail.php / product.php / page.php 给内容区打 data-yk-edit 标记用。
  */
@@ -3364,8 +3408,7 @@ function frontEditUrl(array $content, array $channel): string
         case 'job':      return '/admin/job_edit.php?id=' . $id;
         case 'list':     return '/admin/article_edit.php?id=' . $id;
         case 'page':
-            $pageId = (int) ($channel['id'] ?? $id);
-            return '/admin/blox_editor.php?id=' . $pageId;
+            return pagePrimaryEditUrl($channel);
         default:         return '/admin/content_edit.php?id=' . $id; // case + 自定义模型
     }
 }

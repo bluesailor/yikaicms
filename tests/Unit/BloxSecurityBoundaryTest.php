@@ -8,6 +8,7 @@ namespace Yikai\Tests\Unit;
 use AbstractElement;
 use BloxDocumentPipeline;
 use BlockRenderer;
+use CodeElement;
 use PHPUnit\Framework\TestCase;
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
@@ -38,6 +39,8 @@ final class BloxSecurityBoundaryTest extends TestCase
                 'bg_overlay_opacity' => 999,
                 'container_bg' => 'red;background:url(//evil.test)',
                 'container_bg_image' => 'javascript:alert(1)',
+                'container_bg_overlay_color' => '#000;position:fixed',
+                'container_bg_overlay_opacity' => -50,
                 'bg_image' => 'javascript:alert(1)',
                 'bg_position' => 'center;position:fixed',
                 'min_height' => '10000px',
@@ -45,6 +48,9 @@ final class BloxSecurityBoundaryTest extends TestCase
             ],
             'columns' => [[
                 'card_bg' => '#fff;inset:0',
+                'card_bg_image' => 'javascript:alert(1)',
+                'card_bg_overlay_color' => '#000;position:fixed',
+                'card_bg_overlay_opacity' => 999,
                 'elements' => [[
                     'type' => 'container',
                     'data' => [
@@ -61,12 +67,42 @@ final class BloxSecurityBoundaryTest extends TestCase
         self::assertSame(100, $section['settings']['bg_overlay_opacity']);
         self::assertSame('', $section['settings']['container_bg']);
         self::assertSame('', $section['settings']['container_bg_image']);
+        self::assertSame('', $section['settings']['container_bg_overlay_color']);
+        self::assertSame(0, $section['settings']['container_bg_overlay_opacity']);
         self::assertSame('', $section['settings']['bg_image']);
         self::assertSame('', $section['settings']['bg_position']);
         self::assertSame('', $section['settings']['min_height']);
         self::assertSame('', $section['settings']['content_v_align']);
         self::assertSame('', $section['columns'][0]['card_bg']);
+        self::assertSame('', $section['columns'][0]['card_bg_image']);
+        self::assertSame('', $section['columns'][0]['card_bg_overlay_color']);
+        self::assertSame(100, $section['columns'][0]['card_bg_overlay_opacity']);
         self::assertSame('', $section['columns'][0]['elements'][0]['data']['bg_color']);
+    }
+
+    public function testDocumentPipelineKeepsSafeContainerAndColumnOverlays(): void
+    {
+        $processed = BloxDocumentPipeline::process((string) json_encode([[
+            'settings' => [
+                'container_bg_image' => '/uploads/container.jpg',
+                'container_bg_overlay_color' => '#123456',
+                'container_bg_overlay_opacity' => 35,
+            ],
+            'columns' => [[
+                'card_bg_image' => '/uploads/column.jpg',
+                'card_bg_overlay_color' => 'rgba(0, 0, 0, .5)',
+                'card_bg_overlay_opacity' => 60,
+                'elements' => [],
+            ]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $section = $processed['sections'][0];
+        self::assertSame('/uploads/container.jpg', $section['settings']['container_bg_image']);
+        self::assertSame('#123456', $section['settings']['container_bg_overlay_color']);
+        self::assertSame(35, $section['settings']['container_bg_overlay_opacity']);
+        self::assertSame('/uploads/column.jpg', $section['columns'][0]['card_bg_image']);
+        self::assertSame('rgba(0, 0, 0, .5)', $section['columns'][0]['card_bg_overlay_color']);
+        self::assertSame(60, $section['columns'][0]['card_bg_overlay_opacity']);
     }
 
     public function testRendererDefendsLegacyDocumentsThatBypassSaveNormalization(): void
@@ -105,6 +141,19 @@ final class BloxSecurityBoundaryTest extends TestCase
 
         self::assertStringContainsString('Content-Security-Policy', $this->source('includes/builder/BloxCanvasPreview.php'));
         self::assertStringContainsString("script-src 'self' 'nonce-", $this->source('includes/builder/BloxCanvasPreview.php'));
+        self::assertStringContainsString('$body = (string) preg_replace', $this->source('includes/builder/BloxCanvasPreview.php'));
+    }
+
+    public function testCodeElementScriptsAreRemovedOnlyInsideTheAuthenticatedCanvas(): void
+    {
+        $element = new CodeElement();
+        $data = ['html' => '<div data-safe="1">Safe</div><script>parent.compromised=true;</script>'];
+
+        self::assertStringContainsString('<script>', $element->renderWithContext($data));
+        $canvasHtml = $element->renderWithContext($data, '', ['edit_mode' => true]);
+        self::assertStringContainsString('data-safe="1"', $canvasHtml);
+        self::assertStringNotContainsString('<script', $canvasHtml);
+        self::assertStringNotContainsString('compromised', $canvasHtml);
     }
 
     public function testTemplateAndMediaMutationEndpointsKeepTheirServerSideGates(): void

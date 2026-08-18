@@ -139,14 +139,54 @@ if ($channel['type'] === 'download') {
     }
 }
 
-// 前台就地编辑：列表页 → 对应类型的后台内容管理（管理浮条「编辑此页」）
-if (!empty($_SESSION['admin_id'])) {
+// 产品栏目可拥有独立 Blox 页面文档；分类筛选仍复用同一个顶级产品页设计。
+$productPageChannel = $isProductType ? $channel : null;
+while ($productPageChannel && (int) ($productPageChannel['parent_id'] ?? 0) > 0) {
+    $candidateParent = getChannel((int) $productPageChannel['parent_id']);
+    if (!$candidateParent || (string) ($candidateParent['type'] ?? '') !== 'product') {
+        break;
+    }
+    $productPageChannel = $candidateParent;
+}
+$productBloxContent = null;
+$hasPublishedProductBlox = false;
+if ($productPageChannel && (int) ($productPageChannel['parent_id'] ?? 0) === 0) {
+    $productBloxContent = contentModel()->getFirstByChannel((int) $productPageChannel['id']);
+    $hasPublishedProductBlox = is_array($productBloxContent)
+        && (string) ($productBloxContent['content_type'] ?? '') === 'blocks'
+        && trim((string) ($productBloxContent['blocks_data'] ?? '')) !== '';
+}
+$contentListPageChannel = (string) ($channel['type'] ?? '') === 'list' ? $channel : null;
+while ($contentListPageChannel && (int) ($contentListPageChannel['parent_id'] ?? 0) > 0) {
+    $candidateParent = getChannel((int) $contentListPageChannel['parent_id']);
+    if (!$candidateParent || (string) ($candidateParent['type'] ?? '') !== 'list') {
+        break;
+    }
+    $contentListPageChannel = $candidateParent;
+}
+$contentListBloxJson = $contentListPageChannel
+    ? ChannelBloxDocument::publishedJson((int) $contentListPageChannel['id'])
+    : null;
+$hasPublishedContentListBlox = is_string($contentListBloxJson) && $contentListBloxJson !== '';
+
+// 前台就地编辑：产品栏目进入 Blox 页面；其余列表页进入对应数据管理。
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
     $__listAdmin = [
         'list' => '/admin/article.php', 'case' => '/admin/case.php',
         'product' => '/admin/product.php', 'download' => '/admin/download.php',
         'job' => '/admin/job.php', 'album' => '/admin/album.php',
     ][$channel['type']] ?? ('/admin/content.php?type=' . urlencode((string) $channel['type']));
-    $GLOBALS['ik_edit_url'] = $__listAdmin;
+    $bloxListEditChannel = $productPageChannel ?: $contentListPageChannel;
+    $GLOBALS['ik_edit_url'] = $bloxListEditChannel
+        ? '/admin/blox_editor.php?id=' . (int) $bloxListEditChannel['id']
+        : $__listAdmin;
+    if ($hasPublishedProductBlox) {
+        BlockRenderer::$editChannelId = (int) $productPageChannel['id'];
+        $GLOBALS['ik_front_edit_cid'] = (int) $productPageChannel['id'];
+    } elseif ($hasPublishedContentListBlox) {
+        BlockRenderer::$editChannelId = (int) $contentListPageChannel['id'];
+        $GLOBALS['ik_front_edit_cid'] = (int) $contentListPageChannel['id'];
+    }
 }
 
 // 对于产品/案例类型，获取完整的分类树用于侧边栏
@@ -259,6 +299,60 @@ $pageTitle = (string) apply_filters('list_page_title', $pageTitle, $channel, $_G
 
 // 引入头部
 require_once theme_path('layouts/header.php');
+
+if ($hasPublishedProductBlox && is_array($productBloxContent)) {
+    ProductCatalogElement::setRuntimeContext([
+        'channel' => $channel,
+        'channelId' => $channelId,
+        'contents' => $contents ?? [],
+        'total' => (int) ($total ?? 0),
+        'keyword' => $keyword,
+        'page' => $page,
+        'perPage' => $perPage,
+        'isProductType' => true,
+        'productCategory' => $productCategory,
+        'productCategoryId' => $productCategoryId,
+        'currentSort' => $currentSort ?? 'default',
+        'enabledSorts' => $enabledSorts ?? [],
+        'subChannels' => $subChannels,
+        'rootChannel' => $productPageChannel,
+        'categoryTree' => $categoryTree,
+        'facetBrands' => $facetBrands ?? [],
+        'facetTagGroups' => $facetTagGroups ?? [],
+        'facetPrice' => $facetPrice ?? ['min' => 0, 'max' => 0],
+        'filterActive' => $filterActive ?? false,
+        'selBrandIds' => $selBrandIds ?? [],
+        'selTagIds' => $selTagIds ?? [],
+        'filterPriceMin' => $filterPriceMin ?? '',
+        'filterPriceMax' => $filterPriceMax ?? '',
+    ]);
+    echo renderContentBody($productBloxContent);
+    ProductCatalogElement::setRuntimeContext(null);
+    require_once theme_path('layouts/footer.php');
+    HtmlCache::end();
+    exit;
+}
+if ($hasPublishedContentListBlox && $contentListPageChannel) {
+    ContentCatalogElement::setRuntimeContext([
+        'channel' => $channel,
+        'rootChannel' => $contentListPageChannel,
+        'categories' => getChannels((int) $contentListPageChannel['id'], false),
+        'contents' => $contents ?? [],
+        'keyword' => $keyword,
+        'page' => $page,
+        'perPage' => $perPage,
+        'total' => (int) ($total ?? 0),
+    ]);
+    echo renderContentBody([
+        'content_type' => 'blocks',
+        'blocks_data' => $contentListBloxJson,
+        'content' => '',
+    ]);
+    ContentCatalogElement::setRuntimeContext(null);
+    require_once theme_path('layouts/footer.php');
+    HtmlCache::end();
+    exit;
+}
 ?>
 
 <?php
