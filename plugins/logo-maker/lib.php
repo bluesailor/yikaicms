@@ -173,13 +173,17 @@ function logoMakerIco(GdImage $master, array $sizes): string
 function logoMakerApplyIco(string $dataUrl): string
 {
     $ico = logoMakerBuildIco($dataUrl);
-    $path = ROOT_PATH . '/favicon.ico';
-    if (@file_put_contents($path, $ico, LOCK_EX) === false) {
+    $dir = ROOT_PATH . '/uploads/brand';
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
         throw new RuntimeException(__('logo_maker_ico_save_failed'));
     }
-    settingModel()->set('site_favicon', '/favicon.ico?v=' . time(), 'basic');
+    $relative = '/uploads/brand/favicon-' . date('YmdHis') . '-' . bin2hex(random_bytes(3)) . '.ico';
+    if (@file_put_contents(ROOT_PATH . $relative, $ico, LOCK_EX) === false) {
+        throw new RuntimeException(__('logo_maker_ico_save_failed'));
+    }
+    settingModel()->set('site_favicon', $relative . '?v=' . time(), 'basic');
     adminLog('plugin', 'logo_maker_apply_ico', 'Logo Maker applied favicon.ico');
-    return '/favicon.ico';
+    return $relative;
 }
 
 /** @return array<string,string> */
