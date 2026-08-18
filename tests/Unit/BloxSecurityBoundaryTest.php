@@ -188,7 +188,7 @@ final class BloxSecurityBoundaryTest extends TestCase
     private function source(string $path): string
     {
         $file = ROOT_PATH . '/' . $path;
-        if (!is_file($file) && str_starts_with($path, 'admin/blox_editor')) {
+        if (!is_file($file) && (str_starts_with($path, 'admin/blox_editor') || $path === 'admin/blox_home_api.php')) {
             // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
             self::markTestSkipped('付费 Blox 源码未注入：' . $path);
         }
