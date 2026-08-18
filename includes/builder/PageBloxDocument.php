@@ -10,7 +10,7 @@ final class PageBloxDocument
     {
         $page = self::page($pageId);
         $published = self::publishedRecord($pageId);
-        $publishedJson = self::publishedDocumentJson($published);
+        $publishedJson = self::publishedDocumentJson($published, $page);
         $draft = db()->tableExists('blox_page_drafts')
             ? bloxPageDraftModel()->findByPageId($pageId)
             : null;
@@ -25,9 +25,12 @@ final class PageBloxDocument
             'base_revision' => BloxDocumentPipeline::fingerprint($documentJson),
             'has_draft' => $hasDraft,
             'has_published' => trim((string) ($published['blocks_data'] ?? '')) !== '',
-            'has_unpublished_changes' => $hasDraft && !hash_equals(
-                BloxDocumentPipeline::fingerprint($publishedJson),
-                BloxDocumentPipeline::fingerprint($documentJson)
+            'has_unpublished_changes' => $hasDraft && (
+                trim((string) ($published['blocks_data'] ?? '')) === ''
+                || !hash_equals(
+                    BloxDocumentPipeline::fingerprint($publishedJson),
+                    BloxDocumentPipeline::fingerprint($documentJson)
+                )
             ),
             'published_at' => (int) ($draft['published_at'] ?? 0),
         ];
@@ -43,14 +46,15 @@ final class PageBloxDocument
         bloxPageDraftModel()->saveForPage($pageId, $processed['json'], $adminId);
 
         $published = self::publishedRecord($pageId);
-        $publishedJson = self::publishedDocumentJson($published);
+        $publishedJson = self::publishedDocumentJson($published, $state['page']);
 
         return [
             'base_revision' => BloxDocumentPipeline::fingerprint($processed['json']),
-            'has_unpublished_changes' => !hash_equals(
-                BloxDocumentPipeline::fingerprint($publishedJson),
-                BloxDocumentPipeline::fingerprint($processed['json'])
-            ),
+            'has_unpublished_changes' => trim((string) ($published['blocks_data'] ?? '')) === ''
+                || !hash_equals(
+                    BloxDocumentPipeline::fingerprint($publishedJson),
+                    BloxDocumentPipeline::fingerprint($processed['json'])
+                ),
             'sections' => count($processed['sections']),
         ];
     }
@@ -147,11 +151,11 @@ final class PageBloxDocument
         if (!db()->tableExists('blox_page_drafts')) {
             return;
         }
-        self::page($pageId);
+        $page = self::page($pageId);
         $published = self::publishedRecord($pageId);
         bloxPageDraftModel()->saveForPage(
             $pageId,
-            self::publishedDocumentJson($published),
+            self::publishedDocumentJson($published, $page),
             $adminId
         );
     }
@@ -159,8 +163,10 @@ final class PageBloxDocument
     /** @return array<string,mixed> */
     private static function page(int $pageId): array
     {
-        $page = $pageId > 0 ? channelModel()->findWhere(['id' => $pageId, 'type' => 'page']) : null;
-        if (!$page) {
+        $page = $pageId > 0 ? channelModel()->find($pageId) : null;
+        $type = (string) ($page['type'] ?? '');
+        if (!$page || !in_array($type, ['page', 'product'], true)
+            || ($type === 'product' && (int) ($page['parent_id'] ?? 0) !== 0)) {
             throw new RuntimeException(__('blox_page_not_found'));
         }
         return $page;
@@ -194,16 +200,50 @@ final class PageBloxDocument
      *
      * @param array<string,mixed>|null $published
      */
-    private static function publishedDocumentJson(?array $published): string
+    private static function publishedDocumentJson(?array $published, array $page): string
     {
         $blocksData = trim((string) ($published['blocks_data'] ?? ''));
         if ($blocksData !== '') {
             return self::canonicalJson($blocksData);
         }
 
+        if ((string) ($page['type'] ?? '') === 'product') {
+            return self::productDocumentJson($page);
+        }
+
         $html = trim((string) ($published['content'] ?? ''));
         if ($html === '' || (string) ($published['content_type'] ?? 'html') === 'blocks') {
             return self::canonicalJson('[]');
+        }
+
+        $elements = [];
+        $organization = OrgChartElement::extractLegacyHtml($html);
+        if ($organization !== null) {
+            $elements[] = [
+                'id' => 'e_legacy_org',
+                'type' => 'org-chart',
+                'data' => [
+                    'label' => __('blox_el_org_chart'),
+                    'nodes' => $organization['nodes'],
+                    'style' => $organization['style'],
+                    'layout' => 'top',
+                    'compact' => false,
+                    'initial_depth' => 4,
+                ],
+            ];
+            if ($organization['remaining_html'] !== '') {
+                $elements[] = [
+                    'id' => 'e_legacy_text',
+                    'type' => 'text',
+                    'data' => ['html' => $organization['remaining_html']],
+                ];
+            }
+        } else {
+            $elements[] = [
+                'id' => 'e_legacy',
+                'type' => 'text',
+                'data' => ['html' => $html],
+            ];
         }
 
         return self::canonicalJson(json_encode([[
@@ -219,13 +259,63 @@ final class PageBloxDocument
             ],
             'columns' => [[
                 'id' => 'c_legacy',
-                'elements' => [[
-                    'id' => 'e_legacy',
-                    'type' => 'text',
-                    'data' => ['html' => $html],
-                ]],
+                'elements' => $elements,
             ]],
         ]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    }
+
+    /** @param array<string,mixed> $page */
+    private static function productDocumentJson(array $page): string
+    {
+        $introElements = [[
+            'id' => 'e_product_title',
+            'type' => 'heading',
+            'data' => [
+                'text' => (string) ($page['name'] ?? __('admin_product')),
+                'level' => 'h1',
+                'align' => 'center',
+            ],
+        ]];
+        $description = trim((string) ($page['description'] ?? ''));
+        if ($description !== '') {
+            $introElements[] = [
+                'id' => 'e_product_intro',
+                'type' => 'text',
+                'data' => ['html' => '<p>' . e($description) . '</p>'],
+            ];
+        }
+
+        return self::canonicalJson(json_encode([
+            [
+                'id' => 's_product_intro',
+                'settings' => [
+                    'bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'narrow',
+                    'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'md',
+                ],
+                'columns' => [[
+                    'id' => 'c_product_intro',
+                    'elements' => $introElements,
+                ]],
+            ],
+            [
+                'id' => 's_product_catalog',
+                'settings' => [
+                    'bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'wide',
+                    'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'lg',
+                ],
+                'columns' => [[
+                    'id' => 'c_product_catalog',
+                    'elements' => [[
+                        'id' => 'e_product_catalog',
+                        'type' => 'product-catalog',
+                        'data' => [
+                            'layout' => 'inherit', 'columns' => '4',
+                            'show_search' => true, 'show_categories' => true, 'show_sort' => true,
+                        ],
+                    ]],
+                ]],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
     }
 
     private static function assertRevision(string $currentJson, string $baseRevision): void

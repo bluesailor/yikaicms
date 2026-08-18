@@ -23,4 +23,16 @@ final class CodeElement extends AbstractElement
     {
         return $data['html'] ?? '';
     }
+
+    public function renderWithContext(array $data, string $children = '', array $context = []): string
+    {
+        $html = $this->render($data, $children);
+        if (empty($context['edit_mode'])) {
+            return $html;
+        }
+
+        // The canvas runs trusted runtime scripts under a CSP nonce. User-authored
+        // Code element scripts must not inherit that nonce in an authenticated frame.
+        return (string) preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
+    }
 }

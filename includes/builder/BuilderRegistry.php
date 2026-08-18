@@ -117,6 +117,7 @@ final class BuilderRegistry
             new VideoElement(),
             new IconBoxElement(),
             new AccordionElement(),
+            new OrgChartElement(),
             new StatItemElement(),
             new LogoElement(),
             new SiteCopyrightElement(),
@@ -132,6 +133,8 @@ final class BuilderRegistry
             new StatsGroupElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
+            new ContentCatalogElement(),
+            new ProductCatalogElement(),
             new BannerElement(),
             new NavElement(),
             new HomeBannerItemElement(),

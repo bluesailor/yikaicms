@@ -131,6 +131,9 @@ final class HomeBloxBlockSchema
                     'slide-left' => __('blox_banner_motion_slide_left'),
                     'slide-right' => __('blox_banner_motion_slide_right'),
                     'zoom-in' => __('blox_banner_motion_zoom_in'),
+                    'clip-reveal' => __('blox_banner_motion_clip_reveal'),
+                    'blur-up' => __('blox_banner_motion_blur_up'),
+                    'pop-in' => __('blox_banner_motion_pop_in'),
                 ],
                 'option_icons' => [
                     'none' => 'ban',
@@ -138,6 +141,9 @@ final class HomeBloxBlockSchema
                     'slide-left' => 'arrow-left',
                     'slide-right' => 'arrow-right',
                     'zoom-in' => 'zoom-in',
+                    'clip-reveal' => 'scan',
+                    'blur-up' => 'blur',
+                    'pop-in' => 'sparkles',
                 ],
                 'required' => ['block_type', '=', 'banner'],
                 'help' => __('blox_banner_content_motion_help'),
@@ -1344,7 +1350,7 @@ final class HomeBloxBlockSchema
             'banner_effect' => in_array($effect, ['fade', 'slide'], true) ? $effect : 'fade',
             'banner_content_motion' => in_array(
                 $contentMotion,
-                ['none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in'],
+                ['none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in', 'clip-reveal', 'blur-up', 'pop-in'],
                 true
             ) ? $contentMotion : 'none',
             'banner_background_motion' => in_array($backgroundMotion, ['none', 'zoom-in', 'zoom-out'], true)

@@ -26,7 +26,10 @@ final class DynamicListItemSchema
         ],
     ];
 
-    /** @return array<string,string> */
+    /**
+     * @psalm-suppress PossiblyUnusedMethod 调用方 ListDynamicElement::schema 经元素注册表动态调用，Psalm 看不见调用链
+     * @return array<string,string>
+     */
     public static function presetOptions(): array
     {
         return [
@@ -76,7 +79,10 @@ final class DynamicListItemSchema
         return strtolower(trim((string) ($data['source_type'] ?? ''))) === 'product' ? 'product' : 'content';
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * @psalm-suppress PossiblyUnusedMethod 调用方 ListDynamicElement 经元素注册表动态调用，Psalm 看不见调用链
+     * @param array<string,mixed> $data
+     */
     public static function render(array $data): string
     {
         $source = self::sourceKind($data);

@@ -133,6 +133,106 @@ class InstallSeedDemoTest extends TestCase
     }
 
     /**
+     * 首页 Banner 的三个演示项必须同时提供中、英、日版本，避免新安装站切换语言后为空或回退中文。
+     */
+    public function testBannerDemoIncludesEnglishAndJapaneseTranslations(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite 未启用');
+        }
+
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite'));
+
+        $rows = $pdo->query(
+            "SELECT translation_group_id, lang, title, subtitle FROM yikai_banners WHERE position = 'home' ORDER BY translation_group_id, lang"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
+        $this->assertCount(9, $rows);
+        $byGroup = [];
+        foreach ($rows as $row) {
+            $byGroup[(int) $row['translation_group_id']][(string) $row['lang']] = $row;
+        }
+
+        $this->assertSame([1, 2, 3], array_keys($byGroup));
+        foreach ($byGroup as $group) {
+            $this->assertSame(['en', 'ja', 'zh-CN'], array_keys($group));
+            $this->assertNotSame('', trim((string) $group['en']['title']));
+            $this->assertNotSame('', trim((string) $group['en']['subtitle']));
+            $this->assertNotSame('', trim((string) $group['ja']['title']));
+            $this->assertNotSame('', trim((string) $group['ja']['subtitle']));
+        }
+
+        $this->assertSame('Expert Technology Team', $byGroup[2]['en']['title']);
+        $this->assertSame('経験豊富な技術チーム', $byGroup[2]['ja']['title']);
+    }
+
+    public function testJobDemoStructuredFieldsAreLocalized(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite 未启用');
+        }
+
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite'));
+        $rows = $pdo->query(
+            "SELECT lang, translation_group_id, summary, education, experience, requirements"
+            . " FROM yikai_jobs WHERE lang IN ('en', 'ja') ORDER BY lang, translation_group_id"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+
+        $this->assertCount(4, $rows);
+        foreach ($rows as $row) {
+            $serialized = implode(' ', $row);
+            $this->assertStringNotContainsString('本科', $serialized);
+            $this->assertStringNotContainsString('熟悉', $serialized);
+            $this->assertStringNotContainsString('负责公司', $serialized);
+        }
+        $this->assertSame('Bachelor degree', $rows[0]['education']);
+        $this->assertSame('3+ years', $rows[0]['experience']);
+        $this->assertSame('大卒', $rows[2]['education']);
+    }
+
+    public function testProductRootSlugsFollowLanguageConvention(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite 未启用');
+        }
+
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite'));
+        $statement = $pdo->prepare(
+            'SELECT lang, slug FROM yikai_channels WHERE translation_group_id = ? AND parent_id = 0 ORDER BY lang'
+        );
+        $statement->execute([5]);
+        $slugs = [];
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $slugs[(string) $row['lang']] = (string) $row['slug'];
+        }
+
+        $this->assertSame('product', $slugs['zh-CN']);
+        $this->assertSame('product-en', $slugs['en']);
+        $this->assertSame('product-ja', $slugs['ja']);
+    }
+
+    /**
+     * 中文联系页不能借用英文说明作为基础值，否则 zh-CN 会直接显示英文。
+     *
+     * @dataProvider driverProvider
+     */
+    public function testChineseContactFormDescriptionIsLocalized(string $driver): void
+    {
+        $sql = $this->seed($driver);
+        $this->assertStringContainsString(
+            "'contact_form_desc','给我们留言，我们会尽快与您联系。',",
+            $sql,
+            "中文联系表单说明应写入中文 ({$driver})"
+        );
+    }
+
+    /**
      * SQLite 种子（含演示数据）能被 install/index.php 的 $pdo->exec($sql) 整体加载。
      * 内存库执行，验证语法可用。
      */

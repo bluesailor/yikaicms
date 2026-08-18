@@ -56,7 +56,7 @@
 
 [data-blox-banner] [data-blox-layer],
 [data-blox-banner] [data-blox-banner-bg] {
-    will-change: opacity, transform;
+    will-change: opacity, transform, filter, clip-path;
 }
 
 [data-blox-content-motion="fade-up"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
@@ -88,6 +88,30 @@
 [data-blox-content-motion="zoom-in"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
 .blox-banner-static-active[data-blox-slide-content-motion="zoom-in"] [data-blox-layer] {
     animation: blox-banner-zoom-in var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-content-motion="clip-reveal"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="clip-reveal"] [data-blox-layer],
+[data-blox-content-motion="clip-reveal"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="clip-reveal"] [data-blox-layer] {
+    animation: blox-banner-clip-reveal var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-content-motion="blur-up"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="blur-up"] [data-blox-layer],
+[data-blox-content-motion="blur-up"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="blur-up"] [data-blox-layer] {
+    animation: blox-banner-blur-up var(--blox-banner-speed) cubic-bezier(.22, 1, .36, 1) both;
+    animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
+}
+
+[data-blox-content-motion="pop-in"] .swiper-slide-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.swiper-slide-active[data-blox-slide-content-motion="pop-in"] [data-blox-layer],
+[data-blox-content-motion="pop-in"].blox-banner-static-active:not([data-blox-slide-content-motion]) [data-blox-layer],
+.blox-banner-static-active[data-blox-slide-content-motion="pop-in"] [data-blox-layer] {
+    animation: blox-banner-pop-in var(--blox-banner-speed) cubic-bezier(.16, 1.35, .3, 1) both;
     animation-delay: calc(var(--blox-layer-order, 0) * var(--blox-banner-stagger));
 }
 
@@ -128,6 +152,21 @@
 @keyframes blox-banner-zoom-in {
     from { opacity: 0; transform: scale(.92); }
     to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes blox-banner-clip-reveal {
+    from { opacity: .35; clip-path: inset(0 100% 0 0); transform: translate3d(12px, 0, 0); }
+    to { opacity: 1; clip-path: inset(0 0 0 0); transform: translate3d(0, 0, 0); }
+}
+
+@keyframes blox-banner-blur-up {
+    from { opacity: 0; filter: blur(10px); transform: translate3d(0, 22px, 0); }
+    to { opacity: 1; filter: blur(0); transform: translate3d(0, 0, 0); }
+}
+
+@keyframes blox-banner-pop-in {
+    from { opacity: 0; transform: translate3d(0, 12px, 0) scale(.76); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes blox-banner-bg-zoom-in {

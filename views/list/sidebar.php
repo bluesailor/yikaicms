@@ -8,11 +8,29 @@
  *   \$isProductType, \$productCategory, \$productCategoryId,
  *   \$currentSort, \$enabledSorts, \$subChannels.
  */
+$productCatalogLayout = isset($productCatalogLayout) && in_array($productCatalogLayout, ['sidebar', 'grid'], true)
+    ? $productCatalogLayout
+    : 'sidebar';
+$productCatalogShowSearch = $productCatalogShowSearch ?? true;
+$productCatalogShowCategories = $productCatalogShowCategories ?? true;
+$productCatalogShowSort = $productCatalogShowSort ?? true;
+$productCatalogColumns = in_array((int) ($productCatalogColumns ?? 3), [2, 3, 4], true)
+    ? (int) ($productCatalogColumns ?? 3)
+    : 3;
+$productCatalogHasSidebar = $productCatalogLayout === 'sidebar'
+    && ($productCatalogShowSearch || $productCatalogShowCategories);
+$productCatalogGridClass = [
+    2 => 'grid grid-cols-1 md:grid-cols-2 gap-6',
+    3 => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6',
+    4 => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6',
+][$productCatalogColumns];
 ?>
 <!-- 产品/案例：带侧边栏布局 -->
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
+            <?php if ($productCatalogHasSidebar): ?>
             <!-- 左侧分类菜单 -->
             <div class="w-full lg:w-64 flex-shrink-0 space-y-4">
+                <?php if ($productCatalogShowSearch): ?>
                 <!-- 搜索框 -->
                 <div class="bg-white rounded-lg shadow p-4">
                     <form method="get" action="<?php echo channelUrl($channel); ?>">
@@ -38,7 +56,9 @@
                     </div>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
+                <?php if ($productCatalogShowCategories): ?>
                 <!-- 分类菜单 -->
                 <div class="bg-white rounded-lg shadow overflow-hidden sticky top-20">
                     <!-- 分类标题 -->
@@ -61,6 +81,7 @@
                         <?php endif; ?>
                         <?php
                         // 递归渲染产品分类树
+                        if (!function_exists('renderProductCategoryTree')) {
                         function renderProductCategoryTree(array $items, int $level, int $currentCatId): void {
                             foreach ($items as $item):
                                 $hasChildren = !empty($item['children']);
@@ -92,6 +113,7 @@
                         <?php
                             endforeach;
                         }
+                        }
                         renderProductCategoryTree($categoryTree, 0, $productCategoryId);
                         ?>
                         <?php else: ?>
@@ -102,6 +124,7 @@
                         </a>
                         <?php
                         // 递归渲染栏目分类树
+                        if (!function_exists('renderChannelTree')) {
                         function renderChannelTree(array $items, int $level = 0): void {
                             foreach ($items as $item):
                                 $hasChildren = !empty($item['children']);
@@ -133,19 +156,40 @@
                         <?php
                             endforeach;
                         }
+                        }
                         renderChannelTree($categoryTree);
                         ?>
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php endif; ?>
                 <?php // 多条件筛选面板（仅产品类型）；theme_path_optional 防主题缺该 partial 时 require 致命
-                if ($isProductType && ($__pfPath = theme_path_optional('partials/product-filter.php'))) {
+                if ($productCatalogShowCategories && $isProductType && ($__pfPath = theme_path_optional('partials/product-filter.php'))) {
                     require $__pfPath;
                 } ?>
             </div>
+            <?php endif; ?>
 
             <!-- 右侧产品列表 -->
             <div class="flex-1 min-w-0">
+                <?php if (!$productCatalogHasSidebar && $productCatalogShowSearch): ?>
+                <form method="get" action="<?php echo channelUrl($channel); ?>" class="mb-6 flex items-center gap-2 max-w-md">
+                    <div class="relative flex-1">
+                        <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
+                               placeholder="<?php echo __('list_search_product'); ?>"
+                               class="w-full border rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
+                            <i class="ti ti-search text-lg"></i>
+                        </button>
+                    </div>
+                    <?php if ($keyword !== ''): ?>
+                    <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo e(__('search_clear')); ?>">
+                        <i class="ti ti-x text-lg"></i>
+                    </a>
+                    <?php endif; ?>
+                </form>
+                <?php endif; ?>
+
                 <!-- 列表头部 -->
                 <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
                     <div class="text-gray-600 text-sm">
@@ -154,7 +198,7 @@
                         <?php endif; ?>
                         <?php echo __('list_total'); ?> <span class="text-primary font-medium"><?php echo $total; ?></span> <?php echo __('list_items'); ?>
                     </div>
-                    <?php if ($isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
+                    <?php if ($productCatalogShowSort && $isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
                     <div class="flex items-center gap-1.5 text-sm">
                         <?php foreach ($enabledSorts as $sortKey):
                             if (!isset(ProductModel::SORT_LABELS[$sortKey])) continue;
@@ -175,7 +219,7 @@
                 </div>
 
                 <?php if (!empty($contents)): ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="<?php echo $productCatalogGridClass; ?>">
                     <?php foreach ($contents as $item): ?>
                     <?php require theme_path('partials/product-card.php'); ?>
                     <?php endforeach; ?>
@@ -221,4 +265,3 @@
                 ?>
             </div>
         </div>
-

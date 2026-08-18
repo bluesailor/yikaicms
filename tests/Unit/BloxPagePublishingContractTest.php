@@ -30,8 +30,10 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString('bloxEditorEnabled()', $api);
         $this->assertStringContainsString("\$action === 'preview'", $api);
         $this->assertStringContainsString('outputBloxCanvasPreview(false, $pageId)', $api);
-        $this->assertStringContainsString('PageBloxDocument::saveDraft(', $api);
-        $this->assertStringContainsString('PageBloxDocument::saveAndPublish(', $api);
+        $this->assertStringContainsString('ChannelBloxDocument::class', $api);
+        $this->assertStringContainsString('PageBloxDocument::class', $api);
+        $this->assertStringContainsString('$documentClass::saveDraft(', $api);
+        $this->assertStringContainsString('$documentClass::saveAndPublish(', $api);
         $this->assertStringContainsString('verifyCsrf();', $api);
     }
 
@@ -87,6 +89,11 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $this->assertStringContainsString("'@@templates_enabled@@' => bloxAdvancedFeaturesEnabled() ? 'true' : 'false'", $canvas);
+        $this->assertStringContainsString('$renderPublishedArea = static function (string $area): string', $canvas);
+        $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\') : \'\';', $canvas);
+        $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\') : \'\';', $canvas);
+        $this->assertStringContainsString('yk-home-context-area', $canvas);
+        $this->assertStringContainsString('$body = $headerBody . $homeBody . $footerBody;', $canvas);
     }
 
     public function testInstallAndUpgradePathsEnableTheEditor(): void
@@ -104,7 +111,6 @@ final class BloxPagePublishingContractTest extends TestCase
     public function testSinglePagePrimaryEntriesUseBloxWithoutLegacyFallback(): void
     {
         foreach ([
-            'admin/channel.php',
             'admin/page_edit.php',
             'admin/index.php',
             'includes/front_edit.php',
@@ -127,6 +133,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString("'/admin/page_edit.php?id=' . (int) \$channel['id']", $frontend);
         $this->assertStringNotContainsString("return '/admin/page_edit.php?id=' . \$pageId;", $functions);
         $this->assertStringNotContainsString('$__pageModes', $channels);
+        $this->assertStringContainsString('pagePrimaryEditUrl($channel)', $channels);
     }
 
     public function testLegacyEditorIsACompatibilityRedirectOnly(): void
@@ -150,8 +157,28 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString("\$__isBlox ? '/admin/blox_editor.php?id=' : '/admin/page_edit.php?id='", $page);
         $this->assertStringContainsString('/admin/blox_editor.php?home=1', $page);
         $this->assertStringContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/blox_editor.php')", $page);
-        $this->assertGreaterThanOrEqual(2, substr_count($page, '<a href="/admin/blox_editor.php?id=<?php echo $item[\'id\']; ?>"'));
-        $this->assertGreaterThanOrEqual(2, substr_count($page, "__('page_mode_blox')"));
+        $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditUrl($item)'));
+        $this->assertGreaterThanOrEqual(2, substr_count($page, 'channelUrl($item)'));
+        $this->assertStringContainsString('isTimelinePageChannel($item)', $page);
+        $this->assertStringContainsString("e(__('admin_timeline'))", $page);
+    }
+
+    public function testTimelinePageUsesItsRealDataEditorAndCanonicalPreviewPath(): void
+    {
+        $functions = $this->source('includes/functions.php');
+        $editor = $this->source('admin/blox_editor.php');
+        $frontend = $this->source('page.php');
+        $timeline = $this->source('admin/timeline.php');
+
+        $this->assertStringContainsString('function isTimelinePageChannel(array $channel): bool', $functions);
+        $this->assertStringContainsString("return \$sourceSlugCache[\$sourceId] === 'history';", $functions);
+        $this->assertStringContainsString("\$url = '/admin/timeline.php';", $functions);
+        $this->assertStringContainsString('$primaryEditUrl = pagePrimaryEditUrl($page);', $editor);
+        $this->assertStringContainsString("header('Location: ' . \$primaryEditUrl);", $editor);
+        $this->assertStringContainsString('if (isTimelinePageChannel($channel))', $frontend);
+        $this->assertStringContainsString("include __DIR__ . '/history.php';", $frontend);
+        $this->assertSame(2, substr_count($timeline, 'href="/about/history.html"'));
+        $this->assertStringNotContainsString('href="/history.php"', $timeline);
     }
 
     public function testFrontendPagePrefersPublishedBloxDocumentAndSetsAdminBarBeforeHeader(): void
@@ -171,7 +198,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("(\$publishedContent['content_type'] ?? '') === 'blocks'", $page);
 
         $functions = $this->source('includes/functions.php');
-        $this->assertStringContainsString("return '/admin/blox_editor.php?id=' . \$pageId;", $functions);
+        $this->assertStringContainsString("return \$pageId > 0 ? '/admin/blox_editor.php?id=' . \$pageId : '';", $functions);
+        $this->assertStringContainsString('return pagePrimaryEditUrl($channel);', $functions);
         $this->assertStringNotContainsString("return '/admin/page_edit.php?id=' . \$pageId;", $functions);
     }
 

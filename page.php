@@ -84,6 +84,14 @@ if (!defined('LOADING_FROM_PAGE')) {
         include __DIR__ . '/contact.php';
         exit;
     }
+
+    // 中文源页由 /about/history.html 的专用路由进入 history.php；英/日翻译页
+    // 会先命中通用多级单页路由，这里仍须委托给同一时间轴页面，避免三语渲染分叉。
+    if (isTimelinePageChannel($channel)) {
+        define('LOADING_FROM_PAGE', true);
+        include __DIR__ . '/history.php';
+        exit;
+    }
 }
 
 // 如果不是单页类型且不是相册类型，直接加载列表页（避免重定向循环）

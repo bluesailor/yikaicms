@@ -21,7 +21,7 @@ $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
                         <?php endif; ?>
                         <div class="relative">
                             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                                   placeholder="搜索下载..."
+                                   placeholder="<?php echo e(__('download_search_placeholder')); ?>"
                                    class="w-48 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                             <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,7 +96,7 @@ $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
                                         <?php echo __('download_btn'); ?>
                                     </a>
                                     <?php if (!empty($item['require_login'])): ?>
-                                    <div class="text-xs text-orange-500 mt-1">需登录</div>
+                                    <div class="text-xs text-orange-500 mt-1"><?php echo e(__('member_require_login')); ?></div>
                                     <?php endif; ?>
                                     <?php else: ?>
                                     <span class="text-gray-400 text-sm">-</span>
@@ -118,4 +118,3 @@ $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
             <?php require theme_path('partials/right_sidebar.php'); ?>
             <?php endif; ?>
         </div>
-

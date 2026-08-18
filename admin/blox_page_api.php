@@ -31,7 +31,10 @@ $action = (string) post('action', 'save_draft');
 
 try {
     // Validate page ownership before rendering submitted HTML into the editor iframe.
-    PageBloxDocument::load($pageId);
+    $targetChannel = channelModel()->find($pageId);
+    $isContentList = is_array($targetChannel) && (string) ($targetChannel['type'] ?? '') === 'list';
+    $documentClass = $isContentList ? ChannelBloxDocument::class : PageBloxDocument::class;
+    $documentClass::load($pageId);
 
     if ($action === 'preview') {
         require_once ROOT_PATH . '/includes/builder/BloxCanvasPreview.php';
@@ -43,14 +46,14 @@ try {
     $adminId = (int) ($_SESSION['admin_id'] ?? 0);
 
     if ($action === 'save_draft') {
-        $result = PageBloxDocument::saveDraft($pageId, $blocksJson, $baseRevision, $adminId);
-        adminLog('page', 'save_draft', 'save Blox page draft #' . $pageId);
+        $result = $documentClass::saveDraft($pageId, $blocksJson, $baseRevision, $adminId);
+        adminLog($isContentList ? 'channel' : 'page', 'save_draft', 'save Blox document draft #' . $pageId);
         success($result);
     }
 
     if ($action === 'publish') {
-        $result = PageBloxDocument::saveAndPublish($pageId, $blocksJson, $baseRevision, $adminId);
-        adminLog('page', 'publish', 'save and publish Blox page #' . $pageId);
+        $result = $documentClass::saveAndPublish($pageId, $blocksJson, $baseRevision, $adminId);
+        adminLog($isContentList ? 'channel' : 'page', 'publish', 'save and publish Blox document #' . $pageId);
         success($result);
     }
 

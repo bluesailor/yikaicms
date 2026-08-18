@@ -16,6 +16,7 @@ final class BloxPageDraftModelTest extends TestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 page_id INTEGER NOT NULL UNIQUE,
                 draft_data TEXT NOT NULL,
+                published_data TEXT,
                 admin_id INTEGER NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL DEFAULT 0,
                 updated_at INTEGER NOT NULL DEFAULT 0,
@@ -45,5 +46,15 @@ final class BloxPageDraftModelTest extends TestCase
         $row = bloxPageDraftModel()->findByPageId(8);
         $this->assertSame(123456, (int) $row['published_at']);
         $this->assertSame('[{"id":"draft"}]', $row['draft_data']);
+    }
+
+    public function testChannelPublicationKeepsDraftAndPublishedDocumentTogether(): void
+    {
+        $id = bloxPageDraftModel()->publishForPage(18, '{"schema":1,"sections":[]}', 4);
+
+        $row = bloxPageDraftModel()->findByPageId(18);
+        $this->assertSame($id, (int) $row['id']);
+        $this->assertSame($row['draft_data'], $row['published_data']);
+        $this->assertGreaterThan(0, (int) $row['published_at']);
     }
 }

@@ -22,7 +22,7 @@ final class BloxTemplateModel extends Model
     }
 
     /**
-     * @param array{elements?:list<string>,plugins?:list<string>} $requirements
+     * @param array{elements?:list<string>,plugins?:list<string>,design_tokens?:list<string>,design_styles?:list<string>} $requirements
      */
     public function createDraft(
         string $type,

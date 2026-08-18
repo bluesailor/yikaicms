@@ -195,6 +195,10 @@ final class HomeBloxRenderContext
                 is_array($data['children'] ?? null) ? $data['children'] : [],
                 $this->editMode ? trim((string) ($data['_blox_path'] ?? '')) : ''
             );
+            $defaultLang = (string) config('site_lang', 'zh-CN');
+            if (siteLang() !== $defaultLang) {
+                $banners = HomeBannerItemElement::applyLocalizedContent($banners, $this->banners);
+            }
         }
         if ($type === 'banner' && (int) $block['limit'] > 0) {
             $banners = array_slice($banners, 0, (int) $block['limit']);

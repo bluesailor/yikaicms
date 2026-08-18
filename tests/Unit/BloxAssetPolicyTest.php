@@ -46,6 +46,11 @@ final class BloxAssetPolicyTest extends TestCase
             'assets/js/blox-counter.js',
             'assets/js/blox-language-switcher.js',
             'assets/js/blox-nav-drawer.js',
+            'assets/css/blox-org-chart.css',
+            'assets/js/blox-org-chart.js',
+            'assets/d3',
+            'assets/d3-flextree',
+            'assets/d3-org-chart',
             'assets/js/blox-sticky-header.js',
             'includes/builder/BloxPopupDocument.php',
             'includes/builder/BloxPopupRuntime.php',
@@ -73,8 +78,10 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertContains('includes/builder/BloxDesignDependencies.php', $policy['core']);
         self::assertContains('includes/builder/BloxAreaTemplatePresets.php', $policy['core']);
         self::assertContains('includes/builder/PageBloxDocument.php', $policy['core']);
+        self::assertContains('includes/builder/ChannelBloxDocument.php', $policy['core']);
         self::assertContains('includes/models/BloxPageDraftModel.php', $policy['core']);
         self::assertContains('migrations/20260812_blox_page_drafts.php', $policy['core']);
+        self::assertContains('migrations/20260818_blox_channel_published_documents.php', $policy['core']);
         self::assertContains('admin/blox_home_api.php', $policy['core']);
         self::assertContains('admin/blox_template_api.php', $policy['core']);
         self::assertContains('admin/blox_templates.php', $policy['core']);

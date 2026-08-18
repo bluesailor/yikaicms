@@ -52,6 +52,9 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('inherit', $controls['background_motion']['default']);
         $this->assertSame('', $controls['image_mobile']['default']);
         $this->assertSame('settings', $controls['content_motion']['option_icons']['inherit']);
+        $this->assertArrayHasKey('clip-reveal', $controls['content_motion']['options']);
+        $this->assertArrayHasKey('blur-up', $controls['content_motion']['options']);
+        $this->assertArrayHasKey('pop-in', $controls['content_motion']['options']);
         $this->assertSame('', HomeBannerItemElement::contentMotionAttribute([]));
         $this->assertSame(
             ' data-blox-slide-content-motion="slide-left"',
@@ -60,6 +63,10 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame(
             ' data-blox-slide-content-motion="none"',
             HomeBannerItemElement::contentMotionAttribute(['content_motion' => 'none'])
+        );
+        $this->assertSame(
+            ' data-blox-slide-content-motion="clip-reveal"',
+            HomeBannerItemElement::contentMotionAttribute(['content_motion' => 'clip-reveal'])
         );
         $this->assertSame(
             ' data-blox-slide-content-motion="fade-up" data-blox-slide-background-motion="zoom-out"',
@@ -85,6 +92,54 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertStringNotContainsString('<source', HomeBannerItemElement::responsiveImageHtml([
             'image' => '/uploads/desktop.jpg',
         ]));
+    }
+
+    public function testLocalizedContentKeepsCustomPresentationAndMatchesTranslationGroups(): void
+    {
+        $customItems = [
+            HomeBannerItemElement::normalize([
+                'title' => '中文第二张',
+                'image' => '/custom-second.jpg',
+                'content_motion' => 'clip-reveal',
+                'translation_group_id' => 20,
+            ]),
+            HomeBannerItemElement::normalize([
+                'title' => '中文第一张',
+                'image' => '/custom-first.jpg',
+                'background_motion' => 'zoom-out',
+                'translation_group_id' => 10,
+            ]),
+        ];
+        $localized = [
+            ['id' => 101, 'translation_group_id' => 10, 'lang' => 'en', 'title' => 'First', 'subtitle' => 'First subtitle'],
+            ['id' => 102, 'translation_group_id' => 20, 'lang' => 'en', 'title' => 'Second', 'btn1_text' => 'Learn more'],
+        ];
+
+        $items = HomeBannerItemElement::applyLocalizedContent($customItems, $localized);
+
+        $this->assertSame(['Second', 'First'], array_column($items, 'title'));
+        $this->assertSame('/custom-second.jpg', $items[0]['image']);
+        $this->assertSame('clip-reveal', $items[0]['content_motion']);
+        $this->assertSame('/custom-first.jpg', $items[1]['image']);
+        $this->assertSame('zoom-out', $items[1]['background_motion']);
+        $this->assertSame('Learn more', $items[0]['btn1_text']);
+    }
+
+    public function testLocalizedContentFallsBackToDocumentOrderForLegacyChildren(): void
+    {
+        $customItems = [
+            HomeBannerItemElement::normalize(['title' => '中文一', 'image' => '/one.jpg']),
+            HomeBannerItemElement::normalize(['title' => '中文二', 'image' => '/two.jpg']),
+        ];
+        $localized = [
+            ['id' => 101, 'translation_group_id' => 10, 'lang' => 'ja', 'title' => '日本語一'],
+            ['id' => 102, 'translation_group_id' => 20, 'lang' => 'ja', 'title' => '日本語二'],
+        ];
+
+        $items = HomeBannerItemElement::applyLocalizedContent($customItems, $localized);
+
+        $this->assertSame(['日本語一', '日本語二'], array_column($items, 'title'));
+        $this->assertSame(['/one.jpg', '/two.jpg'], array_column($items, 'image'));
     }
 
     public function testCustomChildrenReplaceLiveBannersInDocumentOrder(): void

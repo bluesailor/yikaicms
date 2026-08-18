@@ -21,6 +21,16 @@ extract((new NewsListController())->prepare([
     'keyword' => get('keyword', ''),
 ]), EXTR_OVERWRITE);
 
+$newsBloxJson = $newsChannelId > 0 ? ChannelBloxDocument::publishedJson($newsChannelId) : null;
+$hasPublishedNewsBlox = is_string($newsBloxJson) && $newsBloxJson !== '';
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && $newsChannelId > 0) {
+    $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $newsChannelId;
+    if ($hasPublishedNewsBlox) {
+        BlockRenderer::$editChannelId = $newsChannelId;
+        $GLOBALS['ik_front_edit_cid'] = $newsChannelId;
+    }
+}
+
 // 页面信息
 $pageTitle = $category ? $category['name'] : __('news_title');
 $pageKeywords = ($category['seo_keywords'] ?? '') ?: config('site_keywords');
@@ -34,6 +44,28 @@ $navChannels = getNavChannels();
 
 // 引入头部
 require_once theme_path('layouts/header.php');
+
+if ($hasPublishedNewsBlox) {
+    ContentCatalogElement::setRuntimeContext([
+        'channel' => $category ?: $newsChannel,
+        'rootChannel' => $newsChannel,
+        'categories' => $categories,
+        'contents' => $articles,
+        'keyword' => $keyword,
+        'page' => $page,
+        'perPage' => $perPage,
+        'total' => $total,
+    ]);
+    echo renderContentBody([
+        'content_type' => 'blocks',
+        'blocks_data' => $newsBloxJson,
+        'content' => '',
+    ]);
+    ContentCatalogElement::setRuntimeContext(null);
+    require_once theme_path('layouts/footer.php');
+    HtmlCache::end();
+    exit;
+}
 ?>
 
 <!-- 页面头部 -->

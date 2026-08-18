@@ -71,6 +71,7 @@ final class BloxResponsiveValue
         return $canonical;
     }
 
+    /** @psalm-suppress PossiblyUnusedMethod 公开值协议 API（编辑器/插件/测试消费） */
     public static function forDevice(mixed $value, string $device, array $allowed, mixed $fallback): mixed
     {
         $key = self::DEVICE_ALIASES[strtolower($device)] ?? 'd';
