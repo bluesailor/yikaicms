@@ -20,6 +20,8 @@ uploads/files/*
 uploads/videos/*
 uploads/albums/*
 !uploads/images/.gitkeep
+# 演示种子与排版预设引用的示例图（install SQL 公司简介页 + presets.php），随包分发
+!uploads/images/case-demo.jpg
 !uploads/files/.gitkeep
 !uploads/videos/.gitkeep
 !uploads/albums/.gitkeep
