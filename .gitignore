@@ -148,3 +148,6 @@ playwright-report/
 # 冒烟装机生成的运行时清单（setup.php 落盘，admin_crud.php 消费）
 tests/smoke/fixtures.json
 plugins/*/admin-local.php
+
+# 本机 AI 工作流技能（内部路径/流程，不随仓库分发）
+/.agents/
