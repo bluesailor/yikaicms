@@ -14,12 +14,10 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 | Tailwind CSS（编译产物） | — | MIT | https://tailwindcss.com |
 | SortableJS | 1.15.6 | MIT | https://sortablejs.github.io/Sortable/ |
 | Swiper | 11.2.10 | MIT | https://swiperjs.com |
-| AOS | — | MIT | https://michalsnik.github.io/aos/ |
 | flatpickr | 4.6.13 | MIT | https://flatpickr.js.org |
 | PhotoSwipe | 5.4.4 | MIT | https://photoswipe.com |
 | Plyr | — | MIT | https://plyr.io |
 | qrcode.js | — | MIT | https://github.com/davidshimjs/qrcodejs |
-| wangEditor | — | MIT | https://www.wangeditor.com |
 | Tabler Icons | 3.44.0 | MIT | https://tabler.io/icons |
 | Bootstrap Icons | 1.13.1 | MIT | https://icons.getbootstrap.com |
 | D3.js | 7.9.0 | ISC | https://d3js.org |
@@ -56,6 +54,11 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 3. **引入任何第三方代码时，必须同步更新本清单**，并保留其版权与协议声明。
 
 ### 历史记录
+
+- **2026-08-19（清理未用组件）**：移除 `assets/aos/`（库从未被加载；`data-aos` 属性由自研
+  `assets/js/scroll-anim.js` 消费，属性保留）与 `assets/wangeditor/`（`initWangEditor`
+  自迁移 TinyMCE 起即为兼容门面，库本体从未加载）。**约定：不再使用的组件随发现即删，
+  发版核对本清单时同时核对「清单有而代码未引用」的反向项。**
 
 - **2026-08-19（v1.18.1 核对）**：补登 v1.18 周期随包新增的组件——D3.js 7.9.0（ISC）、
   d3-flextree（WTFPL）、d3-org-chart（MIT）（组织架构图元素）；Bootstrap Icons 1.13.1
