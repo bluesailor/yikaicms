@@ -1,10 +1,12 @@
 const { test, expect } = require('@playwright/test');
 
 async function submitForm(page, form) {
+  // 同 blox-default-areas：waitForNavigation 竞态换成 POST 响应等待 + 落地。
   await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+    page.waitForResponse((response) => response.request().method() === 'POST'),
     form.locator('button[type="submit"]').click(),
   ]);
+  await page.waitForLoadState('domcontentloaded');
 }
 
 test('Home navigation settings live in the menu manager @ci', async ({ page }, testInfo) => {
