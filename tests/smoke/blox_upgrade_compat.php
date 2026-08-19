@@ -3,21 +3,11 @@
  * Upgrade a real tagged default-theme install to the current Blox-capable code.
  *
  * Usage: php tests/smoke/blox_upgrade_compat.php --from=v1.14.0
+ * Without a local git executable, pre-export <tag>.sqlite.sql files and set
+ * YK_TAG_SQL_DIR to their directory.
  */
 
 declare(strict_types=1);
-
-$root = dirname(__DIR__, 2);
-$from = '';
-foreach ($argv as $arg) {
-    if (str_starts_with((string) $arg, '--from=')) {
-        $from = substr((string) $arg, 7);
-    }
-}
-if (preg_match('/^v1\.\d+\.\d+(?:\.\d+)?$/', $from) !== 1) {
-    fwrite(STDERR, "Usage: php tests/smoke/blox_upgrade_compat.php --from=v1.x.y\n");
-    exit(2);
-}
 
 function upgradeFail(string $message): never
 {
@@ -35,14 +25,21 @@ function upgradeCheck(bool $condition, string $message): void
 
 function taggedInstallSql(string $root, string $tag): string
 {
+    $sqlDir = getenv('YK_TAG_SQL_DIR');
+    if (is_string($sqlDir) && trim($sqlDir) !== '') {
+        return preExportedTaggedInstallSql($sqlDir, $tag);
+    }
+
     $command = ['git', '-C', $root, 'show', $tag . ':install/sql/sqlite.sql'];
-    $process = proc_open($command, [
+    $process = @proc_open($command, [
         0 => ['pipe', 'r'],
         1 => ['pipe', 'w'],
         2 => ['pipe', 'w'],
     ], $pipes);
     if (!is_resource($process)) {
-        upgradeFail("Cannot start git for {$tag}");
+        throw new RuntimeException(
+            "Cannot start git for {$tag}. Set YK_TAG_SQL_DIR to a directory containing {$tag}.sqlite.sql"
+        );
     }
     fclose($pipes[0]);
     $sql = stream_get_contents($pipes[1]);
@@ -51,9 +48,47 @@ function taggedInstallSql(string $root, string $tag): string
     fclose($pipes[2]);
     $status = proc_close($process);
     if ($status !== 0 || !is_string($sql) || trim($sql) === '') {
-        upgradeFail("Cannot read {$tag} install SQL: " . trim((string) $error));
+        throw new RuntimeException(
+            "Cannot read {$tag} install SQL with git: " . trim((string) $error)
+            . ". Alternatively set YK_TAG_SQL_DIR to a directory containing {$tag}.sqlite.sql"
+        );
     }
     return $sql;
+}
+
+function preExportedTaggedInstallSql(string $directory, string $tag): string
+{
+    if (preg_match('/^v1\.\d+\.\d+(?:\.\d+)?$/', $tag) !== 1) {
+        throw new RuntimeException("Invalid release tag: {$tag}");
+    }
+    $base = realpath($directory);
+    if ($base === false || !is_dir($base)) {
+        throw new RuntimeException("YK_TAG_SQL_DIR is not a readable directory: {$directory}");
+    }
+    $path = $base . DIRECTORY_SEPARATOR . $tag . '.sqlite.sql';
+    if (!is_file($path) || !is_readable($path)) {
+        throw new RuntimeException("Pre-exported install SQL not found: {$path}");
+    }
+    $sql = file_get_contents($path);
+    if (!is_string($sql) || trim($sql) === '') {
+        throw new RuntimeException("Pre-exported install SQL is empty: {$path}");
+    }
+    return $sql;
+}
+
+// Unit tests load only the source resolver above; normal CLI execution never defines this constant.
+if (defined('YIKAI_BLOX_UPGRADE_COMPAT_HELPERS_ONLY')) return;
+
+$root = dirname(__DIR__, 2);
+$from = '';
+foreach ($argv as $arg) {
+    if (str_starts_with((string) $arg, '--from=')) {
+        $from = substr((string) $arg, 7);
+    }
+}
+if (preg_match('/^v1\.\d+\.\d+(?:\.\d+)?$/', $from) !== 1) {
+    fwrite(STDERR, "Usage: php tests/smoke/blox_upgrade_compat.php --from=v1.x.y\n");
+    exit(2);
 }
 
 function settingValue(PDO $pdo, string $key): ?string
@@ -93,7 +128,12 @@ register_shutdown_function(static function () use ($dbPath): void {
 echo "Blox upgrade compatibility: {$from} -> current\n";
 $pdo = new PDO('sqlite:' . $dbPath);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$pdo->exec(taggedInstallSql($root, $from));
+try {
+    $installSql = taggedInstallSql($root, $from);
+} catch (RuntimeException $e) {
+    upgradeFail($e->getMessage());
+}
+$pdo->exec($installSql);
 
 upgradeCheck(settingValue($pdo, 'current_theme') === 'default', 'legacy site uses the default theme');
 

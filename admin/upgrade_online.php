@@ -14,6 +14,159 @@
 
 declare(strict_types=1);
 
+final class UpgradeApplyState
+{
+    public const ERROR_INVALID_STATE = 'invalid_state';
+    public const ERROR_INVALID_OFFSET = 'invalid_offset';
+    public const ERROR_OFFSET_AHEAD = 'offset_ahead';
+    public const ERROR_IO = 'state_io';
+
+    /** @param array<string,mixed> $state */
+    public static function write(string $path, array $state): void
+    {
+        $handle = @fopen($path, 'c+');
+        if ($handle === false) throw new RuntimeException(self::ERROR_IO);
+        try {
+            if (!flock($handle, LOCK_EX)) throw new RuntimeException(self::ERROR_IO);
+            self::persist($handle, $state);
+        } finally {
+            @flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    /**
+     * @param callable(array<string,mixed>&): mixed $callback
+     */
+    public static function transact(string $path, callable $callback): mixed
+    {
+        if (!is_file($path)) throw new RuntimeException(self::ERROR_INVALID_STATE);
+        $handle = @fopen($path, 'r+');
+        if ($handle === false) throw new RuntimeException(self::ERROR_IO);
+        try {
+            if (!flock($handle, LOCK_EX)) throw new RuntimeException(self::ERROR_IO);
+            $state = self::decode($handle);
+            $result = $callback($state);
+            self::persist($handle, $state);
+            return $result;
+        } finally {
+            @flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    /** @return array<string,mixed> */
+    public static function read(string $path): array
+    {
+        if (!is_file($path)) throw new RuntimeException(self::ERROR_INVALID_STATE);
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) throw new RuntimeException(self::ERROR_IO);
+        try {
+            if (!flock($handle, LOCK_SH)) throw new RuntimeException(self::ERROR_IO);
+            return self::decode($handle);
+        } finally {
+            @flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    /**
+     * 服务端游标一旦存在就是唯一进度源。旧客户端重放较小 offset 时从服务端进度续跑，
+     * 较大 offset 则拒绝，避免跳过文件。旧版状态没有游标时允许用请求值接管一次。
+     *
+     * @param array<string,mixed> $state
+     */
+    public static function resolveOffset(array $state, mixed $requestedOffset): int
+    {
+        $total = self::stateTotal($state);
+        $requested = $requestedOffset === null ? null : self::parseOffset($requestedOffset);
+        if (!array_key_exists('next_offset', $state)) {
+            $offset = $requested ?? 0;
+            if ($offset > $total) throw new RuntimeException(self::ERROR_OFFSET_AHEAD);
+            return $offset;
+        }
+        $cursor = self::parseStateOffset($state['next_offset']);
+        if ($cursor > $total) throw new RuntimeException(self::ERROR_INVALID_STATE);
+        if ($requested !== null && $requested > $cursor) throw new RuntimeException(self::ERROR_OFFSET_AHEAD);
+        return $cursor;
+    }
+
+    /** @param array<string,mixed> $state */
+    public static function isComplete(array $state): bool
+    {
+        if (!array_key_exists('next_offset', $state)) return true;
+        return self::parseStateOffset($state['next_offset']) >= self::stateTotal($state);
+    }
+
+    /** @param resource $handle @return array<string,mixed> */
+    private static function decode($handle): array
+    {
+        rewind($handle);
+        $raw = stream_get_contents($handle);
+        if ($raw === false || trim($raw) === '') throw new RuntimeException(self::ERROR_INVALID_STATE);
+        try {
+            $state = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException(self::ERROR_INVALID_STATE);
+        }
+        if (!is_array($state)) throw new RuntimeException(self::ERROR_INVALID_STATE);
+        return $state;
+    }
+
+    /** @param resource $handle @param array<string,mixed> $state */
+    private static function persist($handle, array $state): void
+    {
+        try {
+            $json = json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new RuntimeException(self::ERROR_INVALID_STATE);
+        }
+        if (!rewind($handle) || !ftruncate($handle, 0)) throw new RuntimeException(self::ERROR_IO);
+        $length = strlen($json);
+        $written = 0;
+        while ($written < $length) {
+            $result = fwrite($handle, substr($json, $written));
+            if ($result === false || $result === 0) throw new RuntimeException(self::ERROR_IO);
+            $written += $result;
+        }
+        if (!fflush($handle)) throw new RuntimeException(self::ERROR_IO);
+    }
+
+    /** @param array<string,mixed> $state */
+    private static function stateTotal(array $state): int
+    {
+        $total = $state['total'] ?? (is_array($state['entries'] ?? null) ? count($state['entries']) : null);
+        if (!is_int($total) || $total < 0) throw new RuntimeException(self::ERROR_INVALID_STATE);
+        return $total;
+    }
+
+    private static function parseStateOffset(mixed $offset): int
+    {
+        if (!is_int($offset) || $offset < 0) throw new RuntimeException(self::ERROR_INVALID_STATE);
+        return $offset;
+    }
+
+    private static function parseOffset(mixed $offset): int
+    {
+        if (is_int($offset)) {
+            if ($offset < 0) throw new RuntimeException(self::ERROR_INVALID_OFFSET);
+            return $offset;
+        }
+        if (!is_string($offset) || preg_match('/^(?:0|[1-9][0-9]*)$/D', $offset) !== 1) {
+            throw new RuntimeException(self::ERROR_INVALID_OFFSET);
+        }
+        $max = (string) PHP_INT_MAX;
+        if (strlen($offset) > strlen($max)
+            || (strlen($offset) === strlen($max) && strcmp($offset, $max) > 0)) {
+            throw new RuntimeException(self::ERROR_INVALID_OFFSET);
+        }
+        return (int) $offset;
+    }
+}
+
+// 单元测试只加载上面的无副作用状态机；正常 Web 请求不会定义此常量。
+if (defined('YIKAI_UPGRADE_APPLY_STATE_ONLY')) return;
+
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
@@ -329,50 +482,93 @@ if ($action !== '') {
         if (empty($entries)) uo_json(['code' => 1, 'msg' => '安装包内无可覆盖文件，已中止']);
         $state = [
             'mode' => $mode, 'pkg' => $pkg, 'prefix' => $prefix, 'entries' => $entries, 'deleted' => $deleted,
-            'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0,
+            'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0, 'next_offset' => 0,
             'errors' => [], 'from' => $from, 'to' => $to,
         ];
-        @file_put_contents(uo_state_file(), json_encode($state, JSON_UNESCAPED_UNICODE));
+        try {
+            UpgradeApplyState::write(uo_state_file(), $state);
+        } catch (RuntimeException) {
+            uo_json(['code' => 1, 'msg' => __('upgrade_apply_state_write_failed')]);
+        }
         uo_json(['code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => basename($bakDir)]);
     }
 
-    // ---- 4b) 分批覆盖：从 offset 起，从 zip 逐条读出并直接写入目标，返回下一个 offset ----
+    // ---- 4b) 分批覆盖：服务端状态游标为准；客户端 offset 只用于兼容和防跳批校验 ----
     if ($action === 'apply_batch') {
         $sf = uo_state_file();
         if (!is_file($sf)) uo_json(['code' => 1, 'msg' => '升级状态丢失，请重新开始']);
-        $state = json_decode((string) @file_get_contents($sf), true);
-        if (!is_array($state) || !isset($state['entries'], $state['pkg'])) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
-        $entries = $state['entries'];
-        $total = count($entries);
-        $offset = max(0, (int) ($_POST['offset'] ?? 0));
-        $batch = 80;                           // 每批条目数；从 zip 读+写，单请求足够快
-        $end = min($total, $offset + $batch);
-        $zip = new ZipArchive();
-        if ($zip->open((string) $state['pkg']) !== true) uo_json(['code' => 1, 'msg' => '安装包打开失败']);
-        $copied = 0; $errors = [];
-        for ($i = $offset; $i < $end; $i++) {
-            $rel  = (string) $entries[$i]['rel'];
-            $name = (string) $entries[$i]['name'];
-            $data = $zip->getFromName($name);
-            if ($data === false) { $errors[] = "读取失败: $rel"; continue; }
-            $d = ROOT_PATH . '/' . $rel;
-            $dir = dirname($d);
-            if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
-            if (@file_put_contents($d, $data) !== false) $copied++; else $errors[] = "写入失败: $rel";
+        $requestedOffset = array_key_exists('offset', $_POST) ? $_POST['offset'] : null;
+        try {
+            $response = UpgradeApplyState::transact($sf, static function (array &$state) use ($requestedOffset): array {
+                if (!isset($state['entries'], $state['pkg']) || !is_array($state['entries']) || !is_string($state['pkg'])) {
+                    throw new RuntimeException(UpgradeApplyState::ERROR_INVALID_STATE);
+                }
+                $entries = $state['entries'];
+                $total = count($entries);
+                if (($state['total'] ?? null) !== $total) {
+                    throw new RuntimeException(UpgradeApplyState::ERROR_INVALID_STATE);
+                }
+
+                $offset = UpgradeApplyState::resolveOffset($state, $requestedOffset);
+                $end = min($total, $offset + 80);
+                $zip = new ZipArchive();
+                if ($zip->open($state['pkg']) !== true) {
+                    throw new RuntimeException('package_open_failed');
+                }
+
+                $copied = 0;
+                $errors = [];
+                try {
+                    for ($i = $offset; $i < $end; $i++) {
+                        if (!is_array($entries[$i] ?? null)) {
+                            throw new RuntimeException(UpgradeApplyState::ERROR_INVALID_STATE);
+                        }
+                        $rel  = (string) ($entries[$i]['rel'] ?? '');
+                        $name = (string) ($entries[$i]['name'] ?? '');
+                        if ($rel === '' || $name === '') {
+                            throw new RuntimeException(UpgradeApplyState::ERROR_INVALID_STATE);
+                        }
+                        $data = $zip->getFromName($name);
+                        if ($data === false) { $errors[] = "读取失败: $rel"; continue; }
+                        $d = ROOT_PATH . '/' . $rel;
+                        $dir = dirname($d);
+                        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
+                        if (@file_put_contents($d, $data) !== false) $copied++; else $errors[] = "写入失败: $rel";
+                    }
+                } finally {
+                    $zip->close();
+                }
+
+                $state['done'] = (int) ($state['done'] ?? 0) + $copied;
+                $state['next_offset'] = $end;
+                $state['errors'] = array_slice(array_merge(is_array($state['errors'] ?? null) ? $state['errors'] : [], $errors), 0, 50);
+                return ['code' => 0, 'copied' => $copied, 'next' => $end, 'total' => $total, 'errors' => $errors];
+            });
+        } catch (RuntimeException $e) {
+            $message = match ($e->getMessage()) {
+                UpgradeApplyState::ERROR_INVALID_OFFSET => __('upgrade_apply_offset_invalid'),
+                UpgradeApplyState::ERROR_OFFSET_AHEAD => __('upgrade_apply_offset_ahead'),
+                UpgradeApplyState::ERROR_IO => __('upgrade_apply_state_write_failed'),
+                'package_open_failed' => __('upgrade_apply_package_open_failed'),
+                default => __('upgrade_apply_state_invalid'),
+            };
+            uo_json(['code' => 1, 'msg' => $message]);
         }
-        $zip->close();
-        $state['done'] = (int) ($state['done'] ?? 0) + $copied;
-        $state['errors'] = array_slice(array_merge($state['errors'] ?? [], $errors), 0, 50);
-        @file_put_contents($sf, json_encode($state, JSON_UNESCAPED_UNICODE));
-        uo_json(['code' => 0, 'copied' => $copied, 'next' => $end, 'total' => $total, 'errors' => $errors]);
+        uo_json($response);
     }
 
     // ---- 4c) 收尾：删除废弃文件（delta）+ 补 config 版本行 + 清理临时 ----
     if ($action === 'apply_finalize') {
         $sf = uo_state_file();
         if (!is_file($sf)) uo_json(['code' => 1, 'msg' => '升级状态丢失，请重新开始']);
-        $state = json_decode((string) @file_get_contents($sf), true);
-        if (!is_array($state)) uo_json(['code' => 1, 'msg' => '升级状态损坏，请重新开始']);
+        try {
+            $state = UpgradeApplyState::read($sf);
+            if (!UpgradeApplyState::isComplete($state)) {
+                uo_json(['code' => 1, 'msg' => __('upgrade_apply_incomplete')]);
+            }
+        } catch (RuntimeException) {
+            uo_json(['code' => 1, 'msg' => __('upgrade_apply_state_invalid')]);
+        }
 
         // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护路径，仅删普通文件
         $deletedCount = 0;
