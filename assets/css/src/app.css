@@ -4,6 +4,8 @@
 @source "../../../*.php";
 @source "../../../includes/**/*.php";
 @source "../../../admin/**/*.php";
+@source "../../../admin/blox_editor/**/*.php";
+@source "../../../admin/blox_editor.php";
 @source "../../../plugins/**/*.php";
 @source "../../../themes/**/*.php";
 @source "../../../marketplace/themes/**/*.php";
