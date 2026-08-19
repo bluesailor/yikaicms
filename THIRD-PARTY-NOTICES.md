@@ -21,6 +21,19 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 | qrcode.js | — | MIT | https://github.com/davidshimjs/qrcodejs |
 | wangEditor | — | MIT | https://www.wangeditor.com |
 | Tabler Icons | 3.44.0 | MIT | https://tabler.io/icons |
+| Bootstrap Icons | 1.13.1 | MIT | https://icons.getbootstrap.com |
+| D3.js | 7.9.0 | ISC | https://d3js.org |
+| d3-flextree | — | WTFPL | https://github.com/Klortho/d3-flextree |
+| d3-org-chart | — | MIT | https://github.com/bumbeishvili/org-chart |
+
+## 插件内置资源（plugins/logo-maker/assets/icon-library/）
+
+| 组件 | 版本 | 协议 | 项目地址 |
+|---|---|---|---|
+| Phosphor Icons（bold/duotone SVG 子集） | — | MIT | https://phosphoricons.com |
+| Tabler Icons（outline SVG 子集） | — | MIT | https://tabler.io/icons |
+
+许可原文随包见 `plugins/logo-maker/assets/icon-library/licenses/`，来源见该目录 README。
 
 ## PHP 依赖（Composer，随包只保留生产依赖）
 
@@ -43,6 +56,12 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 3. **引入任何第三方代码时，必须同步更新本清单**，并保留其版权与协议声明。
 
 ### 历史记录
+
+- **2026-08-19（v1.18.1 核对）**：补登 v1.18 周期随包新增的组件——D3.js 7.9.0（ISC）、
+  d3-flextree（WTFPL）、d3-org-chart（MIT）（组织架构图元素）；Bootstrap Icons 1.13.1
+ （MIT，此前已随包但漏登）；LOGO 工坊内置 Phosphor/Tabler SVG 图标库（均 MIT，许可
+  原文随包）。逐一核对随包 LICENSE 原文，均为宽松协议，无 copyleft 引入。
+  同周期移除的 icon-maker 插件无单独登记项，无需删改。
 
 - **2026-08-03**：移除 `includes/html-api/`（源自 WordPress 核心的 HTML Tag Processor，
   GPLv2+；且随包副本缺失字符实体依赖，属性值含 `&amp;` 等命名实体时触发致命错误，
