@@ -211,8 +211,17 @@ final class PageBloxDocument
             return self::productDocumentJson($page);
         }
 
+        if ((string) ($published['content_type'] ?? 'html') === 'blocks') {
+            return self::canonicalJson('[]');
+        }
+
         $html = trim((string) ($published['content'] ?? ''));
-        if ($html === '' || (string) ($published['content_type'] ?? 'html') === 'blocks') {
+        if ($html === '') {
+            // 老站单页正文常存于 channels.content 且没有镜像的 contents 行——
+            // 没有这个兜底时前台有内容、编辑器却开出空画布（longcool.cn 实例）。
+            $html = trim((string) ($page['content'] ?? ''));
+        }
+        if ($html === '') {
             return self::canonicalJson('[]');
         }
 

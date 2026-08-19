@@ -76,6 +76,56 @@ final class PageBloxLegacyImportTest extends TestCase
         self::assertNull(bloxPageDraftModel()->findByPageId($pageId));
     }
 
+    public function testChannelBodyIsImportedWhenNoMirroredContentRowExists(): void
+    {
+        // 老站形态：单页正文只存 channels.content、没有镜像 contents 行——
+        // 编辑器不能开空画布（longcool.cn 实例），须兜底导入栏目正文。
+        $pageId = $this->insertRow('channels', [
+            'type' => 'page',
+            'lang' => 'zh-CN',
+            'name' => 'Channel-body legacy page',
+            'content' => '<h2>栏目正文</h2><p>存于 channels.content。</p>',
+            'updated_at' => 1,
+        ]);
+
+        $state = PageBloxDocument::load($pageId);
+        $document = BloxDocumentPipeline::decode($state['document_json']);
+
+        self::assertFalse($state['has_draft']);
+        self::assertFalse($state['has_published']);
+        self::assertSame('text', $document['sections'][0]['columns'][0]['elements'][0]['type']);
+        self::assertSame(
+            '<h2>栏目正文</h2><p>存于 channels.content。</p>',
+            $document['sections'][0]['columns'][0]['elements'][0]['data']['html']
+        );
+        self::assertNull(bloxPageDraftModel()->findByPageId($pageId));
+    }
+
+    public function testBlocksContentRowStillYieldsEmptyDocumentWithoutChannelFallback(): void
+    {
+        // blocks 页（空 blocks_data）维持原语义：不导入任何 html 正文
+        $pageId = $this->insertRow('channels', [
+            'type' => 'page',
+            'lang' => 'zh-CN',
+            'name' => 'Blocks page',
+            'content' => '<p>不应被导入</p>',
+            'updated_at' => 1,
+        ]);
+        $this->insertRow('contents', [
+            'channel_id' => $pageId,
+            'status' => 1,
+            'deleted_at' => null,
+            'is_top' => 0,
+            'content_type' => 'blocks',
+            'content' => '<p>旧富文本</p>',
+            'blocks_data' => '',
+        ]);
+
+        $state = PageBloxDocument::load($pageId);
+        $document = BloxDocumentPipeline::decode($state['document_json']);
+        self::assertSame([], $document['sections']);
+    }
+
     public function testLegacyOrganizationChartIsSeededAsStructuredElementWithoutWritingADraft(): void
     {
         $pageId = $this->insertRow('channels', [
