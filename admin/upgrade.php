@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/UpdateChannel.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -54,6 +55,7 @@ $upgrades = Migrator::loadAll();
 
 // AJAX: 控制台新版本提醒级别（all=全部 / security=仅安全更新 / off=关闭）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_update_notify') {
+    verifyCsrf();
     $lv = post('level');
     if (!in_array($lv, ['all', 'security', 'off'], true)) {
         $lv = 'all';
@@ -65,6 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     success();
 }
 
+// AJAX: 更新通道（stable=正式版 / beta=测试版，默认 stable）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_update_channel') {
+    verifyCsrf();
+    $channel = UpdateChannel::normalize(post('channel'));
+    settingModel()->set('update_channel', $channel, 'system');
+    adminLog('setting', 'update', __('upg_log_update_channel', ['channel' => $channel]));
+    success(['channel' => $channel]);
+}
+
 // AJAX: 在线升级检测（服务端代理，避免 CORS）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check_update') {
     header('Content-Type: application/json; charset=utf-8');
@@ -72,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     $updateServerUrl = 'https://update.yikaicms.com';
     // 带上本站域名/站名/PHP：检查更新时顺便在 update 服务器登记安装（按域名）
     $apiUrl = $updateServerUrl . '/api/update/check.php?version=' . urlencode($currentVersion)
+        . '&channel=' . urlencode(UpdateChannel::current())
         . '&domain=' . urlencode($_SERVER['HTTP_HOST'] ?? '')
         . '&site_name=' . urlencode((string) config('site_name', ''))
         . '&php=' . urlencode(PHP_VERSION);
@@ -528,6 +540,20 @@ function escapeHtml(str) {
             <option value="off" <?php echo $__lv === 'off' ? 'selected' : ''; ?>><?php echo __('upgrade_notify_off'); ?></option>
         </select>
         <p class="text-xs text-gray-400 mt-2"><?php echo __('upgrade_notify_tip'); ?></p>
+
+        <?php $__updateChannel = UpdateChannel::current(); ?>
+        <div class="border-t border-gray-100 mt-5 pt-5">
+            <label class="inline-flex items-center gap-3 cursor-pointer" data-testid="update-beta-control">
+                <input id="betaUpdateToggle" type="checkbox" class="sr-only peer" data-testid="update-beta-toggle"
+                       onchange="saveUpdateChannel(this)" <?php echo $__updateChannel === UpdateChannel::BETA ? 'checked' : ''; ?>>
+                <span class="relative w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors
+                             after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow after:transition-transform peer-checked:after:translate-x-4"></span>
+                <span>
+                    <span class="block text-sm font-medium text-gray-700"><?php echo e(__('upgrade_beta_label')); ?></span>
+                    <span class="block text-xs text-gray-400 mt-0.5"><?php echo e(__('upgrade_beta_tip')); ?></span>
+                </span>
+            </label>
+        </div>
     </div>
 </div>
 
@@ -540,6 +566,27 @@ async function saveNotifyLevel(sel) {
         await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         showMessage('<?php echo e(__('admin_saved')); ?>');
     } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
+}
+
+async function saveUpdateChannel(toggle) {
+    var fd = new FormData();
+    fd.append('action', 'save_update_channel');
+    fd.append('channel', toggle.checked ? 'beta' : 'stable');
+    toggle.disabled = true;
+    try {
+        var response = await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var data = await response.json();
+        if (!response.ok || !data || data.code !== 0) throw new Error(data && data.msg ? data.msg : 'save failed');
+        try {
+            Object.keys(localStorage).filter(function (key) { return key.indexOf('yk_upd_') === 0; })
+                .forEach(function (key) { localStorage.removeItem(key); });
+        } catch (e) {}
+        showMessage(toggle.checked ? '<?php echo e(__('upgrade_beta_enabled')); ?>' : '<?php echo e(__('admin_saved')); ?>');
+    } catch (e) {
+        toggle.checked = !toggle.checked;
+        showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error');
+    }
+    toggle.disabled = false;
 }
 </script>
 <?php endif; ?>

@@ -27,6 +27,30 @@ initLang();
 require_once ROOT_PATH . '/includes/hooks.php';
 require_once ROOT_PATH . '/includes/Compatibility.php';
 Compatibility::bootstrap();
+require_once ROOT_PATH . '/includes/AdminIpPolicy.php';
+
+/** 后台所有入口（含登录页）共用同一 IP 白名单裁决。 */
+function enforceAdminIpWhitelist(): void
+{
+    $whitelist = (string) config('admin_ip_whitelist', '');
+    $clientIp = getClientIp();
+    if (AdminIpPolicy::isAllowed($clientIp, $whitelist)) {
+        return;
+    }
+
+    http_response_code(403);
+    $message = __('auth_admin_ip_denied', ['ip' => $clientIp]);
+    if (isAjax()) {
+        error($message, 403);
+    }
+    exit('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>403</title>'
+        . '<body style="font-family:system-ui,sans-serif;padding:48px;text-align:center;color:#374151">'
+        . '<h1 style="font-size:24px">403</h1><p>' . e($message) . '</p></body></html>');
+}
+
+if (PHP_SAPI !== 'cli') {
+    enforceAdminIpWhitelist();
+}
 require_once ROOT_PATH . '/includes/AiService.php';
 require_once ROOT_PATH . '/includes/Abilities.php';
 require_once ROOT_PATH . '/includes/abilities/cms_basics.php';

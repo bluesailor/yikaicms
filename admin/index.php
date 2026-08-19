@@ -60,6 +60,8 @@ $__notifyLv = (string) config('update_notify_level', '');
 if ($__notifyLv === '') {
     $__notifyLv = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
 }
+require_once ROOT_PATH . '/includes/UpdateChannel.php';
+$__updateChannel = UpdateChannel::current();
 ?>
 <?php if (hasPermission('*') && $__notifyLv !== 'off'): ?>
 <!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 -->
@@ -87,6 +89,7 @@ if ($__notifyLv === '') {
         recheck: <?php echo json_encode(__('dashboard_update_recheck')); ?>
     };
     var NOTIFY_LEVEL = <?php echo json_encode($__notifyLv); ?>;
+    var UPDATE_CHANNEL = <?php echo json_encode($__updateChannel); ?>;
     function render(d) {
         // 仅安全更新：非 security 级别的版本不提示（后端 releases.json 的 level 字段）
         if (NOTIFY_LEVEL === 'security' && d && d.has_update && d.level !== 'security') {
@@ -106,7 +109,7 @@ if ($__notifyLv === '') {
     // 「已是最新」只缓存 1 小时：新版发布后，这条结果就成了错的，而它和
     // 「检测坏了」在界面上看不出区别——压着 6 小时不重查，管理员会以为升级检测挂了。
     // 「有新版」缓存 6 小时：横幅已经挂出来了，再频繁复查没有意义。
-    var key = 'yk_upd_' + cur + '_' + NOTIFY_LEVEL;
+    var key = 'yk_upd_' + cur + '_' + NOTIFY_LEVEL + '_' + UPDATE_CHANNEL;
     var TTL_NONE = 3600 * 1000, TTL_HAS = 6 * 3600 * 1000;
 
     function cached() {

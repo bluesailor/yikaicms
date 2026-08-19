@@ -2073,8 +2073,8 @@ function cacheClear(): void
 /**
  * 获取客户端IP
  *
- * 兼容 Cloudflare / nginx 反代：从 CF-Connecting-IP / X-Real-IP / X-Forwarded-For 中
- * 取首个公网 IP；无可信 header 时回退 REMOTE_ADDR。详见 Compatibility::clientIp()。
+ * 仅当 REMOTE_ADDR 命中 trusted_proxies 时解析转发头；否则忽略所有可伪造 Header。
+ * 详见 Compatibility::clientIp() / ClientIpResolver。
  */
 function getClientIp(): string
 {
