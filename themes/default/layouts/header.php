@@ -10,6 +10,9 @@ declare(strict_types=1);
 // 获取站点配置（多语言感知）
 $siteName = configRawLang('site_name', 'Yikai CMS');
 $siteLogo = configRawLang('site_logo', '');
+// 前台 Logo 显示高度上限（px）：按原始比例、封顶该值；默认 40 与旧版 h-10 观感一致
+$siteLogoMaxH = (int) config('site_logo_max_height', 40);
+$siteLogoMaxH = max(16, min(200, $siteLogoMaxH ?: 40));
 $siteKeywords = configJsonLang('site_keywords') ?: config('site_keywords', '');
 $siteDescription = configJsonLang('site_description') ?: config('site_description', '');
 
@@ -187,10 +190,10 @@ function getChannelUrl(array $channel): string {
         <?php if ($headerNavLayout === 'below'): ?>
         <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
+            <div class="flex items-center justify-between min-h-16">
                 <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
-                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-10">
+                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
                     <?php else: ?>
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
@@ -257,10 +260,10 @@ function getChannelUrl(array $channel): string {
         <?php else: ?>
         <!-- Layout: Logo left + Navigation right (default) -->
         <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
+            <div class="flex items-center justify-between min-h-16">
                 <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
-                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-10">
+                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
                     <?php else: ?>
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>

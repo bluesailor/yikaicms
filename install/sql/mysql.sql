@@ -1279,6 +1279,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (3,'basic','site_keywords','企业官网,CMS,内容管理,数字化转型,智能制造','textarea','SEO关键词','多个关键词用逗号分隔',NULL,2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (4,'basic','site_description','专业的企业内容管理系统，助力企业数字化转型；支持多语言、SEO 优化、响应式设计。','textarea','SEO描述','',NULL,3);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (5,'basic','site_logo','/images/logo.png','image','站点Logo','',NULL,4);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (241,'basic','site_logo_max_height','40','number','网站Logo最大高度(px)','Logo 按原始比例显示，高度不超过此值（默认 40 与旧版一致；如图片偏高可调，例如 60）',NULL,5);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (6,'basic','site_favicon','/favicon.ico','image','站点图标','',NULL,5);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (7,'basic','primary_color','#3B82F6','color','主题色','',NULL,6);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (8,'basic','secondary_color','#1D4ED8','color','辅助色','',NULL,7);
@@ -1286,7 +1287,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (10,'basic','site_police','','text','公安备案号','',NULL,11);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (11,'basic','admin_title','后台管理','text','后台名称','后台左上角显示的名称',NULL,20);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (12,'basic','admin_logo','','image','后台Logo','留空显示文字',NULL,21);
-INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (240,'basic','admin_logo_max_height','80','number','后台Logo最大高度','像素。Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）',NULL,22);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (240,'basic','admin_logo_max_height','80','number','后台Logo最大高度(px)','Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）',NULL,22);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (13,'basic','admin_copyright','','text','后台版权','留空不显示',NULL,22);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (14,'header','topbar_enabled','0','select','顶部通栏','','{\"0\":\"隐藏\",\"1\":\"显示\"}',0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (15,'header','topbar_bg_color','#f3f4f6','color','通栏背景色','',NULL,1);
