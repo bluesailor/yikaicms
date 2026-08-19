@@ -30,4 +30,16 @@ final class BloxSiteDesignContractTest extends TestCase
         self::assertSame('1', $defaults['system']['blox_custom_footer_enabled']['value'] ?? null);
         self::assertSame('switch', $defaults['system']['blox_custom_footer_enabled']['type'] ?? null);
     }
+
+    public function testHomepageEntryUsesBasicEditorGateWhileSiteAreasStayAdvanced(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/admin/site_design.php');
+
+        self::assertIsString($source);
+        self::assertStringContainsString('$basicBloxEnabled = bloxPageEditorEnabled();', $source);
+        self::assertStringContainsString('if ($basicBloxEnabled && $isAdministrator)', $source);
+        self::assertStringContainsString('if ($advancedBloxEnabled && $isAdministrator)', $source);
+        self::assertStringContainsString('/admin/blox_editor.php?home=1', $source);
+        self::assertStringContainsString('/admin/blox_templates.php?type=', $source);
+    }
 }

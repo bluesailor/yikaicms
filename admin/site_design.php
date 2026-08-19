@@ -13,6 +13,7 @@ requirePermission('edit_page');
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 $isAdministrator = hasPermission('*');
+$basicBloxEnabled = bloxPageEditorEnabled();
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
 $currentTheme = (string) config('current_theme', 'default');
 
@@ -90,7 +91,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('site_design_title')); ?></h1>
             <p class="mt-1 max-w-3xl text-sm text-gray-500"><?php echo e(__('site_design_intro')); ?></p>
         </div>
-        <?php if ($advancedBloxEnabled && $isAdministrator): ?>
+        <?php if ($basicBloxEnabled && $isAdministrator): ?>
         <a href="/admin/blox_editor.php?home=1" class="inline-flex h-10 items-center gap-2 bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-700">
             <i class="ti ti-home-edit"></i><?php echo e(__('site_design_open_home')); ?>
         </a>
@@ -131,7 +132,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="font-medium text-gray-900"><?php echo e(__('site_design_home')); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e($homeStatus); ?></div>
                 </div>
-                <?php if ($advancedBloxEnabled && $isAdministrator): ?>
+                <?php if ($basicBloxEnabled && $isAdministrator): ?>
                 <a href="/admin/blox_editor.php?home=1" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
                     <?php echo e(__('site_design_open')); ?><i class="ti ti-arrow-right"></i>
                 </a>

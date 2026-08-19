@@ -167,9 +167,12 @@ final class BloxSecurityBoundaryTest extends TestCase
 
         self::assertStringContainsString("['header', 'footer', 'popup']", $auth);
         self::assertStringContainsString("requirePermission('*');", $editor);
+        self::assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
         self::assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
-        self::assertStringContainsString("function_exists('bloxAdvancedFeaturesEnabled')", $templates);
-        self::assertStringContainsString(': bloxEditorEnabled();', $templates);
+        self::assertStringContainsString('if (!bloxPageEditorEnabled())', $templates);
+        self::assertStringContainsString('$requireTemplateLicense($type);', $templates);
+        self::assertStringContainsString("\$item['locked_reason'] = 'license_missing';", $templates);
+        self::assertBefore($templates, "str_starts_with(\$key, 'remote:')", 'BloxTemplateCatalog::resolve($key, $context)');
         self::assertGreaterThanOrEqual(4, substr_count($templates, 'requireBloxTemplateTypePermission('));
         self::assertStringContainsString("if (\$_SERVER['REQUEST_METHOD'] === 'POST') {\n    verifyCsrf();", $templateManager);
         self::assertSame(2, substr_count($media, 'verifyCsrf();'));
