@@ -19,7 +19,9 @@ module.exports = defineConfig({
     ['list'],
     ['html', { outputFolder: reportDir, open: 'never' }],
   ],
-  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}',
+  // 截图基线按平台分套：CI(Linux) 与本地(Windows) 字体渲染有 1-2px 尺寸差，
+  // 单套基线会让另一平台永远红。新平台首跑用 --update-snapshots 生成本套基线。
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-{platform}{ext}',
   use: {
     baseURL,
     storageState,
