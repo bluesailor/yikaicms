@@ -121,6 +121,11 @@ $stmt->execute([$legacyHtml, $pageId]);
 $stmt = $pdo->prepare("UPDATE yikai_contents SET content = ?, content_type = 'html', blocks_data = NULL WHERE id = ?");
 $stmt->execute([$legacyHtml, $contentId]);
 $homeLayoutBefore = settingValue($pdo, 'home_blocks_config');
+$homeDraftBefore = settingValue($pdo, 'home_blox_data');
+$homePublishedBefore = settingValue($pdo, 'home_blox_published');
+$homeActiveBefore = settingValue($pdo, 'home_blox_active');
+$hadPublishedBloxHome = $homeActiveBefore === '1'
+    && trim((string) $homePublishedBefore) !== '';
 $pdo = null;
 
 define('ROOT_PATH', $root);
@@ -167,10 +172,20 @@ upgradeCheck(currentTheme() === 'default', 'runtime resolves the upgraded site t
 upgradeCheck(is_file(theme_path('layouts/header.php')), 'default header remains available');
 upgradeCheck(is_file(theme_path('layouts/footer.php')), 'default footer remains available');
 require_once $root . '/includes/builder/bootstrap.php';
-upgradeCheck(HomeBloxDocument::hasDraft(), 'upgrade creates a Blox homepage draft for the default theme');
-upgradeCheck(HomeBloxDocument::load()['source'] === 'legacy-import-complete-v2', 'automatic homepage draft records its completed legacy source');
-upgradeCheck(settingValue($pdo, 'home_blox_active') !== '1', 'upgrade does not activate a Blox homepage');
-upgradeCheck(!HomeBloxDocument::hasPublished(), 'upgrade does not publish the Blox homepage');
+upgradeCheck(HomeBloxDocument::hasDraft(), $hadPublishedBloxHome
+    ? 'upgrade preserves the existing Blox homepage draft'
+    : 'upgrade creates a Blox homepage draft for the default theme');
+if ($hadPublishedBloxHome) {
+    upgradeCheck(HomeBloxDocument::isActive(), 'upgrade preserves the active Blox homepage');
+    upgradeCheck(HomeBloxDocument::hasPublished(), 'upgrade preserves the published Blox homepage');
+    upgradeCheck(settingValue($pdo, 'home_blox_data') === $homeDraftBefore, 'upgrade preserves the Blox homepage draft byte-for-byte');
+    upgradeCheck(settingValue($pdo, 'home_blox_published') === $homePublishedBefore, 'upgrade preserves the Blox homepage publication byte-for-byte');
+    upgradeCheck(settingValue($pdo, 'home_blox_active') === $homeActiveBefore, 'upgrade preserves the Blox homepage activation flag');
+} else {
+    upgradeCheck(HomeBloxDocument::load()['source'] === 'legacy-import-complete-v2', 'automatic homepage draft records its completed legacy source');
+    upgradeCheck(settingValue($pdo, 'home_blox_active') !== '1', 'upgrade does not activate a Blox homepage');
+    upgradeCheck(!HomeBloxDocument::hasPublished(), 'upgrade does not publish the Blox homepage');
+}
 upgradeCheck(settingValue($pdo, 'blox_editor_enabled') === '1', 'upgrade enables the Blox editor by default');
 upgradeCheck(bloxPageEditorEnabled(), 'free Blox page editing is available after upgrade');
 upgradeCheck(bloxPageEditorEnabled(), 'the Blox editor switch is on without a commercial license');
@@ -182,10 +197,16 @@ $migratedLegacyHtml = $pdo->query('SELECT content FROM yikai_contents WHERE id =
 upgradeCheck($migratedLegacyHtml === $legacyHtml, 'migrations preserve legacy page HTML');
 
 $convertedHome = HomeBloxDocument::createDraftFromLegacy();
-upgradeCheck($convertedHome['source'] === 'legacy-import-complete-v2', 'classic homepage draft remains the completed automatic import');
-upgradeCheck(!HomeBloxDocument::isActive(), 'classic conversion does not activate the Blox homepage');
-upgradeCheck(!HomeBloxDocument::hasPublished(), 'classic conversion does not publish the Blox homepage');
-upgradeCheck(settingValue($pdo, 'home_blocks_config') === $homeLayoutBefore, 'classic conversion preserves the legacy homepage configuration');
+if ($hadPublishedBloxHome) {
+    upgradeCheck(settingValue($pdo, 'home_blox_data') === $homeDraftBefore, 'legacy conversion leaves the existing Blox draft unchanged');
+    upgradeCheck(settingValue($pdo, 'home_blox_published') === $homePublishedBefore, 'legacy conversion leaves the existing Blox publication unchanged');
+    upgradeCheck(HomeBloxDocument::isActive(), 'legacy conversion keeps the existing Blox homepage active');
+} else {
+    upgradeCheck($convertedHome['source'] === 'legacy-import-complete-v2', 'classic homepage draft remains the completed automatic import');
+    upgradeCheck(!HomeBloxDocument::isActive(), 'classic conversion does not activate the Blox homepage');
+    upgradeCheck(!HomeBloxDocument::hasPublished(), 'classic conversion does not publish the Blox homepage');
+    upgradeCheck(settingValue($pdo, 'home_blocks_config') === $homeLayoutBefore, 'classic conversion preserves the legacy homepage configuration');
+}
 
 $publishedBeforeEditor = $pdo->query('SELECT content, content_type, blocks_data FROM yikai_contents WHERE id = ' . $contentId)
     ->fetch(PDO::FETCH_ASSOC);
