@@ -1445,7 +1445,7 @@ HTML;
         // 字面量。曾在 nowdoc 里直接写 PHP 开标签，结果标签原样进了浏览器，
         // 整块画布脚本语法报错、编辑器 e2e 全线 pageerror。
         $bloxInject = strtr($bloxInject, [
-            '@@templates_enabled@@' => bloxAdvancedFeaturesEnabled() ? 'true' : 'false',
+            '@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false',
             '__YK_COLUMN_RESIZE_LABEL__' => json_encode(__('blox_canvas_column_resize'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '__YK_COLUMN_RESIZE_HINT__' => json_encode(__('blox_canvas_column_resize_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),

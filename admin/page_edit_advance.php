@@ -29,7 +29,7 @@ $legacyDebugMode = defined('DEBUG') && DEBUG
     && (string) ($_GET['legacy'] ?? '') === '1';
 if (!$legacyDebugMode && ($id > 0 || $isHomeLayout)) {
     if ($isHomeLayout) {
-        $target = bloxAdvancedFeaturesEnabled() ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php';
+        $target = bloxPageEditorEnabled() ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php';
     } else {
         $target = '/admin/blox_editor.php?id=' . $id;
         $focus = trim((string) ($_GET['focus'] ?? ''));

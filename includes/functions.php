@@ -375,8 +375,9 @@ function bloxPageEditorEnabled(): bool
 /**
  * Blox 的商业高级能力边界。
  *
- * 编辑器本身对免费版开放；全站布局、模板管理、全局样式与高级数据能力
- * 仍通过此函数统一校验，避免再次把“能否进入编辑器”和授权状态绑在一起。
+ * 编辑器本身、首页和受支持栏目文档对免费版开放；远程模板下载、Header/Footer、
+ * Popup、全局样式与高级数据能力仍通过此函数统一校验，避免再次把“能否编辑内容”
+ * 和授权状态绑在一起。
  */
 function bloxAdvancedFeaturesEnabled(): bool
 {
@@ -396,7 +397,7 @@ function bloxAdvancedFeaturesEnabled(): bool
  * 兼容旧版高级模块的能力入口。
  *
  * 历史高级文件会直接调用 bloxEditorEnabled()。该别名必须继续返回高级授权结果，
- * 否则客户站残留的旧模板/首页模块会把免费编辑器开关误当成高级授权。
+ * 否则客户站残留的旧全站模板模块会把免费编辑器开关误当成高级授权。
  */
 function bloxEditorEnabled(): bool
 {

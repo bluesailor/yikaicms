@@ -11,10 +11,8 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('edit_page');
 
-$advancedBloxEnabled = function_exists('bloxAdvancedFeaturesEnabled')
-    ? bloxAdvancedFeaturesEnabled()
-    : bloxEditorEnabled();
-if (!$advancedBloxEnabled) {
+$advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
+if (!bloxPageEditorEnabled()) {
     error(__('blox_feature_disabled'));
 }
 
@@ -22,14 +20,30 @@ require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 header('Cache-Control: no-store, max-age=0');
 
+$requireTemplateLicense = static function (string $type) use ($advancedBloxEnabled): void {
+    if (!in_array($type, ['section', 'page'], true) && !$advancedBloxEnabled) {
+        error(__('blox_feature_disabled'));
+    }
+};
+
 try {
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     $action = $method === 'POST' ? (string) post('action', '') : (string) get('action', 'list');
     if ($action === 'list' && $method === 'GET') {
         $context = (string) get('context', 'page');
         requireBloxTemplateTypePermission($context);
+        $items = BloxTemplateCatalog::items($context, true, (string) get('refresh', '') === '1');
+        if (!$advancedBloxEnabled) {
+            $items = array_map(static function (array $item): array {
+                if (($item['source'] ?? '') === 'remote') {
+                    $item['locked'] = true;
+                    $item['locked_reason'] = 'license_missing';
+                }
+                return $item;
+            }, $items);
+        }
         success([
-            'items' => BloxTemplateCatalog::items($context, true, (string) get('refresh', '') === '1'),
+            'items' => $items,
             'remote_error' => BloxTemplateCatalog::remoteError(),
         ]);
     }
@@ -40,8 +54,9 @@ try {
         if (!$row) {
             error(__('blox_tpl_not_found'));
         }
-        requireBloxTemplateTypePermission((string) ($row['type'] ?? ''));
         $type = (string) ($row['type'] ?? '');
+        $requireTemplateLicense($type);
+        requireBloxTemplateTypePermission($type);
         $currentDraft = trim((string) ($row['draft_data'] ?? '')) !== ''
             ? (string) $row['draft_data']
             : '[]';
@@ -121,7 +136,9 @@ try {
         if (!$row) {
             error(__('blox_tpl_not_found'));
         }
-        requireBloxTemplateTypePermission((string) ($row['type'] ?? ''));
+        $type = (string) ($row['type'] ?? '');
+        $requireTemplateLicense($type);
+        requireBloxTemplateTypePermission($type);
         $conflictMessage = BloxAreaConditions::publishConflictMessage($row);
         if ($conflictMessage !== '' && (string) post('confirm_conflict', '') !== '1') {
             error($conflictMessage, 409);
@@ -135,6 +152,9 @@ try {
         $context = (string) post('context', 'page');
         requireBloxTemplateTypePermission($context);
         $key = trim((string) post('key', ''));
+        if (!$advancedBloxEnabled && str_starts_with($key, 'remote:')) {
+            error(__('blox_template_locked_license'));
+        }
         $template = BloxTemplateCatalog::resolve($key, $context);
         requireBloxTemplateTypePermission((string) ($template['type'] ?? $context));
         if (($template['source'] ?? '') === 'remote') {

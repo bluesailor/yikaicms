@@ -67,9 +67,12 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $editor = $this->source('admin/blox_editor.php');
         $preview = $this->source('admin/blox_preview.php');
-        $this->assertStringContainsString('$isBasicPageRequest ? !bloxPageEditorEnabled() : !bloxAdvancedFeaturesEnabled()', $editor);
+        $homeApi = $this->source('admin/blox_home_api.php');
+        $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $editor);
+        $this->assertStringNotContainsString('$isBasicPageRequest', $editor);
         $this->assertStringContainsString('elseif (!bloxPageEditorEnabled())', $preview);
-        $this->assertStringContainsString('if (!bloxAdvancedFeaturesEnabled())', $preview);
+        $this->assertStringContainsString("if (\$isHomeLayout) {\n    if (!bloxPageEditorEnabled())", $preview);
+        $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $homeApi);
     }
 
     public function testBasicPageEditorDefaultsOnWhileAdvancedFeaturesRemainLicensed(): void
@@ -84,11 +87,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('$advancedBloxEnabled = bloxAdvancedFeaturesEnabled();', $editor);
         $this->assertStringContainsString('data-blox-advanced="<?php echo $advancedBloxEnabled', $editor);
         $this->assertStringContainsString('advancedMode: <?php echo $advancedBloxEnabled', $editor);
-        $this->assertStringContainsString('if (!this.advancedMode) return;', $editor);
-        $this->assertStringContainsString('if ($advancedBloxEnabled)', $header);
+        $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
+        $this->assertStringNotContainsString("loadTemplates(force) {\n                if (!this.advancedMode)", $editor);
+        $this->assertStringContainsString('data-testid="blox-templates-open"', $header);
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
-        $this->assertStringContainsString("'@@templates_enabled@@' => bloxAdvancedFeaturesEnabled() ? 'true' : 'false'", $canvas);
+        $this->assertStringContainsString("'@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false'", $canvas);
         $this->assertStringContainsString('$renderPublishedArea = static function (string $area): string', $canvas);
         $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\') : \'\';', $canvas);
         $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\') : \'\';', $canvas);
