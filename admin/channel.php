@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 受全局 slug 唯一性约束，保持后缀形（product-en 等）可编辑。
             'album_id' => postInt('album_id'),
             'icon' => post('icon'),
-            'image' => post('image'),
             'description' => post('description'),
             'content' => $_POST['content'] ?? '',
             'link_url' => post('link_url'),
@@ -75,6 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'sort_order' => postInt('sort_order'),
             'updated_at' => time(),
         ];
+
+        // 旧版栏目可能保存了 image，但当前编辑表单没有这个字段。字段缺席时必须
+        // 保留原值；只有调用方明确提交 image（包括主动清空）时才更新。
+        if (array_key_exists('image', $_POST)) {
+            $data['image'] = post('image');
+        }
 
         // 内页横幅字段（hero_bg/show_hero 列由 20260819 迁移新增；未跑迁移的库跳过，避免保存整体失败）
         try {
