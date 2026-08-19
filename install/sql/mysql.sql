@@ -1280,6 +1280,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (4,'basic','site_description','专业的企业内容管理系统，助力企业数字化转型；支持多语言、SEO 优化、响应式设计。','textarea','SEO描述','',NULL,3);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (5,'basic','site_logo','/images/logo.png','image','站点Logo','',NULL,4);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (241,'basic','site_logo_max_height','40','number','网站Logo最大高度(px)','Logo 按原始比例显示，高度不超过此值（默认 40 与旧版一致；如图片偏高可调，例如 60）',NULL,5);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (242,'basic','site_logo_alt','','text','网站Logo替代文字','图片加载失败或读屏时显示的 alt 文字；留空使用站点名称',NULL,6);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (6,'basic','site_favicon','/favicon.ico','image','站点图标','',NULL,5);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (7,'basic','primary_color','#3B82F6','color','主题色','',NULL,6);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (8,'basic','secondary_color','#1D4ED8','color','辅助色','',NULL,7);

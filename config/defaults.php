@@ -22,6 +22,7 @@ return [
         'site_description'      => ['value' => '专业的企业内容管理系统，助力企业数字化转型', 'type' => 'textarea', 'name' => 'SEO描述', 'tip' => '', 'section' => '站点信息', 'sort_order' => 3],
         'site_logo'             => ['value' => '', 'type' => 'image', 'name' => '站点Logo', 'tip' => '顶部导航 LOGO：透明底 PNG 或 SVG，按原始比例显示，显示高度上限由下方「网站Logo最大高度(px)」控制（高清屏建议 2 倍尺寸）', 'section' => '站点标识', 'sort_order' => 4],
         'site_logo_max_height'  => ['value' => '40', 'type' => 'number', 'name' => '网站Logo最大高度(px)', 'tip' => 'Logo 按原始比例显示，高度不超过此值（默认 40 与旧版一致；如图片偏高可调，例如 60）', 'section' => '站点标识', 'sort_order' => 5],
+        'site_logo_alt'         => ['value' => '', 'type' => 'text', 'name' => '网站Logo替代文字', 'tip' => '图片加载失败或读屏时显示的 alt 文字；留空使用站点名称', 'section' => '站点标识', 'sort_order' => 6],
         'site_favicon'          => ['value' => '/favicon.ico', 'type' => 'image', 'name' => '站点图标', 'tip' => '浏览器标签页图标：.ico 或 .png，正方形，推荐 32×32 或 48×48（.ico 可同时含 16/32/48 多尺寸，兼容性最好）', 'section' => '站点标识', 'sort_order' => 5],
         'primary_color'         => ['value' => '#3B82F6', 'type' => 'color', 'name' => '主题色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],
         'secondary_color'       => ['value' => '#1D4ED8', 'type' => 'color', 'name' => '辅助色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],

@@ -46,6 +46,33 @@ function renderFrontEdit(): void
       .yk-logo-btn--make { background: #7c3aed; }
       .yk-logo-btn--make:hover { background: #6d28d9; }
       @media print { #yk-edit-outline, .yk-logo-btns { display: none !important; } }
+      /* 换Logo 对话框 */
+      .yk-lgd-mask { position: fixed; inset: 0; z-index: 99995; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+      .yk-lgd { background: #fff; border-radius: 12px; width: 560px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.3); font-size: 14px; color: #111827; }
+      .yk-lgd-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #f1f5f9; font-weight: 700; }
+      .yk-lgd-x { cursor: pointer; border: 0; background: none; font-size: 18px; line-height: 1; color: #94a3b8; }
+      .yk-lgd-x:hover { color: #334155; }
+      .yk-lgd-body { padding: 16px 18px; overflow-y: auto; }
+      .yk-lgd-prev { background: #f8fafc; border: 1px dashed #e2e8f0; border-radius: 10px; min-height: 96px; display: flex; align-items: center; justify-content: center; padding: 12px; margin-bottom: 14px; }
+      .yk-lgd-prev img { max-width: 100%; }
+      .yk-lgd-row { margin-bottom: 12px; }
+      .yk-lgd-label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; }
+      .yk-lgd-input { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 10px; font-size: 13px; box-sizing: border-box; }
+      .yk-lgd-input:focus { outline: 2px solid #bfdbfe; border-color: #60a5fa; }
+      .yk-lgd-tools { display: flex; gap: 8px; margin-bottom: 10px; }
+      .yk-lgd-btn { border: 0; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+      .yk-lgd-btn--up { background: #2563eb; color: #fff; }
+      .yk-lgd-btn--up:hover { background: #1d4ed8; }
+      .yk-lgd-btn--ghost { background: #f1f5f9; color: #334155; }
+      .yk-lgd-btn--ghost:hover { background: #e2e8f0; }
+      .yk-lgd-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-height: 180px; overflow-y: auto; padding: 2px; }
+      .yk-lgd-item { border: 2px solid #e2e8f0; border-radius: 8px; height: 64px; display: flex; align-items: center; justify-content: center; background: #fff; cursor: pointer; overflow: hidden; padding: 4px; }
+      .yk-lgd-item:hover { border-color: #93c5fd; }
+      .yk-lgd-item.sel { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.2); }
+      .yk-lgd-item img { max-width: 100%; max-height: 100%; object-fit: contain; }
+      .yk-lgd-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid #f1f5f9; }
+      .yk-lgd-num { display: flex; align-items: center; gap: 6px; }
+      .yk-lgd-num .yk-lgd-input { width: 96px; }
     </style>
     <script>
     (function () {
@@ -138,12 +165,7 @@ function renderFrontEdit(): void
           b.textContent = '✎ ' + <?php echo json_encode(__('fe_change_logo'), JSON_UNESCAPED_UNICODE); ?>;
           b.addEventListener('click', function (e) {
             e.preventDefault(); e.stopPropagation();
-            fileInput.onchange = function () {
-              if (!fileInput.files[0]) return;
-              uploadAndSaveLogo(fileInput.files[0]);
-              fileInput.value = '';
-            };
-            fileInput.click();
+            openLogoDialog();
           });
           wrap.appendChild(b);
           if (hasLogoMaker) {
@@ -169,27 +191,205 @@ function renderFrontEdit(): void
         setTimeout(function () { t.remove(); }, 2200);
       }
 
-      function uploadAndSaveLogo(file) {
-        var fd = new FormData(); fd.append('file', file); fd.append('type', 'images'); fd.append('_token', csrf);
-        toast(<?php echo json_encode(__('media_uploading'), JSON_UNESCAPED_UNICODE); ?>, true);
-        fetch('/admin/upload.php', { method: 'POST', body: fd })
-          .then(function (r) { return r.json(); })
-          .then(function (d) {
-            if (d.code !== 0) { toast(d.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, false); return; }
-            var url = d.data.url;
-            var sd = new FormData();
-            sd.append('key', 'site_logo'); sd.append('value', url); sd.append('_token', csrf);
-            return fetch('/admin/front_edit_api.php', { method: 'POST', body: sd })
+      // ===== 换Logo 对话框：预览 + 媒体库选图 + 上传 + alt + 最大高度 =====
+      var lgdState = {
+        url: <?php echo json_encode((string) configRawLang('site_logo', ''), JSON_UNESCAPED_UNICODE); ?>,
+        alt: <?php echo json_encode((string) config('site_logo_alt', ''), JSON_UNESCAPED_UNICODE); ?>,
+        maxH: <?php echo (int) max(16, min(200, (int) config('site_logo_max_height', 40) ?: 40)); ?>,
+        page: 1, pages: 1, mask: null
+      };
+      var lgdT = {
+        title: <?php echo json_encode(__('fe_logo_dialog_title'), JSON_UNESCAPED_UNICODE); ?>,
+        upload: <?php echo json_encode(__('fe_logo_upload'), JSON_UNESCAPED_UNICODE); ?>,
+        media: <?php echo json_encode(__('fe_logo_media'), JSON_UNESCAPED_UNICODE); ?>,
+        more: <?php echo json_encode(__('fe_logo_media_more'), JSON_UNESCAPED_UNICODE); ?>,
+        alt: <?php echo json_encode(__('fe_logo_alt_label'), JSON_UNESCAPED_UNICODE); ?>,
+        altPh: <?php echo json_encode(__('fe_logo_alt_ph'), JSON_UNESCAPED_UNICODE); ?>,
+        maxH: <?php echo json_encode(__('fe_logo_max_height_label'), JSON_UNESCAPED_UNICODE); ?>,
+        save: <?php echo json_encode(__('admin_save'), JSON_UNESCAPED_UNICODE); ?>,
+        cancel: <?php echo json_encode(__('admin_cancel'), JSON_UNESCAPED_UNICODE); ?>,
+        uploading: <?php echo json_encode(__('media_uploading'), JSON_UNESCAPED_UNICODE); ?>,
+        upFail: <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>,
+        saveFail: <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>,
+        netErr: <?php echo json_encode(__('admin_network_error'), JSON_UNESCAPED_UNICODE); ?>,
+        updated: <?php echo json_encode(__('fe_logo_updated'), JSON_UNESCAPED_UNICODE); ?>,
+        saved: <?php echo json_encode(__('fe_logo_saved'), JSON_UNESCAPED_UNICODE); ?>
+      };
+
+      function lgdEl(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text) n.textContent = text;
+        return n;
+      }
+
+      function openLogoDialog() {
+        if (lgdState.mask) return;
+        var mask = lgdEl('div', 'yk-lgd-mask');
+        var box = lgdEl('div', 'yk-lgd');
+        var head = lgdEl('div', 'yk-lgd-head', lgdT.title);
+        var x = lgdEl('button', 'yk-lgd-x', '×');
+        head.appendChild(x);
+        var body = lgdEl('div', 'yk-lgd-body');
+
+        var prev = lgdEl('div', 'yk-lgd-prev');
+        body.appendChild(prev);
+
+        var tools = lgdEl('div', 'yk-lgd-tools');
+        var upBtn = lgdEl('button', 'yk-lgd-btn yk-lgd-btn--up', '⬆ ' + lgdT.upload);
+        tools.appendChild(upBtn);
+        body.appendChild(tools);
+
+        var mediaLabel = lgdEl('span', 'yk-lgd-label', lgdT.media);
+        body.appendChild(mediaLabel);
+        var grid = lgdEl('div', 'yk-lgd-grid');
+        body.appendChild(grid);
+        var moreBtn = lgdEl('button', 'yk-lgd-btn yk-lgd-btn--ghost', lgdT.more);
+        moreBtn.style.marginTop = '8px';
+        body.appendChild(moreBtn);
+
+        var altRow = lgdEl('div', 'yk-lgd-row');
+        altRow.style.marginTop = '12px';
+        altRow.appendChild(lgdEl('span', 'yk-lgd-label', lgdT.alt));
+        var altInput = lgdEl('input', 'yk-lgd-input');
+        altInput.type = 'text'; altInput.maxLength = 150; altInput.placeholder = lgdT.altPh; altInput.value = lgdState.alt;
+        altRow.appendChild(altInput);
+        body.appendChild(altRow);
+
+        var hRow = lgdEl('div', 'yk-lgd-row');
+        hRow.appendChild(lgdEl('span', 'yk-lgd-label', lgdT.maxH));
+        var hWrap = lgdEl('div', 'yk-lgd-num');
+        var hInput = lgdEl('input', 'yk-lgd-input');
+        hInput.type = 'number'; hInput.min = 16; hInput.max = 200; hInput.value = lgdState.maxH;
+        hWrap.appendChild(hInput);
+        hWrap.appendChild(lgdEl('span', '', 'px'));
+        hRow.appendChild(hWrap);
+        body.appendChild(hRow);
+
+        var foot = lgdEl('div', 'yk-lgd-foot');
+        var cancelBtn = lgdEl('button', 'yk-lgd-btn yk-lgd-btn--ghost', lgdT.cancel);
+        var saveBtn = lgdEl('button', 'yk-lgd-btn yk-lgd-btn--up', lgdT.save);
+        foot.appendChild(cancelBtn); foot.appendChild(saveBtn);
+
+        box.appendChild(head); box.appendChild(body); box.appendChild(foot);
+        mask.appendChild(box);
+        document.body.appendChild(mask);
+        lgdState.mask = mask;
+
+        var pending = { url: lgdState.url };
+        function renderPrev() {
+          prev.textContent = '';
+          if (pending.url) {
+            var im = document.createElement('img');
+            im.src = pending.url;
+            im.style.maxHeight = (parseInt(hInput.value, 10) || 40) + 'px';
+            prev.appendChild(im);
+          }
+        }
+        renderPrev();
+        hInput.addEventListener('input', renderPrev);
+
+        function close() { mask.remove(); lgdState.mask = null; lgdState.page = 1; }
+        x.addEventListener('click', close);
+        cancelBtn.addEventListener('click', close);
+        mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
+
+        function addItems(items) {
+          items.forEach(function (it) {
+            var url = it.url || it.path || '';
+            if (!url) return;
+            var cell = lgdEl('div', 'yk-lgd-item');
+            var im = document.createElement('img');
+            im.src = url; im.loading = 'lazy';
+            cell.appendChild(im);
+            if (url === pending.url) cell.classList.add('sel');
+            cell.addEventListener('click', function () {
+              grid.querySelectorAll('.sel').forEach(function (n) { n.classList.remove('sel'); });
+              cell.classList.add('sel');
+              pending.url = url;
+              renderPrev();
+            });
+            grid.appendChild(cell);
+          });
+        }
+        function loadMedia(page) {
+          fetch('/admin/media_api.php?action=list&type=image&page=' + page)
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d.code !== 0 || !d.data) return;
+              addItems(d.data.items || []);
+              lgdState.page = d.data.page; lgdState.pages = d.data.pages;
+              moreBtn.style.display = lgdState.page < lgdState.pages ? '' : 'none';
+            })
+            .catch(function () { moreBtn.style.display = 'none'; });
+        }
+        moreBtn.addEventListener('click', function () { loadMedia(lgdState.page + 1); });
+        loadMedia(1);
+
+        upBtn.addEventListener('click', function () {
+          fileInput.onchange = function () {
+            if (!fileInput.files[0]) return;
+            var fd = new FormData();
+            fd.append('file', fileInput.files[0]); fd.append('type', 'images'); fd.append('_token', csrf);
+            fileInput.value = '';
+            toast(lgdT.uploading, true);
+            fetch('/admin/upload.php', { method: 'POST', body: fd })
               .then(function (r) { return r.json(); })
-              .then(function (s) {
-                if (s.code !== 0) { toast(s.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, false); return; }
-                // 实时替换所有 Logo 图；原来是文字站名的则刷新以显示新图
-                var imgs = document.querySelectorAll('[data-yk-logo] img');
-                if (imgs.length) { imgs.forEach(function (im) { im.src = url; }); toast(<?php echo json_encode(__('fe_logo_updated'), JSON_UNESCAPED_UNICODE); ?>, true); }
-                else { toast(<?php echo json_encode(__('fe_logo_saved'), JSON_UNESCAPED_UNICODE); ?>, true); setTimeout(function () { location.reload(); }, 700); }
-              });
-          })
-          .catch(function (err) { toast(<?php echo json_encode(__('admin_network_error'), JSON_UNESCAPED_UNICODE); ?> + '：' + err.message, false); });
+              .then(function (d) {
+                if (d.code !== 0) { toast(d.msg || lgdT.upFail, false); return; }
+                pending.url = d.data.url;
+                renderPrev();
+                var cell = lgdEl('div', 'yk-lgd-item sel');
+                var im = document.createElement('img');
+                im.src = d.data.url; cell.appendChild(im);
+                grid.querySelectorAll('.sel').forEach(function (n) { n.classList.remove('sel'); });
+                cell.classList.add('sel');
+                cell.addEventListener('click', function () { pending.url = d.data.url; renderPrev(); });
+                grid.prepend(cell);
+              })
+              .catch(function (err) { toast(lgdT.netErr + '：' + err.message, false); });
+          };
+          fileInput.click();
+        });
+
+        function saveKey(key, value) {
+          var sd = new FormData();
+          sd.append('key', key); sd.append('value', value); sd.append('_token', csrf);
+          return fetch('/admin/front_edit_api.php', { method: 'POST', body: sd })
+            .then(function (r) { return r.json(); })
+            .then(function (s) { if (s.code !== 0) throw new Error(s.msg || lgdT.saveFail); return s; });
+        }
+
+        saveBtn.addEventListener('click', function () {
+          var newAlt = altInput.value.trim();
+          var newH = Math.max(16, Math.min(200, parseInt(hInput.value, 10) || 40));
+          var tasks = [];
+          if (pending.url && pending.url !== lgdState.url) tasks.push(['site_logo', pending.url]);
+          if (newAlt !== lgdState.alt) tasks.push(['site_logo_alt', newAlt]);
+          if (newH !== lgdState.maxH) tasks.push(['site_logo_max_height', String(newH)]);
+          if (!tasks.length) { close(); return; }
+          saveBtn.disabled = true;
+          tasks.reduce(function (chain, t) {
+            return chain.then(function () { return saveKey(t[0], t[1]); });
+          }, Promise.resolve())
+            .then(function () {
+              var hadImg = document.querySelectorAll('[data-yk-logo] img').length > 0;
+              lgdState.url = pending.url || lgdState.url;
+              lgdState.alt = newAlt; lgdState.maxH = newH;
+              var imgs = document.querySelectorAll('[data-yk-logo] img');
+              if (imgs.length) {
+                imgs.forEach(function (im) {
+                  if (lgdState.url) im.src = lgdState.url;
+                  im.alt = newAlt;
+                  im.style.maxHeight = newH + 'px';
+                });
+              }
+              close();
+              if (!hadImg && lgdState.url) { toast(lgdT.saved, true); setTimeout(function () { location.reload(); }, 700); }
+              else { toast(lgdT.updated, true); }
+            })
+            .catch(function (err) { saveBtn.disabled = false; toast(err.message || lgdT.saveFail, false); });
+        });
       }
     })();
     </script>

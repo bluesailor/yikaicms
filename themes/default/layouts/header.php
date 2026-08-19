@@ -13,6 +13,8 @@ $siteLogo = configRawLang('site_logo', '');
 // 前台 Logo 显示高度上限（px）：按原始比例、封顶该值；默认 40 与旧版 h-10 观感一致
 $siteLogoMaxH = (int) config('site_logo_max_height', 40);
 $siteLogoMaxH = max(16, min(200, $siteLogoMaxH ?: 40));
+// alt 优先取专用设置（可就地编辑），空则回退站点名称
+$siteLogoAlt = (string) (configRawLang('site_logo_alt', '') ?: $siteName);
 $siteKeywords = configJsonLang('site_keywords') ?: config('site_keywords', '');
 $siteDescription = configJsonLang('site_description') ?: config('site_description', '');
 
@@ -193,7 +195,7 @@ function getChannelUrl(array $channel): string {
             <div class="flex items-center justify-between min-h-16">
                 <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
-                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
+                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteLogoAlt); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
                     <?php else: ?>
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
@@ -263,7 +265,7 @@ function getChannelUrl(array $channel): string {
             <div class="flex items-center justify-between min-h-16">
                 <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
-                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
+                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteLogoAlt); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
                     <?php else: ?>
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
