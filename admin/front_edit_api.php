@@ -23,13 +23,22 @@ header('Content-Type: application/json; charset=utf-8');
 // 可就地编辑的设置白名单：key => group
 $allow = [
     'site_logo' => 'basic',
+    'site_logo_alt' => 'basic',
+    'site_logo_max_height' => 'basic',
 ];
 
 $key   = (string) post('key');
 $value = (string) ($_POST['value'] ?? '');
 
 if (!isset($allow[$key])) {
-    error('不允许编辑该项');
+    error(__('fe_key_not_allowed'));
+}
+
+// 逐键收口：数值钳制 / 文本截断，防脏数据入库
+if ($key === 'site_logo_max_height') {
+    $value = (string) max(16, min(200, (int) $value ?: 40));
+} elseif ($key === 'site_logo_alt') {
+    $value = mb_substr(trim($value), 0, 150);
 }
 
 settingModel()->set($key, $value, $allow[$key]);
