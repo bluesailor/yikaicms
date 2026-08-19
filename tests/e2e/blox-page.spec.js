@@ -8,6 +8,7 @@ const {
   openPageEditor,
   performPagePreviewUpdate,
   restoreClean,
+  openEditor,
 } = require('./helpers');
 
 const fixtures = JSON.parse(fs.readFileSync(
@@ -23,7 +24,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await openPageEditor(page, fixtures.blox_page);
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
     await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
-    await expect(page.getByTestId('blox-templates-open')).toHaveCount(0);
+    await expect(page.getByTestId('blox-templates-open')).toBeVisible();
     await page.getByTestId('blox-design-open').click();
     await expect(page.getByTestId('blox-design-tab-colors')).toBeVisible();
     await expect(page.getByTestId('blox-design-token-row')).not.toHaveCount(0);
@@ -66,6 +67,41 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   const publishedFrontend = await page.request.get(`${fixtures.blox_page_url}&preview=1&v=${Date.now()}`);
   expect(publishedFrontend.ok()).toBe(true);
   expect(await publishedFrontend.text()).toContain(marker);
+  expect(consoleEntries).toEqual([]);
+});
+
+test('free mode opens homepage and local templates while remote resolve stays locked @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single free-edition capability baseline');
+  test.skip(process.env.SMOKE_BLOX_ADVANCED !== '0', 'free-mode assertion');
+
+  const consoleEntries = observeConsole(page);
+  await openEditor(page);
+  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
+
+  await page.getByTestId('blox-templates-open').click();
+  await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
+  await expect.poll(() => page.getByTestId('blox-template-item').count()).toBeGreaterThan(0);
+
+  const response = await page.locator('body').evaluate(async (body) => {
+    const state = window.Alpine.$data(body);
+    const form = new URLSearchParams();
+    form.set('action', 'get');
+    form.set('context', 'page');
+    form.set('key', 'remote:free-edition-boundary');
+    form.set('_token', state.csrf);
+    const request = await fetch('/admin/blox_template_api.php', { method: 'POST', body: form });
+    return request.json();
+  });
+  expect(response.code).not.toBe(0);
+  expect(String(response.msg || '')).not.toBe('');
+
+  expect(fixtures.channel_list).toBeGreaterThan(0);
+  await openPageEditor(page, fixtures.channel_list);
+  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
+
+  expect(fixtures.product_cat).toBeGreaterThan(0);
+  await openPageEditor(page, fixtures.product_cat);
+  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
   expect(consoleEntries).toEqual([]);
 });
 

@@ -16,7 +16,7 @@ requirePermission('edit_page');
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
 $pageId = getInt('id');
 if ($isHomeLayout) {
-    if (!bloxAdvancedFeaturesEnabled()) {
+    if (!bloxPageEditorEnabled()) {
         error(__('blox_feature_disabled'));
     }
     requirePermission('*');
