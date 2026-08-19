@@ -142,15 +142,17 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             
             <!-- Logo -->
             <?php // Logo 栏不画分隔线：深色侧栏上任何浅色边框都会显成一条亮线 ?>
-            <?php // h-12：Logo 行压缩一档（原 h-16），给菜单多留竖向空间 ?>
-            <div class="h-12 flex items-center justify-center">
+            <?php // min-h-12：文字品牌时保持原 48px 行高；配了 LOGO 图时行随图自然长高。
+                  // 图片不再写死 h-8——按自然比例显示、上限 80px（max-h-20），宽度受侧栏约束
+                  // 自动收缩（含折叠态窄栏），小图不放大、大图不撑爆。 ?>
+            <div class="min-h-12 py-1 flex items-center justify-center">
                 <?php $adminLogo = config('admin_logo', ''); ?>
                 <?php // 折叠态点 Logo/标题 = 展开侧栏（拦掉跳转，带连点冷却）；展开态照常回控制台 ?>
                 <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0"
                    @click="if (collapsed && window.innerWidth >= 1024) { $event.preventDefault(); expandFromBlank(); }"
                    :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : ''">
                     <?php if ($adminLogo): ?>
-                    <img src="<?php echo e($adminLogo); ?>" alt="" class="h-8 flex-shrink-0">
+                    <img src="<?php echo e($adminLogo); ?>" alt="" class="max-h-20 w-auto max-w-full flex-shrink min-w-0">
                     <?php else: ?>
                     <span class="text-xl font-bold text-white truncate" x-show="!collapsed"><?php echo e($adminBrand); ?></span>
                     <span class="text-xl font-bold text-white" x-show="collapsed" x-cloak><?php echo e(mb_substr($adminBrand, 0, 1)); ?></span>
