@@ -20,7 +20,8 @@ return [
         'site_name'             => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '站点名称', 'tip' => '', 'section' => '站点信息', 'sort_order' => 1],
         'site_keywords'         => ['value' => '企业网站,CMS,内容管理', 'type' => 'textarea', 'name' => 'SEO关键词', 'tip' => '多个关键词用逗号分隔', 'section' => '站点信息', 'sort_order' => 2],
         'site_description'      => ['value' => '专业的企业内容管理系统，助力企业数字化转型', 'type' => 'textarea', 'name' => 'SEO描述', 'tip' => '', 'section' => '站点信息', 'sort_order' => 3],
-        'site_logo'             => ['value' => '', 'type' => 'image', 'name' => '站点Logo', 'tip' => '顶部导航 LOGO：透明底 PNG 或 SVG，推荐 320×96 左右（宽高比 3:1～5:1；前台按 32～48px 高显示，高清屏需 2 倍尺寸）', 'section' => '站点标识', 'sort_order' => 4],
+        'site_logo'             => ['value' => '', 'type' => 'image', 'name' => '站点Logo', 'tip' => '顶部导航 LOGO：透明底 PNG 或 SVG，按原始比例显示，显示高度上限由下方「网站Logo最大高度(px)」控制（高清屏建议 2 倍尺寸）', 'section' => '站点标识', 'sort_order' => 4],
+        'site_logo_max_height'  => ['value' => '40', 'type' => 'number', 'name' => '网站Logo最大高度(px)', 'tip' => 'Logo 按原始比例显示，高度不超过此值（默认 40 与旧版一致；如图片偏高可调，例如 60）', 'section' => '站点标识', 'sort_order' => 5],
         'site_favicon'          => ['value' => '/favicon.ico', 'type' => 'image', 'name' => '站点图标', 'tip' => '浏览器标签页图标：.ico 或 .png，正方形，推荐 32×32 或 48×48（.ico 可同时含 16/32/48 多尺寸，兼容性最好）', 'section' => '站点标识', 'sort_order' => 5],
         'primary_color'         => ['value' => '#3B82F6', 'type' => 'color', 'name' => '主题色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],
         'secondary_color'       => ['value' => '#1D4ED8', 'type' => 'color', 'name' => '辅助色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],
@@ -34,7 +35,7 @@ return [
         'admin_title'           => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '后台名称', 'tip' => '后台左上角显示的名称', 'section' => '后台品牌', 'sort_order' => 15],
         'admin_copyright'       => ['value' => '', 'type' => 'text', 'name' => '后台版权', 'tip' => '后台底部版权信息，留空不显示', 'section' => '后台品牌', 'sort_order' => 16],
         'admin_logo'            => ['value' => '', 'type' => 'image', 'name' => '后台Logo', 'tip' => '留空显示文字', 'section' => '后台品牌', 'sort_order' => 21],
-        'admin_logo_max_height' => ['value' => '80', 'type' => 'number', 'name' => '后台Logo最大高度', 'tip' => '像素。Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）', 'section' => '后台品牌', 'sort_order' => 22],
+        'admin_logo_max_height' => ['value' => '80', 'type' => 'number', 'name' => '后台Logo最大高度(px)', 'tip' => '像素。Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）', 'section' => '后台品牌', 'sort_order' => 22],
         'current_theme'         => ['value' => 'default', 'type' => 'text', 'name' => '当前主题', 'tip' => 'themes/ 目录下的主题文件夹名', 'sort_order' => 17],
     ],
 

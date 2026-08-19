@@ -24,6 +24,6 @@ return [
     },
     'sqls' => [
         "INSERT INTO `" . DB_PREFIX . "settings` (`group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) "
-        . "VALUES ('basic', 'admin_logo_max_height', '80', 'number', '后台Logo最大高度', '像素。Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）', NULL, 22)",
+        . "VALUES ('basic', 'admin_logo_max_height', '80', 'number', '后台Logo最大高度(px)', 'Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）', NULL, 22)",
     ],
 ];
