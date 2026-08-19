@@ -13,6 +13,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/ClientIpResolver.php';
+
 class Compatibility
 {
     private static bool $bootstrapped = false;
@@ -81,20 +83,17 @@ class Compatibility
     // ─────────────────────────────────────────────────────
     private static function fixClientIp(): void
     {
-        $candidates = [
-            'HTTP_CF_CONNECTING_IP',
-            'HTTP_X_REAL_IP',
-            'HTTP_X_FORWARDED_FOR',
-        ];
-        foreach ($candidates as $h) {
-            if (empty($_SERVER[$h])) continue;
-            $ip = trim(explode(',', (string)$_SERVER[$h])[0]);
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                // 保留原值，业务代码用 Compatibility::clientIp() 拿到统一结果
-                self::$diagnostics['client_ip_source'] = [$h];
-                $_SERVER['_REAL_REMOTE_ADDR'] = $ip;
-                return;
-            }
+        try {
+            $trustedProxies = config('trusted_proxies', '');
+        } catch (\Throwable $e) {
+            $trustedProxies = '';
+        }
+        $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        $resolved = ClientIpResolver::resolve($_SERVER, $trustedProxies);
+        unset($_SERVER['_REAL_REMOTE_ADDR']);
+        if ($resolved !== $remote) {
+            $_SERVER['_REAL_REMOTE_ADDR'] = $resolved;
+            self::$diagnostics['client_ip_source'] = ['trusted_proxy'];
         }
     }
 
@@ -103,7 +102,7 @@ class Compatibility
      */
     public static function clientIp(): string
     {
-        return (string)($_SERVER['_REAL_REMOTE_ADDR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        return (string) ($_SERVER['_REAL_REMOTE_ADDR'] ?? ClientIpResolver::resolve($_SERVER, []));
     }
 
     // ─────────────────────────────────────────────────────

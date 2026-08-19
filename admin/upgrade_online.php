@@ -2,11 +2,11 @@
 /**
  * YikaiCMS - 在线升级（一键更新程序文件）
  *
- * 流程：预检 → 检查更新 → 下载并校验(SHA256 + 可选 RSA 签名) → 备份 → 解压覆盖 → 补丁 config 版本行
+ * 流程：预检 → 检查更新 → 下载并校验(SHA256 + 强制 RSA 签名) → 备份 → 解压覆盖 → 补丁 config 版本行
  *       → 交给 upgrade.php 跑数据库迁移。
  *
  * 安全：仅管理员(checkLogin + requirePermission('*'))；所有写操作校验 CSRF；
- *       下载校验哈希(来自 TLS 验证过的 check.php)，有签名则强制验签。
+ *       下载校验哈希，并强制验证由 CMS 内置公钥信任的官方 RSA 签名。
  * 原则：失败即停、保留备份，绝不留半截站点。config.php / storage / uploads / install 永不覆盖。
  *
  * PHP 8.0+
@@ -17,6 +17,8 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/UpdateChannel.php';
+require_once ROOT_PATH . '/includes/UpdatePackageSignature.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry（zip-slip 防护）；admin 页不走 init.php，须显式引入
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
@@ -124,10 +126,8 @@ function uo_download(string $url, string $dest): array
 /** RSA-SHA256 验签：复用 License 公钥；对 "version|hash" 规范串验签。 */
 function uo_verify_sig(string $version, string $hash, string $sigB64): bool
 {
-    if (!function_exists('license_pubkey') || !function_exists('openssl_verify')) return false;
-    $sig = base64_decode($sigB64, true);
-    if ($sig === false || $sig === '') return false;
-    return openssl_verify($version . '|' . $hash, $sig, license_pubkey(), OPENSSL_ALGO_SHA256) === 1;
+    return function_exists('license_pubkey')
+        && UpdatePackageSignature::verify($version, $hash, $sigB64, license_pubkey());
 }
 
 /** 递归覆盖复制（带排除）。返回 [copied, errors[]] */
@@ -213,6 +213,7 @@ if ($action !== '') {
         }
         $checks = [];
         $checks[] = ['name' => 'ZipArchive 扩展', 'ok' => class_exists('ZipArchive'), 'hint' => '解压安装包必需'];
+        $checks[] = ['name' => 'OpenSSL 扩展', 'ok' => function_exists('openssl_verify'), 'hint' => '验证官方升级包签名必需'];
         $checks[] = ['name' => '网络下载能力', 'ok' => function_exists('curl_init') || (bool) ini_get('allow_url_fopen'), 'hint' => 'curl 或 allow_url_fopen'];
         $rootW = is_writable(ROOT_PATH);
         $checks[] = ['name' => 'Web 根目录可写', 'ok' => $rootW, 'hint' => $rootW ? '' : 'PHP 进程无写权限，需改用 FTP 手动升级'];
@@ -227,6 +228,7 @@ if ($action !== '') {
     if ($action === 'check') {
         $cur = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
         $api = UO_UPDATE_SERVER . '/api/update/check.php?version=' . urlencode($cur)
+            . '&channel=' . urlencode(UpdateChannel::current())
             . '&domain=' . urlencode($_SERVER['HTTP_HOST'] ?? '')
             . '&site_name=' . urlencode((string) config('site_name', ''))
             . '&php=' . urlencode(PHP_VERSION)
@@ -248,9 +250,9 @@ if ($action !== '') {
     // ---- 3) 下载并校验 ----
     if ($action === 'download') {
         $url  = (string) ($_POST['download_url'] ?? '');
-        $hash = preg_replace('/^sha256:/i', '', (string) ($_POST['hash'] ?? ''));
-        $ver  = (string) ($_POST['version'] ?? '');
-        $sig  = (string) ($_POST['sig'] ?? '');
+        $hash = strtolower((string) preg_replace('/^sha256:/i', '', (string) ($_POST['hash'] ?? '')));
+        $ver  = trim((string) ($_POST['version'] ?? ''));
+        $sig  = trim((string) ($_POST['sig'] ?? ''));
         if (!preg_match('#^https://update\.yikaicms\.com/packages/[A-Za-z0-9._-]+\.zip$#', $url)) {
             uo_json(['code' => 1, 'msg' => '下载地址不合法，仅允许官方 packages 目录']);
         }
@@ -260,6 +262,10 @@ if ($action !== '') {
         }
         $pkg = uo_dir() . '/package.zip';
         @unlink($pkg);
+        if ($sig === '') uo_json(['code' => 1, 'msg' => '升级包缺少 RSA 签名，拒绝升级']);
+        if (!uo_verify_sig($ver, 'sha256:' . $hash, $sig)) {
+            uo_json(['code' => 1, 'msg' => 'RSA 签名校验失败，拒绝升级']);
+        }
         [$ok, $err] = uo_download($url, $pkg);
         if (!$ok) uo_json(['code' => 1, 'msg' => $err]);
         $actual = hash_file('sha256', $pkg);
@@ -267,12 +273,7 @@ if ($action !== '') {
             @unlink($pkg);
             uo_json(['code' => 1, 'msg' => 'SHA256 校验不通过，包可能损坏或被篡改，已删除']);
         }
-        // 有签名则强制验签（Phase 2 服务端签名后生效）
-        if ($sig !== '' && !uo_verify_sig($ver, 'sha256:' . $hash, $sig)) {
-            @unlink($pkg);
-            uo_json(['code' => 1, 'msg' => 'RSA 签名校验失败，拒绝升级，已删除']);
-        }
-        uo_json(['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => $sig !== '']);
+        uo_json(['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => true]);
     }
 
     // ---- 4a) 准备：备份 config + 校验结构 + 建 zip 条目清单（不解压，写状态文件）----
@@ -631,7 +632,7 @@ document.getElementById('uo-upgrade').onclick = async () => {
     const useDelta = !!(d.delta && d.delta.download_url && d.delta.hash);
     const dlUrl  = useDelta ? d.delta.download_url : d.download_url;
     const dlHash = useDelta ? d.delta.hash : (d.hash || '');
-    const dlSig  = useDelta ? '' : (d.sig || '');   // 增量包只校验 SHA256（RSA 签名仅全量包）
+    const dlSig  = useDelta ? (d.delta.sig || '') : (d.sig || '');
     // 下载校验
     let r = UO.row(`下载并校验 v${d.latest_version}${useDelta ? '（增量包，仅传变化文件）' : ''}…`, 'run');
     const dl = await UO.post('download', { download_url: dlUrl, hash: dlHash, version: d.latest_version, sig: dlSig });

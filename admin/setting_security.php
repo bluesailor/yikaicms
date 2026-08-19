@@ -52,7 +52,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success([], str_replace(':n', (string) $count, __('sec_throttle_cleared')));
     }
 
-    $settings = $_POST['settings'] ?? [];
+    $settings = is_array($_POST['settings'] ?? null) ? $_POST['settings'] : [];
+
+    foreach (['trusted_proxies', 'admin_ip_whitelist'] as $ruleKey) {
+        if (!array_key_exists($ruleKey, $settings)) {
+            continue;
+        }
+        $parsed = ClientIpResolver::parseRules($settings[$ruleKey]);
+        if ($parsed['invalid'] !== []) {
+            error(__('sec_ip_rule_invalid', ['rule' => $parsed['invalid'][0]]));
+        }
+        $settings[$ruleKey] = implode("\n", $parsed['rules']);
+    }
+
+    // 同时按“将要保存”的代理配置解析当前请求，避免保存后把管理员自己锁在门外。
+    if (array_key_exists('trusted_proxies', $settings) || array_key_exists('admin_ip_whitelist', $settings)) {
+        $futureTrusted = $settings['trusted_proxies'] ?? config('trusted_proxies', '');
+        $futureWhitelist = $settings['admin_ip_whitelist'] ?? config('admin_ip_whitelist', '');
+        $futureClientIp = ClientIpResolver::resolve($_SERVER, $futureTrusted);
+        if (!AdminIpPolicy::isAllowed($futureClientIp, $futureWhitelist)) {
+            error(__('sec_ip_whitelist_lockout', ['ip' => $futureClientIp]));
+        }
+    }
     settingModel()->saveBatch($settings);
 
     adminLog('setting', 'update', '更新安全设置');
@@ -66,6 +87,7 @@ $secConfig = [
     'login_max_attempts'    => config('login_max_attempts', '5'),
     'login_lock_minutes'    => config('login_lock_minutes', '15'),
     'session_timeout'       => config('session_timeout', '30'),
+    'trusted_proxies'       => config('trusted_proxies', ''),
     'admin_ip_whitelist'    => config('admin_ip_whitelist', ''),
     'upload_max_size_mb'    => config('upload_max_size_mb', '10'),
     'upload_image_types'    => config('upload_image_types', 'jpg,jpeg,png,gif,webp,svg'),
@@ -130,6 +152,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h2 class="font-bold text-gray-800"><?php echo __('sec_login_protection'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">
+                    <?php echo e(__('sec_trusted_proxies')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_trusted_proxies_tip')); ?></span>
+                </label>
+                <div class="md:col-span-3">
+                    <textarea name="settings[trusted_proxies]" rows="4" data-testid="trusted-proxies-input"
+                              placeholder="<?php echo e(__('sec_trusted_proxies_placeholder')); ?>"
+                              class="w-full border rounded px-4 py-2 font-mono text-sm"><?php echo e($secConfig['trusted_proxies']); ?></textarea>
+                    <div class="text-xs text-gray-400 mt-1">
+                        <?php echo e(__('sec_trusted_proxies_hint', ['ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0')])); ?>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     <?php echo __('sec_max_attempts'); ?>
@@ -199,7 +236,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <span class="text-gray-400 text-sm block"><?php echo __('sec_ip_whitelist_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
-                    <textarea name="settings[admin_ip_whitelist]" rows="4"
+                    <textarea name="settings[admin_ip_whitelist]" rows="4" data-testid="admin-ip-whitelist-input"
                               placeholder="<?php echo e(__('sec_ip_whitelist_placeholder')); ?>"
                               class="w-full border rounded px-4 py-2 font-mono text-sm"><?php echo e($secConfig['admin_ip_whitelist']); ?></textarea>
                     <div class="text-xs text-gray-400 mt-1">
@@ -246,7 +283,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
+        <button type="submit" data-testid="security-settings-save" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 
