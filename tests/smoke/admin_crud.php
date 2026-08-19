@@ -97,6 +97,7 @@ $cases = [
 ];
 
 $fails = [];
+$createdChannelId = 0;
 foreach ($cases as [$name, $editUrl, $postUrl, $data, $listUrl, $expectText]) {
     [$gc, $form] = req('GET', $editUrl);          // 取该页 CSRF
     $data['_token'] = csrf($form) ?: csrf($dash); // 会话级 token，复用亦可
@@ -113,6 +114,9 @@ foreach ($cases as [$name, $editUrl, $postUrl, $data, $listUrl, $expectText]) {
         $fails[] = "$name → $why";
         echo "✗ 新建$name 失败：$why\n";
     } else {
+        if ($name === '栏目' && is_array($json)) {
+            $createdChannelId = (int) ($json['data']['id'] ?? 0);
+        }
         // 可见性回读：保存成功还不够，得能在列表页找到它
         $seen = '';
         if ($listUrl !== '' && $expectText !== '') {
@@ -130,6 +134,59 @@ foreach ($cases as [$name, $editUrl, $postUrl, $data, $listUrl, $expectText]) {
             $seen = '，列表可见 ✓';
         }
         echo "✓ 新建$name OK" . (is_array($json) && isset($json['data']['id']) ? "（id={$json['data']['id']}）" : '') . $seen . "\n";
+    }
+}
+
+// 栏目编辑表单历史上不包含 image 字段，但保存端无条件写 post('image')，会把
+// 旧站已有栏目图静默清空。用真实登录态 POST 锁定“字段缺席 = 保留原值”。
+if ($createdChannelId <= 0) {
+    $fails[] = '无法取得新建栏目 ID，栏目图保留回归未执行';
+    echo "✗ 无法取得新建栏目 ID，栏目图保留回归未执行\n";
+} else {
+    $pdo = new PDO('sqlite:' . __DIR__ . '/../../storage/database.sqlite');
+    $imageMarker = '/uploads/smoke/channel-image-' . $mark . '.jpg';
+    $setImage = $pdo->prepare('UPDATE yikai_channels SET image = ? WHERE id = ?');
+    $setImage->execute([$imageMarker, $createdChannelId]);
+    $row = $pdo->query('SELECT * FROM yikai_channels WHERE id = ' . $createdChannelId)->fetch(PDO::FETCH_ASSOC);
+
+    [$gc, $form] = req('GET', '/admin/channel.php?edit=' . $createdChannelId);
+    $editData = [
+        'action' => 'save',
+        'id' => $createdChannelId,
+        'parent_id' => (int) ($row['parent_id'] ?? 0),
+        'name' => (string) ($row['name'] ?? ''),
+        'slug' => (string) ($row['slug'] ?? ''),
+        'type' => (string) ($row['type'] ?? 'list'),
+        'album_id' => (int) ($row['album_id'] ?? 0),
+        'icon' => (string) ($row['icon'] ?? ''),
+        'description' => (string) ($row['description'] ?? ''),
+        'content' => (string) ($row['content'] ?? ''),
+        'link_url' => (string) ($row['link_url'] ?? ''),
+        'link_target' => (string) ($row['link_target'] ?? '_self'),
+        'redirect_type' => (string) ($row['redirect_type'] ?? 'auto'),
+        'redirect_url' => (string) ($row['redirect_url'] ?? ''),
+        'seo_title' => (string) ($row['seo_title'] ?? ''),
+        'seo_keywords' => (string) ($row['seo_keywords'] ?? ''),
+        'seo_description' => (string) ($row['seo_description'] ?? ''),
+        'is_nav' => (int) ($row['is_nav'] ?? 0),
+        'is_home' => (int) ($row['is_home'] ?? 0),
+        'status' => (int) ($row['status'] ?? 1),
+        'sort_order' => (int) ($row['sort_order'] ?? 0),
+        'hero_bg' => (string) ($row['hero_bg'] ?? ''),
+        '_token' => csrf($form) ?: $token,
+    ];
+    if ((int) ($row['show_hero'] ?? 0) === 1) {
+        $editData['show_hero'] = 1;
+    }
+
+    [$code, $body] = req('POST', '/admin/channel.php', $editData);
+    $json = json_decode($body, true);
+    $savedImage = $pdo->query('SELECT image FROM yikai_channels WHERE id = ' . $createdChannelId)->fetchColumn();
+    if ($code !== 200 || !is_array($json) || (int) ($json['code'] ?? 1) !== 0 || $savedImage !== $imageMarker) {
+        $fails[] = '栏目编辑未提交 image 时清空了已有栏目图';
+        echo "✗ 栏目编辑未提交 image 时未能保留已有栏目图\n";
+    } else {
+        echo "✓ 栏目编辑未提交 image 时保留已有栏目图\n";
     }
 }
 
@@ -187,4 +244,4 @@ if ($fails) {
     fwrite(STDERR, "\n❌ 冒烟测试失败 " . count($fails) . " 项：\n  - " . implode("\n  - ", $fails) . "\n");
     exit(1);
 }
-echo "\n✅ 后台 CRUD 冒烟测试全部通过（6 类新建）\n";
+echo "\n✅ 后台 CRUD 冒烟测试全部通过（10 类新建 + 栏目图保留）\n";

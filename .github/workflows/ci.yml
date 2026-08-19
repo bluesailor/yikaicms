@@ -87,8 +87,8 @@ jobs:
         run: vendor/bin/phpunit --colors=never
 
   # ─── 后台 CRUD 冒烟测试：起一个全新 SQLite 装机 + php 内置服务器，
-  # ─── 登录后逐类 POST「新建」（栏目/产品/内容/文章/下载/招聘），断言无
-  # ─── Fatal/undefined-function 且保存成功。专抓 job_edit 的 getAdminId()
+  # ─── 登录后逐类 POST「新建」（栏目/内容/产品及分类标签/下载/招聘/友链/时间线），
+  # ─── 并回归栏目图保留，断言无 Fatal/undefined-function 且保存成功。专抓 job_edit 的 getAdminId()
   # ─── 那类「控制器层 Fatal」回归——单元测试与 Psalm baseline 都漏掉的类型。
   # ─── 矩阵覆盖 8.0（产品承诺的最低版）与 8.2：用 --no-dev 安装（= 发行包
   # ─── 真实形态，且不受 dev 工具链要求 8.2+ 的限制）。v1.13.0 的 pinyin 事故
@@ -326,7 +326,8 @@ jobs:
     runs-on: ubuntu-latest
     # 强制门禁（与单测同级）：r8–r10 观察期全绿；r11 首次转强制被并行图标线的
     # 半成品 404 击穿后回退，图标专项原子入库（icon-library-integration 轮）后恢复。
-    timeout-minutes: 20
+    # 浏览器下载偶发卡死；单次 7 分钟超时后自动重试，整项留足测试执行时间。
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -381,7 +382,7 @@ jobs:
 
       - name: Install Chromium
         if: steps.blox_src.outputs.present == 'true'
-        run: npx playwright install --with-deps chromium
+        run: bash .github/scripts/install-playwright-chromium.sh
 
       - name: Run Blox browser regression
         if: steps.blox_src.outputs.present == 'true'
