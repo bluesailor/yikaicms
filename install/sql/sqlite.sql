@@ -2263,6 +2263,7 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (10,'basic','site_police','','text','公安备案号','',NULL,11);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (11,'basic','admin_title','后台管理','text','后台名称','后台左上角显示的名称',NULL,20);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (12,'basic','admin_logo','','image','后台Logo','留空显示文字',NULL,21);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (240,'basic','admin_logo_max_height','80','number','后台Logo最大高度','像素。Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）',NULL,22);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (13,'basic','admin_copyright','','text','后台版权','留空不显示',NULL,22);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (14,'header','topbar_enabled','0','select','顶部通栏','','{"0":"隐藏","1":"显示"}',0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (15,'header','topbar_bg_color','#f3f4f6','color','通栏背景色','',NULL,1);

@@ -34,6 +34,7 @@ return [
         'admin_title'           => ['value' => 'Yikai CMS', 'type' => 'text', 'name' => '后台名称', 'tip' => '后台左上角显示的名称', 'section' => '后台品牌', 'sort_order' => 15],
         'admin_copyright'       => ['value' => '', 'type' => 'text', 'name' => '后台版权', 'tip' => '后台底部版权信息，留空不显示', 'section' => '后台品牌', 'sort_order' => 16],
         'admin_logo'            => ['value' => '', 'type' => 'image', 'name' => '后台Logo', 'tip' => '留空显示文字', 'section' => '后台品牌', 'sort_order' => 21],
+        'admin_logo_max_height' => ['value' => '80', 'type' => 'number', 'name' => '后台Logo最大高度', 'tip' => '像素。Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）', 'section' => '后台品牌', 'sort_order' => 22],
         'current_theme'         => ['value' => 'default', 'type' => 'text', 'name' => '当前主题', 'tip' => 'themes/ 目录下的主题文件夹名', 'sort_order' => 17],
     ],
 
