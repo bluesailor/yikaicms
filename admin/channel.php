@@ -1008,8 +1008,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?php echo __('page_hero_bg'); ?></label>
-                    <input type="text" name="hero_bg" value="<?php echo e($editChannel['hero_bg'] ?? ''); ?>"
-                           class="w-full border rounded px-3 py-2" placeholder="/uploads/images/xxx.jpg">
+                    <input type="text" name="hero_bg" id="chHeroBgInput" value="<?php echo e($editChannel['hero_bg'] ?? ''); ?>"
+                           class="w-full border rounded px-3 py-2 mb-2" placeholder="/uploads/images/xxx.jpg">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="chUploadHeroBg()"
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
+                            <i class="ti ti-upload text-base"></i><?php echo __('admin_upload_image'); ?></button>
+                        <button type="button" onclick="chPickHeroBgFromMedia()"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
+                            <i class="ti ti-photo text-base"></i><?php echo __('admin_media_library'); ?></button>
+                    </div>
+                    <input type="file" id="chHeroBgFileInput" class="hidden" accept="image/*">
+                    <?php if (!empty($editChannel['hero_bg'])): ?>
+                    <img src="<?php echo e($editChannel['hero_bg']); ?>" id="chHeroBgPreview" class="h-16 mt-2 rounded">
+                    <?php endif; ?>
                     <p class="text-xs text-gray-400 mt-1"><?php echo __('page_hero_bg_tip'); ?></p>
                     <label class="flex items-center mt-2 cursor-pointer">
                         <input type="checkbox" name="show_hero" value="1" <?php echo (int)($editChannel['show_hero'] ?? 1) === 1 ? 'checked' : ''; ?> class="mr-2">
@@ -1196,6 +1208,47 @@ document.getElementById('channelForm').addEventListener('submit', async function
     } catch (err) {
         showMessage(<?php echo json_encode(__('admin_request_failed')); ?>, 'error');
     }
+});
+
+// 横幅背景图：上传 / 媒体库选图（openMediaPicker 由 footer 全局提供）
+function chSetHeroBg(url) {
+    document.getElementById('chHeroBgInput').value = url;
+    let preview = document.getElementById('chHeroBgPreview');
+    if (!preview) {
+        preview = document.createElement('img');
+        preview.id = 'chHeroBgPreview';
+        preview.className = 'h-16 mt-2 rounded';
+        document.getElementById('chHeroBgInput').parentNode.insertBefore(
+            preview, document.getElementById('chHeroBgInput').parentNode.querySelector('p.text-xs'));
+    }
+    preview.src = url;
+}
+
+function chPickHeroBgFromMedia() {
+    openMediaPicker(chSetHeroBg);
+}
+
+function chUploadHeroBg() {
+    document.getElementById('chHeroBgFileInput').click();
+}
+
+document.getElementById('chHeroBgFileInput')?.addEventListener('change', async function() {
+    if (!this.files[0]) return;
+    const formData = new FormData();
+    formData.append('file', this.files[0]);
+    formData.append('type', 'images');
+    try {
+        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const data = await safeJson(response);
+        if (data.code === 0) {
+            chSetHeroBg(data.data.url);
+        } else {
+            showMessage(data.msg, 'error');
+        }
+    } catch (err) {
+        showMessage(<?php echo json_encode(__('admin_request_failed')); ?>, 'error');
+    }
+    this.value = '';
 });
 
 // 删除栏目
