@@ -9,10 +9,13 @@ const AREA_TEMPLATES = [
 ];
 
 async function submit(page, form) {
+  // waitForNavigation 已废弃且有竞态（重定向落在同 URL 时可能挂满 45s，CI 偶发）。
+  // 先武装 POST 响应等待再点击，然后等重定向落地——时序上不可能错过。
   await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+    page.waitForResponse((response) => response.request().method() === 'POST'),
     form.locator('button[type="submit"]').click(),
   ]);
+  await page.waitForLoadState('domcontentloaded');
 }
 
 async function installAndPublish(page, template) {
