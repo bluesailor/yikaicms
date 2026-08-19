@@ -204,6 +204,23 @@ return [
     ],
 
     // ============================================================
+    // 安全设置
+    // ============================================================
+    'security' => [
+        'login_max_attempts'    => ['value' => '5', 'type' => 'number', 'name' => '登录失败次数', 'tip' => '达到次数后按 IP 临时锁定', 'sort_order' => 1],
+        'login_lock_minutes'    => ['value' => '15', 'type' => 'number', 'name' => '登录锁定时长', 'tip' => '分钟', 'sort_order' => 2],
+        'session_timeout'       => ['value' => '30', 'type' => 'number', 'name' => '后台会话超时', 'tip' => '分钟', 'sort_order' => 3],
+        'password_min_length'   => ['value' => '6', 'type' => 'number', 'name' => '密码最小长度', 'tip' => '字符数', 'sort_order' => 4],
+        'trusted_proxies'       => ['value' => '', 'type' => 'textarea', 'name' => '可信代理', 'tip' => '每行一个代理 IP 或 CIDR；留空时忽略所有客户端 IP 转发头', 'sort_order' => 5],
+        'admin_ip_whitelist'    => ['value' => '', 'type' => 'textarea', 'name' => '后台 IP 白名单', 'tip' => '每行一个客户端 IP 或 CIDR；留空不限制', 'sort_order' => 6],
+        'upload_max_size_mb'    => ['value' => '10', 'type' => 'number', 'name' => '上传文件大小上限', 'tip' => 'MB', 'sort_order' => 10],
+        'upload_image_types'    => ['value' => 'jpg,jpeg,png,gif,webp,svg', 'type' => 'text', 'name' => '图片扩展名', 'tip' => '英文逗号分隔', 'sort_order' => 11],
+        'upload_file_types'     => ['value' => 'pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z', 'type' => 'text', 'name' => '文件扩展名', 'tip' => '英文逗号分隔', 'sort_order' => 12],
+        'form_max_submits'      => ['value' => '5', 'type' => 'number', 'name' => '表单提交次数', 'tip' => '限流窗口内允许的次数', 'sort_order' => 20],
+        'form_throttle_minutes' => ['value' => '5', 'type' => 'number', 'name' => '表单限流窗口', 'tip' => '分钟', 'sort_order' => 21],
+    ],
+
+    // ============================================================
     // SEO 设置
     // ============================================================
     'seo' => [
@@ -231,6 +248,7 @@ return [
         'blox_design_system' => ['value' => '', 'type' => 'json', 'name' => 'Blox 设计系统', 'tip' => '颜色令牌与命名样式预设，由 Blox 编辑器维护', 'sort_order' => 5],
         'blox_custom_header_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页头', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页头', 'sort_order' => 6],
         'blox_custom_footer_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页尾', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页尾', 'sort_order' => 7],
+        'update_channel' => ['value' => 'stable', 'type' => 'select', 'name' => '系统更新通道', 'tip' => 'stable 为正式版；beta 可提前接收测试版', 'options' => '{"stable":"正式版","beta":"测试版"}', 'sort_order' => 8],
     ],
 
 ];

@@ -111,13 +111,57 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     }
 
     if (testInfo.project.name !== 'tablet-768') {
-      const visualOptions = { animations: 'disabled', threshold: 0.3, maxDiffPixelRatio: 0.05 };
-      await expect(header).toHaveScreenshot('r35-default-corporate-header.png', visualOptions);
-      await expect(footer).toHaveScreenshot('r35-default-corporate-footer.png', {
-        ...visualOptions,
+      const visualOptions = { threshold: 0.3, maxDiffPixelRatio: 0.05 };
+      const expectedHeaderHeight = testInfo.project.name === 'desktop-1440' ? 149 : 229;
+      const naturalHeaderBox = await header.boundingBox();
+      expect(naturalHeaderBox).not.toBeNull();
+      expect(naturalHeaderBox.height).toBeGreaterThanOrEqual(expectedHeaderHeight - 2);
+      expect(naturalHeaderBox.height).toBeLessThanOrEqual(expectedHeaderHeight + 2);
+      // Chromium font metrics can round the same area by 1-2px across runners.
+      await header.evaluate((element, height) => {
+        element.style.setProperty('box-sizing', 'border-box', 'important');
+        element.style.setProperty('height', `${height}px`, 'important');
+        element.style.setProperty('min-height', `${height}px`, 'important');
+        element.style.setProperty('max-height', `${height}px`, 'important');
+        element.style.setProperty('overflow', 'hidden', 'important');
+      }, expectedHeaderHeight);
+      const headerSnapshotBox = await header.boundingBox();
+      const headerSnapshot = await page.screenshot({
+        animations: 'disabled',
+        clip: {
+          x: Math.floor(headerSnapshotBox.x),
+          y: Math.floor(headerSnapshotBox.y),
+          width: Math.round(headerSnapshotBox.width),
+          height: expectedHeaderHeight,
+        },
+      });
+      expect(headerSnapshot).toMatchSnapshot('r35-default-corporate-header.png', visualOptions);
+      const expectedFooterHeight = testInfo.project.name === 'desktop-1440' ? 453 : 648;
+      const naturalFooterBox = await footer.boundingBox();
+      expect(naturalFooterBox).not.toBeNull();
+      expect(naturalFooterBox.height).toBeGreaterThanOrEqual(expectedFooterHeight - 2);
+      expect(naturalFooterBox.height).toBeLessThanOrEqual(expectedFooterHeight + 2);
+      await footer.evaluate((element, height) => {
+        element.style.setProperty('box-sizing', 'border-box', 'important');
+        element.style.setProperty('height', `${height}px`, 'important');
+        element.style.setProperty('min-height', `${height}px`, 'important');
+        element.style.setProperty('max-height', `${height}px`, 'important');
+        element.style.setProperty('overflow', 'hidden', 'important');
+      }, expectedFooterHeight);
+      await footer.scrollIntoViewIfNeeded();
+      const footerSnapshotBox = await footer.boundingBox();
+      const footerSnapshot = await page.screenshot({
+        animations: 'disabled',
+        clip: {
+          x: Math.floor(footerSnapshotBox.x),
+          y: Math.floor(footerSnapshotBox.y),
+          width: Math.round(footerSnapshotBox.width),
+          height: expectedFooterHeight,
+        },
         mask: [footer.locator('[data-yk-copyright-text]')],
         maskColor: '#030712',
       });
+      expect(footerSnapshot).toMatchSnapshot('r35-default-corporate-footer.png', visualOptions);
     }
     expect(consoleEntries, 'published default areas must not log browser errors').toEqual([]);
   } finally {
