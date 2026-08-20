@@ -393,6 +393,11 @@ echo "[+] 生成增量升级包（delta）..."
 DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境变量覆盖）
 DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：不为更老版本生成增量（含 vendor 结构差异大，走全量更稳）
 DELTA_JSON_ITEMS=()                    # 收集 releases.json 用的片段
+# 同一目标版本可能残留灰度时代或中断构建的 delta。新构建开始前先清掉，最终允许
+# 上传的集合只由本次生成的 deltas-v<version>.json 决定。
+rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
+      "$RELEASE_DIR"/delta-*-to-"$VERSION".sha256 \
+      "$RELEASE_DIR/deltas-v${VERSION}.json"
 if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
     # 取所有 vX.Y.Z 标签，版本升序；current 版通常尚未打标签，故全部即「< 本版本」，取最后 N 个
     mapfile -t PREV_BASES < <(git -C "$ROOT_DIR" tag -l 'v*' | sed 's/^v//' \
