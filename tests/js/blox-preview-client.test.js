@@ -199,6 +199,69 @@ async function run() {
     cancelPending.resolve(response("cancelled"));
     assert.equal(await cancelled, false);
 
+    // ── 滚动恢复产品级修复（r16-r17 终审裁决落地）────────────────────────
+    // 场景 A：srcdoc 重建把宿主夹到 0 的窗口内，另一轮响应采样必须用
+    // 最后稳定值兜底，settled 后滚动不得被恢复为 0。
+    {
+        const scrollPending = [];
+        const scrollFrame = fakeFrame();
+        const scrollHost = { scrollLeft: 0, scrollTop: 0 };
+        const scrollClient = new global.BloxPreviewClient({
+            endpoint: "/preview",
+            csrf: "token",
+            getFrame: function () { return scrollFrame; },
+            getHost: function () { return scrollHost; },
+            getDocument: function () { return []; },
+            fetch: function () {
+                const item = deferred();
+                scrollPending.push(item);
+                return item.promise;
+            },
+        });
+
+        const roundOne = scrollClient.refresh();
+        scrollHost.scrollTop = 340;
+        scrollPending[0].resolve(response("round-one"));
+        assert.equal(await roundOne, true);
+        // srcdoc 已替换、load 未触发：浏览器此刻把宿主夹到 0
+        scrollHost.scrollTop = 0;
+
+        const roundTwo = scrollClient.refresh();
+        scrollPending[1].resolve(response("round-two"));
+        assert.equal(await roundTwo, true);
+        assert.equal(scrollFrame.srcdoc, "round-two");
+        scrollFrame.fireLoad();
+        assert.equal(scrollHost.scrollTop, 340,
+            "a response sampled inside the rebuild window must not restore scroll to the clamped 0");
+    }
+
+    // 场景 B：请求在途时用户继续向下滚动，恢复取 max(捕获, 当前)，
+    // 不得把用户拉回捕获位置上方。
+    {
+        const userPending = [];
+        const userFrame = fakeFrame();
+        const userHost = { scrollLeft: 0, scrollTop: 120 };
+        const userClient = new global.BloxPreviewClient({
+            endpoint: "/preview",
+            csrf: "token",
+            getFrame: function () { return userFrame; },
+            getHost: function () { return userHost; },
+            getDocument: function () { return []; },
+            fetch: function () {
+                const item = deferred();
+                userPending.push(item);
+                return item.promise;
+            },
+        });
+        const round = userClient.refresh();
+        userPending[0].resolve(response("user-round"));
+        assert.equal(await round, true);
+        userHost.scrollTop = 500; // 用户在 load 前继续下滚
+        userFrame.fireLoad();
+        assert.equal(userHost.scrollTop, 500,
+            "restore must keep the user's newer (larger) scroll position");
+    }
+
     console.log("BloxPreviewClient tests OK");
 }
 
