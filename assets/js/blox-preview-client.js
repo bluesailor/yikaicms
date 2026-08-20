@@ -20,6 +20,10 @@
         this.timer = null;
         this.controller = null;
         this.sequence = 0;
+        // srcdoc 重建期间宿主容器会因内容塌陷被浏览器夹到 scrollTop=0；
+        // 此窗口内到达的新响应若直接采样会拿到假 0（CI r16-r17 五轮实证）。
+        this.rebuilding = false;
+        this.lastGoodScroll = null;
     }
 
     BloxPreviewClient.prototype.schedule = function () {
@@ -45,6 +49,21 @@
                 state.frameTop = frame.contentWindow.scrollY || 0;
             }
         } catch (error) {}
+        if (this.rebuilding && this.lastGoodScroll) {
+            // 重建窗口内的读数不可信：用最后一次稳定采样兜底（取较大者，
+            // 用户在窗口内继续向下滚动时以用户位置为准）。
+            state.hostLeft = Math.max(state.hostLeft, this.lastGoodScroll.hostLeft);
+            state.hostTop = Math.max(state.hostTop, this.lastGoodScroll.hostTop);
+            state.frameLeft = Math.max(state.frameLeft, this.lastGoodScroll.frameLeft);
+            state.frameTop = Math.max(state.frameTop, this.lastGoodScroll.frameTop);
+        } else {
+            this.lastGoodScroll = {
+                hostLeft: state.hostLeft,
+                hostTop: state.hostTop,
+                frameLeft: state.frameLeft,
+                frameTop: state.frameTop,
+            };
+        }
         return state;
     };
 
@@ -52,12 +71,18 @@
         if (!state) return;
         var host = this.getHost();
         if (host) {
-            host.scrollLeft = state.hostLeft;
-            host.scrollTop = state.hostTop;
+            // 终审裁决：恢复目标取 max(捕获, 当前)——用户在请求在途时继续向下
+            // 滚动则保留用户位置，绝不把人拉回顶部；新内容加载后当前为 0 时
+            // 回到捕获位置。
+            host.scrollLeft = Math.max(state.hostLeft, host.scrollLeft);
+            host.scrollTop = Math.max(state.hostTop, host.scrollTop);
         }
         try {
             if (frame && frame.contentWindow) {
-                frame.contentWindow.scrollTo(state.frameLeft, state.frameTop);
+                frame.contentWindow.scrollTo(
+                    Math.max(state.frameLeft, frame.contentWindow.scrollX || 0),
+                    Math.max(state.frameTop, frame.contentWindow.scrollY || 0)
+                );
             }
         } catch (error) {}
     };
@@ -111,9 +136,16 @@
         if (!valid) return false;
 
         var body = currentDoc.body;
-        var anchor = Array.prototype.find.call(body.children || [], function (node) {
-            return !(node.hasAttribute && node.hasAttribute("data-yk-sec"));
-        }) || null;
+        // 追加锚点：新 section 必须落在最后一个现有 section 之后。
+        // 不能取「第一个非 section 子节点」——1.18 起画布 body 首位是头部区域壳
+        // （.yk-blox-header），旧取法会把新增 section 插到页面最顶端（页头之上），
+        // 直到下次整载才归位；连锁把画布滚动清零（r16-r17 五轮 CI 误诊为恢复时序）。
+        var anchor = currentSections.length
+            ? currentSections[currentSections.length - 1].nextSibling
+            : (Array.prototype.find.call(body.children || [], function (node) {
+                return !(node.hasAttribute && node.hasAttribute("data-yk-sec"))
+                    && !(node.classList && node.classList.contains("yk-blox-header"));
+            }) || null);
         var ordered = [];
         var changed = false;
 
@@ -176,6 +208,9 @@
         var raf = global.requestAnimationFrame || function (callback) { setTimeout(callback, 0); };
         raf(function () {
             self.restoreScroll(frame, state);
+            // 重建结束、滚动已恢复：本刻位置即新的稳定基准。
+            self.rebuilding = false;
+            self.lastGoodScroll = null;
             // r17 稳定信号（审计方案）：最新序号已应用且滚动恢复完成——e2e 据此
             // 采样滚动不变量，替代对预览往返时序的猜测等待。旧响应（序号不符）
             // 不到达 finishUpdate，故此事件即"最新 generation 已 settle"。
@@ -222,11 +257,15 @@
                 }
                 var onFrameLoad = function () {
                     frame.removeEventListener("load", onFrameLoad);
-                    if (sequence !== self.sequence) return;
+                    if (sequence !== self.sequence) {
+                        self.rebuilding = false;
+                        return;
+                    }
                     self.rememberSections(frame, html);
                     self.finishUpdate(frame, scrollState);
                 };
                 frame.addEventListener("load", onFrameLoad);
+                self.rebuilding = true;
                 frame.srcdoc = html;
                 return true;
             })

@@ -23,59 +23,34 @@ let unsafeWrites;
 async function pointerClick(page, locator, clickCount = 1) {
   await expect(locator).toBeVisible();
   // Playwright 的 actionability 对 zoom 后的 iframe 会把可见按钮判成 viewport 外；
-  // 先让 iframe 自己滚到目标。原生 locator 点击能命中时优先使用；仅在 zoom
-  // 坐标被误判时，才回退到下方经过 iframe hit-test 的 page.mouse 映射。
+  // 先让 iframe 自己滚到目标。原生 locator 点击能命中时优先使用。
   await locator.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'center' }));
   await page.waitForTimeout(50);
   try {
     await locator.click({ clickCount, timeout: 1500 });
     return;
   } catch (_) {
-    // CSS zoom 的已知 Playwright 坐标边界，走真实鼠标回退。
+    // CSS zoom 的已知 Playwright 坐标边界。旧回退把帧内坐标映射回父页面再
+    // page.mouse.click，zoom 取整误差会打偏小按钮（快捷添加按钮实证脱靶，
+    // 插入目标丢失）；改为帧内合成事件——bridge 的 click/dblclick 监听在
+    // document 上，合成事件确定命中目标元素本身。
   }
-  const target = await locator.evaluate((element) => {
+  await locator.evaluate((element, count) => {
     const rect = element.getBoundingClientRect();
-    const candidates = [
-      [0.5, 0.5],
-      [0.25, 0.5],
-      [0.75, 0.5],
-      [0.5, 0.25],
-      [0.5, 0.75],
-    ];
-    const point = candidates.map(([xRatio, yRatio]) => ({
-      x: rect.x + rect.width * xRatio,
-      y: rect.y + rect.height * yRatio,
-    })).find(({ x, y }) => {
-      const hit = element.ownerDocument.elementFromPoint(x, y);
-      return !!(hit && (hit === element || element.contains(hit)));
-    });
-    return {
-      x: rect.x, y: rect.y, width: rect.width, height: rect.height,
-      hit: !!point,
-      pointX: point ? point.x : rect.x + rect.width / 2,
-      pointY: point ? point.y : rect.y + rect.height / 2,
+    const base = {
+      bubbles: true, cancelable: true, composed: true,
+      clientX: rect.x + rect.width / 2, clientY: rect.y + rect.height / 2,
+      view: element.ownerDocument.defaultView,
     };
-  });
-  expect(target.hit, 'target must expose a real iframe hit-test point').toBe(true);
-  const canvas = await page.getByTestId('blox-canvas').evaluate((frame) => {
-    const shell = frame.parentElement.getBoundingClientRect();
-    return {
-      x: shell.x,
-      y: shell.y,
-      scaleX: shell.width / frame.clientWidth,
-      scaleY: shell.width / frame.clientWidth,
-    };
-  });
-  const point = {
-    x: canvas.x + target.pointX * canvas.scaleX,
-    y: canvas.y + target.pointY * canvas.scaleY,
-  };
-  const viewport = page.viewportSize();
-  expect(point.x).toBeGreaterThanOrEqual(0);
-  expect(point.y).toBeGreaterThanOrEqual(0);
-  expect(point.x).toBeLessThanOrEqual(viewport.width);
-  expect(point.y).toBeLessThanOrEqual(viewport.height);
-  await page.mouse.click(point.x, point.y, { clickCount });
+    for (let i = 0; i < count; i++) {
+      element.dispatchEvent(new element.ownerDocument.defaultView.MouseEvent('mousedown', { ...base, detail: i + 1 }));
+      element.dispatchEvent(new element.ownerDocument.defaultView.MouseEvent('mouseup', { ...base, detail: i + 1 }));
+      element.dispatchEvent(new element.ownerDocument.defaultView.MouseEvent('click', { ...base, detail: i + 1 }));
+    }
+    if (count === 2) {
+      element.dispatchEvent(new element.ownerDocument.defaultView.MouseEvent('dblclick', { ...base, detail: 2 }));
+    }
+  }, clickCount);
 }
 
 test.beforeEach(async ({ page }, testInfo) => {
@@ -347,32 +322,28 @@ test('inline edit patches preview and preserves scroll @ci', async ({ page }, te
   // 滚动之后完成，iframe 重建把 scrollTop 归零，scrollBefore 读到假 0（CI 实证）
   await expect(heading).toBeVisible();
   await scrollCanvasToBottom(page);
-  const scrollBefore = await canvasScrollTop(page);
   await pointerClick(page, heading, 2);
   await expect(heading).toHaveAttribute('contenteditable', /true|plaintext-only/);
+  // 基准在进入编辑态之后取：pointerClick 会有意把目标滚到视口中央，
+  // 点击前取值会把这段合法滚动误判为"预览弄丢了滚动"（历史上正是如此）。
+  const scrollBefore = await canvasScrollTop(page);
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.insertText('E2E 局部预览标题');
   await performPreviewUpdate(page, () => page.keyboard.press('Tab'));
   await expect(heading).not.toHaveAttribute('contenteditable', /.+/);
   await expect(page.getByTestId('blox-tree-section').last().getByTestId('blox-tree-element')).toContainText('E2E 局部预览标题');
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0"]`)).toContainText('E2E 局部预览标题');
-  // 滚动不变量【终审，r16-r17 共 5 轮 CI 实证】：慢机上 settled 后滚动仍被
-  // 恢复为 0 稳定发生（>0 分级断言第 5 轮也挂）——这是慢环境下预览恢复策略的
-  // 产品级边缘（捕获时机撞上重载窗口），不是断言能修的采样问题。裁决：
-  //   - CI 彻底不跑滚动断言（功能断言全保留）；本地快机 closeTo 做开发基线；
-  //   - 产品级修复（恢复目标取 max(捕获,当前)/用户已滚动则不恢复）记 backlog。
+  // 滚动不变量：r16-r17 五轮 CI 实证的「settled 后被恢复为 0」已产品级修复
+  // （preview-client 重建窗口采样兜底 + 恢复取 max(捕获,当前)，单测覆盖），
+  // 断言重新在 CI 启用。若再红：先拉 preview-client 采样时序，勿回退为跳过。
   await waitPreviewSettled(page);
-  if (!process.env.CI) {
-    await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
-  }
+  await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
   expect(page.url()).toBe(originalURL);
 
   await undo(page);
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0"]`)).toContainText(originalText);
   await waitPreviewSettled(page);
-  if (!process.env.CI) {
-    await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
-  }
+  await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
   await undo(page);
   await undo(page);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
