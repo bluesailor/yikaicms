@@ -36,7 +36,7 @@ run_or_record() {
     fi
 }
 
-default_tags=(v1.12.9 v1.17.0 v1.17.2 v1.17.3.2 v1.18.1)
+default_tags=(v1.12.9 v1.14.0 v1.17.0 v1.17.2 v1.17.3.2 v1.18.1 v1.18.2 v1.18.3 v1.18.4)
 if [ "$#" -gt 0 ]; then
     from_tags=("$@")
 elif [ -n "${UPGRADE_FROM_TAGS:-}" ]; then
