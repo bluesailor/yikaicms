@@ -1,5 +1,7 @@
 #!/bin/sh
-# Blox 付费源码就地仓库（.git-blox）的 git 包装：单一物理工作树，与主仓库共存。
-# 用法：bin/blox-git status / add -f <file> / commit / push …（详见私库 BLOX-README.md）
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-exec git --git-dir="$ROOT/.git-blox" --work-tree="$ROOT" "$@"
+# 已退役（2026-08-21）：Blox 源码已并回主仓（PR #13），双仓机制停用。
+# .git-blox 已归档到主仓同级目录 yikaicms-blox-gitdir-archive-*（留底）。
+# 现在直接用普通 git：Blox 文件（admin/blox_editor* 等）按分支→PR→CI 流程改动。
+echo "bin/blox-git 已退役：Blox 源码 2026-08-21 并回主仓，直接用 git 即可。" >&2
+echo "历史 .git-blox 已归档到 ../yikaicms-blox-gitdir-archive-20260821/" >&2
+exit 1
