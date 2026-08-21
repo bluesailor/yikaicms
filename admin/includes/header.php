@@ -91,6 +91,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         _bodyOverflow: '',
         _sbT: 0,
         collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
+        // 折叠(图标态)是桌面专属：手机抽屉恒为全宽，文字必须显示。容器宽度用
+        // lg: 前缀已如此，文字可见性也要跟上，否则折叠过再拉窄→抽屉里文字全消失。
+        get showLabels() { return !this.collapsed || this.mobileViewport; },
         initAdminShell() {
             this._mobileMql = window.matchMedia('(max-width: 1023px)');
             var syncViewport = (event) => {
@@ -253,8 +256,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <img src="<?php echo e($adminLogo); ?>" alt="" class="w-auto max-w-full flex-shrink min-w-0"
                          style="max-height: <?php echo $adminLogoMaxH; ?>px">
                     <?php else: ?>
-                    <span class="text-xl font-bold text-white truncate" x-show="!collapsed"><?php echo e($adminBrand); ?></span>
-                    <span class="text-xl font-bold text-white" x-show="collapsed" x-cloak><?php echo e(mb_substr($adminBrand, 0, 1)); ?></span>
+                    <span class="text-xl font-bold text-white truncate" x-show="showLabels"><?php echo e($adminBrand); ?></span>
+                    <span class="text-xl font-bold text-white" x-show="!showLabels" x-cloak><?php echo e(mb_substr($adminBrand, 0, 1)); ?></span>
                     <?php endif; ?>
                 </a>
                 <button type="button" x-ref="mobileClose" data-testid="admin-sidebar-close"
@@ -287,7 +290,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                    :class="collapsed ? 'lg:justify-center' : ''"
                    :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
                     <i class="ti ti-home text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }" aria-hidden="true"></i>
-                    <span x-show="!collapsed"><?php echo __('admin_dashboard'); ?></span>
+                    <span x-show="showLabels"><?php echo __('admin_dashboard'); ?></span>
                 </a>
 
                 <?php
@@ -319,10 +322,10 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <?php if ($_gIcon !== ''): ?>
                     <svg class="w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $_gIcon ?></svg>
                     <?php endif; ?>
-                    <span class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="!collapsed" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''" aria-hidden="true"></i>
+                    <span class="flex-1 min-w-0 truncate" x-show="showLabels"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="showLabels" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''" aria-hidden="true"></i>
                 </button>
-                <div id="adminSidebarGroup-<?= $_gKey ?>" class="pl-2" x-show="!collapsed && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
+                <div id="adminSidebarGroup-<?= $_gKey ?>" class="pl-2" x-show="showLabels && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
