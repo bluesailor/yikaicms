@@ -29,6 +29,11 @@
         <directory name="plugins" />
         <ignoreFiles>
             <directory name="vendor" />
+            <!-- Blox 编辑器视图/模板类入口（并回主仓 2026-08-21）：大量内联 HTML/JS
+                 heredoc，变量在模板中消费 Psalm 看不见；并回前从不被扫描，保持不扫。 -->
+            <file name="admin/blox_editor.php" />
+            <directory name="admin/blox_editor" />
+            <file name="admin/blox_home_api.php" />
         </ignoreFiles>
     </projectFiles>
 

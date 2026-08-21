@@ -66,7 +66,6 @@
     "migrations/20260812_banner_item_runtime.php"
   ],
   "private": [
-    "BLOX-README.md",
     "admin/blox_editor.php",
     "admin/blox_editor",
     "admin/blox_home_api.php",
