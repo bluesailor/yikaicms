@@ -85,14 +85,80 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 ?>
 <body class="bg-gray-100" x-data="{
         mobileMenu: false,
+        mobileViewport: window.matchMedia('(max-width: 1023px)').matches,
+        _mobileMql: null,
+        _mobileLastFocus: null,
+        _bodyOverflow: '',
         _sbT: 0,
         collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
+        // 折叠(图标态)是桌面专属：手机抽屉恒为全宽，文字必须显示。容器宽度用
+        // lg: 前缀已如此，文字可见性也要跟上，否则折叠过再拉窄→抽屉里文字全消失。
+        get showLabels() { return !this.collapsed || this.mobileViewport; },
+        initAdminShell() {
+            this._mobileMql = window.matchMedia('(max-width: 1023px)');
+            var syncViewport = (event) => {
+                this.mobileViewport = event.matches;
+                if (!event.matches && this.mobileMenu) this.closeMobileMenu(false);
+                this.$nextTick(() => this.syncMobileSidebarA11y());
+            };
+            if (this._mobileMql.addEventListener) this._mobileMql.addEventListener('change', syncViewport);
+            else this._mobileMql.addListener(syncViewport);
+            this.$nextTick(() => this.syncMobileSidebarA11y());
+        },
+        syncMobileSidebarA11y() {
+            if (!this.$refs.sidebar) return;
+            var hidden = this.mobileViewport && !this.mobileMenu;
+            this.$refs.sidebar.inert = hidden;
+            this.$refs.sidebar.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+        },
+        openMobileMenu(trigger) {
+            if (!this.mobileViewport) return;
+            this._mobileLastFocus = trigger || document.activeElement;
+            this._bodyOverflow = document.body.style.overflow;
+            this.mobileMenu = true;
+            document.body.style.overflow = 'hidden';
+            this.$nextTick(() => {
+                this.syncMobileSidebarA11y();
+                if (this.$refs.mobileClose) this.$refs.mobileClose.focus();
+            });
+        },
+        closeMobileMenu(restoreFocus = true) {
+            this.mobileMenu = false;
+            document.body.style.overflow = this._bodyOverflow;
+            this.$nextTick(() => {
+                this.syncMobileSidebarA11y();
+                if (restoreFocus && this._mobileLastFocus && this._mobileLastFocus.focus) this._mobileLastFocus.focus();
+            });
+        },
+        toggleMobileMenu(trigger) {
+            if (this.mobileMenu) this.closeMobileMenu();
+            else this.openMobileMenu(trigger);
+        },
+        mobileFocusable() {
+            if (!this.$refs.sidebar) return [];
+            return Array.from(this.$refs.sidebar.querySelectorAll(`a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])`))
+                .filter((el) => el.offsetParent !== null && !el.hasAttribute('inert'));
+        },
+        trapMobileFocus(event) {
+            if (!this.mobileViewport || !this.mobileMenu) return;
+            var focusable = this.mobileFocusable();
+            if (!focusable.length) return;
+            var first = focusable[0];
+            var last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        },
         toggleCollapsed() {
             this._sbT = Date.now();
             this.collapsed = !this.collapsed;
             try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
             document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=/;max-age=' + (365 * 86400) + ';samesite=Lax';
-            if (!this.collapsed) { this.fly = { key: '', label: '', items: [], top: 0 }; }
+            if (!this.collapsed) this.flyClose(false);
         },
         // 折叠态点空白/Logo 展开。400ms 冷却：点把手收起后侧栏还在收窄动画中，
         // 习惯性连点的第二下会落在未缩完的空白上，无冷却就会立即弹回（收一下又弹开）
@@ -103,21 +169,45 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         },
         fly: { key: '', label: '', items: [], top: 0 },
         _flyTimer: null,
+        _flyTrigger: null,
         flyOpen(e, key) {
             clearTimeout(this._flyTimer);
             var d = (window.__ykMenuFly || {})[key];
             if (!d) { return; }
+            this._flyTrigger = e.currentTarget;
             var r = e.currentTarget.getBoundingClientRect();
             var top = Math.min(r.top, Math.max(8, window.innerHeight - (d.items.length * 32 + 60)));
             this.fly = { key: key, label: d.label, items: d.items, top: top };
+        },
+        flyOpenAndFocus(e, key) {
+            this.flyOpen(e, key);
+            this.$nextTick(() => {
+                var first = this.$refs.flyPanel && this.$refs.flyPanel.querySelector('a[href]');
+                if (first) first.focus();
+            });
+        },
+        flyClose(restoreFocus = false) {
+            clearTimeout(this._flyTimer);
+            this.fly = { key: '', label: '', items: [], top: 0 };
+            if (restoreFocus && this._flyTrigger && this._flyTrigger.focus) this._flyTrigger.focus();
+        },
+        flyMoveFocus(event, direction) {
+            if (!this.$refs.flyPanel) return;
+            var items = Array.from(this.$refs.flyPanel.querySelectorAll('a[href]'));
+            if (!items.length) return;
+            var current = items.indexOf(document.activeElement);
+            var next = direction === 'first' ? 0
+                : direction === 'last' ? items.length - 1
+                : (Math.max(0, current) + direction + items.length) % items.length;
+            items[next].focus();
         },
         flyKeep() { clearTimeout(this._flyTimer); },
         flyLater() {
             var self = this;
             clearTimeout(this._flyTimer);
-            this._flyTimer = setTimeout(function () { self.fly = { key: '', label: '', items: [], top: 0 }; }, 180);
+            this._flyTimer = setTimeout(function () { self.flyClose(false); }, 180);
         }
-     }">
+     }" x-init="initAdminShell()" @keydown.escape.window="mobileMenu && closeMobileMenu()">
     <div class="flex min-h-screen">
         <!-- 移动端遮罩层 -->
         <div x-show="mobileMenu"
@@ -127,12 +217,18 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
              x-transition:leave="transition-opacity ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             @click="mobileMenu = false"
+             @click="closeMobileMenu()"
+             aria-hidden="true"
              class="fixed inset-0 z-40 bg-black/50 lg:hidden"
              x-cloak></div>
 
         <!-- 侧边栏 -->
-        <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
+        <aside id="adminSidebar" x-ref="sidebar" data-testid="admin-sidebar"
+               aria-label="<?php echo e(__('admin_sidebar_navigation')); ?>"
+               :aria-hidden="(mobileViewport && !mobileMenu).toString()"
+               :inert="mobileViewport && !mobileMenu"
+               @keydown.tab="trapMobileFocus($event)"
+               class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，
                      // 首次切换时服务端预渲染的 lg:w-64 会残留并与 lg:w-16 打架 ?>
                <?php // 折叠态点空白处即展开（.self 只吃直接命中 aside 的点击，不劫持菜单项）；
@@ -146,7 +242,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                   // 图片不写死高度——按自然比例显示，上限由设置「后台Logo最大高度」控制
                   //（默认 80px，可按图片观感调小如 60）；任意数值走内联 style（Tailwind
                   // 无法为运行时数值预编类）。宽度受侧栏约束自动收缩（含折叠态窄栏）。 ?>
-            <div class="min-h-12 py-1 flex items-center justify-center">
+            <div class="relative min-h-12 py-1 px-12 lg:px-0 flex items-center justify-center">
                 <?php
                 $adminLogo = config('admin_logo', '');
                 $adminLogoMaxH = (int) config('admin_logo_max_height', 80);
@@ -160,10 +256,16 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <img src="<?php echo e($adminLogo); ?>" alt="" class="w-auto max-w-full flex-shrink min-w-0"
                          style="max-height: <?php echo $adminLogoMaxH; ?>px">
                     <?php else: ?>
-                    <span class="text-xl font-bold text-white truncate" x-show="!collapsed"><?php echo e($adminBrand); ?></span>
-                    <span class="text-xl font-bold text-white" x-show="collapsed" x-cloak><?php echo e(mb_substr($adminBrand, 0, 1)); ?></span>
+                    <span class="text-xl font-bold text-white truncate" x-show="showLabels"><?php echo e($adminBrand); ?></span>
+                    <span class="text-xl font-bold text-white" x-show="!showLabels" x-cloak><?php echo e(mb_substr($adminBrand, 0, 1)); ?></span>
                     <?php endif; ?>
                 </a>
+                <button type="button" x-ref="mobileClose" data-testid="admin-sidebar-close"
+                        @click="closeMobileMenu()"
+                        class="lg:hidden absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-md text-gray-300 hover:text-white hover:bg-white/10"
+                        aria-controls="adminSidebar" aria-label="<?php echo e(__('admin_close')); ?>">
+                    <i class="ti ti-x text-xl" aria-hidden="true"></i>
+                </button>
             </div>
 
             <!-- 导航菜单 -->
@@ -184,10 +286,11 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                  @click.self="expandFromBlank()">
                 <!-- 控制台 -->
                 <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
+                   <?php echo $currentMenu === 'dashboard' ? 'aria-current="page"' : ''; ?>
                    :class="collapsed ? 'lg:justify-center' : ''"
                    :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
-                    <i class="ti ti-home text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
-                    <span x-show="!collapsed"><?php echo __('admin_dashboard'); ?></span>
+                    <i class="ti ti-home text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }" aria-hidden="true"></i>
+                    <span x-show="showLabels"><?php echo __('admin_dashboard'); ?></span>
                 </a>
 
                 <?php
@@ -203,28 +306,26 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     if (empty($navGroup['items'])) continue;
                 ?>
                 <?php
-                $_first    = reset($navGroup['items']);
-                $_firstUrl = (string) ($_first['url'] ?? '');
                 $_gKey     = htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8');
                 $_gIcon    = (string) ($navGroup['icon'] ?? '');
                 $_gOpen    = ($groupKey === $activeGroup);
                 ?>
-                <div @click="collapsed ? null : toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
+                <button type="button" @click="collapsed ? flyOpenAndFocus($event, '<?= $_gKey ?>') : toggle('<?= $_gKey ?>')"
+                     data-group="<?= $_gKey ?>" data-testid="admin-sidebar-group-<?= $_gKey ?>"
                      @mouseenter="collapsed && flyOpen($event, '<?= $_gKey ?>')" @mouseleave="collapsed && flyLater()"
+                     @blur="collapsed && flyLater()"
+                     :aria-expanded="(collapsed ? fly.key === '<?= $_gKey ?>' : isOpen('<?= $_gKey ?>')).toString()"
+                     :aria-controls="collapsed ? 'adminSidebarFlyout' : 'adminSidebarGroup-<?= $_gKey ?>'"
                      :title="collapsed ? '<?= htmlspecialchars(strip_tags((string)$navGroup['label']), ENT_QUOTES, 'UTF-8') ?>' : ''"
-                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base flex items-center gap-2.5"
+                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base flex items-center gap-2.5 w-full text-left"
                      :class="collapsed ? 'lg:justify-center' : ''">
                     <?php if ($_gIcon !== ''): ?>
-                    <svg class="w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
+                    <svg class="w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $_gIcon ?></svg>
                     <?php endif; ?>
-                    <?php if ($_firstUrl !== ''): ?>
-                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
-                    <?php else: ?>
-                    <span class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                    <?php endif; ?>
-                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="!collapsed" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
-                </div>
-                <div class="pl-2" x-show="!collapsed && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
+                    <span class="flex-1 min-w-0 truncate" x-show="showLabels"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="showLabels" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''" aria-hidden="true"></i>
+                </button>
+                <div id="adminSidebarGroup-<?= $_gKey ?>" class="pl-2" x-show="showLabels && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
@@ -241,6 +342,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 @click.stop="toggleCollapsed()"
                 class="hidden lg:flex fixed top-1/2 -translate-y-1/2 -translate-x-1/2 z-[70] w-8 h-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-md transition-all duration-300 hover:border-blue-300 hover:text-blue-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 :class="collapsed ? 'left-16' : 'left-64'"
+                aria-controls="adminSidebar"
+                :aria-expanded="(!collapsed).toString()"
                 :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'"
                 :aria-label="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
             <i class="ti text-base" :class="collapsed ? 'ti-chevron-right' : 'ti-chevron-left'"></i>
@@ -249,13 +352,20 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 
         <?php // 折叠态的二级飞出面板：侧栏是滚动容器会裁剪子元素，故用 fixed 定位单例，
               // 悬停分组图标时按其位置弹出。数据从同一份菜单生成，不重复维护。 ?>
-        <div x-show="collapsed && fly.key" x-cloak
-             @mouseenter="flyKeep()" @mouseleave="flyLater()"
+        <div id="adminSidebarFlyout" x-ref="flyPanel" data-testid="admin-sidebar-flyout"
+             x-show="collapsed && fly.key" x-cloak role="menu" :aria-label="fly.label"
+             @mouseenter="flyKeep()" @mouseleave="flyLater()" @focusin="flyKeep()" @focusout="flyLater()"
+             @keydown.escape.prevent.stop="flyClose(true)"
+             @keydown.arrow-down.prevent="flyMoveFocus($event, 1)"
+             @keydown.arrow-up.prevent="flyMoveFocus($event, -1)"
+             @keydown.home.prevent="flyMoveFocus($event, 'first')"
+             @keydown.end.prevent="flyMoveFocus($event, 'last')"
              :style="{ top: fly.top + 'px' }"
              class="hidden lg:block fixed left-16 z-[60] w-52 bg-sidebar text-gray-300 rounded-r-lg shadow-2xl border border-white/10 border-l-0 py-2">
             <div class="px-4 py-1.5 text-sm text-gray-400 border-b border-white/5 mb-1" x-text="fly.label"></div>
             <template x-for="it in fly.items" :key="it.url">
-                <a :href="it.url" class="sidebar-link block px-4 py-1.5 text-sm" x-text="it.label"></a>
+                <a :href="it.url" role="menuitem" class="sidebar-link block px-4 py-1.5 text-sm"
+                   :class="{ 'active': it.active }" :aria-current="it.active ? 'page' : null" x-text="it.label"></a>
             </template>
         </div>
         <script>
@@ -267,7 +377,12 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 foreach ((array) ($_gv['items'] ?? []) as $_it) {
                     if (isset($_it['visible']) && !$_it['visible']) continue;
                     if (!empty($_it['perm']) && !hasPermission((string) $_it['perm'])) continue;
-                    $_its[] = ['label' => trim(strip_tags((string) ($_it['label'] ?? ''))), 'url' => (string) ($_it['url'] ?? '')];
+                    $_activeKeys = (array) ($_it['active_keys'] ?? [(string) ($_it['key'] ?? '')]);
+                    $_its[] = [
+                        'label' => trim(strip_tags((string) ($_it['label'] ?? ''))),
+                        'url' => (string) ($_it['url'] ?? ''),
+                        'active' => in_array((string) $currentMenu, $_activeKeys, true),
+                    ];
                 }
                 if ($_its) {
                     $_flyData[$_gk] = ['label' => trim(strip_tags((string) ($_gv['label'] ?? $_gk))), 'items' => $_its];
@@ -346,6 +461,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                         ? '<svg class="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2l2.98 6.06 6.69.97-4.84 4.72 1.14 6.66L12 17.47l-5.97 3.14 1.14-6.66-4.84-4.72 6.69-.97z"/></svg>'
                         : '<i class="ti ti-star text-xs"></i>';
                     btn.title = on ? T.del : T.add;
+                    btn.setAttribute('aria-label', on ? T.del : T.add);
                 });
             }
             function refresh() {
@@ -366,11 +482,14 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                       // 250ms 防抖挡住习惯性连点造成的「收起又弹开」。
                       // 原骑在侧栏分界线上的小圆把手已移除——热区小且与滚动条/动画区重叠，误触难根治。 ?>
                 <button type="button"
-                        @click="window.innerWidth < 1024 ? (mobileMenu = !mobileMenu) : (Date.now() - (_sbT || 0) > 250 && toggleCollapsed())"
+                        data-testid="admin-sidebar-toggle"
+                        @click="mobileViewport ? toggleMobileMenu($el) : (Date.now() - (_sbT || 0) > 250 && toggleCollapsed())"
                         class="text-gray-500 hover:text-gray-700 mr-1"
-                        :title="window.innerWidth >= 1024 ? (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>') : ''"
-                        aria-label="<?php echo e(__('admin_sidebar_collapse')); ?>">
-                    <i class="ti ti-menu-2 text-xl lg:hidden"></i>
+                        aria-controls="adminSidebar"
+                        :aria-expanded="(mobileViewport ? mobileMenu : !collapsed).toString()"
+                        :title="mobileViewport ? (mobileMenu ? '<?php echo e(__('admin_close')); ?>' : '<?php echo e(__('admin_sidebar_expand')); ?>') : (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>')"
+                        :aria-label="mobileViewport ? (mobileMenu ? '<?php echo e(__('admin_close')); ?>' : '<?php echo e(__('admin_sidebar_expand')); ?>') : (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>')">
+                    <i class="ti ti-menu-2 text-xl lg:hidden" aria-hidden="true"></i>
                     <?php // Ant Design MenuFoldOutlined / MenuUnfoldOutlined (MIT)：与常规菜单图标明确区分侧栏状态。 ?>
                     <svg x-show="!collapsed" x-cloak class="hidden lg:block w-5 h-5" viewBox="64 64 896 896" fill="currentColor" aria-hidden="true" focusable="false">
                         <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z" />

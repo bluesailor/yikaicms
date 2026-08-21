@@ -127,6 +127,9 @@ class SidebarMenuApiTest extends TestCase
         $this->assertStringContainsString('href="/admin/channel.php"', $html);
         $this->assertStringContainsString('Channel', $html);
         $this->assertStringContainsString(' active', $html);
+        $this->assertStringContainsString('aria-current="page"', $html);
+        $this->assertStringContainsString('aria-hidden="true"', $html);
+        $this->assertStringContainsString('focusable="false"', $html);
     }
 
     public function testRenderInactiveItem(): void
@@ -136,6 +139,7 @@ class SidebarMenuApiTest extends TestCase
             'something_else'
         );
         $this->assertStringNotContainsString(' active', $html);
+        $this->assertStringNotContainsString('aria-current=', $html);
     }
 
     public function testActiveKeysExpandActiveDetection(): void

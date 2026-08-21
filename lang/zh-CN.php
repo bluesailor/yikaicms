@@ -1196,6 +1196,7 @@ return [
     'admin_date' => '日期',
     'admin_no_cover' => '暂无封面',
     'admin_sidebar_collapse' => '折叠菜单',
+    'admin_sidebar_navigation' => '后台主导航',
     'admin_save_failed' => '保存失败',
     'code_copy' => '复制',
     'code_copied' => '已复制',

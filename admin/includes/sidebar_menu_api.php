@@ -132,7 +132,7 @@ function renderAdminMenuItem(array $item, string $currentMenu): string
          . ($isActive ? ' active' : '');
 
     $svg = $icon !== ''
-        ? '<svg class="w-[18px] h-[18px] mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">' . $icon . '</svg>'
+        ? '<svg class="w-[18px] h-[18px] mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' . $icon . '</svg>'
         : '';
 
     // 红点徽标（如待更新数）：item['badge'] > 0 时在右侧显示
@@ -142,9 +142,10 @@ function renderAdminMenuItem(array $item, string $currentMenu): string
         : '';
 
     return sprintf(
-        '<a href="%s" class="%s">%s%s%s</a>',
+        '<a href="%s" class="%s"%s>%s%s%s</a>',
         htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($cls, ENT_QUOTES, 'UTF-8'),
+        $isActive ? ' aria-current="page"' : '',
         $svg,
         htmlspecialchars($label, ENT_QUOTES, 'UTF-8'),
         $badgeHtml

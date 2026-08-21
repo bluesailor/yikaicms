@@ -1240,6 +1240,7 @@ return [
     'admin_date' => '日付',
     'admin_no_cover' => 'カバー画像なし',
     'admin_sidebar_collapse' => 'メニューを折りたたむ',
+    'admin_sidebar_navigation' => '管理ナビゲーション',
     'admin_save_failed' => '保存に失敗しました',
     'code_copy' => 'コピー',
     'code_copied' => 'コピーしました',
