@@ -2,9 +2,9 @@
   "format": "yikaicms-blox-template",
   "version": 1,
   "type": "header",
-  "name": "Clean Site Header",
+  "name": "Centered Brand Site Header",
   "requires": {
-    "elements": ["container", "logo", "nav-mega", "nav-drawer"],
+    "elements": ["container", "logo", "nav", "nav-drawer"],
     "plugins": []
   },
   "document": {
@@ -25,16 +25,16 @@
               {
                 "type": "container",
                 "data": {
-                  "direction": "row",
+                  "direction": "column",
                   "wrap": "nowrap",
-                  "gap": "md",
+                  "gap": "sm",
                   "align": "center",
-                  "justify": "between",
+                  "justify": "center",
                   "padding": "none",
                   "radius": "none",
                   "children": [
-                    {"type": "logo", "data": {"display": "image", "height": "md", "link_home": true}},
-                    {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}},
+                    {"type": "logo", "data": {"display": "image", "height": "lg", "link_home": true}},
+                    {"type": "nav", "data": {"menu_group": 0, "parent": "", "nav_only": true, "dropdown": true, "wrap_class": "hidden xl:flex flex-wrap items-center justify-center gap-6"}},
                     {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
                   ]
                 }

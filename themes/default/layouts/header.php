@@ -54,6 +54,18 @@ $ogDescription = $pageDescription ?? $siteDescription;
 // 获取导航栏目（带子栏目）
 $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);
 
+// 编辑入口：仅管理员显示，目标必须与当前页面实际渲染的 Header 来源一致。
+$ykHeaderTemplateEditAttr = '';
+if (!empty($_SESSION['admin_id']) && function_exists('bloxTemplateModel') && function_exists('db')) {
+    $ykHeaderTemplateEditUrl = BloxAreaEditorTarget::url('header', [
+        'home' => basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'index.php',
+        'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
+        'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
+    ]);
+    $ykHeaderTemplateEditAttr = ' data-yk-edit="' . e($ykHeaderTemplateEditUrl) . '"'
+        . ' data-yk-edit-label="' . e(__('fe_edit_layout')) . '"';
+}
+
 // 当前栏目
 $currentChannelId = $currentChannelId ?? 0;
 $currentSlug = $currentSlug ?? '';
@@ -186,9 +198,11 @@ function getChannelUrl(array $channel): string {
     <!-- Top navigation -->
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
     <?php if ($ykBloxHeader !== ''): ?>
-    <?php echo $ykBloxHeader; // Blox 头模板接管；无发布模板时走下方原生头（逐主题回退，红线 5） ?>
+    <div<?php echo $ykHeaderTemplateEditAttr; ?>>
+        <?php echo $ykBloxHeader; // Blox 头模板接管；无发布模板时走下方原生头（逐主题回退，红线 5） ?>
+    </div>
     <?php else: ?>
-    <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
+    <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>"<?php echo $ykHeaderTemplateEditAttr; ?>>
         <?php if ($headerNavLayout === 'below'): ?>
         <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">

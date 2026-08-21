@@ -683,7 +683,37 @@ function confirmAreaPublish(form) {
             <?php foreach ($areaPresets as $preset):
                 $presetId = $builtinInstalledRefs[$preset['slug']] ?? 0;
             ?>
-            <div class="flex min-h-32 flex-col gap-2 rounded border border-gray-200 p-4">
+            <div class="flex min-h-32 flex-col gap-2 overflow-hidden rounded border border-gray-200 bg-white p-4">
+                <?php if ($preset['preview'] !== ''): ?>
+                <div class="yk-area-wireframe -mx-4 -mt-4 mb-2" data-preview-layout="<?php echo e($preset['preview']); ?>" aria-hidden="true">
+                    <?php if ($preset['preview'] === 'corporate'): ?>
+                    <div class="yk-area-wire-topbar">
+                        <span></span><span></span>
+                        <span class="yk-area-wire-topbar-spacer"></span>
+                        <span></span><span class="yk-area-wire-search"></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($preset['preview'] === 'centered-brand'): ?>
+                    <div class="yk-area-wire-row yk-area-wire-brand-row">
+                        <span class="yk-area-wire-logo"><i></i><b></b></span>
+                    </div>
+                    <div class="yk-area-wire-row yk-area-wire-menu-row">
+                        <span class="yk-area-wire-menu"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                    </div>
+                    <?php else: ?>
+                    <div class="yk-area-wire-row">
+                        <span class="yk-area-wire-logo"><i></i><b></b></span>
+                        <span class="yk-area-wire-menu"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="yk-area-wire-body">
+                        <span class="yk-area-wire-eyebrow"></span>
+                        <span class="yk-area-wire-title"></span>
+                        <span class="yk-area-wire-copy"></span>
+                        <span class="yk-area-wire-copy yk-area-wire-copy-short"></span>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div class="flex items-center gap-2">
                     <i class="ti <?php echo $preset['type'] === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?> text-gray-500"></i>
                     <span class="font-medium text-gray-900"><?php echo e($preset['name']); ?></span>

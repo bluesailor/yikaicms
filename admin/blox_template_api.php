@@ -26,6 +26,27 @@ $requireTemplateLicense = static function (string $type) use ($advancedBloxEnabl
     }
 };
 
+/** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
+$processTemplateDocument = static function (string $type, int $id, string $json): array {
+    return BloxAreaDocument::isArea($type)
+        ? BloxAreaDocument::process($type, $json, 'tpl' . $id)
+        : ($type === 'popup'
+            ? BloxPopupDocument::process($json, 'tpl' . $id)
+            : BloxDocumentPipeline::process($json, 'tpl' . $id));
+};
+
+$templateRevisionMatches = static function (string $type, string $json, string $revision): bool {
+    return $type === 'popup'
+        ? BloxPopupDocument::revisionMatches($json, $revision)
+        : BloxDocumentPipeline::revisionMatches($json, $revision);
+};
+
+$templateFingerprint = static function (string $type, string $json): string {
+    return $type === 'popup'
+        ? BloxPopupDocument::fingerprint($json)
+        : BloxDocumentPipeline::fingerprint($json);
+};
+
 try {
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     $action = $method === 'POST' ? (string) post('action', '') : (string) get('action', 'list');
@@ -61,17 +82,11 @@ try {
             ? (string) $row['draft_data']
             : '[]';
         $baseRevision = trim((string) post('base_revision', ''));
-        $revisionMatches = $type === 'popup'
-            ? BloxPopupDocument::revisionMatches($currentDraft, $baseRevision)
-            : BloxDocumentPipeline::revisionMatches($currentDraft, $baseRevision);
+        $revisionMatches = $templateRevisionMatches($type, $currentDraft, $baseRevision);
         if ($baseRevision !== '' && !$revisionMatches) {
             error(__('blox_save_conflict'), 409);
         }
-        $processed = BloxAreaDocument::isArea($type)
-            ? BloxAreaDocument::process($type, (string) post('blocks_data', '[]'), 'tpl' . $id)
-            : ($type === 'popup'
-                ? BloxPopupDocument::process((string) post('blocks_data', '[]'), 'tpl' . $id)
-                : BloxDocumentPipeline::process((string) post('blocks_data', '[]'), 'tpl' . $id));
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
         $requirements = BloxTemplateImporter::deriveRequirements($processed['sections']);
         try {
             bloxTemplateModel()->updateDraft($id, $processed['json'], $requirements, (string) ($row['draft_data'] ?? ''));
@@ -84,9 +99,7 @@ try {
         adminLog('blox_template', 'save_draft', '保存 Blox 模板草稿 #' . $id);
         success([
             'id' => $id,
-            'base_revision' => $type === 'popup'
-                ? BloxPopupDocument::fingerprint($processed['json'])
-                : BloxDocumentPipeline::fingerprint($processed['json']),
+            'base_revision' => $templateFingerprint($type, $processed['json']),
         ]);
     }
     if ($action === 'save_section' && $method === 'POST') {
@@ -132,20 +145,126 @@ try {
     if ($action === 'publish' && $method === 'POST') {
         verifyCsrf();
         $id = (int) post('id', '0');
-        $row = bloxTemplateModel()->find($id);
+        $row = bloxTemplateModel()->findForExport($id);
         if (!$row) {
             error(__('blox_tpl_not_found'));
         }
         $type = (string) ($row['type'] ?? '');
         $requireTemplateLicense($type);
         requireBloxTemplateTypePermission($type);
-        $conflictMessage = BloxAreaConditions::publishConflictMessage($row);
+
+        // 发布以当前画布为准，不再要求用户先手动保存。旧客户端不传 blocks_data
+        // 时仍兼容原来的“发布现有草稿”；新客户端则在同一事务中保存并发布。
+        $currentDraftRaw = (string) ($row['draft_data'] ?? '');
+        $currentDraft = trim($currentDraftRaw) !== '' ? $currentDraftRaw : '[]';
+        $processed = null;
+        if (array_key_exists('blocks_data', $_POST)) {
+            $baseRevision = trim((string) post('base_revision', ''));
+            if ($baseRevision !== '' && !$templateRevisionMatches($type, $currentDraft, $baseRevision)) {
+                error(__('blox_save_conflict'), 409);
+            }
+            $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+        }
+        $replaceThemeArea = strtolower(trim((string) post('replace_theme_area', '')));
+        $replaceTheme = $replaceThemeArea !== '';
+        if ($replaceTheme && ($replaceThemeArea !== $type
+            || !in_array($type, ['header', 'footer'], true)
+            || !BloxAreaEditorTarget::isThemeFallbackTemplate($row, $type))) {
+            error(__('blox_invalid_action'));
+        }
+
+        $isGlobalFallback = static function (mixed $rawConditions): bool {
+            $conditions = BloxAreaResolver::parse($rawConditions);
+            if ($conditions === []) {
+                return !BloxAreaResolver::hasConditionInput($rawConditions);
+            }
+            return array_reduce(
+                $conditions,
+                static fn (bool $carry, array $condition): bool => $carry
+                    && $condition['main'] === 'any' && !$condition['exclude'],
+                true
+            );
+        };
+        if ($replaceTheme && !$isGlobalFallback($row['conditions'] ?? null)) {
+            error(__('blox_invalid_action'));
+        }
+
+        $replacementIds = [];
+        $replacementNames = [];
+        if ($replaceTheme) {
+            foreach (bloxTemplateModel()->publishedAreaTemplates($type) as $other) {
+                $otherId = (int) ($other['id'] ?? 0);
+                if ($otherId < 1 || $otherId === $id) {
+                    continue;
+                }
+                $rawConditions = $other['conditions'] ?? null;
+                if (!$isGlobalFallback($rawConditions)) {
+                    continue;
+                }
+                $replacementIds[] = $otherId;
+                $replacementNames[] = (string) ($other['name'] ?? ('#' . $otherId)) . ' (#' . $otherId . ')';
+            }
+        }
+
+        $conflictMessage = $replaceTheme && $replacementIds !== []
+            ? __('blox_tpl_replace_theme_conflict', ['templates' => implode('、', $replacementNames)])
+            : ($replaceTheme ? '' : BloxAreaConditions::publishConflictMessage($row));
         if ($conflictMessage !== '' && (string) post('confirm_conflict', '') !== '1') {
             error($conflictMessage, 409);
         }
-        bloxTemplateModel()->publishDraft($id);
-        adminLog('blox_template', 'publish', '发布 Blox 模板 #' . $id);
-        success(['id' => $id]);
+
+        db()->beginTransaction();
+        try {
+            if ($processed !== null) {
+                bloxTemplateModel()->updateDraft(
+                    $id,
+                    $processed['json'],
+                    BloxTemplateImporter::deriveRequirements($processed['sections']),
+                    $currentDraftRaw
+                );
+            }
+            if ($replaceTheme) {
+                foreach ($replacementIds as $replacementId) {
+                    bloxTemplateModel()->unpublish($replacementId);
+                }
+            }
+            bloxTemplateModel()->publishDraft($id);
+            if ($replaceTheme) {
+                settingModel()->saveBatch([
+                    $type === 'header' ? 'blox_custom_header_enabled' : 'blox_custom_footer_enabled' => '1',
+                ]);
+            }
+            db()->commit();
+        } catch (Throwable $e) {
+            db()->rollback();
+            if ($e instanceof RuntimeException && $e->getMessage() === __('blox_save_conflict')) {
+                error($e->getMessage(), 409);
+            }
+            throw $e;
+        }
+
+        $publishedDocument = $processed !== null ? $processed['json'] : $currentDraft;
+        $response = [
+            'id' => $id,
+            'base_revision' => $templateFingerprint($type, $publishedDocument),
+        ];
+        if ($replaceTheme) {
+            $response['activated_area'] = $type;
+            $response['replaced_ids'] = $replacementIds;
+            adminLog(
+                'blox_template',
+                'publish_replace_theme',
+                '发布并启用 Blox ' . $type . ' #' . $id
+                    . ($replacementIds === [] ? '' : '，停用冲突模板 #' . implode(',#', $replacementIds))
+            );
+        } else {
+            adminLog(
+                'blox_template',
+                $processed !== null ? 'save_and_publish' : 'publish',
+                ($processed !== null ? '保存并发布' : '发布') . ' Blox 模板 #' . $id
+            );
+        }
+        success($response);
     }
     if ($action === 'get' && $method === 'POST') {
         verifyCsrf();
