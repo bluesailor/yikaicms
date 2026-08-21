@@ -36,9 +36,17 @@ if (config('public_api_enabled', '0') !== '1') {
 // 可选 API Key（配置了才校验）
 $key = (string) config('public_api_key', '');
 if ($key !== '') {
-    $sent = (string) ($_SERVER['HTTP_X_API_KEY'] ?? ($_GET['key'] ?? ''));
+    $sentHeader = (string) ($_SERVER['HTTP_X_API_KEY'] ?? '');
+    $sentQuery = (string) ($_GET['key'] ?? '');
+    $sent = $sentHeader !== '' ? $sentHeader : $sentQuery;
     if (!hash_equals($key, $sent)) {
         apiError('无效的 API Key', 401);
+    }
+    // ?key= 查询串会进 Web 服务器/CDN/代理访问日志与 Referer 链路，v1.18.5 起废弃
+    // （仍兼容，响应头告知集成方），后续版本仅接受 X-API-Key 请求头。
+    if ($sentHeader === '' && $sentQuery !== '') {
+        header('Deprecation: true');
+        header('X-Api-Key-Query-Deprecated: use the X-API-Key request header instead');
     }
 }
 

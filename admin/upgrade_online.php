@@ -450,6 +450,9 @@ if ($action !== '') {
         // zip-slip 防护：条目名越界则中止
         $unsafe = zipUnsafeEntry($zip);
         if ($unsafe !== null) { $zip->close(); uo_json(['code' => 1, 'msg' => '安装包含非法路径条目，已中止：' . $unsafe]); }
+        // zip bomb 防护。限值比主题/插件宽：全量包本身就有 8000+ 文件（v1.18.4 实测 8400）
+        $violation = zipResourceViolation($zip, 30000, 524_288_000, 31_457_280);
+        if ($violation !== null) { $zip->close(); uo_json(['code' => 1, 'msg' => '安装包未通过资源安全检查，已中止：' . $violation]); }
 
         // 判定增量 / 全量 + 定位包内前缀（不解压，只读条目名/manifest）
         $deleted = []; $from = ''; $to = '';

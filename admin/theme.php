@@ -116,6 +116,12 @@ function installThemeFromZip(string $zipPath): array
         $zip->close();
         return [false, __('theme_err_unsafe') . '：' . $unsafe, ''];
     }
+    // zip bomb 防护：文件数/解压总量/单文件/压缩比
+    $violation = zipResourceViolation($zip);
+    if ($violation !== null) {
+        $zip->close();
+        return [false, __('zip_resource_blocked', ['reason' => $violation]), ''];
+    }
 
     $themesDir = ROOT_PATH . '/themes';
     if (!is_dir($themesDir)) {
