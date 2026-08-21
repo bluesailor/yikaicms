@@ -111,4 +111,67 @@ final class SecurityHelpersTest extends TestCase
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
         $this->assertStringContainsString('<circle', sanitizeSvg($svg));
     }
+
+    // ---- zipResourceViolation（zip bomb 资源限制）----
+
+    /** @param array<string,string> $entries name => content */
+    private function makeContentZip(array $entries): ZipArchive
+    {
+        $path = sys_get_temp_dir() . '/yk_zipres_' . bin2hex(random_bytes(4)) . '.zip';
+        $zip = new ZipArchive();
+        $zip->open($path, ZipArchive::CREATE);
+        foreach ($entries as $name => $content) {
+            $zip->addFromString($name, $content);
+        }
+        $zip->close();
+        $zip = new ZipArchive();
+        $zip->open($path);
+        return $zip;
+    }
+
+    public function testNormalZipPassesResourceCheck(): void
+    {
+        $zip = $this->makeContentZip(['a.php' => 'hello', 'b/c.css' => str_repeat('x', 2048)]);
+        $this->assertNull(zipResourceViolation($zip));
+        $zip->close();
+    }
+
+    public function testTooManyEntriesIsRejected(): void
+    {
+        $zip = $this->makeContentZip(['a' => '1', 'b' => '2', 'c' => '3']);
+        $this->assertStringContainsString('too many entries', (string) zipResourceViolation($zip, 2));
+        $zip->close();
+    }
+
+    public function testOversizeSingleFileIsRejected(): void
+    {
+        $zip = $this->makeContentZip(['big.bin' => random_bytes(4096)]);
+        $violation = zipResourceViolation($zip, 5000, 209_715_200, 1024);
+        $this->assertStringContainsString('entry too large', (string) $violation);
+        $zip->close();
+    }
+
+    public function testTotalSizeCapIsRejected(): void
+    {
+        $zip = $this->makeContentZip(['a.bin' => random_bytes(3000), 'b.bin' => random_bytes(3000)]);
+        $violation = zipResourceViolation($zip, 5000, 4096, 209_715_200);
+        $this->assertStringContainsString('total uncompressed size', (string) $violation);
+        $zip->close();
+    }
+
+    public function testHighCompressionRatioBombIsRejected(): void
+    {
+        // 2MB 全零：deflate 后千比一级别，size>1MB 起判线也过——典型 zip bomb 形态
+        $zip = $this->makeContentZip(['bomb.dat' => str_repeat("\0", 2_097_152)]);
+        $this->assertStringContainsString('compression ratio', (string) zipResourceViolation($zip));
+        $zip->close();
+    }
+
+    public function testSmallHighRatioFileIsNotFalselyFlagged(): void
+    {
+        // 小文本天然高压缩比，1MB 以下不该误伤
+        $zip = $this->makeContentZip(['tiny.txt' => str_repeat('a', 500_000)]);
+        $this->assertNull(zipResourceViolation($zip));
+        $zip->close();
+    }
 }

@@ -121,3 +121,45 @@ function trustedIframeHost(string $src): bool
     }
     return false;
 }
+
+/**
+ * ZIP 解压资源限制（Zip Bomb 防护）：小 ZIP 解压出巨大体积会耗尽磁盘/inode/
+ * PHP 超时。在 extractTo / 逐条流式写入之前调用，与 zipUnsafeEntry 同批。
+ *
+ * 压缩比检查带 1MB 起判阈值：小文本文件天然高压缩比，不该误伤。
+ * 返回首条违规的英文描述（调用方包进本地化提示）；安全返回 null。
+ * 默认限值按主题/插件包设定；升级全量包更大，调用方自行放宽。
+ */
+function zipResourceViolation(
+    ZipArchive $zip,
+    int $maxFiles = 5000,
+    int $maxTotalBytes = 209_715_200,   // 200 MB
+    int $maxFileBytes = 20_971_520,     // 20 MB
+    int $maxRatio = 100
+): ?string {
+    if ($zip->numFiles > $maxFiles) {
+        return 'too many entries (' . $zip->numFiles . ' > ' . $maxFiles . ')';
+    }
+    $total = 0;
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $st = $zip->statIndex($i);
+        if ($st === false) {
+            continue;
+        }
+        $size = (int) ($st['size'] ?? 0);
+        $comp = (int) ($st['comp_size'] ?? 0);
+        $name = (string) ($st['name'] ?? ('#' . $i));
+        if ($size > $maxFileBytes) {
+            return 'entry too large: ' . $name . ' (' . round($size / 1048576, 1) . ' MB > '
+                . round($maxFileBytes / 1048576, 1) . ' MB)';
+        }
+        if ($size > 1_048_576 && $comp > 0 && intdiv($size, $comp) > $maxRatio) {
+            return 'suspicious compression ratio: ' . $name . ' (' . intdiv($size, $comp) . ':1)';
+        }
+        $total += $size;
+        if ($total > $maxTotalBytes) {
+            return 'total uncompressed size exceeds ' . round($maxTotalBytes / 1048576) . ' MB';
+        }
+    }
+    return null;
+}

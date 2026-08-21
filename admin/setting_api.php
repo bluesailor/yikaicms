@@ -115,6 +115,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="font-medium text-gray-800 mb-2"><?php echo __('apiset_key_title'); ?></div>
         <div class="text-sm text-gray-500 mb-3"><?php echo __('apiset_key_desc'); ?></div>
+        <div class="text-xs text-amber-700 bg-amber-50 rounded px-3 py-2 mb-3"><i class="ti ti-alert-triangle"></i> <?php echo __('apiset_key_query_deprecated'); ?></div>
         <div class="flex items-center gap-2 flex-wrap">
             <input id="apiKeyBox" type="text" readonly value="<?php echo htmlspecialchars($apiKey); ?>" placeholder="<?php echo __('apiset_key_empty'); ?>"
                    class="flex-1 min-w-0 border rounded px-3 py-2 bg-gray-50 font-mono text-sm">
