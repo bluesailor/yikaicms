@@ -68,9 +68,6 @@ input[type="radio"] {
     color: #f3f4f6;
     background-color: rgba(255, 255, 255, .06);
 }
-/* 组标题里的链接继承父级配色，避免蓝色链接样式破坏侧栏观感 */
-.sidebar-group a { color: inherit; text-decoration: none; }
-
 @media (min-width: 1024px) {
     aside { transform: translateX(0) !important; }
 }
@@ -78,7 +75,9 @@ input[type="radio"] {
 /* 菜单星标收藏：一律悬停行才显示（已收藏=金色、未收藏=灰色），不打扰菜单平时的清爽。
    金星悬停变红 = 即时暗示「点击将取消收藏」（title 提示原生延迟太慢） */
 .sidebar-link .yk-fav-btn { opacity: 0; transition: opacity .15s, color .15s; color: #9ca3af; }
-.sidebar-link:hover .yk-fav-btn { opacity: 1; }
+.sidebar-link:hover .yk-fav-btn,
+.sidebar-link:focus-within .yk-fav-btn,
+.yk-fav-btn:focus-visible { opacity: 1; }
 .sidebar-link .yk-fav-btn:hover { color: #fbbf24; }
 .sidebar-link .yk-fav-btn.yk-on:hover i,
 .sidebar-link .yk-fav-btn.yk-on:hover svg { color: #f87171 !important; }

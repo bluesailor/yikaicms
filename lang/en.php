@@ -1130,6 +1130,7 @@ return [
     'admin_date' => 'Date',
     'admin_no_cover' => 'No cover image',
     'admin_sidebar_collapse' => 'Collapse menu',
+    'admin_sidebar_navigation' => 'Admin navigation',
     'admin_save_failed' => 'Save failed',
     'code_copy' => 'Copy',
     'code_copied' => 'Copied',
