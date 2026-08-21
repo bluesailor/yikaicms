@@ -455,7 +455,7 @@ $presetPreviewHtml = static function (string $kind): string {
         default => $barRow($logo . $menu, 'w-full'),
     };
 
-    return '<div class="flex h-20 flex-col justify-center rounded border border-gray-100 bg-gray-50 px-2" aria-hidden="true">'
+    return '<div class="flex h-20 flex-col justify-center rounded border border-gray-100 bg-gray-50 px-2" aria-hidden="true" data-testid="blox-preset-wire">'
         . $inner . '</div>';
 };
 
