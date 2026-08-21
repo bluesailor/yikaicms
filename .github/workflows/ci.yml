@@ -154,7 +154,9 @@ jobs:
       - name: Default theme → Blox upgrade compatibility
         if: ${{ matrix.php == '8.2' && matrix.lang == 'zh-CN' }}
         run: |
-          for tag in v1.12.9 v1.14.0 v1.17.0 v1.17.2 v1.17.3.2 v1.18.1; do
+          # 升级回归矩阵起点：远古基线 + 每条大版本线 + 1.18.x 全部 patch（审计 #18）。
+          # 发新版后把上一个正式号补进来。
+          for tag in v1.12.9 v1.14.0 v1.17.0 v1.17.2 v1.17.3.2 v1.18.1 v1.18.2 v1.18.3 v1.18.4; do
             php tests/smoke/blox_upgrade_compat.php --from="$tag"
           done
 
