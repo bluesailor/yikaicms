@@ -267,3 +267,58 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 .yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(a, button, [class*="text-"]) {
     color: inherit !important;
 }
+
+/* 内置 Header 起步模板的结构预览：只表达布局，不绑定真实 Logo、菜单或站点文案。 */
+.yk-area-wireframe {
+    aspect-ratio: 24 / 7;
+    overflow: hidden;
+    border-bottom: 1px solid #dbe2ea;
+    background: #eef2f6;
+}
+.yk-area-wire-row {
+    display: flex;
+    height: 30%;
+    align-items: center;
+    gap: 7%;
+    padding-inline: 9%;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+}
+.yk-area-wireframe[data-preview-layout="viewport-left"] .yk-area-wire-row { padding-inline: 2.5%; }
+.yk-area-wire-logo {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    margin-right: auto;
+}
+.yk-area-wire-logo i { width: 12px; height: 12px; background: #2563eb; }
+.yk-area-wire-logo b { width: 35px; height: 5px; background: #334155; }
+.yk-area-wire-menu { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.yk-area-wire-menu i { width: 20px; height: 3px; background: #64748b; }
+.yk-area-wire-menu i:nth-child(2),
+.yk-area-wire-menu i:nth-child(5) { width: 27px; }
+.yk-area-wire-brand-row { height: 25%; justify-content: center; border-bottom: 0; }
+.yk-area-wire-brand-row .yk-area-wire-logo { margin-right: 0; }
+.yk-area-wire-menu-row { height: 20%; justify-content: center; padding-inline: 7%; }
+.yk-area-wire-menu-row .yk-area-wire-menu { justify-content: center; }
+.yk-area-wire-topbar {
+    display: flex;
+    height: 17%;
+    align-items: center;
+    gap: 6px;
+    padding-inline: 9%;
+    background: #111827;
+}
+.yk-area-wire-topbar span { width: 24px; height: 2px; background: #94a3b8; }
+.yk-area-wire-topbar .yk-area-wire-topbar-spacer { width: auto; height: 0; flex: 1; }
+.yk-area-wire-topbar .yk-area-wire-search { width: 44px; height: 7px; border: 1px solid #64748b; background: transparent; }
+.yk-area-wireframe[data-preview-layout="corporate"] .yk-area-wire-row { height: 28%; }
+.yk-area-wire-body { display: flex; height: 70%; flex-direction: column; justify-content: center; gap: 6px; padding-inline: 18%; }
+.yk-area-wireframe[data-preview-layout="centered-brand"] .yk-area-wire-body { height: 55%; }
+.yk-area-wireframe[data-preview-layout="corporate"] .yk-area-wire-body { height: 55%; }
+.yk-area-wire-body span { display: block; }
+.yk-area-wire-eyebrow { width: 17%; height: 3px; background: #94a3b8; }
+.yk-area-wire-title { width: 55%; height: 8px; background: #27364a; }
+.yk-area-wire-copy { width: 70%; height: 3px; background: #cbd5e1; }
+.yk-area-wire-copy-short { width: 45%; }

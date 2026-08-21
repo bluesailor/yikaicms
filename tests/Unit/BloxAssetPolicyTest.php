@@ -77,6 +77,7 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertContains('includes/builder/BloxDisplayConditions.php', $policy['core']);
         self::assertContains('includes/builder/BloxDesignDependencies.php', $policy['core']);
         self::assertContains('includes/builder/BloxAreaTemplatePresets.php', $policy['core']);
+        self::assertContains('includes/builder/BloxAreaEditorTarget.php', $policy['core']);
         self::assertContains('includes/builder/PageBloxDocument.php', $policy['core']);
         self::assertContains('includes/builder/ChannelBloxDocument.php', $policy['core']);
         self::assertContains('includes/models/BloxPageDraftModel.php', $policy['core']);

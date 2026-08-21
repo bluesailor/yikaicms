@@ -136,6 +136,58 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   }
 });
 
+test('home canvas exposes dedicated edit links for the readonly header and footer @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  const contentFrame = await frame(page);
+  const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
+  const footerEdit = contentFrame.getByTestId('blox-context-edit-footer');
+  const headerSettings = page.getByTestId('blox-home-header-settings');
+  const expectedHeaderPath = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&open=header-settings`;
+
+  await expect(headerSettings).toBeVisible();
+  await expect(headerSettings).toContainText('网页头设置');
+  await expect(headerSettings).toHaveAttribute('href', expectedHeaderPath);
+  await expect(headerEdit).toBeVisible();
+  await expect(footerEdit).toBeVisible();
+  await expect(headerEdit).toHaveAttribute('target', '_top');
+  await expect(footerEdit).toHaveAttribute('target', '_top');
+  await expect(headerEdit).toHaveAttribute('href', expectedHeaderPath);
+  await expect(footerEdit).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)$/);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  const headerHref = await headerEdit.getAttribute('href');
+  const expectedHeaderUrl = new URL(headerHref, page.url()).href;
+  await Promise.all([
+    page.waitForURL(expectedHeaderUrl),
+    pointerClick(page, headerEdit),
+  ]);
+  expect(page.url()).toBe(expectedHeaderUrl);
+  await expect(page.locator('.blox-header-page')).toContainText('当前网页头');
+  await expect(page.getByTestId('blox-sticky-toggle').locator('input')).not.toBeChecked();
+  await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
+});
+
+test('current theme header allows publishing unsaved canvas changes @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single publish control baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+
+  await page.goto(`/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&open=header-settings`,
+    { waitUntil: 'domcontentloaded' });
+  const sticky = page.getByTestId('blox-sticky-toggle').locator('input');
+  await expect(sticky).not.toBeChecked();
+  await sticky.check();
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+  await expect(page.getByTestId('blox-publish-template')).toBeEnabled();
+  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '保存当前修改并发布');
+
+  // 全局 E2E 安全钩子禁止触发保存/发布；恢复初始值，证明按钮状态不依赖先保存。
+  await sticky.uncheck();
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
 test('section spacing edits the active responsive tier @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await page.getByTestId('blox-tree-section').first().click();
@@ -812,8 +864,8 @@ test('template manager exposes safe local header and footer starters @ci', async
 
   const presets = page.getByTestId('blox-area-presets');
   await expect(presets).toBeVisible();
-  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(4);
-  await expect(presets.locator('.ti-layout-navbar')).toHaveCount(2);
+  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(6);
+  await expect(presets.locator('.ti-layout-navbar')).toHaveCount(4);
   await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(2);
   await expect(page.getByTestId('blox-default-theme-status')).toBeVisible();
 
@@ -921,6 +973,29 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
   await expect(header).toHaveClass(/yk-header-preview-overlay/);
   await expect(header).toHaveAttribute('data-yk-header-state', 'overlay');
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  const opacityRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    const body = new URLSearchParams(request.postData() || '');
+    const settings = JSON.parse(body.get('blocks_data') || '{}').settings || {};
+    return request.method() === 'POST'
+      && url.pathname === '/admin/blox_preview.php'
+      && settings.header_states?.overlay?.background === 'rgba(255,255,255,0.55)';
+  });
+  await page.getByTestId('blox-header-state-opacity').fill('55');
+  await opacityRequest;
+  await expect(header).toHaveAttribute('style', /--yk-header-overlay-bg:rgba\(255,255,255,0\.55\)/);
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await undo(page);
+  await expect(header).toHaveAttribute('style', /--yk-header-overlay-bg:transparent/);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  await expect(page.getByTestId('blox-redo')).toBeEnabled();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-redo').click());
+  await expect(header).toHaveAttribute('style', /--yk-header-overlay-bg:rgba\(255,255,255,0\.55\)/);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+  await undo(page);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
 test('sticky header behavior and device scope reach the preview shell @ci', async ({ page }, testInfo) => {
@@ -930,9 +1005,18 @@ test('sticky header behavior and device scope reach the preview shell @ci', asyn
   await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_header_template,
     { waitUntil: 'domcontentloaded' });
 
+  const headerSettings = page.getByTestId('blox-sticky-settings');
+  await expect(headerSettings).toBeVisible();
+  await expect(headerSettings.locator('summary')).toContainText('网页头设置');
+  await headerSettings.locator('summary').click();
+  await expect(page.getByTestId('blox-sticky-toggle')).toBeVisible();
   await performPreviewUpdate(page, () => page.getByTestId('blox-sticky-toggle').locator('input').check());
-  await expect(page.getByTestId('blox-sticky-settings')).toBeVisible();
-  await page.getByTestId('blox-sticky-settings').locator('summary').click();
+  await expect(page.getByTestId('blox-sticky-options')).toBeVisible();
+  for (const device of ['desktop', 'tablet', 'mobile']) {
+    const deviceLabel = page.getByTestId(`blox-sticky-device-${device}`).locator('xpath=..');
+    await expect(deviceLabel).toHaveCSS('white-space', 'nowrap');
+    expect(await deviceLabel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  }
 
   const behaviorRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());

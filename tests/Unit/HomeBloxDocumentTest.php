@@ -144,6 +144,42 @@ final class HomeBloxDocumentTest extends TestCase
         $this->assertSame('保留原站优势说明', $advantage['advantage_items'][0]['description']);
     }
 
+    public function testLegacyCustomSectionsUseTheCurrentSiteLanguage(): void
+    {
+        $custom = static fn (string $title): string => json_encode([
+            'title' => $title,
+            'blocks' => [[
+                'id' => 'pricing',
+                'settings' => ['title' => $title],
+                'columns' => [[
+                    'id' => 'pricing-column',
+                    'elements' => [[
+                        'id' => 'pricing-heading',
+                        'type' => 'heading',
+                        'data' => ['text' => $title],
+                    ]],
+                ]],
+            ]],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $GLOBALS['_test_config'] += [
+            'home_blocks_config' => json_encode([
+                ['type' => 'custom:1', 'enabled' => true],
+            ], JSON_THROW_ON_ERROR),
+            'home_custom_1' => $custom('价格方案'),
+            'home_custom_1_en' => $custom('Pricing Plans'),
+            'home_custom_1_ja' => $custom('料金プラン'),
+        ];
+
+        foreach (['zh-CN' => '价格方案', 'en' => 'Pricing Plans', 'ja' => '料金プラン'] as $lang => $title) {
+            $GLOBALS['_test_config']['site_lang'] = $lang;
+            $section = HomeBloxDocument::load()['sections'][0];
+
+            $this->assertSame($title, $section['name']);
+            $this->assertSame($title, $section['columns'][0]['elements'][0]['data']['text']);
+        }
+    }
+
     public function testOnlyUntouchedUnpublishedLegacyImportCanBeRefreshed(): void
     {
         $legacyImport = json_encode([

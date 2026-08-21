@@ -295,7 +295,9 @@ if (!$i18nOnly) {
     $templateId = (int) $template['id'];
 
     $headerTemplateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/header-template.json');
-    $headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'import', 'e2e-header-draft');
+    // 模拟 default 主题当前正在显示、但尚未由 Blox 接管的可编辑 Header 草稿。
+    // 首页入口必须打开它，不能误开另一个已发布但已停用的 Header。
+    $headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'builtin', 'clean-site-header');
     $headerTemplateId = (int) $headerTemplate['id'];
 }
 

@@ -463,7 +463,7 @@ public static function isActive(): bool
             return [];
         }
 
-        $custom = json_decode((string) config('home_custom_' . $number, ''), true);
+        $custom = json_decode(configJsonLang('home_custom_' . $number), true);
         $blocks = is_array($custom) && is_array($custom['blocks'] ?? null) ? $custom['blocks'] : [];
         if ($blocks === []) {
             return [];
