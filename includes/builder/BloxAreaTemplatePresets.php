@@ -32,6 +32,7 @@ final class BloxAreaTemplatePresets
             'file' => 'clean-site-footer.json',
             'name_key' => 'blox_area_preset_footer_name',
             'description_key' => 'blox_area_preset_footer_desc',
+            'preview' => 'footer-columns',
         ],
         'corporate-site-header' => [
             'type' => 'header',
@@ -45,6 +46,7 @@ final class BloxAreaTemplatePresets
             'file' => 'corporate-site-footer.json',
             'name_key' => 'blox_area_preset_corporate_footer_name',
             'description_key' => 'blox_area_preset_corporate_footer_desc',
+            'preview' => 'footer-columns-dark',
         ],
     ];
 

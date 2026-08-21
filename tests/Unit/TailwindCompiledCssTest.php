@@ -32,4 +32,19 @@ final class TailwindCompiledCssTest extends TestCase
         self::assertNotFalse($appCss);
         self::assertStringContainsString('admin/blox_editor/**/*.php', $appCss);
     }
+
+    /** 区域预设卡片线框示意图（blox_templates.php）的关键类必须在产物里。 */
+    public function testAreaPresetPreviewUtilitiesAreCompiled(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+
+        foreach (['.xl\:grid-cols-4{', '.text-\[8px\]{', '.rounded-t-sm{', '.w-4\/5{'] as $selector) {
+            self::assertStringContainsString(
+                $selector,
+                $css,
+                "编译产物缺少 {$selector}——改动 admin/blox_templates.php 线框类后需重跑 tailwindcss 编译。"
+            );
+        }
+    }
 }
