@@ -268,7 +268,9 @@ final class HomeBannerItemElement extends AbstractElement
         if ($value === '' || mb_strlen($value) > 1000) {
             return '';
         }
-        if (str_starts_with($value, '/') || str_starts_with($value, '#')
+        // 排除协议相对 //evil.com——它以 / 开头但会跳到外站
+        if ((str_starts_with($value, '/') && !str_starts_with($value, '//'))
+            || str_starts_with($value, '#')
             || preg_match('#^https?://#i', $value) === 1) {
             return $value;
         }

@@ -70,11 +70,31 @@ function apiThrottle(): void
     }
     $file = $dir . '/' . md5($ip) . '.json';
     $now  = time();
-    $hits = is_file($file) ? (json_decode((string) @file_get_contents($file), true) ?: []) : [];
-    $hits = array_values(array_filter($hits, static fn ($t): bool => (int) $t > $now - 60));
-    if (count($hits) >= $limit) {
-        apiError('请求过于频繁，请稍后再试', 429);
+    // flock 独占锁下 读-改-写：无锁时并发请求彼此覆盖计数（都读到 N、都写回 N+1），
+    // 限流会被并发冲掉。与登录限流同一套模式。
+    $fh = @fopen($file, 'c+');
+    if ($fh === false) {
+        return;   // 存储不可写时放行——限流是保护层，不该把 API 打挂
     }
-    $hits[] = $now;
-    @file_put_contents($file, json_encode($hits));
+    try {
+        if (!flock($fh, LOCK_EX)) {
+            return;
+        }
+        $hits = json_decode((string) stream_get_contents($fh), true) ?: [];
+        $hits = array_values(array_filter($hits, static fn ($t): bool => (int) $t > $now - 60));
+        if (count($hits) >= $limit) {
+            flock($fh, LOCK_UN);
+            fclose($fh);
+            apiError('请求过于频繁，请稍后再试', 429);
+        }
+        $hits[] = $now;
+        ftruncate($fh, 0);
+        rewind($fh);
+        fwrite($fh, (string) json_encode($hits));
+        flock($fh, LOCK_UN);
+    } finally {
+        if (is_resource($fh)) {
+            fclose($fh);
+        }
+    }
 }

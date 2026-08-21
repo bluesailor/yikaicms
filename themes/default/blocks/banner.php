@@ -11,8 +11,9 @@
                 <?php foreach ($banners as $banner): ?>
                 <div class="swiper-slide"<?php echo HomeBannerItemElement::motionAttributes($banner); ?><?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
                     <?php if (!empty($banner['image'])): ?>
-                        <?php if ($banner['link_url']): ?>
-                        <a href="<?php echo e($banner['link_url']); ?>" target="<?php echo e($banner['link_target']); ?>" class="block w-full h-full">
+                        <?php $bannerLink = safeUrl((string) $banner['link_url']); ?>
+                        <?php if ($bannerLink): ?>
+                        <a href="<?php echo e($bannerLink); ?>" target="<?php echo e($banner['link_target']); ?>" class="block w-full h-full">
                             <?php echo HomeBannerItemElement::responsiveImageHtml($banner); ?>
                         </a>
                         <?php else: ?>
@@ -31,10 +32,10 @@
                             <?php if (!empty($banner['btn1_text']) || !empty($banner['btn2_text'])): ?>
                             <div class="flex flex-wrap justify-center gap-4 mt-6 pointer-events-auto" data-blox-layer style="--blox-layer-order:2">
                                 <?php if (!empty($banner['btn1_text'])): ?>
-                                <a href="<?php echo e($banner['btn1_url'] ?: '#'); ?>" class="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn1_text']); ?></a>
+                                <a href="<?php echo e(safeUrl((string) $banner['btn1_url']) ?: '#'); ?>" class="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn1_text']); ?></a>
                                 <?php endif; ?>
                                 <?php if (!empty($banner['btn2_text'])): ?>
-                                <a href="<?php echo e($banner['btn2_url'] ?: '#'); ?>" class="border-2 border-white text-white hover:bg-white/20 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn2_text']); ?></a>
+                                <a href="<?php echo e(safeUrl((string) $banner['btn2_url']) ?: '#'); ?>" class="border-2 border-white text-white hover:bg-white/20 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn2_text']); ?></a>
                                 <?php endif; ?>
                             </div>
                             <?php endif; ?>

@@ -29,10 +29,17 @@ final class VideoElement extends AbstractElement
             return '<div class="relative my-4" style="padding-bottom:56.25%;height:0;overflow:hidden">'
                 . '<iframe src="' . htmlspecialchars($embed) . '" class="absolute inset-0 w-full h-full" style="border:0" allowfullscreen loading="lazy"></iframe></div>';
         }
-        // 直链视频：Plyr 统一美化播放器（进度/音量/全屏/倍速；自带响应式）。
+        // 直链视频：只接受明确的视频文件 URL（合法地址 + 视频扩展名）。
+        // 不做这层校验的话，任何未识别 URL 都会原样进 src 属性。
+        $fileUrl = self::safeHref($url);
+        $path = strtolower((string) parse_url($fileUrl, PHP_URL_PATH));
+        if ($fileUrl === '' || preg_match('/\.(mp4|webm|ogg|ogv|mov|m4v)$/', $path) !== 1) {
+            return '';
+        }
+        // Plyr 统一美化播放器（进度/音量/全屏/倍速；自带响应式）。
         // 加载器自守卫（window.__ykPlyr）——多个视频只注入一次 Plyr、初始化全部 .ykt-plyr；
         // 输出对每个直链视频恒定，不用 PHP 静态标志（避免单进程/测试的顺序依赖）。
-        return '<div class="my-4"><video class="ykt-plyr" playsinline controls src="' . htmlspecialchars($url) . '"></video></div>'
+        return '<div class="my-4"><video class="ykt-plyr" playsinline controls src="' . htmlspecialchars($fileUrl) . '"></video></div>'
             . '<script>(function(){if(window.__ykPlyr)return;window.__ykPlyr=1;'
             . 'var c=document.createElement("link");c.rel="stylesheet";c.href="/assets/plyr/plyr.min.css";document.head.appendChild(c);'
             . 'var s=document.createElement("script");s.src="/assets/plyr/plyr.min.js";'
@@ -49,9 +56,29 @@ final class VideoElement extends AbstractElement
         if (preg_match('~bilibili\.com/video/(BV[\w]+)~', $url, $m)) {
             return 'https://player.bilibili.com/player.html?bvid=' . $m[1];
         }
-        if (str_contains($url, '/embed/') || str_contains($url, 'player.')) {
-            return $url; // 已是嵌入地址
+        // 已是嵌入地址：必须 https 且 Host 精确命中可信平台。之前用
+        // str_contains('/embed/')/('player.') 判断——字符串包含证明不了
+        // Host 可信，https://evil.com/embed/x 也会被原样塞进 iframe src。
+        return self::isTrustedEmbedUrl($url) ? $url : null;
+    }
+
+    /** iframe 嵌入地址校验：https + 可信视频平台 Host 精确比对 */
+    private static function isTrustedEmbedUrl(string $url): bool
+    {
+        $allowedHosts = [
+            'www.youtube.com', 'youtube.com',
+            'www.youtube-nocookie.com', 'youtube-nocookie.com',
+            'player.bilibili.com',
+            'player.vimeo.com',
+            'v.qq.com',
+            'player.youku.com',
+        ];
+        $parts = parse_url(trim($url));
+        if ($parts === false) {
+            return false;
         }
-        return null;
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        return $scheme === 'https' && in_array($host, $allowedHosts, true);
     }
 }

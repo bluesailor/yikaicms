@@ -34,6 +34,17 @@ function modulePermKeys(): array
     return ['media', 'banner', 'link', 'form', 'member'];
 }
 
+/**
+ * 高危能力单权限。与内容/模块权限分组分开，语义是「明确知道风险才授予」：
+ *   blox_code —— 在 Blox 页面使用 代码/HTML 元素（前台原样输出，等于任意
+ *                HTML/JavaScript 执行能力）。默认只有超管（*）具备；
+ *                edit_page 不再隐含它，服务端由 BloxElementPolicy 强制。
+ */
+function advancedPermKeys(): array
+{
+    return ['blox_code'];
+}
+
 /** 全部合法权限键（含通配 *），用于保存时过滤非法值 */
 function allPermissionKeys(): array
 {
@@ -42,7 +53,7 @@ function allPermissionKeys(): array
         $keys[] = 'edit_' . $t;
         $keys[] = 'delete_' . $t;
     }
-    return array_merge($keys, modulePermKeys());
+    return array_merge($keys, modulePermKeys(), advancedPermKeys());
 }
 
 /** 类型 → 短名 lang 键（勾选界面与徽章显示用） */
@@ -64,7 +75,7 @@ function permLabel(string $key): string
     }
     $mod = [
         'media' => 'admin_media', 'banner' => 'admin_banner', 'link' => 'admin_link',
-        'form' => 'admin_form', 'member' => 'admin_member',
+        'form' => 'admin_form', 'member' => 'admin_member', 'blox_code' => 'perm_blox_code',
     ];
     return isset($mod[$key]) ? __($mod[$key]) : $key;
 }
@@ -288,8 +299,13 @@ function permissionCatalog(): array
     foreach (modulePermKeys() as $m) {
         $module[$m] = permLabel($m);
     }
+    $advanced = [];
+    foreach (advancedPermKeys() as $a) {
+        $advanced[$a] = permLabel($a);
+    }
     return [
-        'content' => ['label' => __('perm_group_content'), 'caps' => $content],
-        'module'  => ['label' => __('perm_group_module'),  'caps' => $module],
+        'content'  => ['label' => __('perm_group_content'),  'caps' => $content],
+        'module'   => ['label' => __('perm_group_module'),   'caps' => $module],
+        'advanced' => ['label' => __('perm_group_advanced'), 'caps' => $advanced],
     ];
 }
