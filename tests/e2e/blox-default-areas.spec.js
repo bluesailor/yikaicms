@@ -230,3 +230,28 @@ test('default theme header keeps mobile navigation operable @ci', async ({ page 
   await expect(menu).toBeHidden();
   await expect(trigger).toBeFocused();
 });
+
+// v1.18.4 曾把画廊线框预览整体摘除：旧实现在 mobile-390 溢出、从未在 Linux CI 绿过。
+// 重新引入的纯 Tailwind 线框必须在所有视口零水平溢出——这条断言就是当年缺的防线。
+test('area preset gallery wireframes fit the viewport @ci', async ({ page }) => {
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
+  const consoleEntries = observeConsole(page);
+  await page.goto('/admin/blox_templates.php?type=header', { waitUntil: 'domcontentloaded' });
+
+  const presets = page.locator('[data-testid="blox-area-presets"]');
+  await expect(presets).toBeVisible();
+  const wires = presets.locator('[data-testid="blox-preset-wire"]');
+  await expect(wires).toHaveCount(4); // 四种页头预设各一张示意图
+  await expect(wires.first()).toBeVisible();
+
+  // 「当前网页头」卡片也带示意图（type=header 视图只显示 header 一张卡）
+  await expect(
+    page.locator('[data-testid="blox-current-areas"] [data-testid="blox-preset-wire"]'),
+  ).toHaveCount(1);
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow, 'templates gallery must not overflow horizontally').toBeLessThanOrEqual(0);
+  expect(consoleEntries, 'templates gallery must not log browser errors').toEqual([]);
+});
