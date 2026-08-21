@@ -16,9 +16,12 @@ CLI::register('cache:clear', '清空 HTML 缓存（storage/cache/html/）', func
     }
     $count = 0;
     $bytes = 0;
-    foreach (glob($dir . '/*.html') ?: [] as $f) {
-        $bytes += @filesize($f) ?: 0;
-        if (@unlink($f)) $count++;
+    // 惰性遍历：目录膨胀（如 cile.cn 30GB 事故）时 glob() 巨型数组会拖死清理本身
+    foreach (new DirectoryIterator($dir) as $f) {
+        if (!$f->isFile()) continue;
+        if (strtolower($f->getExtension()) !== 'html') continue;
+        $bytes += $f->getSize();
+        if (@unlink($f->getPathname())) $count++;
     }
     CLI::ok("已清理 {$count} 个 HTML 缓存文件（" . round($bytes / 1024, 1) . " KB）");
     return 0;
@@ -30,14 +33,16 @@ CLI::register('cache:stats', '显示缓存统计', function (array $args, array 
         CLI::info("缓存目录不存在：{$dir}");
         return 0;
     }
-    $files = glob($dir . '/*.html') ?: [];
-    $count = count($files);
+    $count = 0;
     $bytes = 0;
     $oldest = PHP_INT_MAX;
     $newest = 0;
-    foreach ($files as $f) {
-        $bytes += @filesize($f) ?: 0;
-        $m = @filemtime($f) ?: 0;
+    foreach (new DirectoryIterator($dir) as $f) {
+        if (!$f->isFile()) continue;
+        if (strtolower($f->getExtension()) !== 'html') continue;
+        $count++;
+        $bytes += $f->getSize();
+        $m = $f->getMTime();
         if ($m < $oldest) $oldest = $m;
         if ($m > $newest) $newest = $m;
     }
