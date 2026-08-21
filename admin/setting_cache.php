@@ -75,9 +75,17 @@ $cacheDir = HtmlCache::dir();
 $fileCount = 0;
 $totalSize = 0;
 if (is_dir($cacheDir)) {
-    foreach (glob($cacheDir . '/*.html') ?: [] as $f) {
-        $fileCount++;
-        $totalSize += @filesize($f);
+    // 惰性遍历：glob() 在缓存目录膨胀到几十万文件时会一次性分配巨型数组
+    try {
+        foreach (new DirectoryIterator($cacheDir) as $f) {
+            if (!$f->isFile()) continue;
+            if (strtolower($f->getExtension()) !== 'html') continue;
+            $fileCount++;
+            $totalSize += $f->getSize();
+        }
+    } catch (Throwable $e) {
+        $fileCount = 0;
+        $totalSize = 0;
     }
 }
 

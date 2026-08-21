@@ -25,10 +25,20 @@ final class HtmlCache
     private static string $currentKey = '';
     private static bool $buffering = false;
     private static int $ttl = 300;
+    private static ?string $dirOverride = null;
 
     public static function dir(): string
     {
-        return ROOT_PATH . '/storage/cache/html';
+        return self::$dirOverride ?? ROOT_PATH . '/storage/cache/html';
+    }
+
+    /**
+     * 重定向缓存目录（测试/维护脚本用），传 null 恢复默认。
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 tests/（不在 Psalm projectFiles 内）
+     */
+    public static function setDir(?string $dir): void
+    {
+        self::$dirOverride = $dir;
     }
 
     /**
@@ -100,6 +110,11 @@ final class HtmlCache
         }
         $file = self::pathForKey(self::$currentKey);
         @file_put_contents($file, (string)$html, LOCK_EX);
+
+        // 顺手小批量清理过期文件（1% 概率），避免专设 cron 也能让目录收敛
+        if (mt_rand(1, 100) === 1) {
+            self::pruneExpired(self::$ttl);
+        }
     }
 
     /**
@@ -110,11 +125,51 @@ final class HtmlCache
         $dir = self::dir();
         if (!is_dir($dir)) return 0;
         $count = 0;
-        foreach (glob($dir . '/*.html') ?: [] as $file) {
-            if ($prefix !== null && strpos(basename($file), $prefix) !== 0) continue;
-            if (@unlink($file)) $count++;
+        foreach (self::htmlFiles($dir) as $file) {
+            if ($prefix !== null && strpos($file->getBasename(), $prefix) !== 0) continue;
+            if (@unlink($file->getPathname())) $count++;
         }
         return $count;
+    }
+
+    /**
+     * 小批量清理过期缓存文件。目录只写不删是缓存目录膨胀的另一半原因：
+     * TTL 过期的文件永远不会被 start() 复用，却一直占着磁盘。
+     * @psalm-suppress PossiblyUnusedReturnValue 删除计数供测试与维护脚本断言
+     */
+    public static function pruneExpired(?int $ttl = null, int $limit = 500): int
+    {
+        $dir = self::dir();
+        if (!is_dir($dir)) return 0;
+
+        $ttl = ($ttl !== null && $ttl > 0) ? $ttl : self::$ttl;
+        $cutoff = time() - $ttl;
+        $count = 0;
+        foreach (self::htmlFiles($dir) as $file) {
+            if ($file->getMTime() >= $cutoff) continue;
+            if (@unlink($file->getPathname())) $count++;
+            if ($count >= $limit) break;
+        }
+        return $count;
+    }
+
+    /**
+     * 惰性遍历缓存目录里的 *.html。glob() 会一次性分配整个文件名数组，
+     * 目录里堆到几十万文件时既慢又吃内存。
+     *
+     * @return Generator<SplFileInfo>
+     */
+    private static function htmlFiles(string $dir): Generator
+    {
+        try {
+            foreach (new DirectoryIterator($dir) as $file) {
+                if (!$file->isFile()) continue;
+                if (strtolower($file->getExtension()) !== 'html') continue;
+                yield $file->getFileInfo();
+            }
+        } catch (Throwable $e) {
+            return;
+        }
     }
 
     private static function isCacheable(): bool
@@ -134,6 +189,17 @@ final class HtmlCache
 
         // 含动态 token 的页面不缓存（表单页）
         if (isset($_GET['token']) || isset($_GET['csrf'])) return false;
+
+        // 搜索类请求不缓存：关键词组合无限多，每个都会落一个缓存文件
+        if (isset($_GET['keyword']) || isset($_GET['q']) || isset($_GET['s'])) return false;
+
+        // 查询参数白名单：缓存 key 含完整 REQUEST_URI，utm_* / 爬虫随机参数 /
+        // 恶意构造的查询串每个变体都会生成一个新文件，目录会无限增长
+        // （cile.cn 生产站曾因此写满 30GB）。只放行前台真实使用的分页/筛选参数。
+        static $allowedQueryKeys = ['slug', 'parent', 'cat', 'sort', 'page'];
+        foreach (array_keys($_GET) as $key) {
+            if (!in_array((string) $key, $allowedQueryKeys, true)) return false;
+        }
 
         return true;
     }
