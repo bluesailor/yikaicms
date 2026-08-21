@@ -6,6 +6,7 @@ require("../../assets/js/blox-history-store.js");
 
 function fixture(options = {}) {
     let data = options.data || '[{"id":"s1","title":"A"}]';
+    let settings = options.settings;
     let structure = options.structure || '[{"id":"s1"}]';
     let selection = options.selection || { selectedSi: 0 };
     let applying = false;
@@ -13,6 +14,7 @@ function fixture(options = {}) {
         limit: options.limit || 51,
         delay: options.delay === undefined ? 10 : options.delay,
         getData: function () { return data; },
+        getSettings: settings === undefined ? undefined : function () { return settings; },
         getStructure: function () { return structure; },
         getSelection: function () { return { ...selection }; },
         isApplying: function () { return applying; },
@@ -20,6 +22,7 @@ function fixture(options = {}) {
     return {
         store,
         setData: function (value) { data = value; },
+        setSettings: function (value) { settings = value; },
         setStructure: function (value) { structure = value; },
         setSelection: function (value) { selection = value; },
         setApplying: function (value) { applying = value; },
@@ -60,6 +63,18 @@ test("records structural changes immediately", function () {
     subject.store.queue();
     assert.equal(subject.store.entries.length, 2);
     assert.equal(subject.store.pending, null);
+});
+
+test("tracks settings-only changes through undo and redo", function () {
+    const subject = fixture({ settings: '{"sticky":false}' });
+    const initial = subject.store.init();
+    assert.equal(initial.settings, '{"sticky":false}');
+
+    subject.setSettings('{"sticky":true}');
+    subject.store.queue();
+    assert.equal(subject.store.canUndo(), true);
+    assert.equal(subject.store.undo().settings, '{"sticky":false}');
+    assert.equal(subject.store.redo().settings, '{"sticky":true}');
 });
 
 test("undo and redo traverse snapshots and truncate a replaced branch", function () {

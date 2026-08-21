@@ -20,11 +20,13 @@ echo "Diagnostics: " . json_encode(Compatibility::diagnostics()) . "\n\n";
 echo "=== Test 2: Cloudflare client IP ===\n";
 $cls = new \ReflectionClass('Compatibility');
 $prop = $cls->getProperty('bootstrapped');
-$prop->setAccessible(true);
-$prop->setValue(false);
 $diagProp = $cls->getProperty('diagnostics');
-$diagProp->setAccessible(true);
-$diagProp->setValue([]);
+if (PHP_VERSION_ID < 80100) {
+    $prop->setAccessible(true);
+    $diagProp->setAccessible(true);
+}
+$prop->setValue(null, false);
+$diagProp->setValue(null, []);
 
 $_SERVER = [
     'HTTP_CF_CONNECTING_IP' => '203.0.113.42',
@@ -35,8 +37,8 @@ echo "Compatibility::clientIp() = " . Compatibility::clientIp() . "\n";
 echo "Diagnostics: " . json_encode(Compatibility::diagnostics()) . "\n\n";
 
 echo "=== Test 3: flushBeforeJson ===\n";
-$prop->setValue(false);
-$diagProp->setValue([]);
+$prop->setValue(null, false);
+$diagProp->setValue(null, []);
 
 ob_start();
 echo "BOM and warning noise here";
@@ -45,8 +47,8 @@ echo "After flushBeforeJson, ob_level=" . ob_get_level() . "\n";
 echo "Diagnostics: " . json_encode(Compatibility::diagnostics()) . "\n\n";
 
 echo "=== Test 4: blockWriteIfDemo ===\n";
-$prop->setValue(false);
-$diagProp->setValue([]);
+$prop->setValue(null, false);
+$diagProp->setValue(null, []);
 // not in demo mode → no-op
 $_SERVER['REQUEST_METHOD'] = 'POST';
 Compatibility::blockWriteIfDemo();

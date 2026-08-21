@@ -89,7 +89,7 @@ if ($ext === 'csv') {
         $bom = fread($fh, 3);
         if ($bom !== "\xEF\xBB\xBF") rewind($fh);
         $lineNum = 0;
-        while (($cols = fgetcsv($fh)) !== false) {
+        while (($cols = fgetcsv($fh, null, ',', '"', '\\')) !== false) {
             if ($lineNum > 0) $allRows[] = $cols;
             $lineNum++;
         }

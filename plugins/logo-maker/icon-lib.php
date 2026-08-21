@@ -60,7 +60,7 @@ function im_ico(GdImage $master, array $sizes = [16, 32, 48]): string
         // BITMAPINFOHEADER：高度为双倍（XOR+AND）
         $bmp = pack('VVVvvVVVVVV', 40, $w, $h * 2, 1, 32, 0, strlen($pix) + strlen($mask), 0, 0, 0, 0) . $pix . $mask;
         $entries[] = ['w' => $w, 'h' => $h, 'data' => $bmp];
-        imagedestroy($img);
+        unset($img);
     }
     $count = count($entries);
     $ico = pack('vvv', 0, 1, $count);

@@ -33,7 +33,7 @@
                   "padding": "none",
                   "radius": "none",
                   "children": [
-                    {"type": "logo", "data": {"display": "both", "height": "md", "link_home": true}},
+                    {"type": "logo", "data": {"display": "image", "height": "md", "link_home": true}},
                     {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}},
                     {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
                   ]

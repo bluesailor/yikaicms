@@ -57,7 +57,7 @@ function im_pack_files(GdImage $master): array
               192 => 'android-chrome-192x192.png', 512 => 'android-chrome-512x512.png'] as $size => $name) {
         $img = im_scaled($master, $size);
         $files[$name] = im_png($img);
-        imagedestroy($img);
+        unset($img);
     }
     $siteName = (string) configRawLang('site_name', 'My Site');
     $files['site.webmanifest'] = (string) json_encode([
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $imAction !== '') {
     if ($imAction === 'apply_ico') {
         $master = im_master();
         $ico = im_ico($master);
-        imagedestroy($master);
+        unset($master);
         $dir = ROOT_PATH . '/uploads/brand';
         if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
             error('无法创建 uploads/brand 目录，无法应用网站图标');
@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $imAction !== '') {
     // 免费：LOGO 直接保存并设为站点 LOGO（制作 → LOGO 位一步到位）
     if ($imAction === 'apply_logo') {
         $master = im_master();   // 校验确实是可解析的 PNG dataURL
-        imagedestroy($master);
+        unset($master);
         $bin = base64_decode(explode(',', (string) $_POST['master'], 2)[1], true);
         $dir = ROOT_PATH . '/uploads/brand';
         @mkdir($dir, 0755, true);
@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $imAction !== '') {
         }
         $master = im_master();
         $files = im_pack_files($master);
-        imagedestroy($master);
+        unset($master);
         $written = [];
         foreach ($files as $name => $bytes) {
             if (@file_put_contents(ROOT_PATH . '/' . $name, $bytes) === false) {

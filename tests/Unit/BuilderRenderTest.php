@@ -291,10 +291,15 @@ final class BuilderRenderTest extends TestCase
         ]]));
         $this->assertStringContainsString('data-yk-nav-drawer', $out);
         $this->assertStringContainsString('data-yk-drawer-open', $out);
+        $this->assertStringContainsString('aria-expanded="false"', $out);
+        $this->assertStringContainsString('data-yk-drawer-close', $out);
+        $this->assertStringContainsString('aria-hidden="true"', $out);
+        $this->assertStringContainsString('role="search"', $out);
         $this->assertStringContainsString('xl:hidden', $out);
         // 面板与遮罩初始 hidden；左侧抽屉贴左
-        $this->assertStringContainsString('data-yk-drawer-panel class="hidden fixed top-0 left-0', $out);
-        $this->assertStringContainsString('data-yk-drawer-backdrop class="hidden', $out);
+        $this->assertStringContainsString('data-yk-drawer-panel aria-hidden="true"', $out);
+        $this->assertStringContainsString('class="hidden fixed top-0 left-0', $out);
+        $this->assertStringContainsString('data-yk-drawer-backdrop aria-label=', $out);
     }
 
     // ---- r12 mega menu：三级树 → 顶级菜单 + 全宽多列面板 ----
@@ -348,6 +353,25 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('工业级', $out); // 列描述（channels.description）
         $this->assertStringContainsString('w-max max-w-3xl', $out); // 非通栏=内容自适应
         $this->assertStringNotContainsString('inset-x-0', $out);
+    }
+
+    public function testStandardNavTreeShowsCaretOnlyForDropdownParents(): void
+    {
+        $element = new \NavElement();
+        $renderNode = new \ReflectionMethod($element, 'renderMenuNode');
+        $parent = $renderNode->invoke($element, [
+            'name' => '产品', 'slug' => 'product', 'type' => 'list',
+            'children' => [['name' => '激光器', 'slug' => 'laser', 'type' => 'list', 'children' => []]],
+        ], true);
+        $leaf = $renderNode->invoke($element, [
+            'name' => '首页', 'slug' => 'home', 'type' => 'page', 'children' => [],
+        ], true);
+        $out = $parent . $leaf;
+
+        $this->assertStringContainsString('data-yk-nav-caret', $out);
+        $this->assertSame(1, substr_count($out, 'data-yk-nav-caret'));
+        $this->assertStringContainsString('>产品<svg data-yk-nav-caret', $out);
+        $this->assertStringNotContainsString('>首页<svg data-yk-nav-caret', $out);
     }
 
     // ---- r5 响应式列宽：span 接受 {d,t}；标量路径黄金对拍不破 ----
@@ -729,6 +753,13 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('{yk:subnav wrap=ul', $n);
         $this->assertStringContainsString('group-hover/nav:block', $n); // CSS hover 展开
         $this->assertStringContainsString('{yk:if field=has_children op=eq value=1}', $n); // 叶子项无箭头
+        $this->assertStringContainsString('data-yk-nav-caret', $n);
+        $this->assertStringNotContainsString('hidden xl:flex', $n); // 普通导航默认仍可用于任意上下文
+
+        $desktop = (new \NavElement())->buildMarkup(['dropdown' => true, 'desktop_only' => true]);
+        $this->assertStringContainsString('<ul class="hidden xl:flex flex-wrap gap-4">', $desktop);
+        $this->assertStringContainsString('{yk:subnav wrap=ul', $desktop); // Header 内切换后仍保留多级下拉
+
         // 自定义子模板优先于下拉默认模板
         $c = (new \NavElement())->buildMarkup(['dropdown' => true, 'template' => [['type' => 'heading', 'data' => ['text' => 'X']]]]);
         $this->assertStringNotContainsString('{yk:subnav', $c);

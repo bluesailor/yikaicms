@@ -83,7 +83,7 @@ function logoMakerPngFromDataUrl(string $dataUrl): GdImage
         throw new InvalidArgumentException(__('logo_maker_png_invalid'));
     }
     if (imagesx($image) > 4096 || imagesy($image) > 4096) {
-        imagedestroy($image);
+        unset($image);
         throw new InvalidArgumentException(__('logo_maker_png_invalid'));
     }
     return $image;
@@ -95,7 +95,7 @@ function logoMakerBuildIco(string $dataUrl): string
     try {
         return logoMakerIco($master, [16, 32, 48]);
     } finally {
-        imagedestroy($master);
+        unset($master);
     }
 }
 
@@ -152,7 +152,7 @@ function logoMakerIco(GdImage $master, array $sizes): string
         $bitmap = pack('VVVvvVVVVVV', 40, $size, $size * 2, 1, 32, 0, strlen($pixels) + strlen($mask), 0, 0, 0, 0)
             . $pixels . $mask;
         $entries[] = ['size' => $size, 'data' => $bitmap];
-        imagedestroy($image);
+        unset($image);
     }
 
     $ico = pack('vvv', 0, 1, count($entries));

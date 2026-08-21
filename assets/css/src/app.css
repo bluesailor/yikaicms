@@ -25,6 +25,13 @@
 /* v3 兼容：默认边框颜色为 gray-200（v4 默认用 currentColor 太深） */
 @layer base {
     html, body { overflow-x: hidden; }
+    html { text-rendering: optimizeLegibility; }
+    body { accent-color: var(--color-primary); }
+    ::selection { color: #111827; background: color-mix(in srgb, var(--color-primary) 24%, white); }
+    :where(a, button, input, select, textarea, summary):focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--color-primary) 72%, white);
+        outline-offset: 2px;
+    }
     *, ::before, ::after, ::backdrop {
         border-color: var(--color-gray-200, #e5e7eb);
     }
@@ -139,6 +146,15 @@
         opacity: 1 !important;
         transform: none !important;
         transition: none !important;
+    }
+    .card-hover,
+    .img-zoom img,
+    .yk-blox-header {
+        transition: none !important;
+    }
+    .card-hover:hover,
+    .img-zoom:hover img {
+        transform: none !important;
     }
 }
 
@@ -267,3 +283,5 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 .yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(a, button, [class*="text-"]) {
     color: inherit !important;
 }
+
+/* 内置 Header 起步模板的结构预览：只表达布局，不绑定真实 Logo、菜单或站点文案。 */

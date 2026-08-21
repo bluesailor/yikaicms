@@ -18,7 +18,8 @@
           "max_width": "wide",
           "gap": "md",
           "bg_color": "#111827",
-          "align_items": "center"
+          "align_items": "center",
+          "hide_on": ["m"]
         },
         "columns": [
           {

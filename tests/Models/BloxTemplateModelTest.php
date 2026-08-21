@@ -149,6 +149,50 @@ final class BloxTemplateModelTest extends TestCase
         $this->assertCount(1, bloxTemplateModel()->catalog('header'));
     }
 
+    public function testAreaEditorTargetFollowsTheActuallyRenderedHeader(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
+        $previousOverrides = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        try {
+            $GLOBALS['yikai_config_runtime_overrides'] = [
+                'current_theme' => 'default',
+                'header_nav_layout' => 'right',
+                'blox_custom_header_enabled' => '0',
+            ];
+            $themeHeader = \BloxAreaTemplatePresets::install('clean-site-header', 1);
+            $dormantHeader = \BloxAreaTemplatePresets::install('corporate-site-header', 1);
+            bloxTemplateModel()->publishDraft((int) $dormantHeader['id']);
+            $this->assertTrue(\BloxAreaEditorTarget::isThemeFallbackTemplate(
+                bloxTemplateModel()->find((int) $themeHeader['id']),
+                'header'
+            ));
+            $this->assertFalse(\BloxAreaEditorTarget::isThemeFallbackTemplate(
+                bloxTemplateModel()->find((int) $dormantHeader['id']),
+                'header'
+            ));
+
+            $context = ['home' => true, 'channel_id' => 0, 'page_id' => 0];
+            $this->assertSame(
+                '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
+                \BloxAreaEditorTarget::url('header', $context),
+                '停用自定义 Header 时，应从当前主题实际显示的 Header 开始编辑'
+            );
+
+            $GLOBALS['yikai_config_runtime_overrides']['blox_custom_header_enabled'] = '1';
+            $this->assertSame(
+                '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
+                \BloxAreaEditorTarget::url('header', $context)
+            );
+        } finally {
+            if ($previousOverrides === null) {
+                unset($GLOBALS['yikai_config_runtime_overrides']);
+            } else {
+                $GLOBALS['yikai_config_runtime_overrides'] = $previousOverrides;
+            }
+        }
+    }
+
     public function testAreaPublishConflictMessageUsesPublishedCandidates(): void
     {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';

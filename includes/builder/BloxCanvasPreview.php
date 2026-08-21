@@ -203,24 +203,43 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 : '';
         };
 
-        $wrapContextArea = static function (string $area, string $html, string $source): string {
+        $wrapContextArea = static function (string $area, string $html, string $source, string $editUrl): string {
             if ($html === '') {
                 return '';
             }
             $label = $area === 'header' ? __('site_design_area_header') : __('site_design_area_footer');
             $label .= ' · ' . ($source === 'theme' ? __('blox_preview_theme_default') : __('blox_preview_readonly'));
+            $editLabel = $area === 'header' ? __('blox_context_edit_header') : __('blox_context_edit_footer');
+            $icon = $area === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar';
             return '<div class="yk-home-context-area" data-yk-preview-label="'
-                . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">' . $html . '</div>';
+                . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">'
+                . '<a class="yk-home-context-edit" data-yk-area-edit="' . $area
+                . '" data-testid="blox-context-edit-' . $area . '" href="'
+                . htmlspecialchars($editUrl, ENT_QUOTES, 'UTF-8') . '" target="_top" aria-label="'
+                . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '"><i class="ti ' . $icon
+                . '" aria-hidden="true"></i><span>' . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '</span></a>'
+                . $html . '</div>';
         };
 
         $savedEditChannel = BlockRenderer::$editChannelId;
         BlockRenderer::$editChannelId = 0;
         $headerEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
         $footerEnabled = (string) config('blox_custom_footer_enabled', '1') === '1';
+        $homeAreaContext = ['home' => true, 'channel_id' => 0, 'page_id' => 0];
         $headerBlox = $headerEnabled ? $renderPublishedArea('header') : '';
         $footerBlox = $footerEnabled ? $renderPublishedArea('footer') : '';
-        $headerBody = $wrapContextArea('header', $headerBlox !== '' ? $headerBlox : $renderThemeArea('header'), $headerBlox !== '' ? 'blox' : 'theme');
-        $footerBody = $wrapContextArea('footer', $footerBlox !== '' ? $footerBlox : $renderThemeArea('footer'), $footerBlox !== '' ? 'blox' : 'theme');
+        $headerBody = $wrapContextArea(
+            'header',
+            $headerBlox !== '' ? $headerBlox : $renderThemeArea('header'),
+            $headerBlox !== '' ? 'blox' : 'theme',
+            BloxAreaEditorTarget::url('header', $homeAreaContext)
+        );
+        $footerBody = $wrapContextArea(
+            'footer',
+            $footerBlox !== '' ? $footerBlox : $renderThemeArea('footer'),
+            $footerBlox !== '' ? 'blox' : 'theme',
+            BloxAreaEditorTarget::url('footer', $homeAreaContext)
+        );
         BlockRenderer::$editChannelId = $savedEditChannel;
         $body = $headerBody . $homeBody . $footerBody;
     } else {
@@ -241,6 +260,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 .yk-ctx-dim:before{content:'';position:absolute;inset:0;z-index:20;background:repeating-linear-gradient(135deg,transparent 0 14px,rgba(100,116,139,.05) 14px 28px)}
 .yk-home-context-area{position:relative;pointer-events:none;user-select:none;opacity:.86;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1}
 .yk-home-context-area:before{content:attr(data-yk-preview-label);position:absolute;z-index:40;top:6px;left:8px;padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;background:rgba(248,250,252,.94);color:#64748b;font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0;pointer-events:none}
+.yk-home-context-edit{position:absolute;z-index:60;top:6px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #2563eb;border-radius:4px;background:#2563eb;color:#fff!important;font:600 11px/1.4 system-ui,sans-serif;text-decoration:none!important;pointer-events:auto;user-select:none;box-shadow:0 2px 8px rgba(37,99,235,.24)}
+.yk-home-context-edit:hover,.yk-home-context-edit:focus{background:#1d4ed8;border-color:#1d4ed8;outline:2px solid rgba(147,197,253,.9);outline-offset:2px}
 [data-yk-hide-on]{position:relative}
 [data-yk-hide-on]:before{content:'\2298 ' attr(data-yk-hide-on);position:absolute;z-index:28;top:4px;left:4px;padding:2px 7px;border-radius:4px;background:#64748b;color:#fff;font:700 10px/1.4 system-ui,sans-serif;pointer-events:none;opacity:.85}
 [data-yk-conditions]{position:relative}
@@ -727,6 +748,15 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     }, true);
 
     document.addEventListener('click', function (e) {
+        var contextEdit = e.target.closest('.yk-home-context-edit');
+        if (contextEdit) {
+            e.preventDefault();
+            postToEditor({ ykEditArea: {
+                area: contextEdit.getAttribute('data-yk-area-edit') || '',
+                url: contextEdit.getAttribute('href') || ''
+            } });
+            return;
+        }
         var a = e.target.closest('a');
         if (a) e.preventDefault(); // 画布内不跳转，链接编辑去设置面板
         var homeField = e.target.closest('[data-yk-home-field]');

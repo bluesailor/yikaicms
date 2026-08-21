@@ -64,7 +64,7 @@ final class LogoMakerTest extends TestCase
         ob_start();
         imagepng($png);
         $pngData = (string) ob_get_clean();
-        imagedestroy($png);
+        unset($png);
 
         $ico = logoMakerBuildIco('data:image/png;base64,' . base64_encode($pngData));
         self::assertSame("\x00\x00\x01\x00", substr($ico, 0, 4));

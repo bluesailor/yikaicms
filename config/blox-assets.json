@@ -3,6 +3,7 @@
   "core": [
     "admin/blox_editor.php",
     "admin/blox_editor",
+    "admin/blox_cache_api.php",
     "admin/blox_home_api.php",
     "admin/blox_page_api.php",
     "admin/blox_preview.php",
@@ -11,6 +12,7 @@
     "admin/blox_templates.php",
     "includes/builder/BloxCanvasPreview.php",
     "includes/builder/BloxAreaDocument.php",
+    "includes/builder/BloxThemeHeaderDocument.php",
     "includes/builder/BloxHeaderStates.php",
     "includes/builder/BloxResponsiveValue.php",
     "includes/builder/BloxAreaConditions.php",
@@ -19,6 +21,7 @@
     "includes/builder/BloxDesignDependencies.php",
     "admin/blox_design_api.php",
     "includes/builder/BloxAreaTemplatePresets.php",
+    "includes/builder/BloxAreaEditorTarget.php",
     "templates/blox/areas",
     "includes/builder/PageBloxDocument.php",
     "includes/builder/ChannelBloxDocument.php",

@@ -79,6 +79,8 @@ final class BloxAreaDocumentTest extends TestCase
     {
         $expected = [
             'clean-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'full-width-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'centered-site-header.json' => ['header', ['container', 'logo', 'nav', 'nav-drawer'], 1],
             'clean-site-footer.json' => ['footer', ['logo', 'nav', 'site-copyright'], 2],
             'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
             'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'social-links'], 2],
@@ -93,6 +95,10 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertSame($type, $prepared['type']);
             self::assertSame($elements, $prepared['requirements']['elements']);
             self::assertCount($sectionCount, $prepared['sections']);
+            self::assertSame('', $prepared['thumbnail']);
+            if ($file === 'corporate-site-header.json') {
+                self::assertSame(['m'], $prepared['sections'][0]['settings']['hide_on']);
+            }
         }
     }
 
@@ -100,10 +106,50 @@ final class BloxAreaDocumentTest extends TestCase
     {
         $catalog = BloxAreaTemplatePresets::catalog();
         self::assertSame(
-            ['clean-site-header', 'clean-site-footer', 'corporate-site-header', 'corporate-site-footer'],
+            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'clean-site-footer', 'corporate-site-header', 'corporate-site-footer'],
             array_column($catalog, 'slug')
         );
-        self::assertSame(['header', 'footer', 'header', 'footer'], array_column($catalog, 'type'));
+        self::assertSame(['header', 'header', 'header', 'footer', 'header', 'footer'], array_column($catalog, 'type'));
+        self::assertSame(
+            [
+                'content-left',
+                'viewport-left',
+                'centered-brand',
+                '',
+                'corporate',
+                '',
+            ],
+            array_column($catalog, 'preview')
+        );
+    }
+
+    public function testHeaderStartersKeepDistinctWidthAndBrandAlignmentContracts(): void
+    {
+        $readPackage = static function (string $file): array {
+            $json = file_get_contents(ROOT_PATH . '/templates/blox/areas/' . $file);
+            self::assertIsString($json);
+            $package = json_decode($json, true, 128, JSON_THROW_ON_ERROR);
+            self::assertIsArray($package);
+            return $package;
+        };
+
+        $clean = $readPackage('clean-site-header.json');
+        $cleanSection = $clean['document']['sections'][0];
+        self::assertSame('wide', $cleanSection['settings']['max_width']);
+        self::assertArrayNotHasKey('container_gutter', $cleanSection['settings']);
+        self::assertSame('row', $cleanSection['columns'][0]['elements'][0]['data']['direction']);
+
+        $fullWidth = $readPackage('full-width-site-header.json');
+        $fullSection = $fullWidth['document']['sections'][0];
+        self::assertSame('full', $fullSection['settings']['max_width']);
+        self::assertSame('none', $fullSection['settings']['container_gutter']);
+        self::assertSame('sm', $fullSection['columns'][0]['elements'][0]['data']['padding']);
+
+        $centered = $readPackage('centered-site-header.json');
+        $centeredContainer = $centered['document']['sections'][0]['columns'][0]['elements'][0]['data'];
+        self::assertSame('column', $centeredContainer['direction']);
+        self::assertSame('center', $centeredContainer['align']);
+        self::assertSame(['logo', 'nav', 'nav-drawer'], array_column($centeredContainer['children'], 'type'));
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

@@ -97,7 +97,37 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\') : \'\';', $canvas);
         $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\') : \'\';', $canvas);
         $this->assertStringContainsString('yk-home-context-area', $canvas);
+        $this->assertStringContainsString('data-testid="blox-context-edit-\' . $area', $canvas);
+        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$homeAreaContext)", $canvas);
         $this->assertStringContainsString('$body = $headerBody . $homeBody . $footerBody;', $canvas);
+
+        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
+        $this->assertStringContainsString('(&current_header=1)?(&open=header-settings)?$', $bridge);
+        $this->assertStringContainsString('if ((template[2] || template[3]) && value.area !== "header") return null;', $bridge);
+        $this->assertStringContainsString('payload = areaEditPayload(data.ykEditArea);', $bridge);
+        $this->assertStringContainsString('this.onEditArea(payload);', $bridge);
+        $this->assertStringContainsString('onEditArea: function (payload) { window.location.assign(payload.url); }', $editor);
+
+        $templateApi = $this->source('admin/blox_template_api.php');
+        $this->assertStringContainsString("post('replace_theme_area', '')", $templateApi);
+        $this->assertStringContainsString('BloxAreaEditorTarget::isThemeFallbackTemplate($row, $type)', $templateApi);
+        $this->assertStringContainsString("array_key_exists('blocks_data', \$_POST)", $templateApi);
+        $this->assertStringContainsString('$templateRevisionMatches($type, $currentDraft, $baseRevision)', $templateApi);
+        $this->assertStringContainsString('bloxTemplateModel()->updateDraft(', $templateApi);
+        $this->assertStringContainsString('BloxTemplateImporter::deriveRequirements($processed[\'sections\'])', $templateApi);
+        $this->assertStringContainsString('db()->beginTransaction();', $templateApi);
+        $this->assertStringContainsString('bloxTemplateModel()->unpublish($replacementId);', $templateApi);
+        $this->assertStringContainsString('bloxTemplateModel()->publishDraft($id);', $templateApi);
+        $this->assertStringContainsString("'blox_custom_header_enabled' : 'blox_custom_footer_enabled' => '1'", $templateApi);
+        $this->assertStringContainsString('body.set("replace_theme_area", replaceThemeArea);', $editor);
+        $this->assertStringContainsString('body.set("blocks_data", payload);', $editor);
+        $this->assertStringContainsString('body.set("base_revision", this.baseRevision);', $editor);
+        $this->assertStringContainsString('self.acceptSavedDocument(payload, savedData, res);', $editor);
+        $this->assertStringContainsString('if (res.msg === self.uiText.saveConflict)', $editor);
+        $this->assertStringNotContainsString('if (this.dirty) { this.toast(this.uiText.tplPublishRequiresSaved); return; }', $editor);
+        $this->assertStringContainsString('@click="publishTemplate()" :disabled="saving"', $header);
+        $this->assertStringContainsString("__('blox_tpl_publish_saves_current')", $header);
     }
 
     public function testInstallAndUpgradePathsEnableTheEditor(): void

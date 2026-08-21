@@ -82,7 +82,7 @@ if ($ext === 'csv') {
     if ($bom !== "\xEF\xBB\xBF") {
         rewind($fh);
     }
-    while (($cols = fgetcsv($fh)) !== false) {
+    while (($cols = fgetcsv($fh, null, ',', '"', '\\')) !== false) {
         if ($line === 1) {
             $headers = array_map(fn($h) => trim((string) ($h ?? '')), $cols);
         } else {

@@ -71,6 +71,35 @@ final class BloxSiteElementsTest extends TestCase
         self::assertStringNotContainsString('javascript:', $html);
     }
 
+    public function testLanguageSwitcherShowsFlagsWhenEnabled(): void
+    {
+        $langs = ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', 'xx' => 'Unknown'];
+        $known = ['zh-CN', 'en', 'ja', 'xx'];
+
+        $off = LanguageSwitcherElement::renderForLanguages($langs, 'en', 'zh-CN', $known, '/en/', ['display' => 'name']);
+        self::assertStringNotContainsString('/assets/icons/flags/', $off, '默认不显示国旗，向后兼容');
+
+        $on = LanguageSwitcherElement::renderForLanguages($langs, 'en', 'zh-CN', $known, '/en/', ['display' => 'name', 'show_flag' => true]);
+        // 用随包 SVG（Windows 不渲染 emoji 国旗），而非 emoji
+        self::assertStringContainsString('/assets/icons/flags/cn.svg', $on);
+        self::assertStringContainsString('/assets/icons/flags/us.svg', $on, 'en → 美国旗');
+        self::assertStringContainsString('/assets/icons/flags/jp.svg', $on);
+        self::assertStringNotContainsString('🇺🇸', $on, '不用 emoji 国旗');
+        // 旗对读屏隐藏（hreflang 已表达语言）
+        self::assertStringContainsString('aria-hidden="true"', $on);
+        // 未列入映射的语言不硬塞旗，仍显示文字
+        self::assertStringContainsString('Unknown', $on);
+        self::assertStringNotContainsString('/flags/xx', $on);
+
+        // inline 布局同样支持国旗
+        $inline = LanguageSwitcherElement::renderForLanguages(
+            ['zh-CN' => '中文', 'ja' => '日本語'], 'zh-CN', 'zh-CN', ['zh-CN', 'ja'], '/',
+            ['layout' => 'inline', 'show_flag' => true]
+        );
+        self::assertStringContainsString('data-yk-language-switcher="inline"', $inline);
+        self::assertStringContainsString('/assets/icons/flags/jp.svg', $inline);
+    }
+
     public function testLanguageSwitcherCanRetainInlineLinks(): void
     {
         $html = LanguageSwitcherElement::renderForLanguages(

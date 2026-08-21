@@ -16,6 +16,19 @@ $isAdministrator = hasPermission('*');
 $basicBloxEnabled = bloxPageEditorEnabled();
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
 $currentTheme = (string) config('current_theme', 'default');
+$errorMessage = '';
+$defaultAreaSeeds = [
+    'header' => 'clean-site-header',
+    'footer' => 'clean-site-footer',
+];
+$areaPresetOptions = ['header' => [], 'footer' => []];
+foreach (BloxAreaTemplatePresets::catalog() as $preset) {
+    $presetType = (string) ($preset['type'] ?? '');
+    if (isset($areaPresetOptions[$presetType])) {
+        $areaPresetOptions[$presetType][] = $preset;
+    }
+}
+$areaTemplateDraftId = ['header' => 0, 'footer' => 0];
 
 $pageCount = (int) db()->fetchColumn(
     'SELECT COUNT(*) FROM ' . DB_PREFIX . 'channels WHERE type = ?',
@@ -56,6 +69,13 @@ if (db()->tableExists('blox_templates')) {
         $templateCounts[$type]['published'] += $published ? 1 : 0;
         $templateTotal++;
         $templatePublished += $published ? 1 : 0;
+
+        if (!isset($areaTemplateDraftId[$type])) {
+            continue;
+        }
+        if ($areaTemplateDraftId[$type] === 0) {
+            $areaTemplateDraftId[$type] = (int) ($template['id'] ?? 0);
+        }
     }
 }
 
@@ -80,6 +100,37 @@ $areaRows = [
     'popup' => ['label' => __('site_design_area_popup'), 'icon' => 'ti-window'],
 ];
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+    $action = (string) post('action', '');
+    try {
+        if ($action === 'seed_default_area') {
+            if (!$advancedBloxEnabled || !$isAdministrator) {
+                throw new RuntimeException(__('blox_feature_disabled'));
+            }
+            if (!db()->tableExists('blox_templates')) {
+                throw new RuntimeException(__('blox_tpl_table_missing'));
+            }
+            $area = strtolower(trim((string) post('area', '')));
+            if (!isset($defaultAreaSeeds[$area])) {
+                throw new RuntimeException(__('blox_area_preset_not_found'));
+            }
+            $presetSlug = trim((string) post('preset', $defaultAreaSeeds[$area]));
+            $allowedPresetSlugs = array_column($areaPresetOptions[$area], 'slug');
+            if (!in_array($presetSlug, $allowedPresetSlugs, true)) {
+                throw new RuntimeException(__('blox_area_preset_not_found'));
+            }
+            $result = BloxAreaTemplatePresets::install($presetSlug, (int) ($_SESSION['admin_id'] ?? 0));
+            settingModel()->saveBatch([
+                $area === 'header' ? 'blox_custom_header_enabled' : 'blox_custom_footer_enabled' => '1',
+            ]);
+            redirect('/admin/blox_editor.php?template=' . (int) $result['id']);
+        }
+    } catch (Throwable $e) {
+        $errorMessage = $e->getMessage();
+    }
+}
+
 $GLOBALS['pageTitle'] = __('site_design_title');
 $GLOBALS['currentMenu'] = 'site_design';
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -91,6 +142,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('site_design_title')); ?></h1>
             <p class="mt-1 max-w-3xl text-sm text-gray-500"><?php echo e(__('site_design_intro')); ?></p>
         </div>
+        <?php if ($errorMessage !== ''): ?>
+        <div class="w-full rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <?php echo e($errorMessage); ?>
+        </div>
+        <?php endif; ?>
         <?php if ($basicBloxEnabled && $isAdministrator): ?>
         <a href="/admin/blox_editor.php?home=1" class="inline-flex h-10 items-center gap-2 bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-700">
             <i class="ti ti-home-edit"></i><?php echo e(__('site_design_open_home')); ?>
@@ -157,21 +213,45 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <h2 class="mb-3 text-sm font-semibold text-gray-900"><?php echo e(__('site_design_section_areas')); ?></h2>
         <div class="divide-y divide-gray-200 border-y border-gray-200 bg-white">
             <?php foreach ($areaRows as $type => $area):
+                $currentDraftTemplateId = $areaTemplateDraftId[$type] ?? 0;
                 $counts = $templateCounts[$type];
                 $statusLabel = $counts['published'] > 0
                     ? __('site_design_status_published', ['count' => $counts['published']])
                     : ($counts['total'] > 0 ? __('site_design_status_draft', ['count' => $counts['total']]) : __('site_design_status_none'));
             ?>
-            <div class="flex flex-wrap items-center gap-4 px-5 py-4" data-testid="site-design-area-<?php echo e($type); ?>">
+            <div class="flex flex-wrap items-center gap-4 px-5 py-4" data-testid="site-design-area-<?php echo e($type); ?>" id="site-design-area-<?php echo e($type); ?>">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center bg-gray-100 text-gray-600"><i class="ti <?php echo e($area['icon']); ?> text-xl"></i></span>
                 <div class="min-w-0 flex-1">
                     <div class="font-medium text-gray-900"><?php echo e($area['label']); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e($statusLabel); ?></div>
                 </div>
                 <?php if ($advancedBloxEnabled && $isAdministrator): ?>
-                <a href="/admin/blox_templates.php?type=<?php echo e($type); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
-                    <?php echo e(__('site_design_manage')); ?><i class="ti ti-arrow-right"></i>
-                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <?php if (in_array($type, ['header', 'footer'], true) && $currentDraftTemplateId > 0): ?>
+                    <a href="/admin/blox_editor.php?template=<?php echo $currentDraftTemplateId; ?>" class="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
+                        <i class="ti ti-edit"></i><?php echo e(__('blox_tpl_open_editor')); ?>
+                    </a>
+                    <?php endif; ?>
+                    <?php if (in_array($type, ['header', 'footer'], true) && $currentDraftTemplateId <= 0): ?>
+                    <form method="post" class="flex flex-wrap items-center justify-end gap-2">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="seed_default_area">
+                        <input type="hidden" name="area" value="<?php echo e($type); ?>">
+                        <label class="sr-only" for="site-design-<?php echo e($type); ?>-preset"><?php echo e(__('site_design_choose_starter')); ?></label>
+                        <select id="site-design-<?php echo e($type); ?>-preset" name="preset" class="h-9 max-w-56 border border-gray-300 bg-white px-2 text-xs text-gray-700" data-testid="site-design-<?php echo e($type); ?>-preset">
+                            <?php foreach ($areaPresetOptions[$type] as $preset): ?>
+                            <option value="<?php echo e($preset['slug']); ?>"><?php echo e($preset['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button type="submit" class="inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/10">
+                            <i class="ti ti-layout-grid-add"></i><?php echo e(__('site_design_use_starter')); ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <a href="/admin/blox_templates.php?type=<?php echo e($type); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
+                        <?php echo e(__('site_design_manage')); ?><i class="ti ti-arrow-right"></i>
+                    </a>
+                </div>
                 <?php else: ?>
                 <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
                 <?php endif; ?>
