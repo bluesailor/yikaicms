@@ -340,6 +340,13 @@ function uo_patch_config_version(): string
     return @file_put_contents($cf, $new) !== false ? 'patched' : 'failed';
 }
 
+/** 升级后健康自检（实现在 includes/UpgradeHealth.php，独立类便于单测与 CLI 复用） */
+function uo_health_check(): array
+{
+    require_once ROOT_PATH . '/includes/UpgradeHealth.php';
+    return UpgradeHealth::check(ROOT_PATH);
+}
+
 // ============================================================
 // AJAX 路由
 // ============================================================
@@ -487,6 +494,9 @@ if ($action !== '') {
             'mode' => $mode, 'pkg' => $pkg, 'prefix' => $prefix, 'entries' => $entries, 'deleted' => $deleted,
             'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0, 'next_offset' => 0,
             'errors' => [], 'from' => $from, 'to' => $to,
+            // 事务化升级：apply_batch 覆盖前把旧文件快照到 backups/<backup>/files/，
+            // 全新写入的文件记入 created——两者合起来就是完整的文件级回滚清单
+            'created' => [],
         ];
         try {
             UpgradeApplyState::write(uo_state_file(), $state);
@@ -521,6 +531,8 @@ if ($action !== '') {
 
                 $copied = 0;
                 $errors = [];
+                $bakFilesDir = ROOT_PATH . '/storage/backups/' . basename((string) ($state['backup'] ?? '')) . '/files';
+                $created = is_array($state['created'] ?? null) ? $state['created'] : [];
                 try {
                     for ($i = $offset; $i < $end; $i++) {
                         if (!is_array($entries[$i] ?? null)) {
@@ -536,11 +548,25 @@ if ($action !== '') {
                         $d = ROOT_PATH . '/' . $rel;
                         $dir = dirname($d);
                         if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
+                        // 覆盖前快照旧文件（同一文件只快照第一次的版本）；全新文件记 created。
+                        // 快照失败不中止升级——回滚只是尽力保障，缺快照的文件回滚时会列告警。
+                        if (is_file($d)) {
+                            $snap = $bakFilesDir . '/' . $rel;
+                            if (!is_file($snap)) {
+                                $sd = dirname($snap);
+                                if (is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd)) {
+                                    @copy($d, $snap);
+                                }
+                            }
+                        } else {
+                            $created[] = $rel;
+                        }
                         if (@file_put_contents($d, $data) !== false) $copied++; else $errors[] = "写入失败: $rel";
                     }
                 } finally {
                     $zip->close();
                 }
+                $state['created'] = $created;
 
                 $state['done'] = (int) ($state['done'] ?? 0) + $copied;
                 $state['next_offset'] = $end;
@@ -573,15 +599,37 @@ if ($action !== '') {
             uo_json(['code' => 1, 'msg' => __('upgrade_apply_state_invalid')]);
         }
 
-        // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护路径，仅删普通文件
+        // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护路径，仅删普通文件。
+        // 删除前先把文件挪进快照目录——删除也要可回滚
+        $bakFilesDir = ROOT_PATH . '/storage/backups/' . basename((string) ($state['backup'] ?? '')) . '/files';
         $deletedCount = 0;
+        $deletedRels = [];
         foreach ((array) ($state['deleted'] ?? []) as $rel) {
             $rel = (string) $rel;
             if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
             if (uo_is_protected($rel)) continue;
-            if (is_file(ROOT_PATH . '/' . $rel) && @unlink(ROOT_PATH . '/' . $rel)) $deletedCount++;
+            $p = ROOT_PATH . '/' . $rel;
+            if (!is_file($p)) continue;
+            $snap = $bakFilesDir . '/' . $rel;
+            if (!is_file($snap)) {
+                $sd = dirname($snap);
+                if (is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd)) @copy($p, $snap);
+            }
+            if (@unlink($p)) { $deletedCount++; $deletedRels[] = $rel; }
         }
         $patch = uo_patch_config_version();
+
+        // 回滚清单落盘（state 文件马上要清，回滚所需信息随备份目录持久化）
+        @file_put_contents(
+            dirname($bakFilesDir) . '/rollback.json',
+            json_encode([
+                'from' => (string) ($state['from'] ?? ''),
+                'to' => (string) ($state['to'] ?? ''),
+                'created' => array_values(array_unique((array) ($state['created'] ?? []))),
+                'deleted' => $deletedRels,
+                'time' => date('Y-m-d H:i:s'),
+            ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+        );
 
         // 清理临时（本版本不再产生 extracted/ 目录；顺手清理旧版本可能残留的）
         uo_rrmdir(uo_dir() . '/extracted');
@@ -631,6 +679,10 @@ if ($action !== '') {
             // 记不上不影响升级本身
         }
 
+        // 升级后健康自检：核心文件语法 + 版本号可读。失败 = 疑似新旧代码混合状态，
+        // 前端据此提供「一键回滚到升级前」按钮（从 backups/<backup>/files 快照恢复）
+        $health = uo_health_check();
+
         uo_json([
             'code'    => empty($errors) ? 0 : 2,
             'pending' => $pending,
@@ -642,6 +694,48 @@ if ($action !== '') {
             'patch'   => $patch,
             'new_version' => $newVer,
             'backup'  => $state['backup'] ?? '',
+            'health'  => $health,
+        ]);
+    }
+
+    // ---- 4d) 回滚：从快照恢复被覆盖/被删除的文件，移除升级新建的文件 ----
+    if ($action === 'apply_rollback') {
+        $backup = basename((string) post('backup'));
+        if ($backup === '' || !preg_match('/^pre-upgrade-/', $backup)) {
+            uo_json(['code' => 1, 'msg' => '备份目录名不合法']);
+        }
+        $bakDir = ROOT_PATH . '/storage/backups/' . $backup;
+        $filesDir = $bakDir . '/files';
+        $rb = json_decode((string) @file_get_contents($bakDir . '/rollback.json'), true);
+        if (!is_array($rb)) uo_json(['code' => 1, 'msg' => '找不到回滚清单（rollback.json），无法自动回滚，请用主机备份恢复']);
+        if (!is_dir($filesDir)) uo_json(['code' => 1, 'msg' => '找不到文件快照目录，无法自动回滚，请用主机备份恢复']);
+
+        // 1) 恢复快照（被覆盖 + 被删除的文件都在里面）
+        [$restored, $restoreErrors] = uo_copy_tree($filesDir, ROOT_PATH);
+
+        // 2) 移除升级新建的文件（旧版没有它们；防越界与受保护路径）
+        $removed = 0;
+        foreach ((array) ($rb['created'] ?? []) as $rel) {
+            $rel = (string) $rel;
+            if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
+            if (uo_is_protected($rel)) continue;
+            if (is_file(ROOT_PATH . '/' . $rel) && @unlink(ROOT_PATH . '/' . $rel)) $removed++;
+        }
+
+        // 3) 清理升级中间态，避免半途状态被后续误用
+        @unlink(uo_state_file());
+        @unlink(uo_dir() . '/package.zip');
+
+        $health = uo_health_check();
+        try { adminLog('upgrade', 'online_rollback', "在线升级回滚（{$backup}）：恢复 {$restored}，移除新建 {$removed}，恢复失败 " . count($restoreErrors)); } catch (\Throwable $e) {}
+        uo_json([
+            'code' => empty($restoreErrors) ? 0 : 2,
+            'msg' => "回滚完成：恢复 {$restored} 个文件，移除新建 {$removed} 个"
+                . (empty($restoreErrors) ? '' : ('，' . count($restoreErrors) . ' 个恢复失败：' . implode('; ', array_slice($restoreErrors, 0, 10)))),
+            'restored' => $restored,
+            'removed' => $removed,
+            'errors' => array_slice($restoreErrors, 0, 20),
+            'health' => $health,
         ]);
     }
 
@@ -867,6 +961,29 @@ document.getElementById('uo-upgrade').onclick = async () => {
         UO.row(`以下 ${fin.errors.length} 个文件未能覆盖（请检查其文件/目录写权限后重试，或从 v${fin.new_version || d.latest_version} 安装包手动上传覆盖）：`,
             'fail',
             fin.errors.map(esc).join('<br>') + '<br><span class="text-gray-400">完整记录已写入 storage/upgrade/upgrade-failures.log</span>');
+    }
+    // 健康自检失败 = 疑似新旧代码混合状态（部分文件写失败最常见的后果）。
+    // 不自动跳转，就地提供「一键回滚」——从 storage/backups/<backup>/files 快照整体恢复。
+    if (fin.health && !fin.health.ok) {
+        const badFiles = (fin.health.checks || []).filter(c => !c.ok).map(c => c.file).join('、');
+        const hr = UO.row('健康自检未通过' + (badFiles ? `（异常文件：${badFiles}）` : ''), 'fail',
+            '站点可能处于新旧代码混合状态。可一键回滚到升级前的文件快照，回滚后请重试升级或改用 FTP 手动升级。');
+        const rbBtn = document.createElement('button');
+        rbBtn.className = 'mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium';
+        rbBtn.innerHTML = '<i class="ti ti-arrow-back-up mr-1"></i>一键回滚到升级前';
+        rbBtn.onclick = async () => {
+            if (!confirm('确认回滚到升级前的文件状态？（数据库未动过，无需恢复）')) return;
+            rbBtn.disabled = true; rbBtn.classList.add('opacity-50');
+            const rbRow = UO.row('正在回滚…', 'run');
+            const rb = await UO.post('apply_rollback', { backup: fin.backup || '' });
+            UO.set(rbRow, rb.code === 0 ? 'ok' : 'fail', rb.msg || '');
+            if (rb.code === 0 && rb.health && rb.health.ok) {
+                UO.row(`已恢复到 v${rb.health.version || ''}，健康自检通过。`, 'ok');
+            }
+        };
+        hr.querySelector('div').appendChild(rbBtn);
+        btn.disabled = false; btn.classList.remove('opacity-50');
+        return;
     }
     document.getElementById('uo-migrate').classList.remove('hidden');
     btn.classList.add('hidden');
