@@ -115,9 +115,9 @@ final class BloxAreaDocumentTest extends TestCase
                 'content-left',
                 'viewport-left',
                 'centered-brand',
-                '',
+                'footer-columns',
                 'corporate',
-                '',
+                'footer-columns-dark',
             ],
             array_column($catalog, 'preview')
         );

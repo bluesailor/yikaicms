@@ -409,6 +409,61 @@ $typeLabels = [
     'footer' => __('blox_tpl_type_footer'),
     'popup' => __('blox_tpl_type_popup'),
 ];
+
+/**
+ * 区域预设卡片的布局示意线框（纯 CSS，无截图资源）。
+ * $kind 对应 BloxAreaTemplatePresets 各预设的 preview 键；LOGO/MENU/CTA
+ * 是线框图行业惯用记号，不进语言包。
+ */
+$presetPreviewHtml = static function (string $kind): string {
+    $logo = '<span class="rounded-sm bg-gray-700 px-1 py-0.5 text-[8px] font-bold leading-none text-white">LOGO</span>';
+    $logoLight = '<span class="rounded-sm bg-gray-200 px-1 py-0.5 text-[8px] font-bold leading-none text-gray-600">LOGO</span>';
+    $menu = '<span class="flex items-center gap-1"><span class="text-[8px] font-semibold leading-none text-gray-400">MENU</span>'
+        . str_repeat('<span class="h-1 w-3 rounded-sm bg-gray-300"></span>', 3) . '</span>';
+    $cta = '<span class="rounded-sm bg-primary px-1 py-0.5 text-[8px] font-semibold leading-none text-white">CTA</span>';
+    $barRow = static fn (string $inner, string $width): string =>
+        '<div class="flex ' . $width . ' items-center justify-between rounded-sm border border-gray-200 bg-white px-2 py-1.5">' . $inner . '</div>';
+    $lines = static fn (int $n, string $tone): string =>
+        '<span class="flex flex-col gap-1">' . str_repeat('<span class="h-1 w-8 rounded-sm ' . $tone . '"></span>', $n) . '</span>';
+
+    $inner = match ($kind) {
+        // 盒装页头：两侧留白，内容盒内 LOGO 左 / 菜单+按钮 右
+        'content-left' => '<div class="flex justify-center">'
+            . $barRow($logo . '<span class="flex items-center gap-1.5">' . $menu . $cta . '</span>', 'w-4/5') . '</div>',
+        // 通栏页头：横条撑满视口
+        'viewport-left' => $barRow($logo . '<span class="flex items-center gap-1.5">' . $menu . $cta . '</span>', 'w-full'),
+        // 居中品牌页头：LOGO 居中、菜单在下
+        'centered-brand' => '<div class="flex flex-col items-center gap-1 rounded-sm border border-gray-200 bg-white px-2 py-1.5">'
+            . $logo . $menu . '</div>',
+        // 企业页头：深色联系信息条 + 白色主行
+        'corporate' => '<div class="flex flex-col">'
+            . '<div class="flex items-center justify-end gap-1 rounded-t-sm bg-gray-800 px-2 py-1">'
+            . '<span class="h-1 w-5 rounded-sm bg-gray-500"></span><span class="h-1 w-5 rounded-sm bg-gray-500"></span></div>'
+            . '<div class="flex items-center justify-between rounded-b-sm border border-t-0 border-gray-200 bg-white px-2 py-1.5">'
+            . $logo . '<span class="flex items-center gap-1.5">' . $menu . $cta . '</span></div></div>',
+        // 简洁页尾：LOGO+链接列 / 底部版权条
+        'footer-columns' => '<div class="flex flex-col">'
+            . '<div class="flex items-start justify-between rounded-t-sm border border-b-0 border-gray-200 bg-white px-2 py-1.5">'
+            . '<span class="flex flex-col gap-1">' . $logo . '</span>' . $lines(3, 'bg-gray-300') . $lines(3, 'bg-gray-300') . '</div>'
+            . '<div class="flex justify-center rounded-b-sm bg-gray-200 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-gray-400"></span></div></div>',
+        // 企业页尾：深色多列 + 更深版权条
+        'footer-columns-dark' => '<div class="flex flex-col">'
+            . '<div class="flex items-start justify-between rounded-t-sm bg-gray-800 px-2 py-1.5">'
+            . '<span class="flex flex-col gap-1">' . $logoLight . '</span>' . $lines(3, 'bg-gray-600') . $lines(3, 'bg-gray-600') . '</div>'
+            . '<div class="flex justify-center rounded-b-sm bg-gray-900 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-gray-600"></span></div></div>',
+        // 兜底：通用横条
+        default => $barRow($logo . $menu, 'w-full'),
+    };
+
+    return '<div class="flex h-20 flex-col justify-center rounded border border-gray-100 bg-gray-50 px-2" aria-hidden="true">'
+        . $inner . '</div>';
+};
+
+// slug → preview 线框种类（不受当前 type 筛选影响，给「当前网页头/尾」卡片查用）
+$presetPreviewKinds = [];
+foreach (BloxAreaTemplatePresets::catalog() as $presetMeta) {
+    $presetPreviewKinds[$presetMeta['slug']] = $presetMeta['preview'];
+}
 $sourceLabels = [
     'user' => __('blox_tpl_source_user'),
     'import' => __('blox_tpl_source_import'),
@@ -568,8 +623,16 @@ function confirmAreaPublish(form) {
                 $areaDisableKey = $isHeader ? 'blox_custom_header_disable' : 'blox_custom_footer_disable';
                 $areaEnableKey = $isHeader ? 'blox_custom_header_enable' : 'blox_custom_footer_enable';
                 $areaConfirmKey = $isHeader ? 'blox_custom_header_disable_confirm' : 'blox_custom_footer_disable_confirm';
+                // 布局示意：内置预设装出来的模板画它对应的线框（published 行不带 source 列，
+                // 用 slug→id 登记表按 id 反查），其余（自建/远程/主题回退）给区域通用示例
+                $previewSource = $resolved ?: $resolvedCandidate;
+                $areaPreviewKind = $isHeader ? 'viewport-left' : 'footer-columns';
+                $builtinSlug = array_search((int) ($previewSource['id'] ?? 0), $builtinInstalledRefs, true);
+                if (is_string($builtinSlug)) {
+                    $areaPreviewKind = $presetPreviewKinds[$builtinSlug] ?? $areaPreviewKind;
+                }
             ?>
-            <article class="flex min-h-52 flex-col border border-gray-200 bg-white p-5" data-testid="blox-current-area-<?php echo e($areaType); ?>">
+            <article class="flex min-h-52 flex-col border border-gray-200 bg-white p-5 transition hover:border-primary hover:shadow-md" data-testid="blox-current-area-<?php echo e($areaType); ?>">
                 <div class="flex items-start gap-3">
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center bg-gray-100 text-gray-600"><i class="ti <?php echo $isHeader ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?> text-xl"></i></span>
                     <div class="min-w-0 flex-1">
@@ -595,6 +658,8 @@ function confirmAreaPublish(form) {
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <div class="mt-4"><?php echo $presetPreviewHtml($areaPreviewKind); ?></div>
 
                 <div class="mt-4 flex-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
                     <?php if (!$areaEnabled): ?>
@@ -679,16 +744,17 @@ function confirmAreaPublish(form) {
         <?php if ($areaPresets === []): ?>
         <div class="px-5 py-3 text-sm text-gray-400"><?php echo __('blox_area_presets_empty'); ?></div>
         <?php else: ?>
-        <div class="grid gap-3 p-5 sm:grid-cols-2">
+        <div class="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
             <?php foreach ($areaPresets as $preset):
                 $presetId = $builtinInstalledRefs[$preset['slug']] ?? 0;
             ?>
-            <div class="flex min-h-32 flex-col gap-2 rounded border border-gray-200 p-4">
+            <div class="flex min-h-32 flex-col gap-2 rounded border border-gray-200 p-4 transition hover:border-primary hover:shadow-md">
                 <div class="flex items-center gap-2">
                     <i class="ti <?php echo $preset['type'] === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?> text-gray-500"></i>
                     <span class="font-medium text-gray-900"><?php echo e($preset['name']); ?></span>
                     <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500"><?php echo e($typeLabels[$preset['type']]); ?></span>
                 </div>
+                <?php echo $presetPreviewHtml((string) ($preset['preview'] ?? '')); ?>
                 <p class="flex-1 text-xs text-gray-500"><?php echo e($preset['description']); ?></p>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-[11px] text-gray-400">
