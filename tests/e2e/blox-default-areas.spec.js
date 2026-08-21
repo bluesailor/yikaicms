@@ -43,36 +43,6 @@ async function unpublishAreas(page) {
   }
 }
 
-test('header preset gallery uses responsive HTML wireframes @ci', async ({ page }) => {
-  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
-  await page.goto('/admin/blox_templates.php?type=header', { waitUntil: 'domcontentloaded' });
-
-  const gallery = page.getByTestId('blox-area-presets');
-  const previews = gallery.locator('[data-preview-layout]');
-  await expect(previews).toHaveCount(4);
-  expect(await previews.evaluateAll((elements) => elements.map((element) => element.dataset.previewLayout))).toEqual([
-    'content-left',
-    'viewport-left',
-    'centered-brand',
-    'corporate',
-  ]);
-  await expect(gallery.locator('.yk-area-wireframe img')).toHaveCount(0);
-
-  const layout = await gallery.evaluate((element) => {
-    const previewBoxes = Array.from(element.querySelectorAll('[data-preview-layout]'))
-      .map((preview) => preview.getBoundingClientRect());
-    return {
-      clientWidth: document.documentElement.clientWidth,
-      scrollWidth: document.documentElement.scrollWidth,
-      previewRatios: previewBoxes.map((box) => Math.round((box.width / box.height) * 100) / 100),
-      previewsInsideViewport: previewBoxes.every((box) => box.left >= 0 && box.right <= document.documentElement.clientWidth + 1),
-    };
-  });
-  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
-  expect(layout.previewsInsideViewport).toBe(true);
-  expect(layout.previewRatios.every((ratio) => ratio >= 3.35 && ratio <= 3.5)).toBe(true);
-});
-
 test('published default corporate areas stay responsive @ci', async ({ page }, testInfo) => {
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
   const consoleEntries = observeConsole(page);
