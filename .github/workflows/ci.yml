@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.1', '8.2', '8.3', '8.4']
+        php: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
       - name: Setup PHP
@@ -48,14 +48,14 @@ jobs:
   # Matrix starts at 8.2: the dev toolchain (psalm 6.x → symfony 7.4 /
   # webmozart-assert) requires PHP >= 8.2, so `composer install` of the
   # committed lock can't run on 8.0/8.1. Product runtime support for 8.0+
-  # is still verified by the Lint job (php -l on 8.0–8.4).
+  # is still verified by the Lint job (php -l on 8.0–8.5).
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
 
@@ -392,6 +392,8 @@ jobs:
           BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e/php-server.log
         run: |
           node tests/e2e/run-local.js --grep "@ci"
+          node tests/e2e/run-local.js --lang=en tests/e2e/blox-home-language.spec.js --project=desktop-1440
+          node tests/e2e/run-local.js --lang=ja tests/e2e/blox-home-language.spec.js --project=desktop-1440
           node tests/e2e/run-local.js --free tests/e2e/blox-page.spec.js --project=desktop-1440
 
       - name: Dump application logs on failure
