@@ -88,7 +88,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   await expect(page.getByTestId('blox-publish')).toBeEnabled();
   await expect(page.getByTestId('blox-rollback')).toBeDisabled();
 
-  if (testInfo.project.name === 'mobile-390') {
+  if (testInfo.project.name !== 'desktop-1440') {
     await expect(page.getByTestId('blox-desktop-actions')).toBeHidden();
     await expect(page.getByTestId('blox-mobile-actions')).toBeVisible();
     await page.getByTestId('blox-mobile-actions-open').click();
@@ -99,6 +99,9 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(menu.getByRole('button', { name: /模板/ })).toBeVisible();
     await expect(menu.getByRole('link', { name: /前台/ })).toBeVisible();
     await expect(menu.getByRole('button', { name: /保存/ })).toBeVisible();
+    const actionHeights = await menu.locator(':scope > button, :scope > a').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+    expect(Math.min(...actionHeights)).toBeGreaterThanOrEqual(44);
+    if (testInfo.project.name !== 'mobile-390') return;
     await page.route('**/admin/blox_template_api.php?action=list**', async (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -176,6 +179,8 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
 
   await page.goto(`/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&open=header-settings`,
     { waitUntil: 'domcontentloaded' });
+  // 设置层默认收起（不自动弹盖画布）；像用户一样先点开「网页头设置」。
+  await page.getByTestId('blox-sticky-settings').locator('summary').click();
   const sticky = page.getByTestId('blox-sticky-toggle').locator('input');
   await expect(sticky).not.toBeChecked();
   await sticky.check();
@@ -186,6 +191,58 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
   // 全局 E2E 安全钩子禁止触发保存/发布；恢复初始值，证明按钮状态不依赖先保存。
   await sticky.uncheck();
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('current theme header switches Mega Menu in place and reorders the selected navigation @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop header editing baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+
+  await page.goto(`/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&open=header-settings`,
+    { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-tree-section').first().click();
+  const children = page.locator('[data-sort-child-item]');
+  const childTypes = () => children.evaluateAll((items) => items.map((item) => item.dataset.elementType));
+  const initialTypes = await childTypes();
+  const navigationIndex = initialTypes.indexOf('nav-mega');
+  expect(navigationIndex).toBeGreaterThan(0);
+  expect(navigationIndex).toBeLessThan(initialTypes.length - 1);
+  expect(initialTypes).toContain('logo');
+  expect(initialTypes).toContain('nav-drawer');
+  const normalTypes = initialTypes.slice();
+  normalTypes[navigationIndex] = 'nav';
+
+  const mega = page.locator('[data-sort-child-item][data-element-type="nav-mega"]');
+  const originalId = await mega.getAttribute('data-item-id');
+  await mega.click();
+  await expect(page.getByTestId('blox-navigation-quick-settings')).toBeVisible();
+
+  await performPreviewUpdate(page, () => page.getByTestId('blox-nav-type-normal').click());
+  expect(await childTypes()).toEqual(normalTypes);
+  await expect(page.locator('[data-sort-child-item][data-element-type="nav"]')).toHaveAttribute('data-item-id', originalId);
+  const contentFrame = await frame(page);
+  const standardNav = contentFrame.locator('[data-yk-el-type="nav"] ul').first();
+  await expect(standardNav).toBeVisible();
+  await expect(standardNav).toHaveClass(/hidden/);
+  await expect(standardNav).toHaveClass(/xl:flex/);
+  await expect(standardNav.locator('[data-yk-nav-caret]')).not.toHaveCount(0);
+
+  await undo(page);
+  expect(await childTypes()).toEqual(initialTypes);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  await expect(page.getByTestId('blox-redo')).toBeEnabled();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-redo').click());
+  expect(await childTypes()).toEqual(normalTypes);
+
+  const movedTypes = normalTypes.slice();
+  [movedTypes[navigationIndex], movedTypes[navigationIndex + 1]] = [movedTypes[navigationIndex + 1], movedTypes[navigationIndex]];
+  await performPreviewUpdate(page, () => page.getByTestId('blox-selected-element-down').click());
+  expect(await childTypes()).toEqual(movedTypes);
+  await performPreviewUpdate(page, () => page.getByTestId('blox-selected-element-up').click());
+  expect(await childTypes()).toEqual(normalTypes);
+
+  await restoreClean(page);
 });
 
 test('section spacing edits the active responsive tier @ci', async ({ page }, testInfo) => {
