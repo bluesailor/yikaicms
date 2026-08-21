@@ -14,6 +14,7 @@ if (!defined('ROOT_PATH')) {
 
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/ThemeRuntime.php';
+require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 
 // ============================================================
 // 全局错误自检测（装在这里而非 config.php：升级不覆盖客户的
@@ -1892,60 +1893,7 @@ function renderContent(?string $html): string
     return (string) apply_filters('content_render', $sanitized);
 }
 
-/**
- * 净化富文本HTML，移除危险标签和属性，保留安全的格式化标签
- */
-function sanitizeHtml(?string $html): string
-{
-    if ($html === null || $html === '') return '';
-
-    // 允许的标签白名单
-    $allowedTags = '<p><br><b><i><u><s><em><strong><small><sub><sup>'
-        . '<h1><h2><h3><h4><h5><h6>'
-        . '<ul><ol><li><dl><dt><dd>'
-        . '<table><thead><tbody><tfoot><tr><th><td><caption><colgroup><col>'
-        . '<a><img><figure><figcaption>'
-        . '<blockquote><pre><code><hr><div><span>'
-        . '<video><source><audio><iframe>';
-
-    // 第一步：移除 script/style 标签及其内容
-    $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
-    $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
-
-    // 第二步：strip_tags 保留白名单
-    $html = strip_tags($html, $allowedTags);
-
-    // 第三步：移除事件属性（on*）和 javascript: 协议
-    $html = preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html);
-    $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*javascript\s*:/i', 'data-removed="1"', $html);
-
-    // 第四步：限制 iframe src 为可信来源（如有需要可扩展）
-    $html = preg_replace_callback(
-        '/<iframe\b([^>]*)>/i',
-        function ($matches) {
-            $attrs = $matches[1];
-            // 只允许常见视频平台
-            if (preg_match('/src\s*=\s*["\']([^"\']+)["\']/i', $attrs, $srcMatch)) {
-                $src = $srcMatch[1];
-                $trusted = ['youtube.com', 'youtu.be', 'bilibili.com', 'player.bilibili.com', 'v.qq.com', 'youku.com'];
-                $allowed = false;
-                foreach ($trusted as $domain) {
-                    if (str_contains($src, $domain)) {
-                        $allowed = true;
-                        break;
-                    }
-                }
-                if (!$allowed) {
-                    return '<!-- iframe removed -->';
-                }
-            }
-            return $matches[0];
-        },
-        $html
-    );
-
-    return $html;
-}
+// sanitizeHtml() 已移至 includes/security.php（顶部 require），签名与行为约定不变。
 
 /**
  * 表单提交频率限制：检查是否被限流

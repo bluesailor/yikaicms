@@ -4,6 +4,7 @@
  *
  * - zipUnsafeEntry(): zip-slip 条目检测（解压前调用）
  * - sanitizeSvg():    SVG XSS 净化（上传 SVG 落盘后调用）
+ * - sanitizeHtml():   富文本 HTML 净化（原在 functions.php，移此便于单测）
  */
 
 declare(strict_types=1);
@@ -46,4 +47,77 @@ function sanitizeSvg(string $svg): string
     // href / xlink:href / src 里的 javascript: 或 data:（保留普通 http/相对引用）
     $svg = preg_replace('/(href|xlink:href|src)\s*=\s*("|\')\s*(javascript|data)\s*:[^"\']*\2/is', '$1=$2#$2', $svg) ?? $svg;
     return $svg;
+}
+
+/**
+ * 净化富文本HTML，移除危险标签和属性，保留安全的格式化标签。
+ *
+ * iframe 只放行可信视频平台，且按 parse_url 的 Host 精确比对（等于可信域
+ * 或其子域）。不能用 str_contains——`youtube.com.evil.com` 字符串里同样
+ * 包含 `youtube.com`，子串匹配挡不住伪装域名。
+ */
+function sanitizeHtml(?string $html): string
+{
+    if ($html === null || $html === '') return '';
+
+    // 允许的标签白名单
+    $allowedTags = '<p><br><b><i><u><s><em><strong><small><sub><sup>'
+        . '<h1><h2><h3><h4><h5><h6>'
+        . '<ul><ol><li><dl><dt><dd>'
+        . '<table><thead><tbody><tfoot><tr><th><td><caption><colgroup><col>'
+        . '<a><img><figure><figcaption>'
+        . '<blockquote><pre><code><hr><div><span>'
+        . '<video><source><audio><iframe>';
+
+    // 第一步：移除 script/style 标签及其内容
+    $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html) ?? $html;
+    $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html) ?? $html;
+
+    // 第二步：strip_tags 保留白名单
+    $html = strip_tags($html, $allowedTags);
+
+    // 第三步：移除事件属性（on*）和 javascript: 协议
+    $html = preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html) ?? $html;
+    $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*javascript\s*:/i', 'data-removed="1"', $html) ?? $html;
+
+    // 第四步：iframe src 限定可信视频平台（Host 精确比对）
+    $html = preg_replace_callback(
+        '/<iframe\b([^>]*)>/i',
+        function ($matches) {
+            $attrs = $matches[1];
+            if (preg_match('/src\s*=\s*["\']([^"\']+)["\']/i', $attrs, $srcMatch)) {
+                if (!trustedIframeHost(html_entity_decode($srcMatch[1]))) {
+                    return '<!-- iframe removed -->';
+                }
+            }
+            return $matches[0];
+        },
+        $html
+    ) ?? $html;
+
+    return $html;
+}
+
+/**
+ * iframe src 是否指向可信视频平台：http(s) 或协议相对，且 Host 等于
+ * 可信域或其子域。相对路径、其它协议、Host 解析失败一律拒绝。
+ */
+function trustedIframeHost(string $src): bool
+{
+    $trusted = ['youtube.com', 'youtube-nocookie.com', 'youtu.be', 'bilibili.com', 'v.qq.com', 'youku.com', 'vimeo.com'];
+    $parts = parse_url(trim($src));
+    if ($parts === false) {
+        return false;
+    }
+    $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+    $host = strtolower((string) ($parts['host'] ?? ''));
+    if ($host === '' || !in_array($scheme, ['http', 'https', ''], true)) {
+        return false;
+    }
+    foreach ($trusted as $domain) {
+        if ($host === $domain || str_ends_with($host, '.' . $domain)) {
+            return true;
+        }
+    }
+    return false;
 }

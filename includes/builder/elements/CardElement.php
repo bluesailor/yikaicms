@@ -26,7 +26,8 @@ final class CardElement extends AbstractElement
         $image = htmlspecialchars($data['image'] ?? '');
         $title = htmlspecialchars($data['title'] ?? '');
         $text = htmlspecialchars($data['text'] ?? '');
-        $link = htmlspecialchars($data['link'] ?? '');
+        // javascript: 等伪协议在这里拦；非法地址视同未填——退化为不可点击的 div
+        $link = htmlspecialchars(self::safeHref($data['link'] ?? ''));
 
         $inner = '';
         if ($image !== '') {

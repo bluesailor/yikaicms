@@ -50,6 +50,12 @@ final class TextElement extends AbstractElement
     public function render(array $data, string $children = ''): string
     {
         $html = (string) ($data['html'] ?? '');
+        // 渲染层第二道净化：保存管线已对 richtext 过 sanitizeHtml，这里再兜
+        // 历史脏数据 / 手工写库 / 插件与导入绕过保存层的情况（存储型 XSS）。
+        // 引擎自包含的裸环境（无 functions.php）没有 sanitizeHtml，原样输出。
+        if (function_exists('sanitizeHtml')) {
+            $html = sanitizeHtml($html);
+        }
         $siteField = (string) ($data['site_field'] ?? 'none');
         if ($siteField !== 'none') {
             $value = DynamicSiteData::value($siteField, 'text', (string) ($data['site_fallback'] ?? ''));

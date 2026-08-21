@@ -29,6 +29,7 @@ final class BloxDocumentPipeline
         }
 
         BloxDocumentValidator::assertValidSections($sections);
+        BloxElementPolicy::assertSectionsAllowed($sections);
         BloxQueryLoopPolicy::assertSectionsAllowed($sections);
         BloxDisplayConditions::assertSectionsAllowed($sections);
         BloxDesignSystem::assertSectionsAllowed($sections);
@@ -445,6 +446,13 @@ final class BloxDocumentPipeline
             }
             if (($control['type'] ?? '') === 'color' && $key !== '' && array_key_exists($key, $data)) {
                 $data[$key] = AbstractElement::cssColor($data[$key]) ?? '';
+            }
+            // richtext 落库前过 sanitizeHtml：直接构造 blocks_data 提交的恶意 HTML
+            // 在保存层就清掉（渲染层还有第二道，兜历史脏数据）。无 web 上下文
+            // （引擎自包含的单测/CLI）时 sanitizeHtml 不存在，跳过，渲染层兜底。
+            if (($control['type'] ?? '') === 'richtext' && $key !== '' && array_key_exists($key, $data)
+                && function_exists('sanitizeHtml')) {
+                $data[$key] = sanitizeHtml((string) $data[$key]);
             }
         }
         if (array_key_exists('children', $data) && is_array($data['children'])) {

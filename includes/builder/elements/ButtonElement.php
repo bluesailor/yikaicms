@@ -86,7 +86,8 @@ final class ButtonElement extends AbstractElement
             $rawUrl = DynamicSiteData::value($siteUrlField, 'url', '#');
         }
         $text = htmlspecialchars($rawText);
-        $url = htmlspecialchars($rawUrl);
+        // javascript: 等伪协议在这里拦（htmlspecialchars 挡不住）；非法地址退化为 #
+        $url = htmlspecialchars(self::safeHref($rawUrl) ?: '#');
         $target = !empty($data['new_tab']) ? ' target="_blank" rel="noopener"' : '';
         $align = in_array($data['align'] ?? '', ['left', 'center', 'right'], true) ? $data['align'] : 'left';
         $alignClass = ['left' => '', 'center' => ' text-center', 'right' => ' text-right'][$align];

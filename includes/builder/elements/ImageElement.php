@@ -84,12 +84,19 @@ final class ImageElement extends AbstractElement
         $clickAction = $data['click_action'] ?? '';
         $imgTag = '<img class="w-full rounded-lg" src="' . $src . '" alt="' . $alt . '" loading="lazy">';
         if ($clickAction === 'lightbox') {
-            return '<a href="' . $src . '" data-lightbox class="block cursor-zoom-in"' . $animationAttrs . '>' . $imgTag . '</a>';
+            // 灯箱的 href 是可点击链接，须过伪协议校验；src 不合法则退化为普通图片
+            $lightboxHref = self::safeHref($rawSrc);
+            if ($lightboxHref !== '') {
+                return '<a href="' . htmlspecialchars($lightboxHref) . '" data-lightbox class="block cursor-zoom-in"' . $animationAttrs . '>' . $imgTag . '</a>';
+            }
         }
         if ($clickAction === 'link' && !empty($data['link_url'])) {
-            $linkUrl = htmlspecialchars($data['link_url']);
-            $target = !empty($data['link_new_tab']) ? ' target="_blank" rel="noopener"' : '';
-            return '<a href="' . $linkUrl . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>';
+            // javascript: 等伪协议在这里拦；非法地址退化为普通图片
+            $linkUrl = self::safeHref($data['link_url']);
+            if ($linkUrl !== '') {
+                $target = !empty($data['link_new_tab']) ? ' target="_blank" rel="noopener"' : '';
+                return '<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>';
+            }
         }
         return '<img class="w-full rounded-lg" src="' . $src . '" alt="' . $alt . '" loading="lazy"' . $animationAttrs . '>';
     }

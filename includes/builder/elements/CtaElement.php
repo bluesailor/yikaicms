@@ -42,7 +42,8 @@ final class CtaElement extends AbstractElement
         $title = htmlspecialchars($rawTitle);
         $text = htmlspecialchars($rawText);
         $btnText = htmlspecialchars($rawBtnText);
-        $btnUrl = htmlspecialchars($rawBtnUrl);
+        // javascript: 等伪协议在这里拦（htmlspecialchars 挡不住）；非法地址退化为 #
+        $btnUrl = htmlspecialchars(self::safeHref($rawBtnUrl) ?: '#');
 
         $bgImage = self::cssImageUrl($data['bg_image'] ?? null);
         if ($bgImage !== null && $bgImage !== '') {

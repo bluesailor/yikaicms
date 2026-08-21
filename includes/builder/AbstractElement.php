@@ -152,6 +152,41 @@ abstract class AbstractElement
     }
 
     /**
+     * 可安全写入 href 的链接地址（与全局 safeUrl() 同一套语义，引擎自包含副本）。
+     *
+     * htmlspecialchars 只能防属性逃逸，防不了 javascript: 伪协议——它转义后
+     * 仍是可点击执行的存储型 XSS。允许：站内相对路径（排除协议相对 //）、
+     * 锚点、查询串、http(s)、mailto/tel。不合法返回空串，调用方据此不渲染链接。
+     */
+    public static function safeHref(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return '';
+        }
+        $value = trim($value);
+        if ($value === '' || mb_strlen($value) > 2000
+            || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
+            return '';
+        }
+        if ($value[0] === '/' && !str_starts_with($value, '//')) {
+            return $value;
+        }
+        if ($value[0] === '#' || $value[0] === '?') {
+            return $value;
+        }
+        // 动态循环模板的受控字段占位符（DynamicLoopTemplateRenderer::tag 生成，
+        // 字段名来自受控词汇表）。整串精确匹配且不含 fallback 等附加属性——
+        // 手写同格式短码最多替换成一个公开内容字段值，没有可注入的载体。
+        if (preg_match('/^\{yk:field name=[a-z0-9_]+ \/\}$/i', $value) === 1) {
+            return $value;
+        }
+        return preg_match('#^https?://#i', $value) === 1
+            || preg_match('#^(mailto|tel):#i', $value) === 1
+            ? $value
+            : '';
+    }
+
+    /**
      * 可用于 CSS background-image 的图片地址。
      *
      * 仅允许站内绝对路径与 http(s)；协议相对、data/javascript 及控制字符一律拒绝。
