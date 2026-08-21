@@ -156,15 +156,15 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0"
                    @click="if (collapsed && window.innerWidth >= 1024) { $event.preventDefault(); expandFromBlank(); }"
                    :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : ''">
+                    <?php // 收起态品牌区留空：64px 放不下 Logo/完整品牌名，截首字常无意义
+                          //（「后台管理」→「后」），而展开入口已有两处（侧栏边缘把手 + 顶栏开关），
+                          // 不再重复放图标。点击空白区仍可展开（expandFromBlank）。 ?>
                     <?php if ($adminLogo): ?>
                     <img src="<?php echo e($adminLogo); ?>" alt="" class="w-auto max-w-full flex-shrink min-w-0"
                          style="max-height: <?php echo $adminLogoMaxH; ?>px" x-show="!collapsed">
                     <?php else: ?>
                     <span class="text-xl font-bold text-white truncate" x-show="!collapsed"><?php echo e($adminBrand); ?></span>
                     <?php endif; ?>
-                    <?php // 收起态 64px 放不下 Logo/完整品牌名，截首字又常无意义（「后台管理」→「后」）。
-                          // 统一显示「展开侧栏」图标：点击本来就是展开动作，图标即操作提示。 ?>
-                    <i class="ti ti-layout-sidebar-left-expand text-2xl text-white" x-show="collapsed" x-cloak aria-hidden="true"></i>
                 </a>
             </div>
 
