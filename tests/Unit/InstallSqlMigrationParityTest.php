@@ -42,7 +42,6 @@ final class InstallSqlMigrationParityTest extends TestCase
         //（executionOrder="defects" 还会轮换用例顺序，暖不暖因此不稳定 → 本测试薛定谔红绿）。
         // 导入全新 install SQL 后必须失效该缓存，否则迁移 check() 读到的是上个用例的设置。
         $cacheProp = new \ReflectionProperty(\SettingModel::class, 'cache');
-        $cacheProp->setAccessible(true);
         $cacheProp->setValue(settingModel(), null);
 
         $pending = [];

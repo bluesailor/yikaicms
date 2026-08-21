@@ -55,4 +55,4 @@ header('Content-Type: image/png');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('Pragma: no-cache');
 imagepng($image);
-imagedestroy($image);
+unset($image);

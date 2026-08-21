@@ -41,6 +41,8 @@ final class NavDrawerElement extends AbstractElement
         $side = ($data['side'] ?? 'right') === 'left' ? 'left' : 'right';
         $channels = NavMegaElement::navTree($data);
         $siteName = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
+        $drawerSuffix = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($data['id'] ?? 'menu')) ?: 'menu';
+        $drawerId = 'yk-nav-drawer-' . $drawerSuffix;
 
         $items = '';
         foreach ($channels as $channel) {
@@ -51,7 +53,7 @@ final class NavDrawerElement extends AbstractElement
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? $channel['children'] : [];
             $items .= '<li class="border-b border-gray-100">';
-            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="block px-5 py-3 text-gray-800 hover:text-primary no-underline">' . $name . '</a>';
+            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="flex min-h-11 items-center px-5 text-gray-800 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . $name . '</a>';
             if ($kids !== []) {
                 $items .= '<ul class="pb-2">';
                 foreach ($kids as $kid) {
@@ -59,7 +61,7 @@ final class NavDrawerElement extends AbstractElement
                         continue;
                     }
                     $items .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($kid), ENT_QUOTES)
-                        . '"' . NavMegaElement::targetAttr($kid) . ' class="block pl-10 pr-5 py-2 text-sm text-gray-500 hover:text-primary no-underline">'
+                        . '"' . NavMegaElement::targetAttr($kid) . ' class="flex min-h-11 items-center pl-10 pr-5 text-sm text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">'
                         . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
                 }
                 $items .= '</ul>';
@@ -67,22 +69,29 @@ final class NavDrawerElement extends AbstractElement
             $items .= '</li>';
         }
 
-        $header = '';
-        if (!isset($data['show_logo']) || (string) $data['show_logo'] !== '0') {
-            $header = '<div class="px-5 py-4 border-b border-gray-100 font-bold text-gray-900">'
-                . htmlspecialchars($siteName, ENT_QUOTES) . '</div>';
-        }
+        $showLogo = !isset($data['show_logo']) || (string) $data['show_logo'] !== '0';
+        $header = '<div class="flex min-h-16 items-center justify-between gap-3 border-b border-gray-100 px-5">'
+            . ($showLogo ? '<span class="min-w-0 truncate font-bold text-gray-900">' . htmlspecialchars($siteName, ENT_QUOTES) . '</span>' : '<span></span>')
+            . '<button type="button" data-yk-drawer-close aria-label="' . htmlspecialchars(__('blox_drawer_close'), ENT_QUOTES) . '"'
+            . ' class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">'
+            . '<i class="ti ti-x text-2xl" aria-hidden="true"></i></button></div>';
+
+        $utilities = '<div class="space-y-4 border-t border-gray-100 px-5 py-5">'
+            . (new SiteSearchElement())->render(['layout' => 'wide', 'show_label' => false, 'tone' => 'dark'])
+            . (new LanguageSwitcherElement())->render(['layout' => 'inline', 'display' => 'name', 'show_flag' => true, 'tone' => 'dark'])
+            . '</div>';
 
         // 类名全部字面量（Tailwind 扫描）；抽屉初始 hidden，JS 切换
         $panelSide = $side === 'left' ? 'left-0' : 'right-0';
         return '<div class="xl:hidden" data-yk-nav-drawer data-side="' . $side . '"' . $this->animationAttrs($data) . '>'
-            . '<button type="button" data-yk-drawer-open aria-label="' . htmlspecialchars(__('blox_drawer_open'), ENT_QUOTES) . '"'
-            . ' class="inline-flex items-center justify-center w-10 h-10 rounded text-gray-700 hover:bg-gray-100">'
-            . '<i class="ti ti-menu-2 text-2xl"></i></button>'
-            . '<div data-yk-drawer-backdrop class="hidden fixed inset-0 bg-black/40 z-40"></div>'
-            . '<nav data-yk-drawer-panel class="hidden fixed top-0 ' . $panelSide . ' bottom-0 w-72 max-w-[85vw] bg-white shadow-2xl z-50 overflow-y-auto">'
+            . '<button type="button" data-yk-drawer-open aria-controls="' . $drawerId . '" aria-expanded="false" aria-label="' . htmlspecialchars(__('blox_drawer_open'), ENT_QUOTES) . '"'
+            . ' class="inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-700 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">'
+            . '<i class="ti ti-menu-2 text-2xl" aria-hidden="true"></i></button>'
+            . '<button type="button" data-yk-drawer-backdrop aria-label="' . htmlspecialchars(__('blox_drawer_close'), ENT_QUOTES) . '" class="hidden fixed inset-0 bg-black/40 z-40"></button>'
+            . '<nav id="' . $drawerId . '" data-yk-drawer-panel aria-hidden="true" aria-label="' . htmlspecialchars(__('menu_label'), ENT_QUOTES) . '" class="hidden fixed top-0 ' . $panelSide . ' bottom-0 w-80 max-w-[88vw] bg-white shadow-2xl z-50 overflow-y-auto overscroll-contain [padding-top:env(safe-area-inset-top)] [padding-bottom:env(safe-area-inset-bottom)]">'
             . $header
             . '<ul class="list-none m-0 p-0">' . $items . '</ul>'
+            . $utilities
             . '</nav></div>';
     }
 }

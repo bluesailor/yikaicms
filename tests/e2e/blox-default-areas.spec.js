@@ -58,28 +58,34 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     const footer = page.locator('.yk-blox-footer');
     await expect(header).toBeVisible();
     await expect(footer).toBeVisible();
-    await expect(header.locator('form[role="search"] input[name="keyword"]')).toBeVisible();
+    const utilitySearch = header.locator('section form[role="search"] input[name="keyword"]').first();
     const languageSwitcher = header.locator('[data-yk-language-switcher="dropdown"]');
     const languageTrigger = languageSwitcher.locator('[data-yk-language-trigger]');
     const languageMenu = languageSwitcher.locator('[data-yk-language-menu]');
-    await expect(languageTrigger).toBeVisible();
-    await expect(languageMenu).toBeHidden();
-    await languageTrigger.click();
-    await expect(languageMenu).toBeVisible();
-    await expect(languageMenu.locator('a[hreflang]')).toHaveCount(3);
-    await expect(languageMenu.locator('a[aria-current="page"]')).toHaveCount(1);
-    const menuBox = await languageMenu.boundingBox();
-    const viewport = page.viewportSize();
-    expect(menuBox).not.toBeNull();
-    expect(menuBox.x).toBeGreaterThanOrEqual(0);
-    expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(viewport.width + 1);
-    await page.locator('main').click({ position: { x: 1, y: 1 } });
-    await expect(languageMenu).toBeHidden();
-    await languageTrigger.click();
-    await languageMenu.locator('a[aria-current="page"]').focus();
-    await page.keyboard.press('Escape');
-    await expect(languageMenu).toBeHidden();
-    await expect(languageTrigger).toBeFocused();
+    if (testInfo.project.name === 'mobile-390') {
+      await expect(utilitySearch).toBeHidden();
+      await expect(languageTrigger).toBeHidden();
+    } else {
+      await expect(utilitySearch).toBeVisible();
+      await expect(languageTrigger).toBeVisible();
+      await expect(languageMenu).toBeHidden();
+      await languageTrigger.click();
+      await expect(languageMenu).toBeVisible();
+      await expect(languageMenu.locator('a[hreflang]')).toHaveCount(3);
+      await expect(languageMenu.locator('a[aria-current="page"]')).toHaveCount(1);
+      const menuBox = await languageMenu.boundingBox();
+      const viewport = page.viewportSize();
+      expect(menuBox).not.toBeNull();
+      expect(menuBox.x).toBeGreaterThanOrEqual(0);
+      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(viewport.width + 1);
+      await page.locator('main').click({ position: { x: 1, y: 1 } });
+      await expect(languageMenu).toBeHidden();
+      await languageTrigger.click();
+      await languageMenu.locator('a[aria-current="page"]').focus();
+      await page.keyboard.press('Escape');
+      await expect(languageMenu).toBeHidden();
+      await expect(languageTrigger).toBeFocused();
+    }
     await expect(header).toHaveAttribute('data-yk-sticky-behavior', 'always');
     await expect(header).toHaveAttribute('data-yk-sticky-desktop', '1');
     await expect(header).toHaveAttribute('data-yk-sticky-tablet', '1');
@@ -110,12 +116,27 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     } else {
       await expect(mega).toBeHidden();
       await expect(drawer).toBeVisible();
-      await expect(drawer.locator('[data-yk-drawer-open]')).toBeVisible();
+      const drawerOpen = drawer.locator('[data-yk-drawer-open]');
+      const drawerPanel = drawer.locator('[data-yk-drawer-panel]');
+      await expect(drawerOpen).toBeVisible();
+      await expect(drawerOpen).toHaveAttribute('aria-expanded', 'false');
+      const triggerBox = await drawerOpen.boundingBox();
+      expect(triggerBox.width).toBeGreaterThanOrEqual(44);
+      expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+      await drawerOpen.click();
+      await expect(drawerPanel).toBeVisible();
+      await expect(drawerPanel).toHaveAttribute('aria-hidden', 'false');
+      await expect(drawerPanel.locator('form[role="search"]')).toBeVisible();
+      await expect(drawerPanel.locator('[data-yk-language-switcher="inline"]')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(drawerPanel).toBeHidden();
+      await expect(drawerOpen).toHaveAttribute('aria-expanded', 'false');
+      await expect(drawerOpen).toBeFocused();
     }
 
     if (testInfo.project.name !== 'tablet-768') {
       const visualOptions = { threshold: 0.3, maxDiffPixelRatio: 0.05 };
-      const expectedHeaderHeight = testInfo.project.name === 'desktop-1440' ? 149 : 229;
+      const expectedHeaderHeight = testInfo.project.name === 'desktop-1440' ? 149 : 78;
       const naturalHeaderBox = await header.boundingBox();
       expect(naturalHeaderBox).not.toBeNull();
       expect(naturalHeaderBox.height).toBeGreaterThanOrEqual(expectedHeaderHeight - 2);
@@ -170,4 +191,42 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
   } finally {
     await unpublishAreas(page);
   }
+});
+
+test('default theme header keeps mobile navigation operable @ci', async ({ page }, testInfo) => {
+  await unpublishAreas(page);
+  await page.goto('/', { waitUntil: 'networkidle' });
+
+  const header = page.locator('#siteHeader');
+  const trigger = page.locator('#mobileMenuBtn');
+  const menu = page.locator('#mobileMenu');
+  await expect(header).toBeVisible();
+
+  if (testInfo.project.name === 'desktop-1440') {
+    await expect(trigger).toBeHidden();
+    await expect(menu).toBeHidden();
+    return;
+  }
+
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-controls', 'mobileMenu');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  const triggerBox = await trigger.boundingBox();
+  expect(triggerBox.width).toBeGreaterThanOrEqual(44);
+  expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+
+  await trigger.click();
+  await expect(menu).toBeVisible();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  const menuLayout = await menu.evaluate((element) => ({
+    right: element.getBoundingClientRect().right,
+    viewport: document.documentElement.clientWidth,
+    minLinkHeight: Math.min(...Array.from(element.querySelectorAll('a')).map((link) => link.getBoundingClientRect().height)),
+  }));
+  expect(menuLayout.right).toBeLessThanOrEqual(menuLayout.viewport + 1);
+  expect(menuLayout.minLinkHeight).toBeGreaterThanOrEqual(44);
+
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
 });

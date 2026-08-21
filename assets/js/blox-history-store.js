@@ -6,6 +6,7 @@
         this.limit = Math.max(2, parseInt(options.limit, 10) || 51);
         this.delay = Math.max(0, parseInt(options.delay, 10) || 700);
         this.getData = options.getData;
+        this.getSettings = typeof options.getSettings === "function" ? options.getSettings : null;
         this.getStructure = options.getStructure;
         this.getSelection = options.getSelection;
         this.isApplying = options.isApplying || function () { return false; };
@@ -16,11 +17,19 @@
     }
 
     BloxHistoryStore.prototype.snapshot = function (data) {
-        return {
+        var snapshot = {
             data: data === undefined ? this.getData() : data,
             structure: this.getStructure(),
             selection: this.getSelection(),
         };
+        if (this.getSettings) snapshot.settings = this.getSettings();
+        return snapshot;
+    };
+
+    BloxHistoryStore.prototype.sameContent = function (left, right) {
+        if (!left || !right || left.data !== right.data) return false;
+        return (left.settings === undefined ? null : left.settings)
+            === (right.settings === undefined ? null : right.settings);
     };
 
     BloxHistoryStore.prototype.init = function () {
@@ -34,7 +43,7 @@
 
     BloxHistoryStore.prototype.append = function (snapshot) {
         var current = this.entries[this.index] || null;
-        if (!snapshot || (current && snapshot.data === current.data)) return false;
+        if (!snapshot || this.sameContent(current, snapshot)) return false;
         if (this.index < this.entries.length - 1) {
             this.entries.splice(this.index + 1);
         }
@@ -52,7 +61,7 @@
             this.init();
             return;
         }
-        if (snapshot.data === current.data) {
+        if (this.sameContent(snapshot, current)) {
             clearTimeout(this.timer);
             this.pending = null;
             return;
@@ -72,16 +81,16 @@
         clearTimeout(this.timer);
         if (captureCurrent === true) {
             var current = this.entries[this.index] || null;
-            var currentData = this.getData();
-            if ((!this.pending || this.pending.data !== currentData)
-                && (!current || current.data !== currentData)) {
-                this.pending = this.snapshot(currentData);
+            var live = this.snapshot();
+            if ((!this.pending || !this.sameContent(this.pending, live))
+                && (!current || !this.sameContent(current, live))) {
+                this.pending = live;
             }
         }
         var pending = this.pending;
         this.pending = null;
         if (!pending) return false;
-        if (pending.data === this.getData()) pending.selection = this.getSelection();
+        if (this.sameContent(pending, this.snapshot())) pending.selection = this.getSelection();
         return this.append(pending);
     };
 

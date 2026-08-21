@@ -11,7 +11,9 @@ let baseURL = '';
 const runId = `${process.pid}-${Date.now()}`;
 const requestedArgs = process.argv.slice(2);
 const freeMode = requestedArgs.includes('--free');
-const playwrightArgs = requestedArgs.filter((arg) => arg !== '--free');
+const languageArg = requestedArgs.find((arg) => /^--lang=(?:zh-CN|en|ja)$/.test(arg));
+const smokeLang = languageArg ? languageArg.slice('--lang='.length) : 'zh-CN';
+const playwrightArgs = requestedArgs.filter((arg) => arg !== '--free' && arg !== languageArg);
 const outputDir = process.env.BLOX_E2E_OUTPUT_DIR
   || path.join(root, 'test-results', `e2e-${runId}`);
 const reportDir = process.env.BLOX_E2E_REPORT_DIR
@@ -90,7 +92,7 @@ async function main() {
     port = await choosePort();
     baseURL = `http://127.0.0.1:${port}`;
     setupAttempted = true;
-    const setup = runPhp(['tests/smoke/setup.php'], {
+    const setup = runPhp(['tests/smoke/setup.php', `--lang=${smokeLang}`], {
       ...process.env,
       SMOKE_SITE_URL: baseURL,
       SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
@@ -119,6 +121,7 @@ async function main() {
         BLOX_E2E_OUTPUT_DIR: outputDir,
         BLOX_E2E_REPORT_DIR: reportDir,
         SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
+        BLOX_E2E_SITE_LANG: smokeLang,
       },
       stdio: 'inherit',
     });

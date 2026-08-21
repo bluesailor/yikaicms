@@ -80,12 +80,12 @@ function generateThumbnails(string $filepath, string $ext): array
         // 生成缩略图文件路径
         $thumbPath = _thumbnailPath($filepath, $sizeName);
         _saveImage($dstImage, $thumbPath, $ext);
-        imagedestroy($dstImage);
+        unset($dstImage);
 
         $thumbs[$sizeName] = $thumbPath;
     }
 
-    imagedestroy($srcImage);
+    unset($srcImage);
     return $thumbs;
 }
 
@@ -138,7 +138,7 @@ function downscaleImage(string $filepath, string $ext, int $maxW, int $quality =
     $srcW = imagesx($src);
     $srcH = imagesy($src);
     if ($srcW <= $maxW) {            // 不需要缩
-        imagedestroy($src);
+        unset($src);
         return false;
     }
 
@@ -156,8 +156,7 @@ function downscaleImage(string $filepath, string $ext, int $maxW, int $quality =
         default       => false,
     };
 
-    imagedestroy($src);
-    imagedestroy($dst);
+    unset($src, $dst);
     return (bool) $ok;
 }
 
@@ -227,7 +226,7 @@ function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $qu
     }
 
     $result = imagewebp($srcImage, $dstPath, $quality);
-    imagedestroy($srcImage);
+    unset($srcImage);
     return $result;
 }
 

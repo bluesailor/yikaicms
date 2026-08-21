@@ -11,6 +11,21 @@ final class BloxAreaTemplatePresets
             'file' => 'clean-site-header.json',
             'name_key' => 'blox_area_preset_header_name',
             'description_key' => 'blox_area_preset_header_desc',
+            'preview' => 'content-left',
+        ],
+        'full-width-site-header' => [
+            'type' => 'header',
+            'file' => 'full-width-site-header.json',
+            'name_key' => 'blox_area_preset_full_width_header_name',
+            'description_key' => 'blox_area_preset_full_width_header_desc',
+            'preview' => 'viewport-left',
+        ],
+        'centered-site-header' => [
+            'type' => 'header',
+            'file' => 'centered-site-header.json',
+            'name_key' => 'blox_area_preset_centered_header_name',
+            'description_key' => 'blox_area_preset_centered_header_desc',
+            'preview' => 'centered-brand',
         ],
         'clean-site-footer' => [
             'type' => 'footer',
@@ -23,6 +38,7 @@ final class BloxAreaTemplatePresets
             'file' => 'corporate-site-header.json',
             'name_key' => 'blox_area_preset_corporate_header_name',
             'description_key' => 'blox_area_preset_corporate_header_desc',
+            'preview' => 'corporate',
         ],
         'corporate-site-footer' => [
             'type' => 'footer',
@@ -32,7 +48,7 @@ final class BloxAreaTemplatePresets
         ],
     ];
 
-    /** @return list<array{slug:string,type:string,name:string,description:string}> */
+    /** @return list<array{slug:string,type:string,name:string,description:string,preview:string}> */
     public static function catalog(): array
     {
         $items = [];
@@ -45,6 +61,7 @@ final class BloxAreaTemplatePresets
                 'type' => $preset['type'],
                 'name' => __($preset['name_key']),
                 'description' => __($preset['description_key']),
+                'preview' => (string) ($preset['preview'] ?? ''),
             ];
         }
         return $items;

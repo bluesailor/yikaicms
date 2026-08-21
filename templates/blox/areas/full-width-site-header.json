@@ -2,7 +2,7 @@
   "format": "yikaicms-blox-template",
   "version": 1,
   "type": "header",
-  "name": "Clean Site Header",
+  "name": "Full Width Site Header",
   "requires": {
     "elements": ["container", "logo", "nav-mega", "nav-drawer"],
     "plugins": []
@@ -14,8 +14,9 @@
       {
         "type": "section",
         "settings": {
-          "padding": "sm",
-          "max_width": "wide",
+          "padding": "none",
+          "max_width": "full",
+          "container_gutter": "none",
           "gap": "none",
           "bg_color": "#ffffff"
         },
@@ -30,7 +31,7 @@
                   "gap": "md",
                   "align": "center",
                   "justify": "between",
-                  "padding": "none",
+                  "padding": "sm",
                   "radius": "none",
                   "children": [
                     {"type": "logo", "data": {"display": "image", "height": "md", "link_home": true}},

@@ -252,12 +252,33 @@ if ($footerBgImage) {
 
     <script>
         // 移动端菜单切换
-        document.getElementById('mobileMenuBtn')?.addEventListener('click', function() {
+        (function() {
+            const button = document.getElementById('mobileMenuBtn');
             const menu = document.getElementById('mobileMenu');
             const hamburger = document.getElementById('hamburgerIcon');
-            menu?.classList.toggle('hidden');
-            hamburger?.classList.toggle('active');
-        });
+            if (!button || !menu) return;
+
+            function setOpen(open) {
+                menu.classList.toggle('hidden', !open);
+                hamburger?.classList.toggle('active', open);
+                button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+
+            button.addEventListener('click', function() {
+                setOpen(button.getAttribute('aria-expanded') !== 'true');
+            });
+            menu.addEventListener('click', function(event) {
+                if (event.target.closest('a')) setOpen(false);
+            });
+            document.addEventListener('keydown', function(event) {
+                if (event.key !== 'Escape' || button.getAttribute('aria-expanded') !== 'true') return;
+                setOpen(false);
+                button.focus();
+            });
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 1280) setOpen(false);
+            });
+        })();
     </script>
 
     <!-- General Lightbox -->

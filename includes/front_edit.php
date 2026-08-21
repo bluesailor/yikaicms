@@ -45,6 +45,10 @@ function renderFrontEdit(): void
       .yk-logo-btn:hover { background: #1d4ed8; color: #fff; }
       .yk-logo-btn--make { background: #7c3aed; }
       .yk-logo-btn--make:hover { background: #6d28d9; }
+      /* Touch/narrow screens prioritize the site's own controls; the admin bar still keeps page editing reachable. */
+      @media (max-width: 1023px), (hover: none) {
+        #yk-edit-outline, .yk-logo-btns { display: none !important; }
+      }
       @media print { #yk-edit-outline, .yk-logo-btns { display: none !important; } }
       /* 换Logo 对话框 */
       .yk-lgd-mask { position: fixed; inset: 0; z-index: 99995; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }

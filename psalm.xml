@@ -72,6 +72,8 @@
                 <file name="admin/blox_page_api.php" />
                 <file name="admin/blox_preview.php" />
                 <file name="admin/site_design.php" />
+                <!-- v1.18.4 新增独立入口 -->
+                <file name="admin/blox_cache_api.php" />
                 <!-- 不要在此登记 admin/blox_editor.php 等不随仓库分发的文件：
                      Psalm 在解析配置时就要求 <file> 路径真实存在，文件不在仓库里
                      会直接「Could not resolve config path」导致整个 CI 红。 -->
@@ -86,5 +88,11 @@
                 <file name="includes/builder/DynamicLoopTemplateRenderer.php" />
             </errorLevel>
         </PossiblyUnusedMethod>
+        <!-- 唯一使用方是付费 Blox 编辑器（不随仓库分发），无注入的 CI 判为未使用。 -->
+        <UnusedClass>
+            <errorLevel type="suppress">
+                <file name="includes/builder/BloxThemeHeaderDocument.php" />
+            </errorLevel>
+        </UnusedClass>
     </issueHandlers>
 </psalm>

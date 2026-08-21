@@ -54,6 +54,18 @@ $ogDescription = $pageDescription ?? $siteDescription;
 // 获取导航栏目（带子栏目）
 $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);
 
+// 编辑入口：仅管理员显示，目标必须与当前页面实际渲染的 Header 来源一致。
+$ykHeaderTemplateEditAttr = '';
+if (!empty($_SESSION['admin_id']) && function_exists('bloxTemplateModel') && function_exists('db')) {
+    $ykHeaderTemplateEditUrl = BloxAreaEditorTarget::url('header', [
+        'home' => basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'index.php',
+        'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
+        'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
+    ]);
+    $ykHeaderTemplateEditAttr = ' data-yk-edit="' . e($ykHeaderTemplateEditUrl) . '"'
+        . ' data-yk-edit-label="' . e(__('fe_edit_layout')) . '"';
+}
+
 // 当前栏目
 $currentChannelId = $currentChannelId ?? 0;
 $currentSlug = $currentSlug ?? '';
@@ -186,9 +198,11 @@ function getChannelUrl(array $channel): string {
     <!-- Top navigation -->
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
     <?php if ($ykBloxHeader !== ''): ?>
-    <?php echo $ykBloxHeader; // Blox 头模板接管；无发布模板时走下方原生头（逐主题回退，红线 5） ?>
+    <div<?php echo $ykHeaderTemplateEditAttr; ?>>
+        <?php echo $ykBloxHeader; // Blox 头模板接管；无发布模板时走下方原生头（逐主题回退，红线 5） ?>
+    </div>
     <?php else: ?>
-    <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
+    <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>"<?php echo $ykHeaderTemplateEditAttr; ?>>
         <?php if ($headerNavLayout === 'below'): ?>
         <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">
@@ -215,7 +229,9 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
-                <button id="mobileMenuBtn" class="xl:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
+                <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
+                        class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -331,7 +347,9 @@ function getChannelUrl(array $channel): string {
                     <script>document.addEventListener('click',function(e){if(!document.getElementById('langSwitcher').contains(e.target))document.getElementById('langDropdown').classList.add('hidden')});</script>
                     <?php endif; ?>
                 </nav>
-                <button id="mobileMenuBtn" class="xl:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
+                <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
+                        class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -343,19 +361,19 @@ function getChannelUrl(array $channel): string {
         <?php endif; ?>
 
         <!-- Mobile menu -->
-        <nav id="mobileMenu" class="xl:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
-            <div class="container mx-auto px-4 py-4">
+        <nav id="mobileMenu" class="xl:hidden hidden border-t shadow-[0_12px_24px_rgba(15,23,42,0.08)]" aria-label="<?php echo e(__('menu_label')); ?>" style="background-color: <?php echo e($headerBgColor); ?>">
+            <div class="container mx-auto px-4 py-3">
                 <?php foreach ($navChannels as $navItem): ?>
                 <?php $hasChildren = !empty($navItem['children']); ?>
                 <div class="<?php echo $hasChildren ? 'border-b border-gray-100 pb-2 mb-2' : ''; ?>">
                     <a href="<?php echo getChannelUrl($navItem); ?>"
                        <?php echo $navItem['type'] === 'link' ? 'target="' . e($navItem['link_target'] ?: '_self') . '"' : ''; ?>
-                       class="block py-2 hover:text-primary font-medium" style="color: <?php echo e($headerTextColor); ?>">
+                       class="flex min-h-11 items-center rounded-md px-2 font-medium transition hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" style="color: <?php echo e($headerTextColor); ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
                     <?php if ($hasChildren): ?>
                     <div class="pl-4">
-                        <?php echo renderNavMobileItems($navItem['children'], 0, $headerTextColor); ?>
+                        <?php echo renderNavMobileItems($navItem['children'], 0, $headerTextColor, 'flex min-h-11 items-center rounded-md px-2 text-sm transition hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'); ?>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -365,14 +383,26 @@ function getChannelUrl(array $channel): string {
                 <div class="border-t border-gray-100 pt-2 mt-2">
                     <?php if (isMemberLoggedIn()): ?>
                     <?php $memberInfo = $memberInfo ?? getMemberInfo(); ?>
-                    <a href="/member/profile.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_center'); ?> (<?php echo e($memberInfo['nickname']); ?>)</a>
-                    <a href="/member/logout.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>; opacity: 0.7"><?php echo __('member_logout_full'); ?></a>
+                    <a href="/member/profile.php" class="flex min-h-11 items-center rounded-md px-2 transition hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_center'); ?> (<?php echo e($memberInfo['nickname']); ?>)</a>
+                    <a href="/member/logout.php" class="flex min-h-11 items-center rounded-md px-2 transition hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" style="color: <?php echo e($headerTextColor); ?>; opacity: 0.7"><?php echo __('member_logout_full'); ?></a>
                     <?php else: ?>
-                    <a href="/member/login.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_login_full'); ?></a>
+                    <a href="/member/login.php" class="flex min-h-11 items-center rounded-md px-2 transition hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_login_full'); ?></a>
                     <?php if (config('allow_member_register') === '1'): ?>
-                    <a href="/member/register.php" class="block py-2 hover:text-primary" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_register_full'); ?></a>
+                    <a href="/member/register.php" class="flex min-h-11 items-center rounded-md px-2 transition hover:bg-black/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" style="color: <?php echo e($headerTextColor); ?>"><?php echo __('member_register_full'); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <?php if (config('show_lang_switcher', '0') === '1' && count(enabledLanguages()) > 1): ?>
+                <div data-yk-mobile-language class="mt-2 border-t border-gray-100 pt-3 [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center">
+                    <?php echo LanguageSwitcherElement::renderForLanguages(
+                        enabledLanguages(),
+                        siteLang(),
+                        (string) config('site_lang', 'zh-CN'),
+                        array_keys(availableLanguages()),
+                        (string) ($_SERVER['REQUEST_URI'] ?? '/'),
+                        ['layout' => 'inline', 'display' => 'name', 'show_flag' => true, 'tone' => 'dark']
+                    ); ?>
                 </div>
                 <?php endif; ?>
             </div>

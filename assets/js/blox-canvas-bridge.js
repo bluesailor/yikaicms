@@ -112,6 +112,21 @@
         return null;
     }
 
+    function areaEditPayload(value) {
+        if (!isObject(value) || (value.area !== "header" && value.area !== "footer")
+            || typeof value.url !== "string") return null;
+        var fallback = "/admin/site_design.php#site-design-area-" + value.area;
+        if (value.url === fallback) return { area: value.area, url: fallback };
+        var template = value.url.match(/^\/admin\/blox_editor\.php\?template=(\d+)(&current_header=1)?(&open=header-settings)?$/);
+        if (!template || parseInt(template[1], 10) < 1) return null;
+        if ((template[2] || template[3]) && value.area !== "header") return null;
+        return {
+            area: value.area,
+            url: "/admin/blox_editor.php?template=" + parseInt(template[1], 10)
+                + (template[2] || "") + (template[3] || "")
+        };
+    }
+
     function dropPayload(value) {
         if (!isObject(value) || value.version !== 1) return null;
         if (typeof value.type !== "string" || !/^[a-zA-Z0-9_][a-zA-Z0-9_\/-]{0,99}$/.test(value.type)) return null;
@@ -149,6 +164,7 @@
         this.onPickSection = options.onPickSection || noop;
         this.onClear = options.onClear || noop;
         this.onAreaHit = options.onAreaHit || noop;
+        this.onEditArea = options.onEditArea || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onQuickAdd = options.onQuickAdd || noop;
         this.onInsertAt = options.onInsertAt || noop;
@@ -263,6 +279,11 @@
         }
         if (typeof data.ykAreaHit === "number" && Number.isInteger(data.ykAreaHit) && data.ykAreaHit >= 0) {
             this.onAreaHit(data.ykAreaHit);
+            return true;
+        }
+        payload = areaEditPayload(data.ykEditArea);
+        if (payload) {
+            this.onEditArea(payload);
             return true;
         }
         if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {

@@ -51,7 +51,7 @@ CLI::register('import', '从 CSV 批量导入产品/文章（按 slug 幂等）'
         CLI::err("无法打开文件: {$file}");
         return 1;
     }
-    $header = fgetcsv($fh);
+    $header = fgetcsv($fh, null, ',', '"', '\\');
     if (!$header) {
         CLI::err('CSV 为空或无表头');
         fclose($fh);
@@ -92,7 +92,7 @@ CLI::register('import', '从 CSV 批量导入产品/文章（按 slug 幂等）'
 
     $created = 0; $updated = 0; $skipped = 0; $warned = 0; $line = 1;
 
-    while (($cols = fgetcsv($fh)) !== false) {
+    while (($cols = fgetcsv($fh, null, ',', '"', '\\')) !== false) {
         $line++;
         if (count(array_filter($cols, fn($c) => trim((string) $c) !== '')) === 0) continue; // 空行
         $row = [];
