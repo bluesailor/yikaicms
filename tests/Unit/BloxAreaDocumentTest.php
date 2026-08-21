@@ -96,6 +96,9 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertSame($elements, $prepared['requirements']['elements']);
             self::assertCount($sectionCount, $prepared['sections']);
             self::assertSame('', $prepared['thumbnail']);
+            if ($file === 'corporate-site-header.json') {
+                self::assertSame(['m'], $prepared['sections'][0]['settings']['hide_on']);
+            }
         }
     }
 

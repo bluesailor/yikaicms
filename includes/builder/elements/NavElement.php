@@ -25,6 +25,7 @@ final class NavElement extends AbstractElement
             ['key' => 'parent', 'type' => 'text', 'label' => __('blox_nav_parent'), 'default' => '', 'placeholder' => __('blox_empty_top_level')],
             ['key' => 'nav_only', 'type' => 'checkbox', 'label' => __('blox_nav_only'), 'default' => true],
             ['key' => 'dropdown', 'type' => 'checkbox', 'label' => __('blox_nav_dropdown'), 'default' => false],
+            ['key' => 'desktop_only', 'type' => 'checkbox', 'label' => __('blox_nav_desktop_only'), 'default' => false],
         ];
     }
 
@@ -54,7 +55,7 @@ final class NavElement extends AbstractElement
             }
             $items .= $this->renderMenuNode($node, !empty($data['dropdown']));
         }
-        $wrapClass = htmlspecialchars((string) ($data['wrap_class'] ?? 'flex flex-wrap gap-4'), ENT_QUOTES);
+        $wrapClass = htmlspecialchars($this->wrapClass($data), ENT_QUOTES);
         return '<ul class="' . $wrapClass . '">' . $items . '</ul>';
     }
 
@@ -79,9 +80,14 @@ final class NavElement extends AbstractElement
                 . htmlspecialchars((string) ($child['name'] ?? ''), ENT_QUOTES) . '</a></li>';
         }
         return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
-            . ' class="inline-flex items-center gap-1 hover:text-primary">' . $name . '</a>'
+            . ' class="inline-flex items-center gap-1 hover:text-primary">' . $name . $this->dropdownCaret() . '</a>'
             . '<ul class="absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block">'
             . $nested . '</ul></li>';
+    }
+
+    private function dropdownCaret(): string
+    {
+        return '<svg data-yk-nav-caret class="h-3 w-3 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
     }
 
     public function buildMarkup(array $data): string
@@ -99,7 +105,7 @@ final class NavElement extends AbstractElement
                 // 下拉箭头按 has_children 条件渲染。CSS hover 展开（group/nav 命名组），移动端配 nav-drawer。
                 ? '<li class="relative group/nav">'
                     . '<a href="{yk:field name=url /}" class="inline-flex items-center gap-1 hover:text-primary">{yk:field name=name /}'
-                    . '{yk:if field=has_children op=eq value=1}<svg class="h-3 w-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>{/yk:if}'
+                    . '{yk:if field=has_children op=eq value=1}' . $this->dropdownCaret() . '{/yk:if}'
                     . '</a>'
                     . '{yk:subnav wrap=ul class="absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block"}'
                     . '<li><a href="{yk:field name=url /}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary">{yk:field name=name /}</a></li>'
@@ -115,7 +121,17 @@ final class NavElement extends AbstractElement
             $attrs .= ' nav_only=0';
         }
 
-        $wrapClass = htmlspecialchars((string) ($data['wrap_class'] ?? 'flex flex-wrap gap-4'));
+        $wrapClass = htmlspecialchars($this->wrapClass($data));
         return '<ul class="' . $wrapClass . '">{yk:nav' . $attrs . '}' . $tpl . '{/yk:nav}</ul>';
+    }
+
+    /** @param array<string,mixed> $data */
+    private function wrapClass(array $data): string
+    {
+        $class = trim((string) ($data['wrap_class'] ?? 'flex flex-wrap gap-4'));
+        if (!empty($data['desktop_only'])) {
+            $class = 'hidden xl:flex ' . preg_replace('/(^|\s)flex(?=\s|$)/', '', $class);
+        }
+        return trim((string) preg_replace('/\s+/', ' ', $class));
     }
 }
