@@ -54,7 +54,7 @@ final class NavDrawerElement extends AbstractElement
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? $channel['children'] : [];
             $items .= '<li class="border-b border-gray-100">';
-            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="flex min-h-11 items-center px-5 text-gray-800 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . $name . '</a>';
+            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="flex min-h-11 items-center px-5 text-gray-800 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . NavMegaElement::nodeIconHtml($channel, 'mr-2') . $name . '</a>';
             if ($kids !== []) {
                 $items .= '<ul class="pb-2">';
                 foreach ($kids as $kid) {
@@ -63,7 +63,7 @@ final class NavDrawerElement extends AbstractElement
                     }
                     $items .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($kid), ENT_QUOTES)
                         . '"' . NavMegaElement::targetAttr($kid) . ' class="flex min-h-11 items-center pl-10 pr-5 text-sm text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">'
-                        . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
+                        . NavMegaElement::nodeIconHtml($kid, 'mr-2') . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
                 }
                 $items .= '</ul>';
             }

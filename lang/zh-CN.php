@@ -2595,6 +2595,8 @@ return [
     'blox_empty_top_level' => '留空=顶级',
     'blox_nav_only' => '仅导航栏目',
     'blox_nav_dropdown' => '桌面多级下拉',
+    'nav_menu_icon_placeholder' => '图标',
+    'nav_menu_icon_help' => '可选。填 Tabler 图标名（如 home、phone），或 bi: 前缀的 Bootstrap 图标（如 bi:house）。留空不显示图标',
     'blox_logo_custom' => '专属 Logo 图（可选）',
     'blox_logo_custom_help' => '留空跟随 系统设置 → 站点 Logo；设置后仅本页头使用此图（如深色页头配反白版 Logo）',
     'blox_logo_custom_height' => 'Logo 高度（px，可选）',

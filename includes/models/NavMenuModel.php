@@ -105,6 +105,8 @@ class NavMenuModel extends Model
                 'label' => $label,
                 'url' => $channelId > 0 ? '' : $url,
                 'target' => ($item['target'] ?? '') === '_blank' ? '_blank' : '',
+                // 图标名字符白名单（tabler 名称或 bi: 前缀），与 BloxValueSanitizer icon 同规则
+                'icon' => mb_substr((string) preg_replace('/[^a-zA-Z0-9:_-]/', '', (string) ($item['icon'] ?? '')), 0, 100),
                 'children' => $this->sanitizeItems($item['children'] ?? [], $depth + 1, $count),
             ];
         }
@@ -146,6 +148,8 @@ class NavMenuModel extends Model
             $node['url'] = $url;
             $node['_url'] = $url;
             $node['link_target'] = $target;
+            // 渲染端可选图标（仅菜单组项有；栏目投影树无此键=零输出变化）
+            $node['_icon'] = trim((string) ($item['icon'] ?? ''));
             $node['children'] = $this->buildNodes(is_array($item['children'] ?? null) ? $item['children'] : [], $depth + 1);
             $nodes[] = $node;
         }

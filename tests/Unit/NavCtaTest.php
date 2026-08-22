@@ -96,4 +96,23 @@ final class NavCtaTest extends TestCase
         $out = (new NavDrawerElement())->render(['id' => 't2']);
         $this->assertStringNotContainsString('pt-4', $out);
     }
+
+    // ---- 菜单项图标（v1.18.6：菜单组 _icon → 三端导航渲染）----
+
+    public function testNodeIconHtmlRendersTablerAndBootstrap(): void
+    {
+        $this->assertSame(
+            '<i class="ti ti-home mr-1" aria-hidden="true"></i>',
+            NavMegaElement::nodeIconHtml(['_icon' => 'home'], 'mr-1')
+        );
+        $this->assertStringContainsString('bi bi-house', NavMegaElement::nodeIconHtml(['_icon' => 'bi:house']));
+    }
+
+    public function testNodeIconHtmlEmptyForMissingOrNoneIcon(): void
+    {
+        // 栏目投影节点（无 _icon 键）与空值：输出空串——存量渲染逐字节不变
+        $this->assertSame('', NavMegaElement::nodeIconHtml([]));
+        $this->assertSame('', NavMegaElement::nodeIconHtml(['_icon' => '']));
+        $this->assertSame('', NavMegaElement::nodeIconHtml(['_icon' => 'none']));
+    }
 }

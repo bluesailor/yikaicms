@@ -2696,6 +2696,8 @@ return [
     'blox_empty_top_level' => '空欄＝トップレベル',
     'blox_nav_only' => 'ナビ表示チャンネルのみ',
     'blox_nav_dropdown' => 'ドロップダウンサブメニュー',
+    'nav_menu_icon_placeholder' => 'アイコン',
+    'nav_menu_icon_help' => '任意。Tabler アイコン名（例：home、phone）または bi: 接頭辞の Bootstrap アイコン（例：bi:house）。空欄の場合は非表示',
     'blox_logo_custom' => '専用ロゴ画像（任意）',
     'blox_logo_custom_help' => '空欄の場合は システム設定 → サイトロゴ に従います。設定するとこのヘッダーのみこの画像を使用します（ダークヘッダー用の白抜きロゴなど）',
     'blox_logo_custom_height' => 'ロゴの高さ（px・任意）',

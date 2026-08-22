@@ -2526,6 +2526,8 @@ return [
     'blox_empty_top_level' => 'Empty = top level',
     'blox_nav_only' => 'Nav channels only',
     'blox_nav_dropdown' => 'Desktop dropdown submenu',
+    'nav_menu_icon_placeholder' => 'Icon',
+    'nav_menu_icon_help' => 'Optional. A Tabler icon name (e.g. home, phone) or a bi:-prefixed Bootstrap icon (e.g. bi:house). Empty = no icon',
     'blox_logo_custom' => 'Custom logo image (optional)',
     'blox_logo_custom_help' => 'Empty = follow Settings → Site logo; when set, only this header uses it (e.g. a white logo variant for dark headers)',
     'blox_logo_custom_height' => 'Logo height (px, optional)',

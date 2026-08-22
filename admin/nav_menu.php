@@ -317,6 +317,10 @@ $currentMenu = 'nav_menu';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+<?php // 菜单项图标预览需要 bi: 前缀集（后台全局只带 Tabler） ?>
+<link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
+<?php
+?>
 
 <?php if (count($_enabledList) > 1): ?>
 <div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
@@ -918,6 +922,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="text-sm text-gray-800" x-text="displayName(item)"></span>
                         <input type="text" x-model="item.label" placeholder="<?php echo e(__('nav_menu_label_override')); ?>"
                                class="border border-gray-100 rounded px-2 py-0.5 text-xs w-28 text-gray-500">
+                        <span class="inline-flex items-center gap-1">
+                            <i class="text-sm text-gray-500" :class="iconPreviewClass(item.icon)" aria-hidden="true"></i>
+                            <input type="text" x-model="item.icon" placeholder="<?php echo e(__('nav_menu_icon_placeholder')); ?>"
+                                   title="<?php echo e(__('nav_menu_icon_help')); ?>"
+                                   class="border border-gray-100 rounded px-2 py-0.5 text-xs w-24 text-gray-500 font-mono">
+                        </span>
                         <label x-show="item.channel_id === 0" class="text-[11px] text-gray-400 inline-flex items-center gap-1">
                             <input type="checkbox" :checked="item.target === '_blank'" @change="item.target = $event.target.checked ? '_blank' : ''" class="rounded border-gray-300"> <?php echo e(__('nav_menu_new_window')); ?>
                         </label>
@@ -937,6 +947,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <span class="text-sm text-gray-700" x-text="displayName(kid)"></span>
                                     <input type="text" x-model="kid.label" placeholder="<?php echo e(__('nav_menu_label_override')); ?>"
                                            class="border border-gray-100 rounded px-2 py-0.5 text-xs w-24 text-gray-500">
+                                    <span class="inline-flex items-center gap-1">
+                                        <i class="text-sm text-gray-500" :class="iconPreviewClass(kid.icon)" aria-hidden="true"></i>
+                                        <input type="text" x-model="kid.icon" placeholder="<?php echo e(__('nav_menu_icon_placeholder')); ?>"
+                                               title="<?php echo e(__('nav_menu_icon_help')); ?>"
+                                               class="border border-gray-100 rounded px-2 py-0.5 text-xs w-20 text-gray-500 font-mono">
+                                    </span>
                                     <span class="ml-auto flex items-center gap-1 text-gray-300">
                                         <button type="button" @click="move(item.children, j, -1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_up')); ?>" aria-label="<?php echo e(__('nav_menu_move_up')); ?>"><i class="ti ti-arrow-up"></i></button>
                                         <button type="button" @click="move(item.children, j, 1)" class="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-gray-100 hover:text-gray-600" title="<?php echo e(__('nav_menu_move_down')); ?>" aria-label="<?php echo e(__('nav_menu_move_down')); ?>"><i class="ti ti-arrow-down"></i></button>
@@ -1003,7 +1019,7 @@ function ykMenuGroupEditor(boot) {
         addChannel() {
             var id = parseInt(this.addChannelId, 10) || 0;
             if (id <= 0) return;
-            this._receiver().push({ channel_id: id, label: "", url: "", target: "", children: [] });
+            this._receiver().push({ channel_id: id, label: "", url: "", target: "", icon: "", children: [] });
             this.addChannelId = 0;
             this.cancelChild();
             this.initSortable();
@@ -1011,10 +1027,16 @@ function ykMenuGroupEditor(boot) {
         addLink() {
             var label = this.addLabel.trim(), url = this.addUrl.trim();
             if (!label || !url) return;
-            this._receiver().push({ channel_id: 0, label: label, url: url, target: "", children: [] });
+            this._receiver().push({ channel_id: 0, label: label, url: url, target: "", icon: "", children: [] });
             this.addLabel = ""; this.addUrl = "";
             this.cancelChild();
             this.initSortable();
+        },
+        // 图标实时预览：tabler 名称或 bi: 前缀（与前台 BloxIcon 同规则）
+        iconPreviewClass(icon) {
+            icon = (icon || "").trim();
+            if (!icon) return "hidden";
+            return icon.indexOf("bi:") === 0 ? "bi bi-" + icon.slice(3) : "ti ti-" + icon;
         },
         addChildTo(node, depth) {
             this._pendingParent = node;

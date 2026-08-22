@@ -122,6 +122,17 @@ final class NavMegaElement extends AbstractElement
         return $tree;
     }
 
+    /** 菜单组项的可选图标（_icon，见 NavMenuModel::buildNodes）；无图标返回空串 */
+    public static function nodeIconHtml(array $node, string $extraClass = ''): string
+    {
+        $icon = trim((string) ($node['_icon'] ?? ''));
+        if ($icon === '' || BloxIcon::isNone($icon)) {
+            return '';
+        }
+        return '<i class="' . htmlspecialchars(BloxIcon::classes($icon), ENT_QUOTES)
+            . ($extraClass !== '' ? ' ' . $extraClass : '') . '" aria-hidden="true"></i>';
+    }
+
     /** 组树自定义链接可配 _blank（栏目投影节点无此键=空串） */
     public static function targetAttr(array $node): string
     {
@@ -150,7 +161,7 @@ final class NavMegaElement extends AbstractElement
             $kids = is_array($channel['children'] ?? null) ? array_values(array_filter($channel['children'], 'is_array')) : [];
 
             if ($kids === []) {
-                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . $name . '</a></li>';
+                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . self::nodeIconHtml($channel, 'mr-1.5') . $name . '</a></li>';
                 continue;
             }
 
@@ -163,7 +174,7 @@ final class NavMegaElement extends AbstractElement
             }
 
             $items .= '<li class="group/mega">'
-                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . $name
+                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1') . $name
                 . '<svg class="h-3 w-3 opacity-60 transition-transform group-hover/mega:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>'
                 // 面板：相对元素根全宽；hover/focus-within 展开；关闭态不拦截指针
                 . '<div class="yk-mega-panel invisible absolute ' . $panelPos . ' top-full z-40 opacity-0 transition-all duration-150 pointer-events-none'
@@ -186,7 +197,7 @@ final class NavMegaElement extends AbstractElement
         $grand = is_array($kid['children'] ?? null) ? array_values(array_filter($kid['children'], 'is_array')) : [];
 
         $html = '<div class="min-w-0">'
-            . '<a href="' . $url . '"' . self::targetAttr($kid) . ' class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . $name . '</a>';
+            . '<a href="' . $url . '"' . self::targetAttr($kid) . ' class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . self::nodeIconHtml($kid, 'mr-1') . $name . '</a>';
         if ($showDesc && trim((string) ($kid['description'] ?? '')) !== '') {
             $html .= '<p class="mt-1 text-xs text-gray-400 line-clamp-2">'
                 . htmlspecialchars((string) $kid['description'], ENT_QUOTES) . '</p>';
