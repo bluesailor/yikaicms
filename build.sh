@@ -226,6 +226,9 @@ EXCLUDES=(
     "plugins/stats"
     "plugins/product-carousel"
     "plugins/logo-maker"
+    # seo（SEO 助手）2026-08-22 同样移出核心包：Pro 闸 + 三张自建表，属"要用才装"
+    # 的增强件；免费层 llms.txt / 实时分析 / SERP 预览 / 手动推送 装上即得。
+    "plugins/seo"
 
     # 主题：运行包只内置 default。aurora/business/minimal/trade 的源码集中在
     # marketplace/themes/，由 update.yikaicms.com 主题市场签名分发，不进入 CMS 包。

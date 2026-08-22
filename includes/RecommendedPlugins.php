@@ -26,6 +26,12 @@ final class RecommendedPlugins
             'label' => 'rec_plugin_logo_maker',
             'desc' => 'rec_plugin_logo_maker_desc',
         ],
+        [
+            'slug' => 'seo',
+            'icon' => 'ti-chart-arcs',
+            'label' => 'rec_plugin_seo',
+            'desc' => 'rec_plugin_seo_desc',
+        ],
     ];
 
     /**
