@@ -2595,6 +2595,7 @@ return [
     'blox_empty_top_level' => '留空=顶级',
     'blox_nav_only' => '仅导航栏目',
     'blox_nav_dropdown' => '桌面多级下拉',
+    'blox_back_to_home_editor' => '返回首页编辑',
     'blox_nav_cta_text' => '尾部按钮文字（CTA）',
     'blox_nav_cta_ph' => '如：联系我们；留空不显示',
     'blox_nav_cta_url' => '尾部按钮链接',

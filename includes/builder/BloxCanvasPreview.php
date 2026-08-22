@@ -232,13 +232,13 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             'header',
             $headerBlox !== '' ? $headerBlox : $renderThemeArea('header'),
             $headerBlox !== '' ? 'blox' : 'theme',
-            BloxAreaEditorTarget::url('header', $homeAreaContext)
+            BloxAreaEditorTarget::url('header', $homeAreaContext, 'home')
         );
         $footerBody = $wrapContextArea(
             'footer',
             $footerBlox !== '' ? $footerBlox : $renderThemeArea('footer'),
             $footerBlox !== '' ? 'blox' : 'theme',
-            BloxAreaEditorTarget::url('footer', $homeAreaContext)
+            BloxAreaEditorTarget::url('footer', $homeAreaContext, 'home')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
         $body = $headerBody . $homeBody . $footerBody;

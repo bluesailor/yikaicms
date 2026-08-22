@@ -5,9 +5,20 @@ declare(strict_types=1);
     <!-- ===== 顶栏 ===== -->
     <header class="blox-editor-header h-14 bg-gray-900 text-white flex items-center justify-between px-4 gap-4 select-none">
         <div class="blox-header-brand flex items-center gap-3 min-w-0">
-            <a href="<?php echo e($templateId ? '/admin/blox_templates.php' : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')); ?>"
-               class="text-gray-300 hover:text-white inline-flex items-center gap-1 text-sm shrink-0" title="<?= e(__('admin_back')) ?>">
+            <?php
+            // 返回目标：带 back=home（从首页编辑器画布跳来）时回首页编辑器，
+            // 否则按编辑对象回各自管理页
+            $bloxBackUrl = ($editorBackTo ?? '') === 'home'
+                ? '/admin/blox_editor.php?home=1'
+                : ($templateId ? '/admin/blox_templates.php' : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php'));
+            $bloxBackTitle = ($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back');
+            ?>
+            <a href="<?php echo e($bloxBackUrl); ?>" data-testid="blox-back"
+               class="text-gray-300 hover:text-white inline-flex items-center gap-1 text-sm shrink-0" title="<?= e($bloxBackTitle) ?>">
                 <i class="ti ti-chevron-left text-lg"></i>
+                <?php if (($editorBackTo ?? '') === 'home'): ?>
+                <span class="text-xs whitespace-nowrap"><?php echo e(__('blox_back_to_home_editor')); ?></span>
+                <?php endif; ?>
             </a>
             <span class="blox-header-brand-copy inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
                 <i class="ti ti-stack-2 text-blue-400"></i>Blox

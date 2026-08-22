@@ -98,7 +98,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\') : \'\';', $canvas);
         $this->assertStringContainsString('yk-home-context-area', $canvas);
         $this->assertStringContainsString('data-testid="blox-context-edit-\' . $area', $canvas);
-        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$homeAreaContext)", $canvas);
+        // v1.18.6：首页画布的页头编辑入口带 back=home——编辑完页头一键返回首页编辑器
+        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$homeAreaContext, 'home')", $canvas);
         $this->assertStringContainsString('$body = $headerBody . $homeBody . $footerBody;', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');

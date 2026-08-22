@@ -2526,6 +2526,7 @@ return [
     'blox_empty_top_level' => 'Empty = top level',
     'blox_nav_only' => 'Nav channels only',
     'blox_nav_dropdown' => 'Desktop dropdown submenu',
+    'blox_back_to_home_editor' => 'Back to homepage editor',
     'blox_nav_cta_text' => 'Trailing CTA text',
     'blox_nav_cta_ph' => 'e.g. Contact us; empty = hidden',
     'blox_nav_cta_url' => 'Trailing CTA link',

@@ -2696,6 +2696,7 @@ return [
     'blox_empty_top_level' => '空欄＝トップレベル',
     'blox_nav_only' => 'ナビ表示チャンネルのみ',
     'blox_nav_dropdown' => 'ドロップダウンサブメニュー',
+    'blox_back_to_home_editor' => 'ホームページ編集に戻る',
     'blox_nav_cta_text' => '末尾CTAボタンのテキスト',
     'blox_nav_cta_ph' => '例：お問い合わせ（空欄で非表示）',
     'blox_nav_cta_url' => '末尾CTAボタンのリンク',
