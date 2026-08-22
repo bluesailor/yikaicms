@@ -17,8 +17,11 @@ final class BloxAreaEditorTarget
 
     /**
      * @param array{home?:bool,channel_id?:int,page_id?:int} $context
+     * @param string $back 返回目的地白名单标记（如 'home'=首页编辑器）。
+     *                     从首页/页面编辑器画布跳来的用户，编辑完页头要能一键回到
+     *                     出发点——此前固定回模板列表页，是「编辑页头很绕」的主断点。
      */
-    public static function url(string $area, array $context = []): string
+    public static function url(string $area, array $context = [], string $back = ''): string
     {
         if (!in_array($area, ['header', 'footer'], true)) {
             return '/admin/site_design.php';
@@ -39,7 +42,7 @@ final class BloxAreaEditorTarget
                 ]);
                 $resolvedId = (int) ($resolved['id'] ?? 0);
                 if ($resolvedId > 0) {
-                    return self::editorUrl($area, $resolvedId);
+                    return self::editorUrl($area, $resolvedId, false, $back);
                 }
             }
 
@@ -56,7 +59,7 @@ final class BloxAreaEditorTarget
             ]);
             $themeDraftId = (int) ($themeDraft['id'] ?? 0);
             return $themeDraftId > 0
-                ? self::editorUrl($area, $themeDraftId, $area === 'header')
+                ? self::editorUrl($area, $themeDraftId, $area === 'header', $back)
                 : $fallback;
         } catch (Throwable $e) {
             error_log('[BloxAreaEditorTarget] ' . $e->getMessage());
@@ -84,12 +87,21 @@ final class BloxAreaEditorTarget
         return 'clean-site-header';
     }
 
-    private static function editorUrl(string $area, int $id, bool $currentThemeHeader = false): string
+    private static function editorUrl(string $area, int $id, bool $currentThemeHeader = false, string $back = ''): string
     {
         $url = '/admin/blox_editor.php?template=' . $id;
         if ($currentThemeHeader) {
             $url .= '&current_header=1';
         }
+        if (self::isAllowedBack($back)) {
+            $url .= '&back=' . $back;
+        }
         return $area === 'header' ? $url . '&open=header-settings' : $url;
+    }
+
+    /** back 值白名单（防 open redirect）；blox_editor.php 读取时同一判定 */
+    public static function isAllowedBack(string $back): bool
+    {
+        return $back === 'home';
     }
 }

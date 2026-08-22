@@ -41,6 +41,11 @@ require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 $jt = static fn (string $key): string => (string) json_encode(__($key), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 
 $isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
+// 返回目的地（白名单）：从首页编辑器画布跳来编辑页头/页尾时，顶栏返回键
+// 指回首页编辑器而不是模板列表页——否则改完页头就迷路（2026-08-22 走查主断点）
+$editorBackTo = BloxAreaEditorTarget::isAllowedBack((string) ($_GET['back'] ?? ''))
+    ? (string) $_GET['back']
+    : '';
 $id = getInt('id');
 $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
 $isCurrentThemeHeaderEdit = false;
