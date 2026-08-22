@@ -2697,7 +2697,7 @@ return [
     'blox_nav_only' => 'ナビ表示チャンネルのみ',
     'blox_nav_dropdown' => 'ドロップダウンサブメニュー',
     'channel_icon_label' => 'ナビゲーションアイコン（任意）',
-    'channel_icon_help' => 'Tabler アイコン名（例：home、box）または bi: 接頭辞の Bootstrap アイコン（例：bi:house）。フロントのメニューでチャンネル名の前に表示されます。空欄なら非表示',
+    'channel_icon_help' => '上のよく使うアイコンをクリックして選択できます。Tabler アイコン名（tabler.io/icons）や bi: 接頭辞の Bootstrap アイコンを直接入力することも可能です。フロントのメニューでチャンネル名の前に表示されます',
     'nav_menu_icon_placeholder' => 'アイコン',
     'nav_menu_icon_help' => '任意。Tabler アイコン名（例：home、phone）または bi: 接頭辞の Bootstrap アイコン（例：bi:house）。空欄の場合は非表示',
     'blox_logo_custom' => '専用ロゴ画像（任意）',
