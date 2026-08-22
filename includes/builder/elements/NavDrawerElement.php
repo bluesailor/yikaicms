@@ -28,7 +28,6 @@ final class NavDrawerElement extends AbstractElement
             ['key' => 'show_logo', 'type' => 'checkbox', 'label' => __('blox_drawer_show_logo'), 'default' => true],
             ['key' => 'menu_group', 'type' => 'select', 'label' => __('blox_menu_source'), 'default' => 0,
                 'options' => [0 => __('blox_menu_source_default')] + NavMegaElement::menuGroupOptions()],
-            NavMegaElement::autoIconControl(),
             ...NavMegaElement::ctaControls(),
         ];
     }
@@ -42,7 +41,7 @@ final class NavDrawerElement extends AbstractElement
     {
         $side = ($data['side'] ?? 'right') === 'left' ? 'left' : 'right';
         $channels = NavMegaElement::navTree($data);
-        $autoIcons = !empty($data['auto_icons']);
+        $autoIcons = NavMegaElement::autoIconsEnabled();
         $siteName = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
         $drawerSuffix = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($data['id'] ?? 'menu')) ?: 'menu';
         $drawerId = 'yk-nav-drawer-' . $drawerSuffix;

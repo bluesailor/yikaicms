@@ -120,6 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    if ($action === 'toggle_nav_icons') {
+        settingModel()->saveBatch(['nav_icons_enabled' => postInt('val') === 1 ? '1' : '0']);
+        success();
+    }
+
     if ($action === 'toggle_home_nav') {
         $homeShow = postInt('val') === 1 ? '1' : '0';
         settingModel()->saveBatch([$homeShowKey => $homeShow]);
@@ -336,6 +341,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endforeach; ?>
 </div>
 <?php endif; ?>
+
+<?php // 菜单图标站点级总开关：开=全部菜单项自动匹配图标（栏目/菜单项手动配置优先） ?>
+<div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm" data-testid="nav-icons-toggle-card">
+    <i class="ti ti-icons text-lg text-gray-500" aria-hidden="true"></i>
+    <span class="font-medium text-gray-800"><?php echo e(__('nav_icons_enable_label')); ?></span>
+    <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="navIconsToggle" class="sr-only peer" <?php echo (string) config('nav_icons_enabled', '0') === '1' ? 'checked' : ''; ?>
+               onchange="ykToggleNavIcons(this)">
+        <span class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary transition-colors"></span>
+        <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
+    </label>
+    <span class="text-gray-400 text-xs"><?php echo e(__('nav_icons_enable_help')); ?></span>
+</div>
+<script>
+function ykToggleNavIcons(el) {
+    var fd = new FormData();
+    fd.append('action', 'toggle_nav_icons');
+    fd.append('val', el.checked ? '1' : '0');
+    fd.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+    fetch('nav_menu.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+}
+</script>
 
 <?php if (isset($_GET['saved'])): ?>
 <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-5 py-3 mb-4 text-sm text-emerald-700" data-testid="nav-menu-saved">
