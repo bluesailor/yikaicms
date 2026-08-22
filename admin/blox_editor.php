@@ -346,7 +346,7 @@ if ($isHomeBlox && $advancedBloxEnabled && db()->tableExists('blox_templates')) 
         'home' => true,
         'channel_id' => 0,
         'page_id' => 0,
-    ]);
+    ], 'home');   // 从首页编辑器出发——页头编辑器顶栏给「返回首页编辑」
 }
 $initBlocks = json_encode(
     $bootDoc['sections'],
