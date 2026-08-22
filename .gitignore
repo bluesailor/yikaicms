@@ -139,3 +139,9 @@ plugins/*/admin-local.php
 
 # 本机 AI 工作流技能（内部路径/流程，不随仓库分发）
 /.agents/
+
+# 临时/试验产物目录：不是运行时目录（代码零引用），却因未被忽略而被 build.sh 的
+# `ls-files --others` 扫进发行包——v1.18.5 就带上了 640KB 的 PDF 试验残留文件。
+# build.sh 的 EXCLUDES 里也有一份，两层都拦。
+/tmp/
+/output/

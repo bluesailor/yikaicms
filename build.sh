@@ -186,6 +186,12 @@ EXCLUDES=(
     "tests"
     "tools"
 
+    # 试验/中间产物目录：不是运行时目录（代码零引用）。v1.18.5 的包里带进了 640KB
+    # PDF 试验残留——因为它们既未被 git 跟踪、又未被 .gitignore 忽略，恰好落进
+    # `ls-files --others --exclude-standard` 的采集范围。.gitignore 里也有一份。
+    "tmp"
+    "output"
+
     # 注：vendor 不整体排除 —— 运行时需 overtrue/pinyin（生成中文 slug）。
     #     dev 依赖（psalm/phpunit 等）在下方循环后单独剔除，只保留生产部分。
 
