@@ -85,6 +85,18 @@ final class BloxStoredXssTest extends TestCase
         $this->assertStringNotContainsString('javascript:', $out);
     }
 
+    public function testSanitizeHtmlStripsVbscriptAndDataHtmlKeepsDataImage(): void
+    {
+        // v1.18.6 补口：vbscript 与非图片 data: 伪协议同样剥离
+        $out = sanitizeHtml('<a href="vbscript:msgbox(1)">a</a><a href="data:text/html,<script>x</script>">b</a>');
+        $this->assertStringNotContainsString('vbscript:', $out);
+        $this->assertStringNotContainsString('data:text/html', $out);
+
+        // data:image/* 是富文本内联图的合法形态，不误伤
+        $img = '<img src="data:image/png;base64,iVBORw0KGgo=">';
+        $this->assertStringContainsString('data:image/png', sanitizeHtml($img));
+    }
+
     // ---- TextElement：渲染层净化 ----
 
     public function testTextElementSanitizesRichtextOnRender(): void
