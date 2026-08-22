@@ -785,6 +785,51 @@ function logoMakerRandomIndustryIconMap(): array
     return $map = is_array($loaded) ? $loaded : [];
 }
 
+/**
+ * 取一个内置图标的 SVG 源码；取不到返回 null。
+ *
+ * 图标随插件分发的形态是「索引 + 数据块」（icons-index.php + icons.bin），不是
+ * 7618 个散文件——散文件会让插件包超过 zip 炸弹防护的 5000 条目上限，装都装不上。
+ * 取用时只 fseek/fread 需要的那一段，不为一个图标解析整个 4MB。
+ *
+ * 仓库里散 SVG 仍在（素材源），故保留按文件读的回退：开发树里直接跑也正常。
+ */
+function logoMakerIconSvg(string $source, string $style, string $name): ?string
+{
+    static $index = null;
+    if ($index === null) {
+        $indexFile = __DIR__ . '/assets/icon-library/icons-index.php';
+        $index = is_file($indexFile) ? (array) require $indexFile : [];
+    }
+
+    $key = $source . '/' . $style . '/' . $name;
+    $bin = __DIR__ . '/assets/icon-library/icons.bin';
+    if (isset($index[$key]) && is_array($index[$key]) && is_file($bin)) {
+        [$offset, $length] = $index[$key];
+        $fh = fopen($bin, 'rb');
+        if ($fh !== false) {
+            try {
+                if (fseek($fh, (int) $offset) === 0) {
+                    $svg = fread($fh, (int) $length);
+                    if (is_string($svg) && str_contains($svg, '<svg')) {
+                        return $svg;
+                    }
+                }
+            } finally {
+                fclose($fh);
+            }
+        }
+    }
+
+    // 回退：开发树里的散 SVG（发行包不含）
+    $file = __DIR__ . '/assets/icon-library/' . $source . '/' . $style . '/' . $name . '.svg';
+    if (!is_file($file)) {
+        return null;
+    }
+    $svg = file_get_contents($file);
+    return ($svg !== false && str_contains($svg, '<svg')) ? $svg : null;
+}
+
 function logoMakerRandomLibraryTemplate(
     string $industry,
     int $index,
@@ -827,12 +872,8 @@ function logoMakerRandomLibraryTemplate(
         return logoMakerRandomTemplate($fallbackTemplate, $random, $accent, $letters, $uid);
     }
 
-    $file = __DIR__ . '/assets/icon-library/' . $source . '/' . $style . '/' . $name . '.svg';
-    if (!is_file($file)) {
-        return logoMakerRandomTemplate($fallbackTemplate, $random, $accent, $letters, $uid);
-    }
-    $svg = file_get_contents($file);
-    if ($svg === false || !str_contains($svg, '<svg')) {
+    $svg = logoMakerIconSvg($source, $style, $name);
+    if ($svg === null) {
         return logoMakerRandomTemplate($fallbackTemplate, $random, $accent, $letters, $uid);
     }
 

@@ -5,7 +5,15 @@ This directory is generated from the official Phosphor Icons and Tabler Icons re
 - `phosphor/bold`: Phosphor bold SVG assets.
 - `phosphor/duotone`: Phosphor duotone SVG assets.
 - `tabler/outline`: Tabler outline SVG assets.
-- `catalog.json`: Offline search catalog with source, style, category and tags.
+- `icons.bin` + `icons-index.php`: Distribution format — every SVG concatenated into
+  one blob plus a name → [offset, length] index. Runtime seeks and reads only the
+  bytes it needs. Regenerate with `tools/build_logo_icon_bundle.php` after changing
+  any asset. The loose `phosphor/` and `tabler/` directories stay in the repository
+  as the source of truth but are **not** shipped: 7,618 separate entries exceed the
+  ZIP entry limit of the plugin installer's zip-bomb guard, which made the plugin
+  impossible to install from the marketplace.
+- `catalog.json`: Offline search catalog with source, style, category and tags
+  (development aid; not read at runtime and not shipped).
 - `industry-map.php`: Curated runtime mapping from industries to logo motifs.
 - `stats.json`: Imported asset counts.
 - `licenses/`: Required upstream license notices.
