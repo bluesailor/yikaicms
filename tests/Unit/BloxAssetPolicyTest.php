@@ -46,6 +46,7 @@ final class BloxAssetPolicyTest extends TestCase
             'assets/js/blox-counter.js',
             'assets/js/blox-language-switcher.js',
             'assets/js/blox-nav-drawer.js',
+            'assets/js/blox-nav-overflow.js',
             'assets/css/blox-org-chart.css',
             'assets/js/blox-org-chart.js',
             'assets/d3',

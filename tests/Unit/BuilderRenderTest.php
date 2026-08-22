@@ -757,7 +757,8 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('hidden xl:flex', $n); // 普通导航默认仍可用于任意上下文
 
         $desktop = (new \NavElement())->buildMarkup(['dropdown' => true, 'desktop_only' => true]);
-        $this->assertStringContainsString('<ul class="hidden xl:flex flex-wrap gap-4">', $desktop);
+        // data-yk-nav-overflow：横向菜单的「更多」溢出收纳挂载点（单测 __ stub 返回键名）
+        $this->assertStringContainsString('<ul class="hidden xl:flex flex-wrap gap-4" data-yk-nav-overflow="nav_more">', $desktop);
         $this->assertStringContainsString('{yk:subnav wrap=ul', $desktop); // Header 内切换后仍保留多级下拉
 
         // 自定义子模板优先于下拉默认模板
