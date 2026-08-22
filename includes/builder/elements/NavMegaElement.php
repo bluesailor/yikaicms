@@ -97,7 +97,8 @@ final class NavMegaElement extends AbstractElement
             return '<a href="' . $href . '" class="flex min-h-11 items-center justify-center rounded-lg '
                 . $tone . ' px-5 text-sm font-medium transition no-underline">' . $label . '</a>';
         }
-        return '<li class="flex items-center pl-2"><a href="' . $href
+        // data-yk-nav-cta：溢出收纳脚本的保护标记（CTA 永不收进「更多」）
+        return '<li class="flex items-center pl-2" data-yk-nav-cta><a href="' . $href
             . '" class="inline-flex items-center rounded-full ' . $tone
             . ' px-5 py-2 text-sm font-medium transition no-underline whitespace-nowrap">' . $label . '</a></li>';
     }
@@ -167,7 +168,6 @@ final class NavMegaElement extends AbstractElement
             return '';
         }
         $showDesc = !empty($data['show_desc']);
-        // 顶栏一级只认手动图标（横向空间稀缺，自动匹配只下沉到面板列），见 NavElement 同款注释
         $autoIcons = self::autoIconsEnabled();
         // full_width 关：面板收窄为内容自适应（少列时不出通栏空面板）
         $panelPos = !isset($data['full_width']) || !empty($data['full_width'])
@@ -184,7 +184,7 @@ final class NavMegaElement extends AbstractElement
             $kids = is_array($channel['children'] ?? null) ? array_values(array_filter($channel['children'], 'is_array')) : [];
 
             if ($kids === []) {
-                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . self::nodeIconHtml($channel, 'mr-1.5') . $name . '</a></li>';
+                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . self::nodeIconHtml($channel, 'mr-1.5', $autoIcons) . $name . '</a></li>';
                 continue;
             }
 
@@ -197,7 +197,7 @@ final class NavMegaElement extends AbstractElement
             }
 
             $items .= '<li class="group/mega">'
-                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1') . $name
+                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1', $autoIcons) . $name
                 . '<svg class="h-3 w-3 opacity-60 transition-transform group-hover/mega:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>'
                 // 面板：相对元素根全宽；hover/focus-within 展开；关闭态不拦截指针
                 . '<div class="yk-mega-panel invisible absolute ' . $panelPos . ' top-full z-40 opacity-0 transition-all duration-150 pointer-events-none'

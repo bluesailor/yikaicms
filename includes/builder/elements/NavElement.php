@@ -57,7 +57,7 @@ final class NavElement extends AbstractElement
             $items .= $this->renderMenuNode($node, !empty($data['dropdown']), NavMegaElement::autoIconsEnabled());
         }
         $wrapClass = htmlspecialchars($this->wrapClass($data), ENT_QUOTES);
-        return '<ul class="' . $wrapClass . '">' . $items . NavMegaElement::ctaHtml($data) . '</ul>';
+        return '<ul class="' . $wrapClass . '"' . $this->overflowAttr($data) . '>' . $items . NavMegaElement::ctaHtml($data) . '</ul>';
     }
 
     /** @param array<string,mixed> $node */
@@ -68,9 +68,7 @@ final class NavElement extends AbstractElement
         $children = is_array($node['children'] ?? null)
             ? array_values(array_filter($node['children'], 'is_array'))
             : [];
-        // 一级菜单横向空间稀缺：自动匹配的图标只下沉到下拉子级（纵向列表），
-        // 顶栏只认手动配置的图标（手动=明确意愿）。否则七八个一级项一开图标就折行
-        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1');
+        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1', $autoIcons);
         if (!$dropdown || $children === []) {
             return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
                 . ' class="hover:text-primary">' . $iconHtml . $name . '</a></li>';
@@ -128,8 +126,28 @@ final class NavElement extends AbstractElement
 
         $wrapClass = htmlspecialchars($this->wrapClass($data));
         // CTA 是静态 HTML，拼在 {yk:nav} 循环之外、</ul> 之内（TagEngine 原样透传）
-        return '<ul class="' . $wrapClass . '">{yk:nav' . $attrs . '}' . $tpl . '{/yk:nav}'
+        return '<ul class="' . $wrapClass . '"' . $this->overflowAttr($data) . '>{yk:nav' . $attrs . '}' . $tpl . '{/yk:nav}'
             . NavMegaElement::ctaHtml($data) . '</ul>';
+    }
+
+    public function scripts(): array
+    {
+        return ['/assets/js/blox-nav-overflow.js'];
+    }
+
+    /**
+     * 横向菜单挂「更多 ▾」溢出收纳（blox-nav-overflow.js 渐进增强）：菜单多/开图标
+     * 也不折行，放不下的一级项收进下拉。纵向（flex-col，页脚常用）不需要。
+     * 属性值即「更多」的本地化文案，JS 直接取用。
+     *
+     * @param array<string,mixed> $data
+     */
+    private function overflowAttr(array $data): string
+    {
+        if (str_contains($this->wrapClass($data), 'flex-col')) {
+            return '';
+        }
+        return ' data-yk-nav-overflow="' . htmlspecialchars(__('nav_more'), ENT_QUOTES) . '"';
     }
 
     /** @param array<string,mixed> $data */
