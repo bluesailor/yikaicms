@@ -263,6 +263,40 @@ final class BloxStoredXssTest extends TestCase
         $this->assertStringContainsString('"code"', $processed['json']);
     }
 
+    /**
+     * 实体编码与 srcdoc 绕过（codex 审计 P1-1，2026-08-22 复现并修复）。
+     *
+     * 浏览器读属性值时会解码 HTML 实体，所以 href="java&#x73;cript:..." 在浏览器
+     * 眼里就是 javascript:，按原文做正则一个都拦不住。srcdoc 更狠——它的值是一整份
+     * HTML 文档、浏览器会解码后当页面执行，而 iframe 的 src 白名单看不见它。
+     */
+    public function testEntityEncodedProtocolsAndSrcdocAreStripped(): void
+    {
+        $vectors = [
+            '<iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe>',
+            '<a href="java&#x73;cript:alert(1)">x</a>',
+            '<a href="jav&#10;ascript:alert(1)">x</a>',
+            "<a href=\"jav\tascript:alert(1)\">x</a>",
+            '<a href="data&colon;text/html;base64,PHN2Zz4=">x</a>',
+        ];
+        foreach ($vectors as $v) {
+            $out = \HtmlPolicy::richText($v);
+            $decoded = html_entity_decode($out, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            self::assertStringNotContainsStringIgnoringCase('srcdoc', $decoded, $v);
+            self::assertDoesNotMatchRegularExpression('/(java|vb)script\s*:/i', $decoded, $v);
+            self::assertDoesNotMatchRegularExpression('/data\s*:\s*text/i', $decoded, $v);
+        }
+    }
+
+    /** 合法链接与内联图不能被上面的解码逻辑改坏。 */
+    public function testLegitimateUrlsSurviveEntityDecoding(): void
+    {
+        $out = \HtmlPolicy::richText('<a href="/about.html?a=1&amp;b=2">ok</a>');
+        self::assertStringContainsString('/about.html?a=1', $out);
+        $img = \HtmlPolicy::richText('<img src="data:image/png;base64,iVBOR">');
+        self::assertStringContainsString('data:image/png', $img);
+    }
+
     public function testPolicyAllowsNonCodeElementsForEditor(): void
     {
         $GLOBALS['_test_admin_perms'] = ['edit_page'];

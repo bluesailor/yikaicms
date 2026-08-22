@@ -193,38 +193,88 @@ final class AutoUpgrade
     {
         require_once ROOT_PATH . '/includes/UpgradeRunner.php';
 
-        $from = defined('CMS_VERSION') ? CMS_VERSION : '';
-        $data = self::check();
-        if ($data === null) {
-            return 'skipped: 更新服务器不可达';
-        }
-
-        if ($force) {
-            $why = 'manual';
-            if (empty($data['has_update'])) {
-                return 'no update';
-            }
-        } else {
-            [$go, $why] = self::shouldRun($data);
-            if (!$go) {
-                return 'skipped: ' . $why;
-            }
-        }
-
-        $to = (string) ($data['latest_version'] ?? '');
+        // 锁必须罩住**整个事务**，包括「查本地未完成状态」这一步：
+        // 否则两个 cron 会同时判定「有事务要续」，一起去推同一个游标。
         if (!self::lock()) {
             return 'skipped: 上一次升级仍在进行（或未超过锁定期）';
         }
 
         try {
-            $msg = self::doUpgrade($data, $from, $to);
-        } catch (\Throwable $e) {
-            self::logAdd('failed', '异常：' . $e->getMessage(), $from, $to);
+            // ---- 第一优先级：本地有未完成的升级事务就直接续跑，**不问服务器** ----
+            // 这一步必须在 check()/shouldRun() 之前。config/version.php 本身就是包里的
+            // 普通文件，第一轮覆盖后站点版本号已变成新版 → 服务器回「无更新」→ 判定拒绝
+            // → 续跑分支永远到不了，站点永久停在新旧混合状态。（codex 审计 P0-1）
+            // 事务自带 from/to/backup，因此也不受维护窗口、指令 nonce、服务器新版本影响。
+            $pending = self::pendingTransaction();
+            if ($pending !== null) {
+                return self::applyRemaining(
+                    $pending['backup'],
+                    $pending['total'],
+                    $pending['done'],
+                    $pending['from'],
+                    $pending['to']
+                ) . ' (resume)';
+            }
+
+            $from = defined('CMS_VERSION') ? CMS_VERSION : '';
+            $data = self::check();
+            if ($data === null) {
+                return 'skipped: 更新服务器不可达';
+            }
+
+            if ($force) {
+                $why = 'manual';
+                if (empty($data['has_update'])) {
+                    return 'no update';
+                }
+            } else {
+                [$go, $why] = self::shouldRun($data);
+                if (!$go) {
+                    return 'skipped: ' . $why;
+                }
+            }
+
+            $to = (string) ($data['latest_version'] ?? '');
+            try {
+                return self::doUpgrade($data, $from, $to) . ' (' . $why . ')';
+            } catch (\Throwable $e) {
+                self::logAdd('failed', '异常：' . $e->getMessage(), $from, $to);
+                return 'failed: ' . $e->getMessage();
+            }
+        } finally {
             self::unlock();
-            return 'failed: ' . $e->getMessage();
         }
-        self::unlock();
-        return $msg . ' (' . $why . ')';
+    }
+
+    /**
+     * 本地有没有未完成的升级事务？有则返回它自带的全部上下文。
+     *
+     * 关键是**不依赖任何外部状态**：from/to/backup/total 全部来自事务自身，
+     * 所以窗口关了、服务器发了新版、当前 CMS_VERSION 已被覆盖，都不影响续跑。
+     *
+     * @return array{backup: string, total: int, done: int, from: string, to: string}|null
+     */
+    private static function pendingTransaction(): ?array
+    {
+        $to = (string) config('auto_upgrade_target', '');
+        if ($to === '' || !is_file(uo_state_file()) || !is_file(uo_dir() . '/package.zip')) {
+            return null;
+        }
+        try {
+            $st = UpgradeApplyState::read(uo_state_file());
+        } catch (\Throwable $e) {
+            return null;   // 状态坏了就当没有，走完整流程重来
+        }
+        if (UpgradeApplyState::isComplete($st)) {
+            return null;
+        }
+        return [
+            'backup' => (string) ($st['backup'] ?? ''),
+            'total' => (int) ($st['total'] ?? 0),
+            'done' => (int) ($st['next_offset'] ?? 0),
+            'from' => (string) config('auto_upgrade_from', ''),
+            'to' => $to,
+        ];
     }
 
     /**
@@ -234,27 +284,8 @@ final class AutoUpgrade
      */
     private static function doUpgrade(array $data, string $from, string $to): string
     {
-        // ---- 续跑：上一轮「到量退出」后状态机里还留着游标，直接接着覆盖 ----
-        // 不这么做的话每次 cron 都会重新下载+重新 prepare，把游标清零：不但永远升不完，
-        // 还每小时多产生一个备份目录和一份完整库转储，能把共享主机磁盘撑爆。
-        $sf = uo_state_file();
-        if (is_file($sf) && is_file(uo_dir() . '/package.zip')
-            && (string) config('auto_upgrade_target', '') === $to) {
-            try {
-                $st = UpgradeApplyState::read($sf);
-                if (!UpgradeApplyState::isComplete($st)) {
-                    return self::applyRemaining(
-                        (string) ($st['backup'] ?? ''),
-                        (int) ($st['total'] ?? 0),
-                        (int) ($st['next_offset'] ?? 0),
-                        $from,
-                        $to
-                    );
-                }
-            } catch (\Throwable $e) {
-                // 状态文件坏了就当没有，走完整流程重来
-            }
-        }
+        // 注：续跑分支在 run() 里、check() 之前处理（见 pendingTransaction）。
+        // 走到这里说明是一次全新的升级事务。
 
         // ---- 下载（内含 SHA256 + RSA 验签；地址白名单只认官方 packages 目录）----
         $useDelta = is_array($data['delta'] ?? null) && !empty($data['delta']['download_url']);
@@ -276,8 +307,23 @@ final class AutoUpgrade
             self::logAdd('failed', '准备失败：' . ($pre['msg'] ?? ''), $from, $to);
             return 'failed: prepare';
         }
-        // 记下本轮目标版本：续跑时用它确认「状态机里那批」就是现在要装的这版
-        settingModel()->set('auto_upgrade_target', $to, 'system');
+        // 无人值守升级要求**数据库备份必须成功**：迁移会改表结构，而文件回滚恢复不了
+        // 数据库。没有可用备份就等于没有退路——宁可不升。（codex 审计 P0-3）
+        if (trim((string) ($pre['db_backup'] ?? '')) === '') {
+            self::logAdd(
+                'failed',
+                '数据库备份未成功，已中止升级（' . ((string) ($pre['db_backup_error'] ?? '原因未知')) . '）',
+                $from,
+                $to
+            );
+            return 'failed: no database backup';
+        }
+
+        // 记下本轮事务上下文：续跑时全靠它，不依赖当时的 CMS_VERSION 与服务器状态
+        settingModel()->saveBatch([
+            'auto_upgrade_target' => $to,
+            'auto_upgrade_from' => $from,
+        ]);
 
         return self::applyRemaining(
             (string) ($pre['backup'] ?? ''),
@@ -306,6 +352,18 @@ final class AutoUpgrade
                 self::logAdd('failed', '覆盖失败：' . ($bt['msg'] ?? ''), $from, $to);
                 return 'failed: batch';
             }
+            // 有文件没写进去就立刻停：upgrade_batch 为了不被单个不可写文件卡死，会
+            // 累计 errors 但照常推进游标。人工升级时用户看得见失败清单可以补救；无人
+            // 值守没人看，继续推下去就是「缺文件却记成功」。（codex 审计 P0-2）
+            if (!empty($bt['errors'])) {
+                return self::abortAndRollback(
+                    $backup,
+                    '覆盖失败 ' . count((array) $bt['errors']) . ' 个文件：'
+                        . implode('; ', array_slice((array) $bt['errors'], 0, 5)),
+                    $from,
+                    $to
+                );
+            }
             $prev = $done;
             $done = (int) ($bt['next'] ?? $done);
             if ($done <= $prev) {
@@ -322,25 +380,42 @@ final class AutoUpgrade
 
         // ---- 收尾 + 健康自检 ----
         $fin = upgrade_finalize('自动升级');
-        $health = is_array($fin['health'] ?? null) ? $fin['health'] : ['ok' => true];
-        if (empty($health['ok'])) {
-            // 无人值守，没人来救场：自己退回去
-            $rb = upgrade_rollback($backup);
-            $ok = ($rb['code'] ?? 1) === 0;
-            self::logAdd(
-                'rolled_back',
-                '健康自检未通过，已' . ($ok ? '回滚到升级前' : '尝试回滚但失败：' . ($rb['msg'] ?? '')),
+        // code=2 表示「完成了但有文件失败」。人工升级会把清单显示给用户处理；
+        // 无人值守必须当失败处理，否则站点带着缺失文件被记为升级成功。
+        if ((int) ($fin['code'] ?? 1) !== 0) {
+            return self::abortAndRollback(
+                $backup,
+                '收尾未干净：' . ($fin['msg'] ?? '') . (!empty($fin['errors'])
+                    ? '（' . implode('; ', array_slice((array) $fin['errors'], 0, 5)) . '）' : ''),
                 $from,
                 $to
             );
-            settingModel()->set('auto_upgrade_target', '', 'system');
-            return 'rolled back: health check failed';
+        }
+        $health = is_array($fin['health'] ?? null) ? $fin['health'] : ['ok' => true];
+        if (empty($health['ok'])) {
+            // 无人值守，没人来救场：自己退回去
+            $bad = implode('、', array_column(
+                array_filter((array) ($health['checks'] ?? []), static fn($c) => empty($c['ok'])),
+                'file'
+            ));
+            return self::abortAndRollback($backup, '健康自检未通过' . ($bad !== '' ? '（' . $bad . '）' : ''), $from, $to);
+        }
+
+        // ---- 数据库迁移（新代码可能要求新表结构，必须跑完）----
+        // 任一条失败就中止：留下「新代码 + 半完成 schema」比升级失败危险得多。
+        // 文件可以回滚，数据库靠 prepare 阶段那份 database.sql（上面已强制要求成功）。
+        [$migrated, $migrateError] = self::runMigrations();
+        if ($migrateError !== '') {
+            return self::abortAndRollback(
+                $backup,
+                '数据库迁移失败：' . $migrateError . '（文件已回滚；数据库请用 '
+                    . 'storage/backups/' . $backup . '/database.sql 恢复）',
+                $from,
+                $to
+            );
         }
 
         settingModel()->set('auto_upgrade_target', '', 'system');   // 本轮结束，续跑标记作废
-
-        // ---- 数据库迁移（新代码可能要求新表结构，必须跑完）----
-        $migrated = self::runMigrations();
 
         self::logAdd(
             'ok',
@@ -357,8 +432,15 @@ final class AutoUpgrade
         return 'upgraded ' . $from . ' → ' . ($fin['new_version'] ?? $to);
     }
 
-    /** 跑掉所有待应用的迁移，返回条数。单条失败不中止——与后台升级页口径一致。 */
-    private static function runMigrations(): int
+    /**
+     * 跑掉所有待应用的迁移。**首条失败即停**并把错误报出去。
+     *
+     * 与后台升级页「单条失败继续」的口径不同，这是刻意的：人工升级时用户看得见
+     * 失败并能当场判断，无人值守时继续跑只会让 schema 停在更难描述的中间态。
+     *
+     * @return array{0: int, 1: string} [已应用条数, 错误信息（空串=全部成功）]
+     */
+    private static function runMigrations(): array
     {
         require_once ROOT_PATH . '/includes/Migrator.php';
         $n = 0;
@@ -370,14 +452,37 @@ final class AutoUpgrade
                 Migrator::runOne($m);
                 $n++;
             } catch (\Throwable $e) {
-                // 记录但继续：一条迁移失败不该把后续全部卡住
+                $id = (string) ($m['id'] ?? '?');
                 try {
-                    adminLog('upgrade', 'auto_migrate_fail', (string) ($m['id'] ?? '?') . '：' . $e->getMessage());
+                    adminLog('upgrade', 'auto_migrate_fail', $id . '：' . $e->getMessage());
                 } catch (\Throwable $e2) {
                 }
+                return [$n, $id . '：' . $e->getMessage()];
             }
         }
-        return $n;
+        return [$n, ''];
+    }
+
+    /**
+     * 中止本次升级：回滚文件、清事务标记、记失败。
+     *
+     * 回滚本身也可能失败（快照缺失、目录不可写）——那种情况必须在日志里说清楚，
+     * 因为站点此刻处于最糟的状态，需要人工介入。
+     */
+    private static function abortAndRollback(string $backup, string $why, string $from, string $to): string
+    {
+        $rb = $backup !== '' ? upgrade_rollback($backup) : ['code' => 1, 'msg' => '没有可用的备份目录'];
+        $ok = ((int) ($rb['code'] ?? 1)) === 0;
+        settingModel()->set('auto_upgrade_target', '', 'system');
+        self::logAdd(
+            $ok ? 'rolled_back' : 'failed',
+            $why . '；' . ($ok
+                ? '已回滚到升级前'
+                : '⚠ 回滚也失败了（' . ($rb['msg'] ?? '') . '），站点可能处于新旧混合状态，需人工介入'),
+            $from,
+            $to
+        );
+        return $ok ? 'rolled back: ' . $why : 'failed (rollback failed): ' . $why;
     }
 
     /** 注册 cron 任务（挂核心的 cron_register）。每小时看一次，窗口判断在任务体内。 */

@@ -119,12 +119,34 @@ final class AutoUpgradeTest extends TestCase
         // 共享主机磁盘撑爆。2026-08-22 自审时发现并修复。
         $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
         self::assertIsString($src);
-        self::assertStringContainsString('UpgradeApplyState::isComplete($st)', $src);
+        self::assertStringContainsString('pendingTransaction()', $src);
         self::assertStringContainsString('applyRemaining(', $src);
-        // 续跑前要确认状态机里那批就是现在要装的版本
-        self::assertStringContainsString("config('auto_upgrade_target', '') === \$to", $src);
         // 游标不前进要退出，否则是死循环
         self::assertStringContainsString('cursor stalled', $src);
+
+        // 续跑检查必须排在 check() 之前 —— config/version.php 本身就是包里的普通文件，
+        // 第一轮覆盖后站点版本号已变成新版，服务器会回「无更新」，续跑分支就永远
+        // 到不了，站点永久停在新旧混合状态。（codex 审计 P0-1）
+        $posResume = strpos($src, '$pending = self::pendingTransaction();');
+        $posCheck = strpos($src, '$data = self::check();');
+        self::assertIsInt($posResume);
+        self::assertIsInt($posCheck);
+        self::assertLessThan($posCheck, $posResume, '续跑判定必须早于 check()');
+    }
+
+    public function testUnattendedUpgradeAbortsOnAnyFailure(): void
+    {
+        // 人工升级可以「带着几个失败文件继续、让用户去补」；无人值守不行——
+        // 没人看清单，继续下去就是「缺文件却记成功」。（codex 审计 P0-2 / P0-3）
+        $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('abortAndRollback(', $src);
+        self::assertStringContainsString("!empty(\$bt['errors'])", $src);          // 批次有失败即停
+        self::assertStringContainsString("(int) (\$fin['code'] ?? 1) !== 0", $src); // 收尾 code=2 也算失败
+        self::assertStringContainsString('failed: no database backup', $src);       // 无库备份不升
+        self::assertStringContainsString('数据库迁移失败', $src);                     // 迁移失败即中止
+        // 回滚自身失败要说清楚，因为那是最糟的状态
+        self::assertStringContainsString('回滚也失败了', $src);
     }
 
     public function testPipelineIsSharedWithManualUpgrade(): void
