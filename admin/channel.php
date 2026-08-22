@@ -525,6 +525,22 @@ function ykChannelIconPreview(v) {
     el.className = 'text-lg text-gray-500 ' + (v === '' ? 'hidden'
         : (v.indexOf('bi:') === 0 ? 'bi bi-' + v.slice(3) : 'ti ti-' + v));
 }
+function ykHighlightChannelIcon(v) {
+    v = (v || '').trim();
+    document.querySelectorAll('#channelIconGrid .yk-icon-pick').forEach(function (b) {
+        var on = b.getAttribute('data-icon') === v;
+        b.classList.toggle('border-primary', on);
+        b.classList.toggle('text-primary', on);
+        b.classList.toggle('bg-blue-50', on);
+        b.classList.toggle('border-gray-200', !on);
+    });
+}
+function ykPickChannelIcon(name) {
+    var input = document.getElementById('channelIconInput');
+    if (input) input.value = name;
+    ykChannelIconPreview(name);
+    ykHighlightChannelIcon(name);
+}
 </script>
 <?php
 ?>
@@ -934,11 +950,36 @@ function ykChannelIconPreview(v) {
 
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?= __('channel_icon_label') ?></label>
+                    <?php
+                    // 常用网站菜单图标（点选即用；名称已逐个核对存在于随包 Tabler 集）
+                    $commonMenuIcons = [
+                        'home', 'info-circle', 'building', 'building-factory-2', 'box', 'category',
+                        'briefcase', 'photo', 'news', 'file-text', 'download', 'video',
+                        'phone', 'mail', 'map-pin', 'message-circle', 'headset', 'help',
+                        'users', 'award', 'certificate', 'tool', 'truck', 'world',
+                        'star', 'tag', 'shopping-cart', 'calendar', 'book-2', 'rocket', 'history', 'settings',
+                    ];
+                    $__ci = trim((string) ($editChannel['icon'] ?? ''));
+                    ?>
+                    <div class="flex flex-wrap gap-1 mb-2" id="channelIconGrid">
+                        <button type="button" onclick="ykPickChannelIcon('')" data-icon=""
+                                title="<?= e(__('none')) ?>"
+                                class="yk-icon-pick w-9 h-9 inline-flex items-center justify-center rounded border text-gray-400 hover:border-primary hover:text-primary transition <?php echo $__ci === '' ? 'border-primary text-primary bg-blue-50' : 'border-gray-200'; ?>">
+                            <i class="ti ti-ban" aria-hidden="true"></i>
+                        </button>
+                        <?php foreach ($commonMenuIcons as $ic): ?>
+                        <button type="button" onclick="ykPickChannelIcon('<?php echo e($ic); ?>')" data-icon="<?php echo e($ic); ?>"
+                                title="<?php echo e($ic); ?>"
+                                class="yk-icon-pick w-9 h-9 inline-flex items-center justify-center rounded border text-gray-600 hover:border-primary hover:text-primary transition <?php echo $__ci === $ic ? 'border-primary text-primary bg-blue-50' : 'border-gray-200'; ?>">
+                            <i class="ti ti-<?php echo e($ic); ?> text-lg" aria-hidden="true"></i>
+                        </button>
+                        <?php endforeach; ?>
+                    </div>
                     <div class="flex items-center gap-2">
-                        <i id="channelIconPreview" class="text-lg text-gray-500 <?php $__ci = trim((string) ($editChannel['icon'] ?? '')); echo $__ci === '' ? 'hidden' : e(str_starts_with($__ci, 'bi:') ? 'bi bi-' . substr($__ci, 3) : 'ti ti-' . $__ci); ?>" aria-hidden="true"></i>
-                        <input type="text" name="icon" value="<?php echo e($editChannel['icon'] ?? ''); ?>"
+                        <i id="channelIconPreview" class="text-lg text-gray-500 <?php echo $__ci === '' ? 'hidden' : e(str_starts_with($__ci, 'bi:') ? 'bi bi-' . substr($__ci, 3) : 'ti ti-' . $__ci); ?>" aria-hidden="true"></i>
+                        <input type="text" name="icon" id="channelIconInput" value="<?php echo e($__ci); ?>"
                                class="w-full border rounded px-3 py-2 font-mono text-sm" placeholder="home / bi:house"
-                               oninput="ykChannelIconPreview(this.value)">
+                               oninput="ykChannelIconPreview(this.value); ykHighlightChannelIcon(this.value)">
                     </div>
                     <p class="text-xs text-gray-400 mt-1"><?= __('channel_icon_help') ?></p>
                 </div>
