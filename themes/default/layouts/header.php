@@ -401,7 +401,7 @@ function getChannelUrl(array $channel): string {
                         (string) config('site_lang', 'zh-CN'),
                         array_keys(availableLanguages()),
                         (string) ($_SERVER['REQUEST_URI'] ?? '/'),
-                        ['layout' => 'inline', 'display' => 'name', 'show_flag' => true, 'tone' => 'dark']
+                        ['layout' => 'inline', 'display' => 'name', 'show_flag' => false, 'tone' => 'dark']
                     ); ?>
                 </div>
                 <?php endif; ?>
