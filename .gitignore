@@ -57,12 +57,16 @@ node_modules/
 composer.phar
 
 # IDE & OS
-# .claude/ 里多是本机产物（settings.local.json、会话缓存），整体忽略；
-# 但 skills/ 是**该共享的项目资产**（性质同 .github/workflows）——三个 worktree
-# 共用一份，别人也能直接用。注意要先 .claude/* 再取反，写成 .claude/ 的话
-# git 根本不会下降到该目录，取反不生效。
+# .claude/ 里多是本机产物（settings.local.json、会话缓存），整体忽略。
+# skills/ 里**逐个显式放行**要共享的那些（性质同 .github/workflows：三个 worktree
+# 共用一份，对方 AI 也能直接用）——白名单而不是整目录放行，是为了不把别人本机的
+# skill 变成「未跟踪但可见」的常驻噪音，也避免误提交里面可能有的私有流程。
+# 注意写法：必须先 `.claude/*` 再取反；写成 `.claude/` 时 git 根本不下降到该目录，
+# 后面的取反一律不生效。
 .claude/*
 !.claude/skills/
+.claude/skills/*
+!.claude/skills/yikai-precheck/
 .idea/
 .vscode/
 *.swp
