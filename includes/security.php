@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/UrlPolicy.php';   // URL 安全策略唯一权威实现（v1.18.6 统一）
+require_once __DIR__ . '/HtmlPolicy.php';  // HTML 输出安全策略唯一权威实现（v1.18.6 统一）
 
 /**
  * zip-slip 防护：检查 ZIP 内是否有会逃出解压目录的条目名。
@@ -60,44 +61,8 @@ function sanitizeSvg(string $svg): string
  */
 function sanitizeHtml(?string $html): string
 {
-    if ($html === null || $html === '') return '';
-
-    // 允许的标签白名单
-    $allowedTags = '<p><br><b><i><u><s><em><strong><small><sub><sup>'
-        . '<h1><h2><h3><h4><h5><h6>'
-        . '<ul><ol><li><dl><dt><dd>'
-        . '<table><thead><tbody><tfoot><tr><th><td><caption><colgroup><col>'
-        . '<a><img><figure><figcaption>'
-        . '<blockquote><pre><code><hr><div><span>'
-        . '<video><source><audio><iframe>';
-
-    // 第一步：移除 script/style 标签及其内容
-    $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html) ?? $html;
-    $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html) ?? $html;
-
-    // 第二步：strip_tags 保留白名单
-    $html = strip_tags($html, $allowedTags);
-
-    // 第三步：移除事件属性（on*）和 javascript: 协议
-    $html = preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html) ?? $html;
-    $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*javascript\s*:/i', 'data-removed="1"', $html) ?? $html;
-
-    // 第四步：iframe src 限定可信视频平台（Host 精确比对）
-    $html = preg_replace_callback(
-        '/<iframe\b([^>]*)>/i',
-        function ($matches) {
-            $attrs = $matches[1];
-            if (preg_match('/src\s*=\s*["\']([^"\']+)["\']/i', $attrs, $srcMatch)) {
-                if (!trustedIframeHost(html_entity_decode($srcMatch[1]))) {
-                    return '<!-- iframe removed -->';
-                }
-            }
-            return $matches[0];
-        },
-        $html
-    ) ?? $html;
-
-    return $html;
+    // v1.18.6 起委托 HtmlPolicy::richText()——三层 HTML 策略见该类头注释
+    return HtmlPolicy::richText($html);
 }
 
 /**
