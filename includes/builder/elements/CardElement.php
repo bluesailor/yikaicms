@@ -13,10 +13,10 @@ final class CardElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'image', 'type' => 'text', 'label' => __('blox_image_url'), 'default' => ''],
+            ['key' => 'image', 'type' => 'image', 'label' => __('blox_image_url'), 'default' => ''],
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2],
-            ['key' => 'link', 'type' => 'text', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_empty_unclickable')],
+            ['key' => 'link', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_empty_unclickable')],
             ...$this->animationControls(),
         ];
     }

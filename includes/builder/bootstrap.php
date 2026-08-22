@@ -28,6 +28,8 @@ foreach (glob(__DIR__ . '/elements/*.php') ?: [] as $__elFile) {
 
 require_once __DIR__ . '/BuilderRegistry.php';
 require_once __DIR__ . '/BloxDocumentValidator.php';
+require_once __DIR__ . '/BloxValueSanitizer.php';
+require_once __DIR__ . '/BloxUnknownKeys.php';
 require_once __DIR__ . '/BloxDocumentPipeline.php';
 require_once __DIR__ . '/BloxAreaDocument.php';
 require_once __DIR__ . '/BloxThemeHeaderDocument.php';

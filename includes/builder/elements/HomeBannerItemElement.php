@@ -71,10 +71,10 @@ final class HomeBannerItemElement extends AbstractElement
                 ],
             ],
             ['key' => 'btn1_text', 'type' => 'text', 'label' => __('blox_home_banner_primary_text'), 'default' => ''],
-            ['key' => 'btn1_url', 'type' => 'text', 'label' => __('blox_home_banner_primary_url'), 'default' => ''],
+            ['key' => 'btn1_url', 'type' => 'url', 'label' => __('blox_home_banner_primary_url'), 'default' => ''],
             ['key' => 'btn2_text', 'type' => 'text', 'label' => __('blox_home_banner_secondary_text'), 'default' => ''],
-            ['key' => 'btn2_url', 'type' => 'text', 'label' => __('blox_home_banner_secondary_url'), 'default' => ''],
-            ['key' => 'link_url', 'type' => 'text', 'label' => __('blox_home_banner_image_url'), 'default' => ''],
+            ['key' => 'btn2_url', 'type' => 'url', 'label' => __('blox_home_banner_secondary_url'), 'default' => ''],
+            ['key' => 'link_url', 'type' => 'url', 'label' => __('blox_home_banner_image_url'), 'default' => ''],
             [
                 'key' => 'link_target',
                 'type' => 'select',

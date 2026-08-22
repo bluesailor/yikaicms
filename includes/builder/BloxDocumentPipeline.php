@@ -432,9 +432,17 @@ final class BloxDocumentPipeline
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
         $data = BloxDesignSystem::normalizeElementData($data);
         $registered = BuilderRegistry::get($type);
+        $declaredKeys = [];
         foreach ($registered?->controls() ?? [] as $control) {
             $key = (string) ($control['key'] ?? '');
-            if (!empty($control['responsive']) && $key !== '' && array_key_exists($key, $data)) {
+            if ($key !== '') {
+                $declaredKeys[] = $key;
+            }
+            if ($key === '' || !array_key_exists($key, $data)) {
+                continue;
+            }
+            // responsive 值先行结构化归一，之后不再进标量清洗
+            if (!empty($control['responsive'])) {
                 $options = is_array($control['options'] ?? null) ? $control['options'] : [];
                 if ($options !== []) {
                     $data[$key] = BloxResponsiveValue::normalizeStored(
@@ -443,17 +451,21 @@ final class BloxDocumentPipeline
                         $control['default'] ?? array_key_first($options)
                     );
                 }
+                continue;
             }
-            if (($control['type'] ?? '') === 'color' && $key !== '' && array_key_exists($key, $data)) {
+            if (($control['type'] ?? '') === 'color') {
                 $data[$key] = AbstractElement::cssColor($data[$key]) ?? '';
+                continue;
             }
-            // richtext 落库前过 sanitizeHtml：直接构造 blocks_data 提交的恶意 HTML
-            // 在保存层就清掉（渲染层还有第二道，兜历史脏数据）。无 web 上下文
-            // （引擎自包含的单测/CLI）时 sanitizeHtml 不存在，跳过，渲染层兜底。
-            if (($control['type'] ?? '') === 'richtext' && $key !== '' && array_key_exists($key, $data)
-                && function_exists('sanitizeHtml')) {
-                $data[$key] = sanitizeHtml((string) $data[$key]);
-            }
+            // Typed Control Schema（v1.18.6）：其余类型统一走 BloxValueSanitizer——
+            // text 截长 / richtext 净化 / url 与 image 与 video 拒伪协议 /
+            // number 边界 / select 必属 options / checkbox 与 icon 归一。
+            // 直接构造 blocks_data 提交同样过这一层。
+            $data[$key] = BloxValueSanitizer::sanitize($control, $data[$key]);
+        }
+        // Unknown Data Key 策略 v1.18.6 为 dry-run：只观测记录，不丢弃（兼容优先）
+        if ($registered !== null) {
+            BloxUnknownKeys::observe($type, $declaredKeys, $data);
         }
         if (array_key_exists('children', $data) && is_array($data['children'])) {
             $children = [];
