@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO 工坊 - 前台引导
+ * SEO 助手 - 前台引导
  *
  * llms.txt 是站点根静态文件（/llms.txt），无需前台 <head> 注入，故本文件从简。
  * 功能本体在 admin.php（/admin/plugin_page.php?plugin=seo），纯函数在 lib.php。
@@ -26,3 +26,7 @@ add_action('ik_admin_footer_scripts', function () {
 require_once __DIR__ . '/redirects.php';
 add_action('init', 'seo_redirect_apply');
 add_action('render_404', 'seo_redirect_log404');
+
+// 搜索引擎自动推送（专业版）：注册 cron 任务；任务体内部再判 Pro 与开关。
+require_once __DIR__ . '/autopush.php';
+add_action('cron_register', 'seo_autopush_register');

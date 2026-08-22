@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO 工坊 - 纯函数库（无 UI，可单测）
+ * SEO 助手 - 纯函数库（无 UI，可单测）
  *
  * llms.txt：新兴约定（llmstxt.org），放在站点根 /llms.txt，用简洁 Markdown
  * 指引 AI 助手快速理解站点结构与重点内容。这里按站点配置 + 栏目树 + 近期内容生成。
@@ -10,6 +10,9 @@
 
 declare(strict_types=1);
 
+// 直接访问防护必须留（本文件在 web 根下可被直接请求）。autopush.php 也做同样判断后
+// 才 require 本文件，Psalm 因此认为条件重复——那是调用链的结果，不是死代码。
+/** @psalm-suppress ParadoxicalCondition */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
@@ -71,7 +74,9 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
     // —— 最新内容 ——
     try {
         $contents = db()->fetchAll(
-            'SELECT c.id, c.title, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
+            // c.type 必须 select（同 seo_all_urls 的理由）：llms.txt 是给 AI 助手看的
+            // 站点地图，链接错了等于把 404 喂给它们
+            'SELECT c.id, c.title, c.slug, c.type, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
              FROM ' . DB_PREFIX . 'contents c
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
              WHERE c.status = 1
@@ -193,7 +198,9 @@ function seo_all_urls(int $limit = 1000): array
 
     try {
         $rows = db()->fetchAll(
-            'SELECT c.id, c.slug, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
+            // c.type 必须 select：漏了会让文章类 URL 退化成 /{栏目}/{slug}.html 这种 404
+            // 地址，而我们正是把这些地址提交给搜索引擎的（contentUrl 的注释里点名过同类事故）
+            'SELECT c.id, c.slug, c.type, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
              FROM ' . DB_PREFIX . 'contents c
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
              WHERE c.status = 1 ORDER BY c.publish_time DESC, c.id DESC LIMIT ' . (int) $limit
