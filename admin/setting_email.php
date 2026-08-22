@@ -159,6 +159,38 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
             <h2 class="font-bold text-gray-800"><?php echo __('email_smtp_settings'); ?></h2>
         </div>
         <div class="p-6 space-y-4">
+            <?php
+            // 服务商预设：选中自动填 host/port/加密，用户只需填账号与授权码。
+            // 参数天书（465/587、SSL/TLS）是逐站配 SMTP 最大的挫败点（借鉴 WP Mail SMTP）。
+            $smtpPresets = [
+                'aliyun'   => ['label' => __('email_preset_aliyun'),   'host' => 'smtpdm.aliyun.com',    'port' => 465, 'secure' => 'ssl', 'help' => 'https://www.aliyun.com/product/directmail'],
+                'exmail'   => ['label' => __('email_preset_exmail'),   'host' => 'smtp.exmail.qq.com',   'port' => 465, 'secure' => 'ssl', 'help' => 'https://work.weixin.qq.com/mail/'],
+                'qq'       => ['label' => __('email_preset_qq'),       'host' => 'smtp.qq.com',          'port' => 465, 'secure' => 'ssl', 'help' => 'https://service.mail.qq.com/detail/0/75'],
+                '163'      => ['label' => __('email_preset_163'),      'host' => 'smtp.163.com',         'port' => 465, 'secure' => 'ssl', 'help' => 'https://help.mail.163.com/faqDetail.do?code=d7a5dc8471cd0c0e8b4b8f4f8e49998b374173cfe9171305fa1ce630d7f67ac2'],
+                '126'      => ['label' => __('email_preset_126'),      'host' => 'smtp.126.com',         'port' => 465, 'secure' => 'ssl', 'help' => ''],
+                'gmail'    => ['label' => __('email_preset_gmail'),    'host' => 'smtp.gmail.com',       'port' => 587, 'secure' => 'tls', 'help' => 'https://support.google.com/accounts/answer/185833'],
+                'outlook'  => ['label' => __('email_preset_outlook'),  'host' => 'smtp.office365.com',   'port' => 587, 'secure' => 'tls', 'help' => ''],
+                'sendgrid' => ['label' => __('email_preset_sendgrid'), 'host' => 'smtp.sendgrid.net',    'port' => 587, 'secure' => 'tls', 'help' => 'https://docs.sendgrid.com/for-developers/sending-email/integrating-with-the-smtp-api'],
+            ];
+            ?>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">
+                    <?php echo __('email_preset_label'); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo __('email_preset_tip'); ?></span>
+                </label>
+                <div class="md:col-span-3">
+                    <select id="smtpPresetSelect" class="w-full border rounded px-4 py-2">
+                        <option value=""><?php echo __('email_preset_custom'); ?></option>
+                        <?php foreach ($smtpPresets as $presetKey => $preset): ?>
+                        <option value="<?php echo e($presetKey); ?>"><?php echo e($preset['label']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p id="smtpPresetHint" class="hidden mt-2 text-sm text-amber-700 bg-amber-50 rounded px-3 py-2">
+                        <?php echo __('email_preset_filled_hint'); ?>
+                        <a id="smtpPresetHelp" href="#" target="_blank" rel="noopener" class="hidden underline font-medium"><?php echo __('email_preset_help_link'); ?></a>
+                    </p>
+                </div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     <?php echo __('email_smtp_host'); ?>
@@ -301,6 +333,24 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
 document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
     adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
+});
+
+// 服务商预设联动：填服务器三参数（host/port/加密），账号密码仍由用户填
+const SMTP_PRESETS = <?php echo json_encode(
+    array_map(static fn (array $p): array => ['host' => $p['host'], 'port' => $p['port'], 'secure' => $p['secure'], 'help' => $p['help']], $smtpPresets),
+    JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP
+); ?>;
+document.getElementById('smtpPresetSelect').addEventListener('change', function () {
+    const preset = SMTP_PRESETS[this.value];
+    const hint = document.getElementById('smtpPresetHint');
+    const help = document.getElementById('smtpPresetHelp');
+    if (!preset) { hint.classList.add('hidden'); return; }
+    document.querySelector('input[name="settings[smtp_host]"]').value = preset.host;
+    document.querySelector('input[name="settings[smtp_port]"]').value = preset.port;
+    document.querySelector('select[name="settings[smtp_secure]"]').value = preset.secure;
+    hint.classList.remove('hidden');
+    if (preset.help) { help.href = preset.help; help.classList.remove('hidden'); }
+    else { help.classList.add('hidden'); }
 });
 
 function testEmail() {
