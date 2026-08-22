@@ -3119,6 +3119,7 @@ return [
     'cron_recycle_purge' => '清理回收站（30 天前）',
     'cron_purged_n' => '彻底删除 :n 项（超过 :days 天）',
     'cron_backup' => '数据库自动备份',
+    'cron_auto_upgrade' => '自动升级检查',
     'cron_backup_done' => '已备份 :file，保留最近 :n 份',
     'admin_unknown' => '未知',
     'admin_password' => '密码',
