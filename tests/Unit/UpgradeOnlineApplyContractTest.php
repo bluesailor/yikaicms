@@ -8,7 +8,7 @@ final class UpgradeOnlineApplyContractTest extends TestCase
 {
     public function testOnlineUpgradeUsesPersistentServerCursorForApplyBatches(): void
     {
-        $source = file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
+        $source = file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
         self::assertNotFalse($source);
 
         self::assertStringContainsString("'next_offset' => 0", $source);
@@ -20,7 +20,7 @@ final class UpgradeOnlineApplyContractTest extends TestCase
 
     public function testFinalizeGuardsAndFailureSemanticsAreRetained(): void
     {
-        $source = file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
+        $source = file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
         self::assertNotFalse($source);
 
         // finalize：新 state 未走完全部条目时拒绝提前收尾。

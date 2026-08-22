@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-if (!defined('YIKAI_UPGRADE_APPLY_STATE_ONLY')) {
-    define('YIKAI_UPGRADE_APPLY_STATE_ONLY', true);
-}
-require_once ROOT_PATH . '/admin/upgrade_online.php';
+require_once ROOT_PATH . '/includes/UpgradeRunner.php';
 
 /**
  * 升级状态机的故障恢复语义：状态文件损坏/丢失/不可写、finalize 后重放、
