@@ -26,7 +26,6 @@ final class NavElement extends AbstractElement
             ['key' => 'nav_only', 'type' => 'checkbox', 'label' => __('blox_nav_only'), 'default' => true],
             ['key' => 'dropdown', 'type' => 'checkbox', 'label' => __('blox_nav_dropdown'), 'default' => false],
             ['key' => 'desktop_only', 'type' => 'checkbox', 'label' => __('blox_nav_desktop_only'), 'default' => false],
-            NavMegaElement::autoIconControl(),
             ...NavMegaElement::ctaControls(),
         ];
     }
@@ -55,7 +54,7 @@ final class NavElement extends AbstractElement
             if (!is_array($node)) {
                 continue;
             }
-            $items .= $this->renderMenuNode($node, !empty($data['dropdown']), !empty($data['auto_icons']));
+            $items .= $this->renderMenuNode($node, !empty($data['dropdown']), NavMegaElement::autoIconsEnabled());
         }
         $wrapClass = htmlspecialchars($this->wrapClass($data), ENT_QUOTES);
         return '<ul class="' . $wrapClass . '">' . $items . NavMegaElement::ctaHtml($data) . '</ul>';

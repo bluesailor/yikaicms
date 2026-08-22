@@ -139,6 +139,19 @@ final class NavCtaTest extends TestCase
         $this->assertStringContainsString('ti-star', NavMegaElement::nodeIconHtml($node + ['icon' => 'star'], '', true)); // 手动优先
     }
 
+    public function testSiteLevelToggleDrivesAutoIcons(): void
+    {
+        // 站点级总开关（nav_icons_enabled）驱动，元素无需配置（2026-08-22 简化拍板）
+        try {
+            $GLOBALS['_test_config']['nav_icons_enabled'] = '0';
+            $this->assertFalse(NavMegaElement::autoIconsEnabled());
+            $GLOBALS['_test_config']['nav_icons_enabled'] = '1';
+            $this->assertTrue(NavMegaElement::autoIconsEnabled());
+        } finally {
+            unset($GLOBALS['_test_config']['nav_icons_enabled']);
+        }
+    }
+
     public function testNodeIconFallsBackToChannelIconColumn(): void
     {
         // 菜单项级 _icon 优先；空则回退栏目自身 icon 列（channels.icon）

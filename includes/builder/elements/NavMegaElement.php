@@ -33,7 +33,6 @@ final class NavMegaElement extends AbstractElement
                 'options' => [0 => __('blox_menu_source_default')] + self::menuGroupOptions()],
             ['key' => 'show_desc', 'type' => 'checkbox', 'label' => __('blox_mega_show_desc'), 'default' => false],
             ['key' => 'full_width', 'type' => 'checkbox', 'label' => __('blox_mega_full_width'), 'default' => true],
-            self::autoIconControl(),
             ...self::ctaControls(),
         ];
     }
@@ -48,11 +47,13 @@ final class NavMegaElement extends AbstractElement
         }
     }
 
-    /** 「自动匹配图标」开关（三导航元素共用）：新元素默认开，存量文档缺键=关 */
-    public static function autoIconControl(): array
+    /**
+     * 菜单图标站点级总开关（后台「菜单管理」一键启用，2026-08-22 用户简化拍板）：
+     * 开启后所有导航渲染自动匹配图标（手动配置优先），无需逐元素设置。
+     */
+    public static function autoIconsEnabled(): bool
     {
-        return ['key' => 'auto_icons', 'type' => 'checkbox', 'label' => __('blox_nav_auto_icons'),
-            'default' => true, 'help' => __('blox_nav_auto_icons_help')];
+        return function_exists('config') && (string) config('nav_icons_enabled', '0') === '1';
     }
 
     /**
@@ -166,7 +167,7 @@ final class NavMegaElement extends AbstractElement
             return '';
         }
         $showDesc = !empty($data['show_desc']);
-        $autoIcons = !empty($data['auto_icons']);
+        $autoIcons = self::autoIconsEnabled();
         // full_width 关：面板收窄为内容自适应（少列时不出通栏空面板）
         $panelPos = !isset($data['full_width']) || !empty($data['full_width'])
             ? 'inset-x-0'
