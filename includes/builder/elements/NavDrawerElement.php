@@ -28,6 +28,7 @@ final class NavDrawerElement extends AbstractElement
             ['key' => 'show_logo', 'type' => 'checkbox', 'label' => __('blox_drawer_show_logo'), 'default' => true],
             ['key' => 'menu_group', 'type' => 'select', 'label' => __('blox_menu_source'), 'default' => 0,
                 'options' => [0 => __('blox_menu_source_default')] + NavMegaElement::menuGroupOptions()],
+            ...NavMegaElement::ctaControls(),
         ];
     }
 
@@ -76,6 +77,10 @@ final class NavDrawerElement extends AbstractElement
             . ' class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">'
             . '<i class="ti ti-x text-2xl" aria-hidden="true"></i></button></div>';
 
+        // 尾部 CTA：菜单列表之后、工具区之前的通栏按钮（与桌面导航的胶囊 CTA 同一配置组）
+        $cta = NavMegaElement::ctaHtml($data, 'block');
+        $ctaBlock = $cta !== '' ? '<div class="px-5 pt-4">' . $cta . '</div>' : '';
+
         $utilities = '<div class="space-y-4 border-t border-gray-100 px-5 py-5">'
             . (new SiteSearchElement())->render(['layout' => 'wide', 'show_label' => false, 'tone' => 'dark'])
             . (new LanguageSwitcherElement())->render(['layout' => 'inline', 'display' => 'name', 'show_flag' => true, 'tone' => 'dark'])
@@ -91,6 +96,7 @@ final class NavDrawerElement extends AbstractElement
             . '<nav id="' . $drawerId . '" data-yk-drawer-panel aria-hidden="true" aria-label="' . htmlspecialchars(__('menu_label'), ENT_QUOTES) . '" class="hidden fixed top-0 ' . $panelSide . ' bottom-0 w-80 max-w-[88vw] bg-white shadow-2xl z-50 overflow-y-auto overscroll-contain [padding-top:env(safe-area-inset-top)] [padding-bottom:env(safe-area-inset-bottom)]">'
             . $header
             . '<ul class="list-none m-0 p-0">' . $items . '</ul>'
+            . $ctaBlock
             . $utilities
             . '</nav></div>';
     }
