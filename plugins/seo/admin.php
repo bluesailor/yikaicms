@@ -168,6 +168,14 @@ if ($seoHasPro) {
     }
 }
 
+// 基石内容（专业版）
+$cornerstones = [];
+if ($seoHasPro) {
+    require_once __DIR__ . '/links.php';
+    seo_cornerstone_ensure_table();
+    $cornerstones = seo_cornerstone_list();
+}
+
 // SEO 体检（专业版）
 $audit = $seoHasPro ? seo_audit_scan(500) : ['items' => [], 'summary' => [], 'total' => 0, 'healthy' => 0];
 $auditIssueMeta = seo_audit_issue_meta();
@@ -409,6 +417,57 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ===== 专业版：基石内容 ===== -->
+    <div id="seo-cornerstone" class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b">
+            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                <i class="ti ti-diamond text-amber-500"></i> 基石内容
+            </h2>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-gray-500 leading-relaxed mb-4">
+                基石内容是你最想让搜索引擎排上去的少数几篇。标记之后，写别的文章时内链建议会把它们排在最前，
+                让站内权重往它们身上汇聚。在<b>内容编辑页</b>右侧的「内链建议」卡里勾选即可标记。
+            </p>
+            <?php if (!$cornerstones): ?>
+            <div class="text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg px-4 py-6 text-center">
+                还没有标记基石内容。建议先挑 3–5 篇最重要的（如主打产品页、核心服务介绍）。
+            </div>
+            <?php else: ?>
+            <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-500 text-xs">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-medium">标题</th>
+                            <th class="px-3 py-2 text-left font-medium whitespace-nowrap">站内链入</th>
+                            <th class="px-3 py-2 text-left font-medium whitespace-nowrap">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <?php foreach ($cornerstones as $cs): ?>
+                        <tr>
+                            <td class="px-3 py-2 text-gray-700">
+                                <a href="<?php echo e((string) $cs['url']); ?>" target="_blank" class="hover:text-primary"><?php echo e((string) $cs['title']); ?></a>
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <?php $n = (int) ($cs['inbound'] ?? 0); ?>
+                                <?php // 链入为 0 = 标了基石却没人链它，权重根本没汇聚——这才是要提醒的 ?>
+                                <span class="<?php echo $n === 0 ? 'text-red-500' : ($n < 3 ? 'text-amber-600' : 'text-green-600'); ?>">
+                                    <?php echo $n; ?> 篇<?php echo $n === 0 ? '（还没有文章链向它）' : ''; ?>
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <a href="/admin/article_edit.php?id=<?php echo (int) $cs['id']; ?>" class="text-xs text-primary hover:underline">编辑</a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
             <?php endif; ?>
         </div>
@@ -674,7 +733,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 ['ti-sparkles',   'AI 一键优化 meta', '基于站内 AI，一键生成 / 改写 SEO 标题与描述、推荐关键词。', '#seo-ai-note'],
                 ['ti-arrows-right-left', '重定向管理器', '301/404 监控与重定向规则，改版换链接不丢权重、不丢流量。', '#seo-redirects'],
                 ['ti-send',       '搜索引擎自动推送', '内容有增改就自动 ping 百度、IndexNow（Bing/Yandex），带历史与配额。', '#seo-autopush'],
-                ['ti-link',       '内链建议 + 基石内容', '基于内容相似度推荐内链、标记基石内容，优化站点结构。', ''],
+                ['ti-link',       '内链建议 + 基石内容', '正文里提到、站内又有对应内容的地方给出内链建议；标记基石内容汇聚权重。', '#seo-cornerstone'],
             ];
             foreach ($proCards as [$icon, $title, $desc, $liveAnchor]):
                 $isLive = $liveAnchor !== '';

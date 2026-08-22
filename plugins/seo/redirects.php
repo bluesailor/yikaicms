@@ -11,6 +11,9 @@
 
 declare(strict_types=1);
 
+// 直接访问防护必须留（本文件在 web 根下可被直接请求）。links.php 也做同样判断后
+// 才 require 本文件，Psalm 因此认为条件重复——那是调用链的结果，不是死代码。
+/** @psalm-suppress ParadoxicalCondition */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
