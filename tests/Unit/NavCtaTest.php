@@ -1,0 +1,99 @@
+<?php
+/**
+ * 导航尾部 CTA 按钮（v1.18.5，nav / nav-mega / nav-drawer 共用配置组）：
+ *   - 文字/链接留空不渲染（存量文档零变化）
+ *   - cta_url 走 safeHref，javascript: 等伪协议整体不出按钮
+ *   - 实心/描边两档样式；抽屉为通栏形态
+ *   - NavElement 的 TagEngine 模板路径把 CTA 拼在 {yk:nav} 循环之外
+ */
+
+declare(strict_types=1);
+
+namespace Yikai\Tests\Unit;
+
+use NavDrawerElement;
+use NavElement;
+use NavMegaElement;
+use PHPUnit\Framework\TestCase;
+
+require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
+final class NavCtaTest extends TestCase
+{
+    // ---- ctaHtml 契约 ----
+
+    public function testEmptyTextOrUrlRendersNothing(): void
+    {
+        $this->assertSame('', NavMegaElement::ctaHtml([]));
+        $this->assertSame('', NavMegaElement::ctaHtml(['cta_text' => '联系我们']));
+        $this->assertSame('', NavMegaElement::ctaHtml(['cta_url' => '/contact.html']));
+    }
+
+    public function testJavascriptUrlIsRejectedEntirely(): void
+    {
+        $out = NavMegaElement::ctaHtml(['cta_text' => 'Go', 'cta_url' => 'javascript:alert(1)']);
+        $this->assertSame('', $out);
+    }
+
+    public function testSolidAndOutlineVariants(): void
+    {
+        $solid = NavMegaElement::ctaHtml(['cta_text' => '联系我们', 'cta_url' => '/contact.html']);
+        $this->assertStringContainsString('bg-primary', $solid);
+        $this->assertStringContainsString('href="/contact.html"', $solid);
+        $this->assertStringStartsWith('<li', $solid);
+
+        $outline = NavMegaElement::ctaHtml([
+            'cta_text' => '联系我们', 'cta_url' => '/contact.html', 'cta_style' => 'outline',
+        ]);
+        $this->assertStringContainsString('border-primary', $outline);
+        $this->assertStringNotContainsString('bg-primary text-white', $outline);
+    }
+
+    public function testBlockVariantIsFullWidthAnchor(): void
+    {
+        $out = NavMegaElement::ctaHtml(['cta_text' => 'お問い合わせ', 'cta_url' => '/contact.html'], 'block');
+        $this->assertStringStartsWith('<a ', $out);
+        $this->assertStringContainsString('justify-center', $out);
+        $this->assertStringNotContainsString('<li', $out);
+    }
+
+    public function testLabelIsHtmlEscaped(): void
+    {
+        $out = NavMegaElement::ctaHtml(['cta_text' => '<b>x</b>', 'cta_url' => '/a']);
+        $this->assertStringNotContainsString('<b>', $out);
+        $this->assertStringContainsString('&lt;b&gt;', $out);
+    }
+
+    // ---- 三元素接线 ----
+
+    public function testNavTemplateMarkupAppendsCtaOutsideLoop(): void
+    {
+        $markup = (new NavElement())->buildMarkup([
+            'cta_text' => '联系我们', 'cta_url' => '/contact.html',
+        ]);
+        $this->assertStringContainsString('{/yk:nav}<li', $markup);
+        $this->assertStringContainsString('href="/contact.html"', $markup);
+        $this->assertStringEndsWith('</ul>', $markup);
+    }
+
+    public function testNavTemplateMarkupUnchangedWithoutCta(): void
+    {
+        $markup = (new NavElement())->buildMarkup([]);
+        $this->assertStringContainsString('{/yk:nav}</ul>', $markup);
+    }
+
+    public function testDrawerRendersBlockCtaBeforeUtilities(): void
+    {
+        $out = (new NavDrawerElement())->render([
+            'id' => 't1', 'cta_text' => 'Contact', 'cta_url' => '/contact.html',
+        ]);
+        $this->assertStringContainsString('href="/contact.html"', $out);
+        $this->assertStringContainsString('justify-center', $out);
+    }
+
+    public function testDrawerWithoutCtaHasNoCtaBlock(): void
+    {
+        $out = (new NavDrawerElement())->render(['id' => 't2']);
+        $this->assertStringNotContainsString('pt-4', $out);
+    }
+}

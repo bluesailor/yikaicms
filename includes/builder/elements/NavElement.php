@@ -26,6 +26,7 @@ final class NavElement extends AbstractElement
             ['key' => 'nav_only', 'type' => 'checkbox', 'label' => __('blox_nav_only'), 'default' => true],
             ['key' => 'dropdown', 'type' => 'checkbox', 'label' => __('blox_nav_dropdown'), 'default' => false],
             ['key' => 'desktop_only', 'type' => 'checkbox', 'label' => __('blox_nav_desktop_only'), 'default' => false],
+            ...NavMegaElement::ctaControls(),
         ];
     }
 
@@ -56,7 +57,7 @@ final class NavElement extends AbstractElement
             $items .= $this->renderMenuNode($node, !empty($data['dropdown']));
         }
         $wrapClass = htmlspecialchars($this->wrapClass($data), ENT_QUOTES);
-        return '<ul class="' . $wrapClass . '">' . $items . '</ul>';
+        return '<ul class="' . $wrapClass . '">' . $items . NavMegaElement::ctaHtml($data) . '</ul>';
     }
 
     /** @param array<string,mixed> $node */
@@ -122,7 +123,9 @@ final class NavElement extends AbstractElement
         }
 
         $wrapClass = htmlspecialchars($this->wrapClass($data));
-        return '<ul class="' . $wrapClass . '">{yk:nav' . $attrs . '}' . $tpl . '{/yk:nav}</ul>';
+        // CTA 是静态 HTML，拼在 {yk:nav} 循环之外、</ul> 之内（TagEngine 原样透传）
+        return '<ul class="' . $wrapClass . '">{yk:nav' . $attrs . '}' . $tpl . '{/yk:nav}'
+            . NavMegaElement::ctaHtml($data) . '</ul>';
     }
 
     /** @param array<string,mixed> $data */

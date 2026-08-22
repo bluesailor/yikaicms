@@ -33,6 +33,7 @@ final class NavMegaElement extends AbstractElement
                 'options' => [0 => __('blox_menu_source_default')] + self::menuGroupOptions()],
             ['key' => 'show_desc', 'type' => 'checkbox', 'label' => __('blox_mega_show_desc'), 'default' => false],
             ['key' => 'full_width', 'type' => 'checkbox', 'label' => __('blox_mega_full_width'), 'default' => true],
+            ...self::ctaControls(),
         ];
     }
 
@@ -44,6 +45,52 @@ final class NavMegaElement extends AbstractElement
         } catch (Throwable) {
             return [];
         }
+    }
+
+    /**
+     * 尾部 CTA 按钮配置（nav / nav-mega / nav-drawer 共用）。
+     * 文字或链接留空 = 不显示，存量文档零变化。
+     *
+     * @return list<array<string,mixed>> 纯数字键——调用方以 ... 展开进 controls()，
+     *                                   string key 展开要 PHP 8.1，产品下限是 8.0
+     */
+    public static function ctaControls(): array
+    {
+        return [
+            ['key' => 'cta_text', 'type' => 'text', 'label' => __('blox_nav_cta_text'), 'default' => '',
+                'placeholder' => __('blox_nav_cta_ph')],
+            ['key' => 'cta_url', 'type' => 'text', 'label' => __('blox_nav_cta_url'), 'default' => '',
+                'placeholder' => '/contact.html'],
+            ['key' => 'cta_style', 'type' => 'select', 'label' => __('blox_nav_cta_style'), 'default' => 'solid',
+                'options' => ['solid' => __('blox_nav_cta_solid'), 'outline' => __('blox_nav_cta_outline')]],
+        ];
+    }
+
+    /**
+     * 尾部 CTA 按钮 HTML。$variant：item = 桌面菜单尾（<li> 包裹，胶囊按钮）、
+     * block = 抽屉底部（通栏按钮）。文字/链接为空或链接非法（safeHref 拦
+     * javascript: 等伪协议）→ 空串，调用方原样拼接即可。
+     */
+    public static function ctaHtml(array $data, string $variant = 'item'): string
+    {
+        $text = trim((string) ($data['cta_text'] ?? ''));
+        $url = AbstractElement::safeHref($data['cta_url'] ?? '');
+        if ($text === '' || $url === '') {
+            return '';
+        }
+        $solid = (string) ($data['cta_style'] ?? 'solid') !== 'outline';
+        $tone = $solid
+            ? 'bg-primary text-white hover:bg-secondary'
+            : 'border border-primary text-primary hover:bg-primary hover:text-white';
+        $label = htmlspecialchars($text, ENT_QUOTES);
+        $href = htmlspecialchars($url, ENT_QUOTES);
+        if ($variant === 'block') {
+            return '<a href="' . $href . '" class="flex min-h-11 items-center justify-center rounded-lg '
+                . $tone . ' px-5 text-sm font-medium transition no-underline">' . $label . '</a>';
+        }
+        return '<li class="flex items-center pl-2"><a href="' . $href
+            . '" class="inline-flex items-center rounded-full ' . $tone
+            . ' px-5 py-2 text-sm font-medium transition no-underline whitespace-nowrap">' . $label . '</a></li>';
     }
 
     /** 数据源：选了菜单组走组树（NavMenuModel::treeFor，与栏目投影同构），否则栏目投影 */
@@ -128,7 +175,7 @@ final class NavMegaElement extends AbstractElement
         }
 
         return '<nav class="yk-mega relative hidden xl:flex min-w-0 flex-1 justify-end" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
-            . '<ul class="flex flex-nowrap items-center gap-1 whitespace-nowrap">' . $items . '</ul></nav>';
+            . '<ul class="flex flex-nowrap items-center gap-1 whitespace-nowrap">' . $items . self::ctaHtml($data) . '</ul></nav>';
     }
 
     /** @param array<string,mixed> $kid 面板列：子栏目标题（可点）+ 可选描述 + 孙级链接列表 */
