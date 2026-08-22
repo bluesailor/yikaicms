@@ -59,7 +59,7 @@ final class NavMegaElement extends AbstractElement
         return [
             ['key' => 'cta_text', 'type' => 'text', 'label' => __('blox_nav_cta_text'), 'default' => '',
                 'placeholder' => __('blox_nav_cta_ph')],
-            ['key' => 'cta_url', 'type' => 'text', 'label' => __('blox_nav_cta_url'), 'default' => '',
+            ['key' => 'cta_url', 'type' => 'url', 'label' => __('blox_nav_cta_url'), 'default' => '',
                 'placeholder' => '/contact.html'],
             ['key' => 'cta_style', 'type' => 'select', 'label' => __('blox_nav_cta_style'), 'default' => 'solid',
                 'options' => ['solid' => __('blox_nav_cta_solid'), 'outline' => __('blox_nav_cta_outline')]],

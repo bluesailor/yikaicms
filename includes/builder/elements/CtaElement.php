@@ -18,7 +18,7 @@ final class CtaElement extends AbstractElement
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_subtext'), 'default' => '', 'rows' => 2],
             ['key' => 'btn_text', 'type' => 'text', 'label' => __('blox_ctl_btn_text'), 'default' => __('nav_contact')],
-            ['key' => 'btn_url', 'type' => 'text', 'label' => __('blox_ctl_btn_url'), 'default' => '', 'placeholder' => '/contact.html',
+            ['key' => 'btn_url', 'type' => 'url', 'label' => __('blox_ctl_btn_url'), 'default' => '', 'placeholder' => '/contact.html',
                 'visible_when' => ['terms' => [['btn_text', 'not_empty']]]],
             // 背景图：设了即渲染首页同款横幅观感（深色遮罩+白字）；留空保持灰底卡片。
             ['key' => 'bg_image', 'type' => 'image', 'label' => __('blox_cta_bg_image'), 'default' => '',

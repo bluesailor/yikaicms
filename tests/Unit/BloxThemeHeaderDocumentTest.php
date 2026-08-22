@@ -37,7 +37,9 @@ final class BloxThemeHeaderDocumentTest extends TestCase
             $children = $document['sections'][0]['columns'][0]['elements'][0]['data']['children'];
             self::assertSame(['logo', 'nav-mega', 'nav-drawer'], array_column($children, 'type'));
             self::assertSame('md', $children[0]['data']['height']);
-            self::assertFalse($children[1]['data']['full_width']);
+            // v1.18.6 Typed Schema：checkbox 经保存管线归一为 '1'/'0' 字符串
+            //（兼容 !empty() 与 (string)$v !== '0' 两种存量渲染判定）
+            self::assertSame('0', $children[1]['data']['full_width']);
         } finally {
             if ($previous === null) {
                 unset($GLOBALS['yikai_config_runtime_overrides']);

@@ -60,7 +60,7 @@ final class ImageElement extends AbstractElement
             ],
             ['key' => 'click_action', 'type' => 'select', 'label' => __('blox_click_action'), 'default' => '',
                 'options' => ['' => __('blox_click_none'), 'lightbox' => __('blox_click_lightbox'), 'link' => __('blox_click_link')]],
-            ['key' => 'link_url', 'type' => 'text', 'label' => __('blox_ctl_link'), 'default' => '',
+            ['key' => 'link_url', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '',
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
             ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab_short'), 'default' => false,
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],

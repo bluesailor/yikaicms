@@ -13,7 +13,7 @@ final class ButtonElement extends AbstractElement
     {
         return [
             ['key' => 'text', 'type' => 'text', 'label' => __('blox_ctl_btn_text'), 'default' => __('blox_el_button')],
-            ['key' => 'url', 'type' => 'text', 'label' => __('blox_ctl_link_url'), 'default' => '', 'placeholder' => __('blox_ctl_link_ph')],
+            ['key' => 'url', 'type' => 'url', 'label' => __('blox_ctl_link_url'), 'default' => '', 'placeholder' => __('blox_ctl_link_ph')],
             ['key' => 'new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab'), 'default' => false],
             [
                 'key' => 'site_text_field', 'type' => 'select', 'label' => __('blox_dynamic_site_text_binding'),

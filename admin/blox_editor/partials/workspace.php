@@ -1361,7 +1361,8 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
-                                    <template x-if="ctrl.type === 'text'">
+                                    <?php // url / video_url 是数据契约类型（保存管线定向清洗），编辑体验同普通文本框 ?>
+                                    <template x-if="['text','url','video_url'].indexOf(ctrl.type) !== -1">
                                         <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="ctrl.placeholder || ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
@@ -1719,7 +1720,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php // 未覆盖的控件类型：明说，而不是静默留空 ?>
-                                    <template x-if="['text','textarea','richtext','select','number','range','checkbox','color','icon','image','about_layout','about_breakpoint'].indexOf(ctrl.type) === -1">
+                                    <template x-if="['text','url','video_url','textarea','richtext','select','number','range','checkbox','color','icon','image','about_layout','about_breakpoint'].indexOf(ctrl.type) === -1">
                                         <p class="text-[10px] text-amber-600 leading-relaxed">
                                             <?= __('blox_ctrl_unsupported_pre') ?>（<span x-text="ctrl.type"></span>）<?= __('blox_ctrl_unsupported_post') ?>
                                         </p>

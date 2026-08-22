@@ -13,7 +13,7 @@ final class VideoElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'url', 'type' => 'text', 'label' => __('blox_video_url'), 'default' => '', 'placeholder' => __('blox_video_ph')],
+            ['key' => 'url', 'type' => 'video_url', 'label' => __('blox_video_url'), 'default' => '', 'placeholder' => __('blox_video_ph')],
         ];
     }
 
