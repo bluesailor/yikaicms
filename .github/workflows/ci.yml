@@ -186,6 +186,13 @@ jobs:
       - name: Upgrade rollback e2e（事务化升级回滚全链路）
         run: php tests/smoke/upgrade_rollback.php
 
+      # 自动升级故障注入：真实制造故障（抢锁、毁快照目录、塞会失败的迁移、损坏状态文件），
+      # 断言它「按预期失败并回滚」而不是「悄悄记成功」。
+      # 由来：codex 审计发现「续跑判定位置错」时，我的源码契约断言是全绿的；
+      # 补这套注入测试后又立刻抓出「Migrator::runOne 不抛异常导致迁移失败被忽略」。
+      - name: Auto-upgrade fault injection（无人值守升级的失败路径）
+        run: php tests/smoke/auto_upgrade_faults.php
+
       # CRUD 冒烟用的是超管，hasPermission() 对超管恒真——越权与死权限问题
       # 它结构性地看不见。这一步换非超管角色跑权限矩阵，专抓那一类。
       - name: Permission matrix（角色 × 端点 × 方法）

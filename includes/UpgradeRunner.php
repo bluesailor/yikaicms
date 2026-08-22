@@ -452,6 +452,7 @@ function upgrade_batch(mixed $requestedOffset = null): array
 
             $copied = 0;
             $errors = [];
+            $snapFails = 0;   // 覆盖前快照失败数：无人值守升级据此判定「回滚已失去依据」
             $bakFilesDir = ROOT_PATH . '/storage/backups/' . basename((string) ($state['backup'] ?? '')) . '/files';
             $created = is_array($state['created'] ?? null) ? $state['created'] : [];
             try {
@@ -470,13 +471,16 @@ function upgrade_batch(mixed $requestedOffset = null): array
                     $dir = dirname($d);
                     if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
                     // 覆盖前快照旧文件（同一文件只快照第一次的版本）；全新文件记 created。
-                    // 快照失败不中止升级——回滚只是尽力保障，缺快照的文件回滚时会列告警。
+                    // 人工升级：快照失败不中止——回滚只是尽力保障，用户看得见告警可自行判断。
+                    // 无人值守：快照是自动回滚的**唯一依据**，失败等于安全网没了，所以单独
+                    // 计数（snapshot_failed），由 AutoUpgrade 当致命错误处理。两种语义分开记。
                     if (is_file($d)) {
                         $snap = $bakFilesDir . '/' . $rel;
                         if (!is_file($snap)) {
                             $sd = dirname($snap);
-                            if (is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd)) {
-                                @copy($d, $snap);
+                            $okDir = is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd);
+                            if (!$okDir || !@copy($d, $snap)) {
+                                $snapFails++;
                             }
                         }
                     } else {
@@ -492,7 +496,11 @@ function upgrade_batch(mixed $requestedOffset = null): array
             $state['done'] = (int) ($state['done'] ?? 0) + $copied;
             $state['next_offset'] = $end;
             $state['errors'] = array_slice(array_merge(is_array($state['errors'] ?? null) ? $state['errors'] : [], $errors), 0, 50);
-            return ['code' => 0, 'copied' => $copied, 'next' => $end, 'total' => $total, 'errors' => $errors];
+            $state['snapshot_failed'] = (int) ($state['snapshot_failed'] ?? 0) + $snapFails;
+            return [
+                'code' => 0, 'copied' => $copied, 'next' => $end, 'total' => $total,
+                'errors' => $errors, 'snapshot_failed' => $snapFails,
+            ];
         });
     } catch (RuntimeException $e) {
         $message = match ($e->getMessage()) {

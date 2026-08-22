@@ -379,6 +379,16 @@ final class AutoUpgrade
             // 有文件没写进去就立刻停：upgrade_batch 为了不被单个不可写文件卡死，会
             // 累计 errors 但照常推进游标。人工升级时用户看得见失败清单可以补救；无人
             // 值守没人看，继续推下去就是「缺文件却记成功」。（codex 审计 P0-2）
+            // 快照失败 = 自动回滚失去依据。人工升级可以带着告警继续（用户自己判断），
+            // 无人值守不行：真出事时没有可回滚的旧版本。
+            if ((int) ($bt['snapshot_failed'] ?? 0) > 0) {
+                return self::abortAndRollback(
+                    $backup,
+                    '覆盖前快照失败 ' . (int) $bt['snapshot_failed'] . ' 个文件，无人值守升级失去回滚依据',
+                    $from,
+                    $to
+                );
+            }
             if (!empty($bt['errors'])) {
                 return self::abortAndRollback(
                     $backup,
@@ -472,17 +482,27 @@ final class AutoUpgrade
             if (Migrator::isApplied($m)) {
                 continue;
             }
+            $id = (string) ($m['id'] ?? '?');
+            // ⚠ Migrator::runOne() **不抛异常**：失败时返回 ['ok' => false, 'message' => ...]。
+            // 只 catch 异常的话迁移失败会被完全忽略——2026-08-23 故障注入测试抓到的真 bug，
+            // 而源码契约断言当时是全绿的。两种失败形态都要接住。
+            $err = '';
             try {
-                Migrator::runOne($m);
-                $n++;
+                $res = Migrator::runOne($m);
+                if (!is_array($res) || empty($res['ok'])) {
+                    $err = (string) ($res['message'] ?? '未知失败');
+                }
             } catch (\Throwable $e) {
-                $id = (string) ($m['id'] ?? '?');
+                $err = $e->getMessage();
+            }
+            if ($err !== '') {
                 try {
-                    adminLog('upgrade', 'auto_migrate_fail', $id . '：' . $e->getMessage());
+                    adminLog('upgrade', 'auto_migrate_fail', $id . '：' . $err);
                 } catch (\Throwable $e2) {
                 }
-                return [$n, $id . '：' . $e->getMessage()];
+                return [$n, $id . '：' . $err];
             }
+            $n++;
         }
         return [$n, ''];
     }
