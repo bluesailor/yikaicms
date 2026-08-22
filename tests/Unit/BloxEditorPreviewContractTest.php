@@ -698,7 +698,8 @@ final class BloxEditorPreviewContractTest extends TestCase
     public function testDynamicHomeBlockPanelUsesConditionalSchemaControls(): void
     {
         $editor = $this->source('admin/blox_editor.php');
-        $schema = $this->source('includes/builder/HomeBloxBlockSchema.php');
+        // v1.18.6 拆分：controls 层在 SchemaControlsTrait（HomeBloxBlockSchema 为 use 四 trait 的类壳）
+        $schema = $this->source('includes/builder/HomeBlox/HomeBloxSchemaControlsTrait.php');
 
         foreach ([
             'homeBlockSourceLabel()',
@@ -723,7 +724,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testBloxCtaBackgroundUsesSchemaControlsAndMediaLibrary(): void
     {
-        $schema = $this->source('includes/builder/HomeBloxBlockSchema.php');
+        // v1.18.6 拆分：controls 层在 SchemaControlsTrait（HomeBloxBlockSchema 为 use 四 trait 的类壳）
+        $schema = $this->source('includes/builder/HomeBlox/HomeBloxSchemaControlsTrait.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $theme = $this->source('themes/default/blocks/cta.php');
 
