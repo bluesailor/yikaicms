@@ -2595,6 +2595,8 @@ return [
     'blox_empty_top_level' => '留空=顶级',
     'blox_nav_only' => '仅导航栏目',
     'blox_nav_dropdown' => '桌面多级下拉',
+    'channel_icon_label' => '导航图标（可选）',
+    'channel_icon_help' => 'Tabler 图标名（如 home、box）或 bi: 前缀 Bootstrap 图标（如 bi:house）；显示在前台导航菜单该栏目名称前，留空不显示',
     'nav_menu_icon_placeholder' => '图标',
     'nav_menu_icon_help' => '可选。填 Tabler 图标名（如 home、phone），或 bi: 前缀的 Bootstrap 图标（如 bi:house）。留空不显示图标',
     'blox_logo_custom' => '专属 Logo 图（可选）',

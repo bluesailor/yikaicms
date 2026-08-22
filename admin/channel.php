@@ -58,7 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // /product/{分类别名}.html，别名一致才有统一前缀。非默认语言行
             // 受全局 slug 唯一性约束，保持后缀形（product-en 等）可编辑。
             'album_id' => postInt('album_id'),
-            'icon' => post('icon'),
+            // 图标名字符白名单（Tabler 名称或 bi: 前缀），与菜单组/Blox 同规则
+            'icon' => mb_substr((string) preg_replace('/[^a-zA-Z0-9:_-]/', '', post('icon')), 0, 100),
             'description' => post('description'),
             'content' => $_POST['content'] ?? '',
             'link_url' => post('link_url'),
@@ -514,6 +515,19 @@ $currentMenu = 'channel';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+<?php // 栏目图标预览需要 bi: 前缀集（后台全局只带 Tabler） ?>
+<link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
+<script>
+function ykChannelIconPreview(v) {
+    var el = document.getElementById('channelIconPreview');
+    if (!el) return;
+    v = (v || '').trim();
+    el.className = 'text-lg text-gray-500 ' + (v === '' ? 'hidden'
+        : (v.indexOf('bi:') === 0 ? 'bi bi-' + v.slice(3) : 'ti ti-' + v));
+}
+</script>
+<?php
+?>
 
 <?php if (count($_enabledList) > 1): ?>
 <div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
@@ -916,6 +930,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block text-gray-700 text-sm mb-1"><?= __('admin_category_name') ?> <span class="text-red-500">*</span></label>
                     <input type="text" name="name" value="<?php echo e($editChannel['name'] ?? ''); ?>" required
                            class="w-full border rounded px-3 py-2">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 text-sm mb-1"><?= __('channel_icon_label') ?></label>
+                    <div class="flex items-center gap-2">
+                        <i id="channelIconPreview" class="text-lg text-gray-500 <?php $__ci = trim((string) ($editChannel['icon'] ?? '')); echo $__ci === '' ? 'hidden' : e(str_starts_with($__ci, 'bi:') ? 'bi bi-' . substr($__ci, 3) : 'ti ti-' . $__ci); ?>" aria-hidden="true"></i>
+                        <input type="text" name="icon" value="<?php echo e($editChannel['icon'] ?? ''); ?>"
+                               class="w-full border rounded px-3 py-2 font-mono text-sm" placeholder="home / bi:house"
+                               oninput="ykChannelIconPreview(this.value)">
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1"><?= __('channel_icon_help') ?></p>
                 </div>
 
                 <div>
