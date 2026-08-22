@@ -111,6 +111,22 @@ final class AutoUpgradeTest extends TestCase
         self::assertStringContainsString('nonceSeen', $src);          // 防重放
     }
 
+    public function testResumeInsteadOfRestartingFromScratch(): void
+    {
+        // 单轮到量退出后，下一次 cron 必须**接着**上一轮的游标跑，而不是重新
+        // 下载 + 重新 prepare。重来的代价不只是慢：prepare 会把游标清零（大包
+        // 因此永远升不完），还每小时多产生一个备份目录和一份完整库转储，能把
+        // 共享主机磁盘撑爆。2026-08-22 自审时发现并修复。
+        $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('UpgradeApplyState::isComplete($st)', $src);
+        self::assertStringContainsString('applyRemaining(', $src);
+        // 续跑前要确认状态机里那批就是现在要装的版本
+        self::assertStringContainsString("config('auto_upgrade_target', '') === \$to", $src);
+        // 游标不前进要退出，否则是死循环
+        self::assertStringContainsString('cursor stalled', $src);
+    }
+
     public function testPipelineIsSharedWithManualUpgrade(): void
     {
         // 升级最不该有两份实现：自动升级必须调用与后台同一条管道
