@@ -63,7 +63,7 @@ final class BloxUnknownKeys
                 return;
             }
             $existing = json_decode((string) stream_get_contents($fh), true);
-            $report = is_array($existing) ? $existing : ['_note' => 'Blox 未声明数据键观测（dry-run，不影响数据）', 'keys' => []];
+            $report = is_array($existing) ? $existing : ['_note' => 'Blox undeclared data-key observation (dry-run, data untouched)', 'keys' => []];
             foreach (self::$pending as $type => $keys) {
                 foreach ($keys as $key => $count) {
                     $report['keys'][$type][$key] = (int) ($report['keys'][$type][$key] ?? 0) + $count;
