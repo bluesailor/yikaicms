@@ -380,6 +380,16 @@ function upgrade_prepare(): array
         $deleted = (array) ($manifest['deleted'] ?? []);
         $from = (string) ($manifest['from'] ?? '');
         $to   = (string) ($manifest['to'] ?? '');
+        // 增量包只包含「from → to」之间变化的文件，装在别的基线上会缺文件。
+        // 包签名只证明包是官方签发的，**不证明它适用于本站**——服务器一旦把别的
+        // 基线的 delta 关联过来（配置错误或缓存串档），签名照样通过。
+        // 因此在改动任何文件之前，先核对 from 就是本站当前版本。（codex 审计 P2-2）
+        $current = defined('CMS_VERSION') ? (string) CMS_VERSION : '';
+        if ($from !== '' && $current !== '' && $from !== $current) {
+            $zip->close();
+            return ['code' => 1, 'msg' => '增量包基线不匹配（包适用于 v' . $from
+                . '，本站为 v' . $current . '），已中止，未改动任何文件'];
+        }
     } else {
         // 全量包通常是单层 yikaicms-vX.Y.Z/ 目录；找含 index.php 的那层作前缀
         $prefix = '';

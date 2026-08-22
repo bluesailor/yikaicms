@@ -29,9 +29,6 @@ final class AutoUpgrade
     /** 单次 cron 内最多覆盖多少文件；剩余的下一轮继续（状态机支持断点续传）。 */
     private const BATCH_LIMIT = 400;
 
-    /** 锁的有效期：超过这么久视为上次跑挂了，允许重新开始。 */
-    private const LOCK_TTL = 1800;
-
     /** 历史保留条数。 */
     private const LOG_MAX = 20;
 
@@ -92,20 +89,47 @@ final class AutoUpgrade
         settingModel()->set('auto_upgrade_last_to', $to, 'system');
     }
 
-    /** 并发锁：拿到返回 true。 */
+    /** @var resource|null 持锁期间的文件句柄 */
+    private static $lockHandle = null;
+
+    /**
+     * 并发锁。用 flock 而不是设置表的「先读后写」——后者两个 cron 能同时读到「没锁」
+     * 再一起写入，等于没锁（codex 审计 P1-2）。flock 是内核级原子操作，共享主机通用。
+     *
+     * 锁文件放 storage/upgrade/，与升级状态同目录：状态被清理时锁也一并清掉。
+     */
     private static function lock(): bool
     {
-        $at = (int) config('auto_upgrade_lock_at', '0');
-        if ($at > 0 && time() - $at < self::LOCK_TTL) {
+        $dir = uo_dir();
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
             return false;
         }
-        settingModel()->set('auto_upgrade_lock_at', (string) time(), 'system');
+        $fh = @fopen($dir . '/auto_upgrade.lock', 'c+');
+        if ($fh === false) {
+            return false;
+        }
+        // 非阻塞：拿不到就是别人正在跑，直接退出让下一次 cron 再来
+        if (!flock($fh, LOCK_EX | LOCK_NB)) {
+            fclose($fh);
+            return false;
+        }
+        // 记录持锁时间供人工排查；进程被 kill 时 flock 由内核释放，不会留死锁
+        // （这正是它比设置表标记好的地方——设置表标记要靠 TTL 猜，猜早了会撞车）
+        ftruncate($fh, 0);
+        rewind($fh);
+        fwrite($fh, (string) time());
+        fflush($fh);
+        self::$lockHandle = $fh;
         return true;
     }
 
     private static function unlock(): void
     {
-        settingModel()->set('auto_upgrade_lock_at', '0', 'system');
+        if (self::$lockHandle !== null) {
+            @flock(self::$lockHandle, LOCK_UN);
+            @fclose(self::$lockHandle);
+            self::$lockHandle = null;
+        }
     }
 
     /**

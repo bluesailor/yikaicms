@@ -21,10 +21,15 @@ declare(strict_types=1);
 
 final class UpgradeDirective
 {
-    /** 用过的 nonce 存这个设置键（JSON 数组，滚动保留最近若干个）。 */
+    /** 用过的 nonce 存这个设置键（JSON：nonce => 过期时间戳）。 */
     private const NONCE_KEY = 'auto_upgrade_seen_nonces';
 
-    private const NONCE_KEEP = 50;
+    /**
+     * nonce 保留时长。必须 ≥ 指令最长有效期（verify 里限死 86400 秒），
+     * 否则「按条数滚动淘汰」会让仍在有效期内的旧 nonce 被挤掉、重放复活
+     * （codex 审计 P1-2）。改为按过期时间清理，条数自然有界。
+     */
+    private const NONCE_TTL = 86400;
 
     /**
      * 校验一条指令。任何一项不合规都返回 false —— 宁可不升，也不能被牵着走。
@@ -109,7 +114,11 @@ final class UpgradeDirective
         return false;
     }
 
-    /** @return array<int, string> */
+    /**
+     * 已用 nonce 表：nonce => 过期时间戳。读取时顺手剔除过期项，条数自然有界。
+     *
+     * @return array<string, int>
+     */
     private static function nonces(): array
     {
         $raw = (string) config(self::NONCE_KEY, '');
@@ -117,18 +126,34 @@ final class UpgradeDirective
             return [];
         }
         $l = json_decode($raw, true);
-        return is_array($l) ? array_values(array_filter($l, 'is_string')) : [];
+        if (!is_array($l)) {
+            return [];
+        }
+        $now = time();
+        $out = [];
+        foreach ($l as $n => $exp) {
+            // 兼容旧格式（纯数组）：没有过期时间的一律按「刚过期」处理，
+            // 保留一个 TTL 周期后自然清空
+            if (is_int($n) && is_string($exp)) {
+                $out[$exp] = $now + self::NONCE_TTL;
+                continue;
+            }
+            if (is_string($n) && is_int($exp) && $exp > $now) {
+                $out[$n] = $exp;
+            }
+        }
+        return $out;
     }
 
     private static function nonceSeen(string $nonce): bool
     {
-        return in_array($nonce, self::nonces(), true);
+        return array_key_exists($nonce, self::nonces());
     }
 
     private static function rememberNonce(string $nonce): void
     {
         $l = self::nonces();
-        array_unshift($l, $nonce);
-        settingModel()->set(self::NONCE_KEY, json_encode(array_slice($l, 0, self::NONCE_KEEP)), 'system');
+        $l[$nonce] = time() + self::NONCE_TTL;
+        settingModel()->set(self::NONCE_KEY, json_encode($l), 'system');
     }
 }

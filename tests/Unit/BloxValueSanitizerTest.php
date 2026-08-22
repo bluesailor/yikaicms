@@ -109,10 +109,29 @@ final class BloxValueSanitizerTest extends TestCase
         $this->assertSame('alertcirclescript', $this->s('icon', 'alert circle<script>'));
     }
 
-    public function testResponsiveArrayValuesPassThroughUntouched(): void
+    public function testResponsiveArrayValuesPassThroughOnlyWhenDeclared(): void
     {
+        // 声明了 responsive：断点结构原样放行（真实管线里这类值在
+        // BloxDocumentPipeline::normalizeElement 就 continue 掉了，根本到不了这里，
+        // 这条只是把契约钉住）
         $value = ['base' => 'md', 'md' => 'lg'];
-        $this->assertSame($value, $this->s('select', $value, ['options' => ['md' => 1, 'lg' => 2]]));
+        $this->assertSame($value, $this->s('select', $value, [
+            'options' => ['md' => 1, 'lg' => 2],
+            'responsive' => true,
+        ]));
+    }
+
+    public function testArrayInScalarControlIsNormalisedNotPassedThrough(): void
+    {
+        // 未声明 responsive 的标量控件收到数组，必须归一为空/默认值。
+        // 原先原样放行 → 值一路传到 htmlspecialchars() 抛 TypeError，整页 500。
+        // 直接构造 blocks_data 就能触发。（codex 审计 P2-1，已复现）
+        foreach (['text', 'textarea', 'url', 'image', 'richtext', 'icon'] as $type) {
+            $out = $this->s($type, ['恶意' => '数组']);
+            $this->assertIsNotArray($out, $type . ' 控件不该原样返回数组');
+        }
+        // 数值控件走区间兜底，同样不能是数组
+        $this->assertIsNotArray($this->s('number', ['x'], ['min' => 1, 'max' => 9]));
     }
 
     public function testUnknownControlTypePassesThrough(): void

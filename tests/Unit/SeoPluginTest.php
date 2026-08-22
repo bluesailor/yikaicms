@@ -65,7 +65,12 @@ final class SeoPluginTest extends TestCase
         // 单批上限：百度普通收录每日配额有限
         self::assertStringContainsString('SEO_AUTOPUSH_BATCH', $src);
         // 推送失败不推进游标，这批内容下次还要重试
-        self::assertStringContainsString('if ($anyOk) {', $src);
+        self::assertStringContainsString('if ($ok) {', $src);
+        // 百度与 IndexNow 各记各的游标：共用一个的话，一个成功就把另一个的
+        // 待推内容也跳过了，失败那方永远补不回来。（codex 审计 P1-3）
+        self::assertStringContainsString("'seo_autopush_cursor_' . \$name", $src);
+        // 取数按最旧优先，游标才能单调走完积压（原先按最新取，积压超批次上限就永久跳过）
+        self::assertStringContainsString('ASC, c.id ASC', $src);
     }
 
     public function testLinkSuggestionsStaySameLanguage(): void
@@ -94,6 +99,18 @@ final class SeoPluginTest extends TestCase
         self::assertStringContainsString('verifyCsrf()', $src);
         self::assertStringContainsString('seo_is_pro()', $src);
         self::assertStringContainsString("empty(\$_SESSION['admin_id'])", $src);
+    }
+
+    public function testSeoEndpointsRequireContentEditPermission(): void
+    {
+        // 登录 + CSRF + Pro 闸都不够：任何已登录账号都不该能改基石标记或烧 AI 配额。
+        // （codex 审计 P2-3）
+        foreach (['links_api.php', 'ai.php'] as $f) {
+            $src = file_get_contents(ROOT_PATH . '/plugins/seo/' . $f);
+            self::assertIsString($src, $f);
+            self::assertStringContainsString('hasPermission($seoPerm)', $src, $f . ' 缺角色校验');
+            self::assertStringContainsString('没有内容编辑权限', $src, $f);
+        }
     }
 
     public function testCronCommandLoadsPluginsSoPluginTasksRun(): void
