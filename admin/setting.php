@@ -609,11 +609,23 @@ async function saveAdminLanguages() {
                     <?php if ($item['value']): ?>
                     <img src="<?php echo e($item['value']); ?>" class="h-16 mt-2 rounded" id="preview_<?php echo e($item['key']); ?>">
                     <?php endif; ?>
-                    <?php // 站点图标 / LOGO：附 LOGO 制作在线入口（插件启用时才显示） ?>
-                    <?php if (in_array($item['key'], ['site_favicon', 'site_logo'], true) && function_exists('getActivePlugins') && in_array('logo-maker', getActivePlugins(), true)): ?>
+                    <?php
+                    // 站点图标 / LOGO：想做图的当口就在这里，所以入口也放这里——
+                    // 插件已启用 → 直达制作页；未安装 → 引导去插件市场（logo-maker 自
+                    // v1.18.6 起不随核心包发布，见 includes/RecommendedPlugins.php）。
+                    $__isBrandField = in_array($item['key'], ['site_favicon', 'site_logo'], true);
+                    $__logoMakerHere = is_dir(ROOT_PATH . '/plugins/logo-maker');
+                    $__logoMakerOn = function_exists('isPluginAvailable') && isPluginAvailable('logo-maker');
+                    ?>
+                    <?php if ($__isBrandField && $__logoMakerOn): ?>
                     <p class="text-xs text-gray-400 mt-2">
                         <i class="ti ti-wand"></i>
                         <a href="/admin/plugin_page.php?plugin=logo-maker#<?php echo $item['key'] === 'site_logo' ? 'logo' : 'text'; ?>" class="text-primary hover:underline"><?php echo __($item['key'] === 'site_logo' ? 'setting_logo_make' : 'setting_favicon_make'); ?></a>
+                    </p>
+                    <?php elseif ($__isBrandField && !$__logoMakerHere && hasPermission('*')): ?>
+                    <p class="text-xs text-gray-400 mt-2">
+                        <i class="ti ti-wand"></i>
+                        <a href="/admin/plugin.php?tab=market&amp;q=logo-maker" class="text-primary hover:underline"><?php echo e(__('setting_logo_make_get_plugin')); ?></a>
                     </p>
                     <?php endif; ?>
 

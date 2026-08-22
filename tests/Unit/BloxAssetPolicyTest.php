@@ -112,7 +112,9 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringContainsString('git -C "$ROOT_DIR" ls-files --cached --others --exclude-standard -z', $build);
         self::assertStringContainsString('git -C "$ROOT_DIR" ls-files --others --exclude-standard -z', $build);
         self::assertStringContainsString('php "bin/blox-assets.php" verify-free "$VERIFY_DELTA_PAYLOAD"', $build);
-        self::assertStringContainsString('"plugins/icon-maker"', $build);
+        // logo-maker 不得随核心包发布：7618 个 SVG 占全包 91% 文件数，改走插件市场
+        // （原断言盯的是 icon-maker，该插件已于 6870ae0 从仓库退役，守卫随之改指）。
+        self::assertStringContainsString('"plugins/logo-maker"', $build);
     }
 
     public function testReleasePackagesRotateTheHtmlCacheNamespace(): void
