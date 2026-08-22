@@ -57,7 +57,12 @@ node_modules/
 composer.phar
 
 # IDE & OS
-.claude/
+# .claude/ 里多是本机产物（settings.local.json、会话缓存），整体忽略；
+# 但 skills/ 是**该共享的项目资产**（性质同 .github/workflows）——三个 worktree
+# 共用一份，别人也能直接用。注意要先 .claude/* 再取反，写成 .claude/ 的话
+# git 根本不会下降到该目录，取反不生效。
+.claude/*
+!.claude/skills/
 .idea/
 .vscode/
 *.swp
