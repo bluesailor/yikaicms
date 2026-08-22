@@ -407,12 +407,24 @@ sha256sum "$ZIP_FILE" > "$SHA_FILE"
 echo "[+] 生成增量升级包（delta）..."
 DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境变量覆盖）
 DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：不为更老版本生成增量（含 vendor 结构差异大，走全量更稳）
+DELTA_EXTRA_FILE="${DELTA_EXTRA_FILE:-$ROOT_DIR/tools/delta-bases.txt}"
 DELTA_JSON_ITEMS=()                    # 收集 releases.json 用的片段
 if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    # 取所有 vX.Y.Z 标签，版本升序；current 版通常尚未打标签，故全部即「< 本版本」，取最后 N 个
-    mapfile -t PREV_BASES < <(git -C "$ROOT_DIR" tag -l 'v*' | sed 's/^v//' \
+    # 基线集合 = 最近 N 个发布 ∪ 在野版本清单（tools/delta-bases.txt）。
+    # 只取最近 N 个远远不够：增量包按 from 精确匹配，客户实际在跑的版本才是要覆盖的对象。
+    # 2026-08-22 实测：63 个在野站点分布在 25 个版本上，最近 3 个版本只覆盖 13 站。
+    ALL_TAGS=$(git -C "$ROOT_DIR" tag -l 'v*' | sed 's/^v//' \
         | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V \
-        | awk -v v="$VERSION" 'v==$0{exit} {print}' | tail -n "$DELTA_COUNT")
+        | awk -v v="$VERSION" 'v==$0{exit} {print}')
+    RECENT_BASES=$(printf '%s\n' "$ALL_TAGS" | tail -n "$DELTA_COUNT")
+    WILD_BASES=""
+    if [ -f "$DELTA_EXTRA_FILE" ]; then
+        # 去掉注释与空行；再与真实存在的 tag 取交集（清单里写错/未发布的版本直接忽略）
+        WILD_BASES=$(sed 's/#.*//' "$DELTA_EXTRA_FILE" | tr -d ' \r' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -u | comm -12 - <(printf '%s\n' "$ALL_TAGS" | sort -u) || true)
+        echo "  在野版本清单 $(basename "$DELTA_EXTRA_FILE"): $(printf '%s\n' "$WILD_BASES" | grep -c . || true) 个基线"
+    fi
+    mapfile -t PREV_BASES < <(printf '%s\n%s\n' "$RECENT_BASES" "$WILD_BASES" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V -u)
 
     if [ ${#PREV_BASES[@]} -eq 0 ]; then
         echo "  （无历史标签，跳过 delta 生成）"
@@ -424,10 +436,13 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
             continue
         fi
         tag="v$base"
-        # 依赖变化护栏：composer.* 一动就跳过，强制该基线走全量
+        # 依赖变化：composer.* 动过意味着目标版的 vendor 与该基线不同。vendor 不在 git 里，
+        # 从 diff 推不出来——但它在包里只有 31 个文件 / 0.44MB，直接整份带上即可，
+        # 比「跳过该基线、强制走全量包」划算得多（老版本一律 composer 有变化，原逻辑等于
+        # 把所有老站排除在增量之外，而它们恰恰是最需要小包的那批）。
+        DELTA_WITH_VENDOR=0
         if git -C "$ROOT_DIR" diff --name-only "$tag" -- composer.json composer.lock 2>/dev/null | grep -q .; then
-            echo "  ⚠ 跳过 $base → $VERSION：composer 依赖有变化，需走全量包"
-            continue
+            DELTA_WITH_VENDOR=1
         fi
         DELTA_DIR="$TMP_DIR/delta-$base"
         PAYLOAD="$DELTA_DIR/payload"
@@ -467,6 +482,14 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
                 ( cd "$PKG_DIR" && cp --parents "$path" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
             fi
         done < <(git -C "$ROOT_DIR" ls-files --others --exclude-standard -z)
+
+        # composer 变过：整份 vendor 随包（见上方 DELTA_WITH_VENDOR 处的说明）。
+        # vendor 不在 git，git diff 看不见它，只能显式复制。
+        if [ "$DELTA_WITH_VENDOR" = "1" ] && [ -d "$PKG_DIR/vendor" ]; then
+            ( cd "$PKG_DIR" && cp -a --parents vendor "$PAYLOAD/" ) \
+                && ADDED=$((ADDED + 1)) \
+                && echo "  · $base：composer 有变化，已随包携带 vendor/"
+        fi
 
         # Blox 基础编辑器可由私库注入并被公开仓库忽略，永远不会出现在 git diff 中。
         # 每个 delta 强制携带完整 core/runtime，避免升级成功后编辑器因缺文件白屏。
