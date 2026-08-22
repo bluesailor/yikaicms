@@ -174,6 +174,12 @@ jobs:
       - name: Run admin CRUD smoke test
         run: php tests/smoke/admin_crud.php
 
+      # 后台页面 GET 全量渲染冒烟：登录态把每个 admin/*.php 渲染一遍，断言无 500。
+      # 由来：setting_email 预设下拉的数组键 int 化 TypeError 500 穿过了
+      # php -l/单测/Psalm/CRUD冒烟 四层（页面渲染期错误此前零覆盖）。
+      - name: Admin pages render smoke（全部后台页 GET 无 500）
+        run: php tests/smoke/admin_pages.php
+
       # CRUD 冒烟用的是超管，hasPermission() 对超管恒真——越权与死权限问题
       # 它结构性地看不见。这一步换非超管角色跑权限矩阵，专抓那一类。
       - name: Permission matrix（角色 × 端点 × 方法）

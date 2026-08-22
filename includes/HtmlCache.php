@@ -249,7 +249,12 @@ function htmlCacheStart(int $ttl = 300): void { HtmlCache::start($ttl); }
 function htmlCacheEnd(): void { HtmlCache::end(); }
 function htmlCacheInvalidate(?string $prefix = null): int { return HtmlCache::invalidate($prefix); }
 
-// 失效钩子
+// 失效钩子。独立 admin 端点（如 blox_cache_api.php）只 require 本文件而不加载
+// 钩子系统——没有 add_action 时跳过注册即可：钩子只服务前台自动失效，
+// 端点自己显式调 invalidate()。（无守卫时曾令清缓存端点 500）
+if (!function_exists('add_action')) {
+    return;
+}
 // 1) Model 基类的 create/update/delete 都会触发通用 data_changed
 add_action('data_changed', function (string $table = '', $id = null): void {
     // 黑名单：这些表写入不影响前台缓存，避免无谓清理
