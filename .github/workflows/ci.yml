@@ -180,6 +180,12 @@ jobs:
       - name: Admin pages render smoke（全部后台页 GET 无 500）
         run: php tests/smoke/admin_pages.php
 
+      # 升级回滚 e2e：沙箱增量包走 prepare→batch→finalize→rollback 四步，
+      # 断言覆盖前快照 / rollback.json 清单 / 三类文件（覆盖·新建·删除）全还原。
+      # 回滚是升级打挂站点时的最后保障，此前主链路在 CI 零覆盖。
+      - name: Upgrade rollback e2e（事务化升级回滚全链路）
+        run: php tests/smoke/upgrade_rollback.php
+
       # CRUD 冒烟用的是超管，hasPermission() 对超管恒真——越权与死权限问题
       # 它结构性地看不见。这一步换非超管角色跑权限矩阵，专抓那一类。
       - name: Permission matrix（角色 × 端点 × 方法）
