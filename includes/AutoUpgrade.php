@@ -49,16 +49,30 @@ final class AutoUpgrade
      */
     public static function inWindow(?int $now = null): bool
     {
-        $raw = trim((string) config('auto_upgrade_window', '03:00-05:00'));
-        if (preg_match('/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/', $raw, $m) !== 1) {
-            $raw = '03:00-05:00';
-            preg_match('/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/', $raw, $m);
-        }
+        $raw = self::normalizeWindow((string) config('auto_upgrade_window', '03:00-05:00'));
+        preg_match('/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/', $raw, $m);
         $start = ((int) $m[1]) * 60 + (int) $m[2];
         $end = ((int) $m[3]) * 60 + (int) $m[4];
         $now ??= time();
         $cur = (int) date('G', $now) * 60 + (int) date('i', $now);
         return $start <= $end ? ($cur >= $start && $cur < $end) : ($cur >= $start || $cur < $end);
+    }
+
+    public static function normalizeWindow(string $raw): string
+    {
+        $raw = trim($raw);
+        if (preg_match('/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/', $raw, $m) !== 1) {
+            return '03:00-05:00';
+        }
+        $startHour = (int) $m[1];
+        $startMinute = (int) $m[2];
+        $endHour = (int) $m[3];
+        $endMinute = (int) $m[4];
+        if ($startHour > 23 || $endHour > 23 || $startMinute > 59 || $endMinute > 59
+            || ($startHour === $endHour && $startMinute === $endMinute)) {
+            return '03:00-05:00';
+        }
+        return sprintf('%02d:%02d-%02d:%02d', $startHour, $startMinute, $endHour, $endMinute);
     }
 
     /** @return array<int, array<string, mixed>> 最近的升级历史（新的在前） */
@@ -239,6 +253,9 @@ final class AutoUpgrade
                     $pending['to']
                 ) . ' (resume)';
             }
+            if (self::manualTransactionInProgress()) {
+                return 'skipped: 后台手工升级事务正在进行';
+            }
 
             $from = defined('CMS_VERSION') ? CMS_VERSION : '';
             $data = self::check();
@@ -281,7 +298,7 @@ final class AutoUpgrade
     private static function pendingTransaction(): ?array
     {
         $to = (string) config('auto_upgrade_target', '');
-        if ($to === '' || !is_file(uo_state_file()) || !is_file(uo_dir() . '/package.zip')) {
+        if (!is_file(uo_state_file())) {
             return null;
         }
         try {
@@ -289,16 +306,40 @@ final class AutoUpgrade
         } catch (\Throwable $e) {
             return null;   // 状态坏了就当没有，走完整流程重来
         }
-        if (UpgradeApplyState::isComplete($st)) {
+        if (($st['phase'] ?? '') !== 'finalized' && !is_file(uo_dir() . '/package.zip')) {
+            return null;
+        }
+        if (($st['owner'] ?? 'manual') !== 'auto') {
+            return null;
+        }
+        $backup = (string) ($st['backup'] ?? '');
+        $from = (string) ($st['from'] ?? config('auto_upgrade_from', ''));
+        $to = (string) ($st['to'] ?? $to);
+        if ($backup === '' || $to === '') {
             return null;
         }
         return [
-            'backup' => (string) ($st['backup'] ?? ''),
+            'backup' => $backup,
             'total' => (int) ($st['total'] ?? 0),
             'done' => (int) ($st['next_offset'] ?? 0),
-            'from' => (string) config('auto_upgrade_from', ''),
+            'from' => $from,
             'to' => $to,
         ];
+    }
+
+    private static function manualTransactionInProgress(): bool
+    {
+        if (is_file(uo_state_file())) {
+            // 可安全续跑的自动事务已经由 pendingTransaction() 接走。其余状态无论归属
+            // 或是否损坏，都不能被新下载覆盖，必须留给后台人工检查。
+            return true;
+        }
+        if (!is_file(uo_dir() . '/package.zip')) {
+            return false;
+        }
+        $meta = json_decode((string) @file_get_contents(uo_package_meta_file()), true);
+        // 旧版本下载的手工包没有元数据；来源不明时默认拒绝自动覆盖。
+        return !is_array($meta) || ($meta['owner'] ?? 'manual') !== 'auto';
     }
 
     /**
@@ -318,7 +359,8 @@ final class AutoUpgrade
             (string) ($dl['download_url'] ?? ''),
             (string) ($dl['hash'] ?? ''),
             $to,
-            (string) ($dl['sig'] ?? '')
+            (string) ($dl['sig'] ?? ''),
+            'auto'
         );
         if (($r['code'] ?? 1) !== 0) {
             self::logAdd('failed', '下载失败：' . ($r['msg'] ?? ''), $from, $to);
@@ -326,7 +368,7 @@ final class AutoUpgrade
         }
 
         // ---- 准备（备份 config + 数据库 + 建条目清单）----
-        $pre = upgrade_prepare();
+        $pre = upgrade_prepare($from, $to);
         if (($pre['code'] ?? 1) !== 0) {
             self::logAdd('failed', '准备失败：' . ($pre['msg'] ?? ''), $from, $to);
             return 'failed: prepare';
@@ -334,6 +376,9 @@ final class AutoUpgrade
         // 无人值守升级要求**数据库备份必须成功**：迁移会改表结构，而文件回滚恢复不了
         // 数据库。没有可用备份就等于没有退路——宁可不升。（codex 审计 P0-3）
         if (trim((string) ($pre['db_backup'] ?? '')) === '') {
+            // prepare 已建立 state/package/rollback；尚未覆盖文件，可直接走同一回滚清理路径，
+            // 避免留下一个没有 auto_upgrade_target、后续也不会续跑的孤儿事务。
+            upgrade_rollback((string) ($pre['backup'] ?? ''));
             self::logAdd(
                 'failed',
                 '数据库备份未成功，已中止升级（' . ((string) ($pre['db_backup_error'] ?? '原因未知')) . '）',
@@ -413,7 +458,9 @@ final class AutoUpgrade
         }
 
         // ---- 收尾 + 健康自检 ----
-        $fin = upgrade_finalize('自动升级');
+        // preserveState=true：健康与迁移安全判定完成前保留 state/package/rollback。
+        // 进程若恰好死在 finalize 后，下一轮仍能从 finalized phase 接着完成或回滚。
+        $fin = upgrade_finalize('自动升级', true);
         // code=2 表示「完成了但有文件失败」。人工升级会把清单显示给用户处理；
         // 无人值守必须当失败处理，否则站点带着缺失文件被记为升级成功。
         if ((int) ($fin['code'] ?? 1) !== 0) {
@@ -425,7 +472,7 @@ final class AutoUpgrade
                 $to
             );
         }
-        $health = is_array($fin['health'] ?? null) ? $fin['health'] : ['ok' => true];
+        $health = uo_health_check();
         if (empty($health['ok'])) {
             // 无人值守，没人来救场：自己退回去
             $bad = implode('、', array_column(
@@ -435,18 +482,24 @@ final class AutoUpgrade
             return self::abortAndRollback($backup, '健康自检未通过' . ($bad !== '' ? '（' . $bad . '）' : ''), $from, $to);
         }
 
-        // ---- 数据库迁移（新代码可能要求新表结构，必须跑完）----
-        // 任一条失败就中止：留下「新代码 + 半完成 schema」比升级失败危险得多。
-        // 文件可以回滚，数据库靠 prepare 阶段那份 database.sql（上面已强制要求成功）。
-        [$migrated, $migrateError] = self::runMigrations();
-        if ($migrateError !== '') {
+        // 数据库导入无法像文件快照一样可靠、跨 MySQL/SQLite 自动回滚。无人值守模式
+        // 因此只安装“不含待执行迁移”的版本；需要 schema 变更时退回旧文件并转人工。
+        $pendingMigrations = uo_pending_migrations();
+        if ($pendingMigrations === null || $pendingMigrations > 0) {
             return self::abortAndRollback(
                 $backup,
-                '数据库迁移失败：' . $migrateError . '（文件已回滚；数据库请用 '
-                    . 'storage/backups/' . $backup . '/database.sql 恢复）',
+                $pendingMigrations === null
+                    ? '无法确认数据库迁移状态，已拒绝无人值守升级'
+                    : '新版本包含 ' . $pendingMigrations . ' 条数据库迁移，已回滚文件并转人工升级',
                 $from,
                 $to
             );
+        }
+
+        $complete = upgrade_complete();
+        if (($complete['code'] ?? 1) !== 0) {
+            self::logAdd('failed', '事务清理失败：' . ($complete['msg'] ?? ''), $from, $to);
+            return 'failed: cleanup';
         }
 
         settingModel()->set('auto_upgrade_target', '', 'system');   // 本轮结束，续跑标记作废
@@ -454,7 +507,6 @@ final class AutoUpgrade
         self::logAdd(
             'ok',
             '升级完成，覆盖 ' . (int) ($fin['copied'] ?? 0) . ' 个文件'
-                . ($migrated > 0 ? '，应用 ' . $migrated . ' 条数据库迁移' : '')
                 . (!empty($fin['errors']) ? '，' . count($fin['errors']) . ' 个文件未能覆盖' : ''),
             $from,
             (string) ($fin['new_version'] ?? $to)
@@ -467,47 +519,6 @@ final class AutoUpgrade
     }
 
     /**
-     * 跑掉所有待应用的迁移。**首条失败即停**并把错误报出去。
-     *
-     * 与后台升级页「单条失败继续」的口径不同，这是刻意的：人工升级时用户看得见
-     * 失败并能当场判断，无人值守时继续跑只会让 schema 停在更难描述的中间态。
-     *
-     * @return array{0: int, 1: string} [已应用条数, 错误信息（空串=全部成功）]
-     */
-    private static function runMigrations(): array
-    {
-        require_once ROOT_PATH . '/includes/Migrator.php';
-        $n = 0;
-        foreach (Migrator::loadAll() as $m) {
-            if (Migrator::isApplied($m)) {
-                continue;
-            }
-            $id = (string) ($m['id'] ?? '?');
-            // ⚠ Migrator::runOne() **不抛异常**：失败时返回 ['ok' => false, 'message' => ...]。
-            // 只 catch 异常的话迁移失败会被完全忽略——2026-08-23 故障注入测试抓到的真 bug，
-            // 而源码契约断言当时是全绿的。两种失败形态都要接住。
-            $err = '';
-            try {
-                $res = Migrator::runOne($m);
-                if (!is_array($res) || empty($res['ok'])) {
-                    $err = (string) ($res['message'] ?? '未知失败');
-                }
-            } catch (\Throwable $e) {
-                $err = $e->getMessage();
-            }
-            if ($err !== '') {
-                try {
-                    adminLog('upgrade', 'auto_migrate_fail', $id . '：' . $err);
-                } catch (\Throwable $e2) {
-                }
-                return [$n, $id . '：' . $err];
-            }
-            $n++;
-        }
-        return [$n, ''];
-    }
-
-    /**
      * 中止本次升级：回滚文件、清事务标记、记失败。
      *
      * 回滚本身也可能失败（快照缺失、目录不可写）——那种情况必须在日志里说清楚，
@@ -517,7 +528,9 @@ final class AutoUpgrade
     {
         $rb = $backup !== '' ? upgrade_rollback($backup) : ['code' => 1, 'msg' => '没有可用的备份目录'];
         $ok = ((int) ($rb['code'] ?? 1)) === 0;
-        settingModel()->set('auto_upgrade_target', '', 'system');
+        if ($ok) {
+            settingModel()->set('auto_upgrade_target', '', 'system');
+        }
         self::logAdd(
             $ok ? 'rolled_back' : 'failed',
             $why . '；' . ($ok

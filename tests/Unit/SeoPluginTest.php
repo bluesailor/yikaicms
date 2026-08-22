@@ -70,7 +70,9 @@ final class SeoPluginTest extends TestCase
         // 待推内容也跳过了，失败那方永远补不回来。（codex 审计 P1-3）
         self::assertStringContainsString("'seo_autopush_cursor_' . \$name", $src);
         // 取数按最旧优先，游标才能单调走完积压（原先按最新取，积压超批次上限就永久跳过）
-        self::assertStringContainsString('ASC, c.id ASC', $src);
+        self::assertStringContainsString('effective_at ASC, c.id ASC', $src);
+        self::assertStringContainsString('c.id > ?', $src);
+        self::assertStringContainsString('seo_autopush_cursor_encode', $src);
     }
 
     public function testLinkSuggestionsStaySameLanguage(): void
@@ -108,8 +110,27 @@ final class SeoPluginTest extends TestCase
         foreach (['links_api.php', 'ai.php'] as $f) {
             $src = file_get_contents(ROOT_PATH . '/plugins/seo/' . $f);
             self::assertIsString($src, $f);
-            self::assertStringContainsString('hasPermission($seoPerm)', $src, $f . ' 缺角色校验');
+            self::assertStringContainsString('hasAnyContentPerm()', $src, $f . ' 缺角色校验');
             self::assertStringContainsString('没有内容编辑权限', $src, $f);
+        }
+        $links = file_get_contents(ROOT_PATH . '/plugins/seo/links_api.php');
+        self::assertIsString($links);
+        self::assertStringContainsString('SELECT id, type', $links);
+        self::assertStringContainsString("hasPermission('edit_' . \$contentType)", $links);
+        $ai = file_get_contents(ROOT_PATH . '/plugins/seo/ai.php');
+        self::assertIsString($ai);
+        self::assertStringContainsString('seo_ai_request_times', $ai);
+        self::assertStringContainsString('action IN (?, ?, ?)', $ai);
+    }
+
+    public function testSeoEndpointsDoNotExposeExceptionDetails(): void
+    {
+        foreach (['links_api.php', 'ai.php'] as $file) {
+            $src = file_get_contents(ROOT_PATH . '/plugins/seo/' . $file);
+            self::assertIsString($src, $file);
+            self::assertStringContainsString('error_log(', $src, $file . ' 应把诊断写入服务端日志');
+            self::assertStringNotContainsString("'error' => \$e->getMessage()", $src, $file . ' 不应向客户端泄露异常详情');
+            self::assertStringNotContainsString('"{$str} in {$file}:{$line}"', $src, $file . ' 不应向客户端泄露路径');
         }
     }
 

@@ -60,8 +60,9 @@ if ($action !== '') {
     register_shutdown_function(function () {
         $e = error_get_last();
         if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+            error_log('Online upgrade fatal error: ' . $e['message'] . ' in ' . $e['file'] . ':' . $e['line']);
             if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
-            echo "\n" . json_encode(['code' => 1, 'msg' => '服务器致命错误：' . $e['message']], JSON_UNESCAPED_UNICODE);
+            echo "\n" . json_encode(['code' => 1, 'msg' => '服务器处理升级请求时发生错误，请查看错误日志'], JSON_UNESCAPED_UNICODE);
         }
     });
 
@@ -76,10 +77,7 @@ if ($action !== '') {
         require_once ROOT_PATH . '/includes/AutoUpgrade.php';
         if ($action === 'auto_save') {
             $win = trim((string) post('window'));
-            // 窗口格式不合规就回落默认，别把配置错误变成「永不升级」或「随时升级」
-            if (preg_match('/^\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}$/', $win) !== 1) {
-                $win = '03:00-05:00';
-            }
+            $win = AutoUpgrade::normalizeWindow($win);
             settingModel()->saveBatch([
                 'auto_upgrade_enabled' => post('enabled') === '1' ? '1' : '0',
                 'auto_upgrade_scope'   => post('scope') === 'stable' ? 'stable' : 'security',
@@ -90,6 +88,26 @@ if ($action !== '') {
         }
         @set_time_limit(0);
         uo_json(['code' => 0, 'msg' => AutoUpgrade::run(true)]);
+    }
+
+    // 手工升级与 AutoUpgrade 共用 package/state/backup，必须共用同一把进程锁。
+    // 手工流程跨请求时由 state/package-meta 的 owner=manual 阻止 cron 插入；这里负责
+    // 阻止一个已经持锁运行的自动事务与当前手工写动作并发。
+    if (in_array($action, ['download', 'apply_prepare', 'apply_batch', 'apply_finalize', 'apply_rollback'], true)) {
+        if (!is_dir(uo_dir())) {
+            @mkdir(uo_dir(), 0755, true);
+        }
+        $manualUpgradeLock = @fopen(uo_dir() . '/auto_upgrade.lock', 'c+');
+        if ($manualUpgradeLock === false || !@flock($manualUpgradeLock, LOCK_EX | LOCK_NB)) {
+            if (is_resource($manualUpgradeLock)) {
+                fclose($manualUpgradeLock);
+            }
+            uo_json(['code' => 1, 'msg' => '自动升级正在运行，请稍后再试']);
+        }
+        register_shutdown_function(static function () use ($manualUpgradeLock): void {
+            @flock($manualUpgradeLock, LOCK_UN);
+            fclose($manualUpgradeLock);
+        });
     }
 
     // ---- 1) 环境预检 ----

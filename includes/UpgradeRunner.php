@@ -250,6 +250,7 @@ function uo_download(string $url, string $dest): array
 /** RSA-SHA256 验签：复用 License 公钥；对 "version|hash" 规范串验签。 */
 function uo_verify_sig(string $version, string $hash, string $sigB64): bool
 {
+    require_once ROOT_PATH . '/includes/UpdatePackageSignature.php';
     return function_exists('license_pubkey')
         && UpdatePackageSignature::verify($version, $hash, $sigB64, license_pubkey());
 }
@@ -299,6 +300,74 @@ function uo_zip_entries(ZipArchive $zip, string $prefix): array
 /** 分批覆盖的进度状态文件路径 */
 function uo_state_file(): string { return uo_dir() . '/apply_state.json'; }
 
+/** 已下载包的验签上下文；prepare 用它把 manifest.to 绑定到已验签目标。 */
+function uo_package_meta_file(): string { return uo_dir() . '/package-meta.json'; }
+
+function uo_rollback_file(string $backup): string
+{
+    return ROOT_PATH . '/storage/backups/' . basename($backup) . '/rollback.json';
+}
+
+/**
+ * 带进程锁完整写入 JSON。回滚清单是恢复前提，不能像普通日志一样忽略写入失败。
+ *
+ * @param array<string, mixed> $data
+ */
+function uo_write_json_locked(string $path, array $data): bool
+{
+    try {
+        $json = json_encode(
+            $data,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR
+        );
+    } catch (JsonException) {
+        return false;
+    }
+    $dir = dirname($path);
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        return false;
+    }
+    $handle = @fopen($path, 'c+');
+    if ($handle === false) {
+        return false;
+    }
+    $ok = false;
+    try {
+        if (!flock($handle, LOCK_EX) || !rewind($handle) || !ftruncate($handle, 0)) {
+            return false;
+        }
+        $length = strlen($json);
+        $written = 0;
+        while ($written < $length) {
+            $n = fwrite($handle, substr($json, $written));
+            if ($n === false || $n === 0) {
+                return false;
+            }
+            $written += $n;
+        }
+        $ok = fflush($handle);
+        if ($ok && function_exists('fsync')) {
+            $ok = fsync($handle);
+        }
+    } finally {
+        @flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+    return $ok;
+}
+
+/** @param list<string> $created @param list<string> $deleted */
+function uo_write_rollback_manifest(string $backup, string $from, string $to, array $created, array $deleted): bool
+{
+    return uo_write_json_locked(uo_rollback_file($backup), [
+        'from' => $from,
+        'to' => $to,
+        'created' => array_values(array_unique($created)),
+        'deleted' => array_values(array_unique($deleted)),
+        'time' => date('Y-m-d H:i:s'),
+    ]);
+}
+
 /** 兼容旧 config.php：把硬编码的 CMS_VERSION 定义换成 require version.php。 */
 function uo_patch_config_version(): string
 {
@@ -322,19 +391,33 @@ function uo_health_check(): array
 // 升级管道（无头）—— Web 层与 cron 自动升级共用；只返回数组，不产出输出。
 // ============================================================
 
-function upgrade_prepare(): array
+function upgrade_prepare(string $expectedFrom = '', string $expectedTo = ''): array
 {
     $pkg = uo_dir() . '/package.zip';
     if (!is_file($pkg)) return ['code' => 1, 'msg' => '未找到已下载的安装包，请先执行下载'];
     if (!class_exists('ZipArchive')) return ['code' => 1, 'msg' => '缺少 ZipArchive 扩展'];
 
+    $current = defined('CMS_VERSION') ? (string) CMS_VERSION : '';
+    $expectedFrom = trim($expectedFrom) !== '' ? trim($expectedFrom) : $current;
+    if (trim($expectedTo) === '') {
+        $meta = json_decode((string) @file_get_contents(uo_package_meta_file()), true);
+        $expectedTo = is_array($meta) ? trim((string) ($meta['version'] ?? '')) : '';
+    } else {
+        $expectedTo = trim($expectedTo);
+    }
+    $packageMeta = json_decode((string) @file_get_contents(uo_package_meta_file()), true);
+    $owner = is_array($packageMeta) && ($packageMeta['owner'] ?? '') === 'auto' ? 'auto' : 'manual';
+
     // 备份 config.php + 记录旧版本（轻量、稳妥；完整代码回滚依赖主机备份）
     $oldVer = defined('CMS_VERSION') ? CMS_VERSION : 'unknown';
     $bakDir = ROOT_PATH . '/storage/backups/pre-upgrade-' . $oldVer . '-' . date('YmdHis');
-    if (!is_dir($bakDir)) {
-        @mkdir($bakDir, 0755, true);
+    if (!is_dir($bakDir) && !@mkdir($bakDir, 0755, true) && !is_dir($bakDir)) {
+        return ['code' => 1, 'msg' => '无法建立升级备份目录，已中止，未改动任何文件'];
     }
-    @copy(ROOT_PATH . '/config/config.php', $bakDir . '/config.php');
+    $configFile = ROOT_PATH . '/config/config.php';
+    if (!is_file($configFile) || !@copy($configFile, $bakDir . '/config.php')) {
+        return ['code' => 1, 'msg' => 'config.php 备份失败，已中止，未改动任何文件'];
+    }
 
     // 数据库自动备份（v1.18.6）：文件快照管代码，这份 SQL 管「迁移改表之后」
     // 的事故兜底——两者合起来才是完整的升级前状态。失败不阻断升级
@@ -371,7 +454,7 @@ function upgrade_prepare(): array
     if ($violation !== null) { $zip->close(); return ['code' => 1, 'msg' => '安装包未通过资源安全检查，已中止：' . $violation]; }
 
     // 判定增量 / 全量 + 定位包内前缀（不解压，只读条目名/manifest）
-    $deleted = []; $from = ''; $to = '';
+    $deleted = [];
     $manifestRaw = $zip->getFromName('.delta-manifest.json');
     if ($manifestRaw !== false) {
         $manifest = json_decode((string) $manifestRaw, true);
@@ -383,12 +466,17 @@ function upgrade_prepare(): array
         // 增量包只包含「from → to」之间变化的文件，装在别的基线上会缺文件。
         // 包签名只证明包是官方签发的，**不证明它适用于本站**——服务器一旦把别的
         // 基线的 delta 关联过来（配置错误或缓存串档），签名照样通过。
-        // 因此在改动任何文件之前，先核对 from 就是本站当前版本。（codex 审计 P2-2）
-        $current = defined('CMS_VERSION') ? (string) CMS_VERSION : '';
-        if ($from !== '' && $current !== '' && $from !== $current) {
+        // 因此在改动任何文件之前，from/to 必须同时绑定当前事务。to 来自下载阶段
+        // 已通过 RSA 验签的 version，不能只信包内 manifest。（codex 审计 P2-2）
+        if ($from === '' || $expectedFrom === '' || $from !== $expectedFrom) {
             $zip->close();
             return ['code' => 1, 'msg' => '增量包基线不匹配（包适用于 v' . $from
-                . '，本站为 v' . $current . '），已中止，未改动任何文件'];
+                . '，本站事务基线为 v' . $expectedFrom . '），已中止，未改动任何文件'];
+        }
+        if ($to === '' || $expectedTo === '' || $to !== $expectedTo) {
+            $zip->close();
+            return ['code' => 1, 'msg' => '增量包目标不匹配（包目标 v' . $to
+                . '，已验签目标 v' . $expectedTo . '），已中止，未改动任何文件'];
         }
     } else {
         // 全量包通常是单层 yikaicms-vX.Y.Z/ 目录；找含 index.php 的那层作前缀
@@ -412,18 +500,24 @@ function upgrade_prepare(): array
     $state = [
         'mode' => $mode, 'pkg' => $pkg, 'prefix' => $prefix, 'entries' => $entries, 'deleted' => $deleted,
         'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0, 'next_offset' => 0,
-        'errors' => [], 'from' => $from, 'to' => $to,
+        'errors' => [], 'from' => $expectedFrom, 'to' => $expectedTo, 'phase' => 'prepared', 'owner' => $owner,
         // 事务化升级：apply_batch 覆盖前把旧文件快照到 backups/<backup>/files/，
         // 全新写入的文件记入 created——两者合起来就是完整的文件级回滚清单
         'created' => [],
     ];
+    $backup = basename($bakDir);
+    $filesDir = $bakDir . '/files';
+    if ((!is_dir($filesDir) && !@mkdir($filesDir, 0755, true) && !is_dir($filesDir))
+        || !uo_write_rollback_manifest($backup, $expectedFrom, $expectedTo, [], [])) {
+        return ['code' => 1, 'msg' => '无法建立回滚清单，已中止，未改动任何文件'];
+    }
     try {
         UpgradeApplyState::write(uo_state_file(), $state);
     } catch (RuntimeException) {
         return ['code' => 1, 'msg' => __('upgrade_apply_state_write_failed')];
     }
     return [
-        'code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => basename($bakDir),
+        'code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => $backup,
         'db_backup' => $dbBackupNote, 'db_backup_error' => $dbBackupError,
     ];
     }
@@ -470,10 +564,8 @@ function upgrade_batch(mixed $requestedOffset = null): array
                     $d = ROOT_PATH . '/' . $rel;
                     $dir = dirname($d);
                     if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) { $errors[] = "建目录失败: $rel"; continue; }
-                    // 覆盖前快照旧文件（同一文件只快照第一次的版本）；全新文件记 created。
-                    // 人工升级：快照失败不中止——回滚只是尽力保障，用户看得见告警可自行判断。
-                    // 无人值守：快照是自动回滚的**唯一依据**，失败等于安全网没了，所以单独
-                    // 计数（snapshot_failed），由 AutoUpgrade 当致命错误处理。两种语义分开记。
+                    // 覆盖前快照旧文件（同一文件只快照第一次的版本）；全新文件必须先写入
+                    // rollback.json 再创建。任何路径拿不到回滚依据时都不能继续改目标文件。
                     if (is_file($d)) {
                         $snap = $bakFilesDir . '/' . $rel;
                         if (!is_file($snap)) {
@@ -481,10 +573,23 @@ function upgrade_batch(mixed $requestedOffset = null): array
                             $okDir = is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd);
                             if (!$okDir || !@copy($d, $snap)) {
                                 $snapFails++;
+                                $errors[] = "快照失败: $rel";
+                                continue;
                             }
                         }
                     } else {
-                        $created[] = $rel;
+                        $nextCreated = array_values(array_unique(array_merge($created, [$rel])));
+                        if (!uo_write_rollback_manifest(
+                            (string) ($state['backup'] ?? ''),
+                            (string) ($state['from'] ?? ''),
+                            (string) ($state['to'] ?? ''),
+                            $nextCreated,
+                            []
+                        )) {
+                            $errors[] = "回滚清单写入失败: $rel";
+                            continue;
+                        }
+                        $created = $nextCreated;
                     }
                     if (@file_put_contents($d, $data) !== false) $copied++; else $errors[] = "写入失败: $rel";
                 }
@@ -495,6 +600,7 @@ function upgrade_batch(mixed $requestedOffset = null): array
 
             $state['done'] = (int) ($state['done'] ?? 0) + $copied;
             $state['next_offset'] = $end;
+            $state['phase'] = 'applying';
             $state['errors'] = array_slice(array_merge(is_array($state['errors'] ?? null) ? $state['errors'] : [], $errors), 0, 50);
             $state['snapshot_failed'] = (int) ($state['snapshot_failed'] ?? 0) + $snapFails;
             return [
@@ -515,7 +621,63 @@ function upgrade_batch(mixed $requestedOffset = null): array
     return $response;
     }
 
-function upgrade_finalize(string $note = ''): array
+function uo_pending_migrations(): ?int
+{
+    try {
+        require_once ROOT_PATH . '/includes/Migrator.php';
+        $pending = 0;
+        foreach (Migrator::loadAll() as $migration) {
+            if (!Migrator::isApplied($migration)) {
+                $pending++;
+            }
+        }
+        return $pending;
+    } catch (Throwable) {
+        return null;
+    }
+}
+
+/**
+ * 事务已通过调用方检查后才清理恢复上下文。state 最后删，任一步失败都可在下一轮重试。
+ */
+function upgrade_complete(): array
+{
+    $sf = uo_state_file();
+    try {
+        $state = UpgradeApplyState::read($sf);
+    } catch (RuntimeException) {
+        return ['code' => 1, 'msg' => '升级完成状态丢失，拒绝清理恢复上下文'];
+    }
+    if (($state['phase'] ?? '') !== 'finalized' || !is_array($state['finalize_result'] ?? null)) {
+        return ['code' => 1, 'msg' => '升级尚未完成收尾，拒绝清理恢复上下文'];
+    }
+    $result = $state['finalize_result'];
+    if ((int) ($result['code'] ?? 1) !== 0) {
+        return ['code' => 1, 'msg' => '升级收尾仍有错误，拒绝清理恢复上下文'];
+    }
+
+    try {
+        settingModel()->set('last_upgrade_from', (string) ($state['from'] ?? ''), 'system');
+        settingModel()->set('last_upgrade_to', (string) ($result['new_version'] ?? ($state['to'] ?? '')), 'system');
+        settingModel()->set('last_upgrade_at', (string) time(), 'system');
+        settingModel()->set('last_upgrade_note', mb_substr(trim((string) ($state['note'] ?? '')), 0, 4000), 'system');
+    } catch (Throwable) {
+        // 展示记录失败不影响已经验证通过的文件事务。
+    }
+
+    uo_rrmdir(uo_dir() . '/extracted');
+    foreach ([uo_dir() . '/package.zip', uo_package_meta_file()] as $file) {
+        if (is_file($file) && !@unlink($file)) {
+            return ['code' => 1, 'msg' => '升级已完成，但临时安装包清理失败，将在下一轮重试'];
+        }
+    }
+    if (!@unlink($sf) && is_file($sf)) {
+        return ['code' => 1, 'msg' => '升级已完成，但事务状态清理失败，将在下一轮重试'];
+    }
+    return ['code' => 0, 'msg' => '升级事务已完成并清理'];
+}
+
+function upgrade_finalize(string $note = '', bool $preserveState = false): array
 {
     $sf = uo_state_file();
     if (!is_file($sf)) return ['code' => 1, 'msg' => '升级状态丢失，请重新开始'];
@@ -528,11 +690,29 @@ function upgrade_finalize(string $note = ''): array
         return ['code' => 1, 'msg' => __('upgrade_apply_state_invalid')];
     }
 
+    // 自动升级会在 finalize 后继续做健康/迁移安全判定。进程若在两者之间退出，
+    // 下一轮直接复用已持久化结果，不重复删除文件或覆盖回滚清单。
+    if (($state['phase'] ?? '') === 'finalized' && is_array($state['finalize_result'] ?? null)) {
+        $cached = $state['finalize_result'];
+        if (!$preserveState && (int) ($cached['code'] ?? 1) === 0) {
+            $clean = upgrade_complete();
+            if (($clean['code'] ?? 1) !== 0) {
+                $cached['code'] = 2;
+                $cached['errors'][] = (string) ($clean['msg'] ?? '事务清理失败');
+            }
+        }
+        return $cached;
+    }
+
     // 删除清单（仅增量有）：拒绝绝对路径/越界/受保护路径，仅删普通文件。
-    // 删除前先把文件挪进快照目录——删除也要可回滚
+    // 删除前先快照并更新回滚清单；任一步失败都保留原文件。
     $bakFilesDir = ROOT_PATH . '/storage/backups/' . basename((string) ($state['backup'] ?? '')) . '/files';
     $deletedCount = 0;
-    $deletedRels = [];
+    $existingManifest = json_decode((string) @file_get_contents(uo_rollback_file((string) ($state['backup'] ?? ''))), true);
+    $deletedRels = is_array($existingManifest) && is_array($existingManifest['deleted'] ?? null)
+        ? array_values($existingManifest['deleted']) : [];
+    $created = array_values(array_unique((array) ($state['created'] ?? [])));
+    $errors = is_array($state['errors'] ?? null) ? $state['errors'] : [];
     foreach ((array) ($state['deleted'] ?? []) as $rel) {
         $rel = (string) $rel;
         if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
@@ -542,33 +722,46 @@ function upgrade_finalize(string $note = ''): array
         $snap = $bakFilesDir . '/' . $rel;
         if (!is_file($snap)) {
             $sd = dirname($snap);
-            if (is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd)) @copy($p, $snap);
+            $okDir = is_dir($sd) || @mkdir($sd, 0755, true) || is_dir($sd);
+            if (!$okDir || !@copy($p, $snap)) {
+                $errors[] = "删除前快照失败: $rel";
+                continue;
+            }
         }
-        if (@unlink($p)) { $deletedCount++; $deletedRels[] = $rel; }
+        $nextDeleted = array_values(array_unique(array_merge($deletedRels, [$rel])));
+        if (!uo_write_rollback_manifest(
+            (string) ($state['backup'] ?? ''),
+            (string) ($state['from'] ?? ''),
+            (string) ($state['to'] ?? ''),
+            $created,
+            $nextDeleted
+        )) {
+            $errors[] = "删除前回滚清单写入失败: $rel";
+            continue;
+        }
+        if (@unlink($p)) {
+            $deletedCount++;
+            $deletedRels = $nextDeleted;
+        } else {
+            $errors[] = "删除失败: $rel";
+        }
     }
-    $patch = uo_patch_config_version();
+    if (!uo_write_rollback_manifest(
+        (string) ($state['backup'] ?? ''),
+        (string) ($state['from'] ?? ''),
+        (string) ($state['to'] ?? ''),
+        $created,
+        $deletedRels
+    )) {
+        $errors[] = '回滚清单最终写入失败';
+    }
+    $patch = empty($errors) ? uo_patch_config_version() : 'skipped';
+    if ($patch === 'failed') {
+        $errors[] = 'config 版本入口补丁写入失败';
+    }
 
-    // 回滚清单落盘（state 文件马上要清，回滚所需信息随备份目录持久化）
-    @file_put_contents(
-        dirname($bakFilesDir) . '/rollback.json',
-        json_encode([
-            'from' => (string) ($state['from'] ?? ''),
-            'to' => (string) ($state['to'] ?? ''),
-            'created' => array_values(array_unique((array) ($state['created'] ?? []))),
-            'deleted' => $deletedRels,
-            'time' => date('Y-m-d H:i:s'),
-        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
-    );
-
-    // 清理临时（本版本不再产生 extracted/ 目录；顺手清理旧版本可能残留的）
-    uo_rrmdir(uo_dir() . '/extracted');
-    @unlink(uo_dir() . '/package.zip');
-    @unlink($sf);
-
-    $errors = $state['errors'] ?? [];
     $copied = (int) ($state['done'] ?? $state['total'] ?? 0);
     $mode   = $state['mode'] ?? 'full';
-    // 失败清单写入持久日志（收尾已删状态文件，名单本会丢失）；供事后排查/手动补文件。
     if (!empty($errors)) {
         $verPair = $mode === 'delta' ? "{$state['from']}→{$state['to']}" : ('→' . ($state['to'] ?? ''));
         @file_put_contents(
@@ -583,36 +776,17 @@ function upgrade_finalize(string $note = ''): array
     $newVer = '';
     $vf = @file_get_contents(ROOT_PATH . '/config/version.php');
     if ($vf && preg_match("/CMS_VERSION'\\s*,\\s*'([^']+)'/", $vf, $m)) $newVer = $m[1];
-
-    // 还有几条迁移要跑？多数版本一条都没有，那就不该把人赶去「数据库升级」页
-    // 只为看一句「全部已应用」。注意这里读的是刚覆盖上去的**新** migrations/。
-    $pending = null;
-    try {
-        require_once ROOT_PATH . '/includes/Migrator.php';
-        $pending = 0;
-        foreach (Migrator::loadAll() as $mg) {
-            if (!Migrator::isApplied($mg)) $pending++;
-        }
-    } catch (Throwable $e) {
-        $pending = null;   // 数不出来就按老路子跳，宁可多跳一趟也别漏掉迁移
+    $expectedVersion = trim((string) ($state['to'] ?? ''));
+    if ($expectedVersion !== '' && $newVer !== $expectedVersion) {
+        $errors[] = '安装后版本不一致：期望 ' . $expectedVersion . '，实际 ' . ($newVer !== '' ? $newVer : '无法识别');
     }
 
-    // 记下这次升级的落点，供「升级完成」页展示（版本号、时间、更新说明）。
-    // 说明文字来自更新服务器，渲染时一律 e() 转义。
-    try {
-        settingModel()->set('last_upgrade_from', (string) ($state['from'] ?? ''), 'system');
-        settingModel()->set('last_upgrade_to', $newVer ?: (string) ($state['to'] ?? ''), 'system');
-        settingModel()->set('last_upgrade_at', (string) time(), 'system');
-        settingModel()->set('last_upgrade_note', mb_substr(trim($note), 0, 4000), 'system');
-    } catch (Throwable $e) {
-        // 记不上不影响升级本身
-    }
-
-    // 升级后健康自检：核心文件语法 + 版本号可读。失败 = 疑似新旧代码混合状态，
-    // 前端据此提供「一键回滚到升级前」按钮（从 backups/<backup>/files 快照恢复）
+    $pending = uo_pending_migrations();
     $health = uo_health_check();
-
-    return [
+    if (empty($health['ok'])) {
+        $errors[] = '升级后健康检查失败';
+    }
+    $result = [
         'code'    => empty($errors) ? 0 : 2,
         'pending' => $pending,
         'msg'     => (empty($errors) ? "文件更新完成，共覆盖 $copied 个文件" : "部分文件未能覆盖（$copied 成功，" . count($errors) . " 失败）") . ($deletedCount ? "，删除 $deletedCount 个" : ''),
@@ -625,6 +799,27 @@ function upgrade_finalize(string $note = ''): array
         'backup'  => $state['backup'] ?? '',
         'health'  => $health,
     ];
+
+    $state['phase'] = 'finalized';
+    $state['note'] = $note;
+    $state['errors'] = array_slice($errors, 0, 50);
+    $state['finalize_result'] = $result;
+    try {
+        UpgradeApplyState::write($sf, $state);
+    } catch (RuntimeException) {
+        $result['code'] = 2;
+        $result['errors'][] = __('upgrade_apply_state_write_failed');
+        return $result;
+    }
+
+    if (!$preserveState && (int) $result['code'] === 0) {
+        $clean = upgrade_complete();
+        if (($clean['code'] ?? 1) !== 0) {
+            $result['code'] = 2;
+            $result['errors'][] = (string) ($clean['msg'] ?? '事务清理失败');
+        }
+    }
+    return $result;
     }
 
 function upgrade_rollback(string $backup): array
@@ -639,38 +834,73 @@ function upgrade_rollback(string $backup): array
     if (!is_array($rb)) return ['code' => 1, 'msg' => '找不到回滚清单（rollback.json），无法自动回滚，请用主机备份恢复'];
     if (!is_dir($filesDir)) return ['code' => 1, 'msg' => '找不到文件快照目录，无法自动回滚，请用主机备份恢复'];
 
+    // state 仍在时与清单取并集。正常路径会先写清单再创建文件；这里再合一次，
+    // 兼容旧事务和清单最后一次刷新后进程异常退出的情况。
+    try {
+        $state = UpgradeApplyState::read(uo_state_file());
+        if (basename((string) ($state['backup'] ?? '')) === $backup) {
+            $rb['created'] = array_values(array_unique(array_merge(
+                (array) ($rb['created'] ?? []),
+                (array) ($state['created'] ?? [])
+            )));
+        }
+    } catch (RuntimeException) {
+        // 持久化清单本身足以回滚，不强依赖临时 state。
+    }
+
     // 1) 恢复快照（被覆盖 + 被删除的文件都在里面）
     [$restored, $restoreErrors] = uo_copy_tree($filesDir, ROOT_PATH);
 
     // 2) 移除升级新建的文件（旧版没有它们；防越界与受保护路径）
     $removed = 0;
+    $removeErrors = [];
     foreach ((array) ($rb['created'] ?? []) as $rel) {
         $rel = (string) $rel;
         if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
         if (uo_is_protected($rel)) continue;
-        if (is_file(ROOT_PATH . '/' . $rel) && @unlink(ROOT_PATH . '/' . $rel)) $removed++;
+        $createdFile = ROOT_PATH . '/' . $rel;
+        if (is_file($createdFile)) {
+            if (@unlink($createdFile)) {
+                $removed++;
+            } else {
+                $removeErrors[] = "移除新建文件失败: $rel";
+            }
+        }
     }
 
-    // 3) 清理升级中间态，避免半途状态被后续误用
-    @unlink(uo_state_file());
-    @unlink(uo_dir() . '/package.zip');
+    // config.php 不在通用快照树中（它是受保护路径），单独恢复 prepare 时的副本。
+    $configBackup = $bakDir . '/config.php';
+    if (is_file($configBackup) && !@copy($configBackup, ROOT_PATH . '/config/config.php')) {
+        $restoreErrors[] = '恢复 config/config.php 失败';
+    }
 
     $health = uo_health_check();
-    try { adminLog('upgrade', 'online_rollback', "在线升级回滚（{$backup}）：恢复 {$restored}，移除新建 {$removed}，恢复失败 " . count($restoreErrors)); } catch (\Throwable $e) {}
+    if (empty($health['ok'])) {
+        $restoreErrors[] = '回滚后健康检查失败';
+    }
+    $errors = array_merge($restoreErrors, $removeErrors);
+    if (empty($errors)) {
+        @unlink(uo_dir() . '/package.zip');
+        @unlink(uo_package_meta_file());
+        @unlink(uo_state_file());
+    }
+    try { adminLog('upgrade', 'online_rollback', "在线升级回滚（{$backup}）：恢复 {$restored}，移除新建 {$removed}，失败 " . count($errors)); } catch (\Throwable $e) {}
     return [
-        'code' => empty($restoreErrors) ? 0 : 2,
+        'code' => empty($errors) ? 0 : 2,
         'msg' => "回滚完成：恢复 {$restored} 个文件，移除新建 {$removed} 个"
-            . (empty($restoreErrors) ? '' : ('，' . count($restoreErrors) . ' 个恢复失败：' . implode('; ', array_slice($restoreErrors, 0, 10)))),
+            . (empty($errors) ? '' : ('，' . count($errors) . ' 个失败：' . implode('; ', array_slice($errors, 0, 10)))),
         'restored' => $restored,
         'removed' => $removed,
-        'errors' => array_slice($restoreErrors, 0, 20),
+        'errors' => array_slice($errors, 0, 20),
         'health' => $health,
     ];
     }
 
-function upgrade_download_package(string $url, string $hash, string $version, string $sig): array
+function upgrade_download_package(string $url, string $hash, string $version, string $sig, string $owner = 'manual'): array
 {
-    
+    if (is_file(uo_state_file())) {
+        return ['code' => 1, 'msg' => '已有升级事务尚未结束，拒绝覆盖其安装包'];
+    }
     $hash = strtolower((string) preg_replace('/^sha256:/i', '', $hash));
     $ver = trim($version);
     $sig = trim($sig);
@@ -683,6 +913,7 @@ function upgrade_download_package(string $url, string $hash, string $version, st
     }
     $pkg = uo_dir() . '/package.zip';
     @unlink($pkg);
+    @unlink(uo_package_meta_file());
     if ($sig === '') return ['code' => 1, 'msg' => '升级包缺少 RSA 签名，拒绝升级'];
     if (!uo_verify_sig($ver, 'sha256:' . $hash, $sig)) {
         return ['code' => 1, 'msg' => 'RSA 签名校验失败，拒绝升级'];
@@ -693,6 +924,15 @@ function upgrade_download_package(string $url, string $hash, string $version, st
     if (!hash_equals(strtolower($hash), strtolower((string) $actual))) {
         @unlink($pkg);
         return ['code' => 1, 'msg' => 'SHA256 校验不通过，包可能损坏或被篡改，已删除'];
+    }
+    if (!uo_write_json_locked(uo_package_meta_file(), [
+        'version' => $ver,
+        'hash' => 'sha256:' . $hash,
+        'verified_at' => time(),
+        'owner' => $owner === 'auto' ? 'auto' : 'manual',
+    ])) {
+        @unlink($pkg);
+        return ['code' => 1, 'msg' => '安装包已校验，但验签上下文无法持久化，已拒绝继续'];
     }
     return ['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => true];
     }

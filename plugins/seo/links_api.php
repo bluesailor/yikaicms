@@ -15,13 +15,15 @@ declare(strict_types=1);
 
 // 全程 JSON 响应：任何 warning/异常都不能把 HTML 混进响应体，否则前端解析失败静默卡住
 set_error_handler(function ($no, $str, $file, $line) {
+    error_log("SEO links error {$no}: {$str} in {$file}:{$line}");
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'error' => "{$str} in {$file}:{$line}"]);
+    echo json_encode(['success' => false, 'error' => '服务器处理请求时发生错误']);
     exit;
 });
 set_exception_handler(function ($e) {
+    error_log('SEO links exception: ' . $e->getMessage());
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => '服务器处理请求时发生错误']);
     exit;
 });
 
@@ -51,13 +53,7 @@ if (!seo_is_pro()) {
 // 角色校验：登录 + CSRF + Pro 闸之外，还必须持有内容编辑权限。
 // 否则任何已登录的后台账号（哪怕只有查看权限）都能改基石标记 / 消耗 AI 配额。
 // （codex 审计 P2-3）本端点服务于内容编辑页，持有任一内容编辑权限即可。
-$seoCanEdit = false;
-foreach (['edit_article', 'edit_page', 'edit_product', 'edit_case', 'edit_download'] as $seoPerm) {
-    if (function_exists('hasPermission') && hasPermission($seoPerm)) {
-        $seoCanEdit = true;
-        break;
-    }
-}
+$seoCanEdit = function_exists('hasAnyContentPerm') && hasAnyContentPerm();
 if (!$seoCanEdit) {
     echo json_encode(['success' => false, 'error' => '没有内容编辑权限']);
     exit;
@@ -73,11 +69,20 @@ if ($action === 'cornerstone') {
     }
     // 只允许标记真实存在且已发布的内容
     $row = db()->fetchOne(
-        'SELECT id FROM ' . DB_PREFIX . 'contents WHERE id = ? AND deleted_at IS NULL',
+        'SELECT id, type FROM ' . DB_PREFIX . 'contents WHERE id = ? AND deleted_at IS NULL',
         [$contentId]
     );
     if (!$row) {
         echo json_encode(['success' => false, 'error' => '内容不存在']);
+        exit;
+    }
+    $contentType = (string) ($row['type'] ?? '');
+    $knownType = function_exists('contentPermTypes') && in_array($contentType, contentPermTypes(), true);
+    $seoCanEditTarget = $knownType
+        ? hasPermission('edit_' . $contentType)
+        : hasAnyContentPerm();
+    if (!$seoCanEditTarget) {
+        echo json_encode(['success' => false, 'error' => '没有该内容类型的编辑权限']);
         exit;
     }
     $on = seo_cornerstone_toggle($contentId);

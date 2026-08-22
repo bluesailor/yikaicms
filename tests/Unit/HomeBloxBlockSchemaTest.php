@@ -1044,7 +1044,7 @@ PHP);
         $overrides = $normalized['custom_overrides'];
         $this->assertSame('#fffbeb', $overrides['zh_CN'][0]['columns'][1]['card_bg']);
         $this->assertSame('专业版', $overrides['zh_CN'][0]['columns'][1]['elements'][0]['data']['text']);
-        $this->assertSame('<p >¥299</p>', $overrides['zh_CN'][0]['columns'][1]['elements'][1]['data']['html']);
+        $this->assertSame('<p>¥299</p>', $overrides['zh_CN'][0]['columns'][1]['elements'][1]['data']['html']);
         $this->assertSame('', $overrides['zh_CN'][0]['columns'][1]['elements'][2]['data']['url']);
         $this->assertSame('プロ', $overrides['ja'][0]['columns'][1]['elements'][0]['data']['text']);
 

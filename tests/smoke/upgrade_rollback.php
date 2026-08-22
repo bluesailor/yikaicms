@@ -141,6 +141,11 @@ $zip->addFromString('.delta-manifest.json', json_encode([
 $zip->addFromString('payload/e2e-rb-sandbox/overwrite.txt', 'NEW-CONTENT');
 $zip->addFromString('payload/e2e-rb-sandbox/created.txt', 'CREATED-CONTENT');
 $zip->close();
+file_put_contents($ROOT . '/storage/upgrade/package-meta.json', json_encode([
+    'version' => $currentVersion,
+    'hash' => 'test-only',
+    'verified_at' => time(),
+]));
 echo "✓ 布景就绪（沙箱 + 增量包：覆盖1 新建1 删除1）\n";
 
 // ---- 1) apply_prepare：建状态 + 备份目录 ----
@@ -153,6 +158,7 @@ $backup = (string) ($prep['backup'] ?? '');
 rbAssert($backup !== '' && str_starts_with($backup, 'pre-upgrade-'), "备份目录已建（{$backup}）");
 $bakDir = $ROOT . '/storage/backups/' . $backup;
 $CLEANUP[] = $bakDir;
+rbAssert(is_file($bakDir . '/config.php'), 'config.php 已在改动文件前完成备份');
 
 // ---- 2) apply_batch：覆盖 + 覆盖前快照 ----
 echo "— apply_batch\n";
@@ -199,10 +205,30 @@ if ($z2->open($badZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) rbF
 $z2->addFromString('.delta-manifest.json', json_encode(['from' => '0.0.0', 'to' => '9.9.9', 'deleted' => []]));
 $z2->addFromString('payload/e2e-rb-sandbox/x.txt', 'X');
 $z2->close();
+file_put_contents($ROOT . '/storage/upgrade/package-meta.json', json_encode([
+    'version' => '9.9.9', 'hash' => 'test-only', 'verified_at' => time(),
+]));
 $bad2 = rbAction('apply_prepare');
 rbAssert(($bad2['code'] ?? 0) === 1, '基线不匹配的增量包被拒绝');
 rbAssert(str_contains((string) ($bad2['msg'] ?? ''), '基线不匹配'), '拒绝原因明确指出基线不匹配');
 @unlink($badZip);
+
+// ---- 5b) 防呆：目标版本必须等于下载阶段已验签 version ----
+$z3 = new ZipArchive();
+if ($z3->open($badZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) rbFail('无法创建目标不符的测试包');
+$z3->addFromString('.delta-manifest.json', json_encode([
+    'from' => $currentVersion, 'to' => '9.9.9-wrong-target', 'deleted' => [],
+]));
+$z3->addFromString('payload/e2e-rb-sandbox/x.txt', 'X');
+$z3->close();
+file_put_contents($ROOT . '/storage/upgrade/package-meta.json', json_encode([
+    'version' => $currentVersion, 'hash' => 'test-only', 'verified_at' => time(),
+]));
+$badTarget = rbAction('apply_prepare');
+rbAssert(($badTarget['code'] ?? 0) === 1, '目标版本与已验签 version 不同的增量包被拒绝');
+rbAssert(str_contains((string) ($badTarget['msg'] ?? ''), '目标不匹配'), '拒绝原因明确指出目标不匹配');
+@unlink($badZip);
+@unlink($ROOT . '/storage/upgrade/package-meta.json');
 
 // ---- 6) 防呆：非法备份名被拒 ----
 $bad = rbAction('apply_rollback', ['backup' => '../../config']);
