@@ -12,13 +12,15 @@ declare(strict_types=1);
 
 // 全程 JSON 响应
 set_error_handler(function ($no, $str, $file, $line) {
+    error_log("SEO AI error {$no}: {$str} in {$file}:{$line}");
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'error' => "{$str} in {$file}:{$line}"]);
+    echo json_encode(['success' => false, 'error' => '服务器处理请求时发生错误']);
     exit;
 });
 set_exception_handler(function ($e) {
+    error_log('SEO AI exception: ' . $e->getMessage());
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => '服务器处理请求时发生错误']);
     exit;
 });
 
@@ -52,13 +54,7 @@ if (!function_exists('license_has_module') || !license_has_module('seo-pro')) {
 // 角色校验：登录 + CSRF + Pro 闸之外，还必须持有内容编辑权限。
 // 否则任何已登录的后台账号（哪怕只有查看权限）都能改基石标记 / 消耗 AI 配额。
 // （codex 审计 P2-3）本端点服务于内容编辑页，持有任一内容编辑权限即可。
-$seoCanEdit = false;
-foreach (['edit_article', 'edit_page', 'edit_product', 'edit_case', 'edit_download'] as $seoPerm) {
-    if (function_exists('hasPermission') && hasPermission($seoPerm)) {
-        $seoCanEdit = true;
-        break;
-    }
-}
+$seoCanEdit = function_exists('hasAnyContentPerm') && hasAnyContentPerm();
 if (!$seoCanEdit) {
     echo json_encode(['success' => false, 'error' => '没有内容编辑权限']);
     exit;
@@ -109,6 +105,41 @@ switch ($field) {
         echo json_encode(['success' => false, 'error' => '未知的优化字段']);
         exit;
 }
+
+// 成本边界：同一登录会话每分钟最多 10 次，每个管理员每天最多 100 次。
+// ai_logs 不存在的旧站仍保留会话级限制；表存在时用参数化查询做跨会话日额度。
+$now = time();
+$recent = array_values(array_filter(
+    is_array($_SESSION['seo_ai_request_times'] ?? null) ? $_SESSION['seo_ai_request_times'] : [],
+    static fn(mixed $ts): bool => is_int($ts) && $ts > $now - 60
+));
+if (count($recent) >= 10) {
+    echo json_encode(['success' => false, 'error' => 'AI 请求过于频繁，请一分钟后再试']);
+    exit;
+}
+try {
+    if (db()->tableExists('ai_logs')) {
+        $daily = (int) db()->fetchColumn(
+            'SELECT COUNT(*) FROM ' . DB_PREFIX . 'ai_logs WHERE admin_id = ?'
+                . ' AND action IN (?, ?, ?) AND created_at >= ?',
+            [
+                (int) $_SESSION['admin_id'],
+                'seo_seo_title',
+                'seo_seo_description',
+                'seo_seo_keywords',
+                date('Y-m-d 00:00:00'),
+            ]
+        );
+        if ($daily >= 100) {
+            echo json_encode(['success' => false, 'error' => '今日 SEO AI 调用额度已用完']);
+            exit;
+        }
+    }
+} catch (\Throwable) {
+    // 日志表异常不能放掉分钟级限制，也不应让编辑器 500。
+}
+$recent[] = $now;
+$_SESSION['seo_ai_request_times'] = $recent;
 
 AiService::$action = 'seo_' . $field;
 $result = $ai->chat($prompt, $system, 0.7);

@@ -79,6 +79,12 @@ function auMakePackage(int $fileCount = 2): string
         $zip->addFromString('payload/e2e-au-sandbox/f' . $i . '.txt', 'N' . $i);
     }
     $zip->close();
+    file_put_contents($UPD . '/package-meta.json', json_encode([
+        'version' => $ver,
+        'hash' => 'test-only',
+        'verified_at' => time(),
+        'owner' => 'auto',
+    ]));
     return $pkg;
 }
 
@@ -88,6 +94,7 @@ function auReset(): void
     global $SANDBOX, $UPD;
     auRmTree($SANDBOX);
     @unlink($UPD . '/package.zip');
+    @unlink($UPD . '/package-meta.json');
     @unlink($UPD . '/apply_state.json');
     @unlink($UPD . '/auto_upgrade.lock');
     foreach (glob(ROOT_PATH . '/storage/backups/pre-upgrade-*') ?: [] as $d) {
@@ -125,24 +132,40 @@ if ($otherLock !== false) {
     fclose($otherLock);
 }
 
+echo "\n[1b] 手工升级事务隔离\n";
+auReset();
+auMakePackage(2);
+$meta = json_decode((string) file_get_contents($UPD . '/package-meta.json'), true);
+$meta['owner'] = 'manual';
+file_put_contents($UPD . '/package-meta.json', json_encode($meta));
+upgrade_prepare();
+$r = AutoUpgrade::run(false);
+auOk(str_contains($r, '手工升级事务正在进行'), '自动任务不会覆盖手工事务：' . $r);
+auOk(is_file($UPD . '/apply_state.json') && is_file($UPD . '/package.zip'), '手工事务上下文保持不动');
+
+echo "\n[1c] 无元数据遗留包隔离\n";
+auReset();
+auMakePackage(2);
+@unlink($UPD . '/package-meta.json');
+$r = AutoUpgrade::run(false);
+auOk(str_contains($r, '手工升级事务正在进行'), '自动任务不会覆盖来源不明的遗留包：' . $r);
+auOk(is_file($UPD . '/package.zip'), '来源不明的安装包保持不动');
+
 // ============================================================
 // 场景 2：跨 cron 续跑 —— 必须在**不联网**的情况下接着跑
 //   这是 codex P0-1 的回归：续跑判定若排在 check() 之后，网络不可达时会退出，
 //   而真实场景里 config/version.php 已被覆盖，服务器会回「无更新」，同样退不出来。
+//   故意不写 auto_upgrade_target，覆盖 prepare 完成后、设置表落盘前进程退出的窗口。
 // ============================================================
 echo "\n[2] 跨 cron 续跑（不联网）\n";
 auReset();
 auMakePackage(3);
 $pre = upgrade_prepare();
 auOk(($pre['code'] ?? 1) === 0, 'prepare 成功，建立事务');
-settingModel()->saveBatch([
-    'auto_upgrade_target' => defined('CMS_VERSION') ? CMS_VERSION : '',
-    'auto_upgrade_from' => 'x.y.z',
-]);
 $t0 = microtime(true);
 $r = AutoUpgrade::run(false);
 $elapsed = microtime(true) - $t0;
-auOk(str_contains($r, 'resume'), '识别为续跑：' . $r);
+auOk(str_contains($r, 'resume'), '无设置表续跑标记仍识别为事务：' . $r);
 // 联网 check() 至少要几百毫秒（不可达时是 20 秒超时）。续跑路径根本不该碰网络。
 auOk($elapsed < 3.0, sprintf('续跑未联网（耗时 %.2fs）', $elapsed));
 
@@ -200,12 +223,45 @@ auRmTree($filesDir);
 file_put_contents($filesDir, 'not a directory');
 $bt = upgrade_batch(null);
 auOk((int) ($bt['snapshot_failed'] ?? 0) > 0, '快照失败被单独计数：' . (int) ($bt['snapshot_failed'] ?? 0));
+auOk(file_get_contents($SANDBOX . '/existing.txt') === 'OLD', '快照失败时没有覆盖原文件');
 @unlink($filesDir);
 
 // ============================================================
-// 场景 6：数据库备份失败 —— 无备份不许升（迁移改表后无法恢复）
+// 场景 6：finalize 前回滚 —— 清单必须在 prepare/batch 阶段已经可用
 // ============================================================
-echo "\n[6] 数据库备份失败\n";
+echo "\n[6] finalize 前回滚\n";
+auReset();
+auMakePackage(2);
+$pre = upgrade_prepare();
+$backup = (string) ($pre['backup'] ?? '');
+$bt = upgrade_batch(null);
+auOk(($bt['code'] ?? 1) === 0, '批次覆盖完成');
+$rb = upgrade_rollback($backup);
+auOk(($rb['code'] ?? 1) === 0, '未 finalize 也能回滚：' . ($rb['msg'] ?? ''));
+auOk(file_get_contents($SANDBOX . '/existing.txt') === 'OLD', '覆盖文件恢复旧内容');
+auOk(!is_file($SANDBOX . '/f1.txt'), '批次新建文件已移除');
+
+// ============================================================
+// 场景 7：最后批次完成后进程退出 —— 下一轮必须继续 finalize，不得查服务器退出
+// ============================================================
+echo "\n[7] complete state 续跑 finalize\n";
+auReset();
+auMakePackage(2);
+$pre = upgrade_prepare();
+$bt = upgrade_batch(null);
+auOk((int) ($bt['next'] ?? -1) === (int) ($bt['total'] ?? -2), '构造游标已到尾、尚未 finalize 的状态');
+settingModel()->saveBatch([
+    'auto_upgrade_target' => defined('CMS_VERSION') ? CMS_VERSION : '',
+    'auto_upgrade_from' => defined('CMS_VERSION') ? CMS_VERSION : '',
+]);
+$r = AutoUpgrade::run(false);
+auOk(str_contains($r, 'resume') && str_contains($r, 'upgraded'), 'complete state 被恢复并完成：' . $r);
+auOk(!is_file($UPD . '/apply_state.json') && !is_file($UPD . '/package.zip'), '完成后才清理事务状态与安装包');
+
+// ============================================================
+// 场景 8：数据库备份失败 —— 无备份不许升
+// ============================================================
+echo "\n[8] 数据库备份失败\n";
 auReset();
 auMakePackage(2);
 $pre = upgrade_prepare();
@@ -218,42 +274,33 @@ auOk(
 );
 
 // ============================================================
-// 场景 7：迁移中途失败 —— 必须中止并回滚，不能报成功
+// 场景 9：存在待执行迁移 —— 无人值守不执行 DB 写入，回滚文件并转人工
 // ============================================================
-echo "\n[7] 迁移失败\n";
+echo "\n[9] 待迁移版本转人工\n";
 auReset();
+auMakePackage(2);
+$pre = upgrade_prepare();
 $migFile = ROOT_PATH . '/migrations/29991231_fault_injection_test.php';
-// Migrator 要求 id + check 两个键；check 返回 false 表示「未应用」
 file_put_contents($migFile, "<?php\nreturn [\n"
     . "    'id' => '29991231_fault_injection_test',\n"
     . "    'title' => '故障注入用（测试自动删除）',\n"
     . "    'check' => function () { return false; },\n"
-    . "    'php' => function () { throw new RuntimeException('注入的迁移故障'); },\n"
+    . "    'php' => function () { file_put_contents(ROOT_PATH . '/e2e-au-sandbox/migration-ran.txt', 'BAD'); return 'BAD'; },\n"
     . "];\n");
-require_once ROOT_PATH . '/includes/Migrator.php';
-$found = false;
-foreach (Migrator::loadAll() as $m) {
-    if (($m['id'] ?? '') === '29991231_fault_injection_test') {
-        $found = true;
-        // Migrator::runOne 不抛异常，失败时返回 ok=false —— 这个差异曾让
-        // AutoUpgrade 完全忽略迁移失败（源码断言测不出来，只有真跑一遍才知道）
-        $res = Migrator::runOne($m);
-        auOk(is_array($res) && empty($res['ok']), 'runOne 以 ok=false 形态报告失败（不是抛异常）');
-    }
-}
-auOk($found, '注入的迁移被 Migrator 加载到');
-
-// 真正要验的是：AutoUpgrade 能不能接住这种失败形态
-$ref = new ReflectionMethod(AutoUpgrade::class, 'runMigrations');
-$ref->setAccessible(true);
-[$okCount, $err] = $ref->invoke(null);
-auOk($err !== '', 'AutoUpgrade::runMigrations 捕获到失败：' . mb_substr($err, 0, 50));
+settingModel()->saveBatch([
+    'auto_upgrade_target' => defined('CMS_VERSION') ? CMS_VERSION : '',
+    'auto_upgrade_from' => defined('CMS_VERSION') ? CMS_VERSION : '',
+]);
+$r = AutoUpgrade::run(false);
+auOk(str_contains($r, 'rolled back') && str_contains($r, '数据库迁移'), '待迁移版本已回滚转人工：' . $r);
+auOk(!is_file($SANDBOX . '/migration-ran.txt'), '无人值守流程没有执行迁移 PHP');
+auOk(file_get_contents($SANDBOX . '/existing.txt') === 'OLD', '拒绝迁移后文件已回滚');
 @unlink($migFile);
 
 // ============================================================
-// 场景 8：回滚自身失败 —— 必须如实报「需人工介入」，不能吞掉
+// 场景 10：回滚自身失败 —— 必须如实报「需人工介入」，不能吞掉
 // ============================================================
-echo "\n[8] 回滚自身失败\n";
+echo "\n[10] 回滚自身失败\n";
 auReset();
 $rb = upgrade_rollback('pre-upgrade-does-not-exist-' . time());
 auOk(($rb['code'] ?? 0) === 1, '不存在的备份目录：回滚如实返回失败');
@@ -263,9 +310,9 @@ auOk(
 );
 
 // ============================================================
-// 场景 9：状态文件损坏 —— 不能当成「有事务」死循环，应重新开始
+// 场景 11：状态文件损坏 —— 不能当成「有事务」死循环，应重新开始
 // ============================================================
-echo "\n[9] 状态文件损坏\n";
+echo "\n[11] 状态文件损坏\n";
 auReset();
 auMakePackage(2);
 upgrade_prepare();

@@ -19,14 +19,32 @@ require_once __DIR__ . '/UrlPolicy.php';
 
 final class HtmlPolicy
 {
-    /** richText 层的标签白名单 */
-    private const ALLOWED_TAGS = '<p><br><b><i><u><s><em><strong><small><sub><sup>'
-        . '<h1><h2><h3><h4><h5><h6>'
-        . '<ul><ol><li><dl><dt><dd>'
-        . '<table><thead><tbody><tfoot><tr><th><td><caption><colgroup><col>'
-        . '<a><img><figure><figcaption>'
-        . '<blockquote><pre><code><hr><div><span>'
-        . '<video><source><audio><iframe>';
+    private const ALLOWED_TAGS = [
+        'p', 'br', 'b', 'i', 'u', 's', 'em', 'strong', 'small', 'sub', 'sup',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+        'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption', 'colgroup', 'col',
+        'a', 'img', 'figure', 'figcaption', 'blockquote', 'pre', 'code', 'hr', 'div', 'span',
+        'video', 'source', 'audio', 'iframe',
+    ];
+
+    private const DROP_WITH_CONTENT = ['script', 'style', 'template', 'object', 'embed', 'svg', 'math'];
+
+    private const GLOBAL_ATTRIBUTES = ['class', 'title', 'lang', 'dir'];
+
+    private const TAG_ATTRIBUTES = [
+        'a' => ['href', 'target', 'rel'],
+        'img' => ['src', 'alt', 'width', 'height', 'loading'],
+        'iframe' => ['src', 'width', 'height', 'allow', 'allowfullscreen', 'loading', 'referrerpolicy'],
+        'video' => ['src', 'poster', 'width', 'height', 'controls', 'autoplay', 'loop', 'muted', 'preload'],
+        'audio' => ['src', 'controls', 'autoplay', 'loop', 'muted', 'preload'],
+        'source' => ['src', 'type', 'media'],
+        'th' => ['colspan', 'rowspan', 'scope'],
+        'td' => ['colspan', 'rowspan'],
+        'col' => ['span'],
+        'ol' => ['start', 'reversed', 'type'],
+        'li' => ['value'],
+        'blockquote' => ['cite'],
+    ];
 
     /**
      * 富文本净化：移除危险标签和属性，保留安全的格式化标签。
@@ -35,59 +53,123 @@ final class HtmlPolicy
     public static function richText(?string $html): string
     {
         if ($html === null || $html === '') return '';
+        if (!class_exists('DOMDocument')) {
+            return htmlspecialchars(strip_tags($html), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        }
 
-        // 第一步：移除 script/style 标签及其内容
-        $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html) ?? $html;
-        $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html) ?? $html;
+        $doc = new DOMDocument('1.0', 'UTF-8');
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $loaded = $doc->loadHTML(
+                '<?xml encoding="UTF-8"><div id="yk-richtext-root">' . $html . '</div>',
+                LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+            );
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+        if (!$loaded) {
+            return '';
+        }
 
-        // 第二步：strip_tags 保留白名单
-        $html = strip_tags($html, self::ALLOWED_TAGS);
+        $root = null;
+        foreach ($doc->getElementsByTagName('div') as $div) {
+            if ($div->getAttribute('id') === 'yk-richtext-root') {
+                $root = $div;
+                break;
+            }
+        }
+        if (!$root instanceof DOMElement) {
+            return '';
+        }
+        self::sanitizeChildren($root);
 
-        // 第三步 · 前置：把 URL 属性里的 HTML 实体解码回来再检查。
-        // 浏览器读属性值时会解码实体，所以 href="java&#x73;cript:..." 与
-        // href="jav&#10;ascript:..." 在浏览器眼里都是 javascript:，而按原文做正则
-        // 的话一个都拦不住。（codex 审计 P1-1，已复现）
-        // 只对 href/src/action 的值解码——正文里的实体是内容，不能动。
-        $html = preg_replace_callback(
-            '/\b(href|src|action)\s*=\s*(["\'])(.*?)\2/is',
-            static function (array $m): string {
-                $decoded = html_entity_decode($m[3], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                // 控制字符同样要去掉：jav\tascript: 之类靠它们绕过关键字匹配
-                $decoded = (string) preg_replace('/[\x00-\x1F\x7F]/', '', $decoded);
-                return $m[1] . '=' . $m[2] . $decoded . $m[2];
-            },
-            $html
-        ) ?? $html;
+        $out = '';
+        foreach (iterator_to_array($root->childNodes) as $child) {
+            $out .= $doc->saveHTML($child) ?: '';
+        }
+        return $out;
+    }
 
-        // 第三步 · 前置二：srcdoc 整条删掉。它的值是一整份 HTML 文档，浏览器会
-        // 解码实体后当页面执行——<iframe srcdoc="&lt;script&gt;…"> 是完整的存储型
-        // XSS 载荷，而下面的 src 白名单只看 src，看不见它。（codex 审计 P1-1，已复现）
-        $html = preg_replace('/\bsrcdoc\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html) ?? $html;
-
-        // 第三步：移除事件属性（on*）与危险伪协议。
-        // javascript/vbscript 全拦；data: 只拦非图片形态——data:text/html 可承载
-        // 完整攻击页，data:image/* 是富文本粘贴内联图的合法场景（v1.18.6 补：
-        // 此前只拦 javascript:，vbscript:/data:text/html 的 href 会被放行）
-        $html = preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html) ?? $html;
-        $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*(?:javascript|vbscript)\s*:/i', 'data-removed="1"', $html) ?? $html;
-        $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*data\s*:(?!\s*image\/)/i', 'data-removed="1"', $html) ?? $html;
-
-        // 第四步：iframe src 限定可信视频平台（Host 精确比对）
-        $html = preg_replace_callback(
-            '/<iframe\b([^>]*)>/i',
-            static function (array $matches): string {
-                $attrs = $matches[1];
-                if (preg_match('/src\s*=\s*["\']([^"\']+)["\']/i', $attrs, $srcMatch)) {
-                    if (!self::trustedEmbedSrc(html_entity_decode($srcMatch[1]))) {
-                        return '<!-- iframe removed -->';
-                    }
+    private static function sanitizeChildren(DOMNode $parent): void
+    {
+        foreach (iterator_to_array($parent->childNodes) as $child) {
+            if (!$child instanceof DOMElement) {
+                continue;
+            }
+            $tag = strtolower($child->tagName);
+            if (!in_array($tag, self::ALLOWED_TAGS, true)) {
+                if (in_array($tag, self::DROP_WITH_CONTENT, true)) {
+                    $parent->removeChild($child);
+                    continue;
                 }
-                return $matches[0];
-            },
-            $html
-        ) ?? $html;
+                self::sanitizeChildren($child);
+                while ($child->firstChild !== null) {
+                    $parent->insertBefore($child->firstChild, $child);
+                }
+                $parent->removeChild($child);
+                continue;
+            }
+            if (!self::sanitizeElement($child, $tag)) {
+                $parent->removeChild($child);
+                continue;
+            }
+            self::sanitizeChildren($child);
+        }
+    }
 
-        return $html;
+    private static function sanitizeElement(DOMElement $element, string $tag): bool
+    {
+        $allowed = array_merge(self::GLOBAL_ATTRIBUTES, self::TAG_ATTRIBUTES[$tag] ?? []);
+        foreach (iterator_to_array($element->attributes) as $attribute) {
+            $name = strtolower($attribute->name);
+            if (!in_array($name, $allowed, true)) {
+                $element->removeAttributeNode($attribute);
+            }
+        }
+
+        if ($element->hasAttribute('href')) {
+            $safe = UrlPolicy::href($element->getAttribute('href'));
+            $safe === '' ? $element->removeAttribute('href') : $element->setAttribute('href', $safe);
+        }
+        if ($element->hasAttribute('cite')) {
+            $safe = UrlPolicy::href($element->getAttribute('cite'), false);
+            $safe === '' ? $element->removeAttribute('cite') : $element->setAttribute('cite', $safe);
+        }
+        if ($element->hasAttribute('src')) {
+            $src = $element->getAttribute('src');
+            $safe = match ($tag) {
+                'iframe' => self::trustedEmbedSrc($src) ? trim($src) : '',
+                'img' => self::safeImageSrc($src),
+                default => UrlPolicy::href($src, false),
+            };
+            $safe === '' ? $element->removeAttribute('src') : $element->setAttribute('src', $safe);
+        }
+        if ($tag === 'iframe' && !$element->hasAttribute('src')) {
+            return false;
+        }
+        if ($tag === 'video' && $element->hasAttribute('poster')) {
+            $poster = UrlPolicy::image($element->getAttribute('poster'));
+            $poster === '' ? $element->removeAttribute('poster') : $element->setAttribute('poster', $poster);
+        }
+        if ($element->hasAttribute('target')) {
+            $target = strtolower($element->getAttribute('target'));
+            if (!in_array($target, ['_blank', '_self', '_parent', '_top'], true)) {
+                $element->removeAttribute('target');
+            } elseif ($target === '_blank') {
+                $element->setAttribute('rel', 'noopener noreferrer');
+            }
+        }
+        return true;
+    }
+
+    private static function safeImageSrc(string $src): string
+    {
+        $src = trim($src);
+        if (preg_match('#^data:image/(?:png|gif|jpe?g|webp);base64,[a-z0-9+/=\r\n]+$#i', $src) === 1) {
+            return strlen($src) <= 5_000_000 ? $src : '';
+        }
+        return UrlPolicy::image($src);
     }
 
     /** iframe 嵌入地址是否可信（http(s)/协议相对 + 可信域或其子域） */

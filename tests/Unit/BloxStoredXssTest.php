@@ -278,6 +278,10 @@ final class BloxStoredXssTest extends TestCase
             '<a href="jav&#10;ascript:alert(1)">x</a>',
             "<a href=\"jav\tascript:alert(1)\">x</a>",
             '<a href="data&colon;text/html;base64,PHN2Zz4=">x</a>',
+            '<a href=java&#x73;cript:alert(1)>x</a>',
+            '<a href=data&colon;text/html;base64,PHN2Zz4=>x</a>',
+            '<iframe src=java&#x73;cript:alert(1)></iframe>',
+            '<iframe src=https://evil.example/embed/x></iframe>',
         ];
         foreach ($vectors as $v) {
             $out = \HtmlPolicy::richText($v);
@@ -285,6 +289,9 @@ final class BloxStoredXssTest extends TestCase
             self::assertStringNotContainsStringIgnoringCase('srcdoc', $decoded, $v);
             self::assertDoesNotMatchRegularExpression('/(java|vb)script\s*:/i', $decoded, $v);
             self::assertDoesNotMatchRegularExpression('/data\s*:\s*text/i', $decoded, $v);
+            if (str_contains($v, '<iframe')) {
+                self::assertStringNotContainsStringIgnoringCase('<iframe', $decoded, $v);
+            }
         }
     }
 

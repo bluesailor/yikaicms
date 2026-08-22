@@ -63,6 +63,9 @@ final class AutoUpgradeTest extends TestCase
         $GLOBALS['_test_config']['auto_upgrade_window'] = '乱写的';
         $this->assertTrue(AutoUpgrade::inWindow(mktime(4, 0, 0, 1, 1, 2026) ?: null));
         $this->assertFalse(AutoUpgrade::inWindow(mktime(12, 0, 0, 1, 1, 2026) ?: null));
+        $this->assertSame('03:00-05:00', AutoUpgrade::normalizeWindow('25:99-26:00'));
+        $this->assertSame('03:00-05:00', AutoUpgrade::normalizeWindow('05:00-05:00'));
+        $this->assertSame('03:05-23:09', AutoUpgrade::normalizeWindow('3:05 - 23:09'));
     }
 
     public function testNoUpdateMeansNoRun(): void
@@ -121,6 +124,7 @@ final class AutoUpgradeTest extends TestCase
         self::assertIsString($src);
         self::assertStringContainsString('pendingTransaction()', $src);
         self::assertStringContainsString('applyRemaining(', $src);
+        self::assertStringNotContainsString("\$to === '' || !is_file(uo_state_file())", $src);
         // 游标不前进要退出，否则是死循环
         self::assertStringContainsString('cursor stalled', $src);
 
@@ -144,7 +148,8 @@ final class AutoUpgradeTest extends TestCase
         self::assertStringContainsString("!empty(\$bt['errors'])", $src);          // 批次有失败即停
         self::assertStringContainsString("(int) (\$fin['code'] ?? 1) !== 0", $src); // 收尾 code=2 也算失败
         self::assertStringContainsString('failed: no database backup', $src);       // 无库备份不升
-        self::assertStringContainsString('数据库迁移失败', $src);                     // 迁移失败即中止
+        self::assertStringContainsString('新版本包含 ', $src);                        // 有迁移转人工，不自动写库
+        self::assertStringContainsString('upgrade_complete()', $src);                 // 验证后才清恢复上下文
         // 回滚自身失败要说清楚，因为那是最糟的状态
         self::assertStringContainsString('回滚也失败了', $src);
     }
@@ -157,6 +162,10 @@ final class AutoUpgradeTest extends TestCase
         self::assertIsString($src);
         self::assertStringContainsString('LOCK_EX | LOCK_NB', $src);
         self::assertStringNotContainsString('auto_upgrade_lock_at', $src, '不应再用设置表当锁');
+        $manual = file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
+        self::assertIsString($manual);
+        self::assertStringContainsString("uo_dir() . '/auto_upgrade.lock'", $manual);
+        self::assertStringContainsString("'owner' => \$owner === 'auto' ? 'auto' : 'manual'", file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php'));
     }
 
     public function testNonceExpiresByTimeNotByCount(): void
@@ -171,11 +180,15 @@ final class AutoUpgradeTest extends TestCase
     public function testDeltaBaselineIsVerifiedBeforeTouchingFiles(): void
     {
         // 包签名只证明包是官方签发的，不证明它适用于本站：别的基线的 delta 装上来会缺
-        // 文件。必须在改动任何文件之前核对 manifest.from。（codex 审计 P2-2）
+        // 文件。必须在改动任何文件之前同时核对 manifest.from/to。（codex 审计 P2-2）
         $src = file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
         self::assertIsString($src);
         self::assertStringContainsString('增量包基线不匹配', $src);
-        self::assertStringContainsString('$from !== $current', $src);
+        self::assertStringContainsString('增量包目标不匹配', $src);
+        self::assertStringContainsString('$from !== $expectedFrom', $src);
+        self::assertStringContainsString('$to !== $expectedTo', $src);
+        self::assertStringContainsString('安装后版本不一致', $src);
+        self::assertStringContainsString('已有升级事务尚未结束', $src);
     }
 
     public function testPipelineIsSharedWithManualUpgrade(): void
@@ -183,7 +196,7 @@ final class AutoUpgradeTest extends TestCase
         // 升级最不该有两份实现：自动升级必须调用与后台同一条管道
         $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
         self::assertIsString($src);
-        foreach (['upgrade_download_package(', 'upgrade_prepare()', 'upgrade_batch(', 'upgrade_finalize(', 'upgrade_rollback('] as $call) {
+        foreach (['upgrade_download_package(', 'upgrade_prepare(', 'upgrade_batch(', 'upgrade_finalize(', 'upgrade_rollback('] as $call) {
             self::assertStringContainsString($call, $src, "自动升级应复用 UpgradeRunner 的 {$call}");
         }
         // 健康自检不过必须回滚——无人值守时没人来救场
