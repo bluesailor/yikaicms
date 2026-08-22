@@ -128,7 +128,9 @@ function checkEnvironment(): array
 
     // 必需扩展
     // fileinfo v1.18.6 起必需：上传 MIME 检测的安全基线（PHP 8.0 门槛本身已筛选现代主机）
-    $requiredExts = ['pdo', 'json', 'mbstring', 'fileinfo'];
+    // dom：富文本净化（HtmlPolicy）用 DOMDocument 做标签/属性白名单。缺了会降级成
+    // 「转义后的纯文本」——不至于 XSS，但整篇正文会显示成乱码标签，必须当必需项。
+    $requiredExts = ['pdo', 'json', 'mbstring', 'fileinfo', 'dom'];
     foreach ($requiredExts as $ext) {
         $checks[$ext] = [
             'name' => strtoupper($ext),
