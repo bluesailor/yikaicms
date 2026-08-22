@@ -2698,7 +2698,7 @@ return [
     'blox_nav_dropdown' => 'ドロップダウンサブメニュー',
     'channel_icon_suggested' => 'おすすめ',
     'nav_icons_enable_label' => 'メニューアイコン',
-    'nav_icons_enable_help' => 'オンにすると全メニューにアイコンを自動で割り当てます（例：お問い合わせ→電話）。チャンネルやメニュー項目で手動選択したアイコンが優先されます',
+    'nav_icons_enable_help' => 'オンにするとドロップダウン・メガメニュー・モバイルメニューにアイコンを自動で割り当てます（例：お問い合わせ→電話）。デスクトップの一級メニューは横幅節約のため手動選択したアイコンのみ表示し、手動選択が常に優先されます',
     'channel_icon_label' => 'ナビゲーションアイコン（任意）',
     'channel_icon_help' => '上のよく使うアイコンをクリックして選択できます。Tabler アイコン名（tabler.io/icons）や bi: 接頭辞の Bootstrap アイコンを直接入力することも可能です。フロントのメニューでチャンネル名の前に表示されます',
     'nav_menu_icon_placeholder' => 'アイコン',
