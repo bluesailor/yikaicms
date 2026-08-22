@@ -75,6 +75,22 @@ final class NavMenuModelTest extends TestCase
         $this->assertSame([], $link['children'][0]['children']); // 第 4 级被剪
     }
 
+    public function testSanitizeIconIsCharacterAllowlisted(): void
+    {
+        $count = 0;
+        $clean = $this->model()->sanitizeItems([
+            ['channel_id' => 3, 'icon' => 'home'],
+            ['channel_id' => 4, 'icon' => 'bi:house-door'],
+            ['channel_id' => 5, 'icon' => 'ho me<script>"x'],
+            ['channel_id' => 6],
+        ], 1, $count);
+
+        $this->assertSame('home', $clean[0]['icon']);
+        $this->assertSame('bi:house-door', $clean[1]['icon']);
+        $this->assertSame('homescriptx', $clean[2]['icon']); // 字符白名单，残字无害（注册表外不出图）
+        $this->assertSame('', $clean[3]['icon']);
+    }
+
     public function testTreeForResolvesChannelsAndSkipsDeadRefs(): void
     {
         $this->insertRow('channels', ['name' => '产品', 'slug' => 'product']);

@@ -68,9 +68,10 @@ final class NavElement extends AbstractElement
         $children = is_array($node['children'] ?? null)
             ? array_values(array_filter($node['children'], 'is_array'))
             : [];
+        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1');
         if (!$dropdown || $children === []) {
             return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
-                . ' class="hover:text-primary">' . $name . '</a></li>';
+                . ' class="hover:text-primary">' . $iconHtml . $name . '</a></li>';
         }
 
         $nested = '';
@@ -81,7 +82,7 @@ final class NavElement extends AbstractElement
                 . htmlspecialchars((string) ($child['name'] ?? ''), ENT_QUOTES) . '</a></li>';
         }
         return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
-            . ' class="inline-flex items-center gap-1 hover:text-primary">' . $name . $this->dropdownCaret() . '</a>'
+            . ' class="inline-flex items-center gap-1 hover:text-primary">' . $iconHtml . $name . $this->dropdownCaret() . '</a>'
             . '<ul class="absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block">'
             . $nested . '</ul></li>';
     }
