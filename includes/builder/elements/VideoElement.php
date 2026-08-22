@@ -62,23 +62,9 @@ final class VideoElement extends AbstractElement
         return self::isTrustedEmbedUrl($url) ? $url : null;
     }
 
-    /** iframe 嵌入地址校验：https + 可信视频平台 Host 精确比对 */
+    /** iframe 嵌入地址校验：https + 可信视频平台 Host 精确比对（白名单在 UrlPolicy） */
     private static function isTrustedEmbedUrl(string $url): bool
     {
-        $allowedHosts = [
-            'www.youtube.com', 'youtube.com',
-            'www.youtube-nocookie.com', 'youtube-nocookie.com',
-            'player.bilibili.com',
-            'player.vimeo.com',
-            'v.qq.com',
-            'player.youku.com',
-        ];
-        $parts = parse_url(trim($url));
-        if ($parts === false) {
-            return false;
-        }
-        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
-        $host = strtolower((string) ($parts['host'] ?? ''));
-        return $scheme === 'https' && in_array($host, $allowedHosts, true);
+        return UrlPolicy::isTrustedVideoEmbed($url);
     }
 }

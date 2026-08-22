@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/UrlPolicy.php';   // URL 安全策略唯一权威实现（v1.18.6 统一）
+
 /**
  * zip-slip 防护：检查 ZIP 内是否有会逃出解压目录的条目名。
  * 命中绝对路径、盘符、`..` 段或以 / 开头即判定不安全，调用方应中止 extractTo。
@@ -104,22 +106,7 @@ function sanitizeHtml(?string $html): string
  */
 function trustedIframeHost(string $src): bool
 {
-    $trusted = ['youtube.com', 'youtube-nocookie.com', 'youtu.be', 'bilibili.com', 'v.qq.com', 'youku.com', 'vimeo.com'];
-    $parts = parse_url(trim($src));
-    if ($parts === false) {
-        return false;
-    }
-    $scheme = strtolower((string) ($parts['scheme'] ?? ''));
-    $host = strtolower((string) ($parts['host'] ?? ''));
-    if ($host === '' || !in_array($scheme, ['http', 'https', ''], true)) {
-        return false;
-    }
-    foreach ($trusted as $domain) {
-        if ($host === $domain || str_ends_with($host, '.' . $domain)) {
-            return true;
-        }
-    }
-    return false;
+    return UrlPolicy::isTrustedIframeHost($src);
 }
 
 /**

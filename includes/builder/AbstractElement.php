@@ -160,30 +160,9 @@ abstract class AbstractElement
      */
     public static function safeHref(mixed $value): string
     {
-        if (!is_string($value)) {
-            return '';
-        }
-        $value = trim($value);
-        if ($value === '' || mb_strlen($value) > 2000
-            || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
-            return '';
-        }
-        if ($value[0] === '/' && !str_starts_with($value, '//')) {
-            return $value;
-        }
-        if ($value[0] === '#' || $value[0] === '?') {
-            return $value;
-        }
-        // 动态循环模板的受控字段占位符（DynamicLoopTemplateRenderer::tag 生成，
-        // 字段名来自受控词汇表）。整串精确匹配且不含 fallback 等附加属性——
-        // 手写同格式短码最多替换成一个公开内容字段值，没有可注入的载体。
-        if (preg_match('/^\{yk:field name=[a-z0-9_]+ \/\}$/i', $value) === 1) {
-            return $value;
-        }
-        return preg_match('#^https?://#i', $value) === 1
-            || preg_match('#^(mailto|tel):#i', $value) === 1
-            ? $value
-            : '';
+        // v1.18.6 起委托 UrlPolicy（builder/bootstrap.php 已加载）；
+        // 循环占位符豁免语义保留（{yk:field name=x /} 整串精确匹配）
+        return UrlPolicy::href($value, true, true);
     }
 
     /**
@@ -193,18 +172,8 @@ abstract class AbstractElement
      */
     public static function cssImageUrl(mixed $value): ?string
     {
-        if (!is_string($value)) {
-            return null;
-        }
-        $value = trim(strip_tags($value));
-        if ($value === '' || mb_strlen($value) > 1000
-            || preg_match('/[\x00-\x1f\x7f]/', $value) === 1) {
-            return null;
-        }
-        if ($value[0] === '/' && !str_starts_with($value, '//')) {
-            return $value;
-        }
-        return preg_match('#^https?://#i', $value) === 1 ? $value : null;
+        $url = UrlPolicy::image($value);
+        return $url === '' ? null : $url;
     }
 
     /** 把已校验 URL 编码成不会逃出 url() 的 CSS 字符串。 */
