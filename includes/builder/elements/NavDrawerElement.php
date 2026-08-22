@@ -83,7 +83,7 @@ final class NavDrawerElement extends AbstractElement
 
         $utilities = '<div class="space-y-4 border-t border-gray-100 px-5 py-5">'
             . (new SiteSearchElement())->render(['layout' => 'wide', 'show_label' => false, 'tone' => 'dark'])
-            . (new LanguageSwitcherElement())->render(['layout' => 'inline', 'display' => 'name', 'show_flag' => true, 'tone' => 'dark'])
+            . (new LanguageSwitcherElement())->render(['layout' => 'inline', 'display' => 'name', 'show_flag' => false, 'tone' => 'dark'])
             . '</div>';
 
         // 类名全部字面量（Tailwind 扫描）；抽屉初始 hidden，JS 切换
