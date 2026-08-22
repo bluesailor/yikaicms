@@ -43,9 +43,13 @@ final class HtmlPolicy
         // 第二步：strip_tags 保留白名单
         $html = strip_tags($html, self::ALLOWED_TAGS);
 
-        // 第三步：移除事件属性（on*）和 javascript: 协议
+        // 第三步：移除事件属性（on*）与危险伪协议。
+        // javascript/vbscript 全拦；data: 只拦非图片形态——data:text/html 可承载
+        // 完整攻击页，data:image/* 是富文本粘贴内联图的合法场景（v1.18.6 补：
+        // 此前只拦 javascript:，vbscript:/data:text/html 的 href 会被放行）
         $html = preg_replace('/\bon\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i', '', $html) ?? $html;
-        $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*javascript\s*:/i', 'data-removed="1"', $html) ?? $html;
+        $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*(?:javascript|vbscript)\s*:/i', 'data-removed="1"', $html) ?? $html;
+        $html = preg_replace('/(?:href|src|action)\s*=\s*["\']?\s*data\s*:(?!\s*image\/)/i', 'data-removed="1"', $html) ?? $html;
 
         // 第四步：iframe src 限定可信视频平台（Host 精确比对）
         $html = preg_replace_callback(
