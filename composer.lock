@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f9d68c0aa3867fcc014b4dea12db6d0d",
+    "content-hash": "90241ee83328709a0def7f82d64e5f33",
     "packages": [
         {
             "name": "overtrue/pinyin",
@@ -4882,6 +4882,7 @@
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.0",
+        "ext-fileinfo": "*",
         "ext-gd": "*",
         "ext-json": "*",
         "ext-mbstring": "*",

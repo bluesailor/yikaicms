@@ -127,7 +127,8 @@ function checkEnvironment(): array
     ];
 
     // 必需扩展
-    $requiredExts = ['pdo', 'json', 'mbstring'];
+    // fileinfo v1.18.6 起必需：上传 MIME 检测的安全基线（PHP 8.0 门槛本身已筛选现代主机）
+    $requiredExts = ['pdo', 'json', 'mbstring', 'fileinfo'];
     foreach ($requiredExts as $ext) {
         $checks[$ext] = [
             'name' => strtoupper($ext),
@@ -157,7 +158,7 @@ function checkEnvironment(): array
     ];
 
     // 可选扩展
-    $optionalExts = ['openssl', 'fileinfo', 'gd'];
+    $optionalExts = ['openssl', 'gd'];
     foreach ($optionalExts as $ext) {
         $checks[$ext] = [
             'name' => strtoupper($ext),
