@@ -2526,6 +2526,8 @@ return [
     'blox_empty_top_level' => 'Empty = top level',
     'blox_nav_only' => 'Nav channels only',
     'blox_nav_dropdown' => 'Desktop dropdown submenu',
+    'channel_icon_label' => 'Navigation icon (optional)',
+    'channel_icon_help' => 'A Tabler icon name (e.g. home, box) or bi:-prefixed Bootstrap icon (e.g. bi:house); shown before this channel in front-end menus. Empty = none',
     'nav_menu_icon_placeholder' => 'Icon',
     'nav_menu_icon_help' => 'Optional. A Tabler icon name (e.g. home, phone) or a bi:-prefixed Bootstrap icon (e.g. bi:house). Empty = no icon',
     'blox_logo_custom' => 'Custom logo image (optional)',

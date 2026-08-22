@@ -122,11 +122,19 @@ final class NavMegaElement extends AbstractElement
         return $tree;
     }
 
-    /** 菜单组项的可选图标（_icon，见 NavMenuModel::buildNodes）；无图标返回空串 */
+    /**
+     * 节点图标：菜单项级 _icon 优先，回退栏目自身 icon 列（channels.icon，
+     * 栏目投影树与菜单组栏目引用节点天然携带）。两者皆空返回空串——
+     * 存量渲染逐字节不变。
+     */
     public static function nodeIconHtml(array $node, string $extraClass = ''): string
     {
         $icon = trim((string) ($node['_icon'] ?? ''));
-        if ($icon === '' || BloxIcon::isNone($icon)) {
+        if ($icon === '') {
+            $icon = trim((string) ($node['icon'] ?? ''));
+        }
+        // 格式守卫：不合法值直接不渲染（避免历史脏数据触发 BloxIcon 的 star 兜底）
+        if ($icon === '' || BloxIcon::isNone($icon) || preg_match('/^[a-zA-Z0-9:_-]{1,100}$/', $icon) !== 1) {
             return '';
         }
         return '<i class="' . htmlspecialchars(BloxIcon::classes($icon), ENT_QUOTES)

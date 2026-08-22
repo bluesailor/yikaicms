@@ -110,9 +110,18 @@ final class NavCtaTest extends TestCase
 
     public function testNodeIconHtmlEmptyForMissingOrNoneIcon(): void
     {
-        // 栏目投影节点（无 _icon 键）与空值：输出空串——存量渲染逐字节不变
+        // 无图标与空值：输出空串——存量渲染逐字节不变
         $this->assertSame('', NavMegaElement::nodeIconHtml([]));
         $this->assertSame('', NavMegaElement::nodeIconHtml(['_icon' => '']));
         $this->assertSame('', NavMegaElement::nodeIconHtml(['_icon' => 'none']));
+    }
+
+    public function testNodeIconFallsBackToChannelIconColumn(): void
+    {
+        // 菜单项级 _icon 优先；空则回退栏目自身 icon 列（channels.icon）
+        $this->assertStringContainsString('ti-box', NavMegaElement::nodeIconHtml(['icon' => 'box']));
+        $this->assertStringContainsString('ti-star-filled', NavMegaElement::nodeIconHtml(['_icon' => 'star-filled', 'icon' => 'box']));
+        // 历史脏值（非法字符）不渲染，不触发 star 兜底
+        $this->assertSame('', NavMegaElement::nodeIconHtml(['icon' => 'ho me<script>']));
     }
 }
