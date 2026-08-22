@@ -108,8 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
         $on = ($_POST['val'] ?? '0') === '1';
         settingModel()->set('seo_autopush_enabled', $on ? '1' : '0', 'system');
         // 开启的那一刻建立游标，避免第一次跑就把全站历史内容推出去打光配额
-        if ($on && (int) config('seo_autopush_cursor', '0') <= 0) {
-            settingModel()->set('seo_autopush_cursor', (string) time(), 'system');
+        // 开启的那一刻给两个服务各建一次游标，避免第一次跑就把全站历史推出去打光配额
+        if ($on) {
+            foreach (['seo_autopush_cursor_baidu', 'seo_autopush_cursor_indexnow'] as $ck) {
+                if ((int) config($ck, '0') <= 0) {
+                    settingModel()->set($ck, (string) time(), 'system');
+                }
+            }
         }
         adminLog('plugin', 'seo', 'autopush: ' . ($on ? 'on' : 'off'));
         success([], $on ? '已开启自动推送' : '已关闭自动推送');
@@ -153,7 +158,11 @@ if ($seoHasPro) {
     require_once __DIR__ . '/autopush.php';
     $autopushOn = (string) config('seo_autopush_enabled', '0') === '1';
     $autopushLog = seo_autopush_log();
-    $autopushCursor = (int) config('seo_autopush_cursor', '0');
+    // 两个服务各有游标，页面上取较早的那个展示「增量起点」
+    $autopushCursor = min(array_filter([
+        (int) config('seo_autopush_cursor_baidu', '0'),
+        (int) config('seo_autopush_cursor_indexnow', '0'),
+    ]) ?: [0]);
     // 定时任务最近跑过没有——没配 crontab 的主机上自动推送不会自己触发，要明说
     try {
         if (class_exists('Cron')) {

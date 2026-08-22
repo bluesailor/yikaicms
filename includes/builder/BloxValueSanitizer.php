@@ -26,8 +26,10 @@ final class BloxValueSanitizer
     /**
      * 按 control 声明清洗单个标量值。
      *
-     * responsive 结构化值（数组）由管线的 BloxResponsiveValue 分支先行处理，
-     * 到这里遇到数组一律原样返回，不做标量规则误伤。
+     * 数组值只有在 control **自己声明了 responsive** 时才算合法（那是断点结构，
+     * 由管线的 BloxResponsiveValue 分支先行处理）。其余标量类型收到数组必须归一，
+     * 不能原样放行：直接构造 blocks_data 把 text/url/image 提交成数组时，值会一路
+     * 传到 htmlspecialchars() 并抛 TypeError，整页 500。（codex 审计 P2-1，已复现）
      *
      * @param array<string,mixed> $control
      */
@@ -35,11 +37,12 @@ final class BloxValueSanitizer
     {
         $type = (string) ($control['type'] ?? '');
         if (is_array($value)) {
-            if ($type === 'number' || $type === 'range') {
-                $value = null;   // 数值控件不接受数组，走非数值回退
-            } elseif ($type !== 'checkbox') {
-                return $value;
+            if (!empty($control['responsive'])) {
+                return $value;   // 声明过 responsive：断点结构，交给上游分支
             }
+            // 未声明 responsive 的控件收到数组 → 视为无效输入，回退到默认值/空。
+            // 数值控件继续走下面的 null 分支（那里已有区间兜底）。
+            $value = ($type === 'number' || $type === 'range') ? null : '';
         }
 
         switch ($type) {

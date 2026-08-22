@@ -48,6 +48,21 @@ if (!seo_is_pro()) {
     exit;
 }
 
+// 角色校验：登录 + CSRF + Pro 闸之外，还必须持有内容编辑权限。
+// 否则任何已登录的后台账号（哪怕只有查看权限）都能改基石标记 / 消耗 AI 配额。
+// （codex 审计 P2-3）本端点服务于内容编辑页，持有任一内容编辑权限即可。
+$seoCanEdit = false;
+foreach (['edit_article', 'edit_page', 'edit_product', 'edit_case', 'edit_download'] as $seoPerm) {
+    if (function_exists('hasPermission') && hasPermission($seoPerm)) {
+        $seoCanEdit = true;
+        break;
+    }
+}
+if (!$seoCanEdit) {
+    echo json_encode(['success' => false, 'error' => '没有内容编辑权限']);
+    exit;
+}
+
 $action = (string) ($_POST['action'] ?? 'suggest');
 $contentId = (int) ($_POST['content_id'] ?? 0);
 

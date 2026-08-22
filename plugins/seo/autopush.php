@@ -44,6 +44,9 @@ function seo_autopush_enabled(): bool
  * 用 updated_at / publish_time / created_at 三者取大，兼容老数据里 updated_at
  * 为空的行（早期版本不写这一列）。
  *
+ * **按最旧优先排序**：原先按最新排、再把游标推到批次最大时间，积压超过单批上限时
+ * 较旧的那些会被永久跳过（codex 审计 P1-3）。从旧往新推，游标才能单调走完积压。
+ *
  * @return array{0: list<string>, 1: int} [URL 列表, 新游标]
  */
 function seo_autopush_changed(int $sinceTs, int $limit = SEO_AUTOPUSH_BATCH): array
@@ -61,7 +64,7 @@ function seo_autopush_changed(int $sinceTs, int $limit = SEO_AUTOPUSH_BATCH): ar
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
              WHERE c.status = 1 AND c.deleted_at IS NULL
                AND (c.updated_at > ? OR c.created_at > ? OR c.publish_time > ?)
-             ORDER BY c.updated_at DESC, c.id DESC
+             ORDER BY COALESCE(NULLIF(c.updated_at, \'\'), c.publish_time, c.created_at) ASC, c.id ASC
              LIMIT ' . (int) $limit,
             [$since, $since, $since]
         );
@@ -81,6 +84,13 @@ function seo_autopush_changed(int $sinceTs, int $limit = SEO_AUTOPUSH_BATCH): ar
         } catch (\Throwable $e) {
             // 单条取 URL 失败不该拖垮整批
         }
+    }
+
+    // 整批时间戳都等于游标时（同一秒内的批量导入）游标推不动，下轮会取到同一批。
+    // 推进 1 秒跳过这一秒——代价是可能漏掉同秒内超出批次上限的那几条，
+    // 但比无限重推同一批好；批次上限 50 条／同一秒，实际几乎不会触发。
+    if ($urls !== [] && $newest <= $sinceTs) {
+        $newest = $sinceTs + 1;
     }
 
     return [array_values(array_unique($urls)), $newest];
@@ -121,56 +131,65 @@ function seo_autopush_run(bool $manual = false): string
         return 'skipped: 自动推送未开启';
     }
 
-    $cursor = (int) config('seo_autopush_cursor', '0');
-    if ($cursor <= 0) {
-        // 首次运行不把全站历史内容一次性推出去（会瞬间打光百度配额）：
-        // 以「此刻」为起点，只推之后的增改。要全量推送用免费层的手动推送。
-        settingModel()->set('seo_autopush_cursor', (string) time(), 'system');
-        return 'initialized: 已建立增量游标，之后的内容变更将自动推送';
-    }
-
-    [$urls, $newest] = seo_autopush_changed($cursor);
-    if (!$urls) {
-        return 'no changes';
-    }
-
+    // 两个服务各自记游标：原先共用一个，只要有一个成功就推进，失败那个的这批 URL
+    // 再也不会重试（codex 审计 P1-3）。分开之后各推各的，互不影响。
     $site = (string) config('seo_baidu_site', '');
     $token = (string) config('seo_baidu_token', '');
     $key = (string) config('seo_indexnow_key', '');
     $host = rtrim(preg_replace('#^https?://#', '', rtrim(siteBaseUrl(), '/')) ?? '', '/');
 
-    $parts = [];
-    $anyOk = false;
-
+    $services = [];
     if ($site !== '' && $token !== '') {
-        [$ok, $msg] = seo_submit_baidu($site, $token, $urls);
-        $anyOk = $anyOk || $ok;
-        $parts[] = $msg;
+        $services['baidu'] = static fn(array $urls): array => seo_submit_baidu($site, $token, $urls);
     }
     if ($key !== '') {
-        [$ok, $msg] = seo_submit_indexnow($host, $key, $urls);
-        $anyOk = $anyOk || $ok;
-        $parts[] = $msg;
+        $services['indexnow'] = static fn(array $urls): array => seo_submit_indexnow($host, $key, $urls);
     }
-    if (!$parts) {
+    if (!$services) {
         return 'skipped: 未配置百度 token 或 IndexNow 密钥';
     }
 
-    // 只有真的推出去了才推进游标——否则这批内容下次还要重试，
-    // 不能因为一次网络抖动就让它们永远漏掉。
-    if ($anyOk) {
-        settingModel()->set('seo_autopush_cursor', (string) max($newest, $cursor), 'system');
+    $parts = [];
+    $anyPushed = false;
+    $anyOk = false;
+    foreach ($services as $name => $submit) {
+        $ck = 'seo_autopush_cursor_' . $name;
+        $cursor = (int) config($ck, '0');
+        if ($cursor <= 0) {
+            // 首次不把全站历史内容一次推出去（会瞬间打光百度配额）：以此刻为起点。
+            // 要全量推送用免费层的手动推送。
+            settingModel()->set($ck, (string) time(), 'system');
+            $parts[] = $name . '：已建立增量游标';
+            continue;
+        }
+
+        [$urls, $newest] = seo_autopush_changed($cursor);
+        if (!$urls) {
+            continue;
+        }
+        $anyPushed = true;
+        [$ok, $msg] = $submit($urls);
+        $parts[] = $msg;
+        // 只有真的推出去了才推进该服务自己的游标——网络抖动不能让这批永久漏掉
+        if ($ok) {
+            $anyOk = true;
+            settingModel()->set($ck, (string) max($newest, $cursor), 'system');
+        }
+    }
+
+    if (!$anyPushed) {
+        return $parts ? implode('；', $parts) : 'no changes';
     }
 
     seo_autopush_log_add([
         'time' => date('Y-m-d H:i:s'),
-        'count' => count($urls),
+        'count' => count($urls ?? []),
         'ok' => $anyOk,
         'manual' => $manual,
         'msg' => mb_substr(implode('；', $parts), 0, 300),
     ]);
 
-    return ($anyOk ? 'pushed ' : 'failed ') . count($urls) . ' urls: ' . implode('；', $parts);
+    return ($anyOk ? 'pushed: ' : 'failed: ') . implode('；', $parts);
 }
 
 /**

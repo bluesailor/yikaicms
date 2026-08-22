@@ -149,6 +149,35 @@ final class AutoUpgradeTest extends TestCase
         self::assertStringContainsString('回滚也失败了', $src);
     }
 
+    public function testConcurrencyLockIsAtomic(): void
+    {
+        // 设置表的「先读后写」两个 cron 能同时通过，等于没锁；改用 flock（内核级原子，
+        // 进程被 kill 时自动释放，不必靠 TTL 猜）。（codex 审计 P1-2）
+        $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('LOCK_EX | LOCK_NB', $src);
+        self::assertStringNotContainsString('auto_upgrade_lock_at', $src, '不应再用设置表当锁');
+    }
+
+    public function testNonceExpiresByTimeNotByCount(): void
+    {
+        // 按条数滚动淘汰会让仍在有效期内的 nonce 被挤掉、重放复活。（codex 审计 P1-2）
+        $src = file_get_contents(ROOT_PATH . '/includes/UpgradeDirective.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('NONCE_TTL', $src);
+        self::assertStringNotContainsString('NONCE_KEEP', $src);
+    }
+
+    public function testDeltaBaselineIsVerifiedBeforeTouchingFiles(): void
+    {
+        // 包签名只证明包是官方签发的，不证明它适用于本站：别的基线的 delta 装上来会缺
+        // 文件。必须在改动任何文件之前核对 manifest.from。（codex 审计 P2-2）
+        $src = file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('增量包基线不匹配', $src);
+        self::assertStringContainsString('$from !== $current', $src);
+    }
+
     public function testPipelineIsSharedWithManualUpgrade(): void
     {
         // 升级最不该有两份实现：自动升级必须调用与后台同一条管道

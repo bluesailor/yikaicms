@@ -124,8 +124,18 @@ $pkg = $ROOT . '/storage/upgrade/package.zip';
 @unlink($pkg);
 $zip = new ZipArchive();
 if ($zip->open($pkg, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) rbFail('无法创建测试包');
+// manifest 的 from 必须等于本站当前版本，否则 prepare 会以「基线不匹配」拒绝
+// —— 那正是 v1.18.6 新增的护栏（codex 审计 P2-2）。这里如实填当前版本。
+$currentVersion = '';
+$vf = @file_get_contents($ROOT . '/config/version.php');
+if ($vf && preg_match("/CMS_VERSION'\s*,\s*'([^']+)'/", $vf, $vm)) {
+    $currentVersion = $vm[1];
+}
+if ($currentVersion === '') {
+    rbFail('读不到 config/version.php 的版本号，无法构造增量包 manifest');
+}
 $zip->addFromString('.delta-manifest.json', json_encode([
-    'from' => '0.0.0', 'to' => '0.0.1',
+    'from' => $currentVersion, 'to' => $currentVersion,
     'deleted' => ['e2e-rb-sandbox/doomed.txt'],
 ]));
 $zip->addFromString('payload/e2e-rb-sandbox/overwrite.txt', 'NEW-CONTENT');
@@ -180,7 +190,21 @@ rbAssert(file_get_contents($SANDBOX . '/doomed.txt') === 'DOOMED-CONTENT', '被�
 rbAssert(($roll['health']['ok'] ?? false) === true, '回滚后健康自检通过');
 rbAssert(!is_file($ROOT . '/storage/upgrade/apply_state.json'), '升级中间态已清理');
 
-// ---- 5) 防呆：非法备份名被拒 ----
+// ---- 5) 防呆：增量包基线不匹配被拒（v1.18.6 护栏）----
+echo "— 基线校验\n";
+$badZip = $ROOT . '/storage/upgrade/package.zip';
+@unlink($badZip);
+$z2 = new ZipArchive();
+if ($z2->open($badZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) rbFail('无法创建基线不符的测试包');
+$z2->addFromString('.delta-manifest.json', json_encode(['from' => '0.0.0', 'to' => '9.9.9', 'deleted' => []]));
+$z2->addFromString('payload/e2e-rb-sandbox/x.txt', 'X');
+$z2->close();
+$bad2 = rbAction('apply_prepare');
+rbAssert(($bad2['code'] ?? 0) === 1, '基线不匹配的增量包被拒绝');
+rbAssert(str_contains((string) ($bad2['msg'] ?? ''), '基线不匹配'), '拒绝原因明确指出基线不匹配');
+@unlink($badZip);
+
+// ---- 6) 防呆：非法备份名被拒 ----
 $bad = rbAction('apply_rollback', ['backup' => '../../config']);
 rbAssert(($bad['code'] ?? 0) === 1, '非法备份目录名被拒绝');
 
