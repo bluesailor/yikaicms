@@ -72,6 +72,22 @@ function getActivePlugins(): array
 }
 
 /**
+ * 插件是否「真正可用」＝ 数据库标记为启用 **且** 目录还在。
+ *
+ * getActivePlugins() 只回答「记录里启用了什么」，这对加载器够用（它逐个
+ * file_exists 兜底）。但把它当作「功能可用」来渲染入口就会出事：插件目录
+ * 被删/未随包发布时，记录仍在，于是渲染出指向 404 的链接。判断要不要显示
+ * 某个插件的入口，一律用本函数。
+ */
+function isPluginAvailable(string $slug): bool
+{
+    if (preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug) !== 1) {
+        return false;
+    }
+    return is_dir(ROOT_PATH . '/plugins/' . $slug) && in_array($slug, getActivePlugins(), true);
+}
+
+/**
  * 加载所有已启用的插件
  */
 function loadActivePlugins(): void

@@ -159,7 +159,15 @@ function renderFrontEdit(): void
       fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.style.display = 'none';
       document.body.appendChild(fileInput);
 
-      var hasLogoMaker = <?php echo json_encode(function_exists('getActivePlugins') && in_array('logo-maker', getActivePlugins(), true)); ?>;
+      var hasLogoMaker = <?php echo json_encode(function_exists('isPluginAvailable') && isPluginAvailable('logo-maker')); ?>;
+      // 未安装 LOGO 制作插件时（v1.18.6 起不随核心包发布），把入口换成「去装」——
+      // 想换 LOGO 的当口正是推荐时机。本覆盖层只对登录管理员渲染，故可放后台链接。
+      // 注：这里不查 hasPermission —— 它定义在 admin/includes/auth.php，前台不加载，
+      // 判断恒假会让入口永远不出现。覆盖层本身已按 $_SESSION['admin_id'] 把关，
+      // 插件页自己还有 requirePermission('*')，非超管点进去照样被拦。
+      var logoMakerGetUrl = <?php echo json_encode(
+          is_dir(ROOT_PATH . '/plugins/logo-maker') ? '' : '/admin/plugin.php?tab=market&q=logo-maker'
+      ); ?>;
       onReady(function () {
         document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
           var wrap = document.createElement('span');
@@ -180,6 +188,13 @@ function renderFrontEdit(): void
             mk.href = '/admin/plugin_page.php?plugin=logo-maker#logo';
             mk.addEventListener('click', function (e) { e.stopPropagation(); });
             wrap.appendChild(mk);
+          } else if (logoMakerGetUrl) {
+            var gm = document.createElement('a');
+            gm.className = 'yk-logo-btn yk-logo-btn--make';
+            gm.textContent = '★ ' + <?php echo json_encode(__('fe_get_logo_maker'), JSON_UNESCAPED_UNICODE); ?>;
+            gm.href = logoMakerGetUrl;
+            gm.addEventListener('click', function (e) { e.stopPropagation(); });
+            wrap.appendChild(gm);
           }
           logo.appendChild(wrap);
         });

@@ -21,6 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboard
     success([], 'ok');
 }
 
+// 推荐插件：不再提示（AJAX）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_recommended_plugin') {
+    verifyCsrf();
+    requirePermission('*');
+    require_once ROOT_PATH . '/includes/RecommendedPlugins.php';
+    RecommendedPlugins::dismiss((string) post('slug'));
+    success([], 'ok');
+}
+
 // 统计数据
 $stats = [
     'contents' => contentModel()->count(),
@@ -35,6 +44,13 @@ $onbChannelCount = (int) (db()->fetchOne(
     [siteLang()]
 )['c'] ?? 0);
 $showOnboard = $onbChannelCount === 0 && (string) config('onboarding_channel_dismissed', '') !== '1';
+
+// 推荐安装的插件（不随核心包发布，登录后引导去市场装）——仅超管可见
+$recommendedPlugins = [];
+if (hasPermission('*')) {
+    require_once ROOT_PATH . '/includes/RecommendedPlugins.php';
+    $recommendedPlugins = RecommendedPlugins::pending();
+}
 
 // 最新内容（关联栏目类型）—— 只显示源语言行，避免 EN/JA 翻译版本污染列表
 $_dashDefaultLang = (string) config('site_lang', 'zh-CN');
@@ -175,6 +191,38 @@ document.getElementById('onbDismiss')?.addEventListener('click', async function 
     try { await fetch('', { method: 'POST', body: fd }); } catch (e) {}
     var c = document.getElementById('onbCard'); if (c) c.remove();
 });
+</script>
+<?php endif; ?>
+
+<?php // 推荐安装：不预装但值得装的插件，一键跳市场对应条目；「不再提示」按 slug 记录 ?>
+<?php foreach ($recommendedPlugins as $__rec): ?>
+<div id="recCard-<?php echo e($__rec['slug']); ?>" class="relative bg-violet-50 border border-violet-200 rounded-lg p-5 mb-6 flex items-start gap-4" data-testid="recommended-plugin-card">
+    <div class="w-10 h-10 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0">
+        <i class="ti <?php echo e($__rec['icon']); ?> text-xl"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+        <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__($__rec['label'])); ?></h3>
+        <p class="text-sm text-gray-600 mb-3"><?php echo e(__($__rec['desc'])); ?></p>
+        <a href="/admin/plugin.php?tab=market&amp;q=<?php echo e($__rec['slug']); ?>"
+           class="inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm font-medium">
+            <i class="ti ti-download text-base"></i>
+            <?php echo e(__('rec_plugin_install')); ?>
+        </a>
+    </div>
+    <button type="button" class="text-gray-400 hover:text-gray-600 text-sm flex-shrink-0"
+            onclick="ykDismissRecPlugin('<?php echo e($__rec['slug']); ?>')"><?php echo e(__('onb_dismiss')); ?></button>
+</div>
+<?php endforeach; ?>
+<?php if ($recommendedPlugins !== []): ?>
+<script>
+async function ykDismissRecPlugin(slug) {
+    var fd = new FormData();
+    fd.set('_token', '<?php echo csrfToken(); ?>');
+    fd.set('action', 'dismiss_recommended_plugin');
+    fd.set('slug', slug);
+    try { await fetch('', { method: 'POST', body: fd }); } catch (e) {}
+    var c = document.getElementById('recCard-' + slug); if (c) c.remove();
+}
 </script>
 <?php endif; ?>
 

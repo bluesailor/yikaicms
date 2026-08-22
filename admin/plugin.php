@@ -566,9 +566,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 // ===== 插件市场（Alpine 组件） =====
 function pluginMarket() {
+    // 深链：控制台推荐卡按 ?tab=market&q=<slug> 直达市场对应条目
+    var ykQs = new URLSearchParams(location.search);
+    var ykTab = ykQs.get('tab') === 'market' ? 'market' : 'installed';
     return {
-        tab: 'installed',
-        q: '',
+        tab: ykTab,
+        q: ykTab === 'market' ? (ykQs.get('q') || '') : '',
         items: [],
         loading: false,
         loaded: false,
@@ -579,7 +582,11 @@ function pluginMarket() {
         // 可升级映射：slug -> 市场条目（进页面即后台静默检测）
         upd: {},
 
-        init() { this.checkUpdates(); },
+        init() {
+            this.checkUpdates();
+            // 直接落在市场页签时立刻检索（checkUpdates 只预热不筛关键词）
+            if (this.tab === 'market') this.search();
+        },
         async checkUpdates() {
             if (!Object.keys(this.local).length) return;
             var body = new URLSearchParams();

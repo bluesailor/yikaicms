@@ -209,17 +209,23 @@ EXCLUDES=(
     "tailwind.config.js"
     "postcss.config.js"
 
-    # 插件：包内预装核心体验（back-to-top 返回顶部、cookie-consent Cookie 同意、logo-maker LOGO 制作），
+    # 插件：包内预装核心体验（back-to-top 返回顶部、cookie-consent Cookie 同意），
     # 其余走插件市场按需安装（update.yikaicms.com/api/plugins/）。源码保留在仓库供开发与市场打包。
+    #
+    # logo-maker（LOGO 制作）2026-08-22 移出核心包：它的图标库有 7618 个 SVG，
+    # 占全包 91% 的文件数、13% 体积，而多数站点用不到——共享主机上升级要逐个写
+    # 文件，文件数直接决定升级耗时与「写失败」概率。改为市场按需装，登录后由控制
+    # 台推荐卡引导（includes/RecommendedPlugins.php）。
+    # ⚠ 存量站不受影响：源码仍在 git 里，增量包的删除清单只收录 git 中被删的文件，
+    #   已装的插件不会被升级卸载。
+    # 注：blox-example 由 config/blox-assets.json 的 pro 域排除（Blox 资产单一登记），不在此重复。
     "plugins/_example"
     "plugins/announcement"
     "plugins/menu-sort"
     "plugins/search-replace"
     "plugins/stats"
     "plugins/product-carousel"
-    "plugins/icon-maker"
-
-    # 图标工坊不随 CMS 核心包发布，需从插件市场单独安装。
+    "plugins/logo-maker"
 
     # 主题：运行包只内置 default。aurora/business/minimal/trade 的源码集中在
     # marketplace/themes/，由 update.yikaicms.com 主题市场签名分发，不进入 CMS 包。
