@@ -960,6 +960,13 @@ function ykPickChannelIcon(name) {
                         'star', 'tag', 'shopping-cart', 'calendar', 'book-2', 'rocket', 'history', 'settings',
                     ];
                     $__ci = trim((string) ($editChannel['icon'] ?? ''));
+                    // 系统推荐：按名称语义/类型匹配（BloxNavIconMatcher），网格中标注出来——
+                    // 用户不选就是它（导航元素开自动匹配时），想换再点别的
+                    require_once ROOT_PATH . '/includes/BloxNavIconMatcher.php';
+                    $__suggested = BloxNavIconMatcher::match([
+                        'name' => (string) ($editChannel['name'] ?? ''),
+                        'type' => (string) ($editChannel['type'] ?? ''),
+                    ]);
                     ?>
                     <div class="flex flex-wrap gap-1 mb-2" id="channelIconGrid">
                         <button type="button" onclick="ykPickChannelIcon('')" data-icon=""
@@ -967,11 +974,12 @@ function ykPickChannelIcon(name) {
                                 class="yk-icon-pick w-9 h-9 inline-flex items-center justify-center rounded border text-gray-400 hover:border-primary hover:text-primary transition <?php echo $__ci === '' ? 'border-primary text-primary bg-blue-50' : 'border-gray-200'; ?>">
                             <i class="ti ti-ban" aria-hidden="true"></i>
                         </button>
-                        <?php foreach ($commonMenuIcons as $ic): ?>
+                        <?php foreach ($commonMenuIcons as $ic): $__isSuggested = $ic === $__suggested; ?>
                         <button type="button" onclick="ykPickChannelIcon('<?php echo e($ic); ?>')" data-icon="<?php echo e($ic); ?>"
-                                title="<?php echo e($ic); ?>"
-                                class="yk-icon-pick w-9 h-9 inline-flex items-center justify-center rounded border text-gray-600 hover:border-primary hover:text-primary transition <?php echo $__ci === $ic ? 'border-primary text-primary bg-blue-50' : 'border-gray-200'; ?>">
+                                title="<?php echo e($__isSuggested ? $ic . '（' . __('channel_icon_suggested') . '）' : $ic); ?>"
+                                class="yk-icon-pick relative w-9 h-9 inline-flex items-center justify-center rounded border text-gray-600 hover:border-primary hover:text-primary transition <?php echo $__ci === $ic ? 'border-primary text-primary bg-blue-50' : 'border-gray-200'; ?><?php echo $__isSuggested ? ' ring-2 ring-amber-300' : ''; ?>">
                             <i class="ti ti-<?php echo e($ic); ?> text-lg" aria-hidden="true"></i>
+                            <?php if ($__isSuggested): ?><span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400" aria-hidden="true"></span><?php endif; ?>
                         </button>
                         <?php endforeach; ?>
                     </div>

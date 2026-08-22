@@ -12,6 +12,7 @@ require_once __DIR__ . '/BloxResponsiveValue.php';
 require_once __DIR__ . '/AbstractElement.php';
 require_once __DIR__ . '/BloxHeaderStates.php';
 require_once __DIR__ . '/BloxIcon.php';
+require_once __DIR__ . '/../BloxNavIconMatcher.php';   // 语义词典在 includes/ 顶层（非 Blox UI 文案）
 require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';

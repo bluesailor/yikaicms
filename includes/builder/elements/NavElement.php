@@ -26,6 +26,7 @@ final class NavElement extends AbstractElement
             ['key' => 'nav_only', 'type' => 'checkbox', 'label' => __('blox_nav_only'), 'default' => true],
             ['key' => 'dropdown', 'type' => 'checkbox', 'label' => __('blox_nav_dropdown'), 'default' => false],
             ['key' => 'desktop_only', 'type' => 'checkbox', 'label' => __('blox_nav_desktop_only'), 'default' => false],
+            NavMegaElement::autoIconControl(),
             ...NavMegaElement::ctaControls(),
         ];
     }
@@ -54,21 +55,21 @@ final class NavElement extends AbstractElement
             if (!is_array($node)) {
                 continue;
             }
-            $items .= $this->renderMenuNode($node, !empty($data['dropdown']));
+            $items .= $this->renderMenuNode($node, !empty($data['dropdown']), !empty($data['auto_icons']));
         }
         $wrapClass = htmlspecialchars($this->wrapClass($data), ENT_QUOTES);
         return '<ul class="' . $wrapClass . '">' . $items . NavMegaElement::ctaHtml($data) . '</ul>';
     }
 
     /** @param array<string,mixed> $node */
-    private function renderMenuNode(array $node, bool $dropdown): string
+    private function renderMenuNode(array $node, bool $dropdown, bool $autoIcons = false): string
     {
         $name = htmlspecialchars((string) ($node['name'] ?? ''), ENT_QUOTES);
         $url = htmlspecialchars(NavMegaElement::nodeHref($node), ENT_QUOTES);
         $children = is_array($node['children'] ?? null)
             ? array_values(array_filter($node['children'], 'is_array'))
             : [];
-        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1');
+        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1', $autoIcons);
         if (!$dropdown || $children === []) {
             return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
                 . ' class="hover:text-primary">' . $iconHtml . $name . '</a></li>';
