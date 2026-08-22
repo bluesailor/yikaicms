@@ -181,8 +181,9 @@ $_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLan
                 <div class="md:col-span-3">
                     <select id="smtpPresetSelect" class="w-full border rounded px-4 py-2">
                         <option value=""><?php echo __('email_preset_custom'); ?></option>
+                        <?php // (string) 必须显式：'163'/'126' 作数组键会被 PHP 自动转 int，e(int) 直接 TypeError ?>
                         <?php foreach ($smtpPresets as $presetKey => $preset): ?>
-                        <option value="<?php echo e($presetKey); ?>"><?php echo e($preset['label']); ?></option>
+                        <option value="<?php echo e((string) $presetKey); ?>"><?php echo e($preset['label']); ?></option>
                         <?php endforeach; ?>
                     </select>
                     <p id="smtpPresetHint" class="hidden mt-2 text-sm text-amber-700 bg-amber-50 rounded px-3 py-2">
