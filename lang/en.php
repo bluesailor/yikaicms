@@ -3050,6 +3050,7 @@ return [
     'cron_recycle_purge' => 'Purge recycle bin (older than 30 days)',
     'cron_purged_n' => 'Permanently deleted :n items older than :days days',
     'cron_backup' => 'Automatic database backup',
+    'cron_auto_upgrade' => 'Auto-update check',
     'cron_backup_done' => 'Backed up to :file; keeping the latest :n copies',
     'admin_unknown' => 'Unknown',
     'admin_password' => 'Password',

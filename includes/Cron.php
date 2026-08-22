@@ -59,6 +59,11 @@ final class Cron
             return str_replace([':file', ':n'], [basename($path), (string) $kept], __('cron_backup_done'));
         });
 
+        // 自动升级（v1.18.6）：任务体内自判开关与维护窗口，未开启时是一次早退。
+        // 放在内置任务里而非插件，是因为它要能在「站点还没装任何插件」时也可用。
+        require_once ROOT_PATH . '/includes/AutoUpgrade.php';
+        AutoUpgrade::register();
+
         if (function_exists('do_action')) {
             do_action('cron_register');
         }

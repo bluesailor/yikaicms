@@ -3207,6 +3207,7 @@ return [
     'cron_recycle_purge' => 'ごみ箱の整理（30日以前）',
     'cron_purged_n' => ':days 日を超えた :n 件を完全に削除しました',
     'cron_backup' => 'データベースの自動バックアップ',
+    'cron_auto_upgrade' => '自動アップデート確認',
     'cron_backup_done' => ':file にバックアップしました（最新 :n 件を保持）',
     'admin_unknown' => '不明',
     'admin_password' => 'パスワード',

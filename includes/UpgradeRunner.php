@@ -649,3 +649,32 @@ function upgrade_rollback(string $backup): array
         'health' => $health,
     ];
     }
+
+function upgrade_download_package(string $url, string $hash, string $version, string $sig): array
+{
+    
+    $hash = strtolower((string) preg_replace('/^sha256:/i', '', $hash));
+    $ver = trim($version);
+    $sig = trim($sig);
+    if (!preg_match('#^https://update\.yikaicms\.com/packages/[A-Za-z0-9._-]+\.zip$#', $url)) {
+        return ['code' => 1, 'msg' => '下载地址不合法，仅允许官方 packages 目录'];
+    }
+    if (strlen($hash) !== 64) return ['code' => 1, 'msg' => '缺少有效的 SHA256 校验值，拒绝升级'];
+    if (!is_dir(uo_dir())) {
+        @mkdir(uo_dir(), 0755, true);
+    }
+    $pkg = uo_dir() . '/package.zip';
+    @unlink($pkg);
+    if ($sig === '') return ['code' => 1, 'msg' => '升级包缺少 RSA 签名，拒绝升级'];
+    if (!uo_verify_sig($ver, 'sha256:' . $hash, $sig)) {
+        return ['code' => 1, 'msg' => 'RSA 签名校验失败，拒绝升级'];
+    }
+    [$ok, $err] = uo_download($url, $pkg);
+    if (!$ok) return ['code' => 1, 'msg' => $err];
+    $actual = hash_file('sha256', $pkg);
+    if (!hash_equals(strtolower($hash), strtolower((string) $actual))) {
+        @unlink($pkg);
+        return ['code' => 1, 'msg' => 'SHA256 校验不通过，包可能损坏或被篡改，已删除'];
+    }
+    return ['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => true];
+    }
