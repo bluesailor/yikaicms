@@ -33,6 +33,7 @@ final class NavMegaElement extends AbstractElement
                 'options' => [0 => __('blox_menu_source_default')] + self::menuGroupOptions()],
             ['key' => 'show_desc', 'type' => 'checkbox', 'label' => __('blox_mega_show_desc'), 'default' => false],
             ['key' => 'full_width', 'type' => 'checkbox', 'label' => __('blox_mega_full_width'), 'default' => true],
+            self::autoIconControl(),
             ...self::ctaControls(),
         ];
     }
@@ -45,6 +46,13 @@ final class NavMegaElement extends AbstractElement
         } catch (Throwable) {
             return [];
         }
+    }
+
+    /** 「自动匹配图标」开关（三导航元素共用）：新元素默认开，存量文档缺键=关 */
+    public static function autoIconControl(): array
+    {
+        return ['key' => 'auto_icons', 'type' => 'checkbox', 'label' => __('blox_nav_auto_icons'),
+            'default' => true, 'help' => __('blox_nav_auto_icons_help')];
     }
 
     /**
@@ -127,11 +135,15 @@ final class NavMegaElement extends AbstractElement
      * 栏目投影树与菜单组栏目引用节点天然携带）。两者皆空返回空串——
      * 存量渲染逐字节不变。
      */
-    public static function nodeIconHtml(array $node, string $extraClass = ''): string
+    public static function nodeIconHtml(array $node, string $extraClass = '', bool $autoMatch = false): string
     {
         $icon = trim((string) ($node['_icon'] ?? ''));
         if ($icon === '') {
             $icon = trim((string) ($node['icon'] ?? ''));
+        }
+        // 自动匹配兜底（元素开了 auto_icons 才启用）：手动配置永远优先
+        if ($icon === '' && $autoMatch) {
+            $icon = BloxNavIconMatcher::match($node);
         }
         // 格式守卫：不合法值直接不渲染（避免历史脏数据触发 BloxIcon 的 star 兜底）
         if ($icon === '' || BloxIcon::isNone($icon) || preg_match('/^[a-zA-Z0-9:_-]{1,100}$/', $icon) !== 1) {
@@ -154,6 +166,7 @@ final class NavMegaElement extends AbstractElement
             return '';
         }
         $showDesc = !empty($data['show_desc']);
+        $autoIcons = !empty($data['auto_icons']);
         // full_width 关：面板收窄为内容自适应（少列时不出通栏空面板）
         $panelPos = !isset($data['full_width']) || !empty($data['full_width'])
             ? 'inset-x-0'
@@ -169,7 +182,7 @@ final class NavMegaElement extends AbstractElement
             $kids = is_array($channel['children'] ?? null) ? array_values(array_filter($channel['children'], 'is_array')) : [];
 
             if ($kids === []) {
-                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . self::nodeIconHtml($channel, 'mr-1.5') . $name . '</a></li>';
+                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . self::nodeIconHtml($channel, 'mr-1.5', $autoIcons) . $name . '</a></li>';
                 continue;
             }
 
@@ -178,11 +191,11 @@ final class NavMegaElement extends AbstractElement
 
             $columns = '';
             foreach ($kids as $kid) {
-                $columns .= $this->renderColumn($kid, $showDesc);
+                $columns .= $this->renderColumn($kid, $showDesc, $autoIcons);
             }
 
             $items .= '<li class="group/mega">'
-                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1') . $name
+                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1', $autoIcons) . $name
                 . '<svg class="h-3 w-3 opacity-60 transition-transform group-hover/mega:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>'
                 // 面板：相对元素根全宽；hover/focus-within 展开；关闭态不拦截指针
                 . '<div class="yk-mega-panel invisible absolute ' . $panelPos . ' top-full z-40 opacity-0 transition-all duration-150 pointer-events-none'
@@ -198,14 +211,14 @@ final class NavMegaElement extends AbstractElement
     }
 
     /** @param array<string,mixed> $kid 面板列：子栏目标题（可点）+ 可选描述 + 孙级链接列表 */
-    private function renderColumn(array $kid, bool $showDesc): string
+    private function renderColumn(array $kid, bool $showDesc, bool $autoIcons = false): string
     {
         $name = htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES);
         $url = htmlspecialchars(self::nodeHref($kid), ENT_QUOTES);
         $grand = is_array($kid['children'] ?? null) ? array_values(array_filter($kid['children'], 'is_array')) : [];
 
         $html = '<div class="min-w-0">'
-            . '<a href="' . $url . '"' . self::targetAttr($kid) . ' class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . self::nodeIconHtml($kid, 'mr-1') . $name . '</a>';
+            . '<a href="' . $url . '"' . self::targetAttr($kid) . ' class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . self::nodeIconHtml($kid, 'mr-1', $autoIcons) . $name . '</a>';
         if ($showDesc && trim((string) ($kid['description'] ?? '')) !== '') {
             $html .= '<p class="mt-1 text-xs text-gray-400 line-clamp-2">'
                 . htmlspecialchars((string) $kid['description'], ENT_QUOTES) . '</p>';

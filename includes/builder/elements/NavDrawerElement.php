@@ -28,6 +28,7 @@ final class NavDrawerElement extends AbstractElement
             ['key' => 'show_logo', 'type' => 'checkbox', 'label' => __('blox_drawer_show_logo'), 'default' => true],
             ['key' => 'menu_group', 'type' => 'select', 'label' => __('blox_menu_source'), 'default' => 0,
                 'options' => [0 => __('blox_menu_source_default')] + NavMegaElement::menuGroupOptions()],
+            NavMegaElement::autoIconControl(),
             ...NavMegaElement::ctaControls(),
         ];
     }
@@ -41,6 +42,7 @@ final class NavDrawerElement extends AbstractElement
     {
         $side = ($data['side'] ?? 'right') === 'left' ? 'left' : 'right';
         $channels = NavMegaElement::navTree($data);
+        $autoIcons = !empty($data['auto_icons']);
         $siteName = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
         $drawerSuffix = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($data['id'] ?? 'menu')) ?: 'menu';
         $drawerId = 'yk-nav-drawer-' . $drawerSuffix;
@@ -54,7 +56,7 @@ final class NavDrawerElement extends AbstractElement
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? $channel['children'] : [];
             $items .= '<li class="border-b border-gray-100">';
-            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="flex min-h-11 items-center px-5 text-gray-800 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . NavMegaElement::nodeIconHtml($channel, 'mr-2') . $name . '</a>';
+            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="flex min-h-11 items-center px-5 text-gray-800 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . NavMegaElement::nodeIconHtml($channel, 'mr-2', $autoIcons) . $name . '</a>';
             if ($kids !== []) {
                 $items .= '<ul class="pb-2">';
                 foreach ($kids as $kid) {
@@ -63,7 +65,7 @@ final class NavDrawerElement extends AbstractElement
                     }
                     $items .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($kid), ENT_QUOTES)
                         . '"' . NavMegaElement::targetAttr($kid) . ' class="flex min-h-11 items-center pl-10 pr-5 text-sm text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">'
-                        . NavMegaElement::nodeIconHtml($kid, 'mr-2') . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
+                        . NavMegaElement::nodeIconHtml($kid, 'mr-2', $autoIcons) . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
                 }
                 $items .= '</ul>';
             }

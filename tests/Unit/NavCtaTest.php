@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Yikai\Tests\Unit;
 
+use BloxNavIconMatcher;
 use NavDrawerElement;
 use NavElement;
 use NavMegaElement;
@@ -114,6 +115,28 @@ final class NavCtaTest extends TestCase
         $this->assertSame('', NavMegaElement::nodeIconHtml([]));
         $this->assertSame('', NavMegaElement::nodeIconHtml(['_icon' => '']));
         $this->assertSame('', NavMegaElement::nodeIconHtml(['_icon' => 'none']));
+    }
+
+    public function testAutoMatchByNameTypeAndPriority(): void
+    {
+        // 名称语义（中/英/日）
+        $this->assertSame('phone', BloxNavIconMatcher::match(['name' => '联系我们']));
+        $this->assertSame('info-circle', BloxNavIconMatcher::match(['name' => 'About Us']));
+        $this->assertSame('phone', BloxNavIconMatcher::match(['name' => 'お問い合わせ']));
+        // 名称优先于类型；类型兜底；未知留空
+        $this->assertSame('phone', BloxNavIconMatcher::match(['name' => '联系我们', 'type' => 'page']));
+        $this->assertSame('box', BloxNavIconMatcher::match(['name' => 'ZX-2000', 'type' => 'product']));
+        $this->assertSame('', BloxNavIconMatcher::match(['name' => 'ZX-2000']));
+        // 首页节点
+        $this->assertSame('home', BloxNavIconMatcher::match(['name' => 'Top', '_is_home' => true]));
+    }
+
+    public function testAutoMatchOnlyWhenEnabledAndManualWins(): void
+    {
+        $node = ['name' => '联系我们', 'type' => 'page'];
+        $this->assertSame('', NavMegaElement::nodeIconHtml($node));                       // 未开 auto：无输出
+        $this->assertStringContainsString('ti-phone', NavMegaElement::nodeIconHtml($node, '', true));
+        $this->assertStringContainsString('ti-star', NavMegaElement::nodeIconHtml($node + ['icon' => 'star'], '', true)); // 手动优先
     }
 
     public function testNodeIconFallsBackToChannelIconColumn(): void
