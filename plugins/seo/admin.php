@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO 工坊 - 管理页面
+ * SEO 助手 - 管理页面
  * 由 /admin/plugin_page.php?plugin=seo 加载（已 checkLogin + requirePermission('*') + CSRF）。
  *
  * 免费：llms.txt 生成器（写站点根 /llms.txt）。
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gen_i
 // 重定向管理器（专业版）CRUD
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['redirect_add', 'redirect_delete', 'log_clear', 'log_delete'], true)) {
     if (!$seoHasPro) {
-        error('该功能需要 SEO 工坊专业版');
+        error('该功能需要 SEO 助手专业版');
     }
     seo_redirect_ensure_tables();
     $act = $_POST['action'];
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
 // SEO 体检：保存单条 SEO 字段（专业版）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'audit_save') {
     if (!$seoHasPro) {
-        error('该功能需要 SEO 工坊专业版');
+        error('该功能需要 SEO 助手专业版');
     }
     [$ok, $msg] = seo_audit_save(
         (string) ($_POST['table'] ?? ''), (int) ($_POST['id'] ?? 0),
@@ -96,6 +96,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
     }
     adminLog('plugin', 'seo', $_POST['action'] . ': ' . $msg);
     success(['count' => count($urls)], $msg);
+}
+
+// 自动推送（专业版）：开关保存 + 立即推送
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['autopush_toggle', 'autopush_now'], true)) {
+    if (!$seoHasPro) {
+        error('该功能需要 SEO 助手专业版');
+    }
+    require_once __DIR__ . '/autopush.php';
+    if (($_POST['action']) === 'autopush_toggle') {
+        $on = ($_POST['val'] ?? '0') === '1';
+        settingModel()->set('seo_autopush_enabled', $on ? '1' : '0', 'system');
+        // 开启的那一刻建立游标，避免第一次跑就把全站历史内容推出去打光配额
+        if ($on && (int) config('seo_autopush_cursor', '0') <= 0) {
+            settingModel()->set('seo_autopush_cursor', (string) time(), 'system');
+        }
+        adminLog('plugin', 'seo', 'autopush: ' . ($on ? 'on' : 'off'));
+        success([], $on ? '已开启自动推送' : '已关闭自动推送');
+    }
+    $msg = seo_autopush_run(true);
+    adminLog('plugin', 'seo', 'autopush_now: ' . $msg);
+    success([], $msg);
 }
 
 // —— 页面数据 ——
@@ -123,12 +144,36 @@ if ($seoHasPro) {
     $log404 = seo_404_list(200);
 }
 
+// 自动推送（专业版）
+$autopushOn = false;
+$autopushLog = [];
+$autopushCursor = 0;
+$cronConfigured = false;
+if ($seoHasPro) {
+    require_once __DIR__ . '/autopush.php';
+    $autopushOn = (string) config('seo_autopush_enabled', '0') === '1';
+    $autopushLog = seo_autopush_log();
+    $autopushCursor = (int) config('seo_autopush_cursor', '0');
+    // 定时任务最近跑过没有——没配 crontab 的主机上自动推送不会自己触发，要明说
+    try {
+        if (class_exists('Cron')) {
+            foreach (Cron::tasks() as $t) {
+                if ((int) ($t['last'] ?? 0) > time() - 86400) {
+                    $cronConfigured = true;
+                    break;
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+    }
+}
+
 // SEO 体检（专业版）
 $audit = $seoHasPro ? seo_audit_scan(500) : ['items' => [], 'summary' => [], 'total' => 0, 'healthy' => 0];
 $auditIssueMeta = seo_audit_issue_meta();
 $auditTables = seo_audit_tables();
 
-$pageTitle   = 'SEO 工坊';
+$pageTitle   = 'SEO 助手';
 $currentMenu = 'plugin';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
@@ -279,6 +324,96 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <?php if ($seoHasPro): ?>
+    <?php // AI 一键优化 meta 的入口不在本页，而在内容编辑页的 SEO 分析面板里；
+          // 路线图卡的「已上线」链接锚到这里，免得用户在本页翻半天找不到。 ?>
+    <div id="seo-ai-note" class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-start gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+            <i class="ti ti-sparkles text-lg"></i>
+        </div>
+        <div class="min-w-0 text-sm">
+            <div class="font-medium text-gray-800">AI 一键优化 meta</div>
+            <p class="text-gray-500 mt-1 leading-relaxed">
+                入口在<b>内容编辑页</b>右侧的「SEO 分析」面板里：写完正文点「AI 生成」，
+                即可一键生成或改写 SEO 标题、描述与关键词。用的是站点已配置的 AI 服务，
+                未配置时到 <a href="/admin/setting_ai.php" class="text-primary hover:underline">AI 设置</a> 填一次即可。
+            </p>
+        </div>
+    </div>
+
+    <!-- ===== 专业版：搜索引擎自动推送 ===== -->
+    <div id="seo-autopush" class="bg-white rounded-lg shadow mb-6" x-data="seoAutopush()">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                <i class="ti ti-send text-amber-500"></i> 搜索引擎自动推送
+            </h2>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" x-model="on" @change="toggle()">
+                <span class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary transition-colors"></span>
+                <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
+            </label>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-gray-500 leading-relaxed mb-4">
+                开启后每 15 分钟检查一次，把新发布和有改动的内容自动推给
+                <?php echo $baiduSite !== '' && $baiduToken !== '' ? '百度' : '<span class="text-gray-400">百度（未配置）</span>'; ?>、<?php echo $indexnowKey !== '' ? 'IndexNow（Bing / Yandex）' : '<span class="text-gray-400">IndexNow（未配置）</span>'; ?>。
+                单次最多 <?php echo SEO_AUTOPUSH_BATCH; ?> 条，避免一次打光百度每日配额。
+            </p>
+
+            <?php if (!$cronConfigured): ?>
+            <?php // 没配定时任务的主机上，自动推送永远不会自己触发——与其静默失效不如直说 ?>
+            <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-4 py-3 mb-4">
+                <i class="ti ti-alert-triangle mr-1"></i>
+                本站近 24 小时没有定时任务运行记录，自动推送不会自行触发。请在
+                <a href="/admin/cron.php" class="underline font-medium">系统 → 定时任务</a>
+                按说明配置 crontab；在此之前可用下方「立即推送」手动触发。
+            </div>
+            <?php endif; ?>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <button type="button" @click="pushNow()" :disabled="busy"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-secondary text-white rounded text-sm font-medium disabled:opacity-50">
+                    <i class="ti ti-send text-base"></i> <span x-text="busy ? '推送中…' : '立即推送'"></span>
+                </button>
+                <span class="text-xs text-gray-400">
+                    <?php if ($autopushCursor > 0): ?>
+                    增量起点：<?php echo e(date('Y-m-d H:i', $autopushCursor)); ?>
+                    <?php else: ?>
+                    尚未建立增量起点（开启开关后自动建立）
+                    <?php endif; ?>
+                </span>
+                <span class="text-xs" :class="msgOk ? 'text-green-600' : 'text-red-500'" x-text="msg"></span>
+            </div>
+
+            <?php if ($autopushLog): ?>
+            <div class="mt-5">
+                <div class="text-xs font-medium text-gray-500 mb-2">推送历史（最近 <?php echo count($autopushLog); ?> 次）</div>
+                <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                    <table class="w-full text-xs">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">时间</th>
+                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">条数</th>
+                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">方式</th>
+                                <th class="px-3 py-2 text-left font-medium">结果</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <?php foreach ($autopushLog as $row): ?>
+                            <tr>
+                                <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?php echo e((string) ($row['time'] ?? '')); ?></td>
+                                <td class="px-3 py-2 text-gray-700 whitespace-nowrap"><?php echo (int) ($row['count'] ?? 0); ?></td>
+                                <td class="px-3 py-2 text-gray-400 whitespace-nowrap"><?php echo !empty($row['manual']) ? '手动' : '自动'; ?></td>
+                                <td class="px-3 py-2 <?php echo !empty($row['ok']) ? 'text-gray-600' : 'text-red-500'; ?>"><?php echo e((string) ($row['msg'] ?? '')); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <!-- ===== 专业版：重定向管理器 ===== -->
     <div id="seo-redirects" class="bg-white rounded-lg shadow mb-6" x-data="seoRedirects()">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -536,9 +671,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <?php
             $proCards = [
-                ['ti-sparkles',   'AI 一键优化 meta', '基于站内 AI，一键生成 / 改写 SEO 标题与描述、推荐关键词。', ''],
+                ['ti-sparkles',   'AI 一键优化 meta', '基于站内 AI，一键生成 / 改写 SEO 标题与描述、推荐关键词。', '#seo-ai-note'],
                 ['ti-arrows-right-left', '重定向管理器', '301/404 监控与重定向规则，改版换链接不丢权重、不丢流量。', '#seo-redirects'],
-                ['ti-send',       '搜索引擎自动推送', '发布 / 更新 / 删除时自动 ping 百度、IndexNow（Bing/Yandex），带历史与配额。', ''],
+                ['ti-send',       '搜索引擎自动推送', '内容有增改就自动 ping 百度、IndexNow（Bing/Yandex），带历史与配额。', '#seo-autopush'],
                 ['ti-link',       '内链建议 + 基石内容', '基于内容相似度推荐内链、标记基石内容，优化站点结构。', ''],
             ];
             foreach ($proCards as [$icon, $title, $desc, $liveAnchor]):
@@ -569,7 +704,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 pb-6">
             <div class="bg-gradient-to-r from-gray-900 to-gray-700 rounded-lg px-5 py-4 flex items-center justify-between gap-4">
                 <div class="text-white text-sm">
-                    <div class="font-medium">解锁 SEO 工坊专业版</div>
+                    <div class="font-medium">解锁 SEO 助手专业版</div>
                     <div class="text-gray-300 text-xs mt-0.5">购买注册码后即可开启以上全部高级功能。</div>
                 </div>
                 <a href="/admin/plugin.php" class="bg-amber-400 hover:bg-amber-300 text-gray-900 text-sm font-medium px-4 py-2 rounded-lg whitespace-nowrap">
@@ -586,6 +721,41 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             loading: false,
             exists: <?php echo $llmsExists ? 'true' : 'false'; ?>,
             genAt: <?php echo $llmsGenAt ? ('"' . date('Y-m-d H:i', $llmsGenAt) . '"') : '""'; ?>,
+            // 自动推送（专业版）
+            function seoAutopush() {
+                return {
+                    on: <?php echo $autopushOn ? 'true' : 'false'; ?>,
+                    busy: false,
+                    msg: '',
+                    msgOk: true,
+                    async _post(action, extra) {
+                        var b = new URLSearchParams();
+                        b.set('action', action);
+                        b.set('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+                        for (var k in (extra || {})) b.set(k, extra[k]);
+                        var r = await fetch('', { method: 'POST', body: b, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        return await r.json();
+                    },
+                    async toggle() {
+                        var d = await this._post('autopush_toggle', { val: this.on ? '1' : '0' });
+                        this.msgOk = d.code === 0;
+                        this.msg = d.msg || '';
+                        if (d.code !== 0) this.on = !this.on;   // 保存失败则回弹开关，别让界面撒谎
+                    },
+                    async pushNow() {
+                        this.busy = true; this.msg = '';
+                        try {
+                            var d = await this._post('autopush_now');
+                            this.msgOk = d.code === 0;
+                            this.msg = d.msg || '';
+                            if (d.code === 0) setTimeout(function () { location.reload(); }, 1200);   // 刷出新历史
+                        } finally {
+                            this.busy = false;
+                        }
+                    },
+                };
+            }
+
             // 搜索引擎推送
             busy: false,
             pushMsg: "",

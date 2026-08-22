@@ -1,5 +1,5 @@
 /**
- * SEO 工坊 - 实时内容分析面板（免费）
+ * SEO 助手 - 实时内容分析面板（免费）
  *
  * 由 ik_admin_footer_scripts 注入到所有后台页；自门控：仅当检测到标准内容编辑器
  * （标题输入 + #contentInput + seo_description）时才激活并注入面板。

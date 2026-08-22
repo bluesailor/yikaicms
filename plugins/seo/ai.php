@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO 工坊 - AI 一键优化 meta 端点（专业版）
+ * SEO 助手 - AI 一键优化 meta 端点（专业版）
  *
  * 供内容编辑页的 SEO 分析面板 AJAX 调用：据标题+正文生成 SEO 标题 / 描述 / 关键词。
  * 复用站内 AiService（同「AI 对话改站」的 API 配置）。license_has_module('seo-pro') 闸。
@@ -45,7 +45,7 @@ verifyCsrf();
 
 // Pro 闸
 if (!function_exists('license_has_module') || !license_has_module('seo-pro')) {
-    echo json_encode(['success' => false, 'error' => '该功能需要 SEO 工坊专业版']);
+    echo json_encode(['success' => false, 'error' => '该功能需要 SEO 助手专业版']);
     exit;
 }
 
