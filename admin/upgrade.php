@@ -67,6 +67,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     success();
 }
 
+// AJAX: 自动升级（开关 / 范围 / 维护窗口）。真正的执行逻辑在 includes/AutoUpgrade.php，
+// 与后台「在线升级」共用同一条管道，这里只管配置。
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_auto_upgrade') {
+    verifyCsrf();
+    $win = trim((string) post('window'));
+    // 窗口格式不合规就回落默认：配置写坏不能变成「随时升」也不能变成「永不升」
+    if (preg_match('/^\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}$/', $win) !== 1) {
+        $win = '03:00-05:00';
+    }
+    settingModel()->saveBatch([
+        'auto_upgrade_enabled' => post('enabled') === '1' ? '1' : '0',
+        'auto_upgrade_scope'   => post('scope') === 'stable' ? 'stable' : 'security',
+        'auto_upgrade_window'  => $win,
+    ]);
+    adminLog('setting', 'update', 'auto_upgrade: ' . (post('enabled') === '1' ? 'on' : 'off'));
+    success(['window' => $win]);
+}
+
+// AJAX: 立即检查并升级（手动触发同一条无人值守管道，用于验证配置是否可用）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run_auto_upgrade') {
+    verifyCsrf();
+    requirePermission('*');
+    @set_time_limit(0);
+    require_once ROOT_PATH . '/includes/AutoUpgrade.php';
+    success(['result' => AutoUpgrade::run(true)]);
+}
+
 // AJAX: 更新通道（stable=正式版 / beta=测试版，默认 stable）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_update_channel') {
     verifyCsrf();
@@ -266,7 +293,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <?php // 标签栏由 admin/includes/upgrade_tabs.php 统一渲染（两页共用，避免各自维护漂移）
-$__upgTab = in_array($tab, ['config', 'history', 'welcome'], true) ? $tab : 'check';
+$__upgTab = in_array($tab, ['config', 'history', 'welcome', 'manual'], true) ? $tab : 'check';
 require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 ?>
 
@@ -519,6 +546,96 @@ function escapeHtml(str) {
 </script>
 <?php endif; ?>
 
+<?php if ($tab === 'manual'): ?>
+<?php
+// 手动升级向导。由来：不少客户站点主机不支持在线升级（PHP 无写权限、跨境下载被
+// 网关掐断），只能 FTP 覆盖——而多数用户并不知道「哪些文件不能覆盖」，
+// 覆盖掉 config.php 或 uploads/ 就是事故。把步骤和禁区写死在这里。
+$__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
+?>
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b">
+        <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+            <i class="ti ti-file-zip text-blue-500"></i><?php echo e(__('upgrade_manual_title')); ?>
+        </h2>
+    </div>
+    <div class="p-6">
+        <p class="text-sm text-gray-500 leading-relaxed mb-5"><?php echo e(__('upgrade_manual_intro')); ?></p>
+
+        <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-5">
+            <p class="text-sm font-medium text-red-800 mb-1.5">
+                <i class="ti ti-alert-triangle mr-1"></i><?php echo e(__('upgrade_manual_keep_title')); ?>
+            </p>
+            <ul class="text-xs text-red-700 space-y-1 pl-5 list-disc">
+                <li><code class="bg-white px-1 rounded">config/config.php</code> — <?php echo e(__('upgrade_manual_keep_config')); ?></li>
+                <li><code class="bg-white px-1 rounded">uploads/</code> — <?php echo e(__('upgrade_manual_keep_uploads')); ?></li>
+                <li><code class="bg-white px-1 rounded">storage/</code> — <?php echo e(__('upgrade_manual_keep_storage')); ?></li>
+                <li><code class="bg-white px-1 rounded">.htaccess</code> · <code class="bg-white px-1 rounded">robots.txt</code> · <code class="bg-white px-1 rounded">favicon.ico</code> — <?php echo e(__('upgrade_manual_keep_site')); ?></li>
+            </ul>
+        </div>
+
+        <ol class="space-y-4 text-sm text-gray-700">
+            <li class="flex gap-3">
+                <span class="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">1</span>
+                <div>
+                    <div class="font-medium"><?php echo e(__('upgrade_manual_s1')); ?></div>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo e(__('upgrade_manual_s1_tip')); ?></p>
+                    <a href="/admin/database.php?tab=backup" target="_blank"
+                       class="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline">
+                        <i class="ti ti-database-export"></i><?php echo e(__('upgrade_manual_s1_go')); ?>
+                    </a>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">2</span>
+                <div>
+                    <div class="font-medium"><?php echo e(__('upgrade_manual_s2')); ?></div>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo e(__('upgrade_manual_s2_tip')); ?></p>
+                    <a href="https://www.yikaicms.com/changelog.html" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline">
+                        <i class="ti ti-external-link"></i><?php echo e(__('upgrade_manual_s2_go')); ?>
+                    </a>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">3</span>
+                <div>
+                    <div class="font-medium"><?php echo e(__('upgrade_manual_s3')); ?></div>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo e(__('upgrade_manual_s3_tip')); ?></p>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">4</span>
+                <div>
+                    <div class="font-medium"><?php echo e(__('upgrade_manual_s4')); ?></div>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo e(__('upgrade_manual_s4_tip')); ?></p>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="shrink-0 w-6 h-6 rounded-full bg-green-600 text-white text-xs flex items-center justify-center">5</span>
+                <div>
+                    <div class="font-medium"><?php echo e(__('upgrade_manual_s5')); ?></div>
+                    <p class="text-xs text-gray-500 mt-1"><?php echo e(__('upgrade_manual_s5_tip')); ?></p>
+                    <a href="/admin/upgrade.php?tab=check"
+                       class="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline">
+                        <i class="ti ti-database-cog"></i><?php echo e(__('upgrade_manual_s5_go')); ?>
+                    </a>
+                </div>
+            </li>
+        </ol>
+
+        <div class="mt-6 pt-5 border-t border-gray-100">
+            <p class="text-xs text-gray-500 leading-relaxed">
+                <i class="ti ti-info-circle mr-1"></i>
+                <?php echo e(str_replace(':version', $__mCur, __('upgrade_manual_current'))); ?>
+                <?php echo e(__('upgrade_manual_prefer_online')); ?>
+                <a href="/admin/upgrade_online.php" class="text-primary hover:underline"><?php echo e(__('upgrade_online')); ?></a>
+            </p>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if ($tab === 'config'): ?>
 <!-- 升级配置 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -554,6 +671,113 @@ function escapeHtml(str) {
                 </span>
             </label>
         </div>
+
+        <?php
+        require_once ROOT_PATH . '/includes/Cron.php';   // 本页不走 init.php，Cron::tasks() 要显式引入
+        Cron::boot();
+        require_once ROOT_PATH . '/includes/AutoUpgrade.php';
+        $__auOn = AutoUpgrade::enabled();
+        $__auScope = AutoUpgrade::scope();
+        $__auWindow = (string) config('auto_upgrade_window', '03:00-05:00');
+        // 定时任务近 24 小时跑过没有——没配 crontab 的主机上自动升级不会自行触发，要明说
+        $__cronAlive = false;
+        try {
+            foreach (Cron::tasks() as $__t) {
+                if ((int) ($__t['last'] ?? 0) > time() - 86400) { $__cronAlive = true; break; }
+            }
+        } catch (\Throwable $e) {
+        }
+        ?>
+        <div class="border-t border-gray-100 mt-5 pt-5">
+            <label class="inline-flex items-center gap-3 cursor-pointer" data-testid="auto-upgrade-control">
+                <input id="autoUpgradeToggle" type="checkbox" class="sr-only peer" data-testid="auto-upgrade-toggle"
+                       onchange="saveAutoUpgrade()" <?php echo $__auOn ? 'checked' : ''; ?>>
+                <span class="relative w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors
+                             after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow after:transition-transform peer-checked:after:translate-x-4"></span>
+                <span>
+                    <span class="block text-sm font-medium text-gray-700">
+                        <?php echo e(__('upgrade_auto_label')); ?>
+                        <span class="ml-1.5 align-middle text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded"><?php echo e(__('upgrade_auto_beta_badge')); ?></span>
+                    </span>
+                    <span class="block text-xs text-gray-400 mt-0.5"><?php echo e(__('upgrade_auto_tip')); ?></span>
+                </span>
+            </label>
+
+            <?php // 功能测试阶段：真实站点闭环演练尚未完成，必须让人知道自己在用什么 ?>
+            <div id="autoUpgradeBeta" class="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded px-3 py-2 <?php echo $__auOn ? '' : 'hidden'; ?>">
+                <i class="ti ti-flask mr-1"></i><?php echo e(__('upgrade_auto_beta_warn')); ?>
+            </div>
+
+            <div id="autoUpgradeOptions" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 <?php echo $__auOn ? '' : 'hidden'; ?>">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1.5"><?php echo e(__('upgrade_auto_scope_label')); ?></label>
+                    <select id="autoUpgradeScope" onchange="saveAutoUpgrade()" class="w-full border rounded px-3 py-2 text-sm bg-white">
+                        <option value="security" <?php echo $__auScope === 'security' ? 'selected' : ''; ?>><?php echo e(__('upgrade_auto_scope_security')); ?></option>
+                        <option value="stable" <?php echo $__auScope === 'stable' ? 'selected' : ''; ?>><?php echo e(__('upgrade_auto_scope_stable')); ?></option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1.5"><?php echo e(__('upgrade_auto_window_label')); ?></label>
+                    <input id="autoUpgradeWindow" type="text" value="<?php echo e($__auWindow); ?>" placeholder="03:00-05:00"
+                           onchange="saveAutoUpgrade()" class="w-full border rounded px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <?php if (!$__cronAlive): ?>
+            <p id="autoUpgradeCronWarn" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mt-3 <?php echo $__auOn ? '' : 'hidden'; ?>">
+                <i class="ti ti-alert-triangle mr-1"></i><?php echo e(__('upgrade_auto_need_cron')); ?>
+                <a href="/admin/cron.php" class="underline font-medium"><?php echo e(__('cron_setup_title')); ?></a>
+            </p>
+            <?php endif; ?>
+
+            <p class="text-xs text-gray-400 mt-2"><?php echo e(__('upgrade_auto_safety')); ?></p>
+
+            <?php $__auLog = AutoUpgrade::log(); ?>
+            <div class="mt-4 flex items-center gap-3 flex-wrap">
+                <button type="button" id="autoUpgradeRunBtn" onclick="runAutoUpgrade()"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:border-primary hover:text-primary rounded text-sm disabled:opacity-50">
+                    <i class="ti ti-player-play text-base"></i><span><?php echo e(__('upgrade_auto_run_now')); ?></span>
+                </button>
+                <span id="autoUpgradeRunMsg" class="text-xs text-gray-500"></span>
+            </div>
+
+            <?php if ($__auLog): ?>
+            <?php // 设置与结果放在同一屏：开了之后到底有没有跑、结果如何，不用另找地方 ?>
+            <div class="mt-4">
+                <div class="text-xs font-medium text-gray-500 mb-2"><?php echo e(__('upgrade_auto_history')); ?></div>
+                <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                    <table class="w-full text-xs">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap"><?php echo e(__('upgrade_auto_time')); ?></th>
+                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap"><?php echo e(__('upgrade_auto_result')); ?></th>
+                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap"><?php echo e(__('upgrade_auto_versions')); ?></th>
+                                <th class="px-3 py-2 text-left font-medium"><?php echo e(__('upgrade_auto_detail')); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <?php foreach ($__auLog as $__row):
+                                $__res = (string) ($__row['result'] ?? '');
+                                [$__tone, $__label] = match ($__res) {
+                                    'ok' => ['text-green-600', __('upgrade_auto_res_ok')],
+                                    'rolled_back' => ['text-amber-600', __('upgrade_auto_res_rolled')],
+                                    'failed' => ['text-red-500', __('upgrade_auto_res_failed')],
+                                    default => ['text-gray-400', $__res],
+                                };
+                            ?>
+                            <tr>
+                                <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?php echo e((string) ($__row['time'] ?? '')); ?></td>
+                                <td class="px-3 py-2 whitespace-nowrap <?php echo $__tone; ?>"><?php echo e($__label); ?></td>
+                                <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?php echo e((string) ($__row['from'] ?? '')); ?> → <?php echo e((string) ($__row['to'] ?? '')); ?></td>
+                                <td class="px-3 py-2 text-gray-600"><?php echo e((string) ($__row['msg'] ?? '')); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -566,6 +790,56 @@ async function saveNotifyLevel(sel) {
         await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         showMessage('<?php echo e(__('admin_saved')); ?>');
     } catch (e) { showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error'); }
+}
+
+async function saveAutoUpgrade() {
+    var on = document.getElementById('autoUpgradeToggle').checked;
+    var opts = document.getElementById('autoUpgradeOptions');
+    var warn = document.getElementById('autoUpgradeCronWarn');
+    var beta = document.getElementById('autoUpgradeBeta');
+    opts.classList.toggle('hidden', !on);
+    if (beta) beta.classList.toggle('hidden', !on);
+    if (warn) warn.classList.toggle('hidden', !on);
+
+    var fd = new FormData();
+    fd.append('action', 'save_auto_upgrade');
+    fd.append('_token', '<?php echo csrfToken(); ?>');
+    fd.append('enabled', on ? '1' : '0');
+    fd.append('scope', document.getElementById('autoUpgradeScope').value);
+    fd.append('window', document.getElementById('autoUpgradeWindow').value);
+    try {
+        var r = await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var d = await r.json();
+        if (!d || d.code !== 0) throw new Error(d && d.msg ? d.msg : 'save failed');
+        // 服务端可能把非法窗口回落成默认值，回填让界面与实际一致
+        if (d.data && d.data.window) document.getElementById('autoUpgradeWindow').value = d.data.window;
+        showMessage('<?php echo e(__('admin_saved')); ?>');
+    } catch (e) {
+        showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error');
+    }
+}
+
+async function runAutoUpgrade() {
+    var btn = document.getElementById('autoUpgradeRunBtn');
+    var msg = document.getElementById('autoUpgradeRunMsg');
+    btn.disabled = true;
+    msg.textContent = '<?php echo e(__('upgrade_auto_running')); ?>';
+    var fd = new FormData();
+    fd.append('action', 'run_auto_upgrade');
+    fd.append('_token', '<?php echo csrfToken(); ?>');
+    try {
+        var r = await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var d = await r.json();
+        msg.textContent = (d && d.data && d.data.result) ? d.data.result : '';
+        // 真升级了就刷新：版本号与历史都变了
+        if (d && d.data && /upgraded|rolled back/.test(String(d.data.result))) {
+            setTimeout(function () { location.reload(); }, 1500);
+        }
+    } catch (e) {
+        msg.textContent = '<?php echo e(__('admin_save_failed')); ?>';
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 async function saveUpdateChannel(toggle) {

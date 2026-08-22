@@ -66,33 +66,10 @@ if ($action !== '') {
         }
     });
 
-    // ---- 0) 自动升级：设置保存 / 手动触发 ----
-    if ($action === 'auto_save' || $action === 'auto_run') {
-        // 界面藏起来时后端也不受理：否则猜到 action 名就能绕过灰度开关。
-        // （这不是安全边界——上面已有 checkLogin + requirePermission('*')——
-        //   而是让「未显形」这件事在前后端口径一致，避免半开状态。）
-        if ((string) config('auto_upgrade_ui', '0') !== '1') {
-            uo_json(['code' => 1, 'msg' => '该功能尚未在本站开启']);
-        }
-        require_once ROOT_PATH . '/includes/AutoUpgrade.php';
-        if ($action === 'auto_save') {
-            $win = trim((string) post('window'));
-            $win = AutoUpgrade::normalizeWindow($win);
-            settingModel()->saveBatch([
-                'auto_upgrade_enabled' => post('enabled') === '1' ? '1' : '0',
-                'auto_upgrade_scope'   => post('scope') === 'stable' ? 'stable' : 'security',
-                'auto_upgrade_window'  => $win,
-            ]);
-            adminLog('upgrade', 'auto_upgrade_config', '自动升级设置：' . (post('enabled') === '1' ? '开' : '关'));
-            uo_json(['code' => 0, 'msg' => '已保存', 'window' => $win]);
-        }
-        @set_time_limit(0);
-        uo_json(['code' => 0, 'msg' => AutoUpgrade::run(true)]);
-    }
-
-    // 手工升级与 AutoUpgrade 共用 package/state/backup，必须共用同一把进程锁。
-    // 手工流程跨请求时由 state/package-meta 的 owner=manual 阻止 cron 插入；这里负责
-    // 阻止一个已经持锁运行的自动事务与当前手工写动作并发。
+    // 人工升级与自动升级抢同一把锁：手工流程跨请求时由 state/package-meta 的
+    // owner=manual 阻止 cron 插入；这里负责阻止一个已经持锁运行的自动事务与当前
+    // 手工写动作并发。（codex 审计 P1-2 的配套，勿与自动升级 UI 一起删——
+    // 2026-08-23 把 UI 移到配置页时误删过一次，被单测抓住。）
     if (in_array($action, ['download', 'apply_prepare', 'apply_batch', 'apply_finalize', 'apply_rollback'], true)) {
         if (!is_dir(uo_dir())) {
             @mkdir(uo_dir(), 0755, true);
@@ -190,34 +167,6 @@ if ($action !== '') {
 // ============================================================
 $pageTitle = __('upgrade_online');
 $currentMenu = 'upgrade';   // 与「系统升级」共用菜单（升级页两个标签之一）
-require_once ROOT_PATH . '/includes/AutoUpgrade.php';
-require_once ROOT_PATH . '/includes/Cron.php';   // 本页不走 init.php，Cron::tasks() 要显式引入
-Cron::boot();
-
-// 自动升级入口默认**不显示**（v1.18.6 灰度期）：功能代码随包发布，但在真实站点上
-// 灼烧验证通过前不向客户暴露——无人值守升级出错的代价是把客户站升坏，宁可慢一步。
-// 两种方式可见：
-//   1) ?labs=auto-upgrade —— 知道地址才进得来，用完自动记住（该站从此常显）
-//   2) 设置 auto_upgrade_ui=1 —— 我们批量开启时用
-// 注意这只是「界面可见性」，不是安全边界：后端动作仍有 checkLogin + requirePermission('*')。
-$autoUiOn = (string) config('auto_upgrade_ui', '0') === '1';
-if (!$autoUiOn && ($_GET['labs'] ?? '') === 'auto-upgrade') {
-    settingModel()->set('auto_upgrade_ui', '1', 'system');
-    $autoUiOn = true;
-}
-$autoEnabled = AutoUpgrade::enabled();
-$autoScope   = AutoUpgrade::scope();
-$autoWindow  = (string) config('auto_upgrade_window', '03:00-05:00');
-$autoLog     = AutoUpgrade::log();
-// 定时任务近 24 小时跑过没有——没配 crontab 的主机上自动升级不会自行触发，要明说
-$cronAlive = false;
-try {
-    foreach (Cron::tasks() as $t) {
-        if ((int) ($t['last'] ?? 0) > time() - 86400) { $cronAlive = true; break; }
-    }
-} catch (\Throwable $e) {
-}
-
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <?php // 标签栏由 admin/includes/upgrade_tabs.php 统一渲染
@@ -240,102 +189,6 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
             <li>升级过程会自动保存一份 config.php 到 storage/backups/，供万一需要时比对。</li>
         </ul>
     </div>
-
-    <?php // 自动升级：站点自己在维护窗口里跑同一条升级管道；失败自动回滚 ?>
-    <?php if ($autoUiOn): ?>
-    <div id="auto-upgrade" class="bg-white border border-gray-200 rounded-lg mb-5" x-data="autoUpgrade()">
-        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
-            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
-                <i class="ti ti-refresh-dot text-blue-500"></i>自动升级
-            </h2>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" class="sr-only peer" x-model="enabled" @change="save()">
-                <span class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary transition-colors"></span>
-                <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
-            </label>
-        </div>
-        <div class="p-5">
-            <p class="text-sm text-gray-500 leading-relaxed mb-4">
-                开启后，本站会在维护窗口内自己完成升级：下载官方包（校验 SHA256 与 RSA 签名）→
-                备份数据库 → 覆盖文件（逐个先快照）→ 运行数据库迁移 → 健康自检。
-                <b>自检不通过会自动回滚到升级前</b>——无人值守时没人来救场。
-            </p>
-
-            <?php if (!$cronAlive): ?>
-            <div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-4 py-3 mb-4">
-                <i class="ti ti-alert-triangle mr-1"></i>
-                本站近 24 小时没有定时任务运行记录，自动升级不会自行触发。请先到
-                <a href="/admin/cron.php" class="underline font-medium">系统 → 定时任务</a> 按说明配置。
-            </div>
-            <?php endif; ?>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" :class="enabled ? '' : 'opacity-50 pointer-events-none'">
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1.5">升级范围</label>
-                    <select x-model="scope" @change="save()" class="w-full border border-gray-200 rounded px-3 py-2 text-sm bg-white">
-                        <option value="security">仅安全更新（推荐）</option>
-                        <option value="stable">所有正式版</option>
-                    </select>
-                    <p class="text-xs text-gray-400 mt-1" x-text="scope === 'security'
-                        ? '只自动安装标记为安全修复的版本，功能版仍由你手动确认。'
-                        : '任何新的正式版都会自动安装，站点始终保持最新。'"></p>
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1.5">维护窗口</label>
-                    <input type="text" x-model="window" @change="save()" placeholder="03:00-05:00"
-                           class="w-full border border-gray-200 rounded px-3 py-2 text-sm">
-                    <p class="text-xs text-gray-400 mt-1">按服务器时间，避开访问高峰。跨零点（如 23:00-02:00）也支持。</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 flex-wrap">
-                <button type="button" @click="runNow()" :disabled="busy"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:border-primary hover:text-primary rounded text-sm disabled:opacity-50">
-                    <i class="ti ti-player-play text-base"></i>
-                    <span x-text="busy ? '执行中…' : '立即检查并升级'"></span>
-                </button>
-                <span class="text-xs" :class="msgOk ? 'text-green-600' : 'text-red-500'" x-text="msg"></span>
-            </div>
-
-            <?php if ($autoLog): ?>
-            <div class="mt-5">
-                <div class="text-xs font-medium text-gray-500 mb-2">升级历史（最近 <?= count($autoLog) ?> 次）</div>
-                <div class="overflow-x-auto border border-gray-100 rounded-lg">
-                    <table class="w-full text-xs">
-                        <thead class="bg-gray-50 text-gray-500">
-                            <tr>
-                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">时间</th>
-                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">结果</th>
-                                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">版本</th>
-                                <th class="px-3 py-2 text-left font-medium">说明</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <?php foreach ($autoLog as $row):
-                                $res = (string) ($row['result'] ?? '');
-                                [$tone, $label] = match ($res) {
-                                    'ok' => ['text-green-600', '成功'],
-                                    'rolled_back' => ['text-amber-600', '已回滚'],
-                                    'failed' => ['text-red-500', '失败'],
-                                    default => ['text-gray-400', $res],
-                                };
-                            ?>
-                            <tr>
-                                <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?= e((string) ($row['time'] ?? '')) ?></td>
-                                <td class="px-3 py-2 whitespace-nowrap <?= $tone ?>"><?= e($label) ?></td>
-                                <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?= e((string) ($row['from'] ?? '')) ?> → <?= e((string) ($row['to'] ?? '')) ?></td>
-                                <td class="px-3 py-2 text-gray-600"><?= e((string) ($row['msg'] ?? '')) ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <?php endif; ?>
 
     <div id="uo-steps" class="space-y-3"></div>
 
@@ -372,51 +225,6 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 </div>
 
 <script>
-<?php if ($autoUiOn): ?>
-// 自动升级设置卡（Alpine）
-function autoUpgrade() {
-    return {
-        enabled: <?= $autoEnabled ? 'true' : 'false' ?>,
-        scope: <?= json_encode($autoScope) ?>,
-        window: <?= json_encode($autoWindow) ?>,
-        busy: false,
-        msg: '',
-        msgOk: true,
-        async _post(action, extra) {
-            const fd = new FormData();
-            fd.append('action', action);
-            fd.append('_token', <?= json_encode(csrfToken()) ?>);
-            for (const k in (extra || {})) fd.append(k, extra[k]);
-            const r = await fetch('upgrade_online.php', { method: 'POST', body: fd });
-            return await r.json();
-        },
-        async save() {
-            const d = await this._post('auto_save', {
-                enabled: this.enabled ? '1' : '0', scope: this.scope, window: this.window,
-            });
-            this.msgOk = d.code === 0;
-            this.msg = d.msg || '';
-            if (d.window) this.window = d.window;   // 服务端回落后的合法值
-        },
-        async runNow() {
-            this.busy = true; this.msg = '';
-            try {
-                const d = await this._post('auto_run');
-                this.msgOk = d.code === 0;
-                this.msg = d.msg || '';
-                // 真升级了就刷新页面：版本号与历史都变了
-                if (d.code === 0 && /upgraded|rolled back/.test(String(d.msg))) {
-                    setTimeout(() => location.reload(), 1500);
-                }
-            } finally {
-                this.busy = false;
-            }
-        },
-    };
-}
-
-<?php endif; ?>
-
 const UO = {
     token: <?= json_encode(csrfToken()) ?>,
     target: null,
