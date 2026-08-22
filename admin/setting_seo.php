@@ -98,12 +98,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('seo_lang_hint')));
 ?>
 
-<?php if (in_array('seo', getActivePlugins(), true)): ?>
-<!-- SEO 工坊插件已启用：互链提示（本页管全站 TDK/OG/验证基础项，进阶功能在插件面板） -->
+<?php
+// 本页管全站 TDK/OG/验证等基础项；进阶功能在「SEO 助手」插件里。
+// 装了就互链，没装就引导去市场装——想做 SEO 的当口正是推荐时机
+// （插件自 v1.18.6 起不随核心包发布，见 includes/RecommendedPlugins.php）。
+$__seoPluginOn = function_exists('isPluginAvailable') && isPluginAvailable('seo');
+$__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
+?>
+<?php if ($__seoPluginOn): ?>
 <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 flex items-center gap-3 text-sm">
     <i class="ti ti-puzzle text-lg text-blue-500"></i>
     <span class="text-blue-800"><?php echo __('seo_plugin_hint'); ?></span>
     <a href="/admin/plugin_page.php?plugin=seo" class="ml-auto text-primary hover:underline whitespace-nowrap"><?php echo __('seo_plugin_hint_go'); ?> →</a>
+</div>
+<?php elseif (!$__seoPluginHere): ?>
+<div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6 flex items-center gap-3 text-sm">
+    <i class="ti ti-puzzle text-lg text-amber-500"></i>
+    <span class="text-amber-800"><?php echo e(__('seo_plugin_get_hint')); ?></span>
+    <a href="/admin/plugin.php?tab=market&amp;q=seo" class="ml-auto text-primary hover:underline whitespace-nowrap"><?php echo e(__('seo_plugin_get_go')); ?> →</a>
 </div>
 <?php endif; ?>
 

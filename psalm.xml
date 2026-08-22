@@ -69,6 +69,7 @@
         <MissingFile>
             <errorLevel type="suppress">
                 <file name="plugins/seo/ai.php" />
+                <file name="plugins/seo/links_api.php" />
                 <file name="admin/nav_menu.php" />
                 <!-- v1.18.0 新增/改写的独立入口（Blox 设计系统/栏目 API 等） -->
                 <file name="admin/blox_contact_api.php" />
