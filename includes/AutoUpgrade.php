@@ -234,6 +234,28 @@ final class AutoUpgrade
      */
     private static function doUpgrade(array $data, string $from, string $to): string
     {
+        // ---- 续跑：上一轮「到量退出」后状态机里还留着游标，直接接着覆盖 ----
+        // 不这么做的话每次 cron 都会重新下载+重新 prepare，把游标清零：不但永远升不完，
+        // 还每小时多产生一个备份目录和一份完整库转储，能把共享主机磁盘撑爆。
+        $sf = uo_state_file();
+        if (is_file($sf) && is_file(uo_dir() . '/package.zip')
+            && (string) config('auto_upgrade_target', '') === $to) {
+            try {
+                $st = UpgradeApplyState::read($sf);
+                if (!UpgradeApplyState::isComplete($st)) {
+                    return self::applyRemaining(
+                        (string) ($st['backup'] ?? ''),
+                        (int) ($st['total'] ?? 0),
+                        (int) ($st['next_offset'] ?? 0),
+                        $from,
+                        $to
+                    );
+                }
+            } catch (\Throwable $e) {
+                // 状态文件坏了就当没有，走完整流程重来
+            }
+        }
+
         // ---- 下载（内含 SHA256 + RSA 验签；地址白名单只认官方 packages 目录）----
         $useDelta = is_array($data['delta'] ?? null) && !empty($data['delta']['download_url']);
         $dl = $useDelta ? $data['delta'] : $data;
@@ -254,11 +276,29 @@ final class AutoUpgrade
             self::logAdd('failed', '准备失败：' . ($pre['msg'] ?? ''), $from, $to);
             return 'failed: prepare';
         }
-        $backup = (string) ($pre['backup'] ?? '');
-        $total = (int) ($pre['total'] ?? 0);
+        // 记下本轮目标版本：续跑时用它确认「状态机里那批」就是现在要装的这版
+        settingModel()->set('auto_upgrade_target', $to, 'system');
 
+        return self::applyRemaining(
+            (string) ($pre['backup'] ?? ''),
+            (int) ($pre['total'] ?? 0),
+            0,
+            $from,
+            $to
+        );
+    }
+
+    /**
+     * 从 $startedAt 起继续覆盖，直到本轮到量或全部完成；完成则收尾 + 自检 + 迁移。
+     *
+     * 抽成独立方法是为了让「首次」和「续跑」走同一段代码——续跑路径要是另写一份，
+     * 两边迟早漂移，而这是无人值守跑的代码，漂移了没人会立刻发现。
+     */
+    private static function applyRemaining(string $backup, int $total, int $startedAt, string $from, string $to): string
+    {
         // ---- 分批覆盖：服务端游标推进，单轮封顶，避免一次请求跑太久被网关掐断 ----
-        $done = 0;
+        $done = $startedAt;
+        $thisRound = 0;
         $guard = 0;
         while ($done < $total && $guard++ < 200) {
             $bt = upgrade_batch(null);
@@ -266,9 +306,16 @@ final class AutoUpgrade
                 self::logAdd('failed', '覆盖失败：' . ($bt['msg'] ?? ''), $from, $to);
                 return 'failed: batch';
             }
+            $prev = $done;
             $done = (int) ($bt['next'] ?? $done);
-            if ($done >= self::BATCH_LIMIT && $done < $total) {
-                // 本轮到量：留给下一次 cron 续跑（状态机记着游标）
+            if ($done <= $prev) {
+                // 游标没前进：再循环下去就是死循环，果断退出留给人工排查
+                self::logAdd('failed', '覆盖游标未推进（' . $done . '/' . $total . '）', $from, $to);
+                return 'failed: cursor stalled';
+            }
+            $thisRound += $done - $prev;
+            if ($thisRound >= self::BATCH_LIMIT && $done < $total) {
+                // 本轮到量：留给下一次 cron 续跑（状态机记着游标，上面的续跑分支接手）
                 return 'in progress: ' . $done . '/' . $total . ' 已覆盖，下一轮继续';
             }
         }
@@ -286,8 +333,11 @@ final class AutoUpgrade
                 $from,
                 $to
             );
+            settingModel()->set('auto_upgrade_target', '', 'system');
             return 'rolled back: health check failed';
         }
+
+        settingModel()->set('auto_upgrade_target', '', 'system');   // 本轮结束，续跑标记作废
 
         // ---- 数据库迁移（新代码可能要求新表结构，必须跑完）----
         $migrated = self::runMigrations();
