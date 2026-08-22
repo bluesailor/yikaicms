@@ -67,6 +67,12 @@ if ($action !== '') {
 
     // ---- 0) 自动升级：设置保存 / 手动触发 ----
     if ($action === 'auto_save' || $action === 'auto_run') {
+        // 界面藏起来时后端也不受理：否则猜到 action 名就能绕过灰度开关。
+        // （这不是安全边界——上面已有 checkLogin + requirePermission('*')——
+        //   而是让「未显形」这件事在前后端口径一致，避免半开状态。）
+        if ((string) config('auto_upgrade_ui', '0') !== '1') {
+            uo_json(['code' => 1, 'msg' => '该功能尚未在本站开启']);
+        }
         require_once ROOT_PATH . '/includes/AutoUpgrade.php';
         if ($action === 'auto_save') {
             $win = trim((string) post('window'));
@@ -169,6 +175,18 @@ $currentMenu = 'upgrade';   // 与「系统升级」共用菜单（升级页两�
 require_once ROOT_PATH . '/includes/AutoUpgrade.php';
 require_once ROOT_PATH . '/includes/Cron.php';   // 本页不走 init.php，Cron::tasks() 要显式引入
 Cron::boot();
+
+// 自动升级入口默认**不显示**（v1.18.6 灰度期）：功能代码随包发布，但在真实站点上
+// 灼烧验证通过前不向客户暴露——无人值守升级出错的代价是把客户站升坏，宁可慢一步。
+// 两种方式可见：
+//   1) ?labs=auto-upgrade —— 知道地址才进得来，用完自动记住（该站从此常显）
+//   2) 设置 auto_upgrade_ui=1 —— 我们批量开启时用
+// 注意这只是「界面可见性」，不是安全边界：后端动作仍有 checkLogin + requirePermission('*')。
+$autoUiOn = (string) config('auto_upgrade_ui', '0') === '1';
+if (!$autoUiOn && ($_GET['labs'] ?? '') === 'auto-upgrade') {
+    settingModel()->set('auto_upgrade_ui', '1', 'system');
+    $autoUiOn = true;
+}
 $autoEnabled = AutoUpgrade::enabled();
 $autoScope   = AutoUpgrade::scope();
 $autoWindow  = (string) config('auto_upgrade_window', '03:00-05:00');
@@ -206,6 +224,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
     </div>
 
     <?php // 自动升级：站点自己在维护窗口里跑同一条升级管道；失败自动回滚 ?>
+    <?php if ($autoUiOn): ?>
     <div id="auto-upgrade" class="bg-white border border-gray-200 rounded-lg mb-5" x-data="autoUpgrade()">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
@@ -298,6 +317,8 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
         </div>
     </div>
 
+    <?php endif; ?>
+
     <div id="uo-steps" class="space-y-3"></div>
 
     <!-- 新版本信息卡：进入页面自动检查后填充（版本对比 / 升级级别 / 更新内容） -->
@@ -333,6 +354,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 </div>
 
 <script>
+<?php if ($autoUiOn): ?>
 // 自动升级设置卡（Alpine）
 function autoUpgrade() {
     return {
@@ -374,6 +396,8 @@ function autoUpgrade() {
         },
     };
 }
+
+<?php endif; ?>
 
 const UO = {
     token: <?= json_encode(csrfToken()) ?>,
