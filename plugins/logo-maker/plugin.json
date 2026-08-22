@@ -8,6 +8,6 @@
     "description_en": "Create random icons, draw on a 512×512 canvas, compose multi-layer logos, export SVG/PNG, convert images to ICO, and build complete icon packs offline without an API or bundled fonts.",
     "tier": "free",
     "author": "Yikai CMS",
-    "requires_php": "8.2",
+    "requires_php": "8.0",
     "requires_cms": "1.17.0"
 }
