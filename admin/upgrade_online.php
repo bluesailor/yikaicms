@@ -450,7 +450,31 @@ if ($action !== '') {
             @mkdir($bakDir, 0755, true);
         }
         @copy(ROOT_PATH . '/config/config.php', $bakDir . '/config.php');
-        @file_put_contents($bakDir . '/INFO.txt', "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n");
+
+        // 数据库自动备份（v1.18.6）：文件快照管代码，这份 SQL 管「迁移改表之后」
+        // 的事故兜底——两者合起来才是完整的升级前状态。失败不阻断升级
+        // （备份是保护层，不该把升级打挂），但响应里明示，前端提醒手动备份。
+        $dbBackupNote = '';
+        $dbBackupError = '';
+        try {
+            set_time_limit(300);
+            require_once ROOT_PATH . '/includes/Backup.php';
+            $dbTables = Backup::listPrefixedTables();
+            if ($dbTables !== []) {
+                $dbSql = Backup::generateSql($dbTables);
+                if (@file_put_contents($bakDir . '/database.sql', $dbSql) !== false) {
+                    $dbBackupNote = 'database.sql（' . count($dbTables) . ' 表 / ' . round(strlen($dbSql) / 1048576, 1) . 'MB）';
+                } else {
+                    $dbBackupError = 'storage/backups 写入失败';
+                }
+                unset($dbSql);
+            }
+        } catch (Throwable $e) {
+            $dbBackupError = $e->getMessage();
+        }
+
+        @file_put_contents($bakDir . '/INFO.txt', "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n"
+            . ($dbBackupNote !== '' ? "数据库备份: {$dbBackupNote}\n" : "数据库备份: 失败（{$dbBackupError}）\n"));
 
         $zip = new ZipArchive();
         if ($zip->open($pkg) !== true) uo_json(['code' => 1, 'msg' => '安装包打开失败']);
@@ -503,7 +527,10 @@ if ($action !== '') {
         } catch (RuntimeException) {
             uo_json(['code' => 1, 'msg' => __('upgrade_apply_state_write_failed')]);
         }
-        uo_json(['code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => basename($bakDir)]);
+        uo_json([
+            'code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => basename($bakDir),
+            'db_backup' => $dbBackupNote, 'db_backup_error' => $dbBackupError,
+        ]);
     }
 
     // ---- 4b) 分批覆盖：服务端状态游标为准；客户端 offset 只用于兼容和防跳批校验 ----
@@ -936,7 +963,12 @@ document.getElementById('uo-upgrade').onclick = async () => {
     r = UO.row('备份并解压安装包…', 'run');
     const pre = await UO.post('apply_prepare');
     if (pre.code !== 0) return fail(r, pre.msg);
-    UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}）`);
+    const dbNote = pre.db_backup ? `，数据库已自动备份（${pre.db_backup}）` : '';
+    UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}${dbNote}）`);
+    if (!pre.db_backup) {
+        UO.row('数据库自动备份未成功' + (pre.db_backup_error ? `（${pre.db_backup_error}）` : ''), 'fail',
+            '升级仍将继续；如本次更新包含数据库迁移，建议先到「数据库管理」手动备份后再执行升级。');
+    }
     // 分批覆盖（每批 150 文件，避免共享主机单请求超时）
     const total = pre.total;
     const rr = UO.row(`覆盖程序文件… 0/${total}`, 'run');
