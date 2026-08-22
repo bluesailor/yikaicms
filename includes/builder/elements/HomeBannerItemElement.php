@@ -264,19 +264,7 @@ final class HomeBannerItemElement extends AbstractElement
 
     private static function safeUrl(string $value, bool $allowActionSchemes): string
     {
-        $value = trim(strip_tags($value));
-        if ($value === '' || mb_strlen($value) > 1000) {
-            return '';
-        }
-        // 排除协议相对 //evil.com——它以 / 开头但会跳到外站
-        if ((str_starts_with($value, '/') && !str_starts_with($value, '//'))
-            || str_starts_with($value, '#')
-            || preg_match('#^https?://#i', $value) === 1) {
-            return $value;
-        }
-        if ($allowActionSchemes && preg_match('#^(?:mailto|tel):#i', $value) === 1) {
-            return $value;
-        }
-        return '';
+        // v1.18.6 起委托 UrlPolicy；strip_tags 前处理保留（banner 字段可能贴入富文本）
+        return UrlPolicy::href(strip_tags($value), $allowActionSchemes);
     }
 }

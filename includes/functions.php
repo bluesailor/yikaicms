@@ -2609,22 +2609,8 @@ function adminPoweredBy(): string
  */
 function safeUrl(string $url): string
 {
-    $url = trim($url);
-    if ($url === '') {
-        return '';
-    }
-    // 站内相对路径；排除协议相对 //evil.com（会跳到外站）
-    if ($url[0] === '/' && !str_starts_with($url, '//')) {
-        return $url;
-    }
-    // 锚点与查询串
-    if ($url[0] === '#' || $url[0] === '?') {
-        return $url;
-    }
-    return preg_match('#^(https?|mailto|tel)://#i', $url) === 1
-        || preg_match('#^(mailto|tel):#i', $url) === 1
-        ? $url
-        : '';
+    // v1.18.6 起委托 UrlPolicy（security.php 顶部已加载）——URL 规则只有一个权威实现
+    return UrlPolicy::href($url);
 }
 
 /**
