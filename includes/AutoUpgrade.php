@@ -166,6 +166,10 @@ final class AutoUpgrade
             'auto_window' => (string) config('auto_upgrade_window', '03:00-05:00'),
             'auto_result' => (string) config('auto_upgrade_last_result', ''),
             'auto_at' => (string) config('auto_upgrade_last_at', ''),
+            // 目标版本与失败原因也要上报：只报「失败」而不报为什么，控制台上看到一片
+            // 红也无从下手，等于没有跟踪能力。原因截断到 200 字符，够定位不至于撑爆心跳。
+            'auto_to' => (string) config('auto_upgrade_last_to', ''),
+            'auto_msg' => mb_substr((string) (self::log()[0]['msg'] ?? ''), 0, 200),
             't' => (string) time(),
         ];
         $url = 'https://update.yikaicms.com/api/update/check.php?' . http_build_query($q);
