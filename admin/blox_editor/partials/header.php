@@ -331,11 +331,28 @@ declare(strict_types=1);
                 <i class="ti text-base" :class="cacheClearing ? 'ti-loader-2 animate-spin' : 'ti-database-off'"></i>
             </button>
 <?php endif; ?>
-            <a :href="homeMode ? '/?preview' : ('/' + '<?php echo e($page['slug']); ?>' + '.html?preview')" target="_blank" rel="noopener"
+            <?php
+            // 前台预览目标按编辑对象定：首页 / 单页各指自身；页头/页尾模板指首页
+            //（在真实页面上看头尾效果）；区块/弹窗等模板没有对应前台页——不显示。
+            // 此前模板模式漏兜底，$page['slug'] 为空拼出坏链接「/.html?preview」。
+            $frontPreviewUrl = null;
+            if ($templateId) {
+                if (in_array($templateType ?? '', ['header', 'footer'], true)) {
+                    $frontPreviewUrl = '/?preview';
+                }
+            } elseif ($isHomeBlox) {
+                $frontPreviewUrl = '/?preview';
+            } else {
+                $frontPreviewUrl = '/' . $page['slug'] . '.html?preview';
+            }
+            ?>
+            <?php if ($frontPreviewUrl !== null): ?>
+            <a href="<?php echo e($frontPreviewUrl); ?>" target="_blank" rel="noopener"
                data-testid="blox-front-preview"
                class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="<?= e(__('blox_front_preview')) ?>">
                 <i class="ti ti-eye text-base"></i><span class="text-xs"><?php echo e(__('blox_front_preview')); ?></span>
             </a>
+            <?php endif; ?>
             <div class="inline-flex items-center gap-1" data-testid="blox-save-publish-actions">
                 <button type="button" @click="save()" :disabled="saving || homeActionBusy || pageActionBusy" data-testid="blox-save"
                         class="h-8 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium px-2 rounded inline-flex items-center justify-center gap-1 transition">

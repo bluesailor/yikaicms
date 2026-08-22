@@ -163,8 +163,11 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $header = $this->source('admin/blox_editor/partials/header.php');
 
-        $this->assertStringContainsString("homeMode ? '/?preview'", $header);
+        // v1.18.6：预览目标服务端按编辑对象决定——页头/页尾模板指首页，
+        // 区块/弹窗模板不显示（此前模板模式拼出坏链接 /.html?preview）
+        $this->assertStringContainsString("in_array(\$templateType ?? '', ['header', 'footer'], true)", $header);
         $this->assertStringContainsString("'.html?preview'", $header);
+        $this->assertStringContainsString('if ($frontPreviewUrl !== null):', $header);
         $this->assertStringContainsString('data-testid="blox-front-preview"', $header);
         $this->assertStringContainsString('ti ti-eye text-base', $header);
         $this->assertStringContainsString("__('blox_front_preview')", $header);
