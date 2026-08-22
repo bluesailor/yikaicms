@@ -252,6 +252,7 @@ function htmlCacheInvalidate(?string $prefix = null): int { return HtmlCache::in
 // 失效钩子。独立 admin 端点（如 blox_cache_api.php）只 require 本文件而不加载
 // 钩子系统——没有 add_action 时跳过注册即可：钩子只服务前台自动失效，
 // 端点自己显式调 invalidate()。（无守卫时曾令清缓存端点 500）
+/** @psalm-suppress ParadoxicalCondition 运行时按端点上下文判定：独立 admin 端点不加载 hooks.php，Psalm 的全项目视角看不见这种加载差异 */
 if (!function_exists('add_action')) {
     return;
 }
