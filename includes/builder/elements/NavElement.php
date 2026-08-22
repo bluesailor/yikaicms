@@ -68,7 +68,9 @@ final class NavElement extends AbstractElement
         $children = is_array($node['children'] ?? null)
             ? array_values(array_filter($node['children'], 'is_array'))
             : [];
-        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1', $autoIcons);
+        // 一级菜单横向空间稀缺：自动匹配的图标只下沉到下拉子级（纵向列表），
+        // 顶栏只认手动配置的图标（手动=明确意愿）。否则七八个一级项一开图标就折行
+        $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1');
         if (!$dropdown || $children === []) {
             return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
                 . ' class="hover:text-primary">' . $iconHtml . $name . '</a></li>';
@@ -79,6 +81,7 @@ final class NavElement extends AbstractElement
             $nested .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($child), ENT_QUOTES) . '"'
                 . NavMegaElement::targetAttr($child)
                 . ' class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary">'
+                . NavMegaElement::nodeIconHtml($child, 'mr-1.5', $autoIcons)
                 . htmlspecialchars((string) ($child['name'] ?? ''), ENT_QUOTES) . '</a></li>';
         }
         return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node)

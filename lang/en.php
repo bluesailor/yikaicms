@@ -2528,7 +2528,7 @@ return [
     'blox_nav_dropdown' => 'Desktop dropdown submenu',
     'channel_icon_suggested' => 'Suggested',
     'nav_icons_enable_label' => 'Menu icons',
-    'nav_icons_enable_help' => 'When on, all menus auto-match icons (e.g. Contact → phone); icons picked on channels or menu items take precedence',
+    'nav_icons_enable_help' => 'When on, dropdowns, mega-menu panels and the mobile menu auto-match icons (e.g. Contact → phone); the desktop top bar only shows manually picked icons to save horizontal space, and manual picks always win',
     'channel_icon_label' => 'Navigation icon (optional)',
     'channel_icon_help' => 'Click a common icon above to use it; you can also type any Tabler icon name (tabler.io/icons) or a bi:-prefixed Bootstrap icon. Shown before this channel in front-end menus',
     'nav_menu_icon_placeholder' => 'Icon',
