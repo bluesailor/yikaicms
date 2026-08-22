@@ -14,6 +14,12 @@ final class BloxRemoteTemplateProvider
     private const MAX_ITEMS = 500;
     private const CATALOG_TTL = 604800;
     private const ENTITLEMENT_TTL = 60;
+    /**
+     * 拉取失败的负缓存窗口：远程不可达时（15s 超时）不做负缓存的话，
+     * 模板管理页每次加载都同步挂满超时——共享主机上是管理员每次进页卡 15 秒，
+     * CI 上曾把 9s 的 e2e 用例拖过 45s 超时线（外网抖动 × 页面多次导航）。
+     */
+    private const FAILURE_TTL = 120;
 
     private Closure $httpGet;
     private Closure $verifySignature;
@@ -206,6 +212,14 @@ final class BloxRemoteTemplateProvider
     }
 
     /** @return array{updated_at:string,fetched_at:int,templates:list<array<string,mixed>>} */
+    /** 记录一次远程拉取失败（负缓存），FAILURE_TTL 窗口内 catalog() 直接短路 */
+    private function rememberFailure(string $cacheKey): void
+    {
+        if ($this->cacheSet !== null) {
+            ($this->cacheSet)($cacheKey . ':fail', time(), self::FAILURE_TTL);
+        }
+    }
+
     private function catalog(bool $forceRefresh = false, int $maxAge = self::CATALOG_TTL): array
     {
         $licenseKey = function_exists('license_key') ? license_key() : '';
@@ -232,22 +246,29 @@ final class BloxRemoteTemplateProvider
                     'templates' => array_values(array_filter($cached['templates'], 'is_array')),
                 ];
             }
+            // 负缓存命中：短窗口内不再重试远程（管理页「刷新」按钮 forceRefresh 直穿）
+            if ((int) ($this->cacheGet)($cacheKey . ':fail') >= time() - self::FAILURE_TTL) {
+                throw new RuntimeException(__('blox_template_remote_unavailable'));
+            }
         }
 
         $url = $this->endpoint . ($query !== [] ? '?' . http_build_query($query) : '');
         $response = ($this->httpGet)($url, 15, self::MAX_CATALOG_BYTES);
         if (!is_string($response) || $response === '') {
+            $this->rememberFailure($cacheKey);
             throw new RuntimeException(__('blox_template_remote_unavailable'));
         }
         try {
             $decoded = json_decode($response, true, 64, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
+            $this->rememberFailure($cacheKey);
             throw new RuntimeException(__('blox_template_remote_unavailable'));
         }
         $templates = is_array($decoded) && (int) ($decoded['code'] ?? 1) === 0
             ? ($decoded['data']['templates'] ?? null)
             : null;
         if (!is_array($templates) || count($templates) > self::MAX_ITEMS) {
+            $this->rememberFailure($cacheKey);
             throw new RuntimeException(__('blox_template_remote_unavailable'));
         }
         $catalog = [

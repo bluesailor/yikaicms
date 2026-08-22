@@ -356,4 +356,48 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertIsString($package);
         return $package;
     }
+
+    // ---- 拉取失败负缓存（v1.18.5：远程抖动时管理页/CI 不再每次导航挂满 15s 超时）----
+
+    /** @return array{provider:BloxRemoteTemplateProvider,calls:callable():int} */
+    private function failingProviderWithCache(): array
+    {
+        $store = [];
+        $calls = 0;
+        $provider = new BloxRemoteTemplateProvider(
+            static function () use (&$calls): ?string { $calls++; return null; },   // 远程不可达
+            static fn (): bool => true,
+            'en',
+            BloxRemoteTemplateProvider::API_URL,
+            static function (string $key) use (&$store): mixed { return $store[$key] ?? null; },
+            static function (string $key, mixed $value) use (&$store): void { $store[$key] = $value; }
+        );
+        return ['provider' => $provider, 'calls' => static function () use (&$calls): int { return $calls; }];
+    }
+
+    public function testFetchFailureIsNegativelyCachedWithinWindow(): void
+    {
+        ['provider' => $provider, 'calls' => $calls] = $this->failingProviderWithCache();
+
+        try { $provider->installable(); } catch (RuntimeException) {}
+        $this->assertSame(1, $calls());
+
+        // 负缓存窗口内：直接短路抛错，不再打远程
+        $this->expectException(RuntimeException::class);
+        try {
+            $provider->installable();
+        } finally {
+            $this->assertSame(1, $calls());
+        }
+    }
+
+    public function testForceRefreshBypassesFailureCache(): void
+    {
+        ['provider' => $provider, 'calls' => $calls] = $this->failingProviderWithCache();
+
+        try { $provider->installable(); } catch (RuntimeException) {}
+        try { $provider->installable(true); } catch (RuntimeException) {}
+
+        $this->assertSame(2, $calls());   // 「刷新授权状态」按钮必须穿透负缓存
+    }
 }
