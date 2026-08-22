@@ -117,13 +117,16 @@
             || typeof value.url !== "string") return null;
         var fallback = "/admin/site_design.php#site-design-area-" + value.area;
         if (value.url === fallback) return { area: value.area, url: fallback };
-        var template = value.url.match(/^\/admin\/blox_editor\.php\?template=(\d+)(&current_header=1)?(&open=header-settings)?$/);
+        // 白名单重建：参数顺序与 BloxAreaEditorTarget::editorUrl 一致
+        // （template → current_header → back → open）；改那边拼接必须同步这里，
+        // 否则校验拒掉 URL、画布入口点击静默无反应（2026-08-22 back=home 踩过）。
+        var template = value.url.match(/^\/admin\/blox_editor\.php\?template=(\d+)(&current_header=1)?(&back=home)?(&open=header-settings)?$/);
         if (!template || parseInt(template[1], 10) < 1) return null;
-        if ((template[2] || template[3]) && value.area !== "header") return null;
+        if ((template[2] || template[4]) && value.area !== "header") return null;
         return {
             area: value.area,
             url: "/admin/blox_editor.php?template=" + parseInt(template[1], 10)
-                + (template[2] || "") + (template[3] || "")
+                + (template[2] || "") + (template[3] || "") + (template[4] || "")
         };
     }
 

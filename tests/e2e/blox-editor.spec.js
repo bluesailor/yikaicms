@@ -147,7 +147,9 @@ test('home canvas exposes dedicated edit links for the readonly header and foote
   const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
   const footerEdit = contentFrame.getByTestId('blox-context-edit-footer');
   const headerSettings = page.getByTestId('blox-home-header-settings');
-  const expectedHeaderPath = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&open=header-settings`;
+  // v1.18.6：画布入口与顶栏「网页头设置」都带 back=home——编辑完页头一键返回首页编辑器
+  const expectedHeaderPath = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&back=home&open=header-settings`;
+  const expectedCanvasHeaderPath = expectedHeaderPath;
 
   await expect(headerSettings).toBeVisible();
   await expect(headerSettings).toContainText('网页头设置');
@@ -156,8 +158,8 @@ test('home canvas exposes dedicated edit links for the readonly header and foote
   await expect(footerEdit).toBeVisible();
   await expect(headerEdit).toHaveAttribute('target', '_top');
   await expect(footerEdit).toHaveAttribute('target', '_top');
-  await expect(headerEdit).toHaveAttribute('href', expectedHeaderPath);
-  await expect(footerEdit).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)$/);
+  await expect(headerEdit).toHaveAttribute('href', expectedCanvasHeaderPath);
+  await expect(footerEdit).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+(?:&back=home)?|site_design\.php#site-design-area-footer)$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 
   const headerHref = await headerEdit.getAttribute('href');

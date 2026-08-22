@@ -104,8 +104,9 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
-        $this->assertStringContainsString('(&current_header=1)?(&open=header-settings)?$', $bridge);
-        $this->assertStringContainsString('if ((template[2] || template[3]) && value.area !== "header") return null;', $bridge);
+        // v1.18.6：白名单加入 back=home 段（首页↔页头编辑回路）
+        $this->assertStringContainsString('(&current_header=1)?(&back=home)?(&open=header-settings)?$', $bridge);
+        $this->assertStringContainsString('if ((template[2] || template[4]) && value.area !== "header") return null;', $bridge);
         $this->assertStringContainsString('payload = areaEditPayload(data.ykEditArea);', $bridge);
         $this->assertStringContainsString('this.onEditArea(payload);', $bridge);
         $this->assertStringContainsString('onEditArea: function (payload) { window.location.assign(payload.url); }', $editor);

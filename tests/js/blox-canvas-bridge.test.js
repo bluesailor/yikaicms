@@ -174,3 +174,36 @@ test("内联编辑限制体积，发送与生命周期保持幂等", function ()
     current.bridge.dispose();
     assert.equal(listeners.message.size, 0);
 });
+test("画布「编辑页头/页尾」入口：白名单 URL 通过并原样重建（含 back=home）", function () {
+    const current = fixture({
+        onEditArea: function (payload) { current.calls.push(["editArea", payload.area, payload.url]); },
+    });
+    // v1.18.4 原始形态
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditArea: {
+        area: "header", url: "/admin/blox_editor.php?template=2&current_header=1&open=header-settings",
+    } } }), true);
+    // v1.18.6：带 back=home（首页画布跳来，编辑完一键返回）——
+    // 2026-08-22 曾因白名单正则没同步导致点击静默无反应
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditArea: {
+        area: "header", url: "/admin/blox_editor.php?template=2&current_header=1&back=home&open=header-settings",
+    } } }), true);
+    assert.deepEqual(current.calls, [
+        ["editArea", "header", "/admin/blox_editor.php?template=2&current_header=1&open=header-settings"],
+        ["editArea", "header", "/admin/blox_editor.php?template=2&current_header=1&back=home&open=header-settings"],
+    ]);
+});
+
+test("画布区域编辑入口拒绝白名单外的 URL", function () {
+    const current = fixture({
+        onEditArea: function (payload) { current.calls.push(["editArea", payload.url]); },
+    });
+    for (const url of [
+        "https://evil.com/admin/blox_editor.php?template=2",
+        "/admin/blox_editor.php?template=2&back=https://evil.com",
+        "/admin/blox_editor.php?template=0",
+        "/admin/other.php?template=2",
+    ]) {
+        assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditArea: { area: "header", url } } }), false, url);
+    }
+    assert.deepEqual(current.calls, []);
+});
