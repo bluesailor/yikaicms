@@ -68,6 +68,34 @@ final class SeoPluginTest extends TestCase
         self::assertStringContainsString('if ($anyOk) {', $src);
     }
 
+    public function testLinkSuggestionsStaySameLanguage(): void
+    {
+        // 多语言站里各语言是独立内容树，跨语言互链对读者和搜索引擎都是噪音。
+        // 实测未过滤时中文正文里的「技术支持」会被建议链到日文 FAQ 页。
+        $src = file_get_contents(ROOT_PATH . '/plugins/seo/links.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('c.lang = ?', $src);
+        self::assertStringContainsString('function seo_content_lang', $src);
+    }
+
+    public function testLinkCandidateQuerySelectsTypeAndFiltersVisibility(): void
+    {
+        $src = file_get_contents(ROOT_PATH . '/plugins/seo/links.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('c.type', $src);          // 否则给出 404 目标地址
+        self::assertStringContainsString('c.status = 1', $src);     // 草稿不该被链
+        self::assertStringContainsString('c.deleted_at IS NULL', $src);
+    }
+
+    public function testCornerstoneEndpointIsProGatedAndCsrfProtected(): void
+    {
+        $src = file_get_contents(ROOT_PATH . '/plugins/seo/links_api.php');
+        self::assertIsString($src);
+        self::assertStringContainsString('verifyCsrf()', $src);
+        self::assertStringContainsString('seo_is_pro()', $src);
+        self::assertStringContainsString("empty(\$_SESSION['admin_id'])", $src);
+    }
+
     public function testCronCommandLoadsPluginsSoPluginTasksRun(): void
     {
         // bin/yikai.php 不走 init.php，不显式加载插件的话，插件注册的 cron 任务

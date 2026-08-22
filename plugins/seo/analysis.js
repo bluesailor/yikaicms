@@ -349,5 +349,98 @@
         });
     }
 
+    // ---------- 内链建议 + 基石内容（专业版）----------
+    if (window.__ykSeoPro) {
+        var lnCsrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+        // 内容 id 从 URL 取（编辑已有内容时才有；新建内容尚未入库，不能标基石）
+        var lnId = parseInt((location.search.match(/[?&]id=(\d+)/) || [])[1] || '0', 10) || 0;
+
+        var linkCard = document.createElement('div');
+        linkCard.className = 'bg-white rounded-lg shadow p-6';
+        linkCard.innerHTML =
+            '<h3 class="font-bold text-gray-800 mb-1 flex items-center gap-2">' +
+                '<i class="ti ti-link text-amber-500"></i> 内链建议' +
+                '<span class="text-[10px] font-medium bg-amber-100 text-amber-700 px-1 rounded">Pro</span>' +
+            '</h3>' +
+            '<p class="text-xs text-gray-400 mb-3">正文里提到、站内又正好有对应内容的地方——加上链接能把权重留在站内。</p>' +
+            '<div class="flex items-center gap-2 mb-3">' +
+                '<button type="button" id="ykSeoLnScan" class="text-xs border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 px-2 py-1 rounded inline-flex items-center gap-1">' +
+                    '<i class="ti ti-search"></i>扫描正文</button>' +
+                '<label class="text-xs text-gray-500 inline-flex items-center gap-1 cursor-pointer" title="标记为基石内容后，其它文章的内链建议里它会排在最前">' +
+                    '<input type="checkbox" id="ykSeoCorner" class="rounded border-gray-300"> 设为基石内容</label>' +
+            '</div>' +
+            '<div id="ykSeoLnMsg" class="text-[11px] text-gray-400 mb-2"></div>' +
+            '<ul id="ykSeoLnList" class="space-y-2 text-xs"></ul>';
+
+        panel.parentNode.insertBefore(linkCard, panel.nextSibling);
+
+        var lnBtn = linkCard.querySelector('#ykSeoLnScan');
+        var lnMsg = linkCard.querySelector('#ykSeoLnMsg');
+        var lnList = linkCard.querySelector('#ykSeoLnList');
+        var lnCorner = linkCard.querySelector('#ykSeoCorner');
+
+        if (!lnId) {
+            lnCorner.disabled = true;
+            lnCorner.parentNode.title = '内容保存后才能标记基石';
+        }
+
+        function lnPost(action, extra) {
+            var body = new URLSearchParams();
+            body.set('action', action);
+            body.set('content_id', String(lnId));
+            body.set('_token', lnCsrf);
+            for (var k in (extra || {})) body.set(k, extra[k]);
+            return fetch('/plugins/seo/links_api.php', { method: 'POST', body: body })
+                .then(function (r) { return r.json(); });
+        }
+
+        lnBtn.addEventListener('click', function () {
+            lnBtn.disabled = true;
+            lnMsg.textContent = '扫描中…';
+            lnList.innerHTML = '';
+            lnPost('suggest', { content: getContentHtml().slice(0, 60000) })
+                .then(function (res) {
+                    if (!res || !res.success) {
+                        lnMsg.textContent = (res && res.error) || '扫描失败';
+                        return;
+                    }
+                    lnCorner.checked = !!res.cornerstone;
+                    var items = res.items || [];
+                    if (!items.length) {
+                        lnMsg.textContent = '没找到可加内链的位置——正文里没有提到其它内容的标题或关键词。';
+                        return;
+                    }
+                    lnMsg.textContent = '找到 ' + items.length + ' 处可加内链（点链接在新标签打开目标）：';
+                    items.forEach(function (it) {
+                        var li = document.createElement('li');
+                        li.className = 'border border-gray-100 rounded p-2';
+                        li.innerHTML =
+                            '<div class="flex items-start gap-1.5">' +
+                                (it.cornerstone ? '<i class="ti ti-diamond text-amber-500 mt-0.5" title="基石内容"></i>' : '<i class="ti ti-link text-gray-300 mt-0.5"></i>') +
+                                '<div class="min-w-0">' +
+                                    '<div class="text-gray-700">正文里的「<b class="text-amber-700">' + esc(it.term) + '</b>」可链到 ' +
+                                        '<a href="' + esc(it.url) + '" target="_blank" class="text-blue-600 hover:underline">' + esc(it.title) + '</a></div>' +
+                                    '<div class="text-gray-400 mt-0.5">' + esc(it.snippet) + '</div>' +
+                                '</div>' +
+                            '</div>';
+                        lnList.appendChild(li);
+                    });
+                })
+                .catch(function () { lnMsg.textContent = '请求失败'; })
+                .finally(function () { lnBtn.disabled = false; });
+        });
+
+        lnCorner.addEventListener('change', function () {
+            lnPost('cornerstone').then(function (res) {
+                if (!res || !res.success) {
+                    lnCorner.checked = !lnCorner.checked;   // 失败回弹，别让界面撒谎
+                    lnMsg.textContent = (res && res.error) || '保存失败';
+                    return;
+                }
+                lnMsg.textContent = res.cornerstone ? '✓ 已设为基石内容' : '已取消基石标记';
+            });
+        });
+    }
+
     render();
 })();
