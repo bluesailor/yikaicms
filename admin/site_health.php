@@ -75,9 +75,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $checks = SiteHealth::normalizeResults($checks);
             $summary = SiteHealth::summary($checks);
             $scannedAt = time();
+            // 除计数外还要记下**哪几项**红了：只有计数的话，update 控制台上看到一片红
+            // 也无从下手——「谁的 storage 在暴露」才是可执行的信息。只存 id，
+            // 不存路径/正文，随心跳上报时也就不会带出站点内部信息。
+            $badIds = [];
+            foreach ($checks as $check) {
+                if (in_array($check['status'], [SiteHealth::CRITICAL, SiteHealth::RECOMMENDED], true)) {
+                    $badIds[] = ($check['status'] === SiteHealth::CRITICAL ? '!' : '~') . $check['id'];
+                }
+            }
             settingModel()->saveBatch([
                 'site_health_last_summary' => (string) json_encode($summary, JSON_UNESCAPED_UNICODE),
                 'site_health_last_at' => (string) $scannedAt,
+                'site_health_last_bad' => mb_substr(implode(',', $badIds), 0, 500),
             ]);
             adminLog(
                 'site_health',
