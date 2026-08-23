@@ -562,15 +562,29 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
     <div class="p-6">
         <p class="text-sm text-gray-500 leading-relaxed mb-5"><?php echo e(__('upgrade_manual_intro')); ?></p>
 
-        <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-5">
+        <?php
+        // 这里只列**真实存在的**风险，不吓唬人：
+        //  · config.php / uploads/ / storage/ 根本不在安装包里（包内只有 config.sample.php
+        //    与两个空占位文件），正常覆盖动不到它们 —— 危险的是「先删后传」那种操作。
+        //  · 真正会被盖掉的是包里确实有、而客户又常改的那几个文件。今天两起真事故：
+        //    xcidcn 的 style.css 追加规则、cile.cn 的 list.php 垫片，都是这么丢的。
+        ?>
+        <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
             <p class="text-sm font-medium text-red-800 mb-1.5">
-                <i class="ti ti-alert-triangle mr-1"></i><?php echo e(__('upgrade_manual_keep_title')); ?>
+                <i class="ti ti-alert-triangle mr-1"></i><?php echo e(__('upgrade_manual_danger_title')); ?>
             </p>
-            <ul class="text-xs text-red-700 space-y-1 pl-5 list-disc">
-                <li><code class="bg-white px-1 rounded">config/config.php</code> — <?php echo e(__('upgrade_manual_keep_config')); ?></li>
-                <li><code class="bg-white px-1 rounded">uploads/</code> — <?php echo e(__('upgrade_manual_keep_uploads')); ?></li>
-                <li><code class="bg-white px-1 rounded">storage/</code> — <?php echo e(__('upgrade_manual_keep_storage')); ?></li>
-                <li><code class="bg-white px-1 rounded">.htaccess</code> · <code class="bg-white px-1 rounded">robots.txt</code> · <code class="bg-white px-1 rounded">favicon.ico</code> — <?php echo e(__('upgrade_manual_keep_site')); ?></li>
+            <p class="text-xs text-red-700 leading-relaxed"><?php echo e(__('upgrade_manual_danger_delete')); ?></p>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-5">
+            <p class="text-sm font-medium text-amber-800 mb-1.5">
+                <i class="ti ti-file-pencil mr-1"></i><?php echo e(__('upgrade_manual_custom_title')); ?>
+            </p>
+            <p class="text-xs text-amber-700 leading-relaxed mb-2"><?php echo e(__('upgrade_manual_custom_tip')); ?></p>
+            <ul class="text-xs text-amber-700 space-y-1 pl-5 list-disc">
+                <li><code class="bg-white px-1 rounded">.htaccess</code> — <?php echo e(__('upgrade_manual_custom_htaccess')); ?></li>
+                <li><code class="bg-white px-1 rounded">robots.txt</code> — <?php echo e(__('upgrade_manual_custom_seo')); ?></li>
+                <li><code class="bg-white px-1 rounded">themes/</code> · <code class="bg-white px-1 rounded">assets/css/style.css</code> — <?php echo e(__('upgrade_manual_custom_theme')); ?></li>
             </ul>
         </div>
 

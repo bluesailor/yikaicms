@@ -1249,6 +1249,26 @@ function contentPreviewTokenValid(int $contentId, string $token): bool
 /**
  * 获取内容URL（SEO友好）
  */
+/**
+ * 站点图标地址；没有就返回空串（调用方据此**整条省略** <link rel="icon">）。
+ *
+ * 为什么不再无脑回落 '/favicon.ico'：favicon.ico 曾随安装包发到网站根目录，于是
+ *   · 手动 FTP 升级会把客户自己的图标盖回出厂值（图标工坊「一键应用到本站」
+ *     写的就是这个文件，被盖掉等于插件白用）；
+ *   · 在线升级为此不得不把它列进 UO_EXCLUDES 特殊照顾。
+ * 根治办法是**不随包发**（WordPress 等 CMS 也不在根目录放 favicon.ico）。
+ * 但老站点根目录已经有这个文件，直接改成「没设置就不输出」会让它们凭空丢图标，
+ * 所以这里多做一次存在性判断：文件在就继续用，新装站点则安静地不输出。
+ */
+function siteFaviconUrl(): string
+{
+    $set = trim((string) config('site_favicon', ''));
+    if ($set !== '') {
+        return $set;
+    }
+    return is_file(ROOT_PATH . '/favicon.ico') ? '/favicon.ico' : '';
+}
+
 function contentUrl(array $content): string
 {
     // 缺 type 是「查询没 select c.type」造成的静默错误：本函数会漏掉文章分支，

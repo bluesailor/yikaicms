@@ -123,7 +123,10 @@ function getChannelUrl(array $channel): string {
     <title><?php echo e($fullTitle); ?></title>
     <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
     <?php echo renderHreflangs(); ?>
-    <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
+    <?php // 没设置且根目录无 favicon.ico 时整条省略：不给客户官网塞厂商图标，
+          // 浏览器默认图标比显示别人的品牌好。 ?>
+    <?php $__fav = function_exists('siteFaviconUrl') ? siteFaviconUrl() : (string) config('site_favicon', ''); ?>
+    <?php if ($__fav !== ''): ?><link rel="icon" href="<?php echo e($__fav); ?>"><?php endif; ?>
     <!-- OpenGraph -->
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
     <meta property="og:description" content="<?php echo e($ogDescription); ?>">
