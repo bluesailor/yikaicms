@@ -39,7 +39,9 @@ final class PageRedirectController extends ListController
             }
             $_GET['id']   = (int) ($channel['id'] ?? 0);
             $_GET['slug'] = (string) ($channel['slug'] ?? '');
-            include dirname(__DIR__, 2) . '/page.php';
+            // 用 ROOT_PATH 而非 dirname(__DIR__, N)：写死的目录层级一旦文件挪位就静默指错
+            // （试搬到 includes/controllers/ 时它立刻指向了不存在的 includes/page.php）。
+            include ROOT_PATH . '/page.php';
             return true;
         }
 
