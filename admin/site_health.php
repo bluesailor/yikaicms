@@ -329,7 +329,7 @@ unset($pageTitle);
         <?php foreach ($diagnosticInfo as $key => $value): ?>
         <div class="grid gap-1 px-5 py-4 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-6">
             <dt class="text-sm font-medium text-gray-600"><?php echo e(__('health_info_' . $key)); ?></dt>
-            <dd class="break-words font-mono text-sm text-gray-900"><?php echo e(is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (is_bool($value) ? ($value ? __('yes') : __('no')) : (string) ($value ?? __('health_info_unavailable')))); ?></dd>
+            <dd class="break-words font-mono text-sm text-gray-900"><?php echo e(SiteHealth::formatDiagnosticValue((string) $key, $value)); ?></dd>
         </div>
         <?php endforeach; ?>
     </dl>
@@ -338,9 +338,17 @@ unset($pageTitle);
 <script>
 (function () {
     var button = document.getElementById('healthCopy');
-    var info = <?php echo json_encode($diagnosticInfo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+    // 复制的是「标签: 人能读的值」，与页面上看到的逐行一致。
+    // 之前复制出去的是 JSON，扩展那两行会变成 {"pdo":true,...}，技术支持还得自己解析。
+    var info = <?php
+        $__copy = [];
+        foreach ($diagnosticInfo as $__k => $__v) {
+            $__copy[] = __('health_info_' . $__k) . ': ' . SiteHealth::formatDiagnosticValue((string) $__k, $__v);
+        }
+        echo json_encode(implode("\n", $__copy), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
+    ?>;
     button.addEventListener('click', function () {
-        navigator.clipboard.writeText(JSON.stringify(info, null, 2)).then(function () {
+        navigator.clipboard.writeText(info).then(function () {
             button.querySelector('span').textContent = <?php echo json_encode(__('health_info_copied'), JSON_UNESCAPED_UNICODE); ?>;
             window.setTimeout(function () { button.querySelector('span').textContent = <?php echo json_encode(__('health_info_copy'), JSON_UNESCAPED_UNICODE); ?>; }, 1600);
         });
