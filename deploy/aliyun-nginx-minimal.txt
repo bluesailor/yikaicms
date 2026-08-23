@@ -19,6 +19,23 @@ location ~ ^/(config|storage|vendor|includes|bin|migrations|recipes)/ {
     deny all;
 }
 
+# 上传目录里的 PHP 一律不执行。位置有意排在最前：nginx 正则 location 按出现顺序匹配、
+# 第一个命中即生效，排在平台自带的 PHP handler 之后等于没写。
+# 由来：2026-08-23 实测本类主机 /uploads/x.php 会被执行；包内 uploads/.htaccess
+# 只对 Apache 有效。下面 `location /` 的 `if (!-e ...)` 只把**不存在**的路径交给
+# index.php，已存在的文件直接返回——所以上传目录落进一个 .php 就是可执行的。
+location ~ ^/uploads/.*\.(php|phtml|phar|php[0-9])$ {
+    deny all;
+}
+
+# 文档 / SQL / 备份 / 部署样例：不该被当静态文件下载
+location ~* \.(md|sql|bak|example|dist|conf|lock|yml|yaml)$ {
+    deny all;
+}
+location ~ ^/deploy/ {
+    deny all;
+}
+
 # 云虚拟主机的 PHP handler 由平台托管，不能在自定义规则里安全重复 fastcgi_pass。
 # 只放行安装入口，其余安装资源拒绝 HTTP 访问；安装完成后的锁检查由 index.php 执行。
 location = /install/ {

@@ -91,4 +91,77 @@ final class SiteHealthTest extends TestCase
         self::assertNotSame('', SiteHealth::formatDiagnosticValue('server', ''));
         self::assertNotSame('', SiteHealth::formatDiagnosticValue('disk_free_bytes', null));
     }
+
+    /**
+     * 上传目录探针的判定方向与其它探针相反：这里「被执行」才是最坏结果。
+     * 由来 2026-08-23：某客户主机把 config/、includes/ 的 PHP 当静态文件吐出（看着吓人），
+     * 却让 uploads/ 里的 PHP 正常执行（真正的 RCE 面）。防护方向反了，而且没人看得见。
+     */
+    public function testUploadProbeTreatsExecutionAsCritical(): void
+    {
+        $token = str_repeat('a', 32);
+        $verdict = static function (array $observation) use ($token): array {
+            $all = SiteHealth::evaluateBrowserProbes([$observation], '', $token);
+            foreach ($all as $result) {
+                if ($result['id'] === 'upload_php_exec') {
+                    return $result;
+                }
+            }
+            self::fail('缺少 upload_php_exec 结果');
+        };
+
+        // 被执行 → 严重
+        $executed = $verdict(['id' => 'upload_php_exec', 'status' => 200, 'body' => 'YIKAI_UPLOAD_PROBE_EXEC:' . $token]);
+        self::assertSame(SiteHealth::CRITICAL, $executed['status']);
+
+        // 被当静态文件原样返回 → 建议（不是 RCE，但内容泄露）
+        $source = $verdict(['id' => 'upload_php_exec', 'status' => 200, 'body' => '<?php /* YIKAI_UPLOAD_PROBE_SRC:' . $token . ' */']);
+        self::assertSame(SiteHealth::RECOMMENDED, $source['status']);
+
+        // 被服务器挡住 → 良好
+        foreach ([403, 404] as $code) {
+            $blocked = $verdict(['id' => 'upload_php_exec', 'status' => $code, 'body' => '']);
+            self::assertSame(SiteHealth::GOOD, $blocked['status'], "HTTP $code 应判良好");
+        }
+
+        // 请求本身失败 → 未知，不能报成良好
+        $failed = $verdict(['id' => 'upload_php_exec', 'status' => 0, 'body' => '', 'error' => true]);
+        self::assertSame(SiteHealth::UNKNOWN, $failed['status']);
+    }
+
+    /** 探针文件必须落在 uploads 里、并且能被清理干净——留一个可执行 .php 在上传目录本身就是风险。 */
+    public function testUploadProbeIsCreatedAndCleanedUp(): void
+    {
+        $storage = sys_get_temp_dir() . '/yk-health-storage-' . bin2hex(random_bytes(6));
+        $uploads = sys_get_temp_dir() . '/yk-health-uploads-' . bin2hex(random_bytes(6));
+        mkdir($storage);
+        mkdir($uploads);
+        try {
+            $probe = SiteHealth::createBrowserProbes($storage, $uploads);
+            self::assertNotSame('', $probe['upload_file']);
+            self::assertFileExists($probe['upload_file']);
+            self::assertMatchesRegularExpression('/^site-health-probe-[a-f0-9]{16}\.php$/', basename($probe['upload_file']));
+            self::assertStringContainsString($probe['upload_token'], (string) file_get_contents($probe['upload_file']));
+
+            $urls = array_column($probe['probes'], 'url', 'id');
+            self::assertArrayHasKey('upload_php_exec', $urls);
+            self::assertStringStartsWith('/uploads/', $urls['upload_php_exec']);
+
+            SiteHealth::cleanupUploadProbe($probe['upload_file'], $uploads);
+            self::assertFileDoesNotExist($probe['upload_file']);
+
+            // 目录不符时不得删除——防止被构造成任意文件删除
+            $outside = $uploads . '/keep.php';
+            file_put_contents($outside, 'x');
+            SiteHealth::cleanupUploadProbe($outside, $storage);
+            self::assertFileExists($outside);
+        } finally {
+            foreach ([$storage, $uploads] as $dir) {
+                foreach (glob($dir . '/*') ?: [] as $file) {
+                    unlink($file);
+                }
+                rmdir($dir);
+            }
+        }
+    }
 }

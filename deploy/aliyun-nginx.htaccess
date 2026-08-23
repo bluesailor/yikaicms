@@ -12,6 +12,22 @@
 location ~ ^/(config|storage|vendor|includes|bin|migrations|recipes)/ {
     deny all;
 }
+
+# 上传目录里的 PHP 一律不执行。放在本段最前是有意的：nginx 正则 location 按出现顺序
+# 匹配、第一个命中即生效，排在面板自带的 PHP 处理之后等于没写。
+# 由来：2026-08-23 实测本类主机上 /uploads/x.php 会被正常执行；包内 uploads/.htaccess
+# 只对 Apache 有效，nginx 不读。上传校验一旦被绕过就是 RCE。
+location ~ ^/uploads/.*\.(php|phtml|phar|php[0-9])$ {
+    deny all;
+}
+
+# 文档 / SQL / 备份 / 部署样例：不该被当静态文件下载
+location ~* \.(md|sql|bak|example|dist|conf|lock|yml|yaml)$ {
+    deny all;
+}
+location ~ ^/deploy/ {
+    deny all;
+}
 location = /install/ {
     rewrite ^ /install/index.php last;
 }
