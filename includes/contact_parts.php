@@ -165,7 +165,11 @@ function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols =
     $gridCols     = $gridCols ?? contactGridCols(count($contactCards));
     $iconPaths    = $iconPaths ?? contactIconPaths();
     $__ykEdit     = $__ykEdit ?? contactNoEditAttr();
-    ob_start(); ?>
+    // 缓冲必须在异常路径上也关掉：模板里任何一处抛错都会把这个 ob 留着，
+    // 于是页面后续输出全被吞进去——表现为「页面从这里开始空白」而不是报错。
+    $__obLevel = ob_get_level();
+    ob_start();
+    try { ?>
         <!-- 联系信息卡片 -->
         <?php if (!empty($contactCards)): ?>
         <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6<?php echo $withBottomMargin ? ' mb-12' : ''; ?>"<?php echo $__ykEdit('/admin/setting_contact.php', '✎ 编辑联系信息'); ?>>
@@ -207,14 +211,21 @@ function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols =
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
-<?php return (string) ob_get_clean();
+<?php   return (string) ob_get_clean();
+    } finally {
+        while (ob_get_level() > $__obLevel) { ob_end_clean(); }
+    }
 }
 
 /** 在线留言表单区。 */
 function renderContactFormHtml(?callable $__ykEdit = null): string
 {
     $__ykEdit = $__ykEdit ?? contactNoEditAttr();
-    ob_start(); ?>
+    // 缓冲必须在异常路径上也关掉：模板里任何一处抛错都会把这个 ob 留着，
+    // 于是页面后续输出全被吞进去——表现为「页面从这里开始空白」而不是报错。
+    $__obLevel = ob_get_level();
+    ob_start();
+    try { ?>
             <!-- 留言表单 -->
             <div class="bg-white rounded-lg shadow p-6 md:p-8 h-full"<?php echo $__ykEdit('/admin/form_design.php', '✎ 编辑留言表单'); ?>>
                 <?php $formTitle = configLang('contact_form_title', 'contact_form_title'); ?>
@@ -227,14 +238,21 @@ function renderContactFormHtml(?callable $__ykEdit = null): string
 
                 <?php echo renderFormTemplate('contact'); ?>
             </div>
-<?php return (string) ob_get_clean();
+<?php   return (string) ob_get_clean();
+    } finally {
+        while (ob_get_level() > $__obLevel) { ob_end_clean(); }
+    }
 }
 
 /** 地图 / 二维码区。 */
 function renderContactMapHtml(?callable $__ykEdit = null): string
 {
     $__ykEdit = $__ykEdit ?? contactNoEditAttr();
-    ob_start(); ?>
+    // 缓冲必须在异常路径上也关掉：模板里任何一处抛错都会把这个 ob 留着，
+    // 于是页面后续输出全被吞进去——表现为「页面从这里开始空白」而不是报错。
+    $__obLevel = ob_get_level();
+    ob_start();
+    try { ?>
             <!-- 地图 / 二维码：交互地图按语言切服务商（中文 高德/百度，日英 Google），未配置则回退静态图/二维码/占位 -->
             <div class="bg-white rounded-lg shadow overflow-hidden h-full"<?php echo $__ykEdit('/admin/setting_contact.php#map', '✎ 编辑地图'); ?>>
                 <?php
@@ -302,7 +320,10 @@ function renderContactMapHtml(?callable $__ykEdit = null): string
                 <?php endif;
                 endif; ?>
             </div>
-<?php return (string) ob_get_clean();
+<?php   return (string) ob_get_clean();
+    } finally {
+        while (ob_get_level() > $__obLevel) { ob_end_clean(); }
+    }
 }
 
 /**

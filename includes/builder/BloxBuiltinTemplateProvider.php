@@ -6,6 +6,24 @@ declare(strict_types=1);
 final class BloxBuiltinTemplateProvider
 {
     private const PRESETS = [
+        'company-intro' => [
+            'type' => 'page',
+            'file' => 'company-intro.json',
+            'contexts' => ['page'],
+            'name_key' => 'blox_builtin_company_name',
+            'description_key' => 'blox_builtin_company_desc',
+            'category' => 'page',
+            'thumbnail' => '/assets/images/blox-templates/company-intro.svg',
+        ],
+        'contact-page' => [
+            'type' => 'page',
+            'file' => 'contact-page.json',
+            'contexts' => ['page'],
+            'name_key' => 'blox_builtin_contact_name',
+            'description_key' => 'blox_builtin_contact_desc',
+            'category' => 'page',
+            'thumbnail' => '/assets/images/blox-templates/contact-page.svg',
+        ],
         '404-route-lost' => [
             'type' => 'page',
             'file' => '404-route-lost.json',

@@ -1,0 +1,231 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "联系我们",
+  "thumbnail": "/assets/images/blox-templates/contact-page.svg",
+  "requires": {
+    "elements": ["heading", "text", "divider", "contact_cards", "contact_form", "contact_map", "accordion", "icon-box"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "页面标题",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "gap": "sm",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"margin:0;text-align:center;letter-spacing:.18em;text-transform:uppercase;font-size:.75rem;color:#6b7280\">Contact</p>"
+                }
+              },
+              {
+                "type": "heading",
+                "data": {
+                  "text": "联系我们",
+                  "level": "h1",
+                  "visual_size": { "d": "5xl", "t": "4xl", "m": "3xl" },
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"margin:0 auto;text-align:center;max-width:38rem;line-height:1.9;color:#4b5563\">工作日 9:00–18:00 均可联系。提交表单或直接致电皆可，我们会在一个工作日内回复。</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "联系方式卡片",
+        "settings": {
+          "padding": { "d": "md", "m": "sm" },
+          "max_width": "wide"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "contact_cards",
+                "data": { "cols": "3" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "留言表单 + 地图",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "content_v_align": "start",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "给我们留言",
+                  "level": "h2",
+                  "visual_size": { "d": "2xl", "m": "xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"margin:0 0 .5rem;color:#6b7280;font-size:.95rem\">请尽量写清需求背景与用途，便于我们给出更准确的建议。</p>"
+                }
+              },
+              {
+                "type": "contact_form",
+                "data": {}
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "到访路线",
+                  "level": "h2",
+                  "visual_size": { "d": "2xl", "m": "xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"margin:0 0 .5rem;color:#6b7280;font-size:.95rem\">地图与地址取自「系统设置 → 联系方式」，改一处即可全站同步。</p>"
+                }
+              },
+              {
+                "type": "contact_map",
+                "data": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "常见问题",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "gap": "md"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "常见问题",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "center"
+                }
+              },
+              {
+                "type": "divider",
+                "data": { "style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm" }
+              },
+              {
+                "type": "accordion",
+                "data": {
+                  "open_first": true,
+                  "seo_schema": true,
+                  "items": [
+                    {
+                      "question": "多久能收到回复？",
+                      "answer": "工作日提交的咨询通常在一个工作日内回复；如遇节假日会顺延。"
+                    },
+                    {
+                      "question": "可以先寄样品或做打样吗？",
+                      "answer": "可以。请在留言中说明用途、数量与交期要求，我们会先确认可行性再报价。"
+                    },
+                    {
+                      "question": "支持到厂参观吗？",
+                      "answer": "支持，请提前一到两个工作日预约，以便安排对接人与车位。"
+                    },
+                    {
+                      "question": "发票与结算方式？",
+                      "answer": "可开具增值税专用发票，具体账期与结算方式以合同约定为准。"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "其它联系途径",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "clock",
+                  "title": "工作时间",
+                  "text": "周一至周五 9:00–18:00，节假日休息。"
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "truck-delivery",
+                  "title": "收货与到访",
+                  "text": "大件收货请提前联系，便于安排装卸与场地。"
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "briefcase",
+                  "title": "商务合作",
+                  "text": "渠道、代理与项目合作请在留言中注明来意。"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

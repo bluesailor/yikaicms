@@ -24,6 +24,16 @@ final class BloxValueSanitizer
     public const ICON_MAX = 100;
 
     /**
+     * 声明为标量的控件类型：收到数组即视为无效输入。
+     * 不在此列的（faq_repeater 等复合类型、以及尚未纳入契约的新类型）原样放行，
+     * 由对应 Element 的 items()/render() 自行解析与转义。
+     */
+    private const SCALAR_TYPES = [
+        'text', 'textarea', 'richtext', 'url', 'video_url', 'image',
+        'number', 'range', 'select', 'checkbox', 'icon',
+    ];
+
+    /**
      * 按 control 声明清洗单个标量值。
      *
      * 数组值只有在 control **自己声明了 responsive** 时才算合法（那是断点结构，
@@ -40,7 +50,16 @@ final class BloxValueSanitizer
             if (!empty($control['responsive'])) {
                 return $value;   // 声明过 responsive：断点结构，交给上游分支
             }
-            // 未声明 responsive 的控件收到数组 → 视为无效输入，回退到默认值/空。
+            // 只有**标量类型**收到数组才算无效输入。复合类型（faq_repeater 等）本来就
+            // 以数组承载内容，一律归一会把它们的数据清空。
+            //
+            // ⚠ 2026-08-24 修：原先这里不分类型一律清空，导致 accordion 的 items 在
+            // 保存管线里被抹成空串——**编辑器保存一次 FAQ 就没了**，随 v1.18.6/1.18.7
+            // 发了出去。下面 default 分支那句「repeater 不误伤」的注释当时已经失真，
+            // 因为这个 guard 跑在 switch 之前。做整页模板时被导入失败暴露出来。
+            if (!in_array($type, self::SCALAR_TYPES, true)) {
+                return $value;   // 复合/未知类型：交给各自的 Element / Schema 处理
+            }
             // 数值控件继续走下面的 null 分支（那里已有区间兜底）。
             $value = ($type === 'number' || $type === 'range') ? null : '';
         }
