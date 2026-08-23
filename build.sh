@@ -3,7 +3,7 @@
 # Yikai CMS - 发布打包脚本
 #
 # 用法：
-#   bash build.sh          # 自动从 config.sample.php 读取版本号
+#   bash build.sh          # 自动从 config/version.php 读取版本号
 #   bash build.sh 1.2.0    # 手动指定版本号
 #
 # 输出：
@@ -316,8 +316,13 @@ MUST_EXIST=(
     "config/database.php"
     "config/build.php"
     "includes/functions.php"
+    "includes/LegacyInstallCleanup.php"
+    "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"
     "admin/index.php"
+    "admin/site_health.php"
+    "config/site-health-probe.php"
+    "includes/site-health-probe.php"
     "install/index.php"
     "install/sql/mysql.sql"
     "install/sql/sqlite.sql"

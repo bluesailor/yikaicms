@@ -17,11 +17,14 @@ final class ReleaseSecurityBoundaryTest extends TestCase
         self::assertStringContainsString('install/upgrade.php|install/run_upgrade.php', $build);
 
         $runner = (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
-        self::assertStringContainsString('uo_is_legacy_install_upgrade($rel)', $runner);
-        self::assertStringContainsString('不可因 install/ 的普通升级保护而跳过', $runner);
+        self::assertStringContainsString('LegacyInstallCleanup::run(ROOT_PATH)', $runner);
 
         $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
-        self::assertStringContainsString('removeLegacyInstallUpgradeEntrypoints();', $functions);
+        self::assertStringNotContainsString('removeLegacyInstallUpgradeEntrypoints();', $functions);
+
+        $header = (string) file_get_contents(ROOT_PATH . '/admin/includes/header.php');
+        self::assertStringContainsString('LegacyInstallCleanup::runThrottled(', $header);
+        self::assertStringContainsString('legacy-install-cleanup-at.txt', $header);
     }
 
     public function testDeploymentSecurityRulesShipWithRelease(): void
@@ -41,6 +44,14 @@ final class ReleaseSecurityBoundaryTest extends TestCase
             self::assertStringContainsString('location = /install/', $config);
             self::assertStringContainsString('location ~ ^/install/(?!index\\.php$)', $config);
             self::assertStringContainsString('location ~ ^/(config|storage|vendor|includes|bin|migrations|recipes)/', $config);
+        }
+
+        foreach (['config/site-health-probe.php', 'includes/site-health-probe.php'] as $probe) {
+            self::assertFileExists(ROOT_PATH . '/' . $probe);
+            $source = (string) file_get_contents(ROOT_PATH . '/' . $probe);
+            self::assertStringContainsString('YIKAI_SITE_HEALTH_PHP_PROBE', $source);
+            self::assertStringNotContainsString('config/config.php', $source);
+            self::assertStringNotContainsString('DB_PASS', $source);
         }
     }
 }

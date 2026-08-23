@@ -17,22 +17,8 @@ require_once __DIR__ . '/ThemeRuntime.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
-
-/**
- * 清除 v1.18.6 及更早版本遗留的无鉴权安装升级入口。
- * 全量升级不会覆盖 install/，所以仅靠新包中“不包含文件”无法清理老站。
- */
-function removeLegacyInstallUpgradeEntrypoints(): void
-{
-    foreach (['install/upgrade.php', 'install/run_upgrade.php'] as $relativePath) {
-        $path = ROOT_PATH . '/' . $relativePath;
-        if (is_file($path) && !@unlink($path)) {
-            error_log('[security] unable to remove legacy install upgrade entry: ' . $relativePath);
-        }
-    }
-}
-
-removeLegacyInstallUpgradeEntrypoints();
+require_once __DIR__ . '/LegacyInstallCleanup.php';
+require_once __DIR__ . '/SiteHealth.php';
 
 // ============================================================
 // 全局错误自检测（装在这里而非 config.php：升级不覆盖客户的

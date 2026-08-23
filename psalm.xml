@@ -46,6 +46,7 @@
                 <file name="admin/nav_menu.php" />
                 <file name="admin/page_edit.php" />
                 <file name="admin/page_edit_advance.php" />
+                <file name="admin/site_health.php" />
                 <file name="plugins/seo/admin.php" />
                 <!-- 首页控制器：变量供 require 的主题布局/版块模板使用 -->
                 <file name="index.php" />
@@ -78,6 +79,7 @@
                 <file name="admin/blox_page_api.php" />
                 <file name="admin/blox_preview.php" />
                 <file name="admin/site_design.php" />
+                <file name="admin/site_health.php" />
                 <!-- v1.18.4 新增独立入口 -->
                 <file name="admin/blox_cache_api.php" />
                 <!-- 不要在此登记 admin/blox_editor.php 等不随仓库分发的文件：

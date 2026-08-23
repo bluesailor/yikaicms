@@ -12,6 +12,13 @@ if (!defined('ROOT_PATH')) {
 $adminInfo = getAdminInfo();
 $currentMenu = $currentMenu ?? '';
 
+// FTP/manual upgrades may bypass the online-upgrade finalizer. Retry the one-time
+// legacy entry-point cleanup from authenticated admin traffic, never public requests.
+LegacyInstallCleanup::runThrottled(
+    ROOT_PATH,
+    STORAGE_PATH . '/security/legacy-install-cleanup-at.txt'
+);
+
 // Sidebar menu structure — see admin/includes/sidebar_menu.php for the
 // canonical defaults and admin/includes/sidebar_menu_api.php for the
 // register_admin_menu() helper plugins use to extend it.
@@ -360,7 +367,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         </script>
 
         <!-- 主内容区 -->
-        <div class="flex-1 transition-all duration-300 <?= $_sbCollapsed ? 'lg:ml-16' : 'lg:ml-64' ?>"
+        <div class="min-w-0 flex-1 transition-all duration-300 <?= $_sbCollapsed ? 'lg:ml-16' : 'lg:ml-64' ?>"
              :class="{ 'lg:ml-16': collapsed, 'lg:ml-64': !collapsed }">
             <!-- 顶部导航 -->
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
