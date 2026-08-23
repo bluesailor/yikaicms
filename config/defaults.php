@@ -251,6 +251,8 @@ return [
         'blox_custom_header_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页头', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页头', 'sort_order' => 6],
         'blox_custom_footer_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页尾', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页尾', 'sort_order' => 7],
         'update_channel' => ['value' => 'stable', 'type' => 'select', 'name' => '系统更新通道', 'tip' => 'stable 为正式版；beta 可提前接收测试版', 'options' => '{"stable":"正式版","beta":"测试版"}', 'sort_order' => 8],
+        'site_health_last_summary' => ['value' => '', 'type' => 'json', 'name' => '站点健康摘要', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 9],
+        'site_health_last_at' => ['value' => '0', 'type' => 'number', 'name' => '站点健康检查时间', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 10],
     ],
 
 ];

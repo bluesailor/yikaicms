@@ -13,6 +13,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/LegacyInstallCleanup.php';
+
 final class UpgradeApplyState
 {
     public const ERROR_INVALID_STATE = 'invalid_state';
@@ -397,7 +399,12 @@ function uo_health_check(): array
 // 升级管道（无头）—— Web 层与 cron 自动升级共用；只返回数组，不产出输出。
 // ============================================================
 
-function upgrade_prepare(string $expectedFrom = '', string $expectedTo = '', bool $requireDbBackup = false): array
+function upgrade_prepare(
+    string $expectedFrom = '',
+    string $expectedTo = '',
+    bool $requireDbBackup = false,
+    bool $allowMissingDbBackup = false
+): array
 {
     $pkg = uo_dir() . '/package.zip';
     if (!is_file($pkg)) return ['code' => 1, 'msg' => '未找到已下载的安装包，请先执行下载'];
@@ -447,17 +454,26 @@ function upgrade_prepare(string $expectedFrom = '', string $expectedTo = '', boo
         $dbBackupError = $e->getMessage();
     }
 
-    if ($requireDbBackup && $dbBackupNote === '') {
+    $dbBackupOverride = $requireDbBackup && $dbBackupNote === '' && $allowMissingDbBackup;
+    if ($requireDbBackup && $dbBackupNote === '' && !$dbBackupOverride) {
         uo_rrmdir($bakDir);
         return [
             'code' => 1,
+            'error_code' => 'db_backup_required',
             'msg' => '数据库自动备份失败，升级已在写入程序文件前中止：'
                 . ($dbBackupError !== '' ? $dbBackupError : '没有可验证的数据库备份文件'),
         ];
     }
 
-    @file_put_contents($bakDir . '/INFO.txt', "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n"
-        . ($dbBackupNote !== '' ? "数据库备份: {$dbBackupNote}\n" : "数据库备份: 失败（{$dbBackupError}）\n"));
+    $dbBackupInfo = $dbBackupNote !== ''
+        ? "数据库备份: {$dbBackupNote}\n"
+        : ($dbBackupOverride
+            ? "数据库备份: 外部备份已由超级管理员确认（自动备份失败：{$dbBackupError}）\n"
+            : "数据库备份: 失败（{$dbBackupError}）\n");
+    @file_put_contents(
+        $bakDir . '/INFO.txt',
+        "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n" . $dbBackupInfo
+    );
 
     $zip = new ZipArchive();
     if ($zip->open($pkg) !== true) return ['code' => 1, 'msg' => '安装包打开失败'];
@@ -516,6 +532,8 @@ function upgrade_prepare(string $expectedFrom = '', string $expectedTo = '', boo
         'mode' => $mode, 'pkg' => $pkg, 'prefix' => $prefix, 'entries' => $entries, 'deleted' => $deleted,
         'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0, 'next_offset' => 0,
         'errors' => [], 'from' => $expectedFrom, 'to' => $expectedTo, 'phase' => 'prepared', 'owner' => $owner,
+        'db_backup' => $dbBackupNote, 'db_backup_error' => $dbBackupError,
+        'db_backup_override' => $dbBackupOverride,
         // 事务化升级：apply_batch 覆盖前把旧文件快照到 backups/<backup>/files/，
         // 全新写入的文件记入 created——两者合起来就是完整的文件级回滚清单
         'created' => [],
@@ -534,6 +552,7 @@ function upgrade_prepare(string $expectedFrom = '', string $expectedTo = '', boo
     return [
         'code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => $backup,
         'db_backup' => $dbBackupNote, 'db_backup_error' => $dbBackupError,
+        'db_backup_override' => $dbBackupOverride,
     ];
     }
 
@@ -734,15 +753,6 @@ function upgrade_finalize(string $note = '', bool $preserveState = false): array
         // 这两个历史入口没有鉴权，安全删除不可因 install/ 的普通升级保护而跳过，
         // 也不写入回滚快照，避免故障回滚把已清除的漏洞入口重新放回站点。
         if (uo_is_legacy_install_upgrade($rel)) {
-            $legacyPath = ROOT_PATH . '/' . $rel;
-            if (!is_file($legacyPath)) {
-                continue;
-            }
-            if (!@unlink($legacyPath)) {
-                $errors[] = "无法删除废弃安装升级入口: $rel";
-            } else {
-                $deletedCount++;
-            }
             continue;
         }
         if (uo_is_protected($rel)) continue;
@@ -775,6 +785,13 @@ function upgrade_finalize(string $note = '', bool $preserveState = false): array
             $errors[] = "删除失败: $rel";
         }
     }
+    // Full/manual packages do not necessarily carry a delta delete manifest. Run the
+    // same irreversible cleanup once at finalize so old installs still lose the entry points.
+    $legacyCleanup = LegacyInstallCleanup::run(ROOT_PATH);
+    $deletedCount += count($legacyCleanup['removed']);
+    foreach ($legacyCleanup['failed'] as $relativePath) {
+        $errors[] = 'Unable to remove legacy install upgrade entry: ' . $relativePath;
+    }
     if (!uo_write_rollback_manifest(
         (string) ($state['backup'] ?? ''),
         (string) ($state['from'] ?? ''),
@@ -800,7 +817,8 @@ function upgrade_finalize(string $note = '', bool $preserveState = false): array
         );
     }
     $failNote = empty($errors) ? '' : ('，失败 ' . count($errors) . '：' . implode('; ', array_slice($errors, 0, 10)));
-    try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 {$copied} / 删 {$deletedCount}，config补丁:{$patch}{$failNote}"); } catch (\Throwable $e) {}
+    $backupAudit = !empty($state['db_backup_override']) ? ', external backup override: yes' : '';
+    try { adminLog('upgrade', 'online_apply', ($mode === 'delta' ? "增量升级 {$state['from']}→{$state['to']}" : '在线升级') . "：覆盖 {$copied} / 删 {$deletedCount}，config补丁:{$patch}{$backupAudit}{$failNote}"); } catch (\Throwable $e) {}
 
     $newVer = '';
     $vf = @file_get_contents(ROOT_PATH . '/config/version.php');

@@ -209,8 +209,12 @@ final class AutoUpgradeTest extends TestCase
         $manual = (string) file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
         $runner = (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
 
-        self::assertStringContainsString("upgrade_prepare('', '', true)", $manual);
-        self::assertStringContainsString('if ($requireDbBackup && $dbBackupNote === \'\')', $runner);
+        self::assertStringContainsString('upgrade_prepare(\'\', \'\', true, $backupOverride)', $manual);
+        self::assertStringContainsString('if ($requireDbBackup && $dbBackupNote === \'\' && !$dbBackupOverride)', $runner);
+        self::assertStringContainsString("post('backup_override') === '1'", $manual);
+        self::assertStringContainsString('!empty($prepare[\'db_backup_override\'])', $manual);
+        self::assertStringContainsString("adminLog('upgrade', 'backup_override'", $manual);
+        self::assertStringContainsString("'error_code' => 'db_backup_required'", $runner);
         self::assertStringContainsString('升级已在写入程序文件前中止', $runner);
         self::assertStringNotContainsString('升级仍将继续', $manual);
     }

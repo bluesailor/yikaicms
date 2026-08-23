@@ -141,7 +141,12 @@ if ($action !== '') {
     // ---- 4a) 准备：备份 config + 校验结构 + 建 zip 条目清单（不解压，写状态文件）----
     //   不用 extractTo（共享主机上常失败/挂起）；后续 batch 从 zip 逐条流式写入目标。
     if ($action === 'apply_prepare') {
-        uo_json(upgrade_prepare('', '', true));
+        $backupOverride = post('backup_override') === '1';
+        $prepare = upgrade_prepare('', '', true, $backupOverride);
+        if (!empty($prepare['db_backup_override'])) {
+            adminLog('upgrade', 'backup_override', 'Manual upgrade confirmed an external database backup');
+        }
+        uo_json($prepare);
     }
 
     // ---- 4b) 分批覆盖：服务端状态游标为准；客户端 offset 只用于兼容和防跳批校验 ----
@@ -354,10 +359,15 @@ document.getElementById('uo-upgrade').onclick = async () => {
     // 应用：准备（备份+解压+建清单）
     const fail = (row, msg) => { UO.set(row, 'fail', msg); btn.disabled = false; btn.classList.remove('opacity-50'); };
     r = UO.row('备份并解压安装包…', 'run');
-    const pre = await UO.post('apply_prepare');
+    let pre = await UO.post('apply_prepare');
+    if (pre.code !== 0 && pre.error_code === 'db_backup_required'
+        && window.confirm(<?php echo json_encode(__('upgrade_backup_override_confirm'), JSON_UNESCAPED_UNICODE); ?>)) {
+        pre = await UO.post('apply_prepare', { backup_override: '1' });
+    }
     if (pre.code !== 0) return fail(r, pre.msg);
     const dbNote = pre.db_backup ? `，数据库已自动备份（${pre.db_backup}）` : '';
-    UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}${dbNote}）`);
+    const backupOverrideNote = pre.db_backup_override ? <?php echo json_encode(__('upgrade_backup_override_used'), JSON_UNESCAPED_UNICODE); ?> : '';
+    UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}${dbNote}${backupOverrideNote}）`);
     // 分批覆盖（每批 150 文件，避免共享主机单请求超时）
     const total = pre.total;
     const rr = UO.row(`覆盖程序文件… 0/${total}`, 'run');

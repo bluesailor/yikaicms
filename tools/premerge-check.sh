@@ -150,7 +150,7 @@ else
             tail -8 /tmp/premerge_smoke.log | sed 's/^/      /'
         fi
     }
-    run_smoke tests/smoke/admin_pages.php       "后台 92 页渲染冒烟"
+    run_smoke tests/smoke/admin_pages.php       "后台页面渲染冒烟"
     run_smoke tests/smoke/upgrade_rollback.php  "升级回滚 e2e"
     run_smoke tests/smoke/auto_upgrade_faults.php "自动升级故障注入"
     run_smoke tests/smoke/permission_matrix.php "权限矩阵"

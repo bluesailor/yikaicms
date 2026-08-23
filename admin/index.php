@@ -71,6 +71,31 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <?php
+$__healthSummary = json_decode((string) config('site_health_last_summary', ''), true);
+$__healthLastAt = (int) config('site_health_last_at', '0');
+?>
+<?php if (hasPermission('*') && is_array($__healthSummary) && $__healthLastAt > 0): ?>
+<div class="mb-6 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 items-start gap-3">
+        <i class="ti ti-shield-check mt-0.5 text-xl <?php echo (int) ($__healthSummary['critical'] ?? 0) > 0 ? 'text-red-600' : ((int) ($__healthSummary['recommended'] ?? 0) > 0 ? 'text-amber-600' : 'text-green-600'); ?>" aria-hidden="true"></i>
+        <div class="min-w-0">
+            <p class="text-sm font-semibold text-gray-900"><?php echo e(__('dashboard_health_title')); ?></p>
+            <p class="mt-1 text-sm text-gray-500">
+                <?php echo e(__('dashboard_health_summary', [
+                    'critical' => (string) (int) ($__healthSummary['critical'] ?? 0),
+                    'recommended' => (string) (int) ($__healthSummary['recommended'] ?? 0),
+                    'time' => date('Y-m-d H:i', $__healthLastAt),
+                ])); ?>
+            </p>
+        </div>
+    </div>
+    <a href="/admin/site_health.php" class="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-primary hover:underline">
+        <?php echo e(__('dashboard_health_view')); ?><i class="ti ti-chevron-right" aria-hidden="true"></i>
+    </a>
+</div>
+<?php endif; ?>
+
+<?php
 // 更新提醒级别：all=全部 / security=仅安全更新 / off=关闭（未设置时兼容旧的布尔开关）
 $__notifyLv = (string) config('update_notify_level', '');
 if ($__notifyLv === '') {
