@@ -64,7 +64,10 @@ class Backup
                         $sql .= "INSERT INTO {$q}{$table}{$q} ({$cols}) VALUES\n";
                         $vals = [];
                         foreach ($chunk as $r) {
-                            $escaped = array_map(fn($v) => $v === null ? 'NULL' : "'" . addslashes((string)$v) . "'", array_values($r));
+                            $escaped = array_map(
+                                fn($v) => $v === null ? 'NULL' : "'" . self::escapeValue((string) $v, $isSqlite) . "'",
+                                array_values($r)
+                            );
                             $vals[] = '(' . implode(', ', $escaped) . ')';
                         }
                         $sql .= implode(",\n", $vals) . ";\n\n";
@@ -82,6 +85,11 @@ class Backup
     private static function normalizeFormat(string $format): string
     {
         return in_array($format, ['default', 'mysql57_utf8'], true) ? $format : 'default';
+    }
+
+    private static function escapeValue(string $value, bool $isSqlite): string
+    {
+        return $isSqlite ? str_replace("'", "''", $value) : addslashes($value);
     }
 
     private static function buildHeader(string $format, bool $isSqlite): string

@@ -202,19 +202,20 @@ for lang in zh-CN en ja; do
 done
 
 # ─────────────────────────────────────────────────────────────
-section "5. install/upgrade.php 升级项提醒"
+section "5. migrations/ 升级项提醒"
 # ─────────────────────────────────────────────────────────────
 
-# 这一项仅做提醒（schema 自动 diff 太复杂），让人脑确认
-upgrade_count=$(grep -cE "'id'\s*=>\s*'[0-9]+_" admin/upgrade.php 2>/dev/null || echo 0)
-info "admin/upgrade.php 当前共 $upgrade_count 条 upgrade 定义"
+# 这一项仅做提醒（schema 自动 diff 太复杂），让人脑确认。迁移唯一来源是
+# Migrator::loadAll()，新增项只能放 migrations/*.php。
+upgrade_count=$(find migrations -maxdepth 1 -type f -name '20*.php' 2>/dev/null | wc -l | tr -d ' ')
+info "migrations/ 当前共 $upgrade_count 条独立迁移"
 if git rev-parse --verify HEAD~1 > /dev/null 2>&1; then
     # `grep -c` 在 0 匹配时退出码非 0 + set -u 触发，需带 || true 兜底
     schema_changed=$(git diff HEAD~1 -- install/sql/mysql.sql 2>/dev/null \
         | grep -cE "^[+-]CREATE TABLE|^[+-]ALTER TABLE|^[+-].*ADD (COLUMN|KEY|INDEX|UNIQUE|FOREIGN)" || true)
     schema_changed=${schema_changed:-0}
     if [ "${schema_changed}" -gt 0 ] 2>/dev/null; then
-        warn "近一次 commit 改动了 install/sql/mysql.sql (${schema_changed} 行 schema 关键字)，请确认 admin/upgrade.php 已加对应升级项"
+        warn "近一次 commit 改动了 install/sql/mysql.sql (${schema_changed} 行 schema 关键字)，请确认 migrations/ 已加对应独立迁移"
     else
         pass "近一次 commit 未改动 schema，无需新增 upgrade 项"
     fi

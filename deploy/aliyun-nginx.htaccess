@@ -9,7 +9,13 @@
 # ============================================================
 
 # ---- 1) 拦截敏感目录 / 文件（独立 location，单独 deny） ----
-location ~ ^/(config|storage|vendor|includes|install/sql|bin|migrations|recipes)/ {
+location ~ ^/(config|storage|vendor|includes|bin|migrations|recipes)/ {
+    deny all;
+}
+location = /install/ {
+    rewrite ^ /install/index.php last;
+}
+location ~ ^/install/(?!index\.php$) {
     deny all;
 }
 location ~ /\.(git|env|htaccess|htpasswd) {

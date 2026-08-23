@@ -96,7 +96,13 @@ if ($ext === 'csv') {
         fclose($fh);
     }
 } else {
-    $allRows = parseXlsxAllRows($csvFile, count($fileHeaders));
+    require_once __DIR__ . '/XlsxReader.php';
+    $parsed = ProductImportXlsxReader::read($csvFile);
+    if ($parsed['errors'] !== []) {
+        echo json_encode(['code' => 1, 'msg' => implode('；', $parsed['errors'])], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $allRows = $parsed['rows'];
 }
 
 $allRows = array_filter($allRows, fn($r) => count(array_filter($r, fn($c) => trim((string) ($c ?? '')) !== '')) > 0);
@@ -343,62 +349,4 @@ function syncProductTags(int $productId, array $tagNames): void
             db()->insert('product_tag_map', ['product_id' => $productId, 'tag_id' => $tagId]);
         }
     }
-}
-
-function parseXlsxAllRows(string $path, int $headerCount): array
-{
-    $rows = [];
-    if (!class_exists('ZipArchive')) return $rows;
-
-    $zip = new ZipArchive();
-    if ($zip->open($path) !== true) return $rows;
-
-    $sharedStringsXml = $zip->getFromName('xl/sharedStrings.xml');
-    $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
-    if (!$sheetXml) { $zip->close(); return $rows; }
-
-    $sharedStrings = [];
-    if ($sharedStringsXml) {
-        $ssXml = new SimpleXMLElement($sharedStringsXml);
-        foreach ($ssXml->si as $si) {
-            $t = '';
-            foreach ($si->t as $tNode) { $t .= (string) $tNode; }
-            $sharedStrings[] = $t;
-        }
-    }
-
-    $sheet = new SimpleXMLElement($sheetXml);
-    $ns = $sheet->getNamespaces(true);
-    $mainNs = $ns[''] ?? '';
-    $sheet->registerXPathNamespace('s', $mainNs);
-    $rowElements = $sheet->xpath('//s:sheetData/s:row');
-    if (empty($rowElements)) { $zip->close(); return $rows; }
-
-    $isFirst = true;
-    foreach ($rowElements as $rowEl) {
-        if ($isFirst) { $isFirst = false; continue; }
-        $cols = [];
-        foreach ($rowEl->c as $c) {
-            $ref = (string) $c['r'];
-            $colIndex = preg_replace('/[0-9]/', '', $ref);
-            $colNum = 0;
-            for ($i = 0, $len = strlen($colIndex); $i < $len; $i++) {
-                $colNum = $colNum * 26 + (ord($colIndex[$i]) - ord('A') + 1);
-            }
-            $colNum--;
-            $type = (string) ($c['t'] ?? '');
-            $value = (string) ($c->v ?? '');
-            if ($type === 's' && $value !== '') $value = $sharedStrings[(int) $value] ?? $value;
-            $cols[$colNum] = $value;
-        }
-        $row = [];
-        for ($i = 0; $i < $headerCount; $i++) {
-            $row[$i] = $cols[$i] ?? '';
-        }
-        if (count(array_filter($row, fn($c) => trim($c) !== '')) > 0) {
-            $rows[] = $row;
-        }
-    }
-    $zip->close();
-    return $rows;
 }

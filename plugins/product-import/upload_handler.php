@@ -37,8 +37,8 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
 }
 
 $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-if (!in_array($ext, ['csv', 'xlsx', 'xls'], true)) {
-    echo json_encode(['code' => 1, 'msg' => '仅支持 CSV / XLSX / XLS 格式'], JSON_UNESCAPED_UNICODE);
+if (!in_array($ext, ['csv', 'xlsx'], true)) {
+    echo json_encode(['code' => 1, 'msg' => '仅支持 CSV / XLSX 格式'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -95,7 +95,8 @@ if ($ext === 'csv') {
     }
     fclose($fh);
 } else {
-    $parsed = parseXlsxFile($destPath);
+    require_once __DIR__ . '/XlsxReader.php';
+    $parsed = ProductImportXlsxReader::read($destPath);
     $headers = $parsed['headers'];
     $rows = $parsed['rows'];
     $parseErrors = $parsed['errors'];
@@ -130,94 +131,6 @@ file_put_contents($extDir . '/_meta.json', json_encode($result, JSON_UNESCAPED_U
 echo json_encode(['code' => 0, 'data' => $result], JSON_UNESCAPED_UNICODE);
 
 // ── helpers ──
-
-function parseXlsxFile(string $path): array
-{
-    $headers = [];
-    $rows = [];
-    $errors = [];
-
-    if (!class_exists('ZipArchive')) {
-        $errors[] = '服务器不支持 ZipArchive，无法读取 XLSX 文件。请改用 CSV 格式。';
-        return compact('headers', 'rows', 'errors');
-    }
-
-    $zip = new ZipArchive();
-    if ($zip->open($path) !== true) {
-        $errors[] = '无法打开 XLSX 文件';
-        return compact('headers', 'rows', 'errors');
-    }
-
-    $sharedStringsXml = $zip->getFromName('xl/sharedStrings.xml');
-    $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
-    if (!$sheetXml) {
-        $errors[] = '未找到工作表';
-        $zip->close();
-        return compact('headers', 'rows', 'errors');
-    }
-
-    $sharedStrings = [];
-    if ($sharedStringsXml) {
-        $ssXml = new SimpleXMLElement($sharedStringsXml);
-        foreach ($ssXml->si as $si) {
-            $t = '';
-            foreach ($si->t as $tNode) {
-                $t .= (string) $tNode;
-            }
-            $sharedStrings[] = $t;
-        }
-    }
-
-    $sheet = new SimpleXMLElement($sheetXml);
-    $ns = $sheet->getNamespaces(true);
-    $mainNs = $ns[''] ?? '';
-    $sheet->registerXPathNamespace('s', $mainNs);
-    $rowElements = $sheet->xpath('//s:sheetData/s:row');
-
-    if (empty($rowElements)) {
-        $errors[] = '工作表无数据';
-        $zip->close();
-        return compact('headers', 'rows', 'errors');
-    }
-
-    $isFirst = true;
-    foreach ($rowElements as $rowEl) {
-        $cols = [];
-        foreach ($rowEl->c as $c) {
-            $ref = (string) $c['r'];
-            $colIndex = preg_replace('/[0-9]/', '', $ref);
-            $colNum = 0;
-            for ($i = 0, $len = strlen($colIndex); $i < $len; $i++) {
-                $colNum = $colNum * 26 + (ord($colIndex[$i]) - ord('A') + 1);
-            }
-            $colNum--;
-            $type = (string) ($c['t'] ?? '');
-            $value = (string) ($c->v ?? '');
-            if ($type === 's' && $value !== '') {
-                $value = $sharedStrings[(int) $value] ?? $value;
-            }
-            $cols[$colNum] = $value;
-        }
-
-        if ($isFirst) {
-            for ($i = 0; $i <= max(array_keys($cols)); $i++) {
-                $headers[$i] = trim($cols[$i] ?? '');
-            }
-            $isFirst = false;
-        } else {
-            $row = [];
-            for ($i = 0; $i < count($headers); $i++) {
-                $row[$i] = $cols[$i] ?? '';
-            }
-            if (count(array_filter($row, fn($c) => trim($c) !== '')) > 0) {
-                $rows[] = $row;
-            }
-        }
-    }
-
-    $zip->close();
-    return compact('headers', 'rows', 'errors');
-}
 
 function cleanupTempDir(string $dir): void
 {

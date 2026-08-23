@@ -12,20 +12,52 @@ if (!defined('ROOT_PATH')) {
 }
 
 /**
+ * 从数据库刷新当前会员身份。每次请求初始化时强制检查一次，后续调用复用结果。
+ * 账号被禁用、软删除或删除后，旧 Session 在下一次请求立即失效。
+ */
+function refreshMemberIdentity(bool $force = false): ?array
+{
+    static $checkedId = null;
+    static $identity = null;
+
+    $memberId = (int) ($_SESSION['member_id'] ?? 0);
+    if ($memberId <= 0) {
+        $checkedId = null;
+        $identity = null;
+        return null;
+    }
+    if (!$force && $checkedId === $memberId) {
+        return $identity;
+    }
+
+    $checkedId = $memberId;
+    $member = memberModel()->find($memberId);
+    if (!is_array($member) || empty($member['status'])) {
+        doMemberLogout();
+        $identity = null;
+        return null;
+    }
+
+    $_SESSION['member_username'] = (string) ($member['username'] ?? '');
+    $_SESSION['member_nickname'] = (string) (($member['nickname'] ?? '') ?: ($member['username'] ?? ''));
+    $_SESSION['member_email'] = (string) ($member['email'] ?? '');
+    $_SESSION['member_avatar'] = (string) ($member['avatar'] ?? '');
+    $identity = [
+        'id' => $memberId,
+        'username' => $_SESSION['member_username'],
+        'nickname' => $_SESSION['member_nickname'],
+        'email' => $_SESSION['member_email'],
+        'avatar' => $_SESSION['member_avatar'],
+    ];
+    return $identity;
+}
+
+/**
  * 获取当前会员信息
  */
 function getMemberInfo(): ?array
 {
-    if (empty($_SESSION['member_id'])) {
-        return null;
-    }
-    return [
-        'id'       => $_SESSION['member_id'],
-        'username' => $_SESSION['member_username'] ?? '',
-        'nickname' => $_SESSION['member_nickname'] ?? '',
-        'email'    => $_SESSION['member_email'] ?? '',
-        'avatar'   => $_SESSION['member_avatar'] ?? '',
-    ];
+    return refreshMemberIdentity();
 }
 
 /**
@@ -33,7 +65,7 @@ function getMemberInfo(): ?array
  */
 function isMemberLoggedIn(): bool
 {
-    return !empty($_SESSION['member_id']);
+    return refreshMemberIdentity() !== null;
 }
 
 /**

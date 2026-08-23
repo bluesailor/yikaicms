@@ -34,6 +34,10 @@ require_once ROOT_PATH . '/includes/functions.php';       // post/config/e/__/su
 require_once ROOT_PATH . '/includes/models/autoload.php'; // channelModel()/productModel()/...
 require_once ROOT_PATH . '/includes/TagEngine.php';       // TagEngine 模板标签
 require_once ROOT_PATH . '/admin/includes/auth.php';      // checkLogin/requirePermission/getAdminId/...
+require_once ROOT_PATH . '/includes/CLI.php';             // includes/commands/* 的 CLI::register()
+require_once ROOT_PATH . '/includes/builder/AbstractElement.php';
+require_once ROOT_PATH . '/includes/builder/elements/ContentCatalogElement.php';
+require_once ROOT_PATH . '/includes/builder/elements/ProductCatalogElement.php';
 
 // 其余按需加载的运行时助手（前台/会员/时间线）。
 require_once ROOT_PATH . '/includes/blocks/timeline.php';      // getTimelineIcon()

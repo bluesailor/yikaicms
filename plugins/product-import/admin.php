@@ -128,7 +128,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div x-show="currentStep === 0" class="bg-white rounded-lg shadow p-6 space-y-5">
         <div>
             <h2 class="font-bold text-gray-800 mb-1">上传数据文件</h2>
-            <p class="text-sm text-gray-500">支持 CSV（.csv）和 Excel（.xlsx / .xls）格式，文件不超过 10MB</p>
+            <p class="text-sm text-gray-500">支持 CSV（.csv）和 Excel（.xlsx）格式，文件不超过 10MB</p>
         </div>
 
         <div class="border-2 border-dashed rounded-lg p-10 text-center transition cursor-pointer"
@@ -137,7 +137,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
              @dragleave="dragOver = false"
              @drop.prevent="handleDrop($event); dragOver = false"
              @click="$refs.fileInput.click()">
-            <input type="file" x-ref="fileInput" class="hidden" accept=".csv,.xlsx,.xls"
+            <input type="file" x-ref="fileInput" class="hidden" accept=".csv,.xlsx"
                    @change="handleFileSelect($event)">
             <template x-if="!uploadFile">
                 <div class="space-y-2">
@@ -145,7 +145,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                     </svg>
                     <p class="text-gray-600">拖拽文件到此处，或 <span class="text-primary underline">点击选择</span></p>
-                    <p class="text-xs text-gray-400">CSV / XLSX / XLS，最大 10MB</p>
+                    <p class="text-xs text-gray-400">CSV / XLSX，最大 10MB</p>
                 </div>
             </template>
             <template x-if="uploadFile">
@@ -412,8 +412,8 @@ function productImport() {
 
         setFile(file) {
             const ext = file.name.split('.').pop().toLowerCase();
-            if (!['csv', 'xlsx', 'xls'].includes(ext)) {
-                this.uploadError = '仅支持 CSV / XLSX / XLS 格式';
+            if (!['csv', 'xlsx'].includes(ext)) {
+                this.uploadError = '仅支持 CSV / XLSX 格式';
                 return;
             }
             if (file.size > 10 * 1024 * 1024) {

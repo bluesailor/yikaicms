@@ -1246,34 +1246,12 @@
       <code><![CDATA[$key]]></code>
     </UnusedVariable>
   </file>
-  <file src="install/run_upgrade.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-  </file>
   <file src="install/seed_channel_translations.php">
     <UndefinedFunction>
       <code><![CDATA[seed_fallback_map()]]></code>
       <code><![CDATA[seed_load_external()]]></code>
       <code><![CDATA[seed_mirror_contents($pdo, $prefix, $external, $channelIdMap)]]></code>
     </UndefinedFunction>
-  </file>
-  <file src="install/upgrade.php">
-    <InvalidArrayOffset>
-      <code><![CDATA[$up['message']]]></code>
-      <code><![CDATA[$up['message']]]></code>
-      <code><![CDATA[$up['result']]]></code>
-      <code><![CDATA[$up['result']]]></code>
-      <code><![CDATA[$up['result']]]></code>
-      <code><![CDATA[$up['status']]]></code>
-      <code><![CDATA[$up['status']]]></code>
-    </InvalidArrayOffset>
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
-    <UnusedVariable>
-      <code><![CDATA[$results]]></code>
-    </UnusedVariable>
   </file>
   <file src="lang/en.php">
     <DuplicateArrayKey>

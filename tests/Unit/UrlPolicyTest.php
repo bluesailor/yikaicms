@@ -61,6 +61,26 @@ final class UrlPolicyTest extends TestCase
         $this->assertSame('', UrlPolicy::image('a.png'));   // 裸相对名（无 / 前缀）历来拒绝
     }
 
+    public function testRedirectAllowsOnlyRelativeOrSameOriginTargets(): void
+    {
+        $site = 'https://example.com';
+        self::assertSame('/about?tab=1', UrlPolicy::redirect('/about?tab=1', $site));
+        self::assertSame('https://example.com/news', UrlPolicy::redirect('https://example.com/news', $site));
+        self::assertSame('https://example.com:443/news', UrlPolicy::redirect('https://example.com:443/news', $site));
+
+        foreach ([
+            '//evil.test/path',
+            '/\\evil.test/path',
+            'https://example.com.evil.test/path',
+            'http://example.com/path',
+            'https://example.com:444/path',
+            "https://example.com/path\r\nX-Test: yes",
+            'javascript:alert(1)',
+        ] as $target) {
+            self::assertSame('', UrlPolicy::redirect($target, $site), $target);
+        }
+    }
+
     public function testVideoEmbedHostsAreExactAndHttpsOnly(): void
     {
         $this->assertTrue(UrlPolicy::isTrustedVideoEmbed('https://www.youtube.com/embed/x'));

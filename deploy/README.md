@@ -35,6 +35,8 @@ include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;
 > 为什么能 include：宝塔的「伪静态」本质就是一个被 nginx `include` 进 server 块的文件，所以里面再 include 一个我们自己的文件完全合法。
 >
 > 这个文件只含 `rewrite`、不含任何 `location` 块，因此不会和宝塔自带的 `location /`、`location ~ \.php$` 冲突（那正是不能直接用`deploy/nginx-server.conf` 的原因——它含 location 块，会「duplicate location」报错）。
+>
+> 当前版本还在文件开头使用 server 级 `if` 封禁 `config/`、`storage/`、`vendor/`、`includes/`、`install/sql/`、`bin/`、`migrations/`、`recipes/`。`install/index.php` 会在根目录 `installed.lock` 存在后自行拒绝访问；拥有完整 server 配置权限时，应优先使用 `deploy/nginx-server.conf`，由 Nginx 在 PHP 之前封禁整个 `install/`。
 
 **老站 301 跳转**（迁移旧链接保 SEO）是每个站自己的，不在通用文件里。如需，把 `rewrite ^/旧路径$ /新路径 permanent;` 加在 `nginx-baota.conf` **最上面**（permanent 会中断后续规则）。
 

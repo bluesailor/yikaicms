@@ -94,6 +94,8 @@ $secConfig = [
     'upload_file_types'     => config('upload_file_types', 'pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z'),
     'form_max_submits'      => config('form_max_submits', '5'),
     'form_throttle_minutes' => config('form_throttle_minutes', '5'),
+    'form_security_version'  => config('form_security_version', '1'),
+    'form_signature_max_age' => config('form_signature_max_age', '0'),
     'password_min_length'   => config('password_min_length', '6'),
 ];
 
@@ -220,6 +222,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            min="4" max="32"
                            class="w-full border rounded px-4 py-2">
                     <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_password_min_hint'); ?></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">
+                    <?php echo e(__('sec_form_signature_policy')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_form_signature_policy_tip')); ?></span>
+                </label>
+                <div class="md:col-span-3">
+                    <select name="settings[form_security_version]" class="w-full border rounded px-4 py-2 bg-white">
+                        <option value="1" <?php echo $secConfig['form_security_version'] === '1' ? 'selected' : ''; ?>><?php echo e(__('sec_form_signature_compat')); ?></option>
+                        <option value="2" <?php echo $secConfig['form_security_version'] === '2' ? 'selected' : ''; ?>><?php echo e(__('sec_form_signature_strict')); ?></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">
+                    <?php echo e(__('sec_form_signature_max_age')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_form_signature_max_age_tip')); ?></span>
+                </label>
+                <div class="md:col-span-3">
+                    <input type="number" name="settings[form_signature_max_age]"
+                           value="<?php echo e($secConfig['form_signature_max_age']); ?>"
+                           min="0" max="2592000"
+                           class="w-full border rounded px-4 py-2">
                 </div>
             </div>
         </div>
