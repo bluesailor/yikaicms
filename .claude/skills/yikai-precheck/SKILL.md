@@ -85,7 +85,8 @@ gh run watch <id> --exit-status
 | `Could not open input file: tests/...` | 工作目录漂移（上一条命令里 `cd` 过） | 命令开头显式 `cd /mnt/d/phpstudy_pro/WWW/yikaicms.claude.yikai` |
 | 冒烟登录失败、结果全假 | 8080 上有残留 `php -S`，旧进程拿旧库应答 | 脚本已自动清；手工跑时先 `netstat` 查 PID 再 taskkill |
 | 工作树被留在冒烟配置上 | 忘了 `setup.php --restore` | 脚本保证执行；手工跑时**失败也要还原** |
-| lint 临时文件报「文件不存在」 | WSL 的 `php` 是 Windows php.exe，**看不到 /tmp** | 临时文件放项目树内（如 `storage/`），用完删 |
+| php 写 `/tmp/...` 报「文件不存在」 | WSL 的 `php` 是 **Windows php.exe**（`D:\phpstudy_pro\...\php.exe`）。它不是「看不到 /tmp」，而是把 `/tmp` 解析成 **`D:\tmp`**（当前盘符根目录）——`is_dir('/tmp')` 甚至返回 true，报错信息因此格外误导 | PHP 里用 `sys_get_temp_dir()`（返回 `C:\Users\...\AppData\Local\Temp`，实测可写）；bash↔php 之间传文件用**相对路径或项目内目录**——那是两边唯一理解一致的形式。**不要给 /tmp 加权限**，根本不是权限问题 |
+| php 调 Windows 上的程序失败 | 同一原因：`/mnt/c/...` 这种 WSL 路径 php.exe 不认 | 给 Windows 路径形式：`php "C:/ProgramData/ComposerSetup/bin/composer.phar" install` |
 | i18n 门禁报中文回潮，但那是日志文本 | 门禁扫**全部** PHP 字符串，日志/注记也算 | 改英文或走 lang 键；语义词典类数据放 `includes/` 顶层（见 `BloxNavIconMatcher` 先例） |
 
 ## 相关
