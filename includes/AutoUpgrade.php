@@ -154,6 +154,8 @@ final class AutoUpgrade
     public static function check(): ?array
     {
         require_once ROOT_PATH . '/includes/UpdateChannel.php';
+        $health = json_decode((string) config('site_health_last_summary', ''), true);
+        $health = is_array($health) ? $health : [];
         $q = [
             'version' => defined('CMS_VERSION') ? CMS_VERSION : '',
             'channel' => UpdateChannel::current(),
@@ -170,6 +172,14 @@ final class AutoUpgrade
             // 红也无从下手，等于没有跟踪能力。原因截断到 200 字符，够定位不至于撑爆心跳。
             'auto_to' => (string) config('auto_upgrade_last_to', ''),
             'auto_msg' => mb_substr((string) (self::log()[0]['msg'] ?? ''), 0, 200),
+            // 站点健康摘要随回访上报。动机来自 2026-08-23：客户站的服务器配置千差万别，
+            // 「config 目录能不能读」「uploads 能不能执行 PHP」这类问题只有站点自己测得出，
+            // 我们在外面用 curl 逐个探不但慢，高危的 uploads 那项根本没法远程测。
+            // 只报计数与失败项 id（`!` 严重 / `~` 建议），不报路径与正文。
+            'health_at' => (string) config('site_health_last_at', ''),
+            'health_crit' => (string) ($health['critical'] ?? ''),
+            'health_rec' => (string) ($health['recommended'] ?? ''),
+            'health_bad' => mb_substr((string) config('site_health_last_bad', ''), 0, 300),
             't' => (string) time(),
         ];
         $url = 'https://update.yikaicms.com/api/update/check.php?' . http_build_query($q);
