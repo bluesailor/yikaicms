@@ -94,6 +94,41 @@ final class UrlPolicy
         return preg_match('#^https?://#i', $value) === 1 ? $value : '';
     }
 
+    /**
+     * HTTP Location 目标：仅站内绝对路径或与站点同源的 http(s) URL。
+     * 前缀比较不能作为同源判断，example.com.evil.test 会通过 starts_with。
+     */
+    public static function redirect(mixed $value, string $siteUrl): string
+    {
+        if (!is_string($value)) return '';
+        $value = trim($value);
+        if ($value === '' || mb_strlen($value) > self::MAX_LENGTH
+            || preg_match('/[\x00-\x1f\x7f\\\\]/', $value) === 1) {
+            return '';
+        }
+        if ($value[0] === '/') {
+            return str_starts_with($value, '//') ? '' : $value;
+        }
+
+        $target = parse_url($value);
+        $site = parse_url(trim($siteUrl));
+        if (!is_array($target) || !is_array($site) || isset($target['user']) || isset($target['pass'])) {
+            return '';
+        }
+        $targetScheme = strtolower((string) ($target['scheme'] ?? ''));
+        $siteScheme = strtolower((string) ($site['scheme'] ?? ''));
+        if (!in_array($targetScheme, ['http', 'https'], true) || $targetScheme !== $siteScheme) {
+            return '';
+        }
+        if (strtolower((string) ($target['host'] ?? '')) !== strtolower((string) ($site['host'] ?? ''))) {
+            return '';
+        }
+        $defaultPort = $targetScheme === 'https' ? 443 : 80;
+        $targetPort = (int) ($target['port'] ?? $defaultPort);
+        $sitePort = (int) ($site['port'] ?? $defaultPort);
+        return $targetPort === $sitePort ? $value : '';
+    }
+
     /** 视频元素 iframe 嵌入地址：https + 精确 Host 白名单 */
     public static function isTrustedVideoEmbed(string $url): bool
     {

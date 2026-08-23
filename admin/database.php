@@ -10,6 +10,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/Backup.php';
+require_once ROOT_PATH . '/includes/DatabaseMaintenance.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -115,25 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sqlContent = file_get_contents($path);
         if (!$sqlContent) { error('文件读取失败'); }
 
-        db()->execute('SET NAMES utf8mb4');
-        db()->execute('SET autocommit = 0');
-        db()->execute('SET unique_checks = 0');
-        db()->execute('SET foreign_key_checks = 0');
-
-        $stmts = 0; $errors = 0; $buffer = '';
-        foreach (explode("\n", $sqlContent) as $line) {
-            $trimmed = trim($line);
-            if ($trimmed === '' || strpos($trimmed, '--') === 0 || strpos($trimmed, '/*') === 0) continue;
-            $buffer .= $line . "\n";
-            if (substr($trimmed, -1) === ';') {
-                try { db()->execute($buffer); $stmts++; if ($stmts % 200 === 0) { db()->execute('COMMIT'); db()->execute('SET autocommit = 0'); } } catch (\Throwable $e) { $errors++; }
-                $buffer = '';
-            }
-        }
-        db()->execute('COMMIT');
-        db()->execute('SET unique_checks = 1');
-        db()->execute('SET foreign_key_checks = 1');
-        db()->execute('SET autocommit = 1');
+        $result = DatabaseMaintenance::restoreSql($sqlContent);
+        $stmts = $result['statements'];
+        $errors = count($result['errors']);
 
         adminLog('database', 'restore', "恢复备份: {$file}, {$stmts}条成功, {$errors}条失败");
         $restoredMsg = str_replace(':n', (string) $stmts, __('db_restore_done'))
@@ -174,46 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $fileSize = strlen($sqlContent);
 
-        // 借鉴 BigDump：预优化 SQL 加速导入
-        db()->execute('SET NAMES utf8mb4');
-        db()->execute('SET autocommit = 0');
-        db()->execute('SET unique_checks = 0');
-        db()->execute('SET foreign_key_checks = 0');
-
-        $stmts = 0;
-        $errors = 0;
-        $errorMsgs = [];
-        $buffer = '';
-        $lines = explode("\n", $sqlContent);
-        $totalLines = count($lines);
-        unset($sqlContent); // 释放内存
-
-        foreach ($lines as $line) {
-            $trimmed = trim($line);
-            if ($trimmed === '' || strpos($trimmed, '--') === 0 || strpos($trimmed, '/*') === 0) continue;
-            $buffer .= $line . "\n";
-            if (substr($trimmed, -1) === ';') {
-                try {
-                    db()->execute($buffer);
-                    $stmts++;
-                    // 每 200 条提交一次（借鉴 BigDump batch commit）
-                    if ($stmts % 200 === 0) {
-                        db()->execute('COMMIT');
-                        db()->execute('SET autocommit = 0');
-                    }
-                } catch (\Throwable $e) {
-                    $errors++;
-                    if ($errors <= 10) $errorMsgs[] = mb_substr($e->getMessage(), 0, 200);
-                }
-                $buffer = '';
-            }
-        }
-
-        // 最终提交
-        db()->execute('COMMIT');
-        db()->execute('SET unique_checks = 1');
-        db()->execute('SET foreign_key_checks = 1');
-        db()->execute('SET autocommit = 1');
+        $result = DatabaseMaintenance::restoreSql($sqlContent);
+        $stmts = $result['statements'];
+        $errorMsgs = $result['errors'];
+        $errors = count($errorMsgs);
 
         adminLog('database', 'import', "导入SQL: {$stmts}条成功, {$errors}条失败, 文件大小:" . round($fileSize/1024) . "KB");
         $msg = str_replace([':n', ':size'], [(string) $stmts, (string) round($fileSize / 1024)], __('db_import_done'));
@@ -224,21 +173,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- 清空日志 ---
     if ($action === 'clear_logs') {
         $logType = post('log_type');
-        $cleared = 0;
-        $logTables = [
-            'admin_logs' => DB_PREFIX . 'admin_logs',
-            'ai_logs'    => DB_PREFIX . 'ai_logs',
-            'forms'      => DB_PREFIX . 'forms',
-        ];
+        $logTables = ['admin_logs', 'ai_logs', 'forms'];
         if ($logType === 'all') {
-            foreach ($logTables as $t) {
-                $cleared += (int)db()->fetchColumn("SELECT COUNT(*) FROM `{$t}`");
-                db()->execute("TRUNCATE TABLE `{$t}`");
-            }
-        } elseif (isset($logTables[$logType])) {
-            $t = $logTables[$logType];
-            $cleared = (int)db()->fetchColumn("SELECT COUNT(*) FROM `{$t}`");
-            db()->execute("TRUNCATE TABLE `{$t}`");
+            $cleared = DatabaseMaintenance::clearTables($logTables);
+        } elseif (in_array($logType, $logTables, true)) {
+            $cleared = DatabaseMaintenance::clearTables([$logType]);
         } else {
             error(__('db_bad_log_type'));
         }
@@ -249,11 +188,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- 优化表 ---
     if ($action === 'optimize') {
         $tables = array_column($allTables, 'name');
-        foreach ($tables as $t) {
-            db()->execute("OPTIMIZE TABLE `{$t}`");
-        }
+        $optimized = DatabaseMaintenance::optimize(array_map(
+            static fn(string $table): string => str_starts_with($table, DB_PREFIX) ? substr($table, strlen(DB_PREFIX)) : $table,
+            $tables
+        ));
         adminLog('database', 'optimize', '优化所有表');
-        success(['msg' => str_replace(':n', (string) count($tables), __('db_optimized'))]);
+        success(['msg' => str_replace(':n', (string) $optimized, __('db_optimized'))]);
     }
 
 }

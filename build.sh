@@ -162,9 +162,8 @@ EXCLUDES=(
     ".editorconfig"
     ".claude"
 
-    # 部署样例 —— 不是运行时代码；已全部集中在 deploy/（避免 web 根出现 nginx.conf 等
-    # 知名文件名被扫描器探测/下载）。发行包不带；参考见 GitHub 仓库。
-    "deploy"
+    # deploy/ 随发行包交付。共享主机安装者需要在拿到程序时就能使用服务器层
+    # 敏感目录拦截规则，不能要求其另行前往源码仓库查找。
 
     # 容器化文件（共享主机发行包用不到；镜像走 docs/docker.md）
     "Dockerfile"
@@ -299,6 +298,8 @@ MUST_NOT_EXIST=(
     ".git"
     "releases"
     "assets/css/src"
+    "install/upgrade.php"
+    "install/run_upgrade.php"
 )
 for f in "${MUST_NOT_EXIST[@]}"; do
     if [ -e "$PKG_DIR/$f" ]; then
@@ -320,6 +321,10 @@ MUST_EXIST=(
     "install/index.php"
     "install/sql/mysql.sql"
     "install/sql/sqlite.sql"
+    "deploy/README.md"
+    "deploy/nginx-server.conf"
+    "deploy/nginx-baota.conf"
+    "deploy/aliyun-nginx-minimal.txt"
     "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
     "uploads/.gitkeep"
@@ -458,14 +463,21 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
             case "$status" in
                 D)
                     # 市场主题安装后属于站点资产，核心增量包不得将其卸载。
-                    case "$path" in config/config.php|storage/*|uploads/*|install/*|themes/*) continue;; esac
+                    case "$path" in
+                        install/upgrade.php|install/run_upgrade.php) ;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*) continue;;
+                    esac
                     DELETED+=("$path")
                     ;;
                 R*)
                     if [ -f "$PKG_DIR/$newpath" ]; then
                         ( cd "$PKG_DIR" && cp --parents "$newpath" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
                     fi
-                    case "$path" in config/config.php|storage/*|uploads/*|install/*|themes/*) ;; *) DELETED+=("$path");; esac
+                    case "$path" in
+                        install/upgrade.php|install/run_upgrade.php) DELETED+=("$path");;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*) ;;
+                        *) DELETED+=("$path");;
+                    esac
                     ;;
                 *)  # A / M / C：仅当该文件确实进了包（未被打包排除）才纳入
                     if [ -f "$PKG_DIR/$path" ]; then

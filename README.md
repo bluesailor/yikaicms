@@ -102,8 +102,8 @@
 | PHP | >= 8.0 |
 | 数据库 | MySQL 5.7+ / MySQL 8.0+（utf8mb4）或 SQLite 3 |
 | Web 服务器 | Apache（启用 `mod_rewrite`）或 Nginx |
-| PHP 扩展（必需） | pdo、json、mbstring |
-| PHP 扩展（推荐） | gd、openssl、curl、fileinfo |
+| PHP 扩展（必需） | pdo、json、mbstring、fileinfo、dom、simplexml |
+| PHP 扩展（推荐） | gd、openssl、curl、zip（在线升级与 XLSX 导入需要） |
 
 ---
 

@@ -203,4 +203,15 @@ final class AutoUpgradeTest extends TestCase
         self::assertStringContainsString("empty(\$health['ok'])", $src);
         self::assertStringContainsString('rolled_back', $src);
     }
+
+    public function testManualUpgradeRequiresDatabaseBackupBeforeWritingFiles(): void
+    {
+        $manual = (string) file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
+        $runner = (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
+
+        self::assertStringContainsString("upgrade_prepare('', '', true)", $manual);
+        self::assertStringContainsString('if ($requireDbBackup && $dbBackupNote === \'\')', $runner);
+        self::assertStringContainsString('升级已在写入程序文件前中止', $runner);
+        self::assertStringNotContainsString('升级仍将继续', $manual);
+    }
 }

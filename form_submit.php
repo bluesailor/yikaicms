@@ -27,24 +27,38 @@ if (trim((string) post('hp_url', '')) !== '') {
     echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
     exit;
 }
-// 反垃圾 2：签名时间戳 —— 校验时间戳未被伪造，且非「秒提交」（机器人特征）
-$_fts  = (int) post('form_ts', 0);
-$_fsig = (string) post('form_sig', '');
-if ($_fts > 0 && $_fsig !== '' && defined('ENCRYPT_KEY')) {
-    $_exp = substr(hash_hmac('sha256', (string) $_fts, ENCRYPT_KEY), 0, 16);
-    if (hash_equals($_exp, $_fsig)) {
-        $_elapsed = time() - $_fts;
-        if ($_elapsed >= 0 && $_elapsed < 2) {
-            echo json_encode(['code' => 1, 'msg' => '提交过快，请稍后再试']);
-            exit;
-        }
-    }
-}
-
 $slug = trim(post('form_slug', ''));
 if (empty($slug)) {
     echo json_encode(['code' => 1, 'msg' => '无效表单']);
     exit;
+}
+// 反垃圾 2：签名时间戳 —— 校验时间戳未被伪造，且非「秒提交」（机器人特征）
+$_fts  = (int) post('form_ts', 0);
+$_fsig = (string) post('form_sig', '');
+$securityVersion = max(1, (int) config('form_security_version', '1'));
+$signaturePresent = $_fts > 0 || $_fsig !== '';
+if ($securityVersion >= 2 && !$signaturePresent) {
+    echo json_encode(['code' => 1, 'msg' => '表单安全令牌缺失，请刷新页面后重试']);
+    exit;
+}
+if ($signaturePresent) {
+    $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
+    $validSignature = FormSubmissionToken::verify(
+        $slug,
+        $_fts,
+        $_fsig,
+        $secret,
+        $securityVersion < 2,
+        max(0, (int) config('form_signature_max_age', '0'))
+    );
+    if (!$validSignature) {
+        echo json_encode(['code' => 1, 'msg' => '表单安全令牌无效，请刷新页面后重试']);
+        exit;
+    }
+    if (time() - $_fts < 2) {
+        echo json_encode(['code' => 1, 'msg' => '提交过快，请稍后再试']);
+        exit;
+    }
 }
 
 // 获取模板

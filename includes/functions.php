@@ -15,6 +15,24 @@ if (!defined('ROOT_PATH')) {
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/ThemeRuntime.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
+require_once __DIR__ . '/AdminLogSanitizer.php';
+require_once __DIR__ . '/FormSubmissionToken.php';
+
+/**
+ * 清除 v1.18.6 及更早版本遗留的无鉴权安装升级入口。
+ * 全量升级不会覆盖 install/，所以仅靠新包中“不包含文件”无法清理老站。
+ */
+function removeLegacyInstallUpgradeEntrypoints(): void
+{
+    foreach (['install/upgrade.php', 'install/run_upgrade.php'] as $relativePath) {
+        $path = ROOT_PATH . '/' . $relativePath;
+        if (is_file($path) && !@unlink($path)) {
+            error_log('[security] unable to remove legacy install upgrade entry: ' . $relativePath);
+        }
+    }
+}
+
+removeLegacyInstallUpgradeEntrypoints();
 
 // ============================================================
 // 全局错误自检测（装在这里而非 config.php：升级不覆盖客户的
@@ -2167,9 +2185,9 @@ function adminLog(string $module, string $action, string $description = ''): int
         'module'       => $module,
         'action'       => $action,
         'description'  => $description,
-        'url'          => $_SERVER['REQUEST_URI'] ?? '',
+        'url'          => AdminLogSanitizer::url((string) ($_SERVER['REQUEST_URI'] ?? '')),
         'method'       => $_SERVER['REQUEST_METHOD'] ?? '',
-        'request_data' => json_encode($_POST, JSON_UNESCAPED_UNICODE),
+        'request_data' => AdminLogSanitizer::requestData($_POST),
         'ip'           => getClientIp(),
         'user_agent'   => $_SERVER['HTTP_USER_AGENT'] ?? '',
         'created_at'   => time(),
@@ -3157,7 +3175,8 @@ function renderFormTemplate(string $slug): string
     // 反垃圾：蜜罐字段（正常用户不可见，机器人易填）+ 签名时间戳（防提交过快）
     $html .= '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">';
     $_fts = time();
-    $_fsig = substr(hash_hmac('sha256', (string) $_fts, defined('ENCRYPT_KEY') ? ENCRYPT_KEY : 'yk_fallback'), 0, 16);
+    $_secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
+    $_fsig = FormSubmissionToken::sign($slug, $_fts, $_secret);
     $html .= '<input type="hidden" name="form_ts" value="' . $_fts . '">';
     $html .= '<input type="hidden" name="form_sig" value="' . $_fsig . '">';
     $html .= $renderedBody;

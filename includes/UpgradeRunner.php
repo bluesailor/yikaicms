@@ -206,6 +206,12 @@ function uo_is_protected(string $rel): bool
     return false;
 }
 
+function uo_is_legacy_install_upgrade(string $rel): bool
+{
+    $rel = trim(str_replace('\\', '/', $rel), '/');
+    return in_array($rel, ['install/upgrade.php', 'install/run_upgrade.php'], true);
+}
+
 function uo_dir(): string { return ROOT_PATH . '/storage/upgrade'; }
 
 function uo_rrmdir(string $d): void
@@ -391,7 +397,7 @@ function uo_health_check(): array
 // 升级管道（无头）—— Web 层与 cron 自动升级共用；只返回数组，不产出输出。
 // ============================================================
 
-function upgrade_prepare(string $expectedFrom = '', string $expectedTo = ''): array
+function upgrade_prepare(string $expectedFrom = '', string $expectedTo = '', bool $requireDbBackup = false): array
 {
     $pkg = uo_dir() . '/package.zip';
     if (!is_file($pkg)) return ['code' => 1, 'msg' => '未找到已下载的安装包，请先执行下载'];
@@ -420,8 +426,8 @@ function upgrade_prepare(string $expectedFrom = '', string $expectedTo = ''): ar
     }
 
     // 数据库自动备份（v1.18.6）：文件快照管代码，这份 SQL 管「迁移改表之后」
-    // 的事故兜底——两者合起来才是完整的升级前状态。失败不阻断升级
-    // （备份是保护层，不该把升级打挂），但响应里明示，前端提醒手动备份。
+    // 的事故兜底——两者合起来才是完整的升级前状态。自动升级调用方会自行回滚；
+    // 人工在线升级传入 requireDbBackup=true，在写任何程序文件前失败关闭。
     $dbBackupNote = '';
     $dbBackupError = '';
     try {
@@ -439,6 +445,15 @@ function upgrade_prepare(string $expectedFrom = '', string $expectedTo = ''): ar
         }
     } catch (Throwable $e) {
         $dbBackupError = $e->getMessage();
+    }
+
+    if ($requireDbBackup && $dbBackupNote === '') {
+        uo_rrmdir($bakDir);
+        return [
+            'code' => 1,
+            'msg' => '数据库自动备份失败，升级已在写入程序文件前中止：'
+                . ($dbBackupError !== '' ? $dbBackupError : '没有可验证的数据库备份文件'),
+        ];
     }
 
     @file_put_contents($bakDir . '/INFO.txt', "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n"
@@ -716,6 +731,20 @@ function upgrade_finalize(string $note = '', bool $preserveState = false): array
     foreach ((array) ($state['deleted'] ?? []) as $rel) {
         $rel = (string) $rel;
         if ($rel === '' || $rel[0] === '/' || strpos($rel, '..') !== false) continue;
+        // 这两个历史入口没有鉴权，安全删除不可因 install/ 的普通升级保护而跳过，
+        // 也不写入回滚快照，避免故障回滚把已清除的漏洞入口重新放回站点。
+        if (uo_is_legacy_install_upgrade($rel)) {
+            $legacyPath = ROOT_PATH . '/' . $rel;
+            if (!is_file($legacyPath)) {
+                continue;
+            }
+            if (!@unlink($legacyPath)) {
+                $errors[] = "无法删除废弃安装升级入口: $rel";
+            } else {
+                $deletedCount++;
+            }
+            continue;
+        }
         if (uo_is_protected($rel)) continue;
         $p = ROOT_PATH . '/' . $rel;
         if (!is_file($p)) continue;

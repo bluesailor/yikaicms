@@ -148,10 +148,7 @@ $redirectType = $channel['redirect_type'] ?? 'auto';
 
 if ($redirectType === 'url' && !empty($channel['redirect_url'])) {
     // 指定地址跳转（仅允许站内路径或本站域名）
-    $redirectUrl = $channel['redirect_url'];
-    if (!str_starts_with($redirectUrl, '/') && !str_starts_with($redirectUrl, SITE_URL)) {
-        $redirectUrl = '/';
-    }
+    $redirectUrl = UrlPolicy::redirect($channel['redirect_url'], SITE_URL) ?: '/';
     header('Location: ' . $redirectUrl);
     exit;
 } elseif ($redirectType === 'auto') {

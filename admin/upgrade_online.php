@@ -141,7 +141,7 @@ if ($action !== '') {
     // ---- 4a) 准备：备份 config + 校验结构 + 建 zip 条目清单（不解压，写状态文件）----
     //   不用 extractTo（共享主机上常失败/挂起）；后续 batch 从 zip 逐条流式写入目标。
     if ($action === 'apply_prepare') {
-        uo_json(upgrade_prepare());
+        uo_json(upgrade_prepare('', '', true));
     }
 
     // ---- 4b) 分批覆盖：服务端状态游标为准；客户端 offset 只用于兼容和防跳批校验 ----
@@ -358,10 +358,6 @@ document.getElementById('uo-upgrade').onclick = async () => {
     if (pre.code !== 0) return fail(r, pre.msg);
     const dbNote = pre.db_backup ? `，数据库已自动备份（${pre.db_backup}）` : '';
     UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}${dbNote}）`);
-    if (!pre.db_backup) {
-        UO.row('数据库自动备份未成功' + (pre.db_backup_error ? `（${pre.db_backup_error}）` : ''), 'fail',
-            '升级仍将继续；如本次更新包含数据库迁移，建议先到「数据库管理」手动备份后再执行升级。');
-    }
     // 分批覆盖（每批 150 文件，避免共享主机单请求超时）
     const total = pre.total;
     const rr = UO.row(`覆盖程序文件… 0/${total}`, 'run');

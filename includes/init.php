@@ -67,6 +67,7 @@ if (SITE_LANG === 'zh-TW' && strpos((string) ($_SERVER['REQUEST_URI'] ?? ''), '/
 
 // 加载前台会员认证
 require_once ROOT_PATH . '/includes/member_auth.php';
+refreshMemberIdentity(true);
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';

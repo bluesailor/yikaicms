@@ -70,8 +70,36 @@ final class HtmlCacheTest extends TestCase
 
     public function testAllowedQueryKeysRemainCacheable(): void
     {
-        $_GET = ['slug' => 'abc', 'page' => '2', 'cat' => 'news', 'sort' => 'hot', 'parent' => 'about'];
+        $_GET = ['slug' => 'abc', 'page' => '2', 'cat' => 'news', 'sort' => 'newest', 'parent' => 'about'];
         $this->assertTrue($this->isCacheable());
+    }
+
+    public function testInvalidOrStructuredAllowedValuesAreNotCacheable(): void
+    {
+        foreach ([
+            ['page' => '0'],
+            ['page' => '10001'],
+            ['page' => ['2']],
+            ['sort' => 'hot'],
+            ['slug' => str_repeat('a', 101)],
+            ['cat' => '../private'],
+        ] as $query) {
+            $_GET = $query;
+            $this->assertFalse($this->isCacheable());
+        }
+    }
+
+    public function testCacheKeyCanonicalizesQueryOrderAndPageNumber(): void
+    {
+        $method = new ReflectionMethod(HtmlCache::class, 'buildKey');
+        $method->setAccessible(true);
+        $_SERVER['REQUEST_URI'] = '/products.html?page=02&sort=newest';
+        $_GET = ['page' => '02', 'sort' => 'newest'];
+        $first = $method->invoke(null);
+
+        $_SERVER['REQUEST_URI'] = '/products.html?sort=newest&page=2';
+        $_GET = ['sort' => 'newest', 'page' => '2'];
+        self::assertSame($first, $method->invoke(null));
     }
 
     public function testUnknownQueryKeyIsNotCacheable(): void
