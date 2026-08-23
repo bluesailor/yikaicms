@@ -42,7 +42,10 @@ $adminBrand = adminBrandName();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e($pageTitle ?? __('admin_title_default')); ?> - <?php echo e($adminBrand); ?></title>
-    <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
+    <?php // 后台图标：客户设过就用客户的，没设则回落随包的品牌图标——这是后台，用我们的
+          // 图标合适。前台不这么做：客户官网显示厂商图标比不显示更糟。 ?>
+    <?php $__fav = (function_exists('siteFaviconUrl') ? siteFaviconUrl() : '') ?: '/assets/img/admin-favicon.ico'; ?>
+    <link rel="icon" href="<?php echo e($__fav); ?>">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
