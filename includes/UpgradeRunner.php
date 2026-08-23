@@ -944,8 +944,100 @@ function upgrade_rollback(string $backup): array
     ];
     }
 
-function upgrade_download_package(string $url, string $hash, string $version, string $sig, string $owner = 'manual'): array
+/** 下载游标：记录本次续传针对的包与已收字节，换包即作废。 */
+function uo_download_state_file(): string { return uo_dir() . '/download-state.json'; }
+function uo_download_part_file(): string { return uo_dir() . '/package.zip.part'; }
+
+/** 单次分块请求的字节上限与时间上限。时间上限必须明显小于国内主机常见的 60 秒网关超时。 */
+const UO_DOWNLOAD_CHUNK_BYTES = 1048576;   // 1MB
+const UO_DOWNLOAD_CHUNK_SECONDS = 25;
+
+/**
+ * 取一段字节。返回 [httpStatus, totalBytes|null, error]。
+ * 写入交给调用方给的文件句柄——curl 中途超时也算数：已落盘的字节就是进度。
+ */
+function uo_download_range(string $url, int $from, int $to, $fh): array
 {
+    $range = $from . '-' . $to;
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_FILE => $fh,
+            CURLOPT_RANGE => $range,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => UO_DOWNLOAD_CHUNK_SECONDS,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = (string) curl_error($ch);
+        $total = null;
+        $len = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+        curl_close($ch);
+        // 206 才是真正的区间响应；200 表示服务端忽略了 Range，整包又发了一遍。
+        if ($status === 200 && $len !== false && $len > 0) {
+            $total = (int) $len;
+        }
+        // 超时不算错：这一段没拉满，下一轮从新的 offset 接着来。
+        if ($err !== '' && $status === 0) {
+            return [0, null, $err];
+        }
+        return [$status, $total, ''];
+    }
+    if (!ini_get('allow_url_fopen')) {
+        return [0, null, '主机禁用 curl 与 allow_url_fopen，无法下载'];
+    }
+    $ctx = stream_context_create([
+        'http' => ['timeout' => UO_DOWNLOAD_CHUNK_SECONDS, 'header' => "Range: bytes=$range\r\n", 'ignore_errors' => true],
+        'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
+    ]);
+    $src = @fopen($url, 'rb', false, $ctx);
+    if (!$src) return [0, null, '下载失败(allow_url_fopen)'];
+    $status = 0; $total = null;
+    foreach ($http_response_header ?? [] as $h) {
+        if (preg_match('#^HTTP/\S+\s+(\d{3})#i', $h, $m) === 1) $status = (int) $m[1];
+        if (preg_match('#^Content-Range:\s*bytes\s+\d+-\d+/(\d+)#i', $h, $m) === 1) $total = (int) $m[1];
+        if ($status === 200 && preg_match('#^Content-Length:\s*(\d+)#i', $h, $m) === 1) $total = (int) $m[1];
+    }
+    stream_copy_to_stream($src, $fh);
+    fclose($src);
+    return [$status, $total, ''];
+}
+
+/** 问一次总字节数；HEAD 不可用时留给首个区间响应的 Content-Range 去定。 */
+function uo_download_total(string $url): ?int
+{
+    if (!function_exists('curl_init')) return null;
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_NOBODY => true, CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT => 15, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_RETURNTRANSFER => true,
+    ]);
+    curl_exec($ch);
+    $len = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return ($code < 400 && $len !== false && $len > 0) ? (int) $len : null;
+}
+
+/**
+ * 分块续传的一步。每次调用只拉一段，把进度写进游标文件，由调用方反复调用直到 done。
+ *
+ * 为什么必须这样：覆盖阶段早就分批了（每批 150 文件），下载却一直是「一个请求拉完整包」。
+ * 国内主机拉 SiteGround 慢，Tengine/nginx 网关 60 秒一到就 504——xcidcn 两次栽在这里，
+ * 每次都要人工 FTP 送包再手动接续。PHP 侧那个 600 秒超时救不了，因为掐连接的是网关。
+ *
+ * @param null|callable(string,int,int,resource):array{0:int,1:int|null,2:string} $fetcher 仅供测试注入
+ */
+function upgrade_download_chunk(
+    string $url,
+    string $hash,
+    string $version,
+    string $sig,
+    string $owner = 'manual',
+    ?callable $fetcher = null
+): array {
     if (is_file(uo_state_file())) {
         return ['code' => 1, 'msg' => '已有升级事务尚未结束，拒绝覆盖其安装包'];
     }
@@ -956,23 +1048,132 @@ function upgrade_download_package(string $url, string $hash, string $version, st
         return ['code' => 1, 'msg' => '下载地址不合法，仅允许官方 packages 目录'];
     }
     if (strlen($hash) !== 64) return ['code' => 1, 'msg' => '缺少有效的 SHA256 校验值，拒绝升级'];
-    if (!is_dir(uo_dir())) {
-        @mkdir(uo_dir(), 0755, true);
-    }
-    $pkg = uo_dir() . '/package.zip';
-    @unlink($pkg);
-    @unlink(uo_package_meta_file());
     if ($sig === '') return ['code' => 1, 'msg' => '升级包缺少 RSA 签名，拒绝升级'];
+    // 验签在下载任何字节之前——不让未经确认的地址消耗带宽，也避免续传到一半才发现包不对。
     if (!uo_verify_sig($ver, 'sha256:' . $hash, $sig)) {
         return ['code' => 1, 'msg' => 'RSA 签名校验失败，拒绝升级'];
     }
-    [$ok, $err] = uo_download($url, $pkg);
-    if (!$ok) return ['code' => 1, 'msg' => $err];
-    $actual = hash_file('sha256', $pkg);
+    if (!is_dir(uo_dir()) && !@mkdir(uo_dir(), 0755, true) && !is_dir(uo_dir())) {
+        return ['code' => 1, 'msg' => '无法创建 storage/upgrade 目录'];
+    }
+
+    $part = uo_download_part_file();
+    $state = json_decode((string) @file_get_contents(uo_download_state_file()), true);
+    $step = uo_download_step($url, $part, is_array($state) ? $state : [], $hash, $ver, $fetcher);
+
+    if ($step['error'] !== '') {
+        return ['code' => 1, 'msg' => $step['error'], 'received' => $step['received'], 'total' => $step['total']]
+            + (!empty($step['no_range']) ? ['no_range' => true] : []);
+    }
+    uo_write_json_locked(uo_download_state_file(), $step['state']);
+    if ($step['complete']) {
+        return uo_download_finalize($part, $hash, $ver, $owner, $step['total']);
+    }
+    return [
+        'code' => 0, 'done' => false, 'received' => $step['received'], 'total' => $step['total'],
+        'msg' => $step['total']
+            ? sprintf('已下载 %.1f/%.1f MB', $step['received'] / 1048576, $step['total'] / 1048576)
+            : sprintf('已下载 %.1f MB', $step['received'] / 1048576),
+    ];
+}
+
+/**
+ * 续传的一步：只管传输，不碰验签与落位。拆出来是为了能脱离 RSA 上下文直接测——
+ * 「换包作废旧进度」「服务端忽略 Range」这两条最容易写错，而它们与安全守卫无关。
+ *
+ * @param null|callable(string,int,int,resource):array{0:int,1:int|null,2:string} $fetcher
+ * @return array{state:array,received:int,total:int|null,error:string,no_range:bool,complete:bool}
+ */
+function uo_download_step(string $url, string $part, array $state, string $hash, string $ver, ?callable $fetcher = null): array
+{
+    $fail = static fn(array $st, int $rec, ?int $tot, string $err, bool $noRange = false): array
+        => ['state' => $st, 'received' => $rec, 'total' => $tot, 'error' => $err, 'no_range' => $noRange, 'complete' => false];
+
+    $sameTarget = ($state['url'] ?? '') === $url
+        && ($state['hash'] ?? '') === $hash
+        && ($state['version'] ?? '') === $ver;
+    if (!$sameTarget) {
+        // 换了目标包：旧的半截文件一律作废，否则会把两个包的字节拼在一起，
+        // 而 SHA256 要到最后才发现——那时已经白下了整包。
+        @unlink($part);
+        $state = ['url' => $url, 'hash' => $hash, 'version' => $ver, 'total' => null, 'started_at' => time()];
+    }
+
+    // filesize() 有 stat 缓存：同一进程里连着调两轮（upgrade_download_package 的内部
+    // 循环就是这样），不清缓存会一直读到旧字节数，进度永远不动。
+    clearstatcache(true, $part);
+    $received = is_file($part) ? (int) filesize($part) : 0;
+    $total = isset($state['total']) && is_int($state['total']) ? $state['total'] : null;
+    if ($total === null) {
+        $total = uo_download_total($url);
+        $state['total'] = $total;
+    }
+    if ($total !== null && $received >= $total) {
+        $state['received'] = $received;
+        return ['state' => $state, 'received' => $received, 'total' => $total, 'error' => '', 'no_range' => false, 'complete' => true];
+    }
+
+    $to = $received + UO_DOWNLOAD_CHUNK_BYTES - 1;
+    if ($total !== null) $to = min($to, $total - 1);
+
+    $fh = @fopen($part, 'ab');
+    if (!$fh) return $fail($state, $received, $total, '无法写入临时文件，storage/upgrade 不可写');
+    $fetch = $fetcher ?? 'uo_download_range';
+    [$status, $reportedTotal, $err] = $fetch($url, $received, $to, $fh);
+    fclose($fh);
+
+    clearstatcache(true, $part);
+    $now = is_file($part) ? (int) filesize($part) : 0;
+    if ($err !== '' && $status === 0) {
+        // 有进展就不算失败：网络慢导致这一段没拉满，下一轮从新 offset 接着来。
+        if ($now <= $received) return $fail($state, $now, $total, '下载失败: ' . $err);
+        $status = 206;
+    }
+    if ($status >= 400) {
+        return $fail($state, $received, $total, "下载失败: HTTP $status");
+    }
+    if ($status === 200 && $received > 0) {
+        // 服务端忽略 Range、把整包又发了一遍——续传语义已被破坏，必须清零重来，
+        // 否则文件里是「前半截 + 完整包」的拼接。
+        uo_download_reset_part($part);
+        $state['total'] = $total;
+        return $fail($state, 0, $total, '服务器不支持断点续传，已重置进度，请重试', true);
+    }
+    if ($total === null && is_int($reportedTotal) && $reportedTotal > 0 && $received === 0) {
+        $total = $reportedTotal;
+        $state['total'] = $total;
+    }
+
+    $state['received'] = $now;
+    return [
+        'state' => $state, 'received' => $now, 'total' => $total, 'error' => '', 'no_range' => false,
+        'complete' => $total !== null && $now >= $total,
+    ];
+}
+
+/** 清空半截文件。 */
+function uo_download_reset_part(string $path): void
+{
+    $fh = @fopen($path, 'wb');
+    if ($fh) fclose($fh);
+    clearstatcache(true, $path);
+}
+
+/** 收尾：校验 SHA256、落位成 package.zip、写验签上下文。 */
+function uo_download_finalize(string $part, string $hash, string $ver, string $owner, ?int $total): array
+{
+    $actual = hash_file('sha256', $part);
     if (!hash_equals(strtolower($hash), strtolower((string) $actual))) {
-        @unlink($pkg);
+        @unlink($part);
+        @unlink(uo_download_state_file());
         return ['code' => 1, 'msg' => 'SHA256 校验不通过，包可能损坏或被篡改，已删除'];
     }
+    $pkg = uo_dir() . '/package.zip';
+    @unlink($pkg);
+    if (!@rename($part, $pkg)) {
+        return ['code' => 1, 'msg' => '安装包已校验，但无法落位到 package.zip'];
+    }
+    @unlink(uo_download_state_file());
     if (!uo_write_json_locked(uo_package_meta_file(), [
         'version' => $ver,
         'hash' => 'sha256:' . $hash,
@@ -982,5 +1183,25 @@ function upgrade_download_package(string $url, string $hash, string $version, st
         @unlink($pkg);
         return ['code' => 1, 'msg' => '安装包已校验，但验签上下文无法持久化，已拒绝继续'];
     }
-    return ['code' => 0, 'msg' => '下载并校验通过', 'size' => filesize($pkg), 'signed' => true];
+    return ['code' => 0, 'done' => true, 'msg' => '下载并校验通过', 'size' => (int) filesize($pkg), 'signed' => true, 'total' => $total];
+}
+
+function upgrade_download_package(string $url, string $hash, string $version, string $sig, string $owner = 'manual'): array
+{
+    // 无头调用方（cron 自动升级、测试）走这里：内部就是反复调 upgrade_download_chunk，
+    // 只有一份下载实现。它们不经过网关，所以循环到底即可。
+    $guard = 0;
+    $lastReceived = -1;
+    while (true) {
+        $r = upgrade_download_chunk($url, $hash, $version, $sig, $owner);
+        if (($r['code'] ?? 1) !== 0) return $r;
+        if (!empty($r['done'])) return $r;
+        $received = (int) ($r['received'] ?? 0);
+        // 连续多轮零进展就停手，别把无限循环留给 cron。
+        $guard = $received > $lastReceived ? 0 : $guard + 1;
+        if ($guard >= 3) {
+            return ['code' => 1, 'msg' => '下载停滞：连续多次未取得新字节，已中止', 'received' => $received];
+        }
+        $lastReceived = $received;
     }
+}

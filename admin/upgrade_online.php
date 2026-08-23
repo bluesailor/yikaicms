@@ -128,9 +128,12 @@ if ($action !== '') {
         uo_json($data);
     }
 
-    // ---- 3) 下载并校验 ----
-    if ($action === 'download') {
-        uo_json(upgrade_download_package(
+    // ---- 3) 下载并校验（分块续传：每次只拉一段，由前端循环调用到 done）----
+    //   为什么不能一次拉完：覆盖阶段早就分批了，下载却一直是单请求整包。国内主机拉
+    //   官方服务器慢，Tengine/nginx 网关 60 秒一到就 504，PHP 侧的 600 秒超时救不了，
+    //   因为掐连接的是网关。xcidcn 两次栽在这里，每次都要人工 FTP 送包再手动接续。
+    if ($action === 'download' || $action === 'download_chunk') {
+        uo_json(upgrade_download_chunk(
             (string) ($_POST['download_url'] ?? ''),
             (string) ($_POST['hash'] ?? ''),
             (string) ($_POST['version'] ?? ''),
@@ -353,8 +356,19 @@ document.getElementById('uo-upgrade').onclick = async () => {
     const dlSig  = useDelta ? (d.delta.sig || '') : (d.sig || '');
     // 下载校验
     let r = UO.row(`下载并校验 v${d.latest_version}${useDelta ? '（增量包，仅传变化文件）' : ''}…`, 'run');
-    const dl = await UO.post('download', { download_url: dlUrl, hash: dlHash, version: d.latest_version, sig: dlSig });
-    if (dl.code !== 0) { UO.set(r, 'fail', dl.msg); btn.disabled = false; btn.classList.remove('opacity-50'); return; }
+    // 分块循环：每轮服务端只拉一段并记游标，任何一轮都远小于网关超时。
+    let dl = null;
+    const dlLabel = r.querySelector('.text-gray-800');
+    for (let round = 0; round < 400; round++) {
+        dl = await UO.post('download_chunk', { download_url: dlUrl, hash: dlHash, version: d.latest_version, sig: dlSig });
+        if (dl.code !== 0) { UO.set(r, 'fail', dl.msg); btn.disabled = false; btn.classList.remove('opacity-50'); return; }
+        if (dl.done) break;
+        if (dlLabel && dl.total) {
+            dlLabel.textContent = `下载并校验 v${d.latest_version}${useDelta ? '（增量包）' : ''}… `
+                + `${(dl.received / 1048576).toFixed(1)}/${(dl.total / 1048576).toFixed(1)} MB`;
+        }
+    }
+    if (!dl || !dl.done) { UO.set(r, 'fail', '下载未能在限定轮次内完成，请重试（已下载部分会被保留续传）'); btn.disabled = false; btn.classList.remove('opacity-50'); return; }
     UO.set(r, 'ok', `校验通过（${(dl.size / 1048576).toFixed(2)} MB${dl.signed ? '，已验 RSA 签名' : ''}${useDelta ? '，增量' : ''}）`);
     // 应用：准备（备份+解压+建清单）
     const fail = (row, msg) => { UO.set(row, 'fail', msg); btn.disabled = false; btn.classList.remove('opacity-50'); };
