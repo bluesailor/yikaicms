@@ -468,9 +468,13 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
             case "$status" in
                 D)
                     # 市场主题安装后属于站点资产，核心增量包不得将其卸载。
+                    # favicon.ico：v1.18.6 起不再随包发（它是站点资产，原文件又是我们的品牌图标，
+                    # 不该出现在客户官网上）。但存量站根目录那个很可能是客户用图标工坊生成的——
+                    # 从 git 移走后若不豁免，增量包会把它当废弃文件删掉。
+                    # 两个遗留安装入口相反：必须让增量包不可逆地删掉它们（无鉴权可执行）。
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) ;;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*) continue;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico) continue;;
                     esac
                     DELETED+=("$path")
                     ;;
