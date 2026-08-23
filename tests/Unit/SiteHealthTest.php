@@ -68,4 +68,27 @@ final class SiteHealthTest extends TestCase
             rmdir($directory);
         }
     }
+
+    /**
+     * 诊断信息是给技术支持看的，不是给机器解析的：扩展那两行必须列出「哪些缺了」，
+     * 不能再吐 {"pdo":true,...}；字节数要换算成人读得懂的单位。
+     */
+    public function testDiagnosticValuesRenderForHumans(): void
+    {
+        $extensions = SiteHealth::formatDiagnosticValue(
+            'required_extensions',
+            ['pdo' => true, 'json' => true, 'dom' => false]
+        );
+        self::assertStringNotContainsString('{', $extensions);
+        self::assertStringNotContainsString('true', $extensions);
+        self::assertStringContainsString('pdo', $extensions);
+        self::assertStringContainsString('dom', $extensions);
+
+        self::assertSame('179 GB', SiteHealth::formatDiagnosticValue('disk_free_bytes', 192331071488));
+        self::assertSame('512 B', SiteHealth::formatDiagnosticValue('disk_free_bytes', 512));
+
+        // 空值不能渲染成空白格子，要明确说「取不到」
+        self::assertNotSame('', SiteHealth::formatDiagnosticValue('server', ''));
+        self::assertNotSame('', SiteHealth::formatDiagnosticValue('disk_free_bytes', null));
+    }
 }

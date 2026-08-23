@@ -278,7 +278,15 @@ final class SiteHealth
             'server' => self::truncate((string) ($_SERVER['SERVER_SOFTWARE'] ?? ''), 120),
             'database_driver' => defined('DB_DRIVER') ? DB_DRIVER : '',
             'database_version' => self::truncate($databaseVersion, 120),
-            'site_url' => function_exists('config') ? (string) config('site_url', '') : '',
+            // 站点地址：设置项常年留空（安装器不强制填），真正可信的是 config.php 里
+            // 那个常量。只读设置项会让这一行在大多数站上是空的。
+            'site_url' => (function (): string {
+                $configured = function_exists('config') ? trim((string) config('site_url', '')) : '';
+                if ($configured !== '') {
+                    return $configured;
+                }
+                return defined('SITE_URL') ? (string) SITE_URL : '';
+            })(),
             'debug' => defined('DEBUG') && DEBUG,
             'disk_free_bytes' => $disk === false ? null : (int) $disk,
             'required_extensions' => self::extensionMap(['pdo', 'json', 'mbstring', 'fileinfo', 'dom', 'simplexml']),
@@ -533,6 +541,36 @@ final class SiteHealth
             'description' => self::t($descriptionKey, $params),
             'action_url' => self::safeAdminUrl($actionUrl),
         ];
+    }
+
+    /**
+     * 把 diagnosticInfo() 的一项渲染成人能读的一行。
+     *
+     * 页面与「复制给技术支持」共用这一个实现——两处各写一份，早晚有一处继续吐
+     * `{"pdo":true,...}` 这种给机器看的东西。技术支持要的是「哪个缺了」，不是 JSON。
+     */
+    public static function formatDiagnosticValue(string $key, mixed $value): string
+    {
+        if (is_array($value)) {
+            $on  = array_keys(array_filter($value));
+            $off = array_keys(array_filter($value, static fn($enabled): bool => !$enabled));
+            $parts = [];
+            if ($on !== []) {
+                $parts[] = self::t('health_info_ext_enabled', ['list' => implode('、', $on)]);
+            }
+            if ($off !== []) {
+                $parts[] = self::t('health_info_ext_missing', ['list' => implode('、', $off)]);
+            }
+            return $parts === [] ? self::t('health_info_unavailable') : implode('　', $parts);
+        }
+        if (is_bool($value)) {
+            return self::t($value ? 'yes' : 'no');
+        }
+        if ($key === 'disk_free_bytes' && is_int($value)) {
+            return self::formatBytes($value);
+        }
+        $text = trim((string) ($value ?? ''));
+        return $text === '' ? self::t('health_info_unavailable') : $text;
     }
 
     /** @param array<string,string> $params */

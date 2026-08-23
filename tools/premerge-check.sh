@@ -71,11 +71,15 @@ else
     fi
 fi
 
-# ───── 2. Psalm 全量（过滤 config.php 的已知幻影） ─────
+# ───── 2. Psalm 全量（过滤 config.php 幻影 + gitignored 的本机开发文件） ─────
 echo ""
 echo "[2/5] Psalm 静态分析"
+# 过滤口径与 release-process.md 一致。除 config.php（CI 上不存在）外，还要排除
+# **gitignored 的本机开发文件**：blox_editor*、plugins/*/admin-local.php 不入库，
+# CI 根本扫不到它们，本地却会报错——不排除的话每台开发机结果都不一样。
+PSALM_IGNORE='blox_editor|admin-local|config\.php'
 psalm_errors() {
-    php vendor/vimeo/psalm/psalm --no-progress 2>&1 | grep ERROR | grep -vc "config.php"
+    php vendor/vimeo/psalm/psalm --no-progress 2>&1 | grep ERROR | grep -vcE "$PSALM_IGNORE"
 }
 N=$(psalm_errors)
 if [ "$N" != "0" ]; then
@@ -88,7 +92,7 @@ if [ "$N" = "0" ]; then
     pass "跟踪源码 0 ERROR"
 else
     fail "Psalm 有 $N 个错误"
-    php vendor/vimeo/psalm/psalm --no-progress 2>&1 | grep -A3 ERROR | grep -v "config.php" | head -12 | sed 's/^/      /'
+    php vendor/vimeo/psalm/psalm --no-progress 2>&1 | grep -A3 ERROR | grep -vE "$PSALM_IGNORE" | head -12 | sed 's/^/      /'
 fi
 note "本地永远比 CI 宽松：CI 无 config/config.php。新增独立入口（自带 define ROOT_PATH +"
 note "require config.php 的 admin/*.php、plugins/*/xxx_api.php）必须加进 psalm.xml 的"
