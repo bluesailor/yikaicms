@@ -92,7 +92,10 @@ test('online upgrade forwards the selected delta signature @ci', async ({ page }
       } });
       return;
     }
-    if (action === 'download') {
+    // 下载自 v1.18.8 起是分块续传（download_chunk，前端循环调用到 done）；
+    // 仍接受旧的 download 动作名，两者都必须把 sig 带上——这条断言的本意是
+    // 「客户端不得丢掉增量包的签名」，与分不分块无关。
+    if (action === 'download' || action === 'download_chunk') {
       submittedSignature = body.sig || null;
       await route.fulfill({ json: { code: 1, msg: 'contract captured' } });
       return;

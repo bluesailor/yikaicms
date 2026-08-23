@@ -960,6 +960,7 @@ function uo_download_range(string $url, int $from, int $to, $fh): array
 {
     $range = $from . '-' . $to;
     if (function_exists('curl_init')) {
+        $rangeTotal = null;
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_FILE => $fh,
@@ -968,15 +969,22 @@ function uo_download_range(string $url, int $from, int $to, $fh): array
             CURLOPT_TIMEOUT => UO_DOWNLOAD_CHUNK_SECONDS,
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_SSL_VERIFYPEER => true,
+            // Content-Range 才是资源真实长度的权威来源；HEAD 只是提示（见 uo_download_total）
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $header) use (&$rangeTotal): int {
+                if (preg_match('#^Content-Range:\s*bytes\s+\d+-\d+/(\d+)#i', $header, $m) === 1) {
+                    $rangeTotal = (int) $m[1];
+                }
+                return strlen($header);
+            },
         ]);
         curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = (string) curl_error($ch);
-        $total = null;
+        $total = $rangeTotal;
         $len = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
         curl_close($ch);
         // 206 才是真正的区间响应；200 表示服务端忽略了 Range，整包又发了一遍。
-        if ($status === 200 && $len !== false && $len > 0) {
+        if ($total === null && $status === 200 && $len !== false && $len > 0) {
             $total = (int) $len;
         }
         // 超时不算错：这一段没拉满，下一轮从新的 offset 接着来。
@@ -1005,7 +1013,12 @@ function uo_download_range(string $url, int $from, int $to, $fh): array
     return [$status, $total, ''];
 }
 
-/** 问一次总字节数；HEAD 不可用时留给首个区间响应的 Content-Range 去定。 */
+/**
+ * 问一次总字节数——**只是提示，不是权威**。
+ * 有些主机/WAF 会对不存在的地址回 200 + 一张错误页，于是这里会把错误页的长度当成包大小
+ * （2026-08-24 CI 上就这么红过一次）。权威值来自区间响应的 Content-Range，
+ * uo_download_step 里以后者为准并覆盖本函数的结果。
+ */
 function uo_download_total(string $url): ?int
 {
     if (!function_exists('curl_init')) return null;
@@ -1104,7 +1117,8 @@ function uo_download_step(string $url, string $part, array $state, string $hash,
     clearstatcache(true, $part);
     $received = is_file($part) ? (int) filesize($part) : 0;
     $total = isset($state['total']) && is_int($state['total']) ? $state['total'] : null;
-    if ($total === null) {
+    // 注入了传输实现＝调用方自带 transport（单元测试），不再对外发 HEAD
+    if ($total === null && $fetcher === null) {
         $total = uo_download_total($url);
         $state['total'] = $total;
     }
@@ -1139,7 +1153,14 @@ function uo_download_step(string $url, string $part, array $state, string $hash,
         $state['total'] = $total;
         return $fail($state, 0, $total, '服务器不支持断点续传，已重置进度，请重试', true);
     }
-    if ($total === null && is_int($reportedTotal) && $reportedTotal > 0 && $received === 0) {
+    // Content-Range 报出来的长度覆盖 HEAD 的猜测：后者可能是一张错误页的长度。
+    if (is_int($reportedTotal) && $reportedTotal > 0 && $reportedTotal !== $total) {
+        if ($received > 0 && $total !== null) {
+            // 已经下了一部分，远端长度却变了 —— 包被换过，续传的字节不再可信
+            uo_download_reset_part($part);
+            $state['total'] = $reportedTotal;
+            return $fail($state, 0, $reportedTotal, '远端安装包已变更，已重置下载进度，请重试');
+        }
         $total = $reportedTotal;
         $state['total'] = $total;
     }

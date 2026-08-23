@@ -147,4 +147,58 @@ final class UpgradeDownloadResumeTest extends TestCase
         self::assertLessThanOrEqual(30, UO_DOWNLOAD_CHUNK_SECONDS);
         self::assertGreaterThan(0, UO_DOWNLOAD_CHUNK_BYTES);
     }
+
+    public function testRangeResponseTotalOverridesAStaleOrWrongTotal(): void
+    {
+        // HEAD 只是提示：有主机/WAF 对不存在的地址回 200 + 错误页，于是「包大小」变成
+        // 错误页的长度。2026-08-24 CI 上真红过一次——本地 HEAD 拿不到值所以一直没暴露。
+        // 权威值必须来自区间响应的 Content-Range。
+        $payload = random_bytes(30_000);
+        $hash = hash('sha256', $payload);
+        $wrongTotal = 146;   // 错误页的长度
+
+        $step = uo_download_step(
+            self::URL,
+            $this->part,
+            $this->state($hash, '9.9.9', $wrongTotal),
+            $hash,
+            '9.9.9',
+            $this->server($payload)
+        );
+
+        self::assertSame('', $step['error']);
+        self::assertSame(strlen($payload), $step['total'], '应以 Content-Range 的长度为准');
+        // 第一轮的取值区间是按错误的 total 算的，所以只拿到一小段；纠正后继续拉完即可。
+        self::assertFalse($step['complete'], '纠正 total 后本轮不该判为完成');
+
+        $state = $step['state'];
+        for ($i = 0; $i < 5 && !$step['complete']; $i++) {
+            $step = uo_download_step(self::URL, $this->part, $state, $hash, '9.9.9', $this->server($payload));
+            $state = $step['state'];
+        }
+        self::assertTrue($step['complete'], '纠正后应能正常下完');
+        self::assertSame($payload, (string) file_get_contents($this->part));
+    }
+
+    public function testRemotePackageChangingMidDownloadResetsProgress(): void
+    {
+        // 下到一半远端长度变了 = 包被换过，已下的字节不再可信，必须清零而不是接着拼。
+        $payload = random_bytes(30_000);
+        $hash = hash('sha256', $payload);
+        file_put_contents($this->part, substr($payload, 0, 5_000));
+
+        $step = uo_download_step(
+            self::URL,
+            $this->part,
+            $this->state($hash, '9.9.9', 99_999),   // 旧游标记的是另一个长度
+            $hash,
+            '9.9.9',
+            $this->server($payload)
+        );
+
+        self::assertStringContainsString('已变更', $step['error']);
+        self::assertSame(0, $step['received']);
+        clearstatcache(true, $this->part);
+        self::assertSame(0, (int) filesize($this->part));
+    }
 }
