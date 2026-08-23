@@ -24,14 +24,18 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 | d3-flextree | — | WTFPL | https://github.com/Klortho/d3-flextree |
 | d3-org-chart | — | MIT | https://github.com/bumbeishvili/org-chart |
 
-## 插件内置资源（plugins/logo-maker/assets/icon-library/）
+## 插件内置资源（经插件市场分发，不随核心安装包）
+
+标志设计器（logo-maker）自 v1.18.6 起不再随核心安装包分发，改由后台插件市场按需安装。
+其内置图标库仍按下列协议授权：
 
 | 组件 | 版本 | 协议 | 项目地址 |
 |---|---|---|---|
 | Phosphor Icons（bold/duotone SVG 子集） | — | MIT | https://phosphoricons.com |
 | Tabler Icons（outline SVG 子集） | — | MIT | https://tabler.io/icons |
 
-许可原文随包见 `plugins/logo-maker/assets/icon-library/licenses/`，来源见该目录 README。
+许可原文随**插件包**分发，安装后见 `plugins/logo-maker/assets/icon-library/licenses/`。
+SVG 本体自 v1.18.6 起打包为同目录下的 `icons.bin` + 索引，仅改变存放形式，不改变授权。
 
 ## PHP 依赖（Composer，随包只保留生产依赖）
 
@@ -54,6 +58,11 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 3. **引入任何第三方代码时，必须同步更新本清单**，并保留其版权与协议声明。
 
 ### 历史记录
+
+- **2026-08-23（v1.18.6 核对）**：本周期未引入任何新的第三方组件。变动两处，均不涉及
+  授权变化：标志设计器移出核心安装包改由插件市场分发（图标库许可原文随插件包，见上），
+  其 SVG 图标改为 `icons.bin` 索引化存放；`assets/bootstrap-icons/fonts/` 删除 `.woff`
+  仅保留 `.woff2`（同一组件的字体格式取舍）。反向核对：清单内组件在代码中均有真实引用。
 
 - **2026-08-19（清理未用组件）**：移除 `assets/aos/`（库从未被加载；`data-aos` 属性由自研
   `assets/js/scroll-anim.js` 消费，属性保留）与 `assets/wangeditor/`（`initWangEditor`
