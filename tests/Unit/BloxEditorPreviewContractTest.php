@@ -121,6 +121,27 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('<i class="ti ti-layout-grid text-base"></i><span', $editor);
     }
 
+    /**
+     * 空画布提示只能有一处。
+     *
+     * 由来 2026-08-24（用户反馈，新建单页可复现）：编辑器侧另有一层浮层
+     * （快捷加区块/分栏 + 一行提示），与 iframe 内的 .yk-empty-doc 卡片触发条件相同、
+     * 位置几乎重合，两段文字直接叠在一起糊成一团。留 iframe 内那套：它随预览缩放定位、
+     * 带「从模板库导入」这个最有用的首动作，并且有本文件上面那条测试覆盖。
+     */
+    public function testEmptyCanvasHasExactlyOneHintLayer(): void
+    {
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        // 画布宿主里不得再有 sections.length === 0 的浮层
+        $this->assertStringNotContainsString('x-show="sections.length === 0"', $workspace);
+        // 浮层专属的快捷入口也应随之消失（元素库仍可从工具栏与左侧面板进入）
+        $this->assertStringNotContainsString('data-testid="blox-canvas-library-open"', $workspace);
+
+        // 右侧结构树的同名占位是另一回事，必须保留——它说明的是「结构为空」
+        $this->assertStringContainsString('blox_click_any_element', $workspace);
+    }
+
     /** r10：文档 v1 信封——编辑器 boot 解包 settings/sections，保存封回；sticky 开关只在 header 模板 */
     public function testDocumentEnvelopeContract(): void
     {

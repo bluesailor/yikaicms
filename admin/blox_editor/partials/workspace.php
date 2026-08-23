@@ -2524,48 +2524,18 @@ declare(strict_types=1);
                 <iframe x-ref="canvas" data-testid="blox-canvas"
                         class="bg-white shadow-xl border-0 rounded"
                         :style="previewFrameStyle()"></iframe>
-                <div x-show="sections.length === 0"
-                     x-transition.opacity
-                     class="absolute inset-0 flex items-start justify-center pt-24 pointer-events-none">
-                    <div class="pointer-events-auto text-center">
-                        <div class="inline-flex items-center gap-2">
-                            <button type="button" @click="addSection(1)" title="<?= e(__('blox_add_module')) ?>"
-                                    class="w-9 h-9 rounded bg-gray-100 hover:bg-blue-50 hover:text-blue-600 border border-gray-200 text-gray-500 inline-flex items-center justify-center transition">
-                                <i class="ti ti-plus text-lg"></i>
-                            </button>
-                            <div class="relative group">
-                                <button type="button" @click="addLayout([6, 6])" title="<?= e(__('blox_layout')) ?>"
-                                        class="w-9 h-9 rounded bg-gray-100 group-hover:bg-yellow-300 group-hover:border-yellow-300 group-hover:text-gray-900 hover:bg-yellow-300 hover:border-yellow-300 hover:text-gray-900 border border-gray-200 text-gray-500 inline-flex items-center justify-center transition">
-                                    <i class="ti ti-layout-columns text-lg"></i>
-                                </button>
-                                <div class="hidden group-hover:block absolute left-1/2 top-11 -translate-x-1/2 z-30 w-[420px] rounded-md bg-gray-900 shadow-2xl p-3 text-left">
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <template x-for="preset in layoutPresets" :key="preset.label">
-                                            <button type="button" @click="addLayout(preset.spans)" :title="preset.label"
-                                                    class="h-12 rounded bg-gray-800 hover:bg-gray-700 p-2 transition">
-                                                <span class="flex h-full gap-1">
-                                                    <template x-for="(span, idx) in preset.spans" :key="idx">
-                                                        <span class="rounded bg-gray-600 hover:bg-gray-500" :style="'flex:' + span"></span>
-                                                    </template>
-                                                </span>
-                                            </button>
-                                        </template>
-                                    </div>
-                                    <div class="absolute left-1/2 -bottom-7 -translate-x-1/2 rounded bg-gray-900 px-2 py-1 text-xs font-semibold text-white whitespace-nowrap"><?= __('blox_layout_section') ?></div>
-                                </div>
-                            </div>
-                            <button type="button" @click="libOpen = true" data-testid="blox-canvas-library-open" title="<?= e(__('blox_open_library')) ?>"
-                                    class="w-9 h-9 rounded bg-gray-100 hover:bg-blue-50 hover:text-blue-600 border border-gray-200 text-gray-500 inline-flex items-center justify-center transition">
-                                <i class="ti ti-category text-lg"></i>
-                            </button>
-                            <button type="button" @click="toast(<?= e($jt('blox_click_to_add')) ?>)" title="<?= e(__('blox_tip')) ?>"
-                                    class="w-9 h-9 rounded bg-gray-100 hover:bg-blue-50 hover:text-blue-600 border border-gray-200 text-gray-500 inline-flex items-center justify-center transition">
-                                <i class="ti ti-help-circle text-lg"></i>
-                            </button>
-                        </div>
-                        <p class="mt-3 text-xs font-medium text-gray-600"><?= __('blox_click_any_element') ?></p>
-                    </div>
-                </div>
+                <?php
+                // 空画布的提示只保留一处 —— 由预览页自己渲染（BloxCanvasPreview 的
+                // .yk-empty-doc：「画布还是空的 / 从模板库导入 / 从空白区块开始」）。
+                //
+                // 这里原先还有一层编辑器侧的浮层（快捷加区块/分栏/元素库 + 一行提示），
+                // 与 iframe 内那张卡片触发条件相同、位置又几乎重合，新建单页时两段文字
+                // 直接叠在一起糊成一团（2026-08-24 用户反馈）。iframe 内那套更靠谱：
+                // 它随预览缩放定位、带「从模板库导入」这个最有用的首动作，且有单元测试
+                // 覆盖（BloxEditorPreviewContractTest）；浮层这套没有任何测试引用。
+                //
+                // 分栏快捷选择在元素库的「布局」分类里仍可用，不是唯一入口。
+                ?>
             </div>
             </div>
         </main>
