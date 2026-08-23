@@ -21,6 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $previousScan = $_SESSION['site_health_scan'] ?? null;
         if (is_array($previousScan)) {
             SiteHealth::cleanupBrowserProbe((string) ($previousScan['storage_file'] ?? ''), STORAGE_PATH);
+            SiteHealth::cleanupUploadProbe((string) ($previousScan['upload_file'] ?? ''), UPLOADS_PATH);
             unset($_SESSION['site_health_scan']);
         }
         $probe = SiteHealth::createBrowserProbes(STORAGE_PATH);
@@ -31,6 +32,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             'checks' => SiteHealth::normalizeResults($checks),
             'storage_file' => $probe['storage_file'],
             'storage_token' => $probe['storage_token'],
+            'upload_file' => $probe['upload_file'],
+            'upload_token' => $probe['upload_token'],
         ];
         success([
             'nonce' => $probe['nonce'],
@@ -48,6 +51,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             || (int) $scan['created_at'] < time() - 600) {
             if (is_array($scan)) {
                 SiteHealth::cleanupBrowserProbe((string) ($scan['storage_file'] ?? ''), STORAGE_PATH);
+                SiteHealth::cleanupUploadProbe((string) ($scan['upload_file'] ?? ''), UPLOADS_PATH);
             }
             unset($_SESSION['site_health_scan']);
             error(__('health_scan_expired'));
@@ -61,7 +65,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $checks = is_array($scan['checks'] ?? null) ? $scan['checks'] : [];
             $checks = array_merge(
                 $checks,
-                SiteHealth::evaluateBrowserProbes($observations, (string) ($scan['storage_token'] ?? '')),
+                SiteHealth::evaluateBrowserProbes(
+                    $observations,
+                    (string) ($scan['storage_token'] ?? ''),
+                    (string) ($scan['upload_token'] ?? '')
+                ),
                 [SiteHealth::checkUpdateService()]
             );
             $checks = SiteHealth::normalizeResults($checks);
@@ -84,6 +92,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             );
         } finally {
             SiteHealth::cleanupBrowserProbe((string) ($scan['storage_file'] ?? ''), STORAGE_PATH);
+                SiteHealth::cleanupUploadProbe((string) ($scan['upload_file'] ?? ''), UPLOADS_PATH);
             unset($_SESSION['site_health_scan']);
         }
         success(['checks' => $checks, 'summary' => $summary, 'scanned_at' => $scannedAt], '');

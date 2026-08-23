@@ -12,6 +12,9 @@ final class SiteHealth
     public const UNKNOWN = 'unknown';
 
     private const PHP_PROBE_MARKER = 'YIKAI_SITE_HEALTH_PHP_PROBE';
+    /** 上传目录探针：被执行时输出 EXEC 标记，被当静态文件返回时正文里只有 SRC 标记。 */
+    private const UPLOAD_EXEC_MARKER = 'YIKAI_UPLOAD_PROBE_EXEC';
+    private const UPLOAD_SRC_MARKER = 'YIKAI_UPLOAD_PROBE_SRC';
 
     /** @return list<array<string,mixed>> */
     public static function runDirect(?string $root = null): array
@@ -88,10 +91,13 @@ final class SiteHealth
         return $summary;
     }
 
-    /** @return array{nonce:string,probes:list<array{id:string,url:string,method:string}>,checks:list<array<string,mixed>>,storage_file:string,storage_token:string} */
-    public static function createBrowserProbes(string $storagePath): array
+    /** @return array{nonce:string,probes:list<array{id:string,url:string,method:string}>,checks:list<array<string,mixed>>,storage_file:string,storage_token:string,upload_file:string,upload_token:string} */
+    public static function createBrowserProbes(string $storagePath, ?string $uploadsPath = null): array
     {
         self::pruneOldStorageProbes($storagePath);
+        if ($uploadsPath === null && defined('UPLOADS_PATH')) {
+            $uploadsPath = (string) UPLOADS_PATH;
+        }
         $nonce = bin2hex(random_bytes(16));
         $storageToken = bin2hex(random_bytes(16));
         $storageName = 'site-health-probe-' . bin2hex(random_bytes(8)) . '.txt';
@@ -113,12 +119,37 @@ final class SiteHealth
             $probes[] = ['id' => 'storage_web', 'url' => '/storage/' . rawurlencode($storageName), 'method' => 'GET'];
         }
 
+        // 上传目录能不能执行 PHP —— 这是本组探针里危害最高的一项：
+        // uploads/ 是唯一接收用户文件的目录，能执行就意味着上传校验一旦被绕过即 RCE。
+        // 包内的 uploads/.htaccess 只对 Apache 有效，nginx 完全不读它，因此必须实测。
+        $uploadFile = '';
+        $uploadToken = bin2hex(random_bytes(16));
+        if (is_string($uploadsPath) && $uploadsPath !== '' && is_dir($uploadsPath)) {
+            self::pruneOldUploadProbes($uploadsPath);
+            $uploadName = 'site-health-probe-' . bin2hex(random_bytes(8)) . '.php';
+            $candidate = rtrim($uploadsPath, '/\\') . DIRECTORY_SEPARATOR . $uploadName;
+            $body = '<?php /* ' . self::UPLOAD_SRC_MARKER . ':' . $uploadToken . ' */ '
+                . "echo '" . self::UPLOAD_EXEC_MARKER . ':' . $uploadToken . "';";
+            if (@file_put_contents($candidate, $body, LOCK_EX) !== false) {
+                $uploadFile = $candidate;
+                $probes[] = ['id' => 'upload_php_exec', 'url' => '/uploads/' . rawurlencode($uploadName), 'method' => 'GET'];
+            }
+        }
+        if ($uploadFile === '') {
+            $checks[] = self::result(
+                'upload_php_exec', self::UNKNOWN, 'security',
+                'health_upload_exec_title', 'health_upload_exec_unavailable', '/admin/system.php'
+            );
+        }
+
         return [
             'nonce' => $nonce,
             'probes' => $probes,
             'checks' => $checks,
             'storage_file' => $storageFile,
             'storage_token' => $storageToken,
+            'upload_file' => $uploadFile,
+            'upload_token' => $uploadToken,
         ];
     }
 
@@ -126,7 +157,7 @@ final class SiteHealth
      * @param array<int,mixed> $observations
      * @return list<array<string,mixed>>
      */
-    public static function evaluateBrowserProbes(array $observations, string $storageToken): array
+    public static function evaluateBrowserProbes(array $observations, string $storageToken, string $uploadToken = ''): array
     {
         $byId = [];
         foreach ($observations as $observation) {
@@ -134,7 +165,7 @@ final class SiteHealth
                 continue;
             }
             $id = (string) ($observation['id'] ?? '');
-            if (!in_array($id, ['config_php_web', 'includes_php_web', 'storage_web', 'loopback'], true)) {
+            if (!in_array($id, ['config_php_web', 'includes_php_web', 'storage_web', 'upload_php_exec', 'loopback'], true)) {
                 continue;
             }
             $byId[$id] = [
@@ -172,6 +203,25 @@ final class SiteHealth
             }
         }
 
+        // 上传目录：判定顺序与其它探针相反——这里「被执行」才是最坏结果。
+        //   正文含 EXEC 标记 = PHP 在 uploads 里会跑 → 严重（上传校验一被绕过就是 RCE）
+        //   正文含 SRC 标记  = 被当静态文件原样返回 → 建议（不是 RCE，但源码可读）
+        //   403/404          = 已被服务器挡住 → 良好
+        if (isset($byId['upload_php_exec'])) {
+            $upload = $byId['upload_php_exec'];
+            if ($upload['error']) {
+                $results[] = self::result('upload_php_exec', self::UNKNOWN, 'security', 'health_upload_exec_title', 'health_upload_exec_unknown');
+            } elseif ($uploadToken !== '' && str_contains($upload['body'], self::UPLOAD_EXEC_MARKER . ':' . $uploadToken)) {
+                $results[] = self::result('upload_php_exec', self::CRITICAL, 'security', 'health_upload_exec_title', 'health_upload_exec_bad');
+            } elseif ($uploadToken !== '' && str_contains($upload['body'], self::UPLOAD_SRC_MARKER . ':' . $uploadToken)) {
+                $results[] = self::result('upload_php_exec', self::RECOMMENDED, 'security', 'health_upload_exec_title', 'health_upload_exec_source');
+            } elseif (in_array($upload['status'], [403, 404], true)) {
+                $results[] = self::result('upload_php_exec', self::GOOD, 'security', 'health_upload_exec_title', 'health_upload_exec_good');
+            } else {
+                $results[] = self::result('upload_php_exec', self::RECOMMENDED, 'security', 'health_upload_exec_title', 'health_upload_exec_unexpected');
+            }
+        }
+
         $loopback = $byId['loopback'] ?? null;
         if ($loopback === null || $loopback['error'] || $loopback['status'] === 0) {
             $results[] = self::result('loopback', self::UNKNOWN, 'environment', 'health_loopback_title', 'health_loopback_unknown');
@@ -182,6 +232,42 @@ final class SiteHealth
         }
 
         return $results;
+    }
+
+    /** 删除上传目录里的探针；命名与目录都要核对，避免被构造成任意删除。 */
+    public static function cleanupUploadProbe(string $uploadFile, string $uploadsPath): void
+    {
+        if ($uploadFile === '' || $uploadsPath === '') {
+            return;
+        }
+        $base = realpath($uploadsPath);
+        $file = realpath($uploadFile);
+        if ($base !== false && $file !== false
+            && str_starts_with($file, rtrim($base, '/\\') . DIRECTORY_SEPARATOR)
+            && preg_match('/^site-health-probe-[a-f0-9]{16}\.php$/', basename($file)) === 1) {
+            @unlink($file);
+        }
+    }
+
+    private static function pruneOldUploadProbes(string $uploadsPath): void
+    {
+        if (!is_dir($uploadsPath)) {
+            return;
+        }
+        $cutoff = time() - 3600;
+        $scanned = 0;
+        foreach (new DirectoryIterator($uploadsPath) as $entry) {
+            if ($entry->isFile()
+                && preg_match('/^site-health-probe-[a-f0-9]{16}\.php$/', $entry->getFilename()) === 1) {
+                if ($entry->getMTime() < $cutoff) {
+                    @unlink($entry->getPathname());
+                }
+                $scanned++;
+                if ($scanned >= 100) {
+                    break;
+                }
+            }
+        }
     }
 
     public static function cleanupBrowserProbe(string $storageFile, string $storagePath): void
