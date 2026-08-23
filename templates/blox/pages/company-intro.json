@@ -1,0 +1,308 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "公司介绍",
+  "thumbnail": "/assets/images/blox-templates/company-intro.svg",
+  "requires": {
+    "elements": ["heading", "text", "image", "button", "divider", "icon-box", "card", "quote", "stats-group", "stat-item", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "页面标题",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "gap": "sm",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"margin:0;letter-spacing:.18em;text-transform:uppercase;font-size:.75rem;color:#6b7280\">About us</p>"
+                }
+              },
+              {
+                "type": "heading",
+                "data": {
+                  "text": "以专业与稳健，陪伴客户长期成长",
+                  "level": "h1",
+                  "visual_size": { "d": "5xl", "t": "4xl", "m": "3xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"margin:0;font-size:1.05rem;line-height:1.9;color:#4b5563;max-width:46rem\">请在这里用两三句话说明公司是做什么的、服务哪类客户、以及区别于同行的地方。写具体一点：行业、成立时间、主要产品或服务，比空泛的形容词更容易被记住。</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "公司简介（图文）",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "我们是谁",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "divider",
+                "data": { "style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm" }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"line-height:1.9;color:#4b5563\">这一段写公司的来历与定位：什么时候成立、为什么成立、主营业务是什么。</p><p style=\"line-height:1.9;color:#4b5563\">第二段写规模与能力：厂房面积、设备、资质、团队构成、年产能或服务量——用可核实的事实代替形容词。</p><p style=\"line-height:1.9;color:#4b5563\">第三段写客户与合作：主要服务的行业、代表客户类型、合作方式。</p>"
+                }
+              },
+              {
+                "type": "button",
+                "data": { "text": "联系我们", "url": "/contact.html", "variant": "primary", "align": "left" }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "image",
+                "data": { "src": "/images/case-demo.jpg", "alt": "公司环境照片" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "关键数字",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "stats-group",
+                "data": {
+                  "desktop_columns": "4",
+                  "tablet_columns": "2",
+                  "mobile_columns": "2",
+                  "gap": "lg",
+                  "counter_enabled": true,
+                  "counter_start": 0,
+                  "counter_duration": 1600,
+                  "children": [
+                    { "type": "stat-item", "data": { "icon": "calendar", "number": "2008", "label": "成立年份" } },
+                    { "type": "stat-item", "data": { "icon": "users", "number": "120", "label": "团队规模" } },
+                    { "type": "stat-item", "data": { "icon": "building-factory-2", "number": "3000", "label": "厂房面积（㎡）" } },
+                    { "type": "stat-item", "data": { "icon": "world", "number": "26", "label": "服务国家与地区" } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "我们的优势",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "为什么选择我们",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p style=\"text-align:center;color:#6b7280;margin:0 auto;max-width:40rem\">三到四条最有说服力的理由。每条一句话说清「客户能得到什么」，而不是「我们有什么」。</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "优势三栏",
+        "settings": {
+          "padding": { "d": "md", "m": "sm" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "certificate",
+                  "title": "资质齐全",
+                  "text": "通过行业主要体系认证，出具完整质检与合规文件。"
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "adjustments",
+                  "title": "按需定制",
+                  "text": "从选型到落地全程参与，按客户工况调整方案而非套用标准品。"
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "headset",
+                  "title": "长期服务",
+                  "text": "交付不是终点，提供质保期内响应与后续备件支持。"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "能力矩阵",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/product-demo.jpg",
+                  "title": "研发设计",
+                  "text": "自有设计团队，可承接非标定制与结构优化。",
+                  "link": ""
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/case-demo.jpg",
+                  "title": "生产制造",
+                  "text": "关键工序自主可控，过程检验记录可追溯。",
+                  "link": ""
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/cert-1.jpg",
+                  "title": "质量管控",
+                  "text": "出厂前逐台检测，随货提供检测报告。",
+                  "link": ""
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "客户评价",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "quote",
+                "data": {
+                  "text": "把一句真实的客户反馈放在这里。具体到项目与结果的评价，比「服务很好」有力得多。",
+                  "author": "某某客户 · 采购负责人"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "行动号召",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "cta",
+                "data": {
+                  "use_home_text": false,
+                  "title": "想了解我们能为你做什么？",
+                  "text": "留下需求，我们会在一个工作日内回复。",
+                  "btn_text": "立即咨询",
+                  "btn_url": "/contact.html"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

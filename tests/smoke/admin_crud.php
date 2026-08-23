@@ -128,7 +128,7 @@ foreach ($cases as [$name, $editUrl, $postUrl, $data, $listUrl, $expectText]) {
             }
             if (!str_contains($lbody, $expectText)) {
                 $fails[] = "$name → 保存成功但列表查不到（疑似 lang/过滤条件不匹配）";
-                echo "✗ 新建$name 后在列表页找不到「$expectText」——存进去了但列表查不到\n";
+                echo "✗ 新建$name 后在列表页找不到「{$expectText}」——存进去了但列表查不到\n";
                 continue;
             }
             $seen = '，列表可见 ✓';

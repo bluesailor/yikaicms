@@ -14,14 +14,19 @@ final class BloxBuiltinTemplateProviderTest extends TestCase
     public function test404TemplateIsListedOnlyForPageEditing(): void
     {
         $provider = new BloxBuiltinTemplateProvider();
-        $items = $provider->items('page');
+        $items = [];
+        foreach ($provider->items('page') as $item) {
+            $items[$item['key']] = $item;
+        }
 
-        self::assertCount(1, $items);
-        self::assertSame('builtin:404-route-lost', $items[0]['key']);
-        self::assertSame('page', $items[0]['type']);
-        self::assertSame('builtin', $items[0]['source']);
-        self::assertSame('page', $items[0]['category']);
-        self::assertSame('/assets/images/blox-templates/404-route-lost.png', $items[0]['thumbnail']);
+        // 断言这一条的属性，不断言内置模板的总数——每加一套随包模板都要来改一次
+        // 计数，那是没有信息量的维护成本（2026-08-24 加公司介绍/联系我们时踩到）。
+        self::assertArrayHasKey('builtin:404-route-lost', $items);
+        $item = $items['builtin:404-route-lost'];
+        self::assertSame('page', $item['type']);
+        self::assertSame('builtin', $item['source']);
+        self::assertSame('page', $item['category']);
+        self::assertSame('/assets/images/blox-templates/404-route-lost.png', $item['thumbnail']);
         self::assertSame([], $provider->items('home'));
     }
 

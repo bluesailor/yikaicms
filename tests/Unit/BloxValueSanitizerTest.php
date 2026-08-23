@@ -193,4 +193,38 @@ final class BloxValueSanitizerTest extends TestCase
         $this->assertArrayNotHasKey('children', $observed['container'] ?? []);
         $this->assertArrayNotHasKey('_global_style', $observed['container'] ?? []);
     }
+
+    public function testCompositeControlKeepsItsArrayPayload(): void
+    {
+        // faq_repeater 这类复合类型本来就以数组承载内容。
+        //
+        // ⚠ 回归由来（2026-08-24）：标量数组 guard 原先不分类型一律清空，于是 accordion
+        // 的 items 在保存管线里被抹成空串——**编辑器保存一次 FAQ 就没了**，随 v1.18.6/
+        // v1.18.7 发了出去。当时已有 testUnknownControlTypePassesThrough，但它传的是
+        // 字符串，永远走不到数组那条分支，所以没拦住。
+        $items = [
+            ['question' => '问题一', 'answer' => '答案一'],
+            ['question' => '问题二', 'answer' => '答案二'],
+        ];
+        self::assertSame($items, $this->s('faq_repeater', $items));
+    }
+
+    public function testAccordionItemsSurviveTheSavePipeline(): void
+    {
+        // 端到端：走真实保存管线，而不是只测 sanitize 本身——上面那个 guard 跑在
+        // switch 之前，只测单元函数容易和管线实际行为脱节。
+        $doc = ['schema' => 1, 'settings' => [], 'sections' => [[
+            'type' => 'section', 'settings' => [], 'columns' => [['elements' => [[
+                'type' => 'accordion',
+                'data' => ['open_first' => true, 'items' => [
+                    ['question' => '保存后还在吗？', 'answer' => '这条用来验证 FAQ 不被清空。'],
+                ]],
+            ]]]],
+        ]]];
+        $out = BloxDocumentPipeline::process((string) json_encode($doc, JSON_UNESCAPED_UNICODE));
+        $data = $out['sections'][0]['columns'][0]['elements'][0]['data'];
+
+        self::assertIsArray($data['items'] ?? null, 'FAQ 条目不能被保存管线清空');
+        self::assertSame('保存后还在吗？', $data['items'][0]['question'] ?? null);
+    }
 }
