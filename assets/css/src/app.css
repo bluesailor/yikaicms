@@ -94,6 +94,40 @@
 @media print { .yk-code-copy { display: none; } }
 
 /* ============================================================
+   种子/预设富文本样式词汇（v1.18.8）
+   sanitizeHtml（HtmlPolicy::richText）会剥掉 style 属性，text 元素里的
+   内联样式在前台永远不生效——预设与随包模板的排版样式一律走这里的类名。
+   带 .prose 前缀是为了赢过 .prose p / .prose ul 的默认值（同为无 layer，
+   靠特异性 0,2,0 > 0,1,1 取胜）。新增预设需要新样式时在此补类，禁止回退
+   到 style=""。防回归见 tests/Unit/BloxSeedSanitizerStableTest.php。
+   ============================================================ */
+
+/* 通用 */
+.prose .yk-center { text-align: center; }
+
+/* 价格方案（元素库预设 + 首页自定义版块种子） */
+.prose ul.yk-plan-list { list-style: none; padding-left: 0; margin: 0; line-height: 2.2; color: #555; }
+.prose .yk-price { font-size: 2rem; font-weight: 700; }
+.prose .yk-price--hot { color: #4f46e5; }
+.prose .yk-price-note { color: #888; }
+.prose .yk-badge-row { text-align: center; margin: 0 0 6px; }
+.prose .yk-badge { display: inline-block; background: #4f46e5; color: #fff; font-size: 12px; font-weight: 600; padding: 3px 14px; border-radius: 9999px; }
+
+/* 整页模板（公司介绍 / 联系我们） */
+.prose .yk-eyebrow { margin: 0; letter-spacing: .18em; text-transform: uppercase; font-size: .75rem; color: #6b7280; }
+.prose .yk-lead { margin: 0; font-size: 1.05rem; line-height: 1.9; color: #4b5563; max-width: 46rem; }
+.prose .yk-copy { line-height: 1.9; color: #4b5563; }
+.prose .yk-copy--center { margin: 0 auto; text-align: center; max-width: 38rem; }
+.prose .yk-note { margin: 0 0 .5rem; color: #6b7280; font-size: .95rem; }
+.prose .yk-hint-center { text-align: center; color: #6b7280; margin: 0 auto; max-width: 40rem; }
+
+/* 404 · 访问迷航（模板自带暖灰配色） */
+.prose .yk-404-meta-row { display: flex; justify-content: space-between; gap: 1rem; margin: 0; color: #686866; font-size: .75rem; text-transform: uppercase; }
+.prose .yk-404-label { margin: 0; color: #777773; font-size: .75rem; text-transform: uppercase; }
+.prose .yk-404-value { margin: 0; text-align: right; color: #686866; }
+.prose .yk-404-desc { max-width: 34rem; margin: 2rem auto .75rem; text-align: center; color: #666663; }
+
+/* ============================================================
    滚动入场动画（Intersection Observer 触发）
    ============================================================ */
 

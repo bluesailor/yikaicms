@@ -54,7 +54,7 @@
                     {
                       "type": "text",
                       "data": {
-                        "html": "<p style=\"display:flex;justify-content:space-between;gap:1rem;margin:0;color:#686866;font-size:.75rem;text-transform:uppercase\"><span>Return route</span><span>Access denied</span></p>"
+                        "html": "<p class=\"yk-404-meta-row\"><span>Return route</span><span>Access denied</span></p>"
                       }
                     },
                     {
@@ -63,7 +63,7 @@
                     },
                     {
                       "type": "text",
-                      "data": {"html": "<p style=\"margin:0;color:#777773;font-size:.75rem;text-transform:uppercase\">Destination</p>"}
+                      "data": {"html": "<p class=\"yk-404-label\">Destination</p>"}
                     },
                     {
                       "type": "heading",
@@ -78,7 +78,7 @@
                     },
                     {
                       "type": "text",
-                      "data": {"html": "<p style=\"margin:0;text-align:right;color:#686866\">地址有效，但此页面未抵达。</p>"}
+                      "data": {"html": "<p class=\"yk-404-value\">地址有效，但此页面未抵达。</p>"}
                     }
                   ]
                 }
@@ -86,7 +86,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"max-width:34rem;margin:2rem auto .75rem;text-align:center;color:#666663\">你访问的页面可能已移动、删除，或从未存在。</p>"
+                  "html": "<p class=\"yk-404-desc\">你访问的页面可能已移动、删除，或从未存在。</p>"
                 }
               },
               {

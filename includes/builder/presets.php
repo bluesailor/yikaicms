@@ -25,7 +25,7 @@ function builderPresets(): array
                     'columns' => [[
                         'id' => 'c', 'elements' => [
                             ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_hero_h1'), 'level' => 'h1']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_hero_p') . '</p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center">' . __('blox_ps_hero_p') . '</p>']],
                             ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('home_learn_more'), 'url' => '/about.html', 'new_tab' => false]],
                         ],
                     ]],
@@ -59,21 +59,21 @@ function builderPresets(): array
                     'columns' => [
                         ['id' => 'c', 'elements' => [
                             ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_plan_basic'), 'level' => 'h3']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥99</span> <span style="color:#888">/ ' . __('blox_ps_per_month') . '</span></p>']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>' . __('blox_ps_pb_1') . '</li><li>' . __('blox_ps_pb_2') . '</li><li>' . __('blox_ps_pb_3') . '</li></ul>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center"><span class="yk-price">¥99</span> <span class="yk-price-note">/ ' . __('blox_ps_per_month') . '</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul class="yk-plan-list"><li>' . __('blox_ps_pb_1') . '</li><li>' . __('blox_ps_pb_2') . '</li><li>' . __('blox_ps_pb_3') . '</li></ul>']],
                             ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('blox_ps_pick_basic'), 'url' => '/contact.html', 'new_tab' => false]],
                         ]],
                         ['id' => 'c', 'card_bg' => '#fffbeb', 'elements' => [
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div style="text-align:center;margin-bottom:6px"><span style="display:inline-block;background:#4f46e5;color:#fff;font-size:12px;font-weight:600;padding:3px 14px;border-radius:9999px">★ ' . __('blox_ps_recommended') . '</span></div>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<div class="yk-badge-row"><span class="yk-badge">★ ' . __('blox_ps_recommended') . '</span></div>']],
                             ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_plan_pro'), 'level' => 'h3']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700;color:#4f46e5">¥299</span> <span style="color:#888">/ ' . __('blox_ps_per_month') . '</span></p>']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>' . __('blox_ps_pp_1') . '</li><li>' . __('blox_ps_pp_2') . '</li><li>' . __('blox_ps_pp_3') . '</li><li>' . __('blox_ps_pp_4') . '</li></ul>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center"><span class="yk-price yk-price--hot">¥299</span> <span class="yk-price-note">/ ' . __('blox_ps_per_month') . '</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul class="yk-plan-list"><li>' . __('blox_ps_pp_1') . '</li><li>' . __('blox_ps_pp_2') . '</li><li>' . __('blox_ps_pp_3') . '</li><li>' . __('blox_ps_pp_4') . '</li></ul>']],
                             ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('blox_ps_pick_pro'), 'url' => '/contact.html', 'new_tab' => false]],
                         ]],
                         ['id' => 'c', 'elements' => [
                             ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_plan_flagship'), 'level' => 'h3']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center"><span style="font-size:2rem;font-weight:700">¥999</span> <span style="color:#888">/ ' . __('blox_ps_per_month') . '</span></p>']],
-                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul style="list-style:none;padding:0;margin:0;line-height:2.2;color:#555"><li>' . __('blox_ps_pf_1') . '</li><li>' . __('blox_ps_pf_2') . '</li><li>' . __('blox_ps_pf_3') . '</li><li>' . __('blox_ps_pf_4') . '</li></ul>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center"><span class="yk-price">¥999</span> <span class="yk-price-note">/ ' . __('blox_ps_per_month') . '</span></p>']],
+                            ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<ul class="yk-plan-list"><li>' . __('blox_ps_pf_1') . '</li><li>' . __('blox_ps_pf_2') . '</li><li>' . __('blox_ps_pf_3') . '</li><li>' . __('blox_ps_pf_4') . '</li></ul>']],
                             ['id' => 'e', 'type' => 'button', 'data' => ['text' => __('blox_ps_contact_sales'), 'url' => '/contact.html', 'new_tab' => false]],
                         ]],
                     ],
@@ -201,7 +201,7 @@ function builderPresets(): array
                         'columns' => [[
                             'id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_co_t'), 'level' => 'h2']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_co_p') . '</p>']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center">' . __('blox_ps_co_p') . '</p>']],
                             ],
                         ]],
                     ],
@@ -224,17 +224,17 @@ function builderPresets(): array
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'award', 'size' => 'lg', 'color' => '', 'text' => '']],
                                 ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('home_adv_1_title'), 'level' => 'h4']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_a1') . '</p>']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center">' . __('blox_ps_a1') . '</p>']],
                             ]],
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'shield', 'size' => 'lg', 'color' => '', 'text' => '']],
                                 ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_f2_t'), 'level' => 'h4']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_a2') . '</p>']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center">' . __('blox_ps_a2') . '</p>']],
                             ]],
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'icon', 'data' => ['icon' => 'users', 'size' => 'lg', 'color' => '', 'text' => '']],
                                 ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_f3_t'), 'level' => 'h4']],
-                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p style="text-align:center">' . __('blox_ps_a3') . '</p>']],
+                                ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p class="yk-center">' . __('blox_ps_a3') . '</p>']],
                             ]],
                         ],
                     ],
