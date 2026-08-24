@@ -15,6 +15,68 @@ declare(strict_types=1);
  *    中文。当自定义轮播仍是未经修改的出厂内容、且 banners 表有当前语言的可用行时，
  *    切回 items_mode=inherit 走 banners 表（表内 zh/en/ja 三语行齐全）。
  */
+
+if (!function_exists('yk_20260825_is_factory_banner_children')) {
+    /**
+     * children 是否为「逐字段未经修改的出厂三条轮播」。
+     *
+     * 独立复查 R1（2026-08-25）：首版只比 title+subtitle，站长删条、换图、改链接、
+     * 复制条目都会被误判成出厂内容而切 inherit，等于替换客户首页展示。收紧为：
+     * 恰好三条、互不重复，且全部展示/交互字段（含图片、按钮、链接、动效）逐一
+     * 与安装种子一致。宁可漏修（保持现状）也绝不误伤。
+     *
+     * 具名函数而非闭包：tests/Unit/RestyleMigrationBannerGuardTest.php 直接测它。
+     */
+    function yk_20260825_is_factory_banner_children(array $children): bool
+    {
+        // 与 install/sql 种子逐字一致的出厂三条（提取自 home_blox_data）
+        $factory = [
+            ['title' => '数字化转型解决方案', 'subtitle' => '助力企业实现智能化升级', 'btn1_text' => '了解更多', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=1', 'image_mobile' => '', 'btn1_url' => '/about.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'clip-reveal', 'background_motion' => 'inherit'],
+            ['title' => '专业的技术服务团队', 'subtitle' => '7x24小时为您保驾护航', 'btn1_text' => '', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=2', 'image_mobile' => '', 'btn1_url' => '', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-left', 'background_motion' => 'inherit'],
+            ['title' => '创新引领未来', 'subtitle' => '持续创新，追求卓越', 'btn1_text' => '', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=3', 'image_mobile' => '', 'btn1_url' => '', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-right', 'background_motion' => 'inherit'],
+        ];
+        if (count($children) !== count($factory)) {
+            return false;
+        }
+        // 归一：缺省键按元素 schema 的默认值补齐后比对（种子里 background_motion/
+        // image_mobile 缺省，而经编辑器重存过的文档会显式带默认值，两者视为等价）
+        $normalize = static function (array $data): array {
+            $out = [];
+            foreach (['title', 'subtitle', 'btn1_text', 'btn2_text', 'image', 'image_mobile', 'btn1_url', 'btn2_url', 'link_url', 'link_target', 'content_motion', 'background_motion'] as $key) {
+                $value = (string) ($data[$key] ?? '');
+                if ($value === '' && $key === 'link_target') {
+                    $value = '_self';
+                }
+                if ($value === '' && ($key === 'content_motion' || $key === 'background_motion')) {
+                    $value = 'inherit';
+                }
+                $out[$key] = $value;
+            }
+            return $out;
+        };
+        $remaining = array_map($normalize, $factory);
+        foreach ($children as $child) {
+            if (!is_array($child)) {
+                return false;
+            }
+            $data = is_array($child['data'] ?? null) ? $child['data'] : [];
+            $normalized = $normalize($data);
+            $matched = false;
+            foreach ($remaining as $i => $slide) {
+                if ($slide === $normalized) {
+                    unset($remaining[$i]); // 每条出厂轮播只允许匹配一次——挡复制条目
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                return false;
+            }
+        }
+        return $remaining === [];
+    }
+}
+
 return [
     'id' => '20260825_restyle_seed_markup_and_banner_lang',
     'title' => '修复出厂内容样式丢失与非中文站首页轮播中文残留',
@@ -135,11 +197,6 @@ return [
         $bannerFixed = 0;
         $siteLang = (string) config('site_lang', 'zh-CN');
         if ($siteLang !== 'zh-CN' && db()->tableExists('banners')) {
-            $factory = [
-                '数字化转型解决方案' => '助力企业实现智能化升级',
-                '专业的技术服务团队' => '7x24小时为您保驾护航',
-                '创新引领未来' => '持续创新，追求卓越',
-            ];
             $hasLangBanners = db()->fetchOne(
                 'SELECT id FROM ' . DB_PREFIX . 'banners WHERE position = ? AND lang = ? AND status = 1 LIMIT 1',
                 ['home', $siteLang]
@@ -168,16 +225,10 @@ return [
                                     continue;
                                 }
                                 $children = is_array($data['children'] ?? null) ? $data['children'] : [];
-                                $allFactory = $children !== [];
-                                foreach ($children as $child) {
-                                    $title = (string) ($child['data']['title'] ?? '');
-                                    $subtitle = (string) ($child['data']['subtitle'] ?? '');
-                                    if (!isset($factory[$title]) || $factory[$title] !== $subtitle) {
-                                        $allFactory = false;
-                                        break;
-                                    }
-                                }
-                                if ($allFactory) {
+                                // R1 收紧：恰好三条、互不重复、全部展示/交互字段逐一
+                                // 与种子一致才算「未修改」。删条/换图/改链接/复制条目
+                                // 一律不动（保持现状，站长自己的内容优先）。
+                                if (yk_20260825_is_factory_banner_children($children)) {
                                     $doc['sections'][$si]['columns'][$ci]['elements'][$ei]['data']['items_mode'] = 'inherit';
                                     $changed = true;
                                 }
