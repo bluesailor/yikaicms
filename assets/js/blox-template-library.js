@@ -32,10 +32,19 @@
 
     function list(endpoint, context, fallbackMessage, refresh) {
         return request(endpoint, "list", context, "", fallbackMessage, refresh).then(function (data) {
-            var items = Array.isArray(data.items) ? data.items : [];
+            var items = (Array.isArray(data.items) ? data.items : []).map(normalizeItem);
             items.remoteError = String(data.remote_error || "");
             return items;
         });
+    }
+
+    function normalizeItem(item) {
+        var normalized = Object.assign({}, item || {});
+        normalized.locked = normalized.locked === true
+            || normalized.locked === 1
+            || normalized.locked === "1";
+        normalized.locked_reason = String(normalized.locked_reason || "");
+        return normalized;
     }
 
     function resolve(endpoint, context, key, fallbackMessage, csrf) {
@@ -107,7 +116,10 @@
             unchanged.remoteError = String(current.remoteError || "");
             return unchanged;
         }
-        var merged = [item].concat(current.filter(function (entry) {
+        var localItem = normalizeItem(item);
+        localItem.locked = false;
+        localItem.locked_reason = "";
+        var merged = [localItem].concat(current.filter(function (entry) {
             return String(entry && entry.key || "") !== String(item.key);
         }));
         merged.remoteError = String(current.remoteError || "");

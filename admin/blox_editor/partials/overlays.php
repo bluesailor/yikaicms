@@ -384,7 +384,7 @@ declare(strict_types=1);
                             </span>
                             <span class="mt-auto pt-3 flex items-center gap-2">
                                 <button type="button" @click="insertTemplate(item)"
-                                        :disabled="templateInserting !== '' || item.locked"
+                                        :disabled="templateInserting !== '' || !!item.locked"
                                         data-testid="blox-template-insert"
                                         :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insert)"
                                         class="h-8 rounded px-3 text-xs font-medium inline-flex items-center justify-center gap-1.5 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"

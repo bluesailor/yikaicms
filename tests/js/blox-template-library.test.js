@@ -145,6 +145,8 @@ test("saved local template is inserted immediately and replaces a stale copy", f
 
     assert.deepEqual(merged.map((item) => item.key), ["local:12", "remote:hero"]);
     assert.equal(merged[0].name, "Saved");
+    assert.equal(merged[0].locked, false);
+    assert.equal(merged[0].locked_reason, "");
     assert.equal(merged.remoteError, "offline");
     assert.deepEqual(global.BloxTemplateLibrary.upsertLocal(items, { key: "remote:x", type: "section", source: "remote" }), items);
 });

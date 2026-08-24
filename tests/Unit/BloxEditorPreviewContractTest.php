@@ -306,6 +306,16 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('if (OPS.indexOf(op) === -1) return false;', $rules);
     }
 
+    public function testTemplateInsertTreatsMissingLockStateAsUnlocked(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+
+        $this->assertStringContainsString(
+            ':disabled="templateInserting !== \'\' || !!item.locked"',
+            $editor
+        );
+    }
+
     private function source(string $path): string
     {
         if ($path === 'admin/blox_editor.php') {
