@@ -27,7 +27,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"margin:0;text-align:center;letter-spacing:.18em;text-transform:uppercase;font-size:.75rem;color:#6b7280\">Contact</p>"
+                  "html": "<p class=\"yk-eyebrow yk-center\">Contact</p>"
                 }
               },
               {
@@ -42,7 +42,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"margin:0 auto;text-align:center;max-width:38rem;line-height:1.9;color:#4b5563\">工作日 9:00–18:00 均可联系。提交表单或直接致电皆可，我们会在一个工作日内回复。</p>"
+                  "html": "<p class=\"yk-copy yk-copy--center\">工作日 9:00–18:00 均可联系。提交表单或直接致电皆可，我们会在一个工作日内回复。</p>"
                 }
               }
             ]
@@ -92,7 +92,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"margin:0 0 .5rem;color:#6b7280;font-size:.95rem\">请尽量写清需求背景与用途，便于我们给出更准确的建议。</p>"
+                  "html": "<p class=\"yk-note\">请尽量写清需求背景与用途，便于我们给出更准确的建议。</p>"
                 }
               },
               {
@@ -115,7 +115,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"margin:0 0 .5rem;color:#6b7280;font-size:.95rem\">地图与地址取自「系统设置 → 联系方式」，改一处即可全站同步。</p>"
+                  "html": "<p class=\"yk-note\">地图与地址取自「系统设置 → 联系方式」，改一处即可全站同步。</p>"
                 }
               },
               {

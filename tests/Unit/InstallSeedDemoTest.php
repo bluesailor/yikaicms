@@ -79,7 +79,7 @@ class InstallSeedDemoTest extends TestCase
         $clean = $this->stripDemo($this->seed($driver));
 
         // 演示数据被剥离干净
-        foreach (['products', 'product_categories', 'contents', 'banners', 'albums', 'album_photos'] as $table) {
+        foreach (['products', 'product_categories', 'contents', 'albums', 'album_photos'] as $table) {
             $this->assertStringNotContainsString(
                 $this->insertOf($driver, $table),
                 $clean,
@@ -92,6 +92,15 @@ class InstallSeedDemoTest extends TestCase
             $this->insertOf($driver, 'channels'),
             $clean,
             "栏目骨架应保留 ({$driver})"
+        );
+
+        // 轮播 banners 自 v1.18.8 起属于骨架而非演示数据：首页 Blox 文档的 banner
+        // 区块改为 items_mode=inherit 从 banners 表按语言取数（修英文/日文安装站
+        // 首页显示中文），不勾演示也必须有各语言的初始轮播行可渲染、可管理。
+        $this->assertStringContainsString(
+            $this->insertOf($driver, 'banners'),
+            $clean,
+            "多语言轮播骨架应保留 ({$driver})"
         );
 
         // 剥离不应破坏 SQL 结构：标记本身被移除

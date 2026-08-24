@@ -27,7 +27,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"margin:0;letter-spacing:.18em;text-transform:uppercase;font-size:.75rem;color:#6b7280\">About us</p>"
+                  "html": "<p class=\"yk-eyebrow\">About us</p>"
                 }
               },
               {
@@ -42,7 +42,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"margin:0;font-size:1.05rem;line-height:1.9;color:#4b5563;max-width:46rem\">请在这里用两三句话说明公司是做什么的、服务哪类客户、以及区别于同行的地方。写具体一点：行业、成立时间、主要产品或服务，比空泛的形容词更容易被记住。</p>"
+                  "html": "<p class=\"yk-lead\">请在这里用两三句话说明公司是做什么的、服务哪类客户、以及区别于同行的地方。写具体一点：行业、成立时间、主要产品或服务，比空泛的形容词更容易被记住。</p>"
                 }
               }
             ]
@@ -77,7 +77,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"line-height:1.9;color:#4b5563\">这一段写公司的来历与定位：什么时候成立、为什么成立、主营业务是什么。</p><p style=\"line-height:1.9;color:#4b5563\">第二段写规模与能力：厂房面积、设备、资质、团队构成、年产能或服务量——用可核实的事实代替形容词。</p><p style=\"line-height:1.9;color:#4b5563\">第三段写客户与合作：主要服务的行业、代表客户类型、合作方式。</p>"
+                  "html": "<p class=\"yk-copy\">这一段写公司的来历与定位：什么时候成立、为什么成立、主营业务是什么。</p><p class=\"yk-copy\">第二段写规模与能力：厂房面积、设备、资质、团队构成、年产能或服务量——用可核实的事实代替形容词。</p><p class=\"yk-copy\">第三段写客户与合作：主要服务的行业、代表客户类型、合作方式。</p>"
                 }
               },
               {
@@ -152,7 +152,7 @@
               {
                 "type": "text",
                 "data": {
-                  "html": "<p style=\"text-align:center;color:#6b7280;margin:0 auto;max-width:40rem\">三到四条最有说服力的理由。每条一句话说清「客户能得到什么」，而不是「我们有什么」。</p>"
+                  "html": "<p class=\"yk-hint-center\">三到四条最有说服力的理由。每条一句话说清「客户能得到什么」，而不是「我们有什么」。</p>"
                 }
               }
             ]
