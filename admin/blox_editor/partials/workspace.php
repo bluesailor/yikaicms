@@ -1324,6 +1324,60 @@ declare(strict_types=1);
                                            : (panelTab === 'style' ? <?= e($jt('blox_no_style_settings')) ?> : <?= e($jt('blox_no_settings')) ?>))"></p>
                             </template>
 
+                            <template x-if="selEl && ['nav', 'nav-mega', 'nav-drawer'].includes(selEl.type) && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-nav-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-menu-2 text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_nav_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_nav_content_source_hint')) ?></p>
+                                    <?php if ($canManageGlobalSettings): ?>
+                                    <a :href="Number((selEl.data || {}).menu_group || 0) > 0 ? '/admin/nav_menu.php?group=' + Number(selEl.data.menu_group) : '/admin/nav_menu.php'"
+                                       target="_blank" rel="noopener" data-testid="blox-nav-content-manage"
+                                       class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                        <i class="ti ti-list-details text-sm" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_nav_content_manage')) ?></span>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </template>
+
+                            <template x-if="selEl && selEl.type === 'site-contact' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-contact-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-address-book text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_contact_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_contact_content_source_hint')) ?></p>
+                                    <?php if ($canManageGlobalSettings): ?>
+                                    <a href="/admin/setting_contact.php" target="_blank" rel="noopener"
+                                       data-testid="blox-contact-content-manage"
+                                       class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                        <i class="ti ti-settings text-sm" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_contact_content_manage')) ?></span>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </template>
+
+                            <template x-if="selEl && selEl.type === 'social-links' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-social-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-brand-instagram text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_social_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_social_content_source_hint')) ?></p>
+                                    <?php if ($canManageGlobalSettings): ?>
+                                    <a href="/admin/setting_social.php" target="_blank" rel="noopener"
+                                       data-testid="blox-social-content-manage"
+                                       class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                        <i class="ti ti-settings text-sm" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_social_content_manage')) ?></span>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </template>
+
                             <template x-if="selEl && selEl.type === 'logo' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
                                 <div class="space-y-2 border-b border-gray-100 pb-3"
                                      data-testid="blox-logo-maker-recommendation">

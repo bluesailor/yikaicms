@@ -187,6 +187,36 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       });
       expect(footerSnapshot).toMatchSnapshot('r35-default-corporate-footer.png', visualOptions);
     }
+
+    if (testInfo.project.name === 'desktop-1440') {
+      await page.goto(fixtures.blox_page_url, { waitUntil: 'networkidle' });
+      const liveHeader = page.locator('.yk-blox-header');
+      const liveFooter = page.locator('.yk-blox-footer');
+      await expect(liveHeader).toHaveAttribute('data-yk-edit', /\/admin\/blox_editor\.php\?template=\d+/);
+      await expect(liveFooter).toHaveAttribute('data-yk-edit', /\/admin\/blox_editor\.php\?template=\d+/);
+
+      const navigationTarget = liveHeader.locator('[data-yk-element-edit="header-navigation"]').first();
+      await expect(navigationTarget).toBeVisible();
+      const navigationId = await navigationTarget.getAttribute('data-yk-element-id');
+      const navigationLabel = await navigationTarget.getAttribute('data-yk-element-label');
+      expect(navigationId).toBeTruthy();
+      expect(navigationLabel).toBeTruthy();
+      await navigationTarget.hover();
+      const editButton = page.locator('#yk-edit-btn');
+      await expect(editButton).toHaveText(`✎ ${navigationLabel}`);
+      await expect(editButton).toHaveAttribute('href', new RegExp(`focus_element=${encodeURIComponent(navigationId)}`));
+      const navigationHref = await editButton.getAttribute('href');
+
+      const contactTargets = page.locator('[data-yk-element-edit="contact"]');
+      await expect(contactTargets).toHaveCount(2);
+      await expect(contactTargets.first()).toHaveAttribute('data-yk-element-id', /.+/);
+
+      await page.goto(navigationHref, { waitUntil: 'domcontentloaded' });
+      const selectedNavigation = page.locator(`[data-sort-child-item][data-item-id="${navigationId}"]`).first();
+      await expect(selectedNavigation).toHaveClass(/bg-blue-100/);
+      await expect(page.getByTestId('blox-nav-content-source')).toBeVisible();
+      await expect(page.getByTestId('blox-nav-content-manage')).toHaveAttribute('href', /\/admin\/nav_menu\.php/);
+    }
     expect(consoleEntries, 'published default areas must not log browser errors').toEqual([]);
   } finally {
     await unpublishAreas(page);

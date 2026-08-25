@@ -22,6 +22,7 @@
     "admin/blox_design_api.php",
     "includes/builder/BloxAreaTemplatePresets.php",
     "includes/builder/BloxAreaEditorTarget.php",
+    "includes/builder/BloxFrontendEditTarget.php",
     "templates/blox/areas",
     "includes/builder/PageBloxDocument.php",
     "includes/builder/ChannelBloxDocument.php",

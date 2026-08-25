@@ -201,9 +201,7 @@ function getChannelUrl(array $channel): string {
     <!-- Top navigation -->
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
     <?php if ($ykBloxHeader !== ''): ?>
-    <div<?php echo $ykHeaderTemplateEditAttr; ?>>
-        <?php echo $ykBloxHeader; // Blox 头模板接管；无发布模板时走下方原生头（逐主题回退，红线 5） ?>
-    </div>
+    <?php echo $ykBloxHeader; // Blox 头模板接管；区域壳自身携带实际模板编辑地址 ?>
     <?php else: ?>
     <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>"<?php echo $ykHeaderTemplateEditAttr; ?>>
         <?php if ($headerNavLayout === 'below'): ?>
