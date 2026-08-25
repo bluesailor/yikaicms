@@ -15,7 +15,7 @@ $__lo = $listOpts ?? null;
     <?php if (listShowEl($__lo, 'cover')): ?>
     <div class="flex-shrink-0 w-48 md:w-64 aspect-[4/3] self-start overflow-hidden bg-gray-100">
         <?php if ($item['cover']): ?>
-        <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'medium', '(min-width: 768px) 256px, 192px'); ?> alt="<?php echo e($item['title']); ?>"
              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
         <?php else: ?>
         <div class="w-full h-full flex items-center justify-center text-gray-300">

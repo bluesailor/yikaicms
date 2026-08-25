@@ -227,6 +227,110 @@ function thumbnail(?string $url, string $size = 'thumb'): string
 }
 
 /**
+ * 返回站内图片的实际尺寸；远程、缺失或越界路径均不触碰文件系统。
+ *
+ * @return array{0:int,1:int}
+ */
+function _localImageDimensions(string $url): array
+{
+    if ($url === '' || _isExternalUrl($url)) {
+        return [0, 0];
+    }
+
+    $urlPath = parse_url($url, PHP_URL_PATH);
+    if (!is_string($urlPath) || $urlPath === '' || str_contains($urlPath, "\0")) {
+        return [0, 0];
+    }
+
+    $root = realpath(ROOT_PATH);
+    if ($root === false) {
+        return [0, 0];
+    }
+
+    $relative = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rawurldecode($urlPath)), DIRECTORY_SEPARATOR);
+    $path = realpath($root . DIRECTORY_SEPARATOR . $relative);
+    $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    $insideRoot = $path !== false && (DIRECTORY_SEPARATOR === '\\'
+        ? strncasecmp($path, $rootPrefix, strlen($rootPrefix)) === 0
+        : strncmp($path, $rootPrefix, strlen($rootPrefix)) === 0);
+    if (!$insideRoot) {
+        return [0, 0];
+    }
+
+    $dimensions = @getimagesize($path);
+    if ($dimensions === false) {
+        return [0, 0];
+    }
+
+    return [max(0, (int) ($dimensions[0] ?? 0)), max(0, (int) ($dimensions[1] ?? 0))];
+}
+
+/**
+ * 组合同一宽高比的本地缩略图与原图候选。
+ *
+ * @return array{src:string,srcset:string,width:int,height:int}
+ */
+function responsiveImageData(?string $url, string $preferredSize = 'medium'): array
+{
+    $original = (string) ($url ?? '');
+    $source = thumbnail($original, $preferredSize);
+    [$sourceWidth, $sourceHeight] = _localImageDimensions($source);
+    [$originalWidth, $originalHeight] = _localImageDimensions($original);
+    $candidates = [];
+
+    if ($sourceWidth > 0 && $sourceHeight > 0) {
+        $candidates[$sourceWidth] = $source;
+    }
+    if ($originalWidth > 0 && $originalHeight > 0) {
+        $sameRatio = $sourceWidth < 1 || $sourceHeight < 1
+            || abs(($sourceWidth / $sourceHeight) - ($originalWidth / $originalHeight)) < 0.01;
+        if ($sameRatio) {
+            $candidates[$originalWidth] = $original;
+        }
+    }
+
+    ksort($candidates, SORT_NUMERIC);
+    $srcsetParts = [];
+    if (count($candidates) > 1) {
+        foreach ($candidates as $width => $candidate) {
+            $srcsetParts[] = $candidate . ' ' . (int) $width . 'w';
+        }
+    }
+
+    return [
+        'src' => $source,
+        'srcset' => implode(', ', $srcsetParts),
+        'width' => $sourceWidth,
+        'height' => $sourceHeight,
+    ];
+}
+
+function responsiveImageAttributes(
+    ?string $url,
+    string $preferredSize = 'medium',
+    string $sizes = '100vw'
+): string {
+    $image = responsiveImageData($url, $preferredSize);
+    $escape = static fn(string $value): string => htmlspecialchars(
+        $value,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+    $attributes = ['src="' . $escape($image['src']) . '"'];
+
+    if ($image['srcset'] !== '') {
+        $attributes[] = 'srcset="' . $escape($image['srcset']) . '"';
+        $attributes[] = 'sizes="' . $escape($sizes) . '"';
+    }
+    if ($image['width'] > 0 && $image['height'] > 0) {
+        $attributes[] = 'width="' . $image['width'] . '"';
+        $attributes[] = 'height="' . $image['height'] . '"';
+    }
+
+    return implode(' ', $attributes);
+}
+
+/**
  * 将图片转换为 WebP 格式
  */
 function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $quality = 80): bool
