@@ -169,7 +169,7 @@ $contentListBloxJson = $contentListPageChannel
     : null;
 $hasPublishedContentListBlox = is_string($contentListBloxJson) && $contentListBloxJson !== '';
 
-// 前台就地编辑：产品栏目进入 Blox 页面；其余列表页进入对应数据管理。
+// 顶部管理条：有 Blox 页面时编辑整页，其余列表页进入对应数据管理。
 if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
     $__listAdmin = [
         'list' => '/admin/article.php', 'case' => '/admin/case.php',
@@ -180,13 +180,6 @@ if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
     $GLOBALS['ik_edit_url'] = $bloxListEditChannel
         ? '/admin/blox_editor.php?id=' . (int) $bloxListEditChannel['id']
         : $__listAdmin;
-    if ($hasPublishedProductBlox) {
-        BlockRenderer::$editChannelId = (int) $productPageChannel['id'];
-        $GLOBALS['ik_front_edit_cid'] = (int) $productPageChannel['id'];
-    } elseif ($hasPublishedContentListBlox) {
-        BlockRenderer::$editChannelId = (int) $contentListPageChannel['id'];
-        $GLOBALS['ik_front_edit_cid'] = (int) $contentListPageChannel['id'];
-    }
 }
 
 // 对于产品/案例类型，获取完整的分类树用于侧边栏

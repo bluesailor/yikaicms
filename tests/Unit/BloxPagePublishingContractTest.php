@@ -149,7 +149,6 @@ final class BloxPagePublishingContractTest extends TestCase
         foreach ([
             'admin/page_edit.php',
             'admin/index.php',
-            'includes/front_edit.php',
             'includes/functions.php',
             'page.php',
             'contact.php',
@@ -244,6 +243,24 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("\$url = '/admin/blox_editor.php?id=' . \$targetId;", $functions);
         $this->assertStringContainsString('return pagePrimaryEditUrl($channel);', $functions);
         $this->assertStringNotContainsString("return '/admin/page_edit.php?id=' . \$pageId;", $functions);
+    }
+
+    public function testFrontendBloxPagesExposePageLevelEditingWithoutBrokenBlockLinks(): void
+    {
+        $overlay = $this->source('includes/front_edit.php');
+        $this->assertStringNotContainsString("el.hasAttribute('data-yk-sec')", $overlay);
+        $this->assertStringNotContainsString('&focus=', $overlay);
+        $this->assertStringNotContainsString("querySelectorAll('[data-yk-sec]", $overlay);
+        foreach (['data-yk-nav', 'data-yk-footer', 'data-yk-partners', 'data-yk-edit'] as $marker) {
+            $this->assertStringContainsString($marker, $overlay);
+        }
+
+        foreach (['page.php', 'contact.php', 'news.php', 'list.php'] as $path) {
+            $source = $this->source($path);
+            $this->assertStringContainsString("\$GLOBALS['ik_edit_url']", $source, $path);
+            $this->assertStringNotContainsString("\$GLOBALS['ik_front_edit_cid']", $source, $path);
+            $this->assertStringNotContainsString('BlockRenderer::$editChannelId', $source, $path);
+        }
     }
 
     public function testPublishingWritesLiveContentOnlyInsideExplicitPublishTransaction(): void

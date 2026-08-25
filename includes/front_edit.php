@@ -1,13 +1,9 @@
 <?php
 /**
- * 前台就地编辑覆盖层（P1）
+ * 前台就地编辑覆盖层
  *
- * 登录管理员浏览「构建器页面」(content_type=blocks) 时，悬停区块高亮边框 + 浮出「编辑此区块」
- * 按钮，点击深链到 Blox 并定位到该区块（blox_editor.php?id=X&focus=N）。首页统一使用
- * 顶部管理条的「编辑此页」，不在真实页面上叠加区块操作层。
- *
- * 仅在 page.php 为管理员设置了 $GLOBALS['ik_front_edit_cid'] 时输出（BlockRenderer 同时给
- * section 打了 data-yk-sec 索引）。普通访客/非 blocks 页无任何输出，也不写入公开缓存。
+ * Blox 页面统一使用顶部管理条的「编辑此页」。本覆盖层只处理导航、页脚、合作伙伴、
+ * 显式 data-yk-edit 目标和 Logo 等确实能到达对应编辑位置的入口。
  */
 
 if (!defined('ROOT_PATH')) exit;
@@ -16,9 +12,8 @@ function renderFrontEdit(): void
 {
     if (isCleanFrontendPreview()) return;
     if (empty($_SESSION['admin_id'])) return;
-    $cid  = (int) ($GLOBALS['ik_front_edit_cid'] ?? 0);   // 构建器页面 channel id
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
-    // 覆盖层对任何登录管理员都渲染（区块悬停按标记生效；Logo 就地编辑全站可用）
+    // 覆盖层对任何登录管理员都渲染（专用编辑入口与 Logo 就地编辑全站可用）。
     ?>
     <style>
       #yk-edit-outline { position: absolute; z-index: 99990; pointer-events: none;
@@ -80,25 +75,21 @@ function renderFrontEdit(): void
     </style>
     <script>
     (function () {
-      var cid = <?php echo $cid; ?>;
       var current = null, hideTimer = null;
 
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
       var btn = document.createElement('a');
       btn.id = 'yk-edit-btn';
-      btn.innerHTML = '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
+      btn.innerHTML = '✎ ' + <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>;
       box.appendChild(btn);
 
       document.body.appendChild(box);
 
       function hide() { box.style.display = 'none'; current = null; }
 
-      // 按元素上的标记算编辑链接：构建器区块 / 导航 / 页脚 / 通用内容。
+      // 按元素上的标记算编辑链接：导航 / 页脚 / 合作伙伴 / 通用内容。
       function editUrl(el) {
-        if (el.hasAttribute('data-yk-sec')) {
-          return '/admin/blox_editor.php?id=' + cid + '&focus=' + el.getAttribute('data-yk-sec');
-        }
         if (el.hasAttribute('data-yk-nav')) {
           return '/admin/channel.php';
         }
@@ -118,7 +109,7 @@ function renderFrontEdit(): void
         if (el.hasAttribute('data-yk-footer'))   return '✎ ' + <?php echo json_encode(__('fe_edit_footer'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-partners')) return '✎ ' + <?php echo json_encode(__('fe_edit_partners'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-edit'))     return el.getAttribute('data-yk-edit-label') || ('✎ ' + <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>);
-        return '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
+        return '✎ ' + <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>;
       }
 
       function place(sec) {
@@ -144,7 +135,7 @@ function renderFrontEdit(): void
         else document.addEventListener('DOMContentLoaded', fn);
       }
       onReady(function () {
-        document.querySelectorAll('[data-yk-sec],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
+        document.querySelectorAll('[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
