@@ -75,14 +75,25 @@ final class ImageElement extends AbstractElement
         if ($siteImageField !== 'none') {
             $rawSrc = DynamicSiteData::value($siteImageField, 'image');
         }
-        $src = htmlspecialchars($rawSrc);
-        $alt = htmlspecialchars($data['alt'] ?? '');
-        if (!$src) {
+        $dynamicField = (string) ($data['_responsive_image_field'] ?? '');
+        $dynamicFallback = (string) ($data['_responsive_image_fallback'] ?? '');
+        if ($dynamicField !== '' && preg_match('/^[a-z0-9_]{1,64}$/', $dynamicField) === 1) {
+            $imageAttrs = '{yk:image-attrs name=' . $dynamicField . ' size=medium sizes="100vw"';
+            if ($dynamicFallback !== '') {
+                $imageAttrs .= ' fallback=' . rawurlencode($dynamicFallback);
+            }
+            $imageAttrs .= ' /}';
+        } else {
+            $rawSrc = UrlPolicy::image($rawSrc);
+            $imageAttrs = responsiveImageAttributes($rawSrc, 'medium', '100vw');
+        }
+        $alt = htmlspecialchars((string) ($data['alt'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        if ($rawSrc === '' && $dynamicField === '') {
             return '';
         }
         $animationAttrs = $this->animationAttrs($data);
         $clickAction = $data['click_action'] ?? '';
-        $imgTag = '<img class="w-full rounded-lg" src="' . $src . '" alt="' . $alt . '" loading="lazy">';
+        $imgTag = '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt . '" loading="lazy" decoding="async">';
         if ($clickAction === 'lightbox') {
             // 灯箱的 href 是可点击链接，须过伪协议校验；src 不合法则退化为普通图片
             $lightboxHref = self::safeHref($rawSrc);
@@ -98,6 +109,7 @@ final class ImageElement extends AbstractElement
                 return '<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>';
             }
         }
-        return '<img class="w-full rounded-lg" src="' . $src . '" alt="' . $alt . '" loading="lazy"' . $animationAttrs . '>';
+        return '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt
+            . '" loading="lazy" decoding="async"' . $animationAttrs . '>';
     }
 }

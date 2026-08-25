@@ -12,11 +12,11 @@ final class DynamicListItemSchemaTest extends TestCase
     {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     }
-    public function testLegacyCardOutputRemainsByteCompatible(): void
+    public function testDefaultCardUsesResponsiveImageFieldAttributes(): void
     {
         $actual = \DynamicListItemSchema::render([]);
         $expected = '<a href="{yk:field name=url /}" class="group block bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden no-underline">'
-            . '<div class="aspect-video overflow-hidden bg-gray-100"><img src="{yk:field name=cover /}" alt="{yk:field name=title /}" loading="lazy" class="w-full h-full object-cover"></div>'
+            . '<div class="aspect-video overflow-hidden bg-gray-100"><img {yk:image-attrs name=cover size=medium sizes="(min-width: 1280px) 384px, (min-width: 768px) 34vw, 100vw" /} alt="{yk:field name=title /}" loading="lazy" decoding="async" class="w-full h-full object-cover"></div>'
             . '<div class="p-4"><h3 class="text-lg font-semibold mb-2 group-hover:text-primary transition">{yk:field name=title /}</h3>'
             . '<p class="text-sm text-gray-500">{yk:field name=summary len=80 /}</p></div></a>';
 
@@ -176,7 +176,7 @@ final class DynamicListItemSchemaTest extends TestCase
         $this->assertStringContainsString('<div class="yk-query-item">', $html);
         $this->assertStringContainsString('<h3 class="text-xl font-bold mb-4">{yk:field name=model /}</h3>', $html);
         $this->assertStringContainsString('{yk:field name=summary len=42 /}', $html);
-        $this->assertStringContainsString('src="{yk:field name=cover /}"', $html);
+        $this->assertStringContainsString('{yk:image-attrs name=cover size=medium sizes="100vw" /}', $html);
         $this->assertStringContainsString('alt="{yk:field name=model /}"', $html);
         $this->assertStringContainsString('href="{yk:field name=url /}"', $html);
         $this->assertStringContainsString('<div class="yk-div p-3"></div>', $html);
@@ -236,7 +236,7 @@ final class DynamicListItemSchemaTest extends TestCase
 
         $this->assertStringContainsString('{yk:field name=title fallback=Untitled /}', $html);
         $this->assertStringContainsString('{yk:field name=summary len=80 fallback=No%20summary /}', $html);
-        $this->assertStringContainsString('{yk:field name=cover fallback=%2Fassets%2Fplaceholder.jpg /}', $html);
+        $this->assertStringContainsString('{yk:image-attrs name=cover size=medium sizes="100vw" fallback=%2Fassets%2Fplaceholder.jpg /}', $html);
         $this->assertStringContainsString('{yk:field name=title fallback=Placeholder /}', $html);
     }
 

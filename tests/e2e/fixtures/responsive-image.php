@@ -57,6 +57,34 @@ $galleryVariants = array_map(
              <?php echo responsiveImageAttributes($url, 'thumb', '80px'); ?>
              alt="Thumbnail preview fixture" style="display:block;width:80px;height:80px;object-fit:cover">
     </a>
+    <div data-testid="builder-image">
+        <?php echo (new ImageElement())->render([
+            'src' => $url,
+            'alt' => 'Builder image fixture',
+            'click_action' => 'lightbox',
+        ]); ?>
+    </div>
+    <div data-testid="builder-card">
+        <?php echo (new CardElement())->render(['image' => $url, 'title' => 'Builder card fixture']); ?>
+    </div>
+    <div data-testid="builder-banner">
+        <?php echo HomeBannerItemElement::responsiveImageHtml([
+            'image' => $url,
+            'image_mobile' => $alternateUrl,
+            'title' => 'Builder banner fixture',
+        ]); ?>
+    </div>
+    <div data-testid="builder-dynamic-card">
+        <?php
+        TagEngine::setItem([
+            'cover' => $url,
+            'title' => 'Dynamic card fixture',
+            'url' => '/dynamic-card.html',
+        ]);
+        echo TagEngine::render(DynamicListItemSchema::render([]));
+        TagEngine::setItem(null);
+        ?>
+    </div>
     <script src="/assets/js/product-gallery.js"></script>
     <script>
     var fixtureVariants = <?php echo json_encode($galleryVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;

@@ -93,6 +93,11 @@ if (!function_exists('__')) {
         return $text;
     }
 }
+if (!function_exists('e')) {
+    function e(?string $value): string {
+        return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+}
 if (!function_exists('getDefaults')) {
     // 镜像 includes/functions.php 的 getDefaults()：从 config/defaults.php 读默认设置。
     function getDefaults(string $group = ''): array {
