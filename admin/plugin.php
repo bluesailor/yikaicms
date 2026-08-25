@@ -343,6 +343,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="relative flex-1">
                 <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="text" x-model="q" @keydown.enter="search()" placeholder="<?php echo e(__('pl_search_ph')); ?>"
+                       data-testid="plugin-market-search"
                        class="w-full border rounded-lg pl-9 pr-3 py-2 text-sm bg-white">
             </div>
             <button @click="search()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg text-sm transition cursor-pointer"><?php echo e(__('admin_search')); ?></button>
@@ -364,9 +365,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm"><?php echo e(__('pl_no_match')); ?></div>
         </template>
 
-        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="!loading && !error">
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="!loading && !error" data-testid="plugin-market-list">
             <template x-for="p in items" :key="p.slug">
-                <div class="bg-white rounded-lg shadow px-5 py-4 flex flex-col gap-2">
+                <div class="bg-white rounded-lg shadow px-5 py-4 flex flex-col gap-2" :data-plugin-slug="p.slug">
                     <div class="flex items-center gap-3">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
                             <i class="ti ti-puzzle text-xl"></i>
@@ -393,8 +394,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </template>
                         <template x-if="statusOf(p) === 'upgrade'">
                             <button @click="install(p)" :disabled="installing === p.slug"
+                                    data-testid="plugin-market-upgrade"
                                     class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
-                                    x-text="installing === p.slug ? <?php echo json_encode(__('pl_upgrading'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_upgrade'), JSON_UNESCAPED_UNICODE); ?>"></button>
+                                    x-text="installing === p.slug ? marketText.upgrading : marketText.upgrade"></button>
                         </template>
                         <template x-if="statusOf(p) === 'none' && p.tier === 'pro' && !p.entitled">
                             <a href="https://www.yikaicms.com/#pricing" target="_blank"
@@ -404,8 +406,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </template>
                         <template x-if="statusOf(p) === 'none' && !(p.tier === 'pro' && !p.entitled)">
                             <button @click="install(p)" :disabled="installing === p.slug"
+                                    data-testid="plugin-market-install"
                                     class="text-sm px-3 py-1.5 rounded bg-primary hover:bg-secondary text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
-                                    x-text="installing === p.slug ? <?php echo json_encode(__('pl_installing'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_install'), JSON_UNESCAPED_UNICODE); ?>"></button>
+                                    x-text="installing === p.slug ? marketText.installing : marketText.install"></button>
                         </template>
                     </div>
                     <p class="text-sm text-gray-500" x-text="p.description"></p>
@@ -498,7 +501,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             :disabled="installing === '<?php echo e($slug); ?>'"
                             class="px-3 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition inline-flex items-center gap-1">
                         <i class="ti ti-cloud-download text-sm"></i>
-                        <span x-text="installing === '<?php echo e($slug); ?>' ? <?php echo json_encode(__('pl_upgrading'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_upgrade'), JSON_UNESCAPED_UNICODE); ?>"></span>
+                        <span x-text="installing === '<?php echo e($slug); ?>' ? marketText.upgrading : marketText.upgrade"></span>
                     </button>
                     <?php if ($p['status']): ?>
                     <?php if (file_exists(ROOT_PATH . '/plugins/' . $slug . '/admin.php')): ?>
@@ -577,6 +580,12 @@ function pluginMarket() {
         loaded: false,
         installing: '',
         error: '',
+        marketText: <?php echo json_encode([
+            'install' => __('pl_install'),
+            'installing' => __('pl_installing'),
+            'upgrade' => __('pl_upgrade'),
+            'upgrading' => __('pl_upgrading'),
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         // 本地已装版本表：slug -> version
         local: <?php echo json_encode($localVersions, JSON_UNESCAPED_UNICODE); ?>,
         // 可升级映射：slug -> 市场条目（进页面即后台静默检测）
@@ -595,11 +604,10 @@ function pluginMarket() {
                 var resp = await fetch('', { method: 'POST', body: body });
                 var data = await resp.json();
                 if (data.code !== 0) return;
-                this.items = (data.data && data.data.plugins) || [];
-                this.loaded = true;   // 顺带预热市场页签
+                var marketItems = (data.data && data.data.plugins) || [];
                 var u = {};
-                for (var i = 0; i < this.items.length; i++) {
-                    var it = this.items[i];
+                for (var i = 0; i < marketItems.length; i++) {
+                    var it = marketItems[i];
                     if (it.slug in this.local && this.verCmp(it.version, this.local[it.slug]) > 0) u[it.slug] = it;
                 }
                 this.upd = u;
@@ -614,6 +622,17 @@ function pluginMarket() {
             this.tab = 'market';
             if (!this.loaded && !this.loading) this.search();
         },
+        filterMarketItems(items) {
+            var terms = String(this.q || '').trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+            if (!terms.length) return items;
+            return items.filter(function(p) {
+                var haystack = [p.slug, p.name, p.description, p.category, p.author]
+                    .map(function(value) { return String(value || ''); })
+                    .join(' ')
+                    .toLocaleLowerCase();
+                return terms.every(function(term) { return haystack.indexOf(term) !== -1; });
+            });
+        },
         async search() {
             this.loading = true;
             this.error = '';
@@ -624,7 +643,7 @@ function pluginMarket() {
                 var resp = await fetch('', { method: 'POST', body: body });
                 var data = await resp.json();
                 if (data.code === 0) {
-                    this.items = (data.data && data.data.plugins) || [];
+                    this.items = this.filterMarketItems((data.data && data.data.plugins) || []);
                     this.loaded = true;
                 } else {
                     this.error = data.msg || <?php echo json_encode(__('admin_load_failed'), JSON_UNESCAPED_UNICODE); ?>;
