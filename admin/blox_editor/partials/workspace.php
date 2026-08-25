@@ -1342,6 +1342,60 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <template x-if="selEl && selEl.type === 'site-search' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-search-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-search text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_search_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_search_content_source_hint')) ?></p>
+                                </div>
+                            </template>
+
+                            <template x-if="selEl && selEl.type === 'language-switcher' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-language-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-language text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_language_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_language_content_source_hint')) ?></p>
+                                    <?php if ($canManageGlobalSettings): ?>
+                                    <a href="/admin/setting_lang.php" target="_blank" rel="noopener"
+                                       data-testid="blox-language-content-manage"
+                                       class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                        <i class="ti ti-settings text-sm" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_language_content_manage')) ?></span>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </template>
+
+                            <template x-if="selEl && selEl.type === 'site-copyright' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-copyright-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-copyright text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_copyright_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_copyright_content_source_hint')) ?></p>
+                                    <?php if ($canManageGlobalSettings): ?>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <a href="/admin/setting.php?tab=footer#input_footer_copyright_text" target="_blank" rel="noopener"
+                                           data-testid="blox-copyright-content-manage"
+                                           class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                            <i class="ti ti-text-caption text-sm" aria-hidden="true"></i>
+                                            <span><?= e(__('blox_copyright_content_manage')) ?></span>
+                                        </a>
+                                        <a href="/admin/setting.php?tab=basic#input_site_icp" target="_blank" rel="noopener"
+                                           data-testid="blox-filing-content-manage"
+                                           class="h-8 inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-2.5 text-[11px] font-medium text-blue-600 hover:border-blue-400 hover:text-blue-700 transition">
+                                            <i class="ti ti-shield-check text-sm" aria-hidden="true"></i>
+                                            <span><?= e(__('blox_filing_content_manage')) ?></span>
+                                        </a>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </template>
+
                             <template x-if="selEl && selEl.type === 'site-contact' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
                                 <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-contact-content-source">
                                     <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">

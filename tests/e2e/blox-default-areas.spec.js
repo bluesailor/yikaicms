@@ -211,11 +211,46 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(contactTargets).toHaveCount(2);
       await expect(contactTargets.first()).toHaveAttribute('data-yk-element-id', /.+/);
 
+      const searchTarget = liveHeader.locator('[data-yk-element-edit="site-search"]');
+      const languageTarget = liveHeader.locator('[data-yk-element-edit="language-switcher"]');
+      const footerNavigationTarget = liveFooter.locator('[data-yk-element-edit="footer-navigation"]');
+      const copyrightTarget = liveFooter.locator('[data-yk-element-edit="site-copyright"]');
+      await expect(searchTarget).toBeVisible();
+      await expect(languageTarget).toBeVisible();
+      await expect(footerNavigationTarget).toBeVisible();
+      await expect(copyrightTarget).toBeVisible();
+      const searchId = await searchTarget.getAttribute('data-yk-element-id');
+      const languageId = await languageTarget.getAttribute('data-yk-element-id');
+      const copyrightId = await copyrightTarget.getAttribute('data-yk-element-id');
+      const headerEditorHref = await liveHeader.getAttribute('data-yk-edit');
+      const footerEditorHref = await liveFooter.getAttribute('data-yk-edit');
+      expect(searchId).toBeTruthy();
+      expect(languageId).toBeTruthy();
+      expect(copyrightId).toBeTruthy();
+      expect(headerEditorHref).toBeTruthy();
+      expect(footerEditorHref).toBeTruthy();
+
       await page.goto(navigationHref, { waitUntil: 'domcontentloaded' });
       const selectedNavigation = page.locator(`[data-sort-child-item][data-item-id="${navigationId}"]`).first();
       await expect(selectedNavigation).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-nav-content-source')).toBeVisible();
       await expect(page.getByTestId('blox-nav-content-manage')).toHaveAttribute('href', /\/admin\/nav_menu\.php/);
+
+      await page.goto(`${headerEditorHref}&focus_element=${encodeURIComponent(searchId)}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator(`[data-sort-child-item][data-item-id="${searchId}"]`).first()).toHaveClass(/bg-blue-100/);
+      await expect(page.getByTestId('blox-search-content-source')).toBeVisible();
+
+      await page.goto(`${headerEditorHref}&focus_element=${encodeURIComponent(languageId)}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator(`[data-sort-child-item][data-item-id="${languageId}"]`).first()).toHaveClass(/bg-blue-100/);
+      await expect(page.getByTestId('blox-language-content-source')).toBeVisible();
+      await expect(page.getByTestId('blox-language-content-manage')).toHaveAttribute('href', '/admin/setting_lang.php');
+
+      await page.goto(`${footerEditorHref}&focus_element=${encodeURIComponent(copyrightId)}`, { waitUntil: 'domcontentloaded' });
+      const selectedCopyright = page.locator(`[data-sort-el-item][data-item-id="${copyrightId}"]`).first();
+      await expect(selectedCopyright.locator('[data-element-drag-handle]')).toHaveClass(/bg-blue-100/);
+      await expect(page.getByTestId('blox-copyright-content-source')).toBeVisible();
+      await expect(page.getByTestId('blox-copyright-content-manage')).toHaveAttribute('href', /tab=footer/);
+      await expect(page.getByTestId('blox-filing-content-manage')).toHaveAttribute('href', /tab=basic/);
     }
     expect(consoleEntries, 'published default areas must not log browser errors').toEqual([]);
   } finally {
