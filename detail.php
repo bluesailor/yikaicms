@@ -185,7 +185,7 @@ require_once theme_path('layouts/header.php');
                     <?php if ($content['cover']): ?>
                     <!-- 案例封面图 -->
                     <div class="px-6 md:px-8 pt-6 cursor-zoom-in" onclick="openCaseLightbox(0)">
-                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg hover:opacity-95 transition">
                     </div>
                     <?php endif; ?>
@@ -197,7 +197,7 @@ require_once theme_path('layouts/header.php');
                         <div class="flex flex-wrap gap-8">
                             <?php if ($content['cover']): ?>
                             <div class="w-full md:w-80">
-                                <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 768px) 320px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
                                      class="w-full rounded-lg">
                             </div>
                             <?php endif; ?>
@@ -249,7 +249,7 @@ require_once theme_path('layouts/header.php');
                     <?php if (!in_array($content['channel_type'], ['case', 'product'], true) && !empty($content['cover'])): ?>
                     <!-- 文章封面图（case/product 已各自渲染，此处覆盖 news/article 等类型）-->
                     <div class="px-6 md:px-8 pt-6">
-                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg">
                     </div>
                     <?php endif; ?>

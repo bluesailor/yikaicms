@@ -38,6 +38,26 @@ if ($_vars === null) {
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
+$productImageUrls = [];
+foreach ($productImages as $image) {
+    if (is_string($image) && $image !== '') {
+        $productImageUrls[] = $image;
+    }
+}
+$productImages = $productImageUrls;
+$productImageSizes = '(min-width: 1024px) 50vw, 100vw';
+$productImageVariants = array_map(
+    static function (string $image) use ($productImageSizes): array {
+        $main = responsiveImageData($image, 'medium');
+        $main['sizes'] = $productImageSizes;
+
+        return [
+            'main' => $main,
+        ];
+    },
+    array_values($productImages)
+);
+
 // 页面信息
 $pageTitle = $product['title'];
 $pageKeywords = $product['tags'] ?: configJsonLang('site_keywords');
@@ -120,8 +140,8 @@ require_once theme_path('layouts/header.php');
                     <?php if (!empty($productImages)): ?>
                     <!-- 主图（点击打开 lightbox） -->
                     <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4 relative group cursor-zoom-in"
-                         onclick="openLightbox(0)">
-                        <img loading="lazy" src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
+                         onclick="openLightbox(currentImageIdx)">
+                        <img decoding="async" fetchpriority="high" <?php echo responsiveImageAttributes($productImages[0], 'medium', $productImageSizes); ?> alt="<?php echo e($product['title']); ?>"
                              id="mainImage" class="w-full h-full object-contain transition-transform group-hover:scale-105">
                         <!-- 放大镜图标 -->
                         <div class="absolute top-3 right-3 bg-black/50 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition">
@@ -142,7 +162,7 @@ require_once theme_path('layouts/header.php');
                         <button type="button" onclick="changeImage(<?php echo $i; ?>)"
                                 data-idx="<?php echo $i; ?>"
                                 class="thumb-btn flex-shrink-0 w-20 h-20 border-2 rounded overflow-hidden hover:border-primary transition <?php echo $i === 0 ? 'border-primary' : 'border-gray-200'; ?>">
-                            <img loading="lazy" src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
+                            <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($img, 'thumb', '80px'); ?> alt="" class="w-full h-full object-cover">
                         </button>
                         <?php endforeach; ?>
                     </div>
@@ -373,10 +393,12 @@ require_once theme_path('layouts/header.php');
 <script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
 <script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>
 <?php endif; ?>
+<script src="/assets/js/product-gallery.js"></script>
 
 <script>
 // 产品图片数组
-var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES); ?>;
+var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var productImageVariants = <?php echo json_encode($productImageVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var currentImageIdx = 0;
 
 function changeImage(idx) {
@@ -388,7 +410,9 @@ function changeImage(idx) {
     if (idx < 0 || idx >= productImages.length) return;
     currentImageIdx = idx;
     var main = document.getElementById('mainImage');
-    if (main) main.src = productImages[idx];
+    if (main && productImageVariants[idx]) {
+        window.YikaiProductGallery.applyImageVariant(main, productImageVariants[idx].main);
+    }
     document.querySelectorAll('.thumb-btn').forEach(function(btn) {
         var i = parseInt(btn.dataset.idx, 10);
         if (i === idx) {
@@ -400,7 +424,9 @@ function changeImage(idx) {
         }
     });
     // 同步主图右下角的"1 / N"
-    var counter = document.querySelector('#mainImage').parentElement.querySelector('.absolute.bottom-3');
+    var counter = main && main.parentElement
+        ? main.parentElement.querySelector('.absolute.bottom-3')
+        : null;
     if (counter) counter.textContent = (idx + 1) + ' / ' + productImages.length;
 }
 

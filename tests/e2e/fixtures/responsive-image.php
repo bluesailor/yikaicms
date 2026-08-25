@@ -6,6 +6,16 @@ require_once dirname(__DIR__, 3) . '/includes/init.php';
 
 $name = preg_replace('/[^a-z0-9-]/', '', strtolower((string) ($_GET['name'] ?? '')));
 $url = '/uploads/images/' . ($name !== '' ? $name : 'missing-responsive-fixture') . '.png';
+$alternateUrl = '/uploads/images/' . ($name !== '' ? $name . '-alt' : 'missing-responsive-fixture-alt') . '.png';
+$gallerySizes = '(min-width: 1024px) 50vw, 100vw';
+$galleryVariants = array_map(
+    static function (string $image) use ($gallerySizes): array {
+        $variant = responsiveImageData($image, 'medium');
+        $variant['sizes'] = $gallerySizes;
+        return $variant;
+    },
+    [$url, $alternateUrl]
+);
 ?>
 <!doctype html>
 <html lang="en">
@@ -35,5 +45,23 @@ $url = '/uploads/images/' . ($name !== '' ? $name : 'missing-responsive-fixture'
         require ROOT_PATH . '/themes/default/partials/product-card.php';
         ?>
     </div>
+    <div style="max-width:720px;margin:24px auto">
+        <img data-testid="product-gallery-main"
+             <?php echo responsiveImageAttributes($url, 'medium', $gallerySizes); ?>
+             alt="Product gallery fixture" style="display:block;width:100%;height:auto">
+        <button type="button" data-testid="product-gallery-next" onclick="switchFixtureImage(1)">Next</button>
+        <button type="button" data-testid="product-gallery-plain" onclick="switchFixtureImage(2)">Plain</button>
+    </div>
+    <script src="/assets/js/product-gallery.js"></script>
+    <script>
+    var fixtureVariants = <?php echo json_encode($galleryVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    fixtureVariants.push({src: '/uploads/images/plain-fallback.png', srcset: '', sizes: '', width: 0, height: 0});
+    function switchFixtureImage(idx) {
+        window.YikaiProductGallery.applyImageVariant(
+            document.querySelector('[data-testid="product-gallery-main"]'),
+            fixtureVariants[idx]
+        );
+    }
+    </script>
 </body>
 </html>

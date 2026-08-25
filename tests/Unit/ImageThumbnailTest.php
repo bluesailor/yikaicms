@@ -162,6 +162,40 @@ final class ImageThumbnailTest extends TestCase
         }
     }
 
+    public function testDetailAndHomepageTemplatesUseResponsiveImageAttributes(): void
+    {
+        $templates = [
+            'article.php',
+            'detail.php',
+            'page.php',
+            'themes/default/blocks/channel.php',
+            'includes/blocks/channel.php',
+        ];
+
+        foreach ($templates as $template) {
+            $source = file_get_contents(ROOT_PATH . '/' . $template);
+            $this->assertIsString($source);
+            $this->assertStringContainsString('responsiveImageAttributes(', $source, $template);
+            $this->assertStringContainsString('decoding="async"', $source, $template);
+        }
+    }
+
+    public function testProductGalleryUpdatesResponsiveCandidatesAndKeepsOriginalLightboxUrls(): void
+    {
+        $template = file_get_contents(ROOT_PATH . '/product.php');
+        $script = file_get_contents(ROOT_PATH . '/assets/js/product-gallery.js');
+
+        $this->assertIsString($template);
+        $this->assertIsString($script);
+        $this->assertStringContainsString("responsiveImageData(\$image, 'medium')", $template);
+        $this->assertStringContainsString('openLightbox(currentImageIdx)', $template);
+        $this->assertStringContainsString('productImages.map(function (src)', $template);
+        $this->assertStringContainsString('JSON_HEX_TAG', $template);
+        $this->assertStringContainsString("image.removeAttribute('srcset')", $script);
+        $this->assertStringContainsString("image.removeAttribute('sizes')", $script);
+        $this->assertStringContainsString("image.setAttribute('src', variant.src)", $script);
+    }
+
     public function testWebpUrlEmptyAndFallback(): void
     {
         $this->assertSame('', webpUrl(''));
