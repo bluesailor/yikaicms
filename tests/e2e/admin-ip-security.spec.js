@@ -1,6 +1,41 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
 
+test('image pixel limit stays on the upload tab and clamps unsafe values @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single persistent security-settings check');
+  const consoleEntries = observeConsole(page);
+
+  await page.goto('/admin/setting_security.php', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('upload-max-megapixels')).toHaveCount(0);
+  await page.goto('/admin/setting_security.php?tab=upload', { waitUntil: 'domcontentloaded' });
+  const pixelLimit = page.getByTestId('upload-max-megapixels');
+  await expect(pixelLimit).toBeVisible();
+  await expect(pixelLimit).toHaveAttribute('min', '1');
+  await expect(pixelLimit).toHaveAttribute('max', '200');
+
+  const savePixelLimit = (value) => page.evaluate(async (nextValue) => {
+    const response = await fetch('/admin/setting_security.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: new URLSearchParams({ 'settings[upload_max_megapixels]': nextValue }),
+    });
+    return response.json();
+  }, value);
+
+  try {
+    expect((await savePixelLimit('500')).code).toBe(0);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('upload-max-megapixels')).toHaveValue('200');
+  } finally {
+    expect((await savePixelLimit('40')).code).toBe(0);
+  }
+
+  expect(consoleEntries, 'upload security settings must keep the console clean').toEqual([]);
+});
+
 test('trusted proxy and admin whitelist settings reject lockout and ignore spoofed headers @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single persistent security-settings check');
   const consoleEntries = observeConsole(page);

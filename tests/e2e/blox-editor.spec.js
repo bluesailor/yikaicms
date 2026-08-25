@@ -248,6 +248,39 @@ test('browser image upload is accepted by the real media API @ci', async ({ page
   }
 });
 
+test('media API rejects oversized image dimensions before processing @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser upload baseline');
+
+  const result = await page.evaluate(async () => {
+    const app = document.body._x_dataStack && document.body._x_dataStack[0];
+    if (!app || !app.csrf) throw new Error('Blox editor CSRF state is unavailable');
+
+    const binary = atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const dimensions = new DataView(bytes.buffer);
+    dimensions.setUint32(16, 100000);
+    dimensions.setUint32(20, 100000);
+
+    const body = new FormData();
+    body.append('file', new Blob([bytes], { type: 'image/png' }), 'blox-pixel-bomb.png');
+    body.append('type', 'images');
+    body.append('_token', app.csrf);
+    const response = await fetch('/admin/media_api.php?action=upload', { method: 'POST', body });
+    return response.json();
+  });
+
+  expect(result.code).toBe(1);
+  expect(result.msg).toContain('MP');
+
+  const listed = await page.evaluate(() => window.BloxMediaClient.list(
+    '/admin/media_api.php',
+    1,
+    'blox-pixel-bomb',
+  ));
+  expect(listed.ok).toBe(true);
+  expect(listed.total).toBe(0);
+});
+
 test('home canvas exposes dedicated edit links for the readonly header and footer @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
