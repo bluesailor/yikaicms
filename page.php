@@ -344,7 +344,7 @@ require theme_path('partials/page-hero.php');
                 <article class="bg-white rounded-lg shadow p-6 md:p-8">
                     <?php if ($content['cover'] && (int)($channel['show_cover'] ?? 1) === 1): ?>
                     <div class="mb-6">
-                        <img loading="lazy" src="<?php echo e($content['cover']); ?>" alt="<?php echo e($content['title']); ?>"
+                        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 896px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg">
                     </div>
                     <?php endif; ?>

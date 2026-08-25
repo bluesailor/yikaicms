@@ -150,7 +150,7 @@ require theme_path('partials/page-hero.php');
                     <!-- 封面图 -->
                     <?php if ($article['cover']): ?>
                     <div class="border-b">
-                        <img src="<?php echo e($article['cover']); ?>" alt="<?php echo e($article['title']); ?>"
+                        <img decoding="async" fetchpriority="high" <?php echo responsiveImageAttributes($article['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($article['title']); ?>"
                              class="w-full max-h-96 object-cover">
                     </div>
                     <?php endif; ?>
