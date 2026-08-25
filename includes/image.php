@@ -20,6 +20,26 @@ define('THUMBNAIL_SIZES', [
 ]);
 
 /**
+ * 上传图片允许的总像素数。限制在合理区间，防止被直接写入异常配置绕过。
+ */
+function uploadMaxImageMegapixels(): int
+{
+    $value = config('upload_max_megapixels', '40');
+    $configured = is_numeric($value) ? (int) $value : 40;
+    return $configured >= 1 ? min(200, $configured) : 40;
+}
+
+function imageDimensionsWithinPixelLimit(int $width, int $height, int $maxPixels): bool
+{
+    if ($width < 1 || $height < 1 || $maxPixels < 1) {
+        return false;
+    }
+
+    // 用除法避免恶意超大尺寸在 32 位环境做乘法时溢出。
+    return $height <= intdiv($maxPixels, $width);
+}
+
+/**
  * 为上传的图片生成缩略图
  */
 function generateThumbnails(string $filepath, string $ext): array

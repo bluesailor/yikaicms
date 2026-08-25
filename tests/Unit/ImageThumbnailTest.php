@@ -23,6 +23,38 @@ final class ImageThumbnailTest extends TestCase
         $this->assertArrayHasKey('medium', THUMBNAIL_SIZES);
     }
 
+    public function testImagePixelLimitHandlesBoundariesWithoutOverflow(): void
+    {
+        $this->assertTrue(imageDimensionsWithinPixelLimit(8_000, 5_000, 40_000_000));
+        $this->assertFalse(imageDimensionsWithinPixelLimit(8_001, 5_000, 40_000_000));
+        $this->assertFalse(imageDimensionsWithinPixelLimit(PHP_INT_MAX, PHP_INT_MAX, 40_000_000));
+        $this->assertFalse(imageDimensionsWithinPixelLimit(0, 1, 40_000_000));
+    }
+
+    public function testConfiguredImagePixelLimitIsClampedToSafeBounds(): void
+    {
+        $previous = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        try {
+            $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 55;
+            $this->assertSame(55, uploadMaxImageMegapixels());
+
+            $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 500;
+            $this->assertSame(200, uploadMaxImageMegapixels());
+
+            $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 0;
+            $this->assertSame(40, uploadMaxImageMegapixels());
+
+            $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = [];
+            $this->assertSame(40, uploadMaxImageMegapixels());
+        } finally {
+            if ($previous === null) {
+                unset($GLOBALS['yikai_config_runtime_overrides']);
+            } else {
+                $GLOBALS['yikai_config_runtime_overrides'] = $previous;
+            }
+        }
+    }
+
     public function testThumbnailEmptyReturnsEmpty(): void
     {
         $this->assertSame('', thumbnail(''));

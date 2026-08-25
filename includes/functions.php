@@ -2415,10 +2415,18 @@ function uploadFile(array $file, string $type = 'images'): array
 
     // 图片文件必须通过 getimagesize 验证（SVG 除外）
     $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    $width = 0;
+    $height = 0;
     if (in_array($ext, $imageExts)) {
         $check = @getimagesize($file['tmp_name']);
         if ($check === false) {
             return ['error' => '无效的图片文件'];
+        }
+        $width = (int) ($check[0] ?? 0);
+        $height = (int) ($check[1] ?? 0);
+        $maxMegapixels = uploadMaxImageMegapixels();
+        if (!imageDimensionsWithinPixelLimit($width, $height, $maxMegapixels * 1_000_000)) {
+            return ['error' => __('upload_image_pixels_exceeded', ['limit' => $maxMegapixels])];
         }
     }
 
@@ -2442,17 +2450,6 @@ function uploadFile(array $file, string $type = 'images'): array
         $raw = @file_get_contents($filepath);
         if ($raw !== false) {
             file_put_contents($filepath, sanitizeSvg($raw));
-        }
-    }
-
-    // 获取图片尺寸（已在上传前验证，此处仅取元数据）
-    $width = 0;
-    $height = 0;
-    if (in_array($ext, $imageExts)) {
-        $imageInfo = @getimagesize($filepath);
-        if ($imageInfo) {
-            $width = $imageInfo[0];
-            $height = $imageInfo[1];
         }
     }
 
