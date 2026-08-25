@@ -16,6 +16,17 @@ require_once ROOT_PATH . '/includes/image.php';
 
 final class ImageThumbnailTest extends TestCase
 {
+    private static function pngWithDimensions(int $width, int $height): string
+    {
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+            true
+        );
+        self::assertIsString($png);
+        $png = substr_replace($png, pack('N', $width), 16, 4);
+        return substr_replace($png, pack('N', $height), 20, 4);
+    }
+
     public function testThumbnailSizesConstDefined(): void
     {
         $this->assertTrue(defined('THUMBNAIL_SIZES'));
@@ -72,6 +83,83 @@ final class ImageThumbnailTest extends TestCase
         // 缩略图文件不存在（ROOT_PATH 下无此文件）→ 回退原图 URL
         $url = '/uploads/images/does-not-exist/img.jpg';
         $this->assertSame($url, thumbnail($url, 'thumb'));
+    }
+
+    public function testResponsiveImageAttributesUseSameRatioLocalCandidates(): void
+    {
+        $name = 'responsive-image-' . getmypid();
+        $directory = ROOT_PATH . '/storage/cache/' . $name;
+        $url = '/storage/cache/' . $name . '/photo.png';
+        mkdir($directory, 0775, true);
+        file_put_contents($directory . '/photo.png', self::pngWithDimensions(1_600, 900));
+        file_put_contents($directory . '/photo_medium.png', self::pngWithDimensions(800, 450));
+
+        try {
+            $image = responsiveImageData($url);
+            $mediumUrl = '/storage/cache/' . $name . '/photo_medium.png';
+            $this->assertSame($mediumUrl, $image['src']);
+            $this->assertSame(800, $image['width']);
+            $this->assertSame(450, $image['height']);
+            $this->assertStringContainsString($mediumUrl . ' 800w', $image['srcset']);
+            $this->assertStringContainsString('/storage/cache/' . $name . '/photo.png 1600w', $image['srcset']);
+
+            $attributes = responsiveImageAttributes('/storage/cache/' . $name . '/photo.png', 'medium', '50vw');
+            $this->assertStringContainsString('sizes="50vw"', $attributes);
+            $this->assertStringContainsString('width="800" height="450"', $attributes);
+        } finally {
+            @unlink($directory . '/photo_medium.png');
+            @unlink($directory . '/photo.png');
+            @rmdir($directory);
+        }
+    }
+
+    public function testResponsiveImageDoesNotMixDifferentCropRatios(): void
+    {
+        $name = 'responsive-crop-' . getmypid();
+        $directory = ROOT_PATH . '/storage/cache/' . $name;
+        $url = '/storage/cache/' . $name . '/photo.png';
+        mkdir($directory, 0775, true);
+        file_put_contents($directory . '/photo.png', self::pngWithDimensions(1_600, 900));
+        file_put_contents($directory . '/photo_thumb.png', self::pngWithDimensions(300, 300));
+
+        try {
+            $image = responsiveImageData($url, 'thumb');
+            $this->assertSame('/storage/cache/' . $name . '/photo_thumb.png', $image['src']);
+            $this->assertSame('', $image['srcset']);
+            $this->assertSame(300, $image['width']);
+            $this->assertSame(300, $image['height']);
+        } finally {
+            @unlink($directory . '/photo_thumb.png');
+            @unlink($directory . '/photo.png');
+            @rmdir($directory);
+        }
+    }
+
+    public function testResponsiveImageKeepsExternalUrlsFilesystemFree(): void
+    {
+        $attributes = responsiveImageAttributes('https://example.com/photo.jpg?a=1&b=2');
+        $this->assertSame('src="https://example.com/photo.jpg?a=1&amp;b=2"', $attributes);
+        $this->assertSame([0, 0], _localImageDimensions('/../config/config.php'));
+    }
+
+    public function testCoreCardTemplatesUseResponsiveImageAttributes(): void
+    {
+        $templates = [
+            'themes/default/partials/product-card.php',
+            'themes/default/partials/article-card.php',
+            'themes/default/partials/article-grid-card.php',
+            'themes/default/partials/case-card.php',
+            'includes/partials/product-card.php',
+            'includes/partials/article-card.php',
+            'includes/partials/case-card.php',
+        ];
+
+        foreach ($templates as $template) {
+            $source = file_get_contents(ROOT_PATH . '/' . $template);
+            $this->assertIsString($source);
+            $this->assertStringContainsString('responsiveImageAttributes(', $source, $template);
+            $this->assertStringContainsString('decoding="async"', $source, $template);
+        }
     }
 
     public function testWebpUrlEmptyAndFallback(): void
