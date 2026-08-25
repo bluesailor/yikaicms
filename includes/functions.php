@@ -3332,12 +3332,62 @@ function isTimelinePageChannel(array $channel): bool
     return $sourceSlugCache[$sourceId] === 'history';
 }
 
-/** 单页的真实主编辑入口；动态时间轴不应进入不会生效的普通 Blox 正文。 */
+/**
+ * 解析栏目在前台自动跳转后真正展示内容的目标。
+ *
+ * 与 page.php 保持一致：只跟随启用子栏目中的第一项，并限制深度、防止异常父子关系循环。
+ */
+function pagePrimaryEditTarget(array $channel): array
+{
+    $target = $channel;
+    $visited = [];
+
+    for ($depth = 0; $depth < 12; $depth++) {
+        $targetId = (int) ($target['id'] ?? 0);
+        if ($targetId <= 0 || isset($visited[$targetId])) {
+            break;
+        }
+        $visited[$targetId] = true;
+
+        if (($target['type'] ?? '') !== 'page' || ($target['redirect_type'] ?? 'auto') !== 'auto') {
+            break;
+        }
+
+        $children = channelModel()->getByParent($targetId, true);
+        $firstChild = $children[0] ?? null;
+        if (!is_array($firstChild)) {
+            break;
+        }
+        $target = $firstChild;
+    }
+
+    return $target;
+}
+
+/** 单页的真实主编辑入口；自动跳转页和动态页面不应进入不会生效的普通 Blox 正文。 */
 function pagePrimaryEditUrl(array $channel): string
 {
-    if (isTimelinePageChannel($channel)) {
+    $target = pagePrimaryEditTarget($channel);
+    $targetId = (int) ($target['id'] ?? 0);
+    if ($targetId <= 0) {
+        return '';
+    }
+
+    if (($target['type'] ?? '') === 'album') {
+        $albumId = (int) ($target['album_id'] ?? 0);
+        return $albumId > 0
+            ? '/admin/album_photos.php?id=' . $albumId
+            : '/admin/channel.php?edit=' . $targetId . '&tab=main';
+    }
+
+    if (($target['type'] ?? '') !== 'page'
+        || (($target['redirect_type'] ?? 'auto') === 'url' && !empty($target['redirect_url']))) {
+        return '/admin/channel.php?edit=' . $targetId . '&tab=main';
+    }
+
+    if (isTimelinePageChannel($target)) {
         $url = '/admin/timeline.php';
-        $lang = (string) ($channel['lang'] ?? '');
+        $lang = (string) ($target['lang'] ?? '');
         $defaultLang = (string) config('site_lang', 'zh-CN');
         if ($lang !== '' && $lang !== $defaultLang) {
             $url .= '?lang=' . rawurlencode($lang);
@@ -3345,8 +3395,12 @@ function pagePrimaryEditUrl(array $channel): string
         return $url;
     }
 
-    $pageId = (int) ($channel['id'] ?? 0);
-    return $pageId > 0 ? '/admin/blox_editor.php?id=' . $pageId : '';
+    $url = '/admin/blox_editor.php?id=' . $targetId;
+    $sourceId = (int) ($channel['id'] ?? 0);
+    if ($sourceId > 0 && $sourceId !== $targetId) {
+        $url .= '&from_parent=' . $sourceId;
+    }
+    return $url;
 }
 
 /**
