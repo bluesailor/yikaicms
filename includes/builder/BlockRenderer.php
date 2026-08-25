@@ -588,13 +588,17 @@ final class BlockRenderer
                 return '';
             }
             $pathAttr = htmlspecialchars(implode('.', array_map('strval', $path)), ENT_QUOTES);
+            $nodeId = (string) ($el['id'] ?? '');
+            $idAttr = $nodeId !== ''
+                ? ' data-yk-el-id="' . htmlspecialchars($nodeId, ENT_QUOTES) . '"'
+                : '';
             $typeAttr = htmlspecialchars($type, ENT_QUOTES);
             $label = htmlspecialchars($missing['label'], ENT_QUOTES);
             $conditionAttr = $hasConditions
                 ? ' data-yk-conditions="' . htmlspecialchars(BloxDisplayConditions::badge($conditions), ENT_QUOTES) . '"'
                 : '';
             return '<div class="yk-edit-el yk-missing-element" data-yk-el="' . $pathAttr
-                . '"' . $conditionAttr
+                . '"' . $idAttr . $conditionAttr
                 . ' data-yk-el-type="' . $typeAttr . '"><div class="border-2 border-dashed border-amber-300'
                 . ' bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
                 . '<strong>' . $label . '</strong><br>' . __('blox_plugin_missing_front') . '</div></div>';
@@ -631,8 +635,13 @@ final class BlockRenderer
             ? $storedPath
             : implode('.', array_map('strval', $path));
         $pathAttr = htmlspecialchars($effectivePath, ENT_QUOTES);
+        $nodeId = (string) ($el['id'] ?? '');
+        $idAttr = $nodeId !== ''
+            ? ' data-yk-el-id="' . htmlspecialchars($nodeId, ENT_QUOTES) . '"'
+            : '';
         $typeAttr = htmlspecialchars($element->type(), ENT_QUOTES);
-        return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '" data-yk-el-type="' . $typeAttr
+        return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '"' . $idAttr
+            . ' data-yk-el-type="' . $typeAttr
             . '" style="display:contents">' . $html . '</div>';
     }
 

@@ -372,6 +372,12 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var si = parseInt(node.getAttribute('data-yk-sec'), 10);
         return id && !isNaN(si) ? { id: id, si: si } : null;
     }
+    function elementTarget(node) {
+        if (!node) return null;
+        var id = node.getAttribute('data-yk-el-id') || '';
+        var path = node.getAttribute('data-yk-el') || '';
+        return id && pathParts(path).length >= 3 ? { id: id, path: path } : null;
+    }
     function homeFieldTarget(node) {
         if (!node) return null;
         var path = node.getAttribute('data-yk-home-path') || '';
@@ -792,7 +798,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         if (el) {
             var path = el.getAttribute('data-yk-el') || '';
             highlightEl(path);
-            postToEditor({ ykPickEl: path });
+            var target = elementTarget(el);
+            postToEditor(target ? { ykPickElement: target } : { ykPickEl: path });
             return;
         }
         var col = e.target.closest('[data-yk-col]');
@@ -896,7 +903,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             return;
         }
         e.preventDefault();
-        postToEditor({ ykEditEl: path });
+        var target = elementTarget(el);
+        postToEditor(target ? { ykEditElement: target } : { ykEditEl: path });
     }, true);
 
     var ykDragRules = null;   // {containers:{type:[childTypes]}, isContainer:{type:bool}, generic:{type:bool}}
@@ -945,6 +953,18 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             highlightSectionField(d.ykHighlightSectionField.si, d.ykHighlightSectionField.field || 'title');
             var fieldTarget = document.querySelector('[data-yk-sec-field="' + d.ykHighlightSectionField.si + '.' + cssEscape(d.ykHighlightSectionField.field || 'title') + '"]');
             if (shouldScroll && fieldTarget) fieldTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        if (typeof d.ykHighlightElementId === 'string' && d.ykHighlightElementId) {
+            var stableElement = document.querySelector('[data-yk-el-id="' + cssEscape(d.ykHighlightElementId) + '"]');
+            if (stableElement) {
+                var stablePath = stableElement.getAttribute('data-yk-el') || '';
+                if (stablePath) highlightEl(stablePath);
+                if (shouldScroll) {
+                    var stableBox = boxNode(stableElement) || stableElement;
+                    stableBox.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                }
+            }
             return;
         }
         if (typeof d.ykHighlightEl === 'string') {

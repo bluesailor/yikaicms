@@ -5567,4 +5567,5 @@ voltage|電圧|220V',
     'blox_logo_maker_install' => 'ロゴメーカーをインストール',
     'blox_logo_lab_open' => 'オンラインでアイコンを生成',
     'blox_logo_tools_hint' => 'ロゴメーカープラグインでは完全なロゴをオフラインで作成でき、オンラインツールはアイコンの素早い生成に適しています。',
+    'fe_edit_logo_block' => 'Logo ブロックを編集',
 ];

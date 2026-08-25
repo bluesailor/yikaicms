@@ -5426,4 +5426,5 @@ voltage|Voltage|220V',
     'blox_logo_maker_install' => 'Install Logo Maker',
     'blox_logo_lab_open' => 'Generate an icon online',
     'blox_logo_tools_hint' => 'The Logo Maker plugin creates complete logos offline; the online tool is useful for quick icons.',
+    'fe_edit_logo_block' => 'Edit logo block',
 ];

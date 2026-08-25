@@ -5494,4 +5494,5 @@ voltage|电压|220V',
     'blox_logo_maker_install' => '安装 LOGO 制作',
     'blox_logo_lab_open' => '在线生成图标',
     'blox_logo_tools_hint' => 'LOGO 制作插件可离线完成完整标志；在线工具适合快速生成图标。',
+    'fe_edit_logo_block' => '编辑 Logo 区块',
 ];

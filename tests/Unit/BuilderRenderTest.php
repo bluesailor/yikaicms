@@ -904,8 +904,8 @@ final class BuilderRenderTest extends TestCase
             'id' => 'section-stable-1',
             'settings' => ['title' => 'Section title', 'subtitle' => 'Section subtitle'],
             'columns' => [['elements' => [
-                ['type' => 'heading', 'data' => ['text' => 'Heading']],
-                ['type' => 'text', 'data' => ['html' => '<p>Plain text</p>']],
+                ['id' => 'element-heading-1', 'type' => 'heading', 'data' => ['text' => 'Heading']],
+                ['id' => 'element-text-1', 'type' => 'text', 'data' => ['html' => '<p>Plain text</p>']],
             ]]],
         ]]);
 
@@ -918,14 +918,15 @@ final class BuilderRenderTest extends TestCase
             $this->assertStringContainsString('data-yk-sec="0" data-yk-sec-id="section-stable-1"', $out);
             $this->assertStringContainsString('data-yk-sec-field="0.title"', $out);
             $this->assertStringContainsString('data-yk-sec-field="0.subtitle"', $out);
-            $this->assertStringContainsString('data-yk-el="0.0.0" data-yk-el-type="heading"', $out);
-            $this->assertStringContainsString('data-yk-el="0.0.1" data-yk-el-type="text"', $out);
+            $this->assertStringContainsString('data-yk-el="0.0.0" data-yk-el-id="element-heading-1" data-yk-el-type="heading"', $out);
+            $this->assertStringContainsString('data-yk-el="0.0.1" data-yk-el-id="element-text-1" data-yk-el-type="text"', $out);
         } finally {
             BlockRenderer::$editChannelId = $oldChannelId;
             $_SESSION = $oldSession;
         }
 
         $this->assertStringNotContainsString('data-yk-el-type', BlockRenderer::render($json));
+        $this->assertStringNotContainsString('data-yk-el-id', BlockRenderer::render($json));
     }
 
     public function testNestedCustomBlockUsesNamespacedHomeFieldsInsteadOfInnerCoordinates(): void
