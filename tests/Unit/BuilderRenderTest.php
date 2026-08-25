@@ -901,6 +901,7 @@ final class BuilderRenderTest extends TestCase
     public function testEditModeAddsInlineEditingMetadata(): void
     {
         $json = json_encode([[
+            'id' => 'section-stable-1',
             'settings' => ['title' => 'Section title', 'subtitle' => 'Section subtitle'],
             'columns' => [['elements' => [
                 ['type' => 'heading', 'data' => ['text' => 'Heading']],
@@ -914,6 +915,7 @@ final class BuilderRenderTest extends TestCase
             BlockRenderer::$editChannelId = 2;
             $_SESSION['admin_id'] = 1;
             $out = BlockRenderer::render($json);
+            $this->assertStringContainsString('data-yk-sec="0" data-yk-sec-id="section-stable-1"', $out);
             $this->assertStringContainsString('data-yk-sec-field="0.title"', $out);
             $this->assertStringContainsString('data-yk-sec-field="0.subtitle"', $out);
             $this->assertStringContainsString('data-yk-el="0.0.0" data-yk-el-type="heading"', $out);

@@ -11,6 +11,16 @@
         return Number.isInteger(value) && value >= 0 && value <= 10000;
     }
 
+    function isSectionId(value) {
+        return typeof value === "string" && value.length > 0 && value.length <= 512
+            && !/[\u0000-\u001f\u007f]/.test(value);
+    }
+
+    function sectionTargetPayload(value) {
+        if (!isObject(value) || !isSectionId(value.id) || !isIndex(value.si)) return null;
+        return { id: value.id, si: value.si };
+    }
+
     function isElementPath(value) {
         return typeof value === "string" && /^\d+\.\d+\.\d+(?:\.\d+)?$/.test(value);
     }
@@ -272,8 +282,13 @@
             this.onPickContainer(data.ykPickCon);
             return true;
         }
+        payload = sectionTargetPayload(data.ykPickSection);
+        if (payload) {
+            this.onPickSection(payload);
+            return true;
+        }
         if (isIndex(data.ykPick)) {
-            this.onPickSection(data.ykPick);
+            this.onPickSection({ id: "", si: data.ykPick });
             return true;
         }
         if (data.ykClear === true) {

@@ -3306,6 +3306,31 @@ function renderContentBody(array $content): string
 }
 
 /**
+ * 为登录管理员渲染可定位的前台 Blox 正文。
+ *
+ * 编辑上下文只包住正文渲染，防止同页的 Blox Header/Footer 继承页面编辑目标。
+ */
+function renderFrontEditableContentBody(array $content, int $channelId): string
+{
+    if ($channelId < 1
+        || isCleanFrontendPreview()
+        || empty($_SESSION['admin_id'])
+        || ($content['content_type'] ?? '') !== 'blocks'
+        || empty($content['blocks_data'])) {
+        return renderContentBody($content);
+    }
+
+    require_once __DIR__ . '/builder/bootstrap.php';
+    $previousChannelId = BlockRenderer::$editChannelId;
+    try {
+        BlockRenderer::$editChannelId = $channelId;
+        return renderContentBody($content);
+    } finally {
+        BlockRenderer::$editChannelId = $previousChannelId;
+    }
+}
+
+/**
  * 判断单页是否由独立的时间轴数据源渲染。
  *
  * 翻译页 slug 会变化，因此以源语言栏目的 slug 为准；查询结果按翻译组缓存，
