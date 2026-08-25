@@ -39,30 +39,25 @@
         };
     }
 
-    function imageName(file, fallback) {
+    var mimeExtensions = {
+        "image/jpeg": ["jpg", "jpeg"],
+        "image/png": ["png"],
+        "image/webp": ["webp"],
+        "image/gif": ["gif"],
+    };
+
+    function imageName(file, fallback, outputType) {
         var name = String((file && file.name) || fallback || "upload");
-        if (name.indexOf(".") !== -1) return name;
-        var extension = {
-            "image/jpeg": "jpg",
-            "image/png": "png",
-            "image/webp": "webp",
-            "image/gif": "gif",
-        }[String((file && file.type) || "").toLowerCase()] || "jpg";
-        return name + "." + extension;
+        var type = String(outputType || (file && file.type) || "").toLowerCase();
+        var allowed = mimeExtensions[type] || [];
+        var match = name.match(/\.([a-z0-9]+)$/i);
+        if (match && (allowed.length === 0 || allowed.indexOf(match[1].toLowerCase()) !== -1)) return name;
+
+        var extension = allowed[0] || "jpg";
+        return match ? name.slice(0, -match[0].length) + "." + extension : name + "." + extension;
     }
 
-    function decodeImage(file) {
-        if (typeof global.createImageBitmap === "function") {
-            return global.createImageBitmap(file).then(function (bitmap) {
-                return {
-                    source: bitmap,
-                    width: bitmap.width,
-                    height: bitmap.height,
-                    cleanup: function () { if (typeof bitmap.close === "function") bitmap.close(); },
-                };
-            });
-        }
-
+    function decodeImageElement(file) {
         return new Promise(function (resolve, reject) {
             if (typeof global.Image !== "function" || !global.URL || typeof global.URL.createObjectURL !== "function") {
                 reject(new Error("Image decoding is unavailable"));
@@ -83,6 +78,25 @@
                 reject(new Error("Image decoding failed"));
             };
             image.src = url;
+        });
+    }
+
+    function decodeImage(file) {
+        if (typeof global.createImageBitmap !== "function") return decodeImageElement(file);
+
+        return Promise.resolve().then(function () {
+            return global.createImageBitmap(file);
+        }).then(function (bitmap) {
+            return {
+                source: bitmap,
+                width: bitmap.width,
+                height: bitmap.height,
+                cleanup: function () { if (typeof bitmap.close === "function") bitmap.close(); },
+            };
+        }).catch(function () {
+            // Safari and older Chromium builds can expose createImageBitmap while
+            // rejecting image variants that the regular image decoder accepts.
+            return decodeImageElement(file);
         });
     }
 
@@ -114,15 +128,22 @@
             var scale = shouldResize ? config.maxDimension / maxSide : 1;
             var width = Math.max(1, Math.round(decoded.width * scale));
             var height = Math.max(1, Math.round(decoded.height * scale));
-            var canvas = global.document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            var context = canvas.getContext("2d");
-            if (!context) {
+            var canvas;
+            var context;
+            try {
+                canvas = global.document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                context = canvas.getContext("2d");
+                if (!context) {
+                    decoded.cleanup();
+                    return file;
+                }
+                context.drawImage(decoded.source, 0, 0, width, height);
+            } catch (error) {
                 decoded.cleanup();
-                return file;
+                throw error;
             }
-            context.drawImage(decoded.source, 0, 0, width, height);
 
             return canvasBlob(canvas, type, config.quality).then(function (blob) {
                 decoded.cleanup();
@@ -141,7 +162,7 @@
         var config = options && typeof options === "object" ? options : {};
         return prepareImage(file, config).then(function (prepared) {
             var body = new FormData();
-            body.append("file", prepared, imageName(file, config.filename));
+            body.append("file", prepared, imageName(file, config.filename, prepared && prepared.type));
             body.append("type", "images");
             if (config.csrf) body.append("_token", String(config.csrf));
 
@@ -153,6 +174,9 @@
                         ok: Number(result.code) === 0 && typeof data.url === "string" && data.url !== "",
                         message: String(result.msg || ""),
                         url: String(data.url || ""),
+                        optimized: prepared !== file,
+                        originalBytes: Math.max(0, Number(file && file.size) || 0),
+                        uploadBytes: Math.max(0, Number(prepared && prepared.size) || 0),
                     };
                 });
         });
