@@ -214,6 +214,7 @@ function checkAllPass(array $checks): bool
 function finalizeFreshInstallMigrations(): void
 {
     try {
+        /** @psalm-suppress MissingFile 全新安装在调用本函数前刚生成 config.php，CI 检出树中不存在。 */
         require_once ROOT_PATH . '/config/config.php';
         require_once ROOT_PATH . '/includes/functions.php';
         require_once ROOT_PATH . '/includes/models/autoload.php';
