@@ -187,13 +187,9 @@ if ($hasPublishedBlox) {
 }
 
 // 页面信息
-// 在 header 前确定顶部管理条和区块就地编辑目标，避免主题布局分支漏设。
+// 在 header 前确定顶部管理条的页级编辑目标，避免主题布局分支漏设。
 if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && is_array($content)) {
     $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . (int) $channel['id'];
-    if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
-        BlockRenderer::$editChannelId = (int) $channel['id'];
-        $GLOBALS['ik_front_edit_cid'] = (int) $channel['id'];
-    }
 }
 
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
