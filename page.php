@@ -346,15 +346,13 @@ require theme_path('partials/page-hero.php');
                     <?php endif; ?>
 
                     <?php
-                    // 前台就地编辑（P1）：登录管理员浏览 blocks 页时，开启区块定位标记 + 编辑深链。
-                    // 非管理员/非 blocks 页不触发；管理员浏览不走 HtmlCache（见 HtmlCache::isCacheable），
-                    // 故标记不会写入公开缓存。
-                    // 非 blocks 单页：整块内容区悬停编辑 → 富文本编辑器（blocks 页走上面的区块级悬停）
+                    // Blox 正文按持久 section id 暴露区块深链；普通正文仍使用整块编辑入口。
+                    // 管理员浏览不走 HtmlCache（见 HtmlCache::isCacheable），定位标记不会进入公开缓存。
                     $__pageEditAttr = (($content['content_type'] ?? '') !== 'blocks')
                         ? frontEditAttr($content, $channel, '✎ ' . __('ab_edit_page')) : '';
                     ?>
                     <div class="prose prose-lg max-w-none"<?php echo $__pageEditAttr; ?>>
-                        <?php echo renderContentBody($content); ?>
+                        <?php echo renderFrontEditableContentBody($content, (int) $channel['id']); ?>
                     </div>
 
                     <!-- 图片相册 -->

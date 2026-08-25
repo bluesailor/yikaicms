@@ -118,6 +118,38 @@ test('legacy page editor and page list converge on Blox @local', async ({ page }
     .toHaveAttribute('href', `/admin/blox_editor.php?id=${fixtures.blox_page}`);
 });
 
+test('stable section deep link selects the same persisted block @local', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop hover and locator baseline');
+  expect(fixtures.blox_page).toBeGreaterThan(0);
+
+  const consoleEntries = observeConsole(page);
+  await openPageEditor(page, fixtures.blox_page);
+  const targetTreeSection = page.getByTestId('blox-tree-section').last();
+  const sectionId = await targetTreeSection.getAttribute('data-section-id');
+  expect(sectionId).toBeTruthy();
+
+  await page.goto(
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(sectionId)}`,
+    { waitUntil: 'domcontentloaded' }
+  );
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+  await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
+    .toHaveClass(/border-blue-400/);
+  await expect((await frame(page)).locator(`[data-yk-sec-id="${sectionId}"]`)).toHaveClass(/yk-selected/);
+
+  const frontendUrl = `${fixtures.blox_page_url}${fixtures.blox_page_url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+  await page.goto(frontendUrl, { waitUntil: 'domcontentloaded' });
+  const frontendSection = page.locator('[data-yk-sec-id]').first();
+  const frontendSectionId = await frontendSection.getAttribute('data-yk-sec-id');
+  expect(frontendSectionId).toBeTruthy();
+  await frontendSection.hover();
+  await expect(page.locator('#yk-edit-btn')).toHaveAttribute(
+    'href',
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`
+  );
+  expect(consoleEntries).toEqual([]);
+});
+
 test('auto-redirect parent edits the page visitors actually see @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single navigation baseline');
   expect(fixtures.redirect_parent).toBeGreaterThan(0);

@@ -22,7 +22,7 @@ function fixture(overrides = {}) {
     const calls = [];
     const bridge = new global.BloxCanvasBridge(Object.assign({
         getFrame: function () { return frame; },
-        onPickSection: function (si) { calls.push(["section", si]); },
+        onPickSection: function (target) { calls.push(["section", target]); },
         onPickColumn: function (si, ci) { calls.push(["column", si, ci]); },
         onPickElement: function (path) { calls.push(["element", path]); },
         onDrop: function (payload) { calls.push(["drop", payload.dropId]); },
@@ -39,7 +39,21 @@ test("只接受当前画布 iframe 的消息", function () {
     assert.deepEqual(current.calls, []);
 
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykPick: 2 } }), true);
-    assert.deepEqual(current.calls, [["section", 2]]);
+    assert.deepEqual(current.calls, [["section", { id: "", si: 2 }]]);
+});
+
+test("稳定区块 ID 与索引一起通过画布边界", function () {
+    const current = fixture();
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickSection: { id: "s_process_2026", si: 4, ignored: true },
+    } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickSection: { id: "", si: 4 },
+    } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickSection: { id: "bad\u0000id", si: 4 },
+    } }), false);
+    assert.deepEqual(current.calls, [["section", { id: "s_process_2026", si: 4 }]]);
 });
 
 test("路径和索引在进入编辑器前完成校验", function () {
