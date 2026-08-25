@@ -12,6 +12,7 @@ final class BloxLogoMakerRecommendationTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
 
+        self::assertStringContainsString("\$canManageSiteLogo = hasPermission('basic');", $editor);
         self::assertStringContainsString("\$canManageLogoMaker = hasPermission('*');", $editor);
         self::assertStringContainsString("is_dir(ROOT_PATH . '/plugins/logo-maker')", $editor);
         self::assertStringContainsString("isPluginAvailable('logo-maker')", $editor);
@@ -20,12 +21,14 @@ final class BloxLogoMakerRecommendationTest extends TestCase
         self::assertStringContainsString('/admin/plugin.php?tab=market&q=logo-maker', $editor);
     }
 
-    public function testRecommendationIsScopedToTheLogoCustomImageControl(): void
+    public function testRecommendationIsScopedToTheLogoContentPanel(): void
     {
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
-        self::assertStringContainsString("selEl.type === 'logo' && ctrl.key === 'custom_logo'", $workspace);
+        self::assertStringContainsString("selEl.type === 'logo' && panelTab === 'content'", $workspace);
         self::assertStringContainsString('data-testid="blox-logo-maker-recommendation"', $workspace);
+        self::assertStringContainsString('data-testid="blox-site-logo-settings"', $workspace);
+        self::assertStringContainsString('/admin/setting.php#input_site_logo', $workspace);
         self::assertStringContainsString('data-testid="blox-logo-maker-action"', $workspace);
         self::assertStringContainsString('data-logo-maker-state=', $workspace);
         self::assertStringContainsString('data-testid="blox-logo-lab-action"', $workspace);
@@ -38,6 +41,15 @@ final class BloxLogoMakerRecommendationTest extends TestCase
             'href="https://logo.yikaicms.com/#icon" target="_blank" rel="noopener"',
             $workspace
         );
+    }
+
+    public function testLogoElementUsesOnlyTheSiteLogoSource(): void
+    {
+        $element = $this->source('includes/builder/elements/LogoElement.php');
+
+        self::assertStringNotContainsString("['key' => 'custom_logo'", $element);
+        self::assertStringNotContainsString("\$data['custom_logo']", $element);
+        self::assertStringContainsString("configRawLang('site_logo', '')", $element);
     }
 
     private function source(string $path): string

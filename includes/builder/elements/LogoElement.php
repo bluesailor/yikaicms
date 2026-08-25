@@ -27,10 +27,6 @@ final class LogoElement extends AbstractElement
                 ]],
             ['key' => 'height', 'type' => 'select', 'label' => __('blox_ctl_height'), 'default' => 'md',
                 'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg')]],
-            // 元素级覆盖（v1.18.6）：默认跟随 系统设置→站点 Logo；此处可换专属图
-            //（深色页头配反白版 Logo 的常见场景）与精确像素高度
-            ['key' => 'custom_logo', 'type' => 'image', 'label' => __('blox_logo_custom'), 'default' => '',
-                'help' => __('blox_logo_custom_help')],
             ['key' => 'custom_height', 'type' => 'number', 'label' => __('blox_logo_custom_height'), 'default' => 0,
                 'min' => 0, 'max' => 200, 'help' => __('blox_logo_custom_height_help')],
             ['key' => 'tone', 'type' => 'select', 'label' => __('blox_site_tone'), 'default' => 'dark',
@@ -45,11 +41,7 @@ final class LogoElement extends AbstractElement
         $display = in_array($data['display'] ?? '', ['both', 'image', 'text'], true) ? $data['display'] : 'both';
         $height = self::HEIGHT_MAP[$data['height'] ?? ''] ?? self::HEIGHT_MAP['md'];
         $textClass = ($data['tone'] ?? 'dark') === 'light' ? 'text-white' : 'text-gray-900';
-        // 元素级覆盖优先，空则跟随站点设置（保持「换 logo 不改模板」默认语义）
-        $customLogo = self::cssImageUrl($data['custom_logo'] ?? null) ?? '';
-        $logo = $customLogo !== ''
-            ? $customLogo
-            : (function_exists('configRawLang') ? (string) configRawLang('site_logo', '') : '');
+        $logo = function_exists('configRawLang') ? (string) configRawLang('site_logo', '') : '';
         $name = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
         // 精确像素高度（16-200）覆盖三档位；未设置时输出与历史逐字节一致
         $customHeight = (int) ($data['custom_height'] ?? 0);
