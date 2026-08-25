@@ -2453,11 +2453,12 @@ function uploadFile(array $file, string $type = 'images'): array
         }
     }
 
+    $quality = max(50, min(95, (int) config('upload_jpeg_quality', 85)));
+
     // 限制原图最大宽度：客户常传几千像素的大图，超过设定宽度则等比压缩（默认 1920px / 质量 85，可在 设置→基础设置 调整）
     if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp']) && $width > 0) {
         $maxW = (int) config('upload_max_width', 1920);
         if ($maxW > 0 && $width > $maxW) {
-            $quality = (int) config('upload_jpeg_quality', 85);
             if (downscaleImage($filepath, $ext, $maxW, $quality)) {
                 clearstatcache(true, $filepath);
                 $newInfo = @getimagesize($filepath);
@@ -2476,12 +2477,11 @@ function uploadFile(array $file, string $type = 'images'): array
         $thumbs = generateThumbnails($filepath, $ext);
     }
 
-    // 自动生成 WebP 副本（非 WebP 图片且 GD 支持 WebP）
+    // 自动生成原图及现有缩略图的 WebP 副本（非 WebP 图片且 GD 支持 WebP）
     $webpUrl = '';
     if (in_array($ext, ['jpg', 'jpeg', 'png']) && function_exists('imagewebp')) {
-        $webpPath = preg_replace('/\.\w+$/', '.webp', $filepath);
-        $webpResult = convertToWebp($filepath, $webpPath, $ext);
-        if ($webpResult) {
+        $webpResult = generateWebpDerivatives($filepath, $ext, $quality);
+        if (isset($webpResult['targets']['original'])) {
             $webpUrl = preg_replace('/\.\w+$/', '.webp', '/uploads/' . $type . '/' . date('Ym') . '/' . $filename);
         }
     }
