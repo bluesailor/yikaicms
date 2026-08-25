@@ -150,7 +150,7 @@ require theme_path('partials/page-hero.php');
                     <!-- 封面图 -->
                     <?php if ($article['cover']): ?>
                     <div class="border-b">
-                        <img src="<?php echo e($article['cover']); ?>" alt="<?php echo e($article['title']); ?>"
+                        <img decoding="async" fetchpriority="high" <?php echo responsiveImageAttributes($article['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($article['title']); ?>"
                              class="w-full max-h-96 object-cover">
                     </div>
                     <?php endif; ?>
@@ -180,7 +180,7 @@ require theme_path('partials/page-hero.php');
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             <?php foreach ($gallery as $img): ?>
                             <a href="<?php echo e($img); ?>" target="_blank" rel="noopener" class="block overflow-hidden rounded-lg group">
-                                <img loading="lazy" src="<?php echo e(thumbnail($img, 'thumb')); ?>" alt="<?php echo e($article['title']); ?>"
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($img, 'thumb', '(min-width: 640px) 33vw, 50vw'); ?> alt="<?php echo e($article['title']); ?>"
                                      class="w-full h-40 object-cover transition group-hover:scale-105">
                             </a>
                             <?php endforeach; ?>
@@ -256,7 +256,7 @@ require theme_path('partials/page-hero.php');
                             <?php // 无封面留同尺寸占位，保证标题左边缘对齐、卡片高度一致 ?>
                             <div class="flex-shrink-0 w-20 h-14 overflow-hidden rounded">
                                 <?php if ($related['cover']): ?>
-                                <img loading="lazy" src="<?php echo e(thumbnail($related['cover'], 'thumb')); ?>" alt="<?php echo e($related['title']); ?>"
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($related['cover'], 'thumb', '80px'); ?> alt="<?php echo e($related['title']); ?>"
                                      class="w-full h-full object-cover">
                                 <?php else: ?>
                                 <span class="w-full h-full bg-gray-100 text-gray-300 flex items-center justify-center">

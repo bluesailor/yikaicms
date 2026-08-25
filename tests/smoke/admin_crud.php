@@ -14,6 +14,35 @@ $JAR  = sys_get_temp_dir() . '/smoke_cookies_' . getmypid() . '.txt';
 @unlink($JAR);
 $fx = json_decode(@file_get_contents(__DIR__ . '/fixtures.json') ?: '{}', true) ?: [];
 
+/**
+ * Direct database checks must follow the installed site's driver. Keeping a
+ * hard-coded SQLite connection here made the HTTP smoke silently verify a
+ * different database when the site itself ran on MySQL.
+ */
+function smokeDatabase(): PDO
+{
+    $root = dirname(__DIR__, 2);
+    if (!defined('ROOT_PATH')) {
+        define('ROOT_PATH', $root);
+    }
+    require_once $root . '/config/config.php';
+
+    if (DB_DRIVER === 'sqlite') {
+        $pdo = new PDO('sqlite:' . DB_PATH);
+    } else {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s', DB_HOST, DB_PORT, DB_NAME, DB_CHARSET),
+            DB_USER,
+            DB_PASS,
+            [PDO::ATTR_EMULATE_PREPARES => false]
+        );
+    }
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return $pdo;
+}
+
+$directDb = smokeDatabase();
+
 function req(string $method, string $url, array $post = null): array
 {
     global $JAR, $BASE;
@@ -143,7 +172,7 @@ if ($createdChannelId <= 0) {
     $fails[] = '无法取得新建栏目 ID，栏目图保留回归未执行';
     echo "✗ 无法取得新建栏目 ID，栏目图保留回归未执行\n";
 } else {
-    $pdo = new PDO('sqlite:' . __DIR__ . '/../../storage/database.sqlite');
+    $pdo = $directDb;
     $imageMarker = '/uploads/smoke/channel-image-' . $mark . '.jpg';
     $setImage = $pdo->prepare('UPDATE yikai_channels SET image = ? WHERE id = ?');
     $setImage->execute([$imageMarker, $createdChannelId]);
@@ -203,7 +232,7 @@ if (is_array($j) && (int) ($j['code'] ?? 1) === 0 && (int) ($j['data']['id'] ?? 
     $tid = (int) $j['data']['id'];
     $row = null;
     // 直接查库验证：单 section、已发布、ID 被管线重建（tpl_ 前缀）
-    $pdo = new PDO('sqlite:' . __DIR__ . '/../../storage/database.sqlite');
+    $pdo = $directDb;
     $st = $pdo->query("SELECT type, status, draft_data FROM yikai_blox_templates WHERE id = $tid");
     $row = $st ? $st->fetch(PDO::FETCH_ASSOC) : null;
     $doc = is_array($row) ? json_decode((string) $row['draft_data'], true) : null;

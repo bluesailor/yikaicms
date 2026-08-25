@@ -214,8 +214,9 @@ return [
         'trusted_proxies'       => ['value' => '', 'type' => 'textarea', 'name' => '可信代理', 'tip' => '每行一个代理 IP 或 CIDR；留空时忽略所有客户端 IP 转发头', 'sort_order' => 5],
         'admin_ip_whitelist'    => ['value' => '', 'type' => 'textarea', 'name' => '后台 IP 白名单', 'tip' => '每行一个客户端 IP 或 CIDR；留空不限制', 'sort_order' => 6],
         'upload_max_size_mb'    => ['value' => '10', 'type' => 'number', 'name' => '上传文件大小上限', 'tip' => 'MB', 'sort_order' => 10],
-        'upload_image_types'    => ['value' => 'jpg,jpeg,png,gif,webp,svg', 'type' => 'text', 'name' => '图片扩展名', 'tip' => '英文逗号分隔', 'sort_order' => 11],
-        'upload_file_types'     => ['value' => 'pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z', 'type' => 'text', 'name' => '文件扩展名', 'tip' => '英文逗号分隔', 'sort_order' => 12],
+        'upload_max_megapixels' => ['value' => '40', 'type' => 'number', 'name' => '图片总像素上限', 'tip' => 'MP', 'sort_order' => 11],
+        'upload_image_types'    => ['value' => 'jpg,jpeg,png,gif,webp,svg', 'type' => 'text', 'name' => '图片扩展名', 'tip' => '英文逗号分隔', 'sort_order' => 12],
+        'upload_file_types'     => ['value' => 'pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z', 'type' => 'text', 'name' => '文件扩展名', 'tip' => '英文逗号分隔', 'sort_order' => 13],
         'form_max_submits'      => ['value' => '5', 'type' => 'number', 'name' => '表单提交次数', 'tip' => '限流窗口内允许的次数', 'sort_order' => 20],
         'form_throttle_minutes' => ['value' => '5', 'type' => 'number', 'name' => '表单限流窗口', 'tip' => '分钟', 'sort_order' => 21],
         'form_security_version'  => ['value' => '1', 'type' => 'select', 'name' => '表单签名策略', 'tip' => '兼容模式允许旧静态页无签名；严格模式要求有效签名', 'options' => '{"1":"兼容模式","2":"严格模式"}', 'sort_order' => 22],
@@ -253,6 +254,7 @@ return [
         'update_channel' => ['value' => 'stable', 'type' => 'select', 'name' => '系统更新通道', 'tip' => 'stable 为正式版；beta 可提前接收测试版', 'options' => '{"stable":"正式版","beta":"测试版"}', 'sort_order' => 8],
         'site_health_last_summary' => ['value' => '', 'type' => 'json', 'name' => '站点健康摘要', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 9],
         'site_health_last_at' => ['value' => '0', 'type' => 'number', 'name' => '站点健康检查时间', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 10],
+        'site_health_media_summary' => ['value' => '', 'type' => 'json', 'name' => '媒体健康摘要', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 11],
     ],
 
 ];

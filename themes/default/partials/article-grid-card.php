@@ -10,7 +10,7 @@ $__gridOpts = $listOpts ?? null;
     <?php if (listShowEl($__gridOpts, 'cover')): ?>
     <div class="aspect-video overflow-hidden bg-gray-100">
         <?php if (!empty($item['cover'])): ?>
-        <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'medium', '(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw'); ?> alt="<?php echo e($item['title']); ?>"
              class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
         <?php else: ?>
         <div class="flex h-full w-full items-center justify-center text-gray-300"><i class="ti ti-photo text-4xl"></i></div>

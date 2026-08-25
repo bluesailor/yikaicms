@@ -71,7 +71,16 @@ $aboutTextEditAttr = $aboutEditMode
 $aboutImageEditAttr = $aboutEditMode
     ? ' data-yk-home-column="image" data-yk-home-column-label="' . e($aboutImageOrder . ' · ' . __('blox_home_about_image_column') . ' · ' . $aboutRatioSpans[1]) . '"' . $aboutColumnPathAttr
     : '';
-$aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
+$aboutImage = (string) config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
+$aboutImageWidth = match ($aboutRatio) {
+    '5_7' => '58vw',
+    '7_5' => '42vw',
+    '1_2' => '67vw',
+    '2_1' => '33vw',
+    default => '50vw',
+};
+$aboutImageSizes = '(min-width: ' . ($aboutBreakpoint === 'md' ? '768px' : '1024px') . ') '
+    . $aboutImageWidth . ', 100vw';
 $aboutTagTitle = configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', '');
 $aboutTagDesc = configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', '');
 // 版块标题：后台可自定义（home_about_title）；留空回退到「关于」+ 站点名称
@@ -99,7 +108,7 @@ $bg = getBlockBg($block ?? [], '@auto');
             </div>
             <div class="<?php echo e($aboutImageClass); ?>"<?php echo $aboutImageEditAttr; ?> data-animate="<?php echo $aboutIsImageLeft ? 'fade-right' : 'fade-left'; ?>">
                 <div class="relative overflow-hidden rounded-lg bg-gray-100 shadow-sm aspect-[4/3]">
-                    <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="u-img w-full h-full object-cover">
+                    <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($aboutImage, 'medium', $aboutImageSizes); ?> alt="<?php echo __('home_about_title'); ?>" class="u-img w-full h-full object-cover">
                     <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                     <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                         <?php if ($aboutTagTitle): ?>

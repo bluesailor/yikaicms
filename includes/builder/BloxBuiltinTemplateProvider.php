@@ -6,6 +6,78 @@ declare(strict_types=1);
 final class BloxBuiltinTemplateProvider
 {
     private const PRESETS = [
+        'hero-intro' => [
+            'type' => 'section',
+            'file' => 'hero-intro.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_hero_name',
+            'description_key' => 'blox_builtin_section_hero_desc',
+            'category' => 'landing',
+            'thumbnail' => '/assets/images/blox-templates/section-hero-intro.png',
+        ],
+        'image-text' => [
+            'type' => 'section',
+            'file' => 'image-text.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_image_text_name',
+            'description_key' => 'blox_builtin_section_image_text_desc',
+            'category' => 'content',
+            'thumbnail' => '/assets/images/blox-templates/section-image-text.jpg',
+        ],
+        'stats-band' => [
+            'type' => 'section',
+            'file' => 'stats-band.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_stats_name',
+            'description_key' => 'blox_builtin_section_stats_desc',
+            'category' => 'business',
+            'thumbnail' => '/assets/images/blox-templates/section-stats-band.png',
+        ],
+        'feature-grid' => [
+            'type' => 'section',
+            'file' => 'feature-grid.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_feature_name',
+            'description_key' => 'blox_builtin_section_feature_desc',
+            'category' => 'business',
+            'thumbnail' => '/assets/images/blox-templates/section-feature-grid.png',
+        ],
+        'card-grid' => [
+            'type' => 'section',
+            'file' => 'card-grid.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_cards_name',
+            'description_key' => 'blox_builtin_section_cards_desc',
+            'category' => 'marketing',
+            'thumbnail' => '/assets/images/blox-templates/section-card-grid.jpg',
+        ],
+        'testimonial-quote' => [
+            'type' => 'section',
+            'file' => 'testimonial-quote.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_quote_name',
+            'description_key' => 'blox_builtin_section_quote_desc',
+            'category' => 'content',
+            'thumbnail' => '/assets/images/blox-templates/section-testimonial-quote.png',
+        ],
+        'faq-accordion' => [
+            'type' => 'section',
+            'file' => 'faq-accordion.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_faq_name',
+            'description_key' => 'blox_builtin_section_faq_desc',
+            'category' => 'content',
+            'thumbnail' => '/assets/images/blox-templates/section-faq-accordion.png',
+        ],
+        'cta-banner' => [
+            'type' => 'section',
+            'file' => 'cta-banner.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_section_cta_name',
+            'description_key' => 'blox_builtin_section_cta_desc',
+            'category' => 'marketing',
+            'thumbnail' => '/assets/images/blox-templates/section-cta-banner.png',
+        ],
         'company-intro' => [
             'type' => 'page',
             'file' => 'company-intro.json',
@@ -24,6 +96,15 @@ final class BloxBuiltinTemplateProvider
             'category' => 'page',
             'thumbnail' => '/assets/images/blox-templates/contact-page.svg',
         ],
+        'service-process' => [
+            'type' => 'page',
+            'file' => 'service-process.json',
+            'contexts' => ['page'],
+            'name_key' => 'blox_builtin_process_name',
+            'description_key' => 'blox_builtin_process_desc',
+            'category' => 'page',
+            'thumbnail' => '/assets/images/blox-templates/service-process.png',
+        ],
         '404-route-lost' => [
             'type' => 'page',
             'file' => '404-route-lost.json',
@@ -40,7 +121,7 @@ final class BloxBuiltinTemplateProvider
     {
         $items = [];
         foreach (self::PRESETS as $slug => $preset) {
-            $path = self::packagePath((string) $preset['file']);
+            $path = self::packagePath((string) $preset['type'], (string) $preset['file']);
             if (!in_array($context, $preset['contexts'], true) || !is_file($path)) {
                 continue;
             }
@@ -66,7 +147,7 @@ final class BloxBuiltinTemplateProvider
         if ($preset === null || !in_array($context, $preset['contexts'], true)) {
             throw new RuntimeException(__('blox_builtin_template_not_found'));
         }
-        $json = file_get_contents(self::packagePath((string) $preset['file']));
+        $json = file_get_contents(self::packagePath((string) $preset['type'], (string) $preset['file']));
         if (!is_string($json)) {
             throw new RuntimeException(__('blox_builtin_template_unreadable'));
         }
@@ -85,8 +166,9 @@ final class BloxBuiltinTemplateProvider
         ];
     }
 
-    private static function packagePath(string $file): string
+    private static function packagePath(string $type, string $file): string
     {
-        return dirname(__DIR__, 2) . '/templates/blox/pages/' . $file;
+        $directory = $type === 'section' ? 'sections' : 'pages';
+        return dirname(__DIR__, 2) . '/templates/blox/' . $directory . '/' . $file;
     }
 }

@@ -323,6 +323,22 @@ if (!$bloxPage) {
 $bloxPageId = (int) ($bloxPage['id'] ?? 0);
 $bloxPageUrl = '/page.php?id=' . $bloxPageId . '&_lang=' . rawurlencode($smokeLang);
 
+$redirectStmt = $pdo->prepare(
+    "SELECT parent.id AS parent_id, parent.name AS parent_name, child.id AS target_id, child.name AS target_name"
+    . " FROM yikai_channels parent"
+    . " INNER JOIN yikai_channels child ON child.parent_id = parent.id AND child.status = 1"
+    . " WHERE parent.type = 'page' AND parent.status = 1 AND parent.redirect_type = 'auto' AND parent.lang = ?"
+    . " ORDER BY parent.id ASC, child.sort_order ASC, child.id ASC LIMIT 1"
+);
+$redirectStmt->execute([$smokeLang]);
+$redirectPage = $redirectStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+$processStmt = $pdo->prepare(
+    "SELECT id FROM yikai_channels WHERE type = 'page' AND slug = 'process' AND lang = ? LIMIT 1"
+);
+$processStmt->execute([$smokeLang]);
+$processPageId = (int) ($processStmt->fetchColumn() ?: 0);
+
 $out = [
     // 按站点语言挑 fixture：种子数据是三语的，随手取第一行会拿到中文栏目，
     // 而英文站建的内容 lang=en——父子语言不一致，列表页永远查不到（这不是产品
@@ -339,6 +355,11 @@ $out = [
     'blox_header_template' => $headerTemplateId,
     'blox_page' => $bloxPageId,
     'blox_page_url' => $bloxPageUrl,
+    'redirect_parent' => (int) ($redirectPage['parent_id'] ?? 0),
+    'redirect_parent_name' => (string) ($redirectPage['parent_name'] ?? ''),
+    'redirect_target' => (int) ($redirectPage['target_id'] ?? 0),
+    'redirect_target_name' => (string) ($redirectPage['target_name'] ?? ''),
+    'process_page' => $processPageId,
 ];
 file_put_contents(__DIR__ . '/fixtures.json', json_encode($out));
 echo "SMOKE SETUP OK: " . json_encode($out) . "\n";

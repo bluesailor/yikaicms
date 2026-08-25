@@ -27,7 +27,10 @@ final class BloxBuiltinTemplateProviderTest extends TestCase
         self::assertSame('builtin', $item['source']);
         self::assertSame('page', $item['category']);
         self::assertSame('/assets/images/blox-templates/404-route-lost.png', $item['thumbnail']);
-        self::assertSame([], $provider->items('home'));
+        $homeItems = $provider->items('home');
+        self::assertNotEmpty($homeItems);
+        self::assertNotContains('builtin:404-route-lost', array_column($homeItems, 'key'));
+        self::assertSame(['section'], array_values(array_unique(array_column($homeItems, 'type'))));
     }
 
     public function test404TemplateResolvesThroughTheImporterWithFreshIds(): void

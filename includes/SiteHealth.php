@@ -91,6 +91,54 @@ final class SiteHealth
         return $summary;
     }
 
+    /** @param array<string,mixed> $mediaSummary @return array<string,mixed> */
+    public static function mediaOptimizationResult(array $mediaSummary): array
+    {
+        $total = max(0, (int) ($mediaSummary['total'] ?? 0));
+        $scanned = max(0, (int) ($mediaSummary['scanned'] ?? 0));
+        $healthy = max(0, (int) ($mediaSummary['healthy'] ?? 0));
+        $pending = max(0, (int) ($mediaSummary['pending'] ?? 0));
+        $missing = max(0, (int) ($mediaSummary['missing'] ?? 0));
+        $unsupported = max(0, (int) ($mediaSummary['unsupported'] ?? 0));
+
+        if (!empty($mediaSummary['failed'])) {
+            return self::result(
+                'media_optimization', self::UNKNOWN, 'operations',
+                'health_media_title', 'health_media_unavailable', '/admin/media.php'
+            );
+        }
+        if ($scanned < $total) {
+            return self::result(
+                'media_optimization', self::UNKNOWN, 'operations',
+                'health_media_title', 'health_media_incomplete', '/admin/media.php?health=attention',
+                ['scanned' => (string) $scanned, 'total' => (string) $total]
+            );
+        }
+        if ($pending > 0 || $missing > 0) {
+            return self::result(
+                'media_optimization', self::RECOMMENDED, 'operations',
+                'health_media_title', 'health_media_attention', '/admin/media.php?health=attention',
+                [
+                    'total' => (string) $total,
+                    'healthy' => (string) $healthy,
+                    'pending' => (string) $pending,
+                    'missing' => (string) $missing,
+                    'unsupported' => (string) $unsupported,
+                ]
+            );
+        }
+
+        return self::result(
+            'media_optimization', self::GOOD, 'operations',
+            'health_media_title', 'health_media_good', '/admin/media.php',
+            [
+                'total' => (string) $total,
+                'healthy' => (string) $healthy,
+                'unsupported' => (string) $unsupported,
+            ]
+        );
+    }
+
     /** @return array{nonce:string,probes:list<array{id:string,url:string,method:string}>,checks:list<array<string,mixed>>,storage_file:string,storage_token:string,upload_file:string,upload_token:string} */
     public static function createBrowserProbes(string $storagePath, ?string $uploadsPath = null): array
     {

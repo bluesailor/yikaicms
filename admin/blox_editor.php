@@ -58,7 +58,9 @@ $documentIdentity = '';
 $homeBannerSeeds = [];
 $pageHasPublished = false;
 $pageHasUnpublishedChanges = false;
+$pageUsesLegacyHtml = false;
 $pageLanguageVersions = [];
+$redirectedFromPage = null;
 $isContactBlox = false;
 $isProductBlox = false;
 $isContentListBlox = false;
@@ -181,10 +183,23 @@ if ($isHomeBlox) {
     // 发展历程由 timelines 表和专属布局渲染，普通 Blox 正文不会出现在前台。
     // 直接访问旧链接时也收口到真实编辑器，避免保存一份无效内容。
     if (!$isProductBlox && !$isContentListBlox) {
+        $primaryEditTarget = pagePrimaryEditTarget($page);
         $primaryEditUrl = pagePrimaryEditUrl($page);
-        if (!str_starts_with($primaryEditUrl, '/admin/blox_editor.php?')) {
+        if ((int) ($primaryEditTarget['id'] ?? 0) !== (int) $page['id']
+            || !str_starts_with($primaryEditUrl, '/admin/blox_editor.php?')) {
             header('Location: ' . $primaryEditUrl);
             exit;
+        }
+
+        $fromParentId = getInt('from_parent');
+        if ($fromParentId > 0 && $fromParentId !== (int) $page['id']) {
+            $sourcePage = channelModel()->find($fromParentId);
+            if (is_array($sourcePage)) {
+                $resolvedSourceTarget = pagePrimaryEditTarget($sourcePage);
+                if ((int) ($resolvedSourceTarget['id'] ?? 0) === (int) $page['id']) {
+                    $redirectedFromPage = $sourcePage;
+                }
+            }
         }
     }
 
@@ -256,6 +271,7 @@ if ($isHomeBlox) {
     $initBlocks = $pageDocument['document_json'];
     $pageHasPublished = $pageDocument['has_published'];
     $pageHasUnpublishedChanges = $pageDocument['has_unpublished_changes'];
+    $pageUsesLegacyHtml = $pageDocument['uses_legacy_html'];
     $saveEndpoint = '/admin/blox_page_api.php?id=' . $id;
     $previewEndpoint = $saveEndpoint;
     $documentIdentity = ($isContentListBlox ? 'content-list:' : ($isProductBlox ? 'product:' : 'page:')) . $id;
@@ -935,6 +951,20 @@ $canManageBloxDesign = hasPermission('*');
                 'undoDone' => __('blox_undo_done'),
                 'redoDone' => __('blox_redo_done'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            processText: <?php echo json_encode([
+                'title' => __('blox_process_manager_title'),
+                'number' => __('blox_process_number'),
+                'stepTitle' => __('blox_field_title_short'),
+                'description' => __('blox_ctl_desc'),
+                'add' => __('blox_process_add'),
+                'duplicate' => __('blox_process_duplicate'),
+                'renumber' => __('blox_process_renumber'),
+                'iconSettings' => __('blox_process_icon_settings'),
+                'newTitle' => __('blox_process_new_title'),
+                'newText' => __('blox_process_new_text'),
+                'minimum' => __('blox_process_minimum'),
+                'limit' => __('blox_process_limit'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             mobileText: <?php echo json_encode([
                 'library' => __('blox_mobile_library'),
                 'canvas' => __('blox_mobile_canvas'),
@@ -969,6 +999,7 @@ $canManageBloxDesign = hasPermission('*');
             uiText: <?php echo json_encode([
                 'mediaFailed' => __('blox_media_failed'),
                 'uploadedSelected' => __('blox_uploaded_selected'),
+                'uploadedOptimized' => __('blox_uploaded_optimized'),
                 'uploadFailed' => __('blox_upload_failed'),
                 'confirmDeleteContainer' => __('blox_confirm_delete_container'),
                 'confirmDeleteSection' => __('blox_confirm_delete_section'),
@@ -1071,6 +1102,10 @@ $canManageBloxDesign = hasPermission('*');
                 'insertFailed' => __('blox_template_insert_failed'),
                 'inserted' => __('blox_template_inserted'),
                 'appendConfirm' => __('blox_template_append_confirm'),
+                'replaceConfirm' => __('blox_template_replace_confirm'),
+                'usePage' => __('blox_template_use_page'),
+                'append' => __('blox_template_append'),
+                'replaced' => __('blox_template_replaced'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             clipboardText: <?php echo json_encode([
                 'copy' => __('blox_copy'),
@@ -1545,6 +1580,7 @@ $canManageBloxDesign = hasPermission('*');
             templateQuery: "",
             templateFilter: "all",
             templateCategory: "all",
+            legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
             templateRemoteError: "",
@@ -1588,6 +1624,14 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateOpen = true;
                 if (!alreadyOpen) this.focusDialog(this.$refs.templateDialog, "[data-dialog-initial]");
                 if (!this.templateLoaded) this.loadTemplates();
+            },
+
+            openPageTemplates() {
+                this.templateScope = "local";
+                this.templateFilter = "page";
+                this.templateCategory = "page";
+                this.templateQuery = "";
+                this.openTemplates();
             },
 
             loadTemplates(force) {
@@ -1695,8 +1739,19 @@ $canManageBloxDesign = hasPermission('*');
 
 
             insertTemplate(item) {
+                this.applyTemplate(item, "append");
+            },
+
+            replaceWithTemplate(item) {
+                this.applyTemplate(item, "replace");
+            },
+
+            applyTemplate(item, mode) {
                 if (!item || item.locked || this.templateInserting) return;
-                if (item.type === "page" && this.sections.length > 0
+                var replacing = mode === "replace";
+                if (replacing && this.sections.length > 0
+                    && !window.confirm(this.templateText.replaceConfirm)) return;
+                if (!replacing && item.type === "page" && this.sections.length > 0
                     && !window.confirm(this.templateText.appendConfirm)) return;
                 var self = this;
                 this.templateInserting = item.key;
@@ -1717,15 +1772,20 @@ $canManageBloxDesign = hasPermission('*');
                                 sections,
                                 function (prefix) { return self.uid(prefix); }
                             );
-                            var at = self.insertIndex();
-                            self.sections.splice.apply(self.sections, [at, 0].concat(fresh));
+                            var at = replacing ? 0 : self.insertIndex();
+                            if (replacing) {
+                                self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
+                                self.legacyPageContent = false;
+                            } else {
+                                self.sections.splice.apply(self.sections, [at, 0].concat(fresh));
+                            }
                             self.selectedSi = at;
                             self.selectedCi = -1;
                             self.selectedEi = -1;
                             self.selectedSubEi = -1;
                             self.selLayer = "sec";
                             self.closeTemplates();
-                            self.toast((template.name || item.name) + self.templateText.inserted);
+                            self.toast((template.name || item.name) + (replacing ? self.templateText.replaced : self.templateText.inserted));
                         }, { silent: true });
                         if (!applied.ok) throw (applied.error || new Error(self.templateText.insertFailed));
                     })
@@ -1852,6 +1912,15 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             /** 上传成功直接选用（上传的目的就是马上用）；失败提示原因留在弹窗里重试 */
+            mediaUploadMessage(result) {
+                if (!result || !result.optimized || result.uploadBytes >= result.originalBytes) {
+                    return this.uiText.uploadedSelected;
+                }
+                return this.uiText.uploadedOptimized
+                    .replace(":from", window.BloxMediaClient.formatBytes(result.originalBytes))
+                    .replace(":to", window.BloxMediaClient.formatBytes(result.uploadBytes));
+            },
+
             uploadMedia(file) {
                 if (!file || this.mediaUploading) return;
                 var self = this;
@@ -1863,7 +1932,7 @@ $canManageBloxDesign = hasPermission('*');
                 })
                     .then(function (result) {
                         if (result.ok) {
-                            self.toast(self.uiText.uploadedSelected);
+                            self.toast(self.mediaUploadMessage(result));
                             self.pickMedia(result.url);
                         } else {
                             self.toast(result.message || self.uiText.uploadFailedShort);
@@ -2042,6 +2111,98 @@ $canManageBloxDesign = hasPermission('*');
             hasLoopTemplate() {
                 var host = this.isLoopTemplateHost(this.selTopEl) ? this.selTopEl : null;
                 return !!(host && host.data && (host.data.children || []).length);
+            },
+
+            processHost() {
+                var host = this.selTopEl;
+                return host && host.type === "process-steps" ? host : null;
+            },
+
+            processItems() {
+                var host = this.processHost();
+                return host && host.data && Array.isArray(host.data.children) ? host.data.children : [];
+            },
+
+            selectProcessItem(index) {
+                if (!this.processItems()[index]) return;
+                this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, index, false);
+            },
+
+            syncProcessNumbers() {
+                var host = this.processHost();
+                if (!host || !host.data || host.data.auto_number === false) return;
+                this.processItems().forEach(function (item, index) {
+                    item.data = item.data && typeof item.data === "object" ? item.data : {};
+                    item.data.number = String(index + 1).padStart(2, "0");
+                });
+            },
+
+            addProcessItem() {
+                var host = this.processHost();
+                var items = this.processItems();
+                if (!host) return;
+                if (items.length >= 20) { this.toast(this.processText.limit); return; }
+                var self = this;
+                this.runCommand("add-process-step", function () {
+                    var defaults = JSON.parse(JSON.stringify(self.elSchema("process-step").defaults || {}));
+                    var index = items.length;
+                    defaults.number = String(index + 1).padStart(2, "0");
+                    defaults.title = self.processText.newTitle.replace(":n", index + 1);
+                    defaults.text = self.processText.newText;
+                    items.push({ id: self.uid("e"), type: "process-step", data: defaults });
+                    self.syncProcessNumbers();
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, items.length - 1, false);
+                });
+            },
+
+            duplicateProcessItem(index) {
+                var items = this.processItems();
+                if (!items[index]) return;
+                if (items.length >= 20) { this.toast(this.processText.limit); return; }
+                var self = this;
+                this.runCommand("duplicate-process-step", function () {
+                    var copy = JSON.parse(JSON.stringify(items[index]));
+                    copy.id = self.uid("e");
+                    items.splice(index + 1, 0, copy);
+                    self.syncProcessNumbers();
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, index + 1, false);
+                });
+            },
+
+            moveProcessItem(index, direction) {
+                var items = this.processItems();
+                var target = index + direction;
+                if (!items[index] || target < 0 || target >= items.length) return;
+                var self = this;
+                this.runCommand("move-process-step", function () {
+                    var item = items.splice(index, 1)[0];
+                    items.splice(target, 0, item);
+                    self.syncProcessNumbers();
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, target, false);
+                });
+            },
+
+            deleteProcessItem(index) {
+                var items = this.processItems();
+                if (items.length <= 1) { this.toast(this.processText.minimum); return; }
+                if (!items[index]) return;
+                var self = this;
+                this.runCommand("delete-process-step", function () {
+                    items.splice(index, 1);
+                    self.syncProcessNumbers();
+                    var next = Math.min(index, items.length - 1);
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, next, false);
+                });
+            },
+
+            renumberProcessItems() {
+                var host = this.processHost();
+                if (!host) return;
+                var self = this;
+                this.runCommand("renumber-process-steps", function () {
+                    host.data.auto_number = true;
+                    self.syncProcessNumbers();
+                });
             },
 
             allowedChildTypes(host) {
@@ -2608,7 +2769,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.libOpen = false;
                 this.openMobileSettings();
                 var el = this.sections[si].columns[ci].elements[ei];
-                this.panelTab = (el.type === "list-dynamic" || el.type === "home-block")
+                this.panelTab = (el.type === "list-dynamic" || el.type === "home-block" || el.type === "process-steps")
                     ? "content"
                     : (this.elSchema(el.type).container ? "style" : "content");
                 this.ctrlQuery = "";
@@ -4158,6 +4319,9 @@ $canManageBloxDesign = hasPermission('*');
                 this._historyApplying = true;
                 var currentSelection = this.historySelection();
                 this.sections = JSON.parse(snapshot.data);
+                this.legacyPageContent = this.pageMode
+                    && this.sections.length === 1
+                    && String((this.sections[0] || {}).id || "") === "s_legacy";
                 if (typeof snapshot.settings === "string") {
                     var settings = JSON.parse(snapshot.settings);
                     this.docSettings = settings && typeof settings === "object" ? settings : {};
