@@ -5,8 +5,8 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tailwind v4 独立编译器会跳过 .gitignore 的源文件；Blox 编辑器（私库，公开仓
- * gitignored）里独有的工具类必须靠 app.css 的显式 @source 豁免才能进产物。
+ * Tailwind v4 独立编译器会跳过 .gitignore 的源文件；Blox 编辑器现已由主仓跟踪，
+ * app.css 仍用显式 @source 锁定扫描范围，避免编译入口调整后漏掉编辑器工具类。
  * 2026-08-20 事故：min-h-0/pb-16 从未被编译，元素库高度约束链断裂、从不滚动，
  * 1.18.1/1.18.2 均带病发布。本测试锁住编辑器布局关键类必须存在于编译产物。
  */
