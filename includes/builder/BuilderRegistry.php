@@ -119,6 +119,7 @@ final class BuilderRegistry
             new AccordionElement(),
             new OrgChartElement(),
             new StatItemElement(),
+            new ProcessStepElement(),
             new LogoElement(),
             new SiteCopyrightElement(),
             new SiteContactElement(),
@@ -131,6 +132,7 @@ final class BuilderRegistry
             new ContainerElement(),
             new DivElement(),
             new StatsGroupElement(),
+            new ProcessStepsElement(),
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new ContentCatalogElement(),

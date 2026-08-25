@@ -58,6 +58,7 @@ $documentIdentity = '';
 $homeBannerSeeds = [];
 $pageHasPublished = false;
 $pageHasUnpublishedChanges = false;
+$pageUsesLegacyHtml = false;
 $pageLanguageVersions = [];
 $redirectedFromPage = null;
 $isContactBlox = false;
@@ -270,6 +271,7 @@ if ($isHomeBlox) {
     $initBlocks = $pageDocument['document_json'];
     $pageHasPublished = $pageDocument['has_published'];
     $pageHasUnpublishedChanges = $pageDocument['has_unpublished_changes'];
+    $pageUsesLegacyHtml = $pageDocument['uses_legacy_html'];
     $saveEndpoint = '/admin/blox_page_api.php?id=' . $id;
     $previewEndpoint = $saveEndpoint;
     $documentIdentity = ($isContentListBlox ? 'content-list:' : ($isProductBlox ? 'product:' : 'page:')) . $id;
@@ -1086,6 +1088,10 @@ $canManageBloxDesign = hasPermission('*');
                 'insertFailed' => __('blox_template_insert_failed'),
                 'inserted' => __('blox_template_inserted'),
                 'appendConfirm' => __('blox_template_append_confirm'),
+                'replaceConfirm' => __('blox_template_replace_confirm'),
+                'usePage' => __('blox_template_use_page'),
+                'append' => __('blox_template_append'),
+                'replaced' => __('blox_template_replaced'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             clipboardText: <?php echo json_encode([
                 'copy' => __('blox_copy'),
@@ -1560,6 +1566,7 @@ $canManageBloxDesign = hasPermission('*');
             templateQuery: "",
             templateFilter: "all",
             templateCategory: "all",
+            legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
             templateRemoteError: "",
@@ -1603,6 +1610,14 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateOpen = true;
                 if (!alreadyOpen) this.focusDialog(this.$refs.templateDialog, "[data-dialog-initial]");
                 if (!this.templateLoaded) this.loadTemplates();
+            },
+
+            openPageTemplates() {
+                this.templateScope = "local";
+                this.templateFilter = "page";
+                this.templateCategory = "page";
+                this.templateQuery = "";
+                this.openTemplates();
             },
 
             loadTemplates(force) {
@@ -1710,8 +1725,19 @@ $canManageBloxDesign = hasPermission('*');
 
 
             insertTemplate(item) {
+                this.applyTemplate(item, "append");
+            },
+
+            replaceWithTemplate(item) {
+                this.applyTemplate(item, "replace");
+            },
+
+            applyTemplate(item, mode) {
                 if (!item || item.locked || this.templateInserting) return;
-                if (item.type === "page" && this.sections.length > 0
+                var replacing = mode === "replace";
+                if (replacing && this.sections.length > 0
+                    && !window.confirm(this.templateText.replaceConfirm)) return;
+                if (!replacing && item.type === "page" && this.sections.length > 0
                     && !window.confirm(this.templateText.appendConfirm)) return;
                 var self = this;
                 this.templateInserting = item.key;
@@ -1732,15 +1758,20 @@ $canManageBloxDesign = hasPermission('*');
                                 sections,
                                 function (prefix) { return self.uid(prefix); }
                             );
-                            var at = self.insertIndex();
-                            self.sections.splice.apply(self.sections, [at, 0].concat(fresh));
+                            var at = replacing ? 0 : self.insertIndex();
+                            if (replacing) {
+                                self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
+                                self.legacyPageContent = false;
+                            } else {
+                                self.sections.splice.apply(self.sections, [at, 0].concat(fresh));
+                            }
                             self.selectedSi = at;
                             self.selectedCi = -1;
                             self.selectedEi = -1;
                             self.selectedSubEi = -1;
                             self.selLayer = "sec";
                             self.closeTemplates();
-                            self.toast((template.name || item.name) + self.templateText.inserted);
+                            self.toast((template.name || item.name) + (replacing ? self.templateText.replaced : self.templateText.inserted));
                         }, { silent: true });
                         if (!applied.ok) throw (applied.error || new Error(self.templateText.insertFailed));
                     })
@@ -4182,6 +4213,9 @@ $canManageBloxDesign = hasPermission('*');
                 this._historyApplying = true;
                 var currentSelection = this.historySelection();
                 this.sections = JSON.parse(snapshot.data);
+                this.legacyPageContent = this.pageMode
+                    && this.sections.length === 1
+                    && String((this.sections[0] || {}).id || "") === "s_legacy";
                 if (typeof snapshot.settings === "string") {
                     var settings = JSON.parse(snapshot.settings);
                     this.docSettings = settings && typeof settings === "object" ? settings : {};
