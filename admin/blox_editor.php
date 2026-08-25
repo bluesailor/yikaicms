@@ -969,6 +969,7 @@ $canManageBloxDesign = hasPermission('*');
             uiText: <?php echo json_encode([
                 'mediaFailed' => __('blox_media_failed'),
                 'uploadedSelected' => __('blox_uploaded_selected'),
+                'uploadedOptimized' => __('blox_uploaded_optimized'),
                 'uploadFailed' => __('blox_upload_failed'),
                 'confirmDeleteContainer' => __('blox_confirm_delete_container'),
                 'confirmDeleteSection' => __('blox_confirm_delete_section'),
@@ -1852,6 +1853,15 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             /** 上传成功直接选用（上传的目的就是马上用）；失败提示原因留在弹窗里重试 */
+            mediaUploadMessage(result) {
+                if (!result || !result.optimized || result.uploadBytes >= result.originalBytes) {
+                    return this.uiText.uploadedSelected;
+                }
+                return this.uiText.uploadedOptimized
+                    .replace(":from", window.BloxMediaClient.formatBytes(result.originalBytes))
+                    .replace(":to", window.BloxMediaClient.formatBytes(result.uploadBytes));
+            },
+
             uploadMedia(file) {
                 if (!file || this.mediaUploading) return;
                 var self = this;
@@ -1863,7 +1873,7 @@ $canManageBloxDesign = hasPermission('*');
                 })
                     .then(function (result) {
                         if (result.ok) {
-                            self.toast(self.uiText.uploadedSelected);
+                            self.toast(self.mediaUploadMessage(result));
                             self.pickMedia(result.url);
                         } else {
                             self.toast(result.message || self.uiText.uploadFailedShort);

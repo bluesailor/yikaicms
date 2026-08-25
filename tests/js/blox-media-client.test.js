@@ -26,6 +26,12 @@ test("list normalizes media pagination and encodes search", async function () {
     assert.equal(lastRequest.options.cache, "no-store");
 });
 
+test("formatBytes keeps upload metrics compact and readable", function () {
+    assert.equal(global.BloxMediaClient.formatBytes(0), "0 B");
+    assert.equal(global.BloxMediaClient.formatBytes(1536), "1.5 KB");
+    assert.equal(global.BloxMediaClient.formatBytes(5 * 1024 * 1024), "5 MB");
+});
+
 test("upload keeps FormData, adds CSRF, and returns only a valid URL as success", async function () {
     nextResponse = { code: 0, data: { url: "/uploads/logo.png" } };
     const result = await global.BloxMediaClient.upload("/media", new Blob(["x"]), { csrf: "token-1" });
@@ -95,6 +101,44 @@ test("large browser images are resized proportionally before upload", async func
     }
 });
 
+test("canvas dimensions stay within the pixel memory budget", async function () {
+    const originalCreateImageBitmap = global.createImageBitmap;
+    const originalDocument = global.document;
+    let canvasWidth = 0;
+    let canvasHeight = 0;
+
+    global.createImageBitmap = function () {
+        return Promise.resolve({ width: 6000, height: 4000, close: function () {} });
+    };
+    global.document = {
+        createElement: function () {
+            return {
+                set width(value) { canvasWidth = value; },
+                get width() { return canvasWidth; },
+                set height(value) { canvasHeight = value; },
+                get height() { return canvasHeight; },
+                getContext: function () { return { drawImage: function () {} }; },
+                toBlob: function (callback, type) { callback(new Blob(["bounded"], { type })); },
+            };
+        },
+    };
+
+    try {
+        const source = new Blob(["large pixels"], { type: "image/png" });
+        const prepared = await global.BloxMediaClient.prepareImage(source, {
+            maxDimension: 0,
+            maxCanvasPixels: 16 * 1024 * 1024,
+        });
+
+        assert.notEqual(prepared, source);
+        assert.ok(canvasWidth * canvasHeight <= 16 * 1024 * 1024);
+        assert.ok(Math.abs(canvasWidth / canvasHeight - 1.5) < 0.01);
+    } finally {
+        global.createImageBitmap = originalCreateImageBitmap;
+        global.document = originalDocument;
+    }
+});
+
 test("unsupported formats and browser processing failures keep the original file", async function () {
     const originalCreateImageBitmap = global.createImageBitmap;
     global.createImageBitmap = function () { return Promise.reject(new Error("decode failed")); };
@@ -104,6 +148,23 @@ test("unsupported formats and browser processing failures keep the original file
         const jpeg = new Blob(["jpeg"], { type: "image/jpeg" });
         assert.equal(await global.BloxMediaClient.prepareImage(gif), gif);
         assert.equal(await global.BloxMediaClient.prepareImage(jpeg, { minBytes: 1 }), jpeg);
+    } finally {
+        global.createImageBitmap = originalCreateImageBitmap;
+    }
+});
+
+test("oversized source files skip browser decoding", async function () {
+    const originalCreateImageBitmap = global.createImageBitmap;
+    let decoderCalled = false;
+    global.createImageBitmap = function () {
+        decoderCalled = true;
+        return Promise.reject(new Error("decoder must not run"));
+    };
+
+    try {
+        const source = { type: "image/jpeg", size: 25 * 1024 * 1024 };
+        assert.equal(await global.BloxMediaClient.prepareImage(source), source);
+        assert.equal(decoderCalled, false);
     } finally {
         global.createImageBitmap = originalCreateImageBitmap;
     }
@@ -224,7 +285,7 @@ test("upload filename follows the encoded MIME type and reports byte metrics", a
     }
 });
 
-test("an explicit zero maximum keeps dimensions unlimited", async function () {
+test("zero dimension limit preserves an image within the pixel budget", async function () {
     const originalCreateImageBitmap = global.createImageBitmap;
     const originalDocument = global.document;
     let canvasCreated = false;

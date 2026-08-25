@@ -5495,4 +5495,5 @@ voltage|電圧|220V',
     'blox_builtin_section_faq_desc' => '見出し、説明、折りたたみ式の質問一覧です。',
     'blox_builtin_section_cta_name' => '行動喚起バナー',
     'blox_builtin_section_cta_desc' => '問い合わせやコンバージョンにつなげるメッセージとボタンです。',
+    'blox_uploaded_optimized' => 'アップロードして選択しました。画像を最適化しました：:from → :to',
 ];
