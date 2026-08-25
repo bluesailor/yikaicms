@@ -25,6 +25,13 @@ declare(strict_types=1);
                 <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?= __('label_experimental') ?></span>
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+            <?php if ($redirectedFromPage !== null): ?>
+            <span data-testid="blox-redirect-source"
+                  class="hidden lg:inline-flex items-center gap-1 text-[10px] font-medium bg-blue-500/15 text-blue-200 px-1.5 py-0.5 rounded shrink-0"
+                  title="<?php echo e(__('blox_redirected_from_parent_tip', ['parent' => $redirectedFromPage['name'], 'target' => $page['name']])); ?>">
+                <i class="ti ti-corner-down-right"></i><?php echo e(__('blox_redirected_from_parent', ['parent' => $redirectedFromPage['name']])); ?>
+            </span>
+            <?php endif; ?>
             <?php if ($pageLanguageVersions !== []): ?>
             <div data-testid="blox-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
                  class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">

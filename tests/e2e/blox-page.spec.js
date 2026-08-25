@@ -118,6 +118,27 @@ test('legacy page editor and page list converge on Blox @local', async ({ page }
     .toHaveAttribute('href', `/admin/blox_editor.php?id=${fixtures.blox_page}`);
 });
 
+test('auto-redirect parent edits the page visitors actually see @local', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single navigation baseline');
+  expect(fixtures.redirect_parent).toBeGreaterThan(0);
+  expect(fixtures.redirect_target).toBeGreaterThan(0);
+
+  const expectedEditor = `/admin/blox_editor.php?id=${fixtures.redirect_target}&from_parent=${fixtures.redirect_parent}`;
+  await page.goto('/admin/page.php', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId(`page-redirect-target-${fixtures.redirect_parent}`))
+    .toContainText(fixtures.redirect_target_name);
+  await expect(page.getByTestId(`page-primary-edit-${fixtures.redirect_parent}`))
+    .toHaveAttribute('href', expectedEditor);
+
+  await page.goto(`/admin/blox_editor.php?id=${fixtures.redirect_parent}`, { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(new RegExp(
+    `/admin/blox_editor\\.php\\?id=${fixtures.redirect_target}&from_parent=${fixtures.redirect_parent}$`
+  ));
+  await expect(page.getByTestId('blox-redirect-source')).toBeVisible();
+  await expect(page.getByTestId('blox-redirect-source')).toContainText(fixtures.redirect_parent_name);
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+});
+
 test('standard page accordion has structured FAQ editing @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single interaction baseline');
   expect(fixtures.blox_page).toBeGreaterThan(0);

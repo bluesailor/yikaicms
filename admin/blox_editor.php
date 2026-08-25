@@ -59,6 +59,7 @@ $homeBannerSeeds = [];
 $pageHasPublished = false;
 $pageHasUnpublishedChanges = false;
 $pageLanguageVersions = [];
+$redirectedFromPage = null;
 $isContactBlox = false;
 $isProductBlox = false;
 $isContentListBlox = false;
@@ -181,10 +182,23 @@ if ($isHomeBlox) {
     // 发展历程由 timelines 表和专属布局渲染，普通 Blox 正文不会出现在前台。
     // 直接访问旧链接时也收口到真实编辑器，避免保存一份无效内容。
     if (!$isProductBlox && !$isContentListBlox) {
+        $primaryEditTarget = pagePrimaryEditTarget($page);
         $primaryEditUrl = pagePrimaryEditUrl($page);
-        if (!str_starts_with($primaryEditUrl, '/admin/blox_editor.php?')) {
+        if ((int) ($primaryEditTarget['id'] ?? 0) !== (int) $page['id']
+            || !str_starts_with($primaryEditUrl, '/admin/blox_editor.php?')) {
             header('Location: ' . $primaryEditUrl);
             exit;
+        }
+
+        $fromParentId = getInt('from_parent');
+        if ($fromParentId > 0 && $fromParentId !== (int) $page['id']) {
+            $sourcePage = channelModel()->find($fromParentId);
+            if (is_array($sourcePage)) {
+                $resolvedSourceTarget = pagePrimaryEditTarget($sourcePage);
+                if ((int) ($resolvedSourceTarget['id'] ?? 0) === (int) $page['id']) {
+                    $redirectedFromPage = $sourcePage;
+                }
+            }
         }
     }
 
