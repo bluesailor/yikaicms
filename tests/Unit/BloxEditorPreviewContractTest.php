@@ -469,6 +469,12 @@ final class BloxEditorPreviewContractTest extends TestCase
             'href="/admin/setting_contact.php"',
             'data-testid="blox-social-content-source"',
             'href="/admin/setting_social.php"',
+            'data-testid="blox-search-content-source"',
+            'data-testid="blox-language-content-source"',
+            'href="/admin/setting_lang.php"',
+            'data-testid="blox-copyright-content-source"',
+            'href="/admin/setting.php?tab=footer#input_footer_copyright_text"',
+            'href="/admin/setting.php?tab=basic#input_site_icp"',
             'target="_blank" rel="noopener"',
         ] as $token) {
             self::assertStringContainsString($token, $workspace, "content source token {$token} missing");

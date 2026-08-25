@@ -46,16 +46,16 @@ final class FrontendEditTargetTest extends TestCase
             'header',
             static fn (): string => BloxFrontendEditTarget::mark('<div>Social</div>', 'social-links', 'social-1')
         );
-        $footerNavigation = BloxFrontendEditTarget::inArea(
+        $footerSearch = BloxFrontendEditTarget::inArea(
             'footer',
-            static fn (): string => BloxFrontendEditTarget::mark('<nav>Footer</nav>', 'nav', 'footer-nav-1')
+            static fn (): string => BloxFrontendEditTarget::mark('<form>Search</form>', 'site-search', 'search-1')
         );
         $headerCta = BloxFrontendEditTarget::inArea(
             'header',
             static fn (): string => BloxFrontendEditTarget::mark('<div>CTA</div>', 'cta', 'cta-1')
         );
 
-        self::assertStringNotContainsString('data-yk-element-edit', $headerSocial . $footerNavigation . $headerCta);
+        self::assertStringNotContainsString('data-yk-element-edit', $headerSocial . $footerSearch . $headerCta);
     }
 
     public function testFooterContactAndSocialTargetsUseDistinctLabels(): void
@@ -69,6 +69,32 @@ final class FrontendEditTargetTest extends TestCase
         self::assertStringContainsString('data-yk-element-label="' . __('fe_edit_contact_block') . '"', $html);
         self::assertStringContainsString('data-yk-element-edit="social-links"', $html);
         self::assertStringContainsString('data-yk-element-label="' . __('fe_edit_social_links_block') . '"', $html);
+    }
+
+    public function testHeaderSearchAndLanguageTargetsHaveSpecificLabels(): void
+    {
+        $html = BloxFrontendEditTarget::inArea('header', static function (): string {
+            return BloxFrontendEditTarget::mark('<form>Search</form>', 'site-search', 'search-1')
+                . BloxFrontendEditTarget::mark('<nav>Languages</nav>', 'language-switcher', 'language-1');
+        });
+
+        self::assertStringContainsString('data-yk-element-edit="site-search"', $html);
+        self::assertStringContainsString('data-yk-element-label="' . __('fe_edit_site_search') . '"', $html);
+        self::assertStringContainsString('data-yk-element-edit="language-switcher"', $html);
+        self::assertStringContainsString('data-yk-element-label="' . __('fe_edit_language_switcher') . '"', $html);
+    }
+
+    public function testFooterNavigationAndCopyrightTargetsHaveSpecificLabels(): void
+    {
+        $html = BloxFrontendEditTarget::inArea('footer', static function (): string {
+            return BloxFrontendEditTarget::mark('<nav>Footer</nav>', 'nav', 'footer-nav-1')
+                . BloxFrontendEditTarget::mark('<div>Copyright</div>', 'site-copyright', 'copyright-1');
+        });
+
+        self::assertStringContainsString('data-yk-element-edit="footer-navigation"', $html);
+        self::assertStringContainsString('data-yk-element-label="' . __('fe_edit_footer_navigation') . '"', $html);
+        self::assertStringContainsString('data-yk-element-edit="site-copyright"', $html);
+        self::assertStringContainsString('data-yk-element-label="' . __('fe_edit_site_copyright') . '"', $html);
     }
 
     public function testPublicAndInvalidIdsDoNotExposeEditMetadata(): void

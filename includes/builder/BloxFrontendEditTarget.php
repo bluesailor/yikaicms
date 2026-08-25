@@ -14,10 +14,14 @@ final class BloxFrontendEditTarget
             'nav' => ['target' => 'header-navigation', 'label' => 'fe_edit_header_navigation'],
             'nav-mega' => ['target' => 'header-navigation', 'label' => 'fe_edit_header_navigation'],
             'site-contact' => ['target' => 'contact', 'label' => 'fe_edit_contact_block'],
+            'site-search' => ['target' => 'site-search', 'label' => 'fe_edit_site_search'],
+            'language-switcher' => ['target' => 'language-switcher', 'label' => 'fe_edit_language_switcher'],
         ],
         'footer' => [
+            'nav' => ['target' => 'footer-navigation', 'label' => 'fe_edit_footer_navigation'],
             'site-contact' => ['target' => 'contact', 'label' => 'fe_edit_contact_block'],
             'social-links' => ['target' => 'social-links', 'label' => 'fe_edit_social_links_block'],
+            'site-copyright' => ['target' => 'site-copyright', 'label' => 'fe_edit_site_copyright'],
         ],
     ];
 
