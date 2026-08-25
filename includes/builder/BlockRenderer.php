@@ -71,8 +71,8 @@ final class BlockRenderer
     ];
 
     /**
-     * 前台就地编辑上下文（P1）：>0 时给每个 section 输出 data-yk-sec 索引，供管理员悬停编辑覆盖层定位。
-     * 仅由前台页面渲染在「管理员浏览」时设置（见 page.php）；保存快照/预览/黄金对拍均不设置 → 无标记。
+     * 编辑定位上下文：>0 时输出编辑器内部索引与持久 section id。
+     * 前台正文必须通过 renderFrontEditableContentBody() 短暂开启，避免页头/页尾误绑定到正文编辑器。
      */
     public static int $editChannelId = 0;
 
@@ -107,6 +107,8 @@ final class BlockRenderer
         $html = '';
         $renderedAnchors = [];
         foreach ($sections as $secIndex => $section) {
+            // 定位协议绑定文档中的引用节点，而不是展开后的块库副本。
+            $sectionLocatorId = trim((string) ($section['id'] ?? ''));
             // 可复用块引用：{library_id: N} → 渲染时从块库展开（改库一处全站生效）。
             // 库块被删/表缺失 → 静默跳过；展开结果里再出现 library_id 一律忽略（防嵌套循环）。
             if (!empty($section['library_id'])) {
@@ -229,6 +231,9 @@ final class BlockRenderer
             }
 
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
+            if ($editMode && $sectionLocatorId !== '') {
+                $editAttr .= ' data-yk-sec-id="' . htmlspecialchars($sectionLocatorId, ENT_QUOTES) . '"';
+            }
             if ($editMode && BloxDisplayConditions::hasInput($sectionConditions)) {
                 $editAttr .= ' data-yk-conditions="'
                     . htmlspecialchars(BloxDisplayConditions::badge($sectionConditions), ENT_QUOTES) . '"';

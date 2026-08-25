@@ -350,7 +350,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('<script src="/assets/js/blox-preview-client.js?v=', $editor);
         $this->assertStringContainsString('return this.previewClient().refresh();', $editor);
-        $this->assertStringContainsString('onLoaded: function () { self.highlightCanvasSelection(false); }', $editor);
+        $this->assertStringContainsString('var shouldScroll = self._pendingInitialFocus;', $editor);
+        $this->assertStringContainsString('self.highlightCanvasSelection(shouldScroll);', $editor);
 
         $this->assertStringContainsString('this.controller.abort()', $client);
         $this->assertStringContainsString('var sequence = ++this.sequence;', $client);
@@ -405,6 +406,30 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('if (shouldScroll && c) c.scrollIntoView', $protocol);
         $this->assertStringContainsString('if (shouldScroll && col) col.scrollIntoView', $protocol);
         $this->assertStringContainsString('if (shouldScroll && t) t.scrollIntoView', $protocol);
+        $this->assertStringContainsString('if (shouldScroll) stableTarget.scrollIntoView', $protocol);
+    }
+
+    public function testStableSectionLocatorUsesOpaqueIdsAcrossUrlDomAndCanvasMessages(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $renderer = $this->source('includes/builder/BlockRenderer.php');
+        $canvas = $this->source('admin/page_edit_advance.php');
+        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+
+        foreach ([
+            "get('focus_section', '')",
+            'initialFocusSectionId:',
+            'applyInitialSectionFocus()',
+            'sectionIndexById(id, legacyIndex)',
+            'message.ykHighlightSectionId = this.selectedSectionId()',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "editor locator token {$token} missing");
+        }
+        $this->assertStringContainsString('data-yk-sec-id="', $renderer);
+        $this->assertStringContainsString("postToEditor({ ykPickSection: section })", $canvas);
+        $this->assertStringContainsString('d.ykHighlightSectionId', $canvas);
+        $this->assertStringContainsString('sectionTargetPayload(data.ykPickSection)', $bridge);
+        $this->assertStringNotContainsString("getInt('focus')", $editor);
     }
 
     public function testCanvasAndRevisionPreviewLoadFrontendTypographyStyles(): void
@@ -504,7 +529,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
         $canvas = $this->source('admin/page_edit_advance.php');
 
-        foreach (['ykPickSectionField', 'ykPickEl', 'ykPickCol', 'ykPickCon', 'ykPick', 'ykContext', 'ykInlineEdit'] as $message) {
+        foreach (['ykPickSectionField', 'ykPickEl', 'ykPickCol', 'ykPickCon', 'ykPickSection', 'ykContext', 'ykInlineEdit'] as $message) {
             $this->assertStringContainsString($message, $canvas, "canvas message {$message} missing");
         }
         foreach ([

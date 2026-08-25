@@ -2,8 +2,8 @@
 /**
  * 前台就地编辑覆盖层
  *
- * Blox 页面统一使用顶部管理条的「编辑此页」。本覆盖层只处理导航、页脚、合作伙伴、
- * 显式 data-yk-edit 目标和 Logo 等确实能到达对应编辑位置的入口。
+ * Blox 页面保留顶部管理条的「编辑此页」作为主入口；桌面端区块悬停入口通过
+ * focus_section=<持久 section id> 精确定位。首页和触摸设备不叠加区块操作层。
  */
 
 if (!defined('ROOT_PATH')) exit;
@@ -13,6 +13,10 @@ function renderFrontEdit(): void
     if (isCleanFrontendPreview()) return;
     if (empty($_SESSION['admin_id'])) return;
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
+    $bloxEditUrl = adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? ''));
+    if (!str_starts_with($bloxEditUrl, '/admin/blox_editor.php?')) {
+        $bloxEditUrl = '';
+    }
     // 覆盖层对任何登录管理员都渲染（专用编辑入口与 Logo 就地编辑全站可用）。
     ?>
     <style>
@@ -76,6 +80,7 @@ function renderFrontEdit(): void
     <script>
     (function () {
       var current = null, hideTimer = null;
+      var bloxEditUrl = <?php echo json_encode($bloxEditUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
@@ -88,8 +93,15 @@ function renderFrontEdit(): void
 
       function hide() { box.style.display = 'none'; current = null; }
 
-      // 按元素上的标记算编辑链接：导航 / 页脚 / 合作伙伴 / 通用内容。
+      // 按元素上的标记算编辑链接：Blox 区块 / 导航 / 页脚 / 合作伙伴 / 通用内容。
       function editUrl(el) {
+        if (bloxEditUrl && el.hasAttribute('data-yk-sec-id')) {
+          var sectionId = el.getAttribute('data-yk-sec-id') || '';
+          if (!sectionId) return '#';
+          var target = new URL(bloxEditUrl, window.location.origin);
+          target.searchParams.set('focus_section', sectionId);
+          return target.pathname + target.search + target.hash;
+        }
         if (el.hasAttribute('data-yk-nav')) {
           return '/admin/channel.php';
         }
@@ -105,6 +117,7 @@ function renderFrontEdit(): void
         return '#';
       }
       function editLabel(el) {
+        if (el.hasAttribute('data-yk-sec-id')) return '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-nav'))      return '✎ ' + <?php echo json_encode(__('fe_edit_nav'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-footer'))   return '✎ ' + <?php echo json_encode(__('fe_edit_footer'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-partners')) return '✎ ' + <?php echo json_encode(__('fe_edit_partners'), JSON_UNESCAPED_UNICODE); ?>;
@@ -135,7 +148,7 @@ function renderFrontEdit(): void
         else document.addEventListener('DOMContentLoaded', fn);
       }
       onReady(function () {
-        document.querySelectorAll('[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
+        document.querySelectorAll('[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });

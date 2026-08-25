@@ -54,6 +54,12 @@ $initialPanel = in_array((string) get('open', ''), ['design', 'templates'], true
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
+// 外部定位协议只接受短、无控制字符的持久 section id；它是文档内不透明标识，不解释为索引。
+$initialFocusSectionId = trim((string) get('focus_section', ''));
+if (strlen($initialFocusSectionId) > 512 || preg_match('/[\x00-\x1F\x7F]/', $initialFocusSectionId) === 1) {
+    $initialFocusSectionId = '';
+}
+
 /** JS 字面量内联文案：json_encode(__(key))，供 Alpine data() 里 this 不可用的位置使用。 */
 $jt = static fn (string $key): string => (string) json_encode(__($key), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 
@@ -778,6 +784,7 @@ $canManageBloxDesign = hasPermission('*');
             _savedSnapshot: "",
             _savedDocumentSnapshot: "",
             _draftRecovery: null,
+            _pendingInitialFocus: false,
             recoveryOpen: false,
             recoveryDraft: null,
             conflictOpen: false,
@@ -802,6 +809,7 @@ $canManageBloxDesign = hasPermission('*');
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
             initialPanel: <?php echo json_encode($initialPanel); ?>,
+            initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             canManageDesign: <?php echo $canManageBloxDesign ? 'true' : 'false'; ?>,
             designSystem: <?php echo json_encode($bloxDesignSystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             designUsage: { tokens: {}, styles: {} },
@@ -4408,6 +4416,7 @@ $canManageBloxDesign = hasPermission('*');
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
                 this.normalizeIds();
+                this.applyInitialSectionFocus();
                 this.initHistory();
                 this.initDraftRecovery();
                 this.$nextTick(function() {
@@ -4502,7 +4511,7 @@ $canManageBloxDesign = hasPermission('*');
                     onEditElement: function (path) { self.selectPath(path, false); self.quickEditSelected(); },
                     onPickColumn: function (si, ci) { self.selectColumn(si, ci, false); },
                     onPickContainer: function (si) { self.selectContainer(si, false); },
-                    onPickSection: function (si) { self.selectSection(si, false); },
+                    onPickSection: function (target) { self.selectSectionTarget(target, false); },
                     onClear: function () { self.deselectAll(); },
                     onAreaHit: function (id) { self.ctxHit = id; },
                     onEditArea: function (payload) { window.location.assign(payload.url); },
@@ -4698,7 +4707,11 @@ $canManageBloxDesign = hasPermission('*');
                         return self.headerTemplateMode ? { header_state: self.headerPreviewState } : {};
                     },
                     setLoading: function (loading) { self.previewLoading = loading; },
-                    onLoaded: function () { self.highlightCanvasSelection(false); },
+                    onLoaded: function () {
+                        var shouldScroll = self._pendingInitialFocus;
+                        self._pendingInitialFocus = false;
+                        self.highlightCanvasSelection(shouldScroll);
+                    },
                     onError: function () { self.toast(self.uiText.previewFailed); },
                 });
                 return this._previewClient;
@@ -5031,6 +5044,35 @@ $canManageBloxDesign = hasPermission('*');
                 return path.join(".");
             },
 
+            selectedSectionId() {
+                var section = this.selectedSi >= 0 ? this.sections[this.selectedSi] : null;
+                return section && section.id ? String(section.id) : "";
+            },
+
+            sectionIndexById(id, legacyIndex) {
+                var sectionId = typeof id === "string" ? id : "";
+                if (sectionId) {
+                    return this.sections.findIndex(function (section) {
+                        return String((section || {}).id || "") === sectionId;
+                    });
+                }
+                return Number.isInteger(legacyIndex) && this.sections[legacyIndex] ? legacyIndex : -1;
+            },
+
+            selectSectionTarget(target, notifyCanvas) {
+                target = target && typeof target === "object" ? target : {};
+                var si = this.sectionIndexById(target.id, target.si);
+                if (si >= 0) this.selectSection(si, notifyCanvas);
+            },
+
+            applyInitialSectionFocus() {
+                var si = this.sectionIndexById(this.initialFocusSectionId, -1);
+                if (si < 0) return false;
+                this.selectSection(si, false);
+                this._pendingInitialFocus = true;
+                return true;
+            },
+
             selectPath(path, notifyCanvas) {
                 var parts = String(path).split(".").map(function (v) { return parseInt(v, 10); });
                 if (parts.length < 3 || parts.some(function (v) { return isNaN(v); })) return;
@@ -5066,6 +5108,7 @@ $canManageBloxDesign = hasPermission('*');
                 } else if (path) message.ykHighlightEl = path;
                 else if (this.selectedSi >= 0 && this.selLayer === "col" && this.selectedCi >= 0) message.ykHighlightCol = this.selectedSi + "." + this.selectedCi;
                 else if (this.selectedSi >= 0 && this.selLayer === "con") message.ykHighlightCon = this.selectedSi;
+                else if (this.selectedSi >= 0 && this.selectedSectionId()) message.ykHighlightSectionId = this.selectedSectionId();
                 else if (this.selectedSi >= 0) message.ykHighlight = this.selectedSi;
                 else return;
                 this.canvasBridge().post(message);

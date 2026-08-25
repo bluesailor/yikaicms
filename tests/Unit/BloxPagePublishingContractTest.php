@@ -245,21 +245,26 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString("return '/admin/page_edit.php?id=' . \$pageId;", $functions);
     }
 
-    public function testFrontendBloxPagesExposePageLevelEditingWithoutBrokenBlockLinks(): void
+    public function testFrontendBloxPagesExposeStableSectionDeepLinksWithoutLeakingEditContext(): void
     {
         $overlay = $this->source('includes/front_edit.php');
-        $this->assertStringNotContainsString("el.hasAttribute('data-yk-sec')", $overlay);
+        $functions = $this->source('includes/functions.php');
+        $this->assertStringContainsString("el.hasAttribute('data-yk-sec-id')", $overlay);
+        $this->assertStringContainsString("target.searchParams.set('focus_section', sectionId)", $overlay);
         $this->assertStringNotContainsString('&focus=', $overlay);
-        $this->assertStringNotContainsString("querySelectorAll('[data-yk-sec]", $overlay);
-        foreach (['data-yk-nav', 'data-yk-footer', 'data-yk-partners', 'data-yk-edit'] as $marker) {
+        foreach (['data-yk-sec-id', 'data-yk-nav', 'data-yk-footer', 'data-yk-partners', 'data-yk-edit'] as $marker) {
             $this->assertStringContainsString($marker, $overlay);
         }
+
+        $this->assertStringContainsString('function renderFrontEditableContentBody(array $content, int $channelId): string', $functions);
+        $this->assertStringContainsString('$previousChannelId = BlockRenderer::$editChannelId;', $functions);
+        $this->assertStringContainsString('BlockRenderer::$editChannelId = $previousChannelId;', $functions);
 
         foreach (['page.php', 'contact.php', 'news.php', 'list.php'] as $path) {
             $source = $this->source($path);
             $this->assertStringContainsString("\$GLOBALS['ik_edit_url']", $source, $path);
             $this->assertStringNotContainsString("\$GLOBALS['ik_front_edit_cid']", $source, $path);
-            $this->assertStringNotContainsString('BlockRenderer::$editChannelId', $source, $path);
+            $this->assertStringContainsString('renderFrontEditableContentBody(', $source, $path);
         }
     }
 
