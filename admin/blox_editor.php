@@ -31,6 +31,7 @@ if (!bloxPageEditorEnabled()) {
     exit;
 }
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
+$canManageSiteLogo = hasPermission('basic');
 $canManageLogoMaker = hasPermission('*');
 $logoMakerInstalled = is_dir(ROOT_PATH . '/plugins/logo-maker');
 $logoMakerAvailable = function_exists('isPluginAvailable') && isPluginAvailable('logo-maker');
