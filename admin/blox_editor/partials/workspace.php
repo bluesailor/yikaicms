@@ -937,6 +937,73 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <template x-if="processHost() && panelTab === 'content'">
+                                <div class="overflow-hidden rounded-lg border border-gray-200 bg-white" data-testid="blox-process-manager">
+                                    <div class="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2.5">
+                                        <span class="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-gray-700">
+                                            <i class="ti ti-route text-sm text-blue-600"></i>
+                                            <span x-text="processText.title"></span>
+                                            <span class="text-[10px] font-normal text-gray-400" x-text="processItems().length"></span>
+                                        </span>
+                                        <button type="button" @click="renumberProcessItems()" :title="processText.renumber" :aria-label="processText.renumber"
+                                                data-testid="blox-process-renumber"
+                                                class="h-7 w-7 rounded border border-gray-200 bg-white text-gray-500 hover:border-blue-300 hover:text-blue-600 inline-flex items-center justify-center">
+                                            <i class="ti ti-list-numbers text-sm"></i>
+                                        </button>
+                                    </div>
+                                    <div class="divide-y divide-gray-100" data-testid="blox-process-items">
+                                        <template x-for="(item, pi) in processItems()" :key="item.id">
+                                            <div class="px-3 py-3 transition" :class="selectedSubEi === pi ? 'bg-blue-50/60' : ''"
+                                                 data-testid="blox-process-item" :data-process-index="pi">
+                                                <div class="mb-2 flex items-center gap-2">
+                                                    <button type="button" @click="selectProcessItem(pi)" :title="processText.iconSettings"
+                                                            class="h-8 w-8 shrink-0 rounded border border-gray-200 bg-white text-blue-600 hover:border-blue-300 inline-flex items-center justify-center">
+                                                        <i :class="iconClass((item.data || {}).icon || 'route')" class="text-base"></i>
+                                                    </button>
+                                                    <input type="text" x-model.debounce.300ms="item.data.number" @focus="selectProcessItem(pi)"
+                                                           :aria-label="processText.number" :title="processText.number" maxlength="12"
+                                                           class="h-8 w-12 shrink-0 rounded border border-gray-200 bg-white px-2 text-center text-xs font-semibold text-blue-600 focus:border-blue-400 focus:outline-none">
+                                                    <input type="text" x-model.debounce.300ms="item.data.title" @focus="selectProcessItem(pi)"
+                                                           :aria-label="processText.stepTitle" :placeholder="processText.stepTitle" maxlength="120"
+                                                           class="h-8 min-w-0 flex-1 rounded border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-800 focus:border-blue-400 focus:outline-none">
+                                                </div>
+                                                <textarea x-model.debounce.300ms="item.data.text" @focus="selectProcessItem(pi)"
+                                                          :aria-label="processText.description" :placeholder="processText.description" rows="2" maxlength="500"
+                                                          class="block w-full resize-y rounded border border-gray-200 bg-white px-2.5 py-2 text-xs leading-relaxed text-gray-600 focus:border-blue-400 focus:outline-none"></textarea>
+                                                <div class="mt-2 flex items-center justify-end gap-1">
+                                                    <button type="button" @click.stop="moveProcessItem(pi, -1)" :disabled="pi === 0"
+                                                            :title="ctxText.moveUp" :aria-label="ctxText.moveUp"
+                                                            class="h-7 w-7 rounded text-gray-400 hover:bg-white hover:text-blue-600 disabled:opacity-25 inline-flex items-center justify-center">
+                                                        <i class="ti ti-arrow-up text-sm"></i>
+                                                    </button>
+                                                    <button type="button" @click.stop="moveProcessItem(pi, 1)" :disabled="pi === processItems().length - 1"
+                                                            :title="ctxText.moveDown" :aria-label="ctxText.moveDown"
+                                                            class="h-7 w-7 rounded text-gray-400 hover:bg-white hover:text-blue-600 disabled:opacity-25 inline-flex items-center justify-center">
+                                                        <i class="ti ti-arrow-down text-sm"></i>
+                                                    </button>
+                                                    <button type="button" @click.stop="duplicateProcessItem(pi)" :title="processText.duplicate" :aria-label="processText.duplicate"
+                                                            class="h-7 w-7 rounded text-gray-400 hover:bg-white hover:text-blue-600 inline-flex items-center justify-center">
+                                                        <i class="ti ti-copy text-sm"></i>
+                                                    </button>
+                                                    <button type="button" @click.stop="deleteProcessItem(pi)" :disabled="processItems().length <= 1"
+                                                            :title="ctxText.deleteItem" :aria-label="ctxText.deleteItem"
+                                                            class="h-7 w-7 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-25 inline-flex items-center justify-center">
+                                                        <i class="ti ti-trash text-sm"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="border-t border-gray-200 bg-gray-50 p-2.5">
+                                        <button type="button" @click="addProcessItem()" :disabled="processItems().length >= 20"
+                                                data-testid="blox-process-add"
+                                                class="h-8 w-full rounded border border-blue-200 bg-white text-xs font-medium text-blue-600 hover:border-blue-400 disabled:opacity-40 inline-flex items-center justify-center gap-1.5">
+                                            <i class="ti ti-plus text-sm"></i><span x-text="processText.add"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
                             <template x-if="isSelectedContainerEl() && panelTab === 'style'">
                                 <div class="space-y-4">
                                     <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">

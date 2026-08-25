@@ -973,6 +973,23 @@ test('legacy service page can switch to editable built-in process template @loca
   const steps = processGroup.locator('[data-sort-child-item][data-element-type="process-step"]');
   await expect(steps).toHaveCount(6);
 
+  await processGroup.locator('[data-element-drag-handle]').click();
+  const processManager = page.getByTestId('blox-process-manager');
+  await expect(processManager).toBeVisible();
+  await expect(processManager.getByTestId('blox-process-item')).toHaveCount(6);
+  await expect(processManager.getByTestId('blox-process-item').first().locator('input').nth(1)).toHaveValue('需求沟通');
+  await page.getByTestId('blox-process-add').click();
+  await expect(processManager.getByTestId('blox-process-item')).toHaveCount(7);
+  await expect(processManager.getByTestId('blox-process-item').last().locator('input').nth(1)).toHaveValue('新步骤 7');
+  await expect(steps).toHaveCount(7);
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+  await expect(steps).toHaveCount(6);
+  const processSection = processGroup.locator('xpath=ancestor::*[@data-testid="blox-tree-section"]');
+  await processSection.locator('[data-section-drag-handle]').click();
+  await processGroup.locator('[data-element-drag-handle]').click();
+  await expect(processManager.getByTestId('blox-process-item')).toHaveCount(6);
+
   await steps.first().click();
   await expect(page.locator('[data-control-key="title"] input')).toHaveValue('需求沟通');
   await expect(page.locator('[data-control-key="text"] textarea')).toHaveValue(/了解业务场景/);
