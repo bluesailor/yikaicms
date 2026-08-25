@@ -1783,6 +1783,30 @@ declare(strict_types=1);
                                                             class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
                                                 </div>
                                             </template>
+                                            <template x-if="selEl && selEl.type === 'logo' && ctrl.key === 'custom_logo'">
+                                                <div class="mt-3 pt-3 border-t border-gray-100 space-y-2"
+                                                     data-testid="blox-logo-maker-recommendation">
+                                                    <p class="text-[11px] font-medium text-gray-600"><?= e(__('blox_logo_create_title')) ?></p>
+                                                    <div class="flex flex-wrap gap-1.5">
+                                                        <?php if ($canManageLogoMaker): ?>
+                                                        <a href="<?= e($logoMakerActionUrl) ?>" target="_blank" rel="noopener"
+                                                           data-testid="blox-logo-maker-action"
+                                                           data-logo-maker-state="<?= e($logoMakerActionState) ?>"
+                                                           class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                                            <i class="ti ti-brush text-sm" aria-hidden="true"></i>
+                                                            <span><?= e($logoMakerActionLabel) ?></span>
+                                                        </a>
+                                                        <?php endif; ?>
+                                                        <a href="https://logo.yikaicms.com/#icon" target="_blank" rel="noopener"
+                                                           data-testid="blox-logo-lab-action"
+                                                           class="h-8 inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-2.5 text-[11px] font-medium text-blue-600 hover:border-blue-400 hover:text-blue-700 transition">
+                                                            <span><?= e(__('blox_logo_lab_open')) ?></span>
+                                                            <i class="ti ti-external-link text-sm" aria-hidden="true"></i>
+                                                        </a>
+                                                    </div>
+                                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_logo_tools_hint')) ?></p>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
 

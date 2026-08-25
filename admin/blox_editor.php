@@ -31,6 +31,22 @@ if (!bloxPageEditorEnabled()) {
     exit;
 }
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
+$canManageLogoMaker = hasPermission('*');
+$logoMakerInstalled = is_dir(ROOT_PATH . '/plugins/logo-maker');
+$logoMakerAvailable = function_exists('isPluginAvailable') && isPluginAvailable('logo-maker');
+if ($logoMakerAvailable) {
+    $logoMakerActionState = 'open';
+    $logoMakerActionUrl = '/admin/plugin_page.php?plugin=logo-maker#logo';
+    $logoMakerActionLabel = __('blox_logo_maker_open');
+} elseif ($logoMakerInstalled) {
+    $logoMakerActionState = 'enable';
+    $logoMakerActionUrl = '/admin/plugin.php#plugin-logo-maker';
+    $logoMakerActionLabel = __('blox_logo_maker_enable');
+} else {
+    $logoMakerActionState = 'install';
+    $logoMakerActionUrl = '/admin/plugin.php?tab=market&q=logo-maker';
+    $logoMakerActionLabel = __('blox_logo_maker_install');
+}
 $initialPanel = in_array((string) get('open', ''), ['design', 'templates'], true)
     ? (string) get('open', '')
     : '';
