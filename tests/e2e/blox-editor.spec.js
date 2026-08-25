@@ -102,15 +102,18 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     const actionHeights = await menu.locator(':scope > button, :scope > a').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
     expect(Math.min(...actionHeights)).toBeGreaterThanOrEqual(44);
     if (testInfo.project.name !== 'mobile-390') return;
-    await page.route('**/admin/blox_template_api.php?action=list**', async (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ code: 0, msg: 'ok', data: { items: [], remote_error: '' } }),
-    }));
     await menu.getByRole('button', { name: /模板/ }).click();
     const templateDialog = page.locator('[x-ref="templateDialog"]');
     await expect(templateDialog).toBeVisible();
     await expect(page.getByTestId('blox-template-search')).toBeFocused();
+    await expect(page.getByTestId('blox-template-category')).toBeVisible();
+    const firstTemplateImage = page.locator(
+      '[data-testid="blox-template-item"][data-template-key^="builtin:"] img',
+    ).first();
+    await expect(firstTemplateImage).toBeVisible();
+    await expect.poll(() => firstTemplateImage.evaluate((image) => (
+      image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+    ))).toBe(true);
     const dialogBox = await templateDialog.locator(':scope > .relative').boundingBox();
     expect(dialogBox.x).toBeGreaterThanOrEqual(0);
     expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(390);
@@ -765,6 +768,39 @@ test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo
   await undo(page);
   await undo(page);
   await undo(page);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('built-in section library filters previews and inserts a fresh section @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const before = await countSections(page);
+
+  await page.getByTestId('blox-templates-open').click();
+  await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
+
+  const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
+  await expect(builtins).toHaveCount(8);
+  await expect.poll(async () => builtins.locator('img').evaluateAll((images) => images.every((image) => (
+    image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+  )))).toBe(true);
+
+  const category = page.getByTestId('blox-template-category');
+  await expect(category).toBeVisible();
+  await category.selectOption('content');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
+  await expect(builtins).toHaveCount(3);
+
+  await category.selectOption('all');
+  const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  await hero.getByTestId('blox-template-insert').click();
+  await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+
+  await undo(page);
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 

@@ -1,0 +1,72 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Capability cards",
+    "requires": {
+        "elements": [
+            "card"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "能力矩阵",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg",
+                    "bg_color": "#f8fafc"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "card",
+                                "data": {
+                                    "image": "/images/product-demo.jpg",
+                                    "title": "研发设计",
+                                    "text": "自有设计团队，可承接非标定制与结构优化。",
+                                    "link": ""
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "card",
+                                "data": {
+                                    "image": "/images/case-demo.jpg",
+                                    "title": "生产制造",
+                                    "text": "关键工序自主可控，过程检验记录可追溯。",
+                                    "link": ""
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "card",
+                                "data": {
+                                    "image": "/images/cert-1.jpg",
+                                    "title": "质量管控",
+                                    "text": "出厂前逐台检测，随货提供检测报告。",
+                                    "link": ""
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

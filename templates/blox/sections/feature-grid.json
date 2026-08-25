@@ -1,0 +1,68 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Value proposition grid",
+    "requires": {
+        "elements": [
+            "icon-box"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "优势三栏",
+                "settings": {
+                    "padding": {
+                        "d": "md",
+                        "m": "sm"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "certificate",
+                                    "title": "资质齐全",
+                                    "text": "通过行业主要体系认证，出具完整质检与合规文件。"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "adjustments",
+                                    "title": "按需定制",
+                                    "text": "从选型到落地全程参与，按客户工况调整方案而非套用标准品。"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "headset",
+                                    "title": "长期服务",
+                                    "text": "交付不是终点，提供质保期内响应与后续备件支持。"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

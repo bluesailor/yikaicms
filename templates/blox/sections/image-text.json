@@ -1,0 +1,88 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Company story split",
+    "requires": {
+        "elements": [
+            "heading",
+            "divider",
+            "text",
+            "button",
+            "image"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "公司简介（图文）",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "xl",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "我们是谁",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    },
+                                    "align": "left"
+                                }
+                            },
+                            {
+                                "type": "divider",
+                                "data": {
+                                    "style": "solid",
+                                    "width": 3,
+                                    "color": "#2563eb",
+                                    "spacing": "sm"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p class=\"yk-copy\">这一段写公司的来历与定位：什么时候成立、为什么成立、主营业务是什么。</p><p class=\"yk-copy\">第二段写规模与能力：厂房面积、设备、资质、团队构成、年产能或服务量——用可核实的事实代替形容词。</p><p class=\"yk-copy\">第三段写客户与合作：主要服务的行业、代表客户类型、合作方式。</p>"
+                                }
+                            },
+                            {
+                                "type": "button",
+                                "data": {
+                                    "text": "联系我们",
+                                    "url": "/contact.html",
+                                    "variant": "primary",
+                                    "align": "left"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    "src": "/images/case-demo.jpg",
+                                    "alt": "公司环境照片"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
