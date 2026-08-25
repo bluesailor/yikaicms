@@ -24,7 +24,7 @@ function fixture(overrides = {}) {
         getFrame: function () { return frame; },
         onPickSection: function (target) { calls.push(["section", target]); },
         onPickColumn: function (si, ci) { calls.push(["column", si, ci]); },
-        onPickElement: function (path) { calls.push(["element", path]); },
+        onPickElement: function (target) { calls.push(["element", target]); },
         onDrop: function (payload) { calls.push(["drop", payload.dropId]); },
         onColumnRatio: function (payload) { calls.push(["ratio", payload]); },
         onContext: function (payload) { calls.push(["context", payload]); },
@@ -56,6 +56,20 @@ test("稳定区块 ID 与索引一起通过画布边界", function () {
     assert.deepEqual(current.calls, [["section", { id: "s_process_2026", si: 4 }]]);
 });
 
+test("稳定元素 ID 与临时路径一起通过画布边界", function () {
+    const current = fixture();
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickElement: { id: "e_logo_2026", path: "1.0.2", ignored: true },
+    } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickElement: { id: "", path: "1.0.2" },
+    } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickElement: { id: "bad\u0000id", path: "1.0.2" },
+    } }), false);
+    assert.deepEqual(current.calls, [["element", { id: "e_logo_2026", path: "1.0.2" }]]);
+});
+
 test("路径和索引在进入编辑器前完成校验", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykPickEl: "0.1" } }), false);
@@ -64,7 +78,7 @@ test("路径和索引在进入编辑器前完成校验", function () {
 
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykPickEl: "0.1.2.3" } }), true);
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykPickCol: "4.5" } }), true);
-    assert.deepEqual(current.calls, [["element", "0.1.2.3"], ["column", 4, 5]]);
+    assert.deepEqual(current.calls, [["element", { id: "", path: "0.1.2.3" }], ["column", 4, 5]]);
 });
 
 test("列宽和右键载荷先标准化再回调", function () {

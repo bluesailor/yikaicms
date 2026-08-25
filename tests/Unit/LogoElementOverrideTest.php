@@ -61,6 +61,42 @@ final class LogoElementOverrideTest extends TestCase
         $this->assertStringContainsString('class="h-10 w-auto"', $out);
         $this->assertStringNotContainsString('max-height', $out);
     }
+
+    public function testAdminFrontendLogoCarriesStableElementEditMarker(): void
+    {
+        $oldSession = is_array($_SESSION ?? null) ? $_SESSION : [];
+        try {
+            $_SESSION['admin_id'] = 1;
+            $out = (new LogoElement())->renderWithContext(
+                ['display' => 'image'],
+                '',
+                ['node_id' => 'header-logo-stable']
+            );
+        } finally {
+            $_SESSION = $oldSession;
+        }
+
+        $this->assertStringContainsString('data-yk-element-edit="logo"', $out);
+        $this->assertStringContainsString('data-yk-element-id="header-logo-stable"', $out);
+    }
+
+    public function testPublicLogoDoesNotExposeEditorMarker(): void
+    {
+        $oldSession = is_array($_SESSION ?? null) ? $_SESSION : [];
+        try {
+            unset($_SESSION['admin_id']);
+            $out = (new LogoElement())->renderWithContext(
+                ['display' => 'image'],
+                '',
+                ['node_id' => 'header-logo-stable']
+            );
+        } finally {
+            $_SESSION = $oldSession;
+        }
+
+        $this->assertStringNotContainsString('data-yk-element-edit', $out);
+        $this->assertStringNotContainsString('data-yk-element-id', $out);
+    }
 }
 
 }

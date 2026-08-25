@@ -25,6 +25,11 @@
         return typeof value === "string" && /^\d+\.\d+\.\d+(?:\.\d+)?$/.test(value);
     }
 
+    function elementTargetPayload(value) {
+        if (!isObject(value) || !isSectionId(value.id) || !isElementPath(value.path)) return null;
+        return { id: value.id, path: value.path };
+    }
+
     function isFieldName(value) {
         return typeof value === "string" && /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$/.test(value);
     }
@@ -265,12 +270,22 @@
             this.onPickHomeField(payload);
             return true;
         }
+        payload = elementTargetPayload(data.ykPickElement);
+        if (payload) {
+            this.onPickElement(payload);
+            return true;
+        }
+        payload = elementTargetPayload(data.ykEditElement);
+        if (payload) {
+            this.onEditElement(payload);
+            return true;
+        }
         if (isElementPath(data.ykPickEl)) {
-            this.onPickElement(data.ykPickEl);
+            this.onPickElement({ id: "", path: data.ykPickEl });
             return true;
         }
         if (isElementPath(data.ykEditEl)) {
-            this.onEditElement(data.ykEditEl);
+            this.onEditElement({ id: "", path: data.ykEditEl });
             return true;
         }
         if (typeof data.ykPickCol === "string" && /^\d+\.\d+$/.test(data.ykPickCol)) {
