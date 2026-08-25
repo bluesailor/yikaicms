@@ -19,6 +19,8 @@ final class ProcessStepsElementTest extends TestCase
         self::assertTrue($group->isContainer());
         self::assertSame(['process-step'], $group->allowedChildren());
         self::assertCount(3, $group->defaultChildren());
+        $controls = array_column($group->controls(), null, 'key');
+        self::assertTrue($controls['auto_number']['default']);
         self::assertFalse($step->paletteVisible());
         self::assertFalse($step->canBeGenericChild());
         self::assertSame('title', $step->treeLabelField());

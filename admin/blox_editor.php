@@ -951,6 +951,20 @@ $canManageBloxDesign = hasPermission('*');
                 'undoDone' => __('blox_undo_done'),
                 'redoDone' => __('blox_redo_done'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            processText: <?php echo json_encode([
+                'title' => __('blox_process_manager_title'),
+                'number' => __('blox_process_number'),
+                'stepTitle' => __('blox_field_title_short'),
+                'description' => __('blox_ctl_desc'),
+                'add' => __('blox_process_add'),
+                'duplicate' => __('blox_process_duplicate'),
+                'renumber' => __('blox_process_renumber'),
+                'iconSettings' => __('blox_process_icon_settings'),
+                'newTitle' => __('blox_process_new_title'),
+                'newText' => __('blox_process_new_text'),
+                'minimum' => __('blox_process_minimum'),
+                'limit' => __('blox_process_limit'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             mobileText: <?php echo json_encode([
                 'library' => __('blox_mobile_library'),
                 'canvas' => __('blox_mobile_canvas'),
@@ -2099,6 +2113,98 @@ $canManageBloxDesign = hasPermission('*');
                 return !!(host && host.data && (host.data.children || []).length);
             },
 
+            processHost() {
+                var host = this.selTopEl;
+                return host && host.type === "process-steps" ? host : null;
+            },
+
+            processItems() {
+                var host = this.processHost();
+                return host && host.data && Array.isArray(host.data.children) ? host.data.children : [];
+            },
+
+            selectProcessItem(index) {
+                if (!this.processItems()[index]) return;
+                this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, index, false);
+            },
+
+            syncProcessNumbers() {
+                var host = this.processHost();
+                if (!host || !host.data || host.data.auto_number === false) return;
+                this.processItems().forEach(function (item, index) {
+                    item.data = item.data && typeof item.data === "object" ? item.data : {};
+                    item.data.number = String(index + 1).padStart(2, "0");
+                });
+            },
+
+            addProcessItem() {
+                var host = this.processHost();
+                var items = this.processItems();
+                if (!host) return;
+                if (items.length >= 20) { this.toast(this.processText.limit); return; }
+                var self = this;
+                this.runCommand("add-process-step", function () {
+                    var defaults = JSON.parse(JSON.stringify(self.elSchema("process-step").defaults || {}));
+                    var index = items.length;
+                    defaults.number = String(index + 1).padStart(2, "0");
+                    defaults.title = self.processText.newTitle.replace(":n", index + 1);
+                    defaults.text = self.processText.newText;
+                    items.push({ id: self.uid("e"), type: "process-step", data: defaults });
+                    self.syncProcessNumbers();
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, items.length - 1, false);
+                });
+            },
+
+            duplicateProcessItem(index) {
+                var items = this.processItems();
+                if (!items[index]) return;
+                if (items.length >= 20) { this.toast(this.processText.limit); return; }
+                var self = this;
+                this.runCommand("duplicate-process-step", function () {
+                    var copy = JSON.parse(JSON.stringify(items[index]));
+                    copy.id = self.uid("e");
+                    items.splice(index + 1, 0, copy);
+                    self.syncProcessNumbers();
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, index + 1, false);
+                });
+            },
+
+            moveProcessItem(index, direction) {
+                var items = this.processItems();
+                var target = index + direction;
+                if (!items[index] || target < 0 || target >= items.length) return;
+                var self = this;
+                this.runCommand("move-process-step", function () {
+                    var item = items.splice(index, 1)[0];
+                    items.splice(target, 0, item);
+                    self.syncProcessNumbers();
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, target, false);
+                });
+            },
+
+            deleteProcessItem(index) {
+                var items = this.processItems();
+                if (items.length <= 1) { this.toast(this.processText.minimum); return; }
+                if (!items[index]) return;
+                var self = this;
+                this.runCommand("delete-process-step", function () {
+                    items.splice(index, 1);
+                    self.syncProcessNumbers();
+                    var next = Math.min(index, items.length - 1);
+                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, next, false);
+                });
+            },
+
+            renumberProcessItems() {
+                var host = this.processHost();
+                if (!host) return;
+                var self = this;
+                this.runCommand("renumber-process-steps", function () {
+                    host.data.auto_number = true;
+                    self.syncProcessNumbers();
+                });
+            },
+
             allowedChildTypes(host) {
                 var schema = this.elSchema(host && host.type);
                 var allowed = Array.isArray(schema.allowedChildren) ? schema.allowedChildren.slice() : [];
@@ -2663,7 +2769,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.libOpen = false;
                 this.openMobileSettings();
                 var el = this.sections[si].columns[ci].elements[ei];
-                this.panelTab = (el.type === "list-dynamic" || el.type === "home-block")
+                this.panelTab = (el.type === "list-dynamic" || el.type === "home-block" || el.type === "process-steps")
                     ? "content"
                     : (this.elSchema(el.type).container ? "style" : "content");
                 this.ctrlQuery = "";

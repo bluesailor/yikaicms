@@ -15,6 +15,7 @@ final class ProcessStepsElement extends AbstractElement
     public function controls(): array
     {
         return [
+            ['key' => 'auto_number', 'type' => 'checkbox', 'label' => __('blox_process_auto_number'), 'default' => true],
             ['key' => 'tablet_columns', 'type' => 'select', 'label' => __('blox_cols_tablet'), 'default' => '2', 'tab' => 'style',
                 'options' => ['1' => __('blox_n_cols', ['n' => 1]), '2' => __('blox_n_cols', ['n' => 2]), '3' => __('blox_n_cols', ['n' => 3])]],
             ['key' => 'desktop_columns', 'type' => 'select', 'label' => __('blox_cols_desktop'), 'default' => '3', 'tab' => 'style',
