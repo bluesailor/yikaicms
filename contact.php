@@ -43,9 +43,7 @@ if ($currentChannelId > 0) {
         [$currentChannelId]
     );
     if ($__cRow && ($__cRow['content_type'] ?? '') === 'blocks' && !empty($__cRow['blocks_data'])) {
-        if (!empty($_SESSION['admin_id']) && class_exists('BlockRenderer')) {
-            BlockRenderer::$editChannelId = $currentChannelId;
-            $GLOBALS['ik_front_edit_cid'] = $currentChannelId;
+        if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
             $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $currentChannelId;
         }
         $contactBlocksHtml = renderContentBody($__cRow);

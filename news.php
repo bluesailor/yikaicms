@@ -25,10 +25,6 @@ $newsBloxJson = $newsChannelId > 0 ? ChannelBloxDocument::publishedJson($newsCha
 $hasPublishedNewsBlox = is_string($newsBloxJson) && $newsBloxJson !== '';
 if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && $newsChannelId > 0) {
     $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $newsChannelId;
-    if ($hasPublishedNewsBlox) {
-        BlockRenderer::$editChannelId = $newsChannelId;
-        $GLOBALS['ik_front_edit_cid'] = $newsChannelId;
-    }
 }
 
 // 页面信息
