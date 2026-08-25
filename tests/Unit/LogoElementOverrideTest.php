@@ -1,7 +1,6 @@
 <?php
 /**
- * LogoElement 元素级覆盖（v1.18.6）：专属 Logo 图 + 精确像素高度。
- * 未设置新键时输出必须与历史逐字节一致（黄金兼容），设置后覆盖生效。
+ * LogoElement 始终读取站点 Logo，同时保留元素级精确像素高度。
  */
 
 declare(strict_types=1);
@@ -35,18 +34,18 @@ final class LogoElementOverrideTest extends TestCase
         $this->assertStringContainsString('class="h-10 w-auto"', $out);
     }
 
-    public function testCustomLogoOverridesSiteSetting(): void
+    public function testLegacyCustomLogoDoesNotOverrideSiteSetting(): void
     {
         $out = $this->renderLogo(['display' => 'image', 'custom_logo' => '/uploads/brand/white.png']);
-        $this->assertStringContainsString('src="/uploads/brand/white.png"', $out);
-        $this->assertStringNotContainsString('site.png', $out);
+        $this->assertStringContainsString('src="/uploads/brand/site.png"', $out);
+        $this->assertStringNotContainsString('white.png', $out);
     }
 
-    public function testUnsafeCustomLogoFallsBackToSiteSetting(): void
+    public function testControlsDoNotExposePerHeaderLogoOverride(): void
     {
-        $out = $this->renderLogo(['display' => 'image', 'custom_logo' => 'javascript:alert(1)']);
-        $this->assertStringContainsString('src="/uploads/brand/site.png"', $out);
-        $this->assertStringNotContainsString('javascript', $out);
+        $keys = array_column((new LogoElement())->controls(), 'key');
+
+        $this->assertNotContains('custom_logo', $keys);
     }
 
     public function testCustomHeightUsesPixelMaxHeight(): void
