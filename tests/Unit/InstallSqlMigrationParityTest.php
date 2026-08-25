@@ -3,7 +3,7 @@
  * 回归测试：install SQL 必须与 migrations/ 同步（防「全新安装缺列」类 500）。
  *
  * 背景（v1.11.0）：软删除回收站 / 相册展示模式 / 单页头图 / 2FA / 联系页地图 等 6 条迁移
- * 只写进 migrations/，没回填 install/sql/*.sql；而安装器只 import install SQL、不跑迁移，
+ * 只写进 migrations/，没回填 install/sql/*.sql；而安装器导入 install SQL 后若未完成迁移收尾，
  * 于是全新安装缺 deleted_at 等列，首页读 contents/products 时 `WHERE deleted_at IS NULL`
  * → Unknown column → 500。
  *
@@ -75,5 +75,24 @@ final class InstallSqlMigrationParityTest extends TestCase
             $this->assertStringContainsString($idx, $mysql, "mysql.sql 缺软删除索引 {$idx}");
             $this->assertStringContainsString($idx, $sqlite, "sqlite.sql 缺软删除索引 {$idx}");
         }
+    }
+
+    public function testInstallerFinalizesConfigurationDependentMigrationsBeforeLocking(): void
+    {
+        $installer = file_get_contents(ROOT_PATH . '/install/index.php');
+        self::assertIsString($installer);
+
+        self::assertStringContainsString('function finalizeFreshInstallMigrations(): void', $installer);
+        self::assertStringContainsString('Migrator::loadAll()', $installer);
+        self::assertStringContainsString('Migrator::runOne($migration)', $installer);
+
+        $configWrite = strpos($installer, "file_put_contents(ROOT_PATH . '/config/config.php'");
+        $finalize = strpos($installer, 'finalizeFreshInstallMigrations();', (int) $configWrite);
+        $lockWrite = strpos($installer, "file_put_contents(ROOT_PATH . '/installed.lock'", (int) $finalize);
+        self::assertIsInt($configWrite);
+        self::assertIsInt($finalize);
+        self::assertIsInt($lockWrite);
+        self::assertLessThan($finalize, $configWrite);
+        self::assertLessThan($lockWrite, $finalize);
     }
 }
