@@ -44,6 +44,20 @@ function mediaWebpIsThumbnail(string $filename): bool
     return preg_match('/_(?:' . implode('|', $sizeNames) . ')$/i', $filename) === 1;
 }
 
+function mediaWebpExceedsPixelLimit(string $path): bool
+{
+    $dimensions = @getimagesize($path);
+    if ($dimensions === false) {
+        return false;
+    }
+
+    return !imageDimensionsWithinPixelLimit(
+        (int) ($dimensions[0] ?? 0),
+        (int) ($dimensions[1] ?? 0),
+        uploadMaxImageMegapixels() * 1_000_000
+    );
+}
+
 CLI::register('media:webp', '为历史图片补齐响应式 WebP 副本', function (array $args, array $opts): int {
     if (array_key_exists('path', $opts) && !is_string($opts['path'])) {
         CLI::err('--path 必须指定 uploads/ 下的相对目录');
@@ -64,7 +78,7 @@ CLI::register('media:webp', '为历史图片补齐响应式 WebP 副本', functi
     $limit = (int) $limitOption;
     $dryRun = !empty($opts['dry-run']);
     $force = !empty($opts['force']);
-    if (!$dryRun && !function_exists('imagewebp')) {
+    if (!function_exists('imagewebp')) {
         CLI::err('当前 PHP GD 未启用 WebP 支持');
         return 1;
     }
@@ -75,6 +89,7 @@ CLI::register('media:webp', '为历史图片补齐响应式 WebP 副本', functi
     $generated = 0;
     $current = 0;
     $failed = 0;
+    $oversized = 0;
     $iterator = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)
     );
@@ -95,6 +110,10 @@ CLI::register('media:webp', '为历史图片补齐响应式 WebP 副本', functi
         }
 
         $files++;
+        if (mediaWebpExceedsPixelLimit($file->getPathname())) {
+            $oversized++;
+            continue;
+        }
         $plan = webpDerivativePlan($file->getPathname(), $ext, $force);
         foreach ($plan as $item) {
             if ($item['current']) {
@@ -113,15 +132,15 @@ CLI::register('media:webp', '为历史图片补齐响应式 WebP 副本', functi
     }
 
     if ($dryRun) {
-        CLI::info("[dry-run] 扫描原图 {$files}，待生成 {$pending}，已是最新 {$current}");
+        CLI::info("[dry-run] 扫描原图 {$files}，待生成 {$pending}，已是最新 {$current}，跳过超限 {$oversized}");
         return 0;
     }
     if ($failed > 0) {
-        CLI::err("WebP 回填完成但有失败：原图 {$files}，生成 {$generated}，已是最新 {$current}，失败 {$failed}");
+        CLI::err("WebP 回填完成但有失败：原图 {$files}，生成 {$generated}，已是最新 {$current}，跳过超限 {$oversized}，失败 {$failed}");
         return 1;
     }
 
-    CLI::ok("WebP 回填完成：原图 {$files}，生成 {$generated}，已是最新 {$current}");
+    CLI::ok("WebP 回填完成：原图 {$files}，生成 {$generated}，已是最新 {$current}，跳过超限 {$oversized}");
     return 0;
 }, [
     'usage' => 'media:webp [--path=images/202608] [--dry-run] [--force] [--limit=100]',

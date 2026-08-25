@@ -16,8 +16,8 @@ final class MediaOptimizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        if (!function_exists('imagewebp')) {
-            $this->markTestSkipped('GD WebP support is not available');
+        if (!function_exists('imagecreatetruecolor')) {
+            $this->markTestSkipped('GD support is not available');
         }
         $this->directory = ROOT_PATH . '/uploads/images/media-health-' . getmypid() . '-' . bin2hex(random_bytes(3));
         mkdir($this->directory, 0775, true);
@@ -34,6 +34,7 @@ final class MediaOptimizationTest extends TestCase
 
     public function testInspectAndRepairCompleteResponsiveDerivativeSet(): void
     {
+        $this->requireWebp();
         $path = $this->directory . '/photo.png';
         $this->writePng($path, 1600, 900);
         $media = $this->media($path);
@@ -60,6 +61,7 @@ final class MediaOptimizationTest extends TestCase
 
     public function testStaleDerivativesAreDetectedAndRegenerated(): void
     {
+        $this->requireWebp();
         $path = $this->directory . '/stale.png';
         $this->writePng($path, 1200, 675);
         $media = $this->media($path, 2);
@@ -102,6 +104,7 @@ final class MediaOptimizationTest extends TestCase
 
     public function testDeleteArtifactsRemovesSourceThumbnailsAndWebpOnlyInsideUploads(): void
     {
+        $this->requireWebp();
         $path = $this->directory . '/delete.png';
         $this->writePng($path, 1600, 900);
         $media = $this->media($path, 5);
@@ -127,6 +130,7 @@ final class MediaOptimizationTest extends TestCase
 
     public function testSummaryCountsStatusesAndBoundsAttentionSamples(): void
     {
+        $this->requireWebp();
         $pendingPath = $this->directory . '/pending.png';
         $healthyPath = $this->directory . '/healthy.png';
         $svgPath = $this->directory . '/vector.svg';
@@ -160,6 +164,56 @@ final class MediaOptimizationTest extends TestCase
         $this->assertCount(MediaOptimization::MAX_BATCH, $bounded['sample_ids']);
     }
 
+    public function testInspectDoesNotRequireWebpWhenEncoderIsUnavailable(): void
+    {
+        $smallPath = $this->directory . '/small-without-webp.png';
+        $this->writePng($smallPath, 80, 45);
+        $smallHealth = MediaOptimization::inspect($this->media($smallPath), false);
+
+        $this->assertSame('healthy', $smallHealth['status']);
+        $this->assertSame(1, $smallHealth['expected']);
+        $this->assertSame([], $smallHealth['pending']);
+
+        $largePath = $this->directory . '/large-without-webp.png';
+        $this->writePng($largePath, 1600, 900);
+
+        $health = MediaOptimization::inspect($this->media($largePath), false);
+
+        $this->assertSame('pending', $health['status']);
+        $this->assertTrue($health['repairable']);
+        $this->assertSame(3, $health['expected']);
+        $this->assertSame(['thumbnail:thumb', 'thumbnail:medium'], $health['pending']);
+    }
+
+    public function testOversizedImageIsNeverOfferedForRepair(): void
+    {
+        $previous = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        $path = $this->directory . '/oversized.png';
+        $this->writePng($path, 1600, 900);
+
+        try {
+            $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 1;
+            $media = $this->media($path);
+            $health = MediaOptimization::inspect($media);
+
+            $this->assertSame('unsupported', $health['status']);
+            $this->assertTrue($health['applicable']);
+            $this->assertFalse($health['repairable']);
+
+            $summary = MediaOptimization::repairMany([$media]);
+            $this->assertSame(1, $summary['skipped']);
+            $this->assertSame(0, $summary['failed']);
+            $this->assertFileDoesNotExist($this->directory . '/oversized_thumb.png');
+            $this->assertFileDoesNotExist($this->directory . '/oversized.webp');
+        } finally {
+            if ($previous === null) {
+                unset($GLOBALS['yikai_config_runtime_overrides']);
+            } else {
+                $GLOBALS['yikai_config_runtime_overrides'] = $previous;
+            }
+        }
+    }
+
     /** @return array<string,mixed> */
     private function media(string $path, int $id = 1, string $ext = 'png'): array
     {
@@ -178,5 +232,12 @@ final class MediaOptimizationTest extends TestCase
         imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));
         self::assertTrue(imagepng($image, $path));
         imagedestroy($image);
+    }
+
+    private function requireWebp(): void
+    {
+        if (!function_exists('imagewebp')) {
+            $this->markTestSkipped('GD WebP support is not available');
+        }
     }
 }

@@ -71,6 +71,30 @@ final class MediaWebpCommandTest extends TestCase
         $this->assertSame(realpath($this->directory), mediaWebpResolveRoot($this->relativeDirectory));
     }
 
+    public function testBackfillSkipsImagesAboveConfiguredPixelLimit(): void
+    {
+        $previous = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        $this->writePng($this->directory . '/photo.png', 1600, 900);
+
+        try {
+            $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 1;
+            [$code, $output] = $this->runCommand([
+                'media:webp',
+                '--path=' . $this->relativeDirectory,
+            ]);
+
+            $this->assertSame(0, $code);
+            $this->assertStringContainsString('跳过超限 1', $output);
+            $this->assertFileDoesNotExist($this->directory . '/photo.webp');
+        } finally {
+            if ($previous === null) {
+                unset($GLOBALS['yikai_config_runtime_overrides']);
+            } else {
+                $GLOBALS['yikai_config_runtime_overrides'] = $previous;
+            }
+        }
+    }
+
     /** @param list<string> $arguments @return array{0:int,1:string} */
     private function runCommand(array $arguments): array
     {

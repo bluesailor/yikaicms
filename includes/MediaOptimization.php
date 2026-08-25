@@ -9,8 +9,11 @@ final class MediaOptimization
 {
     public const MAX_BATCH = 24;
 
-    /** @param array<string,mixed> $media @return array<string,mixed> */
-    public static function inspect(array $media): array
+    /**
+     * @param array<string,mixed> $media
+     * @return array<string,mixed>
+     */
+    public static function inspect(array $media, ?bool $webpSupported = null): array
     {
         if (($media['type'] ?? '') !== 'image') {
             return self::result('unsupported', false, false);
@@ -31,6 +34,10 @@ final class MediaOptimization
         }
         $width = max(0, (int) ($dimensions[0] ?? 0));
         $height = max(0, (int) ($dimensions[1] ?? 0));
+        if (!self::withinPixelLimit($width, $height)) {
+            return self::result('unsupported', true, false);
+        }
+        $webpSupported ??= function_exists('imagewebp');
         $sourceMtime = @filemtime($path) ?: 0;
         $pending = [];
         $expectedSources = ['original' => $path];
@@ -47,7 +54,7 @@ final class MediaOptimization
             $expectedSources[(string) $name] = $thumbnailPath;
         }
 
-        if (in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+        if ($webpSupported && in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
             foreach ($expectedSources as $name => $source) {
                 $target = preg_replace('/\.(?:jpe?g|png)$/i', '.webp', $source);
                 $sourceTime = @filemtime($source) ?: $sourceMtime;
@@ -59,7 +66,7 @@ final class MediaOptimization
         }
 
         $pending = array_values(array_unique($pending));
-        $expected = count($expectedSources) + (in_array($ext, ['jpg', 'jpeg', 'png'], true)
+        $expected = count($expectedSources) + ($webpSupported && in_array($ext, ['jpg', 'jpeg', 'png'], true)
             ? count($expectedSources)
             : 0);
         $needsThumbnail = array_filter($pending, static fn(string $item): bool => str_starts_with($item, 'thumbnail:')) !== [];
@@ -229,6 +236,13 @@ final class MediaOptimization
         if ($path === null) {
             return self::result('missing', true, false);
         }
+        $dimensions = @getimagesize($path);
+        if ($dimensions === false || !self::withinPixelLimit(
+            (int) ($dimensions[0] ?? 0),
+            (int) ($dimensions[1] ?? 0)
+        )) {
+            return self::result('unsupported', true, false);
+        }
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $pending = is_array($before['pending'] ?? null) ? $before['pending'] : [];
         $needsThumbnail = array_filter(
@@ -238,7 +252,7 @@ final class MediaOptimization
         if ($needsThumbnail) {
             generateThumbnails($path, $ext);
         }
-        if (in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+        if (function_exists('imagewebp') && in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
             $quality = max(50, min(95, (int) config('upload_jpeg_quality', 85)));
             generateWebpDerivatives($path, $ext, $quality);
         }
@@ -269,6 +283,15 @@ final class MediaOptimization
         return DIRECTORY_SEPARATOR === '\\'
             ? str_starts_with(strtolower($real), strtolower($root))
             : str_starts_with($real, $root);
+    }
+
+    private static function withinPixelLimit(int $width, int $height): bool
+    {
+        return imageDimensionsWithinPixelLimit(
+            $width,
+            $height,
+            uploadMaxImageMegapixels() * 1_000_000
+        );
     }
 
     /** @return array{status:string,applicable:bool,repairable:bool,expected:int,ready:int,pending:list<string>} */
