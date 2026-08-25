@@ -1,0 +1,84 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Frequently asked questions",
+    "requires": {
+        "elements": [
+            "heading",
+            "divider",
+            "accordion"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "常见问题",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "narrow",
+                    "gap": "md"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "常见问题",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    },
+                                    "align": "center"
+                                }
+                            },
+                            {
+                                "type": "divider",
+                                "data": {
+                                    "style": "solid",
+                                    "width": 3,
+                                    "color": "#2563eb",
+                                    "spacing": "sm"
+                                }
+                            },
+                            {
+                                "type": "accordion",
+                                "data": {
+                                    "open_first": true,
+                                    "seo_schema": true,
+                                    "items": [
+                                        {
+                                            "question": "多久能收到回复？",
+                                            "answer": "工作日提交的咨询通常在一个工作日内回复；如遇节假日会顺延。"
+                                        },
+                                        {
+                                            "question": "可以先寄样品或做打样吗？",
+                                            "answer": "可以。请在留言中说明用途、数量与交期要求，我们会先确认可行性再报价。"
+                                        },
+                                        {
+                                            "question": "支持到厂参观吗？",
+                                            "answer": "支持，请提前一到两个工作日预约，以便安排对接人与车位。"
+                                        },
+                                        {
+                                            "question": "发票与结算方式？",
+                                            "answer": "可开具增值税专用发票，具体账期与结算方式以合同约定为准。"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

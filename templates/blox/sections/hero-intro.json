@@ -1,0 +1,63 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Corporate intro hero",
+    "requires": {
+        "elements": [
+            "text",
+            "heading"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "页面标题",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "narrow",
+                    "gap": "sm",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p class=\"yk-eyebrow\">About us</p>"
+                                }
+                            },
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "以专业与稳健，陪伴客户长期成长",
+                                    "level": "h1",
+                                    "visual_size": {
+                                        "d": "5xl",
+                                        "t": "4xl",
+                                        "m": "3xl"
+                                    },
+                                    "align": "left"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p class=\"yk-lead\">请在这里用两三句话说明公司是做什么的、服务哪类客户、以及区别于同行的地方。写具体一点：行业、成立时间、主要产品或服务，比空泛的形容词更容易被记住。</p>"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

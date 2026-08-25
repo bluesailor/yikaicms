@@ -1,0 +1,83 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Business metrics",
+    "requires": {
+        "elements": [
+            "stats-group",
+            "stat-item"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "关键数字",
+                "settings": {
+                    "padding": {
+                        "d": "lg",
+                        "m": "md"
+                    },
+                    "max_width": "wide",
+                    "bg_color": "#f8fafc"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "stats-group",
+                                "data": {
+                                    "desktop_columns": "4",
+                                    "tablet_columns": "2",
+                                    "mobile_columns": "2",
+                                    "gap": "lg",
+                                    "counter_enabled": true,
+                                    "counter_start": 0,
+                                    "counter_duration": 1600,
+                                    "children": [
+                                        {
+                                            "type": "stat-item",
+                                            "data": {
+                                                "icon": "calendar",
+                                                "number": "2008",
+                                                "label": "成立年份"
+                                            }
+                                        },
+                                        {
+                                            "type": "stat-item",
+                                            "data": {
+                                                "icon": "users",
+                                                "number": "120",
+                                                "label": "团队规模"
+                                            }
+                                        },
+                                        {
+                                            "type": "stat-item",
+                                            "data": {
+                                                "icon": "building-factory-2",
+                                                "number": "3000",
+                                                "label": "厂房面积（㎡）"
+                                            }
+                                        },
+                                        {
+                                            "type": "stat-item",
+                                            "data": {
+                                                "icon": "world",
+                                                "number": "26",
+                                                "label": "服务国家与地区"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -313,7 +313,7 @@ declare(strict_types=1);
                                 x-text="filter.label"></button>
                     </template>
                 </div>
-                <label x-show="templateScope === 'remote'" class="relative min-w-36">
+                <label x-show="templateCategoryOptions().length > 1" class="relative min-w-36">
                     <span class="sr-only" x-text="templateText.category"></span>
                     <select x-model="templateCategory" data-testid="blox-template-category"
                             class="w-full h-8 border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
