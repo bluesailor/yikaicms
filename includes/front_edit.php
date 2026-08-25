@@ -3,7 +3,8 @@
  * 前台就地编辑覆盖层
  *
  * Blox 页面保留顶部管理条的「编辑此页」作为主入口；桌面端区块悬停入口通过
- * focus_section=<持久 section id> 精确定位。首页和触摸设备不叠加区块操作层。
+ * focus_section=<持久 section id> / focus_element=<持久 element id> 精确定位。
+ * 首页和触摸设备不叠加区块操作层。
  */
 
 if (!defined('ROOT_PATH')) exit;
@@ -95,6 +96,21 @@ function renderFrontEdit(): void
 
       // 按元素上的标记算编辑链接：Blox 区块 / 导航 / 页脚 / 合作伙伴 / 通用内容。
       function editUrl(el) {
+        if (el.hasAttribute('data-yk-element-edit') && el.hasAttribute('data-yk-element-id')) {
+          var areaHost = el.closest('[data-yk-edit]');
+          var areaUrl = areaHost ? (areaHost.getAttribute('data-yk-edit') || '') : '';
+          var elementId = el.getAttribute('data-yk-element-id') || '';
+          if (areaUrl && elementId) {
+            var elementTarget = new URL(areaUrl, location.origin);
+            if (elementTarget.pathname === '/admin/blox_editor.php') {
+              elementTarget.searchParams.set('focus_element', elementId);
+              elementTarget.searchParams.delete('focus_section');
+              elementTarget.searchParams.delete('open');
+              return elementTarget.pathname + elementTarget.search + elementTarget.hash;
+            }
+          }
+          return null;
+        }
         if (bloxEditUrl && el.hasAttribute('data-yk-sec-id')) {
           var sectionId = el.getAttribute('data-yk-sec-id') || '';
           if (!sectionId) return '#';
@@ -117,6 +133,7 @@ function renderFrontEdit(): void
         return '#';
       }
       function editLabel(el) {
+        if (el.hasAttribute('data-yk-element-edit')) return '✎ ' + <?php echo json_encode(__('fe_edit_logo_block'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-sec-id')) return '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-nav'))      return '✎ ' + <?php echo json_encode(__('fe_edit_nav'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-footer'))   return '✎ ' + <?php echo json_encode(__('fe_edit_footer'), JSON_UNESCAPED_UNICODE); ?>;
@@ -148,7 +165,7 @@ function renderFrontEdit(): void
         else document.addEventListener('DOMContentLoaded', fn);
       }
       onReady(function () {
-        document.querySelectorAll('[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
+        document.querySelectorAll('[data-yk-element-edit][data-yk-element-id],[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });

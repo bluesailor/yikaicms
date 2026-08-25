@@ -339,6 +339,30 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
+test('stable element deep link selects the current header logo @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop element locator baseline');
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'header editing is an advanced feature');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+
+  const consoleEntries = observeConsole(page);
+  const baseUrl = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1`;
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  const logoTree = page.locator('[data-sort-child-item][data-element-type="logo"]').first();
+  const logoId = await logoTree.getAttribute('data-item-id');
+  expect(logoId).toBeTruthy();
+
+  await page.goto(`${baseUrl}&focus_element=${encodeURIComponent(logoId)}`, { waitUntil: 'domcontentloaded' });
+  const selectedLogo = page.locator(`[data-sort-child-item][data-item-id="${logoId}"]`).first();
+  await expect(selectedLogo).toHaveClass(/bg-blue-100/);
+  const contentFrame = await frame(page);
+  const canvasLogo = contentFrame.locator(`[data-yk-el-id="${logoId}"]`);
+  const logoPath = await canvasLogo.getAttribute('data-yk-el');
+  await expect(contentFrame.locator('.yk-pick-overlay')).toBeVisible();
+  await expect(contentFrame.locator('.yk-pick-label')).toHaveText(`Element ${logoPath}`);
+  expect(consoleEntries).toEqual([]);
+});
+
 test('current theme header switches Mega Menu in place and reorders the selected navigation @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop header editing baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
