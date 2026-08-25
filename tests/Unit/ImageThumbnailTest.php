@@ -27,6 +27,15 @@ final class ImageThumbnailTest extends TestCase
         return substr_replace($png, pack('N', $height), 20, 4);
     }
 
+    private static function writePng(string $path, int $width, int $height): void
+    {
+        $image = imagecreatetruecolor($width, $height);
+        self::assertNotFalse($image);
+        imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));
+        self::assertTrue(imagepng($image, $path));
+        imagedestroy($image);
+    }
+
     public function testThumbnailSizesConstDefined(): void
     {
         $this->assertTrue(defined('THUMBNAIL_SIZES'));
@@ -130,6 +139,66 @@ final class ImageThumbnailTest extends TestCase
             $this->assertSame(300, $image['height']);
         } finally {
             @unlink($directory . '/photo_thumb.png');
+            @unlink($directory . '/photo.png');
+            @rmdir($directory);
+        }
+    }
+
+    public function testWebpDerivativesAreGeneratedAndPreferredAsACompleteCandidateSet(): void
+    {
+        if (!function_exists('imagewebp')) {
+            $this->markTestSkipped('GD WebP support is not available');
+        }
+
+        $name = 'webp-derivatives-' . getmypid();
+        $directory = ROOT_PATH . '/storage/cache/' . $name;
+        $url = '/storage/cache/' . $name . '/photo.png';
+        mkdir($directory, 0775, true);
+        self::writePng($directory . '/photo.png', 1_600, 900);
+        self::writePng($directory . '/photo_medium.png', 800, 450);
+        self::writePng($directory . '/photo_thumb.png', 300, 300);
+
+        try {
+            $result = generateWebpDerivatives($directory . '/photo.png', 'png', 82);
+            $this->assertSame(3, $result['generated']);
+            $this->assertSame(0, $result['failed']);
+            $this->assertFileExists($directory . '/photo.webp');
+            $this->assertFileExists($directory . '/photo_medium.webp');
+            $this->assertFileExists($directory . '/photo_thumb.webp');
+
+            $image = responsiveImageData($url, 'medium');
+            $this->assertSame('/storage/cache/' . $name . '/photo_medium.webp', $image['src']);
+            $this->assertStringContainsString('photo_medium.webp 800w', $image['srcset']);
+            $this->assertStringContainsString('photo.webp 1600w', $image['srcset']);
+
+            $current = generateWebpDerivatives($directory . '/photo.png', 'png', 82);
+            $this->assertSame(0, $current['generated']);
+            $this->assertSame(3, $current['current']);
+        } finally {
+            foreach (glob($directory . '/photo*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($directory);
+        }
+    }
+
+    public function testResponsiveImageDoesNotMixPartialWebpCandidates(): void
+    {
+        $name = 'partial-webp-' . getmypid();
+        $directory = ROOT_PATH . '/storage/cache/' . $name;
+        $url = '/storage/cache/' . $name . '/photo.png';
+        mkdir($directory, 0775, true);
+        file_put_contents($directory . '/photo.png', self::pngWithDimensions(1_600, 900));
+        file_put_contents($directory . '/photo_medium.png', self::pngWithDimensions(800, 450));
+        file_put_contents($directory . '/photo_medium.webp', 'partial');
+
+        try {
+            $image = responsiveImageData($url, 'medium');
+            $this->assertSame('/storage/cache/' . $name . '/photo_medium.png', $image['src']);
+            $this->assertStringNotContainsString('.webp', $image['srcset']);
+        } finally {
+            @unlink($directory . '/photo_medium.webp');
+            @unlink($directory . '/photo_medium.png');
             @unlink($directory . '/photo.png');
             @rmdir($directory);
         }

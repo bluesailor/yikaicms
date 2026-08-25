@@ -290,6 +290,22 @@ function responsiveImageData(?string $url, string $preferredSize = 'medium'): ar
     }
 
     ksort($candidates, SORT_NUMERIC);
+    $webpCandidates = [];
+    foreach ($candidates as $width => $candidate) {
+        $webpCandidate = webpUrl($candidate);
+        if ($webpCandidate === $candidate) {
+            $webpCandidates = [];
+            break;
+        }
+        $webpCandidates[$width] = $webpCandidate;
+    }
+    if ($webpCandidates !== [] && count($webpCandidates) === count($candidates)) {
+        $candidates = $webpCandidates;
+        if ($sourceWidth > 0 && isset($candidates[$sourceWidth])) {
+            $source = $candidates[$sourceWidth];
+        }
+    }
+
     $srcsetParts = [];
     if (count($candidates) > 1) {
         foreach ($candidates as $width => $candidate) {
@@ -335,6 +351,11 @@ function responsiveImageAttributes(
  */
 function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $quality = 80): bool
 {
+    if (!function_exists('imagewebp')) {
+        return false;
+    }
+
+    $srcExt = strtolower($srcExt);
     $srcImage = match ($srcExt) {
         'jpg', 'jpeg' => @imagecreatefromjpeg($srcPath),
         'png'         => @imagecreatefrompng($srcPath),
@@ -349,8 +370,100 @@ function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $qu
         imagesavealpha($srcImage, true);
     }
 
-    $result = imagewebp($srcImage, $dstPath, $quality);
+    $temporaryPath = $dstPath . '.tmp-' . bin2hex(random_bytes(4));
+    $result = imagewebp($srcImage, $temporaryPath, max(50, min(95, $quality)));
     unset($srcImage);
+    if (!$result) {
+        @unlink($temporaryPath);
+        return false;
+    }
+
+    if (!@rename($temporaryPath, $dstPath)) {
+        @unlink($dstPath);
+        if (!@rename($temporaryPath, $dstPath)) {
+            @unlink($temporaryPath);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 列出原图及现有缩略图对应的 WebP 目标。
+ *
+ * @return array<string, array{source:string,target:string,current:bool}>
+ */
+function webpDerivativePlan(string $filepath, string $ext, bool $force = false): array
+{
+    $ext = strtolower(ltrim($ext, '.'));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png'], true) || !is_file($filepath)) {
+        return [];
+    }
+
+    $sources = ['original' => $filepath];
+    foreach (array_keys(THUMBNAIL_SIZES) as $sizeName) {
+        $thumbnailPath = _thumbnailPath($filepath, (string) $sizeName);
+        if (is_file($thumbnailPath)) {
+            $sources[(string) $sizeName] = $thumbnailPath;
+        }
+    }
+
+    $plan = [];
+    foreach ($sources as $name => $sourcePath) {
+        $targetPath = preg_replace('/\.(?:jpe?g|png)$/i', '.webp', $sourcePath);
+        if (!is_string($targetPath) || $targetPath === $sourcePath) {
+            continue;
+        }
+        $sourceMtime = @filemtime($sourcePath) ?: 0;
+        $targetMtime = @filemtime($targetPath) ?: 0;
+        $plan[$name] = [
+            'source' => $sourcePath,
+            'target' => $targetPath,
+            'current' => !$force && is_file($targetPath) && $targetMtime >= $sourceMtime,
+        ];
+    }
+
+    return $plan;
+}
+
+/**
+ * 为原图及现有缩略图生成同名 WebP，供上传与历史媒体回填共用。
+ *
+ * @return array{generated:int,current:int,failed:int,targets:array<string,string>}
+ */
+function generateWebpDerivatives(
+    string $filepath,
+    string $ext,
+    int $quality = 80,
+    bool $force = false
+): array {
+    $result = ['generated' => 0, 'current' => 0, 'failed' => 0, 'targets' => []];
+    $plan = webpDerivativePlan($filepath, $ext, $force);
+    if ($plan === []) {
+        return $result;
+    }
+    if (!function_exists('imagewebp')) {
+        $result['failed'] = count($plan);
+        return $result;
+    }
+
+    foreach ($plan as $name => $item) {
+        if ($item['current']) {
+            $result['current']++;
+            $result['targets'][$name] = $item['target'];
+            continue;
+        }
+
+        $sourceExt = strtolower(pathinfo($item['source'], PATHINFO_EXTENSION));
+        if (convertToWebp($item['source'], $item['target'], $sourceExt, $quality)) {
+            $result['generated']++;
+            $result['targets'][$name] = $item['target'];
+        } else {
+            $result['failed']++;
+        }
+    }
+
     return $result;
 }
 
