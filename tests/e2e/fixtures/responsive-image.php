@@ -52,6 +52,11 @@ $galleryVariants = array_map(
         <button type="button" data-testid="product-gallery-next" onclick="switchFixtureImage(1)">Next</button>
         <button type="button" data-testid="product-gallery-plain" onclick="switchFixtureImage(2)">Plain</button>
     </div>
+    <a data-testid="preview-original" href="<?php echo e($url); ?>">
+        <img data-testid="preview-thumb"
+             <?php echo responsiveImageAttributes($url, 'thumb', '80px'); ?>
+             alt="Thumbnail preview fixture" style="display:block;width:80px;height:80px;object-fit:cover">
+    </a>
     <script src="/assets/js/product-gallery.js"></script>
     <script>
     var fixtureVariants = <?php echo json_encode($galleryVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;

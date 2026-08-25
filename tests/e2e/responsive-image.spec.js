@@ -8,6 +8,7 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
   const name = `e2e-responsive-${process.pid}-${testInfo.project.name}`.toLowerCase();
   const original = path.join(root, 'uploads', 'images', `${name}.png`);
   const medium = path.join(root, 'uploads', 'images', `${name}_medium.png`);
+  const thumb = path.join(root, 'uploads', 'images', `${name}_thumb.png`);
   const alternate = path.join(root, 'uploads', 'images', `${name}-alt.png`);
   const alternateMedium = path.join(root, 'uploads', 'images', `${name}-alt_medium.png`);
   const script = [
@@ -24,6 +25,7 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
   execFileSync('php', ['-r', script, JSON.stringify([
     [original, 1200, 675, 26, 86, 138],
     [medium, 600, 338, 32, 112, 92],
+    [thumb, 300, 300, 46, 124, 104],
     [alternate, 1000, 750, 128, 66, 34],
     [alternateMedium, 500, 375, 174, 92, 50],
   ])], { cwd: root });
@@ -50,6 +52,16 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
       : `/uploads/images/${name}.webp`;
     expect(selected).toBe(expected);
 
+    const previewLink = page.getByTestId('preview-original');
+    const previewThumb = page.getByTestId('preview-thumb');
+    await expect(previewLink).toHaveAttribute('href', `/uploads/images/${name}.png`);
+    await expect(previewThumb).toHaveAttribute('src', `/uploads/images/${name}_thumb.webp`);
+    await expect(previewThumb).not.toHaveAttribute('srcset', /.+/);
+    await expect(previewThumb).toHaveAttribute('width', '300');
+    await expect(previewThumb).toHaveAttribute('height', '300');
+    await expect.poll(() => previewThumb.evaluate((element) => new URL(element.currentSrc).pathname))
+      .toBe(`/uploads/images/${name}_thumb.webp`);
+
     const galleryMain = page.getByTestId('product-gallery-main');
     await page.getByTestId('product-gallery-next').click();
     await expect(galleryMain).toHaveAttribute('src', `/uploads/images/${name}-alt_medium.webp`);
@@ -66,12 +78,13 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     await expect(galleryMain).not.toHaveAttribute('width', /.+/);
     await expect(galleryMain).not.toHaveAttribute('height', /.+/);
   } finally {
-    for (const file of [original, medium, alternate, alternateMedium]) {
+    for (const file of [original, medium, thumb, alternate, alternateMedium]) {
       fs.rmSync(file.replace(/\.png$/, '.webp'), { force: true });
     }
     fs.rmSync(alternateMedium, { force: true });
     fs.rmSync(alternate, { force: true });
     fs.rmSync(medium, { force: true });
+    fs.rmSync(thumb, { force: true });
     fs.rmSync(original, { force: true });
   }
 });

@@ -265,6 +265,34 @@ final class ImageThumbnailTest extends TestCase
         $this->assertStringContainsString("image.setAttribute('src', variant.src)", $script);
     }
 
+    public function testGalleryAndRelatedImageSurfacesUseResponsivePreviews(): void
+    {
+        $minimumCalls = [
+            'article.php' => 3,
+            'detail.php' => 6,
+            'page.php' => 4,
+            'product.php' => 5,
+        ];
+
+        foreach ($minimumCalls as $template => $minimum) {
+            $source = file_get_contents(ROOT_PATH . '/' . $template);
+            $this->assertIsString($source);
+            $this->assertGreaterThanOrEqual(
+                $minimum,
+                substr_count($source, 'responsiveImageAttributes('),
+                $template
+            );
+        }
+
+        $article = (string) file_get_contents(ROOT_PATH . '/article.php');
+        $detail = (string) file_get_contents(ROOT_PATH . '/detail.php');
+        $page = (string) file_get_contents(ROOT_PATH . '/page.php');
+        $this->assertStringContainsString('href="<?php echo e($img); ?>"', $article);
+        $this->assertStringContainsString('img.src = caseGallery[caseLbIdx]', $detail);
+        $this->assertStringContainsString('JSON_HEX_TAG', $detail);
+        $this->assertStringContainsString('href="<?php echo e($photo[\'image\']); ?>"', $page);
+    }
+
     public function testWebpUrlEmptyAndFallback(): void
     {
         $this->assertSame('', webpUrl(''));

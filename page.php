@@ -301,7 +301,7 @@ require theme_path('partials/page-hero.php');
                                data-lightbox="album"
                                data-title="<?php echo e($photo['title']); ?>"
                                class="block rounded-lg overflow-hidden bg-gray-100">
-                                <img loading="lazy" src="<?php echo e(thumbnail($photo['image'], 'medium')); ?>"
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($photo['image'], 'medium', '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw'); ?>
                                      alt="<?php echo e($photo['title']); ?>"
                                      class="w-full h-auto group-hover:opacity-90 transition duration-300">
                             </a>
@@ -321,7 +321,7 @@ require theme_path('partials/page-hero.php');
                                data-lightbox="album"
                                data-title="<?php echo e($photo['title']); ?>"
                                class="block aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                <img loading="lazy" src="<?php echo e(thumbnail($photo['image'], 'medium')); ?>"
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($photo['image'], 'medium', '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw'); ?>
                                      alt="<?php echo e($photo['title']); ?>"
                                      class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
                             </a>
@@ -363,13 +363,19 @@ require theme_path('partials/page-hero.php');
 
                     <!-- 图片相册 -->
                     <?php if ($content['images']): ?>
-                    <?php $images = json_decode($content['images'], true) ?: []; ?>
+                    <?php
+                    $decodedImages = json_decode($content['images'], true);
+                    $images = is_array($decodedImages) ? array_values(array_filter(
+                        $decodedImages,
+                        static fn(mixed $image): bool => is_string($image) && $image !== ''
+                    )) : [];
+                    ?>
                     <?php if (!empty($images)): ?>
                     <div class="mt-8 pt-8 border-t">
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <?php foreach ($images as $image): ?>
                             <a href="<?php echo e($image); ?>" target="_blank" class="block aspect-square rounded overflow-hidden">
-                                <img loading="lazy" src="<?php echo e($image); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($image, 'thumb', '(min-width: 768px) 25vw, 50vw'); ?> alt="<?php echo e($content['title']); ?>" class="w-full h-full object-cover hover:scale-110 transition duration-300">
                             </a>
                             <?php endforeach; ?>
                         </div>
