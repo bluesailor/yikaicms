@@ -10,6 +10,8 @@ const {
   observeConsole,
   observeUnsafeWrites,
   openEditor,
+  openPageEditor,
+  performPagePreviewUpdate,
   performPreviewUpdate,
   waitPreviewSettled,
   restoreClean,
@@ -102,15 +104,18 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     const actionHeights = await menu.locator(':scope > button, :scope > a').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
     expect(Math.min(...actionHeights)).toBeGreaterThanOrEqual(44);
     if (testInfo.project.name !== 'mobile-390') return;
-    await page.route('**/admin/blox_template_api.php?action=list**', async (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ code: 0, msg: 'ok', data: { items: [], remote_error: '' } }),
-    }));
     await menu.getByRole('button', { name: /模板/ }).click();
     const templateDialog = page.locator('[x-ref="templateDialog"]');
     await expect(templateDialog).toBeVisible();
     await expect(page.getByTestId('blox-template-search')).toBeFocused();
+    await expect(page.getByTestId('blox-template-category')).toBeVisible();
+    const firstTemplateImage = page.locator(
+      '[data-testid="blox-template-item"][data-template-key^="builtin:"] img',
+    ).first();
+    await expect(firstTemplateImage).toBeVisible();
+    await expect.poll(() => firstTemplateImage.evaluate((image) => (
+      image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+    ))).toBe(true);
     const dialogBox = await templateDialog.locator(':scope > .relative').boundingBox();
     expect(dialogBox.x).toBeGreaterThanOrEqual(0);
     expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(390);
@@ -137,6 +142,145 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(templateEntry.locator('.ti-layout-grid')).toBeVisible();
     await expect(templateEntry.locator('span')).not.toHaveText('');
   }
+});
+
+test('browser image preprocessing reduces pixels and upload bytes @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser image baseline');
+
+  const metrics = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 3200;
+    canvas.height = 1600;
+    const context = canvas.getContext('2d');
+    for (let y = 0; y < 40; y += 1) {
+      for (let x = 0; x < 80; x += 1) {
+        context.fillStyle = `hsl(${(x * 37 + y * 19) % 360} 72% ${35 + ((x + y) % 40)}%)`;
+        context.fillRect(x * 40, y * 40, 40, 40);
+      }
+    }
+    const sourceBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.98));
+    const source = new File([sourceBlob], 'browser-metric.jpg', { type: 'image/jpeg' });
+    const prepared = await window.BloxMediaClient.prepareImage(source, {
+      maxDimension: 1600,
+      minBytes: 0,
+      quality: 0.72,
+    });
+    const decoded = await createImageBitmap(prepared);
+    const result = {
+      originalBytes: source.size,
+      outputBytes: prepared.size,
+      width: decoded.width,
+      height: decoded.height,
+      type: prepared.type,
+    };
+    decoded.close();
+    return result;
+  });
+
+  expect(metrics.type).toBe('image/jpeg');
+  expect(metrics.width).toBe(1600);
+  expect(metrics.height).toBe(800);
+  expect(metrics.outputBytes).toBeLessThan(metrics.originalBytes);
+});
+
+test('browser image upload is accepted by the real media API @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser upload baseline');
+  let uploadedUrl = '';
+
+  try {
+    const result = await page.evaluate(async () => {
+      const app = document.body._x_dataStack && document.body._x_dataStack[0];
+      if (!app || !app.csrf) throw new Error('Blox editor CSRF state is unavailable');
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1800;
+      canvas.height = 900;
+      const context = canvas.getContext('2d');
+      for (let y = 0; y < 18; y += 1) {
+        for (let x = 0; x < 36; x += 1) {
+          context.fillStyle = `hsl(${(x * 29 + y * 41) % 360} 68% ${32 + ((x + y) % 44)}%)`;
+          context.fillRect(x * 50, y * 50, 50, 50);
+        }
+      }
+      const sourceBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.98));
+      if (!sourceBlob) throw new Error('Browser JPEG encoder is unavailable');
+      const source = new File([sourceBlob], 'blox-e2e-upload.jpg', { type: 'image/jpeg' });
+      const upload = await window.BloxMediaClient.upload('/admin/media_api.php', source, {
+        csrf: app.csrf,
+        maxDimension: 900,
+        minBytes: 0,
+        quality: 0.68,
+      });
+      return {
+        ...upload,
+        successMessage: app.mediaUploadMessage(upload),
+        fromLabel: window.BloxMediaClient.formatBytes(upload.originalBytes),
+        toLabel: window.BloxMediaClient.formatBytes(upload.uploadBytes),
+      };
+    });
+
+    uploadedUrl = result.url;
+    expect(result.ok).toBe(true);
+    expect(result.optimized).toBe(true);
+    expect(result.uploadBytes).toBeLessThan(result.originalBytes);
+    expect(result.url).toMatch(/^\/uploads\/images\/\d{6}\/[a-z0-9_]+\.jpg$/);
+    expect(result.successMessage).toContain(result.fromLabel);
+    expect(result.successMessage).toContain(result.toLabel);
+
+    const uploaded = await page.request.get(result.url);
+    expect(uploaded.ok()).toBe(true);
+    expect(uploaded.headers()['content-type']).toContain('image/jpeg');
+  } finally {
+    if (uploadedUrl) {
+      const fs = require('fs');
+      const path = require('path');
+      const relative = decodeURIComponent(new URL(uploadedUrl, 'http://localhost').pathname).replace(/^\/+/, '');
+      const uploadedPath = path.resolve(__dirname, '../..', relative);
+      const uploadRoot = path.resolve(__dirname, '../../uploads/images');
+      if (!uploadedPath.toLowerCase().startsWith((uploadRoot + path.sep).toLowerCase())) {
+        throw new Error(`Refusing to clean unexpected upload path: ${uploadedPath}`);
+      }
+      const parsed = path.parse(uploadedPath);
+      const generatedNames = fs.readdirSync(parsed.dir).filter((name) => {
+        const candidate = path.parse(name);
+        return candidate.name === parsed.name || candidate.name.startsWith(parsed.name + '_');
+      });
+      generatedNames.forEach((name) => fs.rmSync(path.join(parsed.dir, name), { force: true }));
+    }
+  }
+});
+
+test('media API rejects oversized image dimensions before processing @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser upload baseline');
+
+  const result = await page.evaluate(async () => {
+    const app = document.body._x_dataStack && document.body._x_dataStack[0];
+    if (!app || !app.csrf) throw new Error('Blox editor CSRF state is unavailable');
+
+    const binary = atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const dimensions = new DataView(bytes.buffer);
+    dimensions.setUint32(16, 100000);
+    dimensions.setUint32(20, 100000);
+
+    const body = new FormData();
+    body.append('file', new Blob([bytes], { type: 'image/png' }), 'blox-pixel-bomb.png');
+    body.append('type', 'images');
+    body.append('_token', app.csrf);
+    const response = await fetch('/admin/media_api.php?action=upload', { method: 'POST', body });
+    return response.json();
+  });
+
+  expect(result.code).toBe(1);
+  expect(result.msg).toContain('MP');
+
+  const listed = await page.evaluate(() => window.BloxMediaClient.list(
+    '/admin/media_api.php',
+    1,
+    'blox-pixel-bomb',
+  ));
+  expect(listed.ok).toBe(true);
+  expect(listed.total).toBe(0);
 });
 
 test('home canvas exposes dedicated edit links for the readonly header and footer @ci', async ({ page }, testInfo) => {
@@ -765,6 +909,95 @@ test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo
   await undo(page);
   await undo(page);
   await undo(page);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('built-in section library filters previews and inserts a fresh section @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const before = await countSections(page);
+
+  await page.getByTestId('blox-templates-open').click();
+  await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
+
+  const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
+  await expect(builtins).toHaveCount(8);
+  await expect.poll(async () => builtins.locator('img').evaluateAll((images) => images.every((image) => (
+    image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+  )))).toBe(true);
+
+  const category = page.getByTestId('blox-template-category');
+  await expect(category).toBeVisible();
+  await category.selectOption('content');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
+  await expect(builtins).toHaveCount(3);
+
+  await category.selectOption('all');
+  const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  await hero.getByTestId('blox-template-insert').click();
+  await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+
+  await undo(page);
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('legacy service page can switch to editable built-in process template @local', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single template replacement baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  expect(fixtures.process_page).toBeGreaterThan(0);
+
+  await openPageEditor(page, fixtures.process_page);
+  await expect(page.getByTestId('blox-legacy-page-notice')).toBeVisible();
+  await page.getByTestId('blox-legacy-page-templates').click();
+
+  const template = page.locator(
+    '[data-testid="blox-template-item"][data-template-key="builtin:service-process"]',
+  );
+  await expect(template).toBeVisible();
+  await expect(template).toContainText('服务流程');
+  page.once('dialog', (dialog) => dialog.accept());
+  await template.getByTestId('blox-template-replace').click();
+
+  await expect(page.getByTestId('blox-legacy-page-notice')).toBeHidden();
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(5);
+  await page.getByTestId('blox-tree-section').nth(1).click();
+  const processGroup = page.locator(
+    '[data-testid="blox-tree-element"][data-element-type="process-steps"]',
+  );
+  await expect(processGroup).toHaveCount(1);
+  const steps = processGroup.locator('[data-sort-child-item][data-element-type="process-step"]');
+  await expect(steps).toHaveCount(6);
+
+  await processGroup.locator('[data-element-drag-handle]').click();
+  const processManager = page.getByTestId('blox-process-manager');
+  await expect(processManager).toBeVisible();
+  await expect(processManager.getByTestId('blox-process-item')).toHaveCount(6);
+  await expect(processManager.getByTestId('blox-process-item').first().locator('input').nth(1)).toHaveValue('需求沟通');
+  await page.getByTestId('blox-process-add').click();
+  await expect(processManager.getByTestId('blox-process-item')).toHaveCount(7);
+  await expect(processManager.getByTestId('blox-process-item').last().locator('input').nth(1)).toHaveValue('新步骤 7');
+  await expect(steps).toHaveCount(7);
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+  await expect(steps).toHaveCount(6);
+  const processSection = processGroup.locator('xpath=ancestor::*[@data-testid="blox-tree-section"]');
+  await processSection.locator('[data-section-drag-handle]').click();
+  await processGroup.locator('[data-element-drag-handle]').click();
+  await expect(processManager.getByTestId('blox-process-item')).toHaveCount(6);
+
+  await steps.first().click();
+  await expect(page.locator('[data-control-key="title"] input')).toHaveValue('需求沟通');
+  await expect(page.locator('[data-control-key="text"] textarea')).toHaveValue(/了解业务场景/);
+
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
+  await expect(page.getByTestId('blox-legacy-page-notice')).toBeVisible();
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 

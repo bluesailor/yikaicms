@@ -20,6 +20,26 @@ define('THUMBNAIL_SIZES', [
 ]);
 
 /**
+ * 上传图片允许的总像素数。限制在合理区间，防止被直接写入异常配置绕过。
+ */
+function uploadMaxImageMegapixels(): int
+{
+    $value = config('upload_max_megapixels', '40');
+    $configured = is_numeric($value) ? (int) $value : 40;
+    return $configured >= 1 ? min(200, $configured) : 40;
+}
+
+function imageDimensionsWithinPixelLimit(int $width, int $height, int $maxPixels): bool
+{
+    if ($width < 1 || $height < 1 || $maxPixels < 1) {
+        return false;
+    }
+
+    // 用除法避免恶意超大尺寸在 32 位环境做乘法时溢出。
+    return $height <= intdiv($maxPixels, $width);
+}
+
+/**
  * 为上传的图片生成缩略图
  */
 function generateThumbnails(string $filepath, string $ext): array
@@ -207,10 +227,135 @@ function thumbnail(?string $url, string $size = 'thumb'): string
 }
 
 /**
+ * 返回站内图片的实际尺寸；远程、缺失或越界路径均不触碰文件系统。
+ *
+ * @return array{0:int,1:int}
+ */
+function _localImageDimensions(string $url): array
+{
+    if ($url === '' || _isExternalUrl($url)) {
+        return [0, 0];
+    }
+
+    $urlPath = parse_url($url, PHP_URL_PATH);
+    if (!is_string($urlPath) || $urlPath === '' || str_contains($urlPath, "\0")) {
+        return [0, 0];
+    }
+
+    $root = realpath(ROOT_PATH);
+    if ($root === false) {
+        return [0, 0];
+    }
+
+    $relative = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rawurldecode($urlPath)), DIRECTORY_SEPARATOR);
+    $path = realpath($root . DIRECTORY_SEPARATOR . $relative);
+    $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    $insideRoot = $path !== false && (DIRECTORY_SEPARATOR === '\\'
+        ? strncasecmp($path, $rootPrefix, strlen($rootPrefix)) === 0
+        : strncmp($path, $rootPrefix, strlen($rootPrefix)) === 0);
+    if (!$insideRoot) {
+        return [0, 0];
+    }
+
+    $dimensions = @getimagesize($path);
+    if ($dimensions === false) {
+        return [0, 0];
+    }
+
+    return [max(0, (int) ($dimensions[0] ?? 0)), max(0, (int) ($dimensions[1] ?? 0))];
+}
+
+/**
+ * 组合同一宽高比的本地缩略图与原图候选。
+ *
+ * @return array{src:string,srcset:string,width:int,height:int}
+ */
+function responsiveImageData(?string $url, string $preferredSize = 'medium'): array
+{
+    $original = (string) ($url ?? '');
+    $source = thumbnail($original, $preferredSize);
+    [$sourceWidth, $sourceHeight] = _localImageDimensions($source);
+    [$originalWidth, $originalHeight] = _localImageDimensions($original);
+    $candidates = [];
+
+    if ($sourceWidth > 0 && $sourceHeight > 0) {
+        $candidates[$sourceWidth] = $source;
+    }
+    if ($originalWidth > 0 && $originalHeight > 0) {
+        $sameRatio = $sourceWidth < 1 || $sourceHeight < 1
+            || abs(($sourceWidth / $sourceHeight) - ($originalWidth / $originalHeight)) < 0.01;
+        if ($sameRatio) {
+            $candidates[$originalWidth] = $original;
+        }
+    }
+
+    ksort($candidates, SORT_NUMERIC);
+    $webpCandidates = [];
+    foreach ($candidates as $width => $candidate) {
+        $webpCandidate = webpUrl($candidate);
+        if ($webpCandidate === $candidate) {
+            $webpCandidates = [];
+            break;
+        }
+        $webpCandidates[$width] = $webpCandidate;
+    }
+    if ($webpCandidates !== [] && count($webpCandidates) === count($candidates)) {
+        $candidates = $webpCandidates;
+        if ($sourceWidth > 0 && isset($candidates[$sourceWidth])) {
+            $source = $candidates[$sourceWidth];
+        }
+    }
+
+    $srcsetParts = [];
+    if (count($candidates) > 1) {
+        foreach ($candidates as $width => $candidate) {
+            $srcsetParts[] = $candidate . ' ' . (int) $width . 'w';
+        }
+    }
+
+    return [
+        'src' => $source,
+        'srcset' => implode(', ', $srcsetParts),
+        'width' => $sourceWidth,
+        'height' => $sourceHeight,
+    ];
+}
+
+function responsiveImageAttributes(
+    ?string $url,
+    string $preferredSize = 'medium',
+    string $sizes = '100vw'
+): string {
+    $image = responsiveImageData($url, $preferredSize);
+    $escape = static fn(string $value): string => htmlspecialchars(
+        $value,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+    $attributes = ['src="' . $escape($image['src']) . '"'];
+
+    if ($image['srcset'] !== '') {
+        $attributes[] = 'srcset="' . $escape($image['srcset']) . '"';
+        $attributes[] = 'sizes="' . $escape($sizes) . '"';
+    }
+    if ($image['width'] > 0 && $image['height'] > 0) {
+        $attributes[] = 'width="' . $image['width'] . '"';
+        $attributes[] = 'height="' . $image['height'] . '"';
+    }
+
+    return implode(' ', $attributes);
+}
+
+/**
  * 将图片转换为 WebP 格式
  */
 function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $quality = 80): bool
 {
+    if (!function_exists('imagewebp')) {
+        return false;
+    }
+
+    $srcExt = strtolower($srcExt);
     $srcImage = match ($srcExt) {
         'jpg', 'jpeg' => @imagecreatefromjpeg($srcPath),
         'png'         => @imagecreatefrompng($srcPath),
@@ -225,8 +370,100 @@ function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $qu
         imagesavealpha($srcImage, true);
     }
 
-    $result = imagewebp($srcImage, $dstPath, $quality);
+    $temporaryPath = $dstPath . '.tmp-' . bin2hex(random_bytes(4));
+    $result = imagewebp($srcImage, $temporaryPath, max(50, min(95, $quality)));
     unset($srcImage);
+    if (!$result) {
+        @unlink($temporaryPath);
+        return false;
+    }
+
+    if (!@rename($temporaryPath, $dstPath)) {
+        @unlink($dstPath);
+        if (!@rename($temporaryPath, $dstPath)) {
+            @unlink($temporaryPath);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 列出原图及现有缩略图对应的 WebP 目标。
+ *
+ * @return array<string, array{source:string,target:string,current:bool}>
+ */
+function webpDerivativePlan(string $filepath, string $ext, bool $force = false): array
+{
+    $ext = strtolower(ltrim($ext, '.'));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png'], true) || !is_file($filepath)) {
+        return [];
+    }
+
+    $sources = ['original' => $filepath];
+    foreach (array_keys(THUMBNAIL_SIZES) as $sizeName) {
+        $thumbnailPath = _thumbnailPath($filepath, (string) $sizeName);
+        if (is_file($thumbnailPath)) {
+            $sources[(string) $sizeName] = $thumbnailPath;
+        }
+    }
+
+    $plan = [];
+    foreach ($sources as $name => $sourcePath) {
+        $targetPath = preg_replace('/\.(?:jpe?g|png)$/i', '.webp', $sourcePath);
+        if (!is_string($targetPath) || $targetPath === $sourcePath) {
+            continue;
+        }
+        $sourceMtime = @filemtime($sourcePath) ?: 0;
+        $targetMtime = @filemtime($targetPath) ?: 0;
+        $plan[$name] = [
+            'source' => $sourcePath,
+            'target' => $targetPath,
+            'current' => !$force && is_file($targetPath) && $targetMtime >= $sourceMtime,
+        ];
+    }
+
+    return $plan;
+}
+
+/**
+ * 为原图及现有缩略图生成同名 WebP，供上传与历史媒体回填共用。
+ *
+ * @return array{generated:int,current:int,failed:int,targets:array<string,string>}
+ */
+function generateWebpDerivatives(
+    string $filepath,
+    string $ext,
+    int $quality = 80,
+    bool $force = false
+): array {
+    $result = ['generated' => 0, 'current' => 0, 'failed' => 0, 'targets' => []];
+    $plan = webpDerivativePlan($filepath, $ext, $force);
+    if ($plan === []) {
+        return $result;
+    }
+    if (!function_exists('imagewebp')) {
+        $result['failed'] = count($plan);
+        return $result;
+    }
+
+    foreach ($plan as $name => $item) {
+        if ($item['current']) {
+            $result['current']++;
+            $result['targets'][$name] = $item['target'];
+            continue;
+        }
+
+        $sourceExt = strtolower(pathinfo($item['source'], PATHINFO_EXTENSION));
+        if (convertToWebp($item['source'], $item['target'], $sourceExt, $quality)) {
+            $result['generated']++;
+            $result['targets'][$name] = $item['target'];
+        } else {
+            $result['failed']++;
+        }
+    }
+
     return $result;
 }
 

@@ -194,8 +194,10 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('/admin/blox_editor.php?home=1', $page);
         $this->assertStringContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/blox_editor.php')", $page);
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditUrl($item)'));
+        $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditTarget($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'channelUrl($item)'));
-        $this->assertStringContainsString('isTimelinePageChannel($item)', $page);
+        $this->assertStringContainsString('isTimelinePageChannel($itemEditTarget)', $page);
+        $this->assertStringContainsString('page_redirect_target_badge', $page);
         $this->assertStringContainsString("e(__('admin_timeline'))", $page);
     }
 
@@ -209,7 +211,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('function isTimelinePageChannel(array $channel): bool', $functions);
         $this->assertStringContainsString("return \$sourceSlugCache[\$sourceId] === 'history';", $functions);
         $this->assertStringContainsString("\$url = '/admin/timeline.php';", $functions);
+        $this->assertStringContainsString('function pagePrimaryEditTarget(array $channel): array', $functions);
+        $this->assertStringContainsString('channelModel()->getByParent($targetId, true)', $functions);
+        $this->assertStringContainsString("\$url .= '&from_parent=' . \$sourceId;", $functions);
+        $this->assertStringContainsString('$primaryEditTarget = pagePrimaryEditTarget($page);', $editor);
         $this->assertStringContainsString('$primaryEditUrl = pagePrimaryEditUrl($page);', $editor);
+        $this->assertStringContainsString("(int) (\$primaryEditTarget['id'] ?? 0) !== (int) \$page['id']", $editor);
         $this->assertStringContainsString("header('Location: ' . \$primaryEditUrl);", $editor);
         $this->assertStringContainsString('if (isTimelinePageChannel($channel))', $frontend);
         $this->assertStringContainsString("include __DIR__ . '/history.php';", $frontend);
@@ -234,7 +241,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("(\$publishedContent['content_type'] ?? '') === 'blocks'", $page);
 
         $functions = $this->source('includes/functions.php');
-        $this->assertStringContainsString("return \$pageId > 0 ? '/admin/blox_editor.php?id=' . \$pageId : '';", $functions);
+        $this->assertStringContainsString("\$url = '/admin/blox_editor.php?id=' . \$targetId;", $functions);
         $this->assertStringContainsString('return pagePrimaryEditUrl($channel);', $functions);
         $this->assertStringNotContainsString("return '/admin/page_edit.php?id=' . \$pageId;", $functions);
     }

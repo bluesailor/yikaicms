@@ -56,7 +56,10 @@ final class DynamicLoopTemplateRenderer
         } elseif ($type === 'image') {
             $field = self::field($data, 'loop_field', 'image', $source);
             if ($field !== 'none') {
-                $data['src'] = self::tag($field, '', (string) ($data['loop_fallback'] ?? ''));
+                $fallback = self::attr((string) ($data['loop_fallback'] ?? ''));
+                $data['src'] = self::tag($field, '', $fallback);
+                $data['_responsive_image_field'] = $field;
+                $data['_responsive_image_fallback'] = $fallback;
             }
             $alt = self::field($data, 'loop_alt_field', 'title', $source);
             if ($alt !== 'none') {

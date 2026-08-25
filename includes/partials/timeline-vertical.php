@@ -52,7 +52,7 @@ if (empty($groupedTimelines)) return;
 
                 <?php if ($event['image']): ?>
                 <div class="relative h-48 overflow-hidden">
-                    <img loading="lazy" src="<?php echo e($event['image']); ?>" alt="<?php echo e($event['title']); ?>"
+                    <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes((string) $event['image'], 'medium', '(min-width: 768px) 42vw, 100vw'); ?> alt="<?php echo e($event['title']); ?>"
                          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                     <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     <div class="absolute bottom-4 left-4">

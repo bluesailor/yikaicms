@@ -208,8 +208,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                 <?php foreach ($pages as $item): ?>
                 <?php
                 $itemUrl = channelUrl($item);
+                $itemEditTarget = pagePrimaryEditTarget($item);
                 $itemEditUrl = pagePrimaryEditUrl($item);
-                $isTimelinePage = isTimelinePageChannel($item);
+                $itemEditRedirected = (int) ($itemEditTarget['id'] ?? 0) !== (int) $item['id'];
+                $isTimelinePage = isTimelinePageChannel($itemEditTarget);
                 ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
@@ -223,6 +225,13 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                                     <?php echo e($item['name']); ?>
                                     <?php if (($item['type'] ?? '') === 'album'): ?>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 whitespace-nowrap"><?php echo __('admin_album'); ?></span>
+                                    <?php endif; ?>
+                                    <?php if ($itemEditRedirected): ?>
+                                    <span data-testid="page-redirect-target-<?php echo (int) $item['id']; ?>"
+                                          class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 whitespace-nowrap"
+                                          title="<?php echo e(__('page_redirect_target_tip', ['source' => $item['name'], 'target' => $itemEditTarget['name'] ?? ''])); ?>">
+                                        <i class="ti ti-corner-down-right mr-0.5"></i><?php echo e(__('page_redirect_target_badge', ['name' => $itemEditTarget['name'] ?? ''])); ?>
+                                    </span>
                                     <?php endif; ?>
                                 </div>
                                 <?php if ($item['description']): ?>
@@ -289,9 +298,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                            data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                             class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i>
-                            <?php echo $isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox')); ?>
+                            <?php echo $itemEditRedirected
+                                ? e(__('page_edit_redirect_target', ['name' => $itemEditTarget['name'] ?? '']))
+                                : ($isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox'))); ?>
                         </a>
-                        <?php if ($__isBlox && !$isTimelinePage): ?>
+                        <?php if ($__isBlox && !$isTimelinePage && !$itemEditRedirected): ?>
                         <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
                               title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
                         <?php endif; ?>
@@ -335,8 +346,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
         <?php foreach ($hiddenPages as $item): ?>
         <?php
         $itemUrl = channelUrl($item);
+        $itemEditTarget = pagePrimaryEditTarget($item);
         $itemEditUrl = pagePrimaryEditUrl($item);
-        $isTimelinePage = isTimelinePageChannel($item);
+        $itemEditRedirected = (int) ($itemEditTarget['id'] ?? 0) !== (int) $item['id'];
+        $isTimelinePage = isTimelinePageChannel($itemEditTarget);
         ?>
         <div class="flex items-center gap-3 px-4 py-2.5 bg-gray-50/70 rounded-lg border border-dashed hover:shadow-sm">
             <span class="text-gray-300"><i class="ti ti-eye-off text-base"></i></span>
@@ -347,6 +360,13 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <?php if ($item['parent_name']): ?>
             <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400"><?php echo __('page_parent'); ?>：<?php echo e($item['parent_name']); ?></span>
             <?php endif; ?>
+            <?php if ($itemEditRedirected): ?>
+            <span data-testid="page-redirect-target-<?php echo (int) $item['id']; ?>"
+                  class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 whitespace-nowrap"
+                  title="<?php echo e(__('page_redirect_target_tip', ['source' => $item['name'], 'target' => $itemEditTarget['name'] ?? ''])); ?>">
+                <i class="ti ti-corner-down-right mr-0.5"></i><?php echo e(__('page_redirect_target_badge', ['name' => $itemEditTarget['name'] ?? ''])); ?>
+            </span>
+            <?php endif; ?>
             <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-400"><?php echo e($itemUrl); ?></code>
             <span class="flex-1"></span>
             <?php if (($item['type'] ?? '') !== 'album'): ?>
@@ -354,7 +374,9 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <a href="<?php echo e($itemEditUrl); ?>"
                data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                class="text-primary hover:underline text-sm inline-flex items-center gap-1 whitespace-nowrap">
-                <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i><?php echo $isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox')); ?>
+                <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i><?php echo $itemEditRedirected
+                    ? e(__('page_edit_redirect_target', ['name' => $itemEditTarget['name'] ?? '']))
+                    : ($isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox'))); ?>
             </a>
             <?php endif; ?>
             <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"

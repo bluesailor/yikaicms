@@ -1,0 +1,43 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Customer quote",
+    "requires": {
+        "elements": [
+            "quote"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "客户评价",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "narrow",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "quote",
+                                "data": {
+                                    "text": "把一句真实的客户反馈放在这里。具体到项目与结果的评价，比「服务很好」有力得多。",
+                                    "author": "某某客户 · 采购负责人"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

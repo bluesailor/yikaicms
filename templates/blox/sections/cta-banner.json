@@ -1,0 +1,45 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Call to action",
+    "requires": {
+        "elements": [
+            "cta"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "行动号召",
+                "settings": {
+                    "padding": {
+                        "d": "lg",
+                        "m": "md"
+                    },
+                    "max_width": "wide"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "cta",
+                                "data": {
+                                    "use_home_text": false,
+                                    "title": "想了解我们能为你做什么？",
+                                    "text": "留下需求，我们会在一个工作日内回复。",
+                                    "btn_text": "立即咨询",
+                                    "btn_url": "/contact.html"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -33,6 +33,35 @@ final class SiteHealthTest extends TestCase
         self::assertSame(['critical' => 1, 'recommended' => 0, 'good' => 2, 'unknown' => 0, 'total' => 3], $summary);
     }
 
+    public function testMediaOptimizationResultRequiresCompleteScanAndLinksToRepair(): void
+    {
+        $failed = SiteHealth::mediaOptimizationResult(['failed' => true]);
+        self::assertSame(SiteHealth::UNKNOWN, $failed['status']);
+
+        $incomplete = SiteHealth::mediaOptimizationResult(['total' => 30, 'scanned' => 24]);
+        self::assertSame(SiteHealth::UNKNOWN, $incomplete['status']);
+
+        $attention = SiteHealth::mediaOptimizationResult([
+            'total' => 30,
+            'scanned' => 30,
+            'healthy' => 20,
+            'pending' => 8,
+            'missing' => 2,
+            'unsupported' => 0,
+        ]);
+        self::assertSame(SiteHealth::RECOMMENDED, $attention['status']);
+        self::assertSame('/admin/media.php?health=attention', $attention['action_url']);
+
+        $good = SiteHealth::mediaOptimizationResult([
+            'total' => 4,
+            'scanned' => 4,
+            'healthy' => 3,
+            'unsupported' => 1,
+        ]);
+        self::assertSame(SiteHealth::GOOD, $good['status']);
+        self::assertSame('/admin/media.php', $good['action_url']);
+    }
+
     public function testBrowserProbesDetectSourceAndStorageExposure(): void
     {
         $checks = SiteHealth::evaluateBrowserProbes([

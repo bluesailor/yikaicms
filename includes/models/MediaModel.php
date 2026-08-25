@@ -38,16 +38,37 @@ class MediaModel extends Model
         return ['items' => $items, 'total' => $total];
     }
 
-    /**
-     * 批量获取文件路径
-     */
-    public function getPathsByIds(array $ids): array
+    /** @param list<int> $ids @return list<array<string,mixed>> */
+    public function getByIds(array $ids): array
     {
-        if (empty($ids)) return [];
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         return db()->fetchAll(
-            "SELECT id, path FROM {$this->tableName()} WHERE id IN ({$placeholders})",
+            "SELECT * FROM {$this->tableName()} WHERE id IN ({$placeholders})",
             $ids
+        );
+    }
+
+    public function countImages(): int
+    {
+        return (int) db()->fetchColumn(
+            "SELECT COUNT(*) FROM {$this->tableName()} WHERE type = ?",
+            ['image']
+        );
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function getImageBatchAfterId(int $afterId, int $limit): array
+    {
+        $afterId = max(0, $afterId);
+        $limit = max(1, min(MediaOptimization::MAX_BATCH, $limit));
+
+        return db()->fetchAll(
+            "SELECT * FROM {$this->tableName()} WHERE type = ? AND id > ? ORDER BY id ASC LIMIT ?",
+            ['image', $afterId, $limit]
         );
     }
 }

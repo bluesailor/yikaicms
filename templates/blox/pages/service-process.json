@@ -1,0 +1,102 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "服务流程",
+  "thumbnail": "/assets/images/blox-templates/service-process.png",
+  "requires": {
+    "elements": ["heading", "text", "image", "button", "divider", "process-steps", "process-step", "icon-box", "accordion", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "服务流程引导",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "从需求到长期支持，每一步都清晰可控", "level": "h2", "visual_size": {"d": "5xl", "t": "4xl", "m": "3xl"}, "align": "left"}},
+              {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm"}},
+              {"type": "text", "data": {"html": "<p class=\"yk-lead\">我们用标准化节点推进项目，让目标、交付物和责任人在每个阶段都有据可查。下面的步骤可以逐项修改，也可以拖动调整顺序。</p>"}},
+              {"type": "button", "data": {"text": "沟通项目需求", "url": "/contact.html", "variant": "primary", "align": "left"}}
+            ]
+          },
+          {
+            "elements": [
+              {"type": "image", "data": {"src": "/images/case-demo.jpg", "alt": "项目团队协作与交付"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "六步服务流程",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "项目如何推进", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+              {"type": "text", "data": {"html": "<p class=\"yk-copy\">每一步都对应明确的输出。请按贵公司的实际服务方式修改名称和说明。</p>"}},
+              {
+                "type": "process-steps",
+                "data": {
+                  "auto_number": true,
+                  "tablet_columns": "2",
+                  "desktop_columns": "3",
+                  "gap": "lg",
+                  "children": [
+                    {"type": "process-step", "data": {"number": "01", "icon": "message-circle", "title": "需求沟通", "text": "了解业务场景、目标与约束，确认项目范围和关键联系人。"}},
+                    {"type": "process-step", "data": {"number": "02", "icon": "clipboard-check", "title": "方案设计", "text": "形成实施方案、交付清单和时间计划，与客户共同确认。"}},
+                    {"type": "process-step", "data": {"number": "03", "icon": "tool", "title": "开发实施", "text": "按计划完成开发、配置或生产，关键节点同步进度与风险。"}},
+                    {"type": "process-step", "data": {"number": "04", "icon": "test-pipe", "title": "测试验收", "text": "执行功能、性能和质量检查，依据验收标准逐项确认。"}},
+                    {"type": "process-step", "data": {"number": "05", "icon": "package", "title": "培训交付", "text": "交付成果、操作文档与培训，确保客户团队能够顺利使用。"}},
+                    {"type": "process-step", "data": {"number": "06", "icon": "headset", "title": "售后支持", "text": "提供持续响应、巡检与优化建议，保障长期稳定运行。"}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "阶段交付物",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg"},
+        "columns": [
+          {"elements": [{"type": "icon-box", "data": {"icon": "file-description", "title": "方案与计划", "text": "范围、里程碑、责任分工和风险控制在启动前确认。"}}]},
+          {"elements": [{"type": "icon-box", "data": {"icon": "checks", "title": "验收有标准", "text": "每个阶段都保留可核对的成果和双方确认记录。"}}]},
+          {"elements": [{"type": "icon-box", "data": {"icon": "lifebuoy", "title": "交付后可持续", "text": "培训、文档和支持机制确保成果能长期稳定使用。"}}]}
+        ]
+      },
+      {
+        "type": "section",
+        "name": "流程常见问题",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "narrow", "gap": "md", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "合作前常见问题", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "center"}},
+              {"type": "accordion", "data": {"items": [
+                {"question": "项目启动前需要准备什么？", "answer": "建议准备业务目标、现状资料、期望时间和主要联系人，我们会协助补齐具体需求。"},
+                {"question": "项目过程中如何了解进度？", "answer": "可按周或按里程碑同步进展、待确认事项和风险，具体频率在启动阶段约定。"},
+                {"question": "交付后是否继续提供支持？", "answer": "可根据项目约定提供质保、培训、巡检和持续优化服务。"}
+              ], "open_first": true, "seo_schema": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "咨询入口",
+        "settings": {"padding": {"d": "lg", "m": "md"}, "max_width": "wide"},
+        "columns": [
+          {"elements": [{"type": "cta", "data": {"use_home_text": false, "title": "准备开始一个项目？", "text": "告诉我们目标和时间安排，我们会尽快给出下一步建议。", "btn_text": "联系项目顾问", "btn_url": "/contact.html"}}]}
+        ]
+      }
+    ]
+  }
+}

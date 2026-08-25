@@ -9,7 +9,7 @@
 <a href="<?php echo contentUrl($item); ?>" class="flex gap-6 bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition group">
     <?php if ($item['cover']): ?>
     <div class="flex-shrink-0 w-48 md:w-64 overflow-hidden">
-        <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'medium', '(min-width: 768px) 256px, 192px'); ?> alt="<?php echo e($item['title']); ?>"
              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
     </div>
     <?php endif; ?>

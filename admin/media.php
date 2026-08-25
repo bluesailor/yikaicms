@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/MediaOptimization.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -22,37 +23,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = postInt('id');
         $media = mediaModel()->find($id);
+        $deletedFiles = 0;
 
-        if ($media && !empty($media['path'])) {
-            $realPath = realpath($media['path']);
-            if ($realPath && str_starts_with($realPath, realpath(UPLOADS_PATH)) && file_exists($realPath)) {
-                @unlink($realPath);
-            }
+        if ($media) {
+            $deletedFiles = MediaOptimization::deleteArtifacts($media);
         }
 
         mediaModel()->deleteById($id);
-        adminLog('media', 'delete', "删除媒体ID: $id");
+        adminLog('media', 'delete', "Deleted media ID: $id; artifacts: $deletedFiles");
         success();
     }
 
     if ($action === 'batch_delete') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
-            $pathRows = mediaModel()->getPathsByIds($ids);
-
-            foreach ($pathRows as $media) {
-                if (!empty($media['path'])) {
-                    $realPath = realpath($media['path']);
-                    if ($realPath && str_starts_with($realPath, realpath(UPLOADS_PATH)) && file_exists($realPath)) {
-                        @unlink($realPath);
-                    }
-                }
+            $normalizedIds = MediaOptimization::normalizeIds($ids);
+            $rows = mediaModel()->getByIds($normalizedIds);
+            $deletedFiles = 0;
+            foreach ($rows as $media) {
+                $deletedFiles += MediaOptimization::deleteArtifacts($media);
             }
 
-            mediaModel()->deleteByIds($ids);
-            adminLog('media', 'batch_delete', '批量删除：' . implode(',', $ids));
+            mediaModel()->deleteByIds($normalizedIds);
+            adminLog('media', 'batch_delete', 'Batch deleted media IDs: ' . implode(',', $normalizedIds)
+                . '; artifacts: ' . $deletedFiles);
         }
         success();
+    }
+
+    if ($action === 'optimize') {
+        $ids = MediaOptimization::normalizeIds($_POST['ids'] ?? []);
+        if ($ids === []) {
+            error(__('media_opt_none_selected'));
+        }
+        if (count($ids) > MediaOptimization::MAX_BATCH) {
+            error(__('media_opt_batch_limit', ['n' => MediaOptimization::MAX_BATCH]));
+        }
+
+        $summary = MediaOptimization::repairMany(mediaModel()->getByIds($ids));
+        adminLog('media', 'optimize', 'Optimized media IDs: ' . implode(',', $ids));
+        success($summary, __('media_opt_done', [
+            'repaired' => $summary['repaired'],
+            'failed' => $summary['failed'],
+        ]));
     }
 
     exit;
@@ -65,15 +78,52 @@ $type = get('type', '');
 // 普通媒体库（勾选框是批量删除的），选中后没有任何确认/回填动作。
 $selectMode = get('mode', '') === 'select';
 $selectTarget = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) get('target', ''));
+$healthAttention = !$selectMode && get('health', '') === 'attention';
 $keyword = get('keyword', '');
 $page = max(1, getInt('page', 1));
 $perPage = 24;
 
 $offset = ($page - 1) * $perPage;
 $filters = array_filter(['type' => $type, 'keyword' => $keyword]);
-$result = mediaModel()->getList($filters, $perPage, $offset);
-$total = $result['total'];
-$mediaList = $result['items'];
+$storedHealth = json_decode((string) config('site_health_media_summary', ''), true);
+if (!is_array($storedHealth)) {
+    $storedHealth = [];
+}
+if ($healthAttention) {
+    $sampleIds = array_slice(
+        MediaOptimization::normalizeIds($storedHealth['sample_ids'] ?? []),
+        0,
+        MediaOptimization::MAX_BATCH
+    );
+    $sampleRows = mediaModel()->getByIds($sampleIds);
+    $rowsById = [];
+    foreach ($sampleRows as $row) {
+        $rowsById[(int) ($row['id'] ?? 0)] = $row;
+    }
+    $mediaList = [];
+    foreach ($sampleIds as $sampleId) {
+        if (isset($rowsById[$sampleId])) {
+            $mediaList[] = $rowsById[$sampleId];
+        }
+    }
+    $total = count($mediaList);
+} else {
+    $result = mediaModel()->getList($filters, $perPage, $offset);
+    $total = $result['total'];
+    $mediaList = $result['items'];
+}
+$mediaHealth = $selectMode ? [] : MediaOptimization::inspectMany($mediaList);
+$mediaHealthSummary = ['healthy' => 0, 'pending' => 0, 'missing' => 0];
+$mediaPendingIds = [];
+foreach ($mediaHealth as $mediaId => $health) {
+    $status = (string) ($health['status'] ?? 'unsupported');
+    if (isset($mediaHealthSummary[$status])) {
+        $mediaHealthSummary[$status]++;
+    }
+    if ($status === 'pending' && !empty($health['repairable'])) {
+        $mediaPendingIds[] = (int) $mediaId;
+    }
+}
 
 $pageTitle = __('admin_media');
 $currentMenu = 'media';
@@ -101,17 +151,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </button>
         </form>
 
-        <div class="flex gap-2">
+        <div class="grid grid-cols-2 sm:flex gap-2 w-full md:w-auto">
             <?php // 扫描入库：把 uploads/ 下未登记的历史文件（演示图、FTP 手传等）补进媒体表 ?>
-            <button onclick="scanMedia(this)" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1" title="<?php echo e(__('media_scan_tip')); ?>">
+            <button onclick="scanMedia(this)" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center justify-center gap-1" title="<?php echo e(__('media_scan_tip')); ?>">
                 <i class="ti ti-refresh text-base"></i>
                 <?php echo e(__('media_scan')); ?>
             </button>
-            <button onclick="batchDelete()" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center gap-1">
+            <?php if (!$selectMode): ?>
+            <button type="button" id="optimizeSelectedBtn" data-testid="media-opt-selected" data-optimize-button onclick="optimizeSelectedMedia(this)" disabled
+                    class="border px-4 py-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1">
+                <i class="ti ti-photo-cog text-base"></i>
+                <?php echo e(__('media_opt_selected')); ?>
+            </button>
+            <?php endif; ?>
+            <button onclick="batchDelete()" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center justify-center gap-1">
                 <i class="ti ti-trash text-base"></i>
                 <?php echo __('admin_batch_delete'); ?>
             </button>
-            <button onclick="uploadFiles()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
+            <button onclick="uploadFiles()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center justify-center gap-1">
                 <i class="ti ti-upload text-base"></i>
                 <?php echo __('admin_upload_file'); ?>
             </button>
@@ -125,35 +182,112 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 <?php endif; ?>
 
+<?php if ($healthAttention): ?>
+<div class="border border-amber-200 bg-amber-50 rounded-lg px-5 py-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-testid="media-health-samples">
+    <div class="flex items-start gap-3 min-w-0">
+        <i class="ti ti-report-medical mt-0.5 text-xl text-amber-700" aria-hidden="true"></i>
+        <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-amber-900"><?php echo e(__('media_health_samples_title')); ?></h2>
+            <p class="mt-1 text-sm leading-6 text-amber-800">
+                <?php echo e(__('media_health_samples_desc', [
+                    'shown' => count($mediaList),
+                    'pending' => max(0, (int) ($storedHealth['pending'] ?? 0)),
+                    'missing' => max(0, (int) ($storedHealth['missing'] ?? 0)),
+                ])); ?>
+            </p>
+        </div>
+    </div>
+    <a href="/admin/media.php" class="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
+        <i class="ti ti-photo" aria-hidden="true"></i>
+        <?php echo e(__('media_health_all')); ?>
+    </a>
+</div>
+<?php endif; ?>
+
+<?php if (!$selectMode && array_sum($mediaHealthSummary) > 0): ?>
+<div class="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3" id="mediaOptimizationSummary" data-testid="media-opt-summary" aria-live="polite">
+    <div class="flex items-center gap-3 min-w-0">
+        <span class="w-9 h-9 shrink-0 rounded bg-gray-100 text-gray-600 inline-flex items-center justify-center">
+            <i class="ti ti-photo-cog text-xl"></i>
+        </span>
+        <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-gray-800"><?php echo e(__('media_opt_title')); ?></h2>
+            <p class="text-sm text-gray-500">
+                <?php echo e(__('media_opt_summary', [
+                    'healthy' => $mediaHealthSummary['healthy'],
+                    'pending' => $mediaHealthSummary['pending'],
+                    'missing' => $mediaHealthSummary['missing'],
+                ])); ?>
+            </p>
+        </div>
+    </div>
+    <?php if ($mediaPendingIds !== []): ?>
+    <div class="flex flex-wrap gap-2 md:justify-end">
+        <button type="button" onclick="selectPendingMedia()" class="border border-gray-300 px-3 py-2 rounded text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
+            <i class="ti ti-checkbox text-base"></i>
+            <?php echo e(__('media_opt_select_pending')); ?>
+        </button>
+        <button type="button" data-testid="media-opt-current" data-optimize-button onclick="optimizeCurrentPage(this)" class="bg-primary hover:bg-secondary text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
+            <i class="ti ti-sparkles text-base"></i>
+            <?php echo e(__('media_opt_current_page')); ?>
+        </button>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <!-- 文件列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="p-6">
         <?php if (!empty($mediaList)): ?>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="mediaGrid">
             <?php foreach ($mediaList as $item): ?>
-            <div class="relative group border rounded-lg overflow-hidden" data-id="<?php echo $item['id']; ?>">
+            <?php
+            $itemId = (int) $item['id'];
+            $health = $mediaHealth[$itemId] ?? ['status' => 'unsupported', 'repairable' => false];
+            $healthStatus = (string) ($health['status'] ?? 'unsupported');
+            $healthMeta = match ($healthStatus) {
+                'healthy' => ['class' => 'bg-green-600 text-white', 'icon' => 'ti-check', 'label' => __('media_opt_status_healthy')],
+                'pending' => ['class' => 'bg-amber-500 text-white', 'icon' => 'ti-alert-triangle', 'label' => __('media_opt_status_pending')],
+                'missing' => ['class' => 'bg-red-600 text-white', 'icon' => 'ti-file-alert', 'label' => __('media_opt_status_missing')],
+                default => null,
+            };
+            ?>
+            <div class="relative group border rounded-lg overflow-hidden" data-id="<?php echo $itemId; ?>" data-health="<?php echo e($healthStatus); ?>">
                 <?php if (!$selectMode): ?>
                 <div class="absolute top-2 left-2 z-10">
-                    <input type="checkbox" name="ids[]" value="<?php echo $item['id']; ?>"
-                           class="w-4 h-4 rounded border-gray-300">
+                    <input type="checkbox" name="ids[]" value="<?php echo $itemId; ?>" data-media-check
+                           class="w-4 h-4 rounded border-gray-300" aria-label="<?php echo e(__('media_opt_select_item')); ?>">
                 </div>
+                <?php endif; ?>
+                <?php if ($healthMeta !== null): ?>
+                <span class="absolute top-2 right-2 z-10 w-7 h-7 rounded inline-flex items-center justify-center shadow-sm <?php echo e($healthMeta['class']); ?>" data-testid="media-health-status"
+                      title="<?php echo e($healthMeta['label']); ?>" aria-label="<?php echo e($healthMeta['label']); ?>">
+                    <i class="ti <?php echo e($healthMeta['icon']); ?> text-base"></i>
+                </span>
                 <?php endif; ?>
 
                 <div class="aspect-square bg-gray-100 flex items-center justify-center">
-                    <?php if ($item['type'] === 'image'): ?>
-                    <img src="<?php echo e($item['url']); ?>" alt="<?php echo e($item['name']); ?>"
+                    <?php if ($item['type'] === 'image' && $healthStatus !== 'missing'): ?>
+                    <img <?php echo responsiveImageAttributes((string) $item['url'], 'thumb', '(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 50vw'); ?>
+                         alt="<?php echo e($item['name']); ?>" loading="lazy" decoding="async"
                          class="w-full h-full object-cover cursor-pointer"
-                         onclick="<?php echo $selectMode ? 'pickMedia(this.src)' : "previewImage('" . e($item['url']) . "')"; ?>">
+                         onclick="<?php echo $selectMode ? "pickMedia('" . e($item['url']) . "')" : "previewImage('" . e($item['url']) . "')"; ?>">
+                    <?php elseif ($item['type'] === 'image'): ?>
+                    <div class="text-center p-4 text-gray-400" role="img" aria-label="<?php echo e(__('media_opt_status_missing')); ?>">
+                        <i class="ti ti-photo-off text-4xl" aria-hidden="true"></i>
+                    </div>
                     <?php else: ?>
                     <div class="text-center p-4">
                         <div class="text-4xl text-gray-400 mb-2">
                             <?php
-                            echo match($item['type']) {
-                                'video' => '🎬',
-                                'file' => '📄',
-                                default => '📎'
+                            $fileIcon = match($item['type']) {
+                                'video' => 'ti-movie',
+                                'file' => 'ti-file-text',
+                                default => 'ti-paperclip',
                             };
                             ?>
+                            <i class="ti <?php echo e($fileIcon); ?>"></i>
                         </div>
                         <div class="text-xs text-gray-500 uppercase"><?php echo e($item['ext']); ?></div>
                     </div>
@@ -183,12 +317,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php else: ?>
                 <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                     <button onclick="copyUrl('<?php echo e($item['url']); ?>')"
-                            class="bg-white text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-100">
-                        <?php echo __('admin_copy'); ?>
+                            class="bg-white text-gray-700 w-9 h-9 rounded inline-flex items-center justify-center hover:bg-gray-100"
+                            title="<?php echo e(__('admin_copy')); ?>" aria-label="<?php echo e(__('admin_copy')); ?>">
+                        <i class="ti ti-copy text-base"></i>
                     </button>
-                    <button onclick="deleteMedia(<?php echo $item['id']; ?>)"
-                            class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">
-                        <?php echo __('admin_delete'); ?>
+                    <button onclick="deleteMedia(<?php echo $itemId; ?>)"
+                            class="bg-red-500 text-white w-9 h-9 rounded inline-flex items-center justify-center hover:bg-red-600"
+                            title="<?php echo e(__('admin_delete')); ?>" aria-label="<?php echo e(__('admin_delete')); ?>">
+                        <i class="ti ti-trash text-base"></i>
                     </button>
                 </div>
                 <?php endif; ?>
@@ -235,11 +371,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg">
         <div class="px-6 py-4 border-b flex justify-between items-center">
             <h3 class="font-bold text-gray-800"><?php echo __('btn_upload_file'); ?></h3>
-            <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+            <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 w-9 h-9 inline-flex items-center justify-center" title="<?php echo e(__('admin_close')); ?>" aria-label="<?php echo e(__('admin_close')); ?>">
+                <i class="ti ti-x text-xl"></i>
+            </button>
         </div>
         <div class="p-6">
             <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer">
-                <div class="text-4xl text-gray-400 mb-4">📁</div>
+                <div class="text-4xl text-gray-400 mb-4"><i class="ti ti-cloud-upload"></i></div>
                 <p class="text-gray-600 mb-2"><?php echo e(__('media_drop_hint')); ?></p>
                 <p class="text-sm text-gray-400"><?php echo e(__('media_format_hint')); ?></p>
             </div>
@@ -250,8 +388,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <!-- 图片预览弹窗 -->
-<div id="previewModal" class="fixed inset-0 z-50 hidden bg-black/90 flex items-center justify-center" onclick="closePreview()">
-    <img id="previewImage" src="" class="max-w-full max-h-full">
+<div id="previewModal" class="fixed inset-0 z-50 hidden bg-black/90 flex items-center justify-center" onclick="closePreview()"
+     role="dialog" aria-modal="true" aria-label="<?php echo e(__('admin_preview')); ?>">
+    <div id="previewFrame" class="max-w-full max-h-full"></div>
 </div>
 
 <script>
@@ -265,6 +404,77 @@ function closeUploadModal() {
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
+const mediaPendingIds = <?php echo json_encode($mediaPendingIds, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+function selectedMediaIds() {
+    return Array.from(document.querySelectorAll('#mediaGrid input[name="ids[]"]:checked'))
+        .map((input) => Number(input.value))
+        .filter((id) => Number.isInteger(id) && id > 0);
+}
+
+function updateMediaSelection() {
+    const button = document.getElementById('optimizeSelectedBtn');
+    if (button) button.disabled = selectedMediaIds().length === 0;
+}
+
+document.querySelectorAll('[data-media-check]').forEach((input) => {
+    input.addEventListener('change', updateMediaSelection);
+});
+
+function selectPendingMedia() {
+    const pending = new Set(mediaPendingIds);
+    document.querySelectorAll('[data-media-check]').forEach((input) => {
+        input.checked = pending.has(Number(input.value));
+    });
+    updateMediaSelection();
+}
+
+function optimizeCurrentPage(button) {
+    optimizeMedia(mediaPendingIds, button);
+}
+
+function optimizeSelectedMedia(button) {
+    optimizeMedia(selectedMediaIds(), button);
+}
+
+async function optimizeMedia(ids, button) {
+    ids = Array.from(new Set(ids)).slice(0, <?php echo MediaOptimization::MAX_BATCH; ?>);
+    if (ids.length === 0) {
+        showMessage(<?php echo json_encode(__('media_opt_none_selected'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        return;
+    }
+    if (!confirm(<?php echo json_encode(__('media_opt_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', ids.length))) return;
+
+    const originalHtml = button ? button.innerHTML : '';
+    document.querySelectorAll('[data-optimize-button]').forEach((item) => { item.disabled = true; });
+    if (button) {
+        button.innerHTML = '<i class="ti ti-loader-2 animate-spin text-base"></i>'
+            + <?php echo json_encode(__('media_opt_working'), JSON_UNESCAPED_UNICODE); ?>;
+    }
+    const formData = new FormData();
+    formData.append('action', 'optimize');
+    ids.forEach((id) => formData.append('ids[]', String(id)));
+    let reloading = false;
+    try {
+        const response = await fetch('', { method: 'POST', body: formData });
+        const data = await safeJson(response);
+        if (data.code === 0) {
+            showMessage(data.msg || <?php echo json_encode(__('media_opt_success'), JSON_UNESCAPED_UNICODE); ?>);
+            reloading = true;
+            setTimeout(() => location.reload(), 700);
+        } else {
+            showMessage(data.msg || <?php echo json_encode(__('media_opt_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        }
+    } catch (error) {
+        showMessage(<?php echo json_encode(__('media_opt_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+    } finally {
+        if (!reloading) {
+            document.querySelectorAll('[data-optimize-button]').forEach((item) => { item.disabled = false; });
+            updateMediaSelection();
+            if (button) button.innerHTML = originalHtml;
+        }
+    }
+}
 
 dropZone.addEventListener('click', () => fileInput.click());
 
@@ -343,12 +553,17 @@ function pickMedia(url) {
     prompt(<?php echo json_encode(__('media_select_copy_fallback'), JSON_UNESCAPED_UNICODE); ?>, url);
 }
 function previewImage(url) {
-    document.getElementById('previewImage').src = url;
+    const image = document.createElement('img');
+    image.src = url;
+    image.alt = '';
+    image.className = 'max-w-full max-h-full';
+    document.getElementById('previewFrame').replaceChildren(image);
     document.getElementById('previewModal').classList.remove('hidden');
 }
 
 function closePreview() {
     document.getElementById('previewModal').classList.add('hidden');
+    document.getElementById('previewFrame').replaceChildren();
 }
 
 function copyUrl(url) {

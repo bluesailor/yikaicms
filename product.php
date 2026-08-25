@@ -38,6 +38,26 @@ if ($_vars === null) {
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
+$productImageUrls = [];
+foreach ($productImages as $image) {
+    if (is_string($image) && $image !== '') {
+        $productImageUrls[] = $image;
+    }
+}
+$productImages = $productImageUrls;
+$productImageSizes = '(min-width: 1024px) 50vw, 100vw';
+$productImageVariants = array_map(
+    static function (string $image) use ($productImageSizes): array {
+        $main = responsiveImageData($image, 'medium');
+        $main['sizes'] = $productImageSizes;
+
+        return [
+            'main' => $main,
+        ];
+    },
+    array_values($productImages)
+);
+
 // 页面信息
 $pageTitle = $product['title'];
 $pageKeywords = $product['tags'] ?: configJsonLang('site_keywords');
@@ -120,8 +140,8 @@ require_once theme_path('layouts/header.php');
                     <?php if (!empty($productImages)): ?>
                     <!-- 主图（点击打开 lightbox） -->
                     <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4 relative group cursor-zoom-in"
-                         onclick="openLightbox(0)">
-                        <img loading="lazy" src="<?php echo e($productImages[0]); ?>" alt="<?php echo e($product['title']); ?>"
+                         onclick="openLightbox(currentImageIdx)">
+                        <img decoding="async" fetchpriority="high" <?php echo responsiveImageAttributes($productImages[0], 'medium', $productImageSizes); ?> alt="<?php echo e($product['title']); ?>"
                              id="mainImage" class="w-full h-full object-contain transition-transform group-hover:scale-105">
                         <!-- 放大镜图标 -->
                         <div class="absolute top-3 right-3 bg-black/50 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition">
@@ -142,7 +162,7 @@ require_once theme_path('layouts/header.php');
                         <button type="button" onclick="changeImage(<?php echo $i; ?>)"
                                 data-idx="<?php echo $i; ?>"
                                 class="thumb-btn flex-shrink-0 w-20 h-20 border-2 rounded overflow-hidden hover:border-primary transition <?php echo $i === 0 ? 'border-primary' : 'border-gray-200'; ?>">
-                            <img loading="lazy" src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
+                            <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($img, 'thumb', '80px'); ?> alt="" class="w-full h-full object-cover">
                         </button>
                         <?php endforeach; ?>
                     </div>
@@ -306,7 +326,7 @@ require_once theme_path('layouts/header.php');
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
                 <?php if ($prevProduct['cover']): ?>
-                <img loading="lazy" src="<?php echo e($prevProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($prevProduct['cover'], 'thumb', '64px'); ?> alt="<?php echo e($prevProduct['title']); ?>" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <div class="min-w-0">
                     <div class="text-xs text-gray-400 mb-1"><?php echo e(__('detail_prev_product')); ?></div>
@@ -324,7 +344,7 @@ require_once theme_path('layouts/header.php');
                     <div class="font-medium text-dark group-hover:text-primary transition truncate"><?php echo e($nextProduct['title']); ?></div>
                 </div>
                 <?php if ($nextProduct['cover']): ?>
-                <img loading="lazy" src="<?php echo e($nextProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($nextProduct['cover'], 'thumb', '64px'); ?> alt="<?php echo e($nextProduct['title']); ?>" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <svg class="w-5 h-5 text-gray-400 group-hover:text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -343,7 +363,7 @@ require_once theme_path('layouts/header.php');
                 <a href="<?php echo productUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition">
                     <div class="aspect-[4/3] overflow-hidden">
                         <?php if ($item['cover']): ?>
-                        <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'medium', '(min-width: 768px) 25vw, 50vw'); ?> alt="<?php echo e($item['title']); ?>"
                              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         <?php else: ?>
                         <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
@@ -373,10 +393,12 @@ require_once theme_path('layouts/header.php');
 <script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
 <script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>
 <?php endif; ?>
+<script src="/assets/js/product-gallery.js"></script>
 
 <script>
 // 产品图片数组
-var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES); ?>;
+var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var productImageVariants = <?php echo json_encode($productImageVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var currentImageIdx = 0;
 
 function changeImage(idx) {
@@ -388,7 +410,9 @@ function changeImage(idx) {
     if (idx < 0 || idx >= productImages.length) return;
     currentImageIdx = idx;
     var main = document.getElementById('mainImage');
-    if (main) main.src = productImages[idx];
+    if (main && productImageVariants[idx]) {
+        window.YikaiProductGallery.applyImageVariant(main, productImageVariants[idx].main);
+    }
     document.querySelectorAll('.thumb-btn').forEach(function(btn) {
         var i = parseInt(btn.dataset.idx, 10);
         if (i === idx) {
@@ -400,7 +424,9 @@ function changeImage(idx) {
         }
     });
     // 同步主图右下角的"1 / N"
-    var counter = document.querySelector('#mainImage').parentElement.querySelector('.absolute.bottom-3');
+    var counter = main && main.parentElement
+        ? main.parentElement.querySelector('.absolute.bottom-3')
+        : null;
     if (counter) counter.textContent = (idx + 1) + ' / ' + productImages.length;
 }
 

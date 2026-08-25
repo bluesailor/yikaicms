@@ -54,6 +54,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $settings = is_array($_POST['settings'] ?? null) ? $_POST['settings'] : [];
 
+    if (array_key_exists('upload_max_megapixels', $settings)) {
+        $pixelLimit = is_numeric($settings['upload_max_megapixels'])
+            ? (int) $settings['upload_max_megapixels']
+            : 40;
+        $settings['upload_max_megapixels'] = (string) max(
+            1,
+            min(200, $pixelLimit)
+        );
+    }
+
     foreach (['trusted_proxies', 'admin_ip_whitelist'] as $ruleKey) {
         if (!array_key_exists($ruleKey, $settings)) {
             continue;
@@ -90,6 +100,7 @@ $secConfig = [
     'trusted_proxies'       => config('trusted_proxies', ''),
     'admin_ip_whitelist'    => config('admin_ip_whitelist', ''),
     'upload_max_size_mb'    => config('upload_max_size_mb', '10'),
+    'upload_max_megapixels' => config('upload_max_megapixels', '40'),
     'upload_image_types'    => config('upload_image_types', 'jpg,jpeg,png,gif,webp,svg'),
     'upload_file_types'     => config('upload_file_types', 'pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z'),
     'form_max_submits'      => config('form_max_submits', '5'),
@@ -434,6 +445,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
+                    <?php echo e(__('sec_max_image_megapixels')); ?>
+                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_max_image_megapixels_tip')); ?></span>
+                </label>
+                <div class="md:col-span-3">
+                    <input type="number" name="settings[upload_max_megapixels]" data-testid="upload-max-megapixels"
+                           value="<?php echo e($secConfig['upload_max_megapixels']); ?>"
+                           min="1" max="200" step="1"
+                           class="w-full border rounded px-4 py-2">
+                    <div class="text-xs text-gray-400 mt-1">
+                        <?php echo e(__('sec_max_image_megapixels_note')); ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                <label class="text-gray-700 pt-2">
                     <?php echo e(__('sec_image_types')); ?>
                     <span class="text-gray-400 text-sm block">英文逗号分隔</span>
                 </label>
@@ -472,6 +499,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <li>&#10003; 文件扩展名白名单校验</li>
                         <li>&#10003; MIME 类型验证（防伪造扩展名）</li>
                         <li>&#10003; 图片文件 getimagesize 验证</li>
+                        <li>&#10003; <?php echo e(__('sec_image_pixel_guard_enabled', ['limit' => uploadMaxImageMegapixels()])); ?></li>
                         <li>&#10003; 上传文件自动随机重命名</li>
                         <li>&#10003; uploads 目录禁止执行 PHP</li>
                     </ul>
@@ -491,7 +519,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow p-6">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
+        <button type="submit" data-testid="security-upload-save" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>
     </div>
 </form>
 

@@ -209,6 +209,99 @@ jobs:
           echo "=== storage/logs ==="; cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="; tail -50 /tmp/php-server.log 2>/dev/null || true
 
+  # ─── MySQL 5.7 真实装机腿：SQLite 对拍能发现 schema 漂移，但抓不到
+  # ─── MySQL 方言、驱动类型和 InnoDB 事务行为。通过正式 HTTP 安装器装英文站，
+  # ─── 再复用后台 CRUD / 全页面渲染冒烟，直接守住生产目标数据库。
+  mysql57:
+    name: MySQL 5.7 Install & Admin Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_DATABASE: yikaicms_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, curl, json, gd, fileinfo, dom
+          tools: composer:v2
+          coverage: none
+
+      - name: Install production dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      - name: Schema parity（install SQL ↔ migrations 双向对拍）
+        run: php tests/smoke/schema_parity.php
+
+      - name: Start uninstalled site
+        run: |
+          php -S 127.0.0.1:8080 -t . > /tmp/php-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf -A "YikaiCMS-MySQL-CI" http://127.0.0.1:8080/install/index.php > /dev/null && break
+            sleep 1
+          done
+          curl -sf -A "YikaiCMS-MySQL-CI" http://127.0.0.1:8080/install/index.php > /dev/null
+
+      - name: Install through the real HTTP installer（English + demo）
+        run: |
+          response="$(curl -fsS -A "YikaiCMS-MySQL-CI" -X POST http://127.0.0.1:8080/install/index.php \
+            --data-urlencode "action=install" \
+            --data-urlencode "db_driver=mysql" \
+            --data-urlencode "db_host=127.0.0.1" \
+            --data-urlencode "db_port=3306" \
+            --data-urlencode "db_name=yikaicms_ci" \
+            --data-urlencode "db_user=root" \
+            --data-urlencode "db_pass=ci-root" \
+            --data-urlencode "db_prefix=yikai_" \
+            --data-urlencode "admin_user=admin" \
+            --data-urlencode "admin_pass=smoke@Test123" \
+            --data-urlencode "admin_email=ci@example.test" \
+            --data-urlencode "site_name=YikaiCMS MySQL CI" \
+            --data-urlencode "site_url=http://127.0.0.1:8080" \
+            --data-urlencode "site_lang=en" \
+            --data-urlencode "admin_lang=en" \
+            --data-urlencode "install_demo=1")"
+          INSTALL_RESPONSE="$response" php -r '
+            $payload = json_decode((string) getenv("INSTALL_RESPONSE"), true);
+            if (!is_array($payload) || empty($payload["success"])) {
+                fwrite(STDERR, "Installer failed: " . ($payload["message"] ?? "invalid JSON response") . PHP_EOL);
+                exit(1);
+            }
+          '
+
+      - name: Verify MySQL runtime, migrations and transaction behavior
+        env:
+          EXPECTED_MYSQL_SERIES: '5.7'
+        run: php tests/smoke/mysql_runtime.php
+
+      - name: Run admin CRUD smoke on MySQL
+        run: php tests/smoke/admin_crud.php
+
+      - name: Render all admin pages on MySQL
+        run: php tests/smoke/admin_pages.php
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        run: |
+          echo "=== storage/logs ==="
+          cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
+          echo "=== php server log ==="
+          tail -100 /tmp/php-server.log 2>/dev/null || true
+
   # ─── Blox 付费套件（注入后全量 PHPUnit）：付费源码与公开代码的契约测试
   # ─── （BloxEditor*Contract / TemplateImporter / Catalog / RemoteProvider，
   # ─── 55 tests）只有注入后才存在。secret 不在场 → guard 显式 skip，不假红。
