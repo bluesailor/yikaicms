@@ -62,6 +62,26 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     await expect.poll(() => previewThumb.evaluate((element) => new URL(element.currentSrc).pathname))
       .toBe(`/uploads/images/${name}_thumb.webp`);
 
+    const builderImage = page.getByTestId('builder-image').locator('img');
+    await expect(builderImage).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
+    await expect(builderImage).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(builderImage).toHaveAttribute('decoding', 'async');
+    await expect(page.getByTestId('builder-image').locator('a')).toHaveAttribute('href', `/uploads/images/${name}.png`);
+
+    const builderCard = page.getByTestId('builder-card').locator('img');
+    await expect(builderCard).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
+    await expect(builderCard).toHaveAttribute('sizes', '(min-width: 1280px) 384px, (min-width: 768px) 50vw, 100vw');
+
+    const builderBanner = page.getByTestId('builder-banner').locator('picture');
+    await expect(builderBanner.locator('source')).toHaveAttribute('srcset', new RegExp(`${name}-alt_medium\\.webp 500w, .*${name}-alt\\.webp 1000w`));
+    await expect(builderBanner.locator('source')).toHaveAttribute('sizes', '100vw');
+    await expect(builderBanner.locator('img')).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
+
+    const dynamicCard = page.getByTestId('builder-dynamic-card').locator('img');
+    await expect(dynamicCard).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
+    await expect(dynamicCard).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(dynamicCard).toHaveAttribute('decoding', 'async');
+
     const galleryMain = page.getByTestId('product-gallery-main');
     await page.getByTestId('product-gallery-next').click();
     await expect(galleryMain).toHaveAttribute('src', `/uploads/images/${name}-alt_medium.webp`);

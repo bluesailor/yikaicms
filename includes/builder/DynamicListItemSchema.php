@@ -107,7 +107,8 @@ final class DynamicListItemSchema
 
         $titleTag = self::tag($titleField);
         $image = $showImage
-            ? '<img src="' . self::tag($imageField) . '" alt="' . $titleTag . '" loading="lazy" class="w-full h-full object-cover">'
+            ? '<img ' . self::imageAttributesTag($imageField, self::imageSizes($preset, $data))
+                . ' alt="' . $titleTag . '" loading="lazy" decoding="async" class="w-full h-full object-cover">'
             : '';
         $title = $showTitle
             ? '<h3 class="text-lg font-semibold mb-2 group-hover:text-primary transition">' . $titleTag . '</h3>'
@@ -197,5 +198,27 @@ final class DynamicListItemSchema
     private static function tag(string $field, string $attrs = ''): string
     {
         return '{yk:field name=' . $field . $attrs . ' /}';
+    }
+
+    private static function imageAttributesTag(string $field, string $sizes): string
+    {
+        return '{yk:image-attrs name=' . $field . ' size=medium sizes="' . $sizes . '" /}';
+    }
+
+    /** @param array<string,mixed> $data */
+    private static function imageSizes(string $preset, array $data): string
+    {
+        if ($preset === 'minimal') {
+            return '96px';
+        }
+        if ($preset === 'media') {
+            return '(min-width: 640px) 144px, 100vw';
+        }
+
+        $columns = max(1, min(8, (int) ($data['columns'] ?? 3)));
+        $desktopWidth = max(144, (int) floor(1152 / $columns));
+        $viewportWidth = max(13, (int) ceil(100 / $columns));
+        return '(min-width: 1280px) ' . $desktopWidth . 'px, (min-width: 768px) '
+            . $viewportWidth . 'vw, 100vw';
     }
 }

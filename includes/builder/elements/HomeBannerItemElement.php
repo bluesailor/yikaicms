@@ -92,7 +92,11 @@ final class HomeBannerItemElement extends AbstractElement
     {
         $item = self::normalize($data);
         $image = $item['image'] !== ''
-            ? '<img src="' . e($item['image']) . '" alt="' . e($item['title']) . '" class="w-full aspect-video object-cover">'
+            ? '<img ' . responsiveImageAttributes(
+                $item['image'],
+                'medium',
+                '(min-width: 1024px) 33vw, 100vw'
+            ) . ' alt="' . e($item['title']) . '" decoding="async" class="w-full aspect-video object-cover">'
             : '<div class="w-full aspect-video bg-gray-100"></div>';
         return '<article class="overflow-hidden border border-gray-200 rounded-lg">' . $image
             . '<div class="p-4"><h3 class="font-semibold">' . e($item['title']) . '</h3>'
@@ -173,11 +177,14 @@ final class HomeBannerItemElement extends AbstractElement
         $alt = htmlspecialchars($item['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $html = '<picture class="block w-full h-full" data-blox-banner-bg>';
         if ($item['image_mobile'] !== '') {
+            $mobile = responsiveImageData($item['image_mobile'], 'medium');
+            $mobileSrcset = $mobile['srcset'] !== '' ? $mobile['srcset'] : $mobile['src'];
             $html .= '<source media="(max-width: 767px)" srcset="'
-                . htmlspecialchars($item['image_mobile'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
+                . htmlspecialchars($mobileSrcset, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                . '" sizes="100vw">';
         }
-        $html .= '<img src="' . htmlspecialchars($item['image'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '" alt="' . $alt . '" class="' . $class . '"></picture>';
+        $html .= '<img ' . responsiveImageAttributes($item['image'], 'medium', '100vw')
+            . ' alt="' . $alt . '" decoding="async" class="' . $class . '"></picture>';
 
         return $html;
     }

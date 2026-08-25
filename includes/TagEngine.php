@@ -11,6 +11,7 @@
  *     {/yk:list}
  *   自闭合标签：
  *     {yk:field name=title /}
+ *     <img {yk:image-attrs name=cover size=medium sizes="100vw" /} alt="...">
  *     {yk:channel slug=about field=url /}
  *     {yk:banner group=home /}
  *     {yk:config name=site_name /}
@@ -26,6 +27,9 @@
  */
 
 declare(strict_types=1);
+
+require_once __DIR__ . '/UrlPolicy.php';
+require_once __DIR__ . '/image.php';
 
 final class TagEngine
 {
@@ -164,6 +168,7 @@ final class TagEngine
         self::register('subnav', [self::class, 'tagSubnav'], true);
         self::register('if', [self::class, 'tagIf'], true);
         self::register('field', [self::class, 'tagField']);
+        self::register('image-attrs', [self::class, 'tagImageAttributes']);
         self::register('channel', [self::class, 'tagChannel']);
         self::register('banner', [self::class, 'tagBanner']);
         self::register('config', [self::class, 'tagConfig']);
@@ -635,6 +640,42 @@ final class TagEngine
 
         $esc = ($attrs['esc'] ?? '1') !== '0';
         return $esc ? e($value) : $value;
+    }
+
+    /**
+     * {yk:image-attrs name=cover size=medium sizes="100vw" /}
+     * 在循环条目已就绪后生成安全的 src/srcset/sizes/尺寸属性，供受控模板写入 img。
+     * @psalm-suppress UnusedParam （$inner 是标签 handler 统一契约的一部分）
+     * @psalm-suppress PossiblyUnusedReturnValue （handler 经 callable 动态调用，Psalm 看不见调用点）
+     */
+    public static function tagImageAttributes(array $attrs, ?string $inner): string
+    {
+        $ctx = self::currentContext();
+        $name = strtolower(trim((string) ($attrs['name'] ?? '')));
+        if ($ctx === null || preg_match('/^[a-z0-9_]{1,64}$/', $name) !== 1) {
+            return 'src=""';
+        }
+
+        $fallback = (string) ($attrs['default'] ?? '');
+        if (isset($attrs['fallback'])) {
+            $fallback = mb_substr(rawurldecode((string) $attrs['fallback']), 0, 1000);
+        }
+        $value = $ctx[$name] ?? self::metaFallback($ctx, $name);
+        if (!is_scalar($value) || trim((string) $value) === '') {
+            $value = $fallback;
+        }
+
+        $url = UrlPolicy::image(is_scalar($value) ? (string) $value : '');
+        $size = in_array(($attrs['size'] ?? 'medium'), ['thumb', 'medium'], true)
+            ? (string) $attrs['size']
+            : 'medium';
+        $sizes = mb_substr(trim((string) ($attrs['sizes'] ?? '100vw')), 0, 300);
+        $sizes = (string) preg_replace('/[\x00-\x1f\x7f]/', '', $sizes);
+        if ($sizes === '') {
+            $sizes = '100vw';
+        }
+
+        return responsiveImageAttributes($url, $size, $sizes);
     }
 
     /**

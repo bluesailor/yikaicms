@@ -23,7 +23,7 @@ final class CardElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $image = htmlspecialchars($data['image'] ?? '');
+        $image = UrlPolicy::image($data['image'] ?? '');
         $title = htmlspecialchars($data['title'] ?? '');
         $text = htmlspecialchars($data['text'] ?? '');
         // javascript: 等伪协议在这里拦；非法地址视同未填——退化为不可点击的 div
@@ -31,7 +31,13 @@ final class CardElement extends AbstractElement
 
         $inner = '';
         if ($image !== '') {
-            $inner .= '<div class="aspect-video overflow-hidden bg-gray-100"><img src="' . $image . '" alt="" loading="lazy" class="w-full h-full object-cover"></div>';
+            $imageAttrs = responsiveImageAttributes(
+                $image,
+                'medium',
+                '(min-width: 1280px) 384px, (min-width: 768px) 50vw, 100vw'
+            );
+            $inner .= '<div class="aspect-video overflow-hidden bg-gray-100"><img ' . $imageAttrs
+                . ' alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></div>';
         }
         $body = '';
         if ($title !== '') {

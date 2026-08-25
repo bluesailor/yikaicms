@@ -65,7 +65,7 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame('', $this->inner($this->oneEl(['type' => 'image', 'data' => []])));
         // lightbox
         $out = $this->inner($this->oneEl(['type' => 'image', 'data' => ['src' => '/a.jpg', 'alt' => 'A', 'click_action' => 'lightbox']]));
-        $this->assertSame('<a href="/a.jpg" data-lightbox class="block cursor-zoom-in"><img class="w-full rounded-lg" src="/a.jpg" alt="A" loading="lazy"></a>', $out);
+        $this->assertSame('<a href="/a.jpg" data-lightbox class="block cursor-zoom-in"><img class="w-full rounded-lg" src="/a.jpg" alt="A" loading="lazy" decoding="async"></a>', $out);
         // link + new tab
         $out2 = $this->inner($this->oneEl(['type' => 'image', 'data' => ['src' => '/b.jpg', 'click_action' => 'link', 'link_url' => '/x', 'link_new_tab' => 1]]));
         $this->assertStringContainsString('<a href="/x" target="_blank" rel="noopener" class="block">', $out2);
