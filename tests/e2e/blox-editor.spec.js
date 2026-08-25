@@ -181,6 +181,73 @@ test('browser image preprocessing reduces pixels and upload bytes @ci', async ({
   expect(metrics.outputBytes).toBeLessThan(metrics.originalBytes);
 });
 
+test('browser image upload is accepted by the real media API @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser upload baseline');
+  let uploadedUrl = '';
+
+  try {
+    const result = await page.evaluate(async () => {
+      const app = document.body._x_dataStack && document.body._x_dataStack[0];
+      if (!app || !app.csrf) throw new Error('Blox editor CSRF state is unavailable');
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1800;
+      canvas.height = 900;
+      const context = canvas.getContext('2d');
+      for (let y = 0; y < 18; y += 1) {
+        for (let x = 0; x < 36; x += 1) {
+          context.fillStyle = `hsl(${(x * 29 + y * 41) % 360} 68% ${32 + ((x + y) % 44)}%)`;
+          context.fillRect(x * 50, y * 50, 50, 50);
+        }
+      }
+      const sourceBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.98));
+      if (!sourceBlob) throw new Error('Browser JPEG encoder is unavailable');
+      const source = new File([sourceBlob], 'blox-e2e-upload.jpg', { type: 'image/jpeg' });
+      const upload = await window.BloxMediaClient.upload('/admin/media_api.php', source, {
+        csrf: app.csrf,
+        maxDimension: 900,
+        minBytes: 0,
+        quality: 0.68,
+      });
+      return {
+        ...upload,
+        successMessage: app.mediaUploadMessage(upload),
+        fromLabel: window.BloxMediaClient.formatBytes(upload.originalBytes),
+        toLabel: window.BloxMediaClient.formatBytes(upload.uploadBytes),
+      };
+    });
+
+    uploadedUrl = result.url;
+    expect(result.ok).toBe(true);
+    expect(result.optimized).toBe(true);
+    expect(result.uploadBytes).toBeLessThan(result.originalBytes);
+    expect(result.url).toMatch(/^\/uploads\/images\/\d{6}\/[a-z0-9_]+\.jpg$/);
+    expect(result.successMessage).toContain(result.fromLabel);
+    expect(result.successMessage).toContain(result.toLabel);
+
+    const uploaded = await page.request.get(result.url);
+    expect(uploaded.ok()).toBe(true);
+    expect(uploaded.headers()['content-type']).toContain('image/jpeg');
+  } finally {
+    if (uploadedUrl) {
+      const fs = require('fs');
+      const path = require('path');
+      const relative = decodeURIComponent(new URL(uploadedUrl, 'http://localhost').pathname).replace(/^\/+/, '');
+      const uploadedPath = path.resolve(__dirname, '../..', relative);
+      const uploadRoot = path.resolve(__dirname, '../../uploads/images');
+      if (!uploadedPath.toLowerCase().startsWith((uploadRoot + path.sep).toLowerCase())) {
+        throw new Error(`Refusing to clean unexpected upload path: ${uploadedPath}`);
+      }
+      const parsed = path.parse(uploadedPath);
+      const generatedNames = fs.readdirSync(parsed.dir).filter((name) => {
+        const candidate = path.parse(name);
+        return candidate.name === parsed.name || candidate.name.startsWith(parsed.name + '_');
+      });
+      generatedNames.forEach((name) => fs.rmSync(path.join(parsed.dir, name), { force: true }));
+    }
+  }
+});
+
 test('home canvas exposes dedicated edit links for the readonly header and footer @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(

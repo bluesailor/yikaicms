@@ -5354,4 +5354,5 @@ voltage|Voltage|220V',
     'blox_builtin_section_faq_desc' => 'A heading, introduction, and collapsible question list.',
     'blox_builtin_section_cta_name' => 'Call to Action Banner',
     'blox_builtin_section_cta_desc' => 'A clear message and action button for enquiries or conversion.',
+    'blox_uploaded_optimized' => 'Uploaded and selected. Image optimized: :from → :to',
 ];

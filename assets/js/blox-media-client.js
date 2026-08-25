@@ -28,15 +28,40 @@
         var value = options && typeof options === "object" ? options : {};
         var hasMaxDimension = Object.prototype.hasOwnProperty.call(value, "maxDimension");
         var hasMinBytes = Object.prototype.hasOwnProperty.call(value, "minBytes");
+        var hasMaxCanvasPixels = Object.prototype.hasOwnProperty.call(value, "maxCanvasPixels");
+        var hasMaxSourceBytes = Object.prototype.hasOwnProperty.call(value, "maxSourceBytes");
         var maxDimension = hasMaxDimension ? Number(value.maxDimension) : 2560;
         var minBytes = hasMinBytes ? Number(value.minBytes) : 512 * 1024;
+        var maxCanvasPixels = hasMaxCanvasPixels ? Number(value.maxCanvasPixels) : 16 * 1024 * 1024;
+        var maxSourceBytes = hasMaxSourceBytes ? Number(value.maxSourceBytes) : 24 * 1024 * 1024;
         return {
             maxDimension: Number.isFinite(maxDimension) && maxDimension === 0
                 ? 0
                 : Math.max(320, Number.isFinite(maxDimension) ? maxDimension : 2560),
             quality: Math.max(0.5, Math.min(0.95, Number(value.quality) || 0.82)),
             minBytes: Math.max(0, Number.isFinite(minBytes) ? minBytes : 512 * 1024),
+            maxCanvasPixels: Number.isFinite(maxCanvasPixels) && maxCanvasPixels === 0
+                ? 0
+                : Math.max(1, Number.isFinite(maxCanvasPixels) ? maxCanvasPixels : 16 * 1024 * 1024),
+            maxSourceBytes: Number.isFinite(maxSourceBytes) && maxSourceBytes === 0
+                ? 0
+                : Math.max(1, Number.isFinite(maxSourceBytes) ? maxSourceBytes : 24 * 1024 * 1024),
         };
+    }
+
+    function formatBytes(value) {
+        var bytes = Math.max(0, Number(value) || 0);
+        if (bytes < 1024) return Math.round(bytes) + " B";
+
+        var units = ["KB", "MB", "GB"];
+        var amount = bytes / 1024;
+        var index = 0;
+        while (amount >= 1024 && index < units.length - 1) {
+            amount /= 1024;
+            index++;
+        }
+        var precision = amount < 10 ? 1 : 0;
+        return amount.toFixed(precision).replace(/\.0$/, "") + " " + units[index];
     }
 
     var mimeExtensions = {
@@ -116,18 +141,34 @@
         }
 
         var config = imageOptions(options);
+        if (config.maxSourceBytes > 0 && Number(file.size || 0) > config.maxSourceBytes) {
+            return Promise.resolve(file);
+        }
+
         return decodeImage(file).then(function (decoded) {
             var maxSide = Math.max(decoded.width, decoded.height);
-            var shouldResize = config.maxDimension > 0 && maxSide > config.maxDimension;
+            var sourcePixels = decoded.width * decoded.height;
+            if (!Number.isFinite(sourcePixels) || sourcePixels <= 0 || maxSide <= 0) {
+                decoded.cleanup();
+                return file;
+            }
+
+            var dimensionScale = config.maxDimension > 0 && maxSide > config.maxDimension
+                ? config.maxDimension / maxSide
+                : 1;
+            var pixelScale = config.maxCanvasPixels > 0 && sourcePixels > config.maxCanvasPixels
+                ? Math.sqrt(config.maxCanvasPixels / sourcePixels)
+                : 1;
+            var scale = Math.min(dimensionScale, pixelScale);
+            var shouldResize = scale < 1;
             var shouldCompress = type !== "image/png" && Number(file.size || 0) > config.minBytes;
             if (!shouldResize && !shouldCompress) {
                 decoded.cleanup();
                 return file;
             }
 
-            var scale = shouldResize ? config.maxDimension / maxSide : 1;
-            var width = Math.max(1, Math.round(decoded.width * scale));
-            var height = Math.max(1, Math.round(decoded.height * scale));
+            var width = Math.max(1, Math.floor(decoded.width * scale));
+            var height = Math.max(1, Math.floor(decoded.height * scale));
             var canvas;
             var context;
             try {
@@ -182,5 +223,10 @@
         });
     }
 
-    global.BloxMediaClient = { list: list, prepareImage: prepareImage, upload: upload };
+    global.BloxMediaClient = {
+        list: list,
+        formatBytes: formatBytes,
+        prepareImage: prepareImage,
+        upload: upload,
+    };
 })(window);

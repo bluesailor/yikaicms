@@ -5422,4 +5422,5 @@ voltage|电压|220V',
     'blox_builtin_section_faq_desc' => '标题、说明与折叠问答列表，适合服务说明页面。',
     'blox_builtin_section_cta_name' => '行动召唤横幅',
     'blox_builtin_section_cta_desc' => '用明确标题、说明和按钮承接咨询或转化。',
+    'blox_uploaded_optimized' => '已上传并选用，图片已优化：:from → :to',
 ];
