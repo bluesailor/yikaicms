@@ -206,6 +206,45 @@ function checkAllPass(array $checks): bool
     return true;
 }
 
+/**
+ * SQL 种子代表默认 zh-CN 状态；安装器随后切换语言、站点 URL 等配置时，可能让
+ * 幂等数据迁移重新变成待执行。写安装锁前必须用正式迁移器收尾，保证新站首次启动
+ * 就与升级后的站点处于同一状态。
+ */
+function finalizeFreshInstallMigrations(): void
+{
+    try {
+        require_once ROOT_PATH . '/config/config.php';
+        require_once ROOT_PATH . '/includes/functions.php';
+        require_once ROOT_PATH . '/includes/models/autoload.php';
+        require_once ROOT_PATH . '/includes/Migrator.php';
+
+        foreach (Migrator::loadAll() as $migration) {
+            if (Migrator::isApplied($migration)) {
+                continue;
+            }
+            $result = Migrator::runOne($migration);
+            if (empty($result['ok'])) {
+                throw new RuntimeException(
+                    (string) ($migration['id'] ?? 'unknown') . ': ' . (string) ($result['message'] ?? 'failed')
+                );
+            }
+        }
+
+        $pending = [];
+        foreach (Migrator::loadAll() as $migration) {
+            if (!Migrator::isApplied($migration)) {
+                $pending[] = (string) ($migration['id'] ?? 'unknown');
+            }
+        }
+        if ($pending !== []) {
+            throw new RuntimeException('仍有待执行迁移：' . implode(', ', $pending));
+        }
+    } catch (Throwable $e) {
+        throw new RuntimeException('全新安装迁移收尾失败：' . $e->getMessage(), 0, $e);
+    }
+}
+
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // 捕获所有输出，防止 PHP 警告污染 JSON 响应
@@ -417,6 +456,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!file_put_contents(ROOT_PATH . '/config/config.php', $configContent)) {
                 throw new Exception($L['error_config_write']);
             }
+
+            finalizeFreshInstallMigrations();
 
             // 创建安装锁
             file_put_contents(ROOT_PATH . '/installed.lock', date('Y-m-d H:i:s'));
