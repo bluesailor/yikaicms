@@ -51,6 +51,7 @@ require_once __DIR__ . '/PageBloxDocument.php';
 require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/HomeLayoutDocument.php';
 require_once __DIR__ . '/HomeBloxRenderContext.php';
+require_once __DIR__ . '/BloxFrontendEditTarget.php';
 require_once __DIR__ . '/BlockRenderer.php';
 require_once __DIR__ . '/HomeBloxRenderer.php';
 require_once __DIR__ . '/BloxPopupRuntime.php';

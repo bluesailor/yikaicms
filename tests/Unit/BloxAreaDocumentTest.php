@@ -75,6 +75,31 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame(['desktop', 'tablet', 'mobile'], $settings['sticky_devices']);
     }
 
+    public function testAreaShellAcceptsOnlyInternalBloxEditorTargets(): void
+    {
+        $header = BloxAreaDocument::renderShell(
+            'header',
+            [],
+            '<nav>Menu</nav>',
+            '',
+            '/admin/blox_editor.php?template=12&open=header-settings'
+        );
+        $footer = BloxAreaDocument::renderShell(
+            'footer',
+            [],
+            '<p>Footer</p>',
+            '',
+            '/admin/blox_editor.php?template=13'
+        );
+        $external = BloxAreaDocument::renderShell('footer', [], '<p>Footer</p>', '', 'https://example.com/edit');
+
+        self::assertStringContainsString('data-yk-edit="/admin/blox_editor.php?template=12&amp;open=header-settings"', $header);
+        self::assertStringContainsString('data-yk-edit-label="' . __('fe_edit_layout') . '"', $header);
+        self::assertStringContainsString('data-yk-edit="/admin/blox_editor.php?template=13"', $footer);
+        self::assertStringContainsString('data-yk-edit-label="' . __('fe_edit_footer') . '"', $footer);
+        self::assertStringNotContainsString('data-yk-edit', $external);
+    }
+
     public function testBundledAreaPackagesPassTheSameImporterAsUploadedTemplates(): void
     {
         $expected = [

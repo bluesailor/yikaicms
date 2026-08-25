@@ -254,9 +254,16 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("elementTarget.searchParams.set('focus_element', elementId)", $overlay);
         $this->assertStringContainsString("elementTarget.searchParams.delete('open')", $overlay);
         $this->assertStringNotContainsString('&focus=', $overlay);
-        foreach (['data-yk-element-edit', 'data-yk-element-id', 'data-yk-sec-id', 'data-yk-nav', 'data-yk-footer', 'data-yk-partners', 'data-yk-edit'] as $marker) {
+        foreach (['data-yk-element-edit', 'data-yk-element-id', 'data-yk-element-label', 'data-yk-sec-id', 'data-yk-nav', 'data-yk-footer', 'data-yk-partners', 'data-yk-edit'] as $marker) {
             $this->assertStringContainsString($marker, $overlay);
         }
+
+        $targetRegistry = $this->source('includes/builder/BloxFrontendEditTarget.php');
+        foreach (['header-navigation', 'site-contact', 'social-links', 'fe_edit_header_navigation'] as $token) {
+            $this->assertStringContainsString($token, $targetRegistry);
+        }
+        $this->assertStringContainsString('BloxFrontendEditTarget::inArea(', $functions);
+        $this->assertStringContainsString('BloxAreaDocument::renderShell($area, $document[\'settings\'], $body, \'\', $editUrl)', $functions);
 
         $this->assertStringContainsString('function renderFrontEditableContentBody(array $content, int $channelId): string', $functions);
         $this->assertStringContainsString('$previousChannelId = BlockRenderer::$editChannelId;', $functions);
