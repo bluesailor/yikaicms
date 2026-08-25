@@ -7,6 +7,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/MediaOptimization.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -26,6 +27,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
         $probe = SiteHealth::createBrowserProbes(STORAGE_PATH);
         $checks = array_merge(SiteHealth::runDirect(), $probe['checks']);
+        $mediaTotal = 0;
+        $mediaFailed = false;
+        try {
+            $mediaTotal = mediaModel()->countImages();
+        } catch (Throwable) {
+            $mediaFailed = true;
+        }
         $_SESSION['site_health_scan'] = [
             'nonce' => $probe['nonce'],
             'created_at' => time(),
@@ -34,12 +42,73 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             'storage_token' => $probe['storage_token'],
             'upload_file' => $probe['upload_file'],
             'upload_token' => $probe['upload_token'],
+            'media' => [
+                'cursor' => 0,
+                'total' => $mediaTotal,
+                'scanned' => 0,
+                'healthy' => 0,
+                'pending' => 0,
+                'missing' => 0,
+                'unsupported' => 0,
+                'repairable' => 0,
+                'sample_ids' => [],
+                'failed' => $mediaFailed,
+                'done' => $mediaFailed || $mediaTotal === 0,
+            ],
         ];
         success([
             'nonce' => $probe['nonce'],
             'checks' => SiteHealth::normalizeResults($checks),
             'probes' => $probe['probes'],
+            'media' => $_SESSION['site_health_scan']['media'],
         ], '');
+    }
+
+    if ($action === 'scan_media') {
+        $scan = $_SESSION['site_health_scan'] ?? null;
+        $nonce = (string) post('nonce');
+        if (!is_array($scan)
+            || !isset($scan['nonce'], $scan['created_at'])
+            || !hash_equals((string) $scan['nonce'], $nonce)
+            || (int) $scan['created_at'] < time() - 600) {
+            if (is_array($scan)) {
+                SiteHealth::cleanupBrowserProbe((string) ($scan['storage_file'] ?? ''), STORAGE_PATH);
+                SiteHealth::cleanupUploadProbe((string) ($scan['upload_file'] ?? ''), UPLOADS_PATH);
+            }
+            unset($_SESSION['site_health_scan']);
+            error(__('health_scan_expired'));
+        }
+
+        $media = is_array($scan['media'] ?? null) ? $scan['media'] : [];
+        if (!empty($media['done'])) {
+            success($media, '');
+        }
+
+        $rows = mediaModel()->getImageBatchAfterId(
+            max(0, (int) ($media['cursor'] ?? 0)),
+            MediaOptimization::MAX_BATCH
+        );
+        $batch = MediaOptimization::summarizeMany($rows);
+        foreach (['scanned', 'healthy', 'pending', 'missing', 'unsupported', 'repairable'] as $key) {
+            $media[$key] = max(0, (int) ($media[$key] ?? 0)) + $batch[$key];
+        }
+        $samples = array_merge(
+            MediaOptimization::normalizeIds($media['sample_ids'] ?? []),
+            $batch['sample_ids']
+        );
+        $media['sample_ids'] = array_slice(array_values(array_unique($samples)), 0, MediaOptimization::MAX_BATCH);
+        if ($rows !== []) {
+            $media['cursor'] = max(array_map(static fn(array $row): int => (int) ($row['id'] ?? 0), $rows));
+        }
+        $media['done'] = count($rows) < MediaOptimization::MAX_BATCH;
+        if ($media['done']) {
+            // 扫描期间若有媒体增删，以游标实际完成的快照为准，避免总数变化造成假“未完成”。
+            $media['total'] = (int) $media['scanned'];
+        } else {
+            $media['total'] = max((int) ($media['total'] ?? 0), (int) $media['scanned']);
+        }
+        $_SESSION['site_health_scan']['media'] = $media;
+        success($media, '');
     }
 
     if ($action === 'finish_scan') {
@@ -61,6 +130,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if (!is_array($observations)) {
             $observations = [];
         }
+        $media = is_array($scan['media'] ?? null) ? $scan['media'] : [];
+        if (empty($media['done'])) {
+            error(__('health_media_scan_incomplete'));
+        }
         try {
             $checks = is_array($scan['checks'] ?? null) ? $scan['checks'] : [];
             $checks = array_merge(
@@ -70,6 +143,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     (string) ($scan['storage_token'] ?? ''),
                     (string) ($scan['upload_token'] ?? '')
                 ),
+                [SiteHealth::mediaOptimizationResult($media)],
                 [SiteHealth::checkUpdateService()]
             );
             $checks = SiteHealth::normalizeResults($checks);
@@ -88,6 +162,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 'site_health_last_summary' => (string) json_encode($summary, JSON_UNESCAPED_UNICODE),
                 'site_health_last_at' => (string) $scannedAt,
                 'site_health_last_bad' => mb_substr(implode(',', $badIds), 0, 500),
+                'site_health_media_summary' => (string) json_encode([
+                    'total' => max(0, (int) ($media['total'] ?? 0)),
+                    'scanned' => max(0, (int) ($media['scanned'] ?? 0)),
+                    'healthy' => max(0, (int) ($media['healthy'] ?? 0)),
+                    'pending' => max(0, (int) ($media['pending'] ?? 0)),
+                    'missing' => max(0, (int) ($media['missing'] ?? 0)),
+                    'unsupported' => max(0, (int) ($media['unsupported'] ?? 0)),
+                    'repairable' => max(0, (int) ($media['repairable'] ?? 0)),
+                    'sample_ids' => MediaOptimization::normalizeIds($media['sample_ids'] ?? []),
+                    'failed' => !empty($media['failed']),
+                    'scanned_at' => $scannedAt,
+                ], JSON_UNESCAPED_UNICODE),
             ]);
             adminLog(
                 'site_health',
@@ -181,6 +267,7 @@ unset($pageTitle);
     var labels = <?php echo json_encode([
         'run' => __('health_run'),
         'running' => __('health_running'),
+        'mediaRunning' => __('health_media_running'),
         'failed' => __('health_scan_failed'),
         'lastScan' => __('health_last_scan'),
         'action' => __('health_action'),
@@ -233,6 +320,7 @@ unset($pageTitle);
         var style = statusStyles[check.status] || statusStyles.unknown;
         var row = document.createElement('div');
         row.className = 'flex flex-col sm:flex-row sm:items-start gap-3 px-5 py-4 border-t border-gray-100 first:border-t-0';
+        row.dataset.healthId = check.id || '';
 
         var icon = document.createElement('i');
         icon.className = 'ti ' + style[3] + ' mt-0.5 text-xl ' + style[1];
@@ -303,6 +391,18 @@ unset($pageTitle);
             .catch(function () { return { id: probe.id, status: 0, body: '', error: true }; });
     }
 
+    function scanMediaBatches(nonce, state) {
+        var current = state || { scanned: 0, total: 0, done: false };
+        setNotice(labels.mediaRunning
+            .replace(':scanned', String(current.scanned || 0))
+            .replace(':total', String(current.total || 0)), 'info');
+        if (current.done) return Promise.resolve(current);
+
+        return postAction({ action: 'scan_media', nonce: nonce }).then(function (next) {
+            return next.done ? next : scanMediaBatches(nonce, next);
+        });
+    }
+
     runButton.addEventListener('click', function () {
         runButton.disabled = true;
         runButton.querySelector('span').textContent = labels.running;
@@ -311,8 +411,11 @@ unset($pageTitle);
         postAction({ action: 'start_scan' })
             .then(function (data) {
                 renderResults(data.checks);
-                return Promise.all((data.probes || []).map(observeProbe)).then(function (observations) {
-                    return postAction({ action: 'finish_scan', nonce: data.nonce, observations: JSON.stringify(observations) });
+                return Promise.all([
+                    Promise.all((data.probes || []).map(observeProbe)),
+                    scanMediaBatches(data.nonce, data.media)
+                ]).then(function (results) {
+                    return postAction({ action: 'finish_scan', nonce: data.nonce, observations: JSON.stringify(results[0]) });
                 });
             })
             .then(function (data) {

@@ -47,4 +47,17 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString("CLI::register('site:health'", $command);
         self::assertStringContainsString('!empty($opts[\'remote\'])', $command);
     }
+
+    public function testMediaHealthUsesServerSideBoundedCursorBatches(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/site_health.php');
+        $model = (string) file_get_contents(ROOT_PATH . '/includes/models/MediaModel.php');
+
+        self::assertStringContainsString("\$action === 'scan_media'", $page);
+        self::assertStringContainsString('MediaOptimization::MAX_BATCH', $page);
+        self::assertStringContainsString("\$_SESSION['site_health_scan']['media']", $page);
+        self::assertStringNotContainsString("post('cursor')", $page);
+        self::assertStringContainsString('WHERE type = ? AND id > ? ORDER BY id ASC LIMIT ?', $model);
+        self::assertStringContainsString('site_health_media_summary', $page);
+    }
 }

@@ -125,6 +125,41 @@ final class MediaOptimizationTest extends TestCase
         $this->assertSame(MediaOptimization::MAX_BATCH, $summary['processed']);
     }
 
+    public function testSummaryCountsStatusesAndBoundsAttentionSamples(): void
+    {
+        $pendingPath = $this->directory . '/pending.png';
+        $healthyPath = $this->directory . '/healthy.png';
+        $svgPath = $this->directory . '/vector.svg';
+        $this->writePng($pendingPath, 1200, 675);
+        $this->writePng($healthyPath, 1200, 675);
+        file_put_contents($svgPath, '<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+        MediaOptimization::repairMany([$this->media($healthyPath, 2)]);
+
+        $rows = [
+            $this->media($pendingPath, 1),
+            $this->media($healthyPath, 2),
+            $this->media($this->directory . '/missing.png', 3),
+            $this->media($svgPath, 4, 'svg'),
+        ];
+        $summary = MediaOptimization::summarizeMany($rows);
+
+        $this->assertSame(4, $summary['scanned']);
+        $this->assertSame(1, $summary['healthy']);
+        $this->assertSame(1, $summary['pending']);
+        $this->assertSame(1, $summary['missing']);
+        $this->assertSame(1, $summary['unsupported']);
+        $this->assertSame(1, $summary['repairable']);
+        $this->assertSame([1, 3], $summary['sample_ids']);
+
+        $manyMissing = [];
+        for ($id = 10; $id < 50; $id++) {
+            $manyMissing[] = $this->media($this->directory . "/missing-$id.png", $id);
+        }
+        $bounded = MediaOptimization::summarizeMany($manyMissing);
+        $this->assertSame(MediaOptimization::MAX_BATCH, $bounded['scanned']);
+        $this->assertCount(MediaOptimization::MAX_BATCH, $bounded['sample_ids']);
+    }
+
     /** @return array<string,mixed> */
     private function media(string $path, int $id = 1, string $ext = 'png'): array
     {

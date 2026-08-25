@@ -78,15 +78,40 @@ $type = get('type', '');
 // 普通媒体库（勾选框是批量删除的），选中后没有任何确认/回填动作。
 $selectMode = get('mode', '') === 'select';
 $selectTarget = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) get('target', ''));
+$healthAttention = !$selectMode && get('health', '') === 'attention';
 $keyword = get('keyword', '');
 $page = max(1, getInt('page', 1));
 $perPage = 24;
 
 $offset = ($page - 1) * $perPage;
 $filters = array_filter(['type' => $type, 'keyword' => $keyword]);
-$result = mediaModel()->getList($filters, $perPage, $offset);
-$total = $result['total'];
-$mediaList = $result['items'];
+$storedHealth = json_decode((string) config('site_health_media_summary', ''), true);
+if (!is_array($storedHealth)) {
+    $storedHealth = [];
+}
+if ($healthAttention) {
+    $sampleIds = array_slice(
+        MediaOptimization::normalizeIds($storedHealth['sample_ids'] ?? []),
+        0,
+        MediaOptimization::MAX_BATCH
+    );
+    $sampleRows = mediaModel()->getByIds($sampleIds);
+    $rowsById = [];
+    foreach ($sampleRows as $row) {
+        $rowsById[(int) ($row['id'] ?? 0)] = $row;
+    }
+    $mediaList = [];
+    foreach ($sampleIds as $sampleId) {
+        if (isset($rowsById[$sampleId])) {
+            $mediaList[] = $rowsById[$sampleId];
+        }
+    }
+    $total = count($mediaList);
+} else {
+    $result = mediaModel()->getList($filters, $perPage, $offset);
+    $total = $result['total'];
+    $mediaList = $result['items'];
+}
 $mediaHealth = $selectMode ? [] : MediaOptimization::inspectMany($mediaList);
 $mediaHealthSummary = ['healthy' => 0, 'pending' => 0, 'missing' => 0];
 $mediaPendingIds = [];
@@ -157,6 +182,28 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 <?php endif; ?>
 
+<?php if ($healthAttention): ?>
+<div class="border border-amber-200 bg-amber-50 rounded-lg px-5 py-4 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-testid="media-health-samples">
+    <div class="flex items-start gap-3 min-w-0">
+        <i class="ti ti-report-medical mt-0.5 text-xl text-amber-700" aria-hidden="true"></i>
+        <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-amber-900"><?php echo e(__('media_health_samples_title')); ?></h2>
+            <p class="mt-1 text-sm leading-6 text-amber-800">
+                <?php echo e(__('media_health_samples_desc', [
+                    'shown' => count($mediaList),
+                    'pending' => max(0, (int) ($storedHealth['pending'] ?? 0)),
+                    'missing' => max(0, (int) ($storedHealth['missing'] ?? 0)),
+                ])); ?>
+            </p>
+        </div>
+    </div>
+    <a href="/admin/media.php" class="inline-flex min-h-10 shrink-0 items-center justify-center gap-1 rounded border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
+        <i class="ti ti-photo" aria-hidden="true"></i>
+        <?php echo e(__('media_health_all')); ?>
+    </a>
+</div>
+<?php endif; ?>
+
 <?php if (!$selectMode && array_sum($mediaHealthSummary) > 0): ?>
 <div class="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3" id="mediaOptimizationSummary" data-testid="media-opt-summary" aria-live="polite">
     <div class="flex items-center gap-3 min-w-0">
@@ -221,11 +268,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endif; ?>
 
                 <div class="aspect-square bg-gray-100 flex items-center justify-center">
-                    <?php if ($item['type'] === 'image'): ?>
+                    <?php if ($item['type'] === 'image' && $healthStatus !== 'missing'): ?>
                     <img <?php echo responsiveImageAttributes((string) $item['url'], 'thumb', '(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 50vw'); ?>
                          alt="<?php echo e($item['name']); ?>" loading="lazy" decoding="async"
                          class="w-full h-full object-cover cursor-pointer"
                          onclick="<?php echo $selectMode ? "pickMedia('" . e($item['url']) . "')" : "previewImage('" . e($item['url']) . "')"; ?>">
+                    <?php elseif ($item['type'] === 'image'): ?>
+                    <div class="text-center p-4 text-gray-400" role="img" aria-label="<?php echo e(__('media_opt_status_missing')); ?>">
+                        <i class="ti ti-photo-off text-4xl" aria-hidden="true"></i>
+                    </div>
                     <?php else: ?>
                     <div class="text-center p-4">
                         <div class="text-4xl text-gray-400 mb-2">

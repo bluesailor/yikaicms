@@ -51,4 +51,24 @@ class MediaModel extends Model
             $ids
         );
     }
+
+    public function countImages(): int
+    {
+        return (int) db()->fetchColumn(
+            "SELECT COUNT(*) FROM {$this->tableName()} WHERE type = ?",
+            ['image']
+        );
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function getImageBatchAfterId(int $afterId, int $limit): array
+    {
+        $afterId = max(0, $afterId);
+        $limit = max(1, min(MediaOptimization::MAX_BATCH, $limit));
+
+        return db()->fetchAll(
+            "SELECT * FROM {$this->tableName()} WHERE type = ? AND id > ? ORDER BY id ASC LIMIT ?",
+            ['image', $afterId, $limit]
+        );
+    }
 }

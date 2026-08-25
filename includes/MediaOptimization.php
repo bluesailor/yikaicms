@@ -96,6 +96,42 @@ final class MediaOptimization
         return $health;
     }
 
+    /**
+     * @param list<array<string,mixed>> $rows
+     * @return array{scanned:int,healthy:int,pending:int,missing:int,unsupported:int,repairable:int,sample_ids:list<int>}
+     */
+    public static function summarizeMany(array $rows): array
+    {
+        /** @var array{scanned:int,healthy:int,pending:int,missing:int,unsupported:int,repairable:int} $summary */
+        $summary = [
+            'scanned' => 0,
+            'healthy' => 0,
+            'pending' => 0,
+            'missing' => 0,
+            'unsupported' => 0,
+            'repairable' => 0,
+        ];
+        $sampleIds = [];
+
+        foreach (self::inspectMany($rows) as $id => $health) {
+            $status = (string) ($health['status'] ?? 'unsupported');
+            if (!array_key_exists($status, $summary) || !is_int($summary[$status])) {
+                $status = 'unsupported';
+            }
+            $summary['scanned']++;
+            $summary[$status]++;
+            if ($status === 'pending' && !empty($health['repairable'])) {
+                $summary['repairable']++;
+            }
+            if (in_array($status, ['pending', 'missing'], true)
+                && count($sampleIds) < self::MAX_BATCH) {
+                $sampleIds[] = (int) $id;
+            }
+        }
+
+        return $summary + ['sample_ids' => $sampleIds];
+    }
+
     /** @param list<array<string,mixed>> $rows @return array<string,mixed> */
     public static function repairMany(array $rows): array
     {
