@@ -19,7 +19,7 @@
         "columns": [
           {
             "elements": [
-              {"type": "heading", "data": {"text": "从需求到长期支持，每一步都清晰可控", "level": "h1", "visual_size": {"d": "5xl", "t": "4xl", "m": "3xl"}, "align": "left"}},
+              {"type": "heading", "data": {"text": "从需求到长期支持，每一步都清晰可控", "level": "h2", "visual_size": {"d": "5xl", "t": "4xl", "m": "3xl"}, "align": "left"}},
               {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm"}},
               {"type": "text", "data": {"html": "<p class=\"yk-lead\">我们用标准化节点推进项目，让目标、交付物和责任人在每个阶段都有据可查。下面的步骤可以逐项修改，也可以拖动调整顺序。</p>"}},
               {"type": "button", "data": {"text": "沟通项目需求", "url": "/contact.html", "variant": "primary", "align": "left"}}
