@@ -455,6 +455,26 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('elementTargetPayload(data.ykEditElement)', $bridge);
     }
 
+    public function testNavigationAndSiteDataElementsExplainTheirContentSources(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        self::assertStringContainsString("\$canManageGlobalSettings = hasPermission('*');", $editor);
+        foreach ([
+            'data-testid="blox-nav-content-source"',
+            'data-testid="blox-nav-content-manage"',
+            "'/admin/nav_menu.php?group='",
+            'data-testid="blox-contact-content-source"',
+            'href="/admin/setting_contact.php"',
+            'data-testid="blox-social-content-source"',
+            'href="/admin/setting_social.php"',
+            'target="_blank" rel="noopener"',
+        ] as $token) {
+            self::assertStringContainsString($token, $workspace, "content source token {$token} missing");
+        }
+    }
+
     public function testCanvasAndRevisionPreviewLoadFrontendTypographyStyles(): void
     {
         $canvas = $this->source('admin/page_edit_advance.php');

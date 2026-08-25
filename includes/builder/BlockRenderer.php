@@ -621,6 +621,7 @@ final class BlockRenderer
             'depth' => $depth,
             'node_id' => (string) ($el['id'] ?? ''),
         ]);
+        $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
         $html = self::applyElementBoxStyle($html, $data, $element->type());
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::markCustomHomeElement($html, $element->type(), $path);

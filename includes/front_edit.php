@@ -18,7 +18,7 @@ function renderFrontEdit(): void
     if (!str_starts_with($bloxEditUrl, '/admin/blox_editor.php?')) {
         $bloxEditUrl = '';
     }
-    // 覆盖层对任何登录管理员都渲染（专用编辑入口与 Logo 就地编辑全站可用）。
+    // 覆盖层对任何登录管理员都渲染（专用编辑入口与白名单 Blox 元素定位全站可用）。
     ?>
     <style>
       #yk-edit-outline { position: absolute; z-index: 99990; pointer-events: none;
@@ -133,7 +133,9 @@ function renderFrontEdit(): void
         return '#';
       }
       function editLabel(el) {
-        if (el.hasAttribute('data-yk-element-edit')) return '✎ ' + <?php echo json_encode(__('fe_edit_logo_block'), JSON_UNESCAPED_UNICODE); ?>;
+        if (el.hasAttribute('data-yk-element-edit')) {
+          return '✎ ' + (el.getAttribute('data-yk-element-label') || <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>);
+        }
         if (el.hasAttribute('data-yk-sec-id')) return '✎ ' + <?php echo json_encode(__('fe_edit_block'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-nav'))      return '✎ ' + <?php echo json_encode(__('fe_edit_nav'), JSON_UNESCAPED_UNICODE); ?>;
         if (el.hasAttribute('data-yk-footer'))   return '✎ ' + <?php echo json_encode(__('fe_edit_footer'), JSON_UNESCAPED_UNICODE); ?>;
@@ -144,12 +146,14 @@ function renderFrontEdit(): void
 
       function place(sec) {
         var r = sec.getBoundingClientRect();
+        var targetUrl = editUrl(sec);
+        if (!targetUrl || r.width <= 0 || r.height <= 0) { hide(); return; }
         box.style.display = 'block';
         box.style.top    = (r.top + window.scrollY) + 'px';
         box.style.left   = (r.left + window.scrollX) + 'px';
         box.style.width  = r.width + 'px';
         box.style.height = r.height + 'px';
-        btn.href = editUrl(sec);
+        btn.href = targetUrl;
         btn.textContent = editLabel(sec);
 
       }

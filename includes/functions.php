@@ -359,13 +359,19 @@ function bloxAreaHtml(string $area): string
         }
         $publishedData = (string) ($row['published_data'] ?? '');
         $document = BloxAreaDocument::decode($area, $publishedData);
-        $body = BlockRenderer::render($publishedData);
+        $body = BloxFrontendEditTarget::inArea(
+            $area,
+            static fn (): string => BlockRenderer::render($publishedData)
+        );
         if ($body === '') {
             return '';
         }
+        $editUrl = !empty($_SESSION['admin_id']) && !isCleanFrontendPreview()
+            ? BloxAreaEditorTarget::url($area, $context)
+            : '';
         // 文档级 settings（v1 信封）：sticky 吸顶只对 header 有意义。
         // 壳层消费 settings，渲染器只管 sections——存量裸数组文档无 settings，自然不吸顶。
-        return BloxAreaDocument::renderShell($area, $document['settings'], $body);
+        return BloxAreaDocument::renderShell($area, $document['settings'], $body, '', $editUrl);
     } catch (Throwable $e) {
         error_log('[bloxAreaHtml] ' . $e->getMessage());
         return ''; // 任何异常回退旧模板，头尾故障不白屏

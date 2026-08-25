@@ -57,11 +57,20 @@ final class BloxAreaDocument
     }
 
     /** Render the semantic area shell used by both the frontend and editor preview. */
-    public static function renderShell(string $type, array $settings, string $body, string $previewState = ''): string
+    public static function renderShell(
+        string $type,
+        array $settings,
+        string $body,
+        string $previewState = '',
+        string $editUrl = ''
+    ): string
     {
         self::assertArea($type);
+        $editUrl = str_starts_with($editUrl, '/admin/blox_editor.php?') ? $editUrl : '';
+        $editAttr = $editUrl === '' ? '' : ' data-yk-edit="' . htmlspecialchars($editUrl, ENT_QUOTES)
+            . '" data-yk-edit-label="' . htmlspecialchars(__($type === 'footer' ? 'fe_edit_footer' : 'fe_edit_layout'), ENT_QUOTES) . '"';
         if ($type === 'footer') {
-            return '<footer class="yk-blox-area yk-blox-footer">' . $body . '</footer>';
+            return '<footer class="yk-blox-area yk-blox-footer"' . $editAttr . '>' . $body . '</footer>';
         }
 
         $settings = self::normalizeSettings('header', $settings);
@@ -100,7 +109,7 @@ final class BloxAreaDocument
             . ' data-yk-sticky-mobile="' . (in_array('mobile', $stickyDevices, true) ? '1' : '0') . '"'
             . ' data-yk-overlay-enabled="' . (!empty($settings['header_overlay_enabled']) ? '1' : '0') . '"'
             . implode('', array_unique($flags))
-            . ' style="' . htmlspecialchars(implode(';', $variables), ENT_QUOTES) . '">'
+            . $editAttr . ' style="' . htmlspecialchars(implode(';', $variables), ENT_QUOTES) . '">'
             . $body . '</header>';
     }
 
