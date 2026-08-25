@@ -71,21 +71,4 @@ final class LogoElement extends AbstractElement
         return '<div' . $this->animationAttrs($data) . '>' . $body . '</div>';
     }
 
-    public function renderWithContext(array $data, string $children = '', array $context = []): string
-    {
-        $html = $this->render($data, $children);
-        $nodeId = trim((string) ($context['node_id'] ?? ''));
-        if ($html === '' || empty($_SESSION['admin_id']) || $nodeId === '' || strlen($nodeId) > 512
-            || preg_match('/[\x00-\x1F\x7F]/', $nodeId) === 1) {
-            return $html;
-        }
-
-        $processor = new HtmlTagRewriter($html);
-        if (!$processor->nextTag()) {
-            return $html;
-        }
-        $processor->setAttribute('data-yk-element-edit', 'logo');
-        $processor->setAttribute('data-yk-element-id', $nodeId);
-        return $processor->getUpdatedHtml();
-    }
 }
