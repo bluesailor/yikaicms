@@ -383,7 +383,15 @@ declare(strict_types=1);
                                 <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
                             </span>
                             <span class="mt-auto pt-3 flex items-center gap-2">
-                                <button type="button" @click="insertTemplate(item)"
+                                <button type="button" x-show="item.type === 'page' && pageMode" @click="replaceWithTemplate(item)"
+                                        :disabled="templateInserting !== '' || !!item.locked"
+                                        data-testid="blox-template-replace"
+                                        :title="item.locked ? templateLockLabel(item) : templateText.usePage"
+                                        class="h-8 flex-1 rounded border border-blue-600 bg-blue-600 px-3 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5 hover:border-blue-500 hover:bg-blue-500 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
+                                    <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : 'ti-wand')"></i>
+                                    <span x-text="templateText.usePage"></span>
+                                </button>
+                                <button type="button" x-show="item.type !== 'page' || !pageMode" @click="insertTemplate(item)"
                                         :disabled="templateInserting !== '' || !!item.locked"
                                         data-testid="blox-template-insert"
                                         :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insert)"
@@ -393,6 +401,12 @@ declare(strict_types=1);
                                             : 'flex-1 border border-blue-600 bg-blue-600 text-white hover:border-blue-500 hover:bg-blue-500'">
                                     <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
                                     <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insert"></span>
+                                </button>
+                                <button type="button" x-show="item.type === 'page' && pageMode && sections.length > 0"
+                                        @click="insertTemplate(item)" :disabled="templateInserting !== '' || !!item.locked"
+                                        data-testid="blox-template-append" :title="templateText.append" :aria-label="templateText.append + ': ' + item.name"
+                                        class="h-8 w-8 shrink-0 rounded border border-gray-200 text-gray-500 inline-flex items-center justify-center hover:border-blue-300 hover:text-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">
+                                    <i class="ti ti-plus text-sm"></i>
                                 </button>
                                 <template x-if="canEditLocalTemplate(item)">
                                     <a :href="localTemplateEditUrl(item)" target="_blank" rel="noopener"

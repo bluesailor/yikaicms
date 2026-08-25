@@ -96,6 +96,15 @@ final class BloxBuiltinTemplateProvider
             'category' => 'page',
             'thumbnail' => '/assets/images/blox-templates/contact-page.svg',
         ],
+        'service-process' => [
+            'type' => 'page',
+            'file' => 'service-process.json',
+            'contexts' => ['page'],
+            'name_key' => 'blox_builtin_process_name',
+            'description_key' => 'blox_builtin_process_desc',
+            'category' => 'page',
+            'thumbnail' => '/assets/images/blox-templates/service-process.png',
+        ],
         '404-route-lost' => [
             'type' => 'page',
             'file' => '404-route-lost.json',

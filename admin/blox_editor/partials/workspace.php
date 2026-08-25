@@ -2506,6 +2506,19 @@ declare(strict_types=1);
 
         <!-- 中：画布 -->
         <main x-ref="canvasHost" data-testid="blox-canvas-host" class="flex-1 min-w-0 bg-gray-200 overflow-auto flex flex-col" @contextmenu.prevent="openCtx($event, 'canvas', {})">
+            <div x-show="legacyPageContent" x-cloak data-testid="blox-legacy-page-notice"
+                 class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900 sm:px-4">
+                <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">
+                    <span class="inline-flex min-w-0 flex-1 items-start gap-2 text-xs leading-relaxed">
+                        <i class="ti ti-file-code mt-0.5 shrink-0 text-base text-amber-600"></i>
+                        <span><strong class="font-semibold"><?= e(__('blox_legacy_page_title')) ?></strong> <?= e(__('blox_legacy_page_desc')) ?></span>
+                    </span>
+                    <button type="button" @click="openPageTemplates()" data-testid="blox-legacy-page-templates"
+                            class="h-8 shrink-0 rounded bg-amber-900 px-3 text-xs font-medium text-white hover:bg-amber-800 inline-flex items-center gap-1.5">
+                        <i class="ti ti-layout-grid-add text-sm"></i><?= e(__('blox_legacy_page_action')) ?>
+                    </button>
+                </div>
+            </div>
             <!-- r14 面包屑：选择模型的另一个视图（稳定派生自 selected*，重排/undo 后天然正确）；点父级只改选择 -->
             <div x-show="breadcrumb().length > 0" x-cloak data-testid="blox-breadcrumb"
                  class="sticky top-0 z-40 flex items-center gap-0.5 px-3 py-1 bg-white/95 backdrop-blur border-b border-gray-200 text-xs shrink-0">

@@ -10,6 +10,8 @@ const {
   observeConsole,
   observeUnsafeWrites,
   openEditor,
+  openPageEditor,
+  performPagePreviewUpdate,
   performPreviewUpdate,
   waitPreviewSettled,
   restoreClean,
@@ -940,6 +942,45 @@ test('built-in section library filters previews and inserts a fresh section @ci'
 
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('legacy service page can switch to editable built-in process template @local', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single template replacement baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  expect(fixtures.process_page).toBeGreaterThan(0);
+
+  await openPageEditor(page, fixtures.process_page);
+  await expect(page.getByTestId('blox-legacy-page-notice')).toBeVisible();
+  await page.getByTestId('blox-legacy-page-templates').click();
+
+  const template = page.locator(
+    '[data-testid="blox-template-item"][data-template-key="builtin:service-process"]',
+  );
+  await expect(template).toBeVisible();
+  await expect(template).toContainText('服务流程');
+  page.once('dialog', (dialog) => dialog.accept());
+  await template.getByTestId('blox-template-replace').click();
+
+  await expect(page.getByTestId('blox-legacy-page-notice')).toBeHidden();
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(5);
+  await page.getByTestId('blox-tree-section').nth(1).click();
+  const processGroup = page.locator(
+    '[data-testid="blox-tree-element"][data-element-type="process-steps"]',
+  );
+  await expect(processGroup).toHaveCount(1);
+  const steps = processGroup.locator('[data-sort-child-item][data-element-type="process-step"]');
+  await expect(steps).toHaveCount(6);
+
+  await steps.first().click();
+  await expect(page.locator('[data-control-key="title"] input')).toHaveValue('需求沟通');
+  await expect(page.locator('[data-control-key="text"] textarea')).toHaveValue(/了解业务场景/);
+
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
+  await expect(page.getByTestId('blox-legacy-page-notice')).toBeVisible();
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 

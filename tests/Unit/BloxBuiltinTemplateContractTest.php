@@ -36,6 +36,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         return [
             '公司介绍' => ['company-intro', ['以专业与稳健', '成立年份', '为什么选择我们', '研发设计', '立即咨询']],
             '联系我们' => ['contact-page', ['联系我们', '常见问题', '多久能收到回复', '工作时间']],
+            '服务流程' => ['service-process', ['每一步都清晰可控', '需求沟通', '测试验收', '方案与计划', '合作前常见问题']],
         ];
     }
 
@@ -121,20 +122,46 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         }
     }
 
-    public function testProviderListsBothTemplatesWithExistingThumbnails(): void
+    public function testProviderListsPageTemplatesWithExistingThumbnails(): void
     {
         $items = [];
         foreach ((new BloxBuiltinTemplateProvider())->items('page') as $item) {
             $items[$item['key']] = $item;
         }
 
-        foreach (['builtin:company-intro', 'builtin:contact-page'] as $key) {
+        foreach (['builtin:company-intro', 'builtin:contact-page', 'builtin:service-process'] as $key) {
             self::assertArrayHasKey($key, $items);
             self::assertNotSame('', $items[$key]['name']);
             self::assertNotSame('', $items[$key]['description']);
             // 缩略图缺失在界面上是一张碎图，属于「发出去才被发现」的那类问题
             self::assertFileExists(ROOT_PATH . $items[$key]['thumbnail']);
         }
+    }
+
+    public function testServiceProcessKeepsSixIndividuallyEditableSteps(): void
+    {
+        $document = json_decode(
+            (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/service-process.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $groups = [];
+        foreach ((array) ($document['document']['sections'] ?? []) as $section) {
+            foreach ((array) ($section['columns'] ?? []) as $column) {
+                foreach ((array) ($column['elements'] ?? []) as $element) {
+                    if (($element['type'] ?? '') === 'process-steps') {
+                        $groups[] = $element;
+                    }
+                }
+            }
+        }
+
+        self::assertCount(1, $groups);
+        $steps = (array) ($groups[0]['data']['children'] ?? []);
+        self::assertCount(6, $steps);
+        self::assertSame(array_fill(0, 6, 'process-step'), array_column($steps, 'type'));
+        self::assertSame(['01', '02', '03', '04', '05', '06'], array_column(array_column($steps, 'data'), 'number'));
     }
 
     /** 素材必须随包，不能指向 /uploads/——那是站点自有内容，模板装到别的站就是裂图。 */

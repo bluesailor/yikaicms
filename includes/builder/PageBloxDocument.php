@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 final class PageBloxDocument
 {
-    /** @return array{page:array<string,mixed>,document_json:string,base_revision:string,has_draft:bool,has_published:bool,has_unpublished_changes:bool,published_at:int} */
+    /** @return array{page:array<string,mixed>,document_json:string,base_revision:string,has_draft:bool,has_published:bool,has_unpublished_changes:bool,uses_legacy_html:bool,published_at:int} */
     public static function load(int $pageId): array
     {
         $page = self::page($pageId);
@@ -18,6 +18,14 @@ final class PageBloxDocument
         $documentJson = $hasDraft
             ? self::canonicalJson((string) $draft['draft_data'])
             : $publishedJson;
+        $legacyHtml = trim((string) ($published['content'] ?? ''));
+        if ($legacyHtml === '') {
+            $legacyHtml = trim((string) ($page['content'] ?? ''));
+        }
+        $usesLegacyHtml = !$hasDraft
+            && trim((string) ($published['blocks_data'] ?? '')) === ''
+            && (string) ($published['content_type'] ?? 'html') !== 'blocks'
+            && $legacyHtml !== '';
 
         return [
             'page' => $page,
@@ -32,6 +40,7 @@ final class PageBloxDocument
                     BloxDocumentPipeline::fingerprint($documentJson)
                 )
             ),
+            'uses_legacy_html' => $usesLegacyHtml,
             'published_at' => (int) ($draft['published_at'] ?? 0),
         ];
     }

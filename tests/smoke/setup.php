@@ -333,6 +333,12 @@ $redirectStmt = $pdo->prepare(
 $redirectStmt->execute([$smokeLang]);
 $redirectPage = $redirectStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
+$processStmt = $pdo->prepare(
+    "SELECT id FROM yikai_channels WHERE type = 'page' AND slug = 'process' AND lang = ? LIMIT 1"
+);
+$processStmt->execute([$smokeLang]);
+$processPageId = (int) ($processStmt->fetchColumn() ?: 0);
+
 $out = [
     // 按站点语言挑 fixture：种子数据是三语的，随手取第一行会拿到中文栏目，
     // 而英文站建的内容 lang=en——父子语言不一致，列表页永远查不到（这不是产品
@@ -353,6 +359,7 @@ $out = [
     'redirect_parent_name' => (string) ($redirectPage['parent_name'] ?? ''),
     'redirect_target' => (int) ($redirectPage['target_id'] ?? 0),
     'redirect_target_name' => (string) ($redirectPage['target_name'] ?? ''),
+    'process_page' => $processPageId,
 ];
 file_put_contents(__DIR__ . '/fixtures.json', json_encode($out));
 echo "SMOKE SETUP OK: " . json_encode($out) . "\n";
