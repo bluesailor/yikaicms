@@ -319,7 +319,7 @@ if ($hasPublishedProductBlox && is_array($productBloxContent)) {
         'filterPriceMin' => $filterPriceMin ?? '',
         'filterPriceMax' => $filterPriceMax ?? '',
     ]);
-    echo renderContentBody($productBloxContent);
+    echo renderFrontEditableContentBody($productBloxContent, (int) $productPageChannel['id']);
     ProductCatalogElement::setRuntimeContext(null);
     require_once theme_path('layouts/footer.php');
     HtmlCache::end();
@@ -336,11 +336,11 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
         'perPage' => $perPage,
         'total' => (int) ($total ?? 0),
     ]);
-    echo renderContentBody([
+    echo renderFrontEditableContentBody([
         'content_type' => 'blocks',
         'blocks_data' => $contentListBloxJson,
         'content' => '',
-    ]);
+    ], (int) $contentListPageChannel['id']);
     ContentCatalogElement::setRuntimeContext(null);
     require_once theme_path('layouts/footer.php');
     HtmlCache::end();

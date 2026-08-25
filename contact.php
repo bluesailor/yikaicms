@@ -46,7 +46,7 @@ if ($currentChannelId > 0) {
         if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
             $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $currentChannelId;
         }
-        $contactBlocksHtml = renderContentBody($__cRow);
+        $contactBlocksHtml = renderFrontEditableContentBody($__cRow, $currentChannelId);
     }
 }
 

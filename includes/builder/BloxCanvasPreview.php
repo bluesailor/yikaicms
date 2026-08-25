@@ -366,6 +366,12 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         var match = String(value || '').match(/^(\d+)\.(title|subtitle)$/);
         return match ? { si: parseInt(match[1], 10), field: match[2] } : null;
     }
+    function sectionTarget(node) {
+        if (!node) return null;
+        var id = node.getAttribute('data-yk-sec-id') || '';
+        var si = parseInt(node.getAttribute('data-yk-sec'), 10);
+        return id && !isNaN(si) ? { id: id, si: si } : null;
+    }
     function homeFieldTarget(node) {
         if (!node) return null;
         var path = node.getAttribute('data-yk-home-path') || '';
@@ -812,9 +818,17 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             postToEditor({ ykClear: true });
             return;
         }
-        var i = parseInt(s.getAttribute('data-yk-sec'), 10);
-        highlightSection(i);
-        postToEditor({ ykPick: i });
+        var section = sectionTarget(s);
+        if (section) {
+            highlightSection(section.si);
+            postToEditor({ ykPickSection: section });
+        } else {
+            var legacyIndex = parseInt(s.getAttribute('data-yk-sec'), 10);
+            if (!isNaN(legacyIndex)) {
+                highlightSection(legacyIndex);
+                postToEditor({ ykPick: legacyIndex });
+            }
+        }
     }, true);
 
     document.addEventListener('contextmenu', function (e) {
@@ -948,6 +962,15 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             highlightColumn(d.ykHighlightCol);
             var col = document.querySelector('[data-yk-col="' + cssEscape(d.ykHighlightCol) + '"]');
             if (shouldScroll && col) col.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        if (typeof d.ykHighlightSectionId === 'string' && d.ykHighlightSectionId) {
+            var stableTarget = document.querySelector('[data-yk-sec-id="' + cssEscape(d.ykHighlightSectionId) + '"]');
+            if (stableTarget) {
+                var stableIndex = parseInt(stableTarget.getAttribute('data-yk-sec'), 10);
+                if (!isNaN(stableIndex)) highlightSection(stableIndex);
+                if (shouldScroll) stableTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
             return;
         }
         if (typeof d.ykHighlight === 'number') {
