@@ -4,7 +4,7 @@
  * 变量：$aboutChannel
  */
 $aboutLayout = config('home_about_layout', 'text_left');
-$aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
+$aboutImage = (string) config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
 $bg = getBlockBg($block ?? [], 'bg-white');
@@ -30,7 +30,7 @@ if ($aboutSite === '') {
             <?php if ($aboutLayout === 'image_left'): ?>
             <!-- 左图右文 -->
             <div class="relative" data-animate="fade-right">
-                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($aboutImage, 'medium', '(min-width: 1024px) 50vw, 100vw'); ?> alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>
@@ -73,7 +73,7 @@ if ($aboutSite === '') {
                 <?php endif; ?>
             </div>
             <div class="relative" data-animate="fade-left">
-                <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($aboutImage, 'medium', '(min-width: 1024px) 50vw, 100vw'); ?> alt="<?php echo __('home_about_title'); ?>" class="rounded-lg shadow-lg w-full">
                 <?php if ($aboutTagTitle || $aboutTagDesc): ?>
                 <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
                     <?php if ($aboutTagTitle): ?>

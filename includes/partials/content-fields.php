@@ -49,11 +49,11 @@ if (empty($_rows)) {
             <dt class="text-gray-500 shrink-0 min-w-[5rem]"><?php echo e($_f['field_name']); ?></dt>
             <dd class="text-gray-800 flex-1">
                 <?php if ($_f['field_type'] === 'image'): ?>
-                    <img src="<?php echo e($_v); ?>" alt="<?php echo e($_f['field_name']); ?>" class="max-h-40 rounded border">
+                    <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($_v, 'medium', '(min-width: 1024px) 640px, 100vw'); ?> alt="<?php echo e($_f['field_name']); ?>" class="max-h-40 rounded border">
                 <?php elseif ($_f['field_type'] === 'images'): ?>
                     <div class="flex flex-wrap gap-2">
                         <?php foreach (explode(',', $_v) as $_img): $_img = trim($_img); if ($_img === '') continue; ?>
-                        <img src="<?php echo e($_img); ?>" alt="" class="max-h-32 rounded border">
+                        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($_img, 'medium', '320px'); ?> alt="" class="max-h-32 rounded border">
                         <?php endforeach; ?>
                     </div>
                 <?php elseif ($_f['field_type'] === 'textarea'): ?>

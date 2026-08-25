@@ -19,7 +19,7 @@ $bg = getBlockBg($block ?? [], '@auto');
             <a href="<?php echo e($link['url']); ?>" target="_blank" rel="nofollow" title="<?php echo e($link['name']); ?>"
                class="inline-flex items-center">
                 <?php if (!empty($link['logo'])): ?>
-                <img loading="lazy" src="<?php echo e($link['logo']); ?>" alt="<?php echo e($link['name']); ?>"
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes((string) $link['logo'], 'medium', '160px'); ?> alt="<?php echo e($link['name']); ?>"
                      class="h-10 object-contain grayscale hover:grayscale-0 opacity-80 hover:opacity-100 transition">
                 <?php else: ?>
                 <span class="text-gray-500 hover:text-primary text-sm transition"><?php echo e($link['name']); ?></span>

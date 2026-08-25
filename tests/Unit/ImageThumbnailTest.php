@@ -293,6 +293,33 @@ final class ImageThumbnailTest extends TestCase
         $this->assertStringContainsString('href="<?php echo e($photo[\'image\']); ?>"', $page);
     }
 
+    public function testSharedMediaBlocksUseResponsiveImageAttributes(): void
+    {
+        $minimumCalls = [
+            'themes/default/blocks/about.php' => 1,
+            'includes/blocks/about.php' => 2,
+            'themes/default/blocks/partners.php' => 1,
+            'includes/blocks/partners.php' => 1,
+            'themes/default/blocks/testimonials.php' => 1,
+            'includes/blocks/testimonials.php' => 1,
+            'includes/partials/timeline-compact.php' => 1,
+            'includes/partials/timeline-horizontal.php' => 1,
+            'includes/partials/timeline-vertical.php' => 1,
+            'includes/partials/content-fields.php' => 2,
+        ];
+
+        foreach ($minimumCalls as $template => $minimum) {
+            $source = file_get_contents(ROOT_PATH . '/' . $template);
+            $this->assertIsString($source);
+            $this->assertGreaterThanOrEqual(
+                $minimum,
+                substr_count($source, 'responsiveImageAttributes('),
+                $template
+            );
+            $this->assertStringContainsString('decoding="async"', $source, $template);
+        }
+    }
+
     public function testWebpUrlEmptyAndFallback(): void
     {
         $this->assertSame('', webpUrl(''));
