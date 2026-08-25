@@ -142,6 +142,45 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   }
 });
 
+test('browser image preprocessing reduces pixels and upload bytes @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser image baseline');
+
+  const metrics = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 3200;
+    canvas.height = 1600;
+    const context = canvas.getContext('2d');
+    for (let y = 0; y < 40; y += 1) {
+      for (let x = 0; x < 80; x += 1) {
+        context.fillStyle = `hsl(${(x * 37 + y * 19) % 360} 72% ${35 + ((x + y) % 40)}%)`;
+        context.fillRect(x * 40, y * 40, 40, 40);
+      }
+    }
+    const sourceBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.98));
+    const source = new File([sourceBlob], 'browser-metric.jpg', { type: 'image/jpeg' });
+    const prepared = await window.BloxMediaClient.prepareImage(source, {
+      maxDimension: 1600,
+      minBytes: 0,
+      quality: 0.72,
+    });
+    const decoded = await createImageBitmap(prepared);
+    const result = {
+      originalBytes: source.size,
+      outputBytes: prepared.size,
+      width: decoded.width,
+      height: decoded.height,
+      type: prepared.type,
+    };
+    decoded.close();
+    return result;
+  });
+
+  expect(metrics.type).toBe('image/jpeg');
+  expect(metrics.width).toBe(1600);
+  expect(metrics.height).toBe(800);
+  expect(metrics.outputBytes).toBeLessThan(metrics.originalBytes);
+});
+
 test('home canvas exposes dedicated edit links for the readonly header and footer @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
