@@ -63,7 +63,7 @@ if (empty($groupedTimelines)) return;
                     </p>
                     <?php endif; ?>
                     <?php if (!empty($event['image'])): ?>
-                    <img loading="lazy" src="<?php echo e($event['image']); ?>" alt="<?php echo e($event['title']); ?>"
+                    <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes((string) $event['image'], 'medium', '(min-width: 640px) 448px, 100vw'); ?> alt="<?php echo e($event['title']); ?>"
                          class="mt-2 w-full max-w-md rounded shadow-sm">
                     <?php endif; ?>
                 </div>

@@ -59,7 +59,7 @@ if (($timelineSort ?? 'desc') === 'asc') {
 
                             <?php if ($event['image']): ?>
                             <div class="relative h-40 overflow-hidden">
-                                <img loading="lazy" src="<?php echo e($event['image']); ?>" alt="<?php echo e($event['title']); ?>"
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes((string) $event['image'], 'medium', '(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw'); ?> alt="<?php echo e($event['title']); ?>"
                                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                             </div>
