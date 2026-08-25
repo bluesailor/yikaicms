@@ -268,7 +268,10 @@ require_once theme_path('layouts/header.php');
                     if (!empty($content['images'])) {
                         $decoded = json_decode($content['images'], true);
                         if (is_array($decoded)) {
-                            $galleryImages = array_values(array_filter($decoded));
+                            $galleryImages = array_values(array_filter(
+                                $decoded,
+                                static fn(mixed $image): bool => is_string($image) && $image !== ''
+                            ));
                         } else {
                             $galleryImages = array_filter(array_map('trim', explode("\n", $content['images'])));
                         }
@@ -285,7 +288,7 @@ require_once theme_path('layouts/header.php');
                             <?php foreach ($galleryImages as $idx => $image): ?>
                             <button type="button" onclick="openCaseLightbox(<?php echo $idx; ?>)"
                                     class="group block aspect-square rounded overflow-hidden relative cursor-zoom-in">
-                                <img loading="lazy" src="<?php echo e($image); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($image, 'thumb', '(min-width: 768px) 25vw, 50vw'); ?> alt="<?php echo e($content['title']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
                                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition"></div>
                             </button>
                             <?php endforeach; ?>
@@ -348,7 +351,7 @@ require_once theme_path('layouts/header.php');
                             <?php // 无封面留同尺寸占位，保证标题左边缘对齐、卡片高度一致 ?>
                             <div class="w-20 h-16 flex-shrink-0 rounded overflow-hidden">
                                 <?php if ($item['cover']): ?>
-                                <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'thumb')); ?>" class="w-full h-full object-cover">
+                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'thumb', '80px'); ?> alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
                                 <span class="w-full h-full bg-gray-100 text-gray-300 flex items-center justify-center">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -422,7 +425,7 @@ require_once theme_path('layouts/header.php');
         <?php foreach ($galleryImages as $i => $img): ?>
         <button type="button" onclick="event.stopPropagation(); caseLightboxGoto(<?php echo $i; ?>);"
                 class="case-lb-thumb flex-shrink-0 w-16 h-16 rounded overflow-hidden transition <?php echo $i === 0 ? 'ring-2 ring-white' : 'opacity-50'; ?>">
-            <img src="<?php echo e($img); ?>" alt="" class="w-full h-full object-cover">
+            <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($img, 'thumb', '64px'); ?> alt="" class="w-full h-full object-cover">
         </button>
         <?php endforeach; ?>
     </div>
@@ -430,7 +433,7 @@ require_once theme_path('layouts/header.php');
 </div>
 
 <script>
-var caseGallery = <?php echo json_encode(array_values($galleryImages), JSON_UNESCAPED_SLASHES); ?>;
+var caseGallery = <?php echo json_encode(array_values($galleryImages), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var caseLbIdx = 0;
 
 function openCaseLightbox(idx) {

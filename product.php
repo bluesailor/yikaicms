@@ -326,7 +326,7 @@ require_once theme_path('layouts/header.php');
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
                 <?php if ($prevProduct['cover']): ?>
-                <img loading="lazy" src="<?php echo e($prevProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($prevProduct['cover'], 'thumb', '64px'); ?> alt="<?php echo e($prevProduct['title']); ?>" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <div class="min-w-0">
                     <div class="text-xs text-gray-400 mb-1"><?php echo e(__('detail_prev_product')); ?></div>
@@ -344,7 +344,7 @@ require_once theme_path('layouts/header.php');
                     <div class="font-medium text-dark group-hover:text-primary transition truncate"><?php echo e($nextProduct['title']); ?></div>
                 </div>
                 <?php if ($nextProduct['cover']): ?>
-                <img loading="lazy" src="<?php echo e($nextProduct['cover']); ?>" alt="" class="w-16 h-16 object-cover rounded flex-shrink-0">
+                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($nextProduct['cover'], 'thumb', '64px'); ?> alt="<?php echo e($nextProduct['title']); ?>" class="w-16 h-16 object-cover rounded flex-shrink-0">
                 <?php endif; ?>
                 <svg class="w-5 h-5 text-gray-400 group-hover:text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -363,7 +363,7 @@ require_once theme_path('layouts/header.php');
                 <a href="<?php echo productUrl($item); ?>" class="group bg-white rounded-lg overflow-hidden shadow hover:shadow-lg transition">
                     <div class="aspect-[4/3] overflow-hidden">
                         <?php if ($item['cover']): ?>
-                        <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
+                        <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'medium', '(min-width: 768px) 25vw, 50vw'); ?> alt="<?php echo e($item['title']); ?>"
                              class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
                         <?php else: ?>
                         <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
