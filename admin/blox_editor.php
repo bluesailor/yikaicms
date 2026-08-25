@@ -54,11 +54,13 @@ $initialPanel = in_array((string) get('open', ''), ['design', 'templates'], true
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
-// 外部定位协议只接受短、无控制字符的持久 section id；它是文档内不透明标识，不解释为索引。
-$initialFocusSectionId = trim((string) get('focus_section', ''));
-if (strlen($initialFocusSectionId) > 512 || preg_match('/[\x00-\x1F\x7F]/', $initialFocusSectionId) === 1) {
-    $initialFocusSectionId = '';
-}
+// 外部定位协议只接受短、无控制字符的持久节点 id；它是文档内不透明标识，不解释为索引。
+$normalizeFocusId = static function (mixed $value): string {
+    $id = trim((string) $value);
+    return strlen($id) <= 512 && preg_match('/[\x00-\x1F\x7F]/', $id) !== 1 ? $id : '';
+};
+$initialFocusSectionId = $normalizeFocusId(get('focus_section', ''));
+$initialFocusElementId = $normalizeFocusId(get('focus_element', ''));
 
 /** JS 字面量内联文案：json_encode(__(key))，供 Alpine data() 里 this 不可用的位置使用。 */
 $jt = static fn (string $key): string => (string) json_encode(__($key), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -810,6 +812,7 @@ $canManageBloxDesign = hasPermission('*');
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
             initialPanel: <?php echo json_encode($initialPanel); ?>,
             initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            initialFocusElementId: <?php echo json_encode($initialFocusElementId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             canManageDesign: <?php echo $canManageBloxDesign ? 'true' : 'false'; ?>,
             designSystem: <?php echo json_encode($bloxDesignSystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             designUsage: { tokens: {}, styles: {} },
@@ -4416,7 +4419,7 @@ $canManageBloxDesign = hasPermission('*');
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
                 this.normalizeIds();
-                this.applyInitialSectionFocus();
+                this.applyInitialNodeFocus();
                 this.initHistory();
                 this.initDraftRecovery();
                 this.$nextTick(function() {
@@ -4507,8 +4510,8 @@ $canManageBloxDesign = hasPermission('*');
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
                     onPickHomeColumn: function (payload) { self.selectHomeColumn(payload.path, payload.column, false); },
                     onPickHomeField: function (payload) { self.selectHomeField(payload.path, payload.field, false); },
-                    onPickElement: function (path) { self.selectPath(path, false); },
-                    onEditElement: function (path) { self.selectPath(path, false); self.quickEditSelected(); },
+                    onPickElement: function (target) { self.selectElementTarget(target, false); },
+                    onEditElement: function (target) { self.selectElementTarget(target, false); self.quickEditSelected(); },
                     onPickColumn: function (si, ci) { self.selectColumn(si, ci, false); },
                     onPickContainer: function (si) { self.selectContainer(si, false); },
                     onPickSection: function (target) { self.selectSectionTarget(target, false); },
@@ -5049,6 +5052,11 @@ $canManageBloxDesign = hasPermission('*');
                 return section && section.id ? String(section.id) : "";
             },
 
+            selectedElementId() {
+                var element = this.elementAtPath(this.selectedPath());
+                return element && element.id ? String(element.id) : "";
+            },
+
             sectionIndexById(id, legacyIndex) {
                 var sectionId = typeof id === "string" ? id : "";
                 if (sectionId) {
@@ -5065,7 +5073,43 @@ $canManageBloxDesign = hasPermission('*');
                 if (si >= 0) this.selectSection(si, notifyCanvas);
             },
 
-            applyInitialSectionFocus() {
+            elementPathById(id) {
+                var elementId = typeof id === "string" ? id : "";
+                if (!elementId) return "";
+                for (var si = 0; si < this.sections.length; si++) {
+                    var columns = (this.sections[si] || {}).columns || [];
+                    for (var ci = 0; ci < columns.length; ci++) {
+                        var elements = (columns[ci] || {}).elements || [];
+                        for (var ei = 0; ei < elements.length; ei++) {
+                            var element = elements[ei] || {};
+                            if (String(element.id || "") === elementId) return [si, ci, ei].join(".");
+                            var children = ((element.data || {}).children) || [];
+                            for (var cei = 0; cei < children.length; cei++) {
+                                if (String((children[cei] || {}).id || "") === elementId) {
+                                    return [si, ci, ei, cei].join(".");
+                                }
+                            }
+                        }
+                    }
+                }
+                return "";
+            },
+
+            selectElementTarget(target, notifyCanvas) {
+                target = target && typeof target === "object" ? target : {};
+                var path = typeof target.id === "string" && target.id
+                    ? this.elementPathById(target.id)
+                    : (typeof target.path === "string" ? target.path : "");
+                if (path) this.selectPath(path, notifyCanvas);
+            },
+
+            applyInitialNodeFocus() {
+                var elementPath = this.elementPathById(this.initialFocusElementId);
+                if (elementPath) {
+                    this.selectPath(elementPath, false);
+                    this._pendingInitialFocus = true;
+                    return true;
+                }
                 var si = this.sectionIndexById(this.initialFocusSectionId, -1);
                 if (si < 0) return false;
                 this.selectSection(si, false);
@@ -5105,7 +5149,8 @@ $canManageBloxDesign = hasPermission('*');
                     message.ykHighlightEl = this.selectedSi + "." + this.selectedCi + "." + this.selectedEi;
                 } else if (this.selectedSectionField && this.selectedSi >= 0) {
                     message.ykHighlightSectionField = { si: this.selectedSi, field: this.selectedSectionField };
-                } else if (path) message.ykHighlightEl = path;
+                } else if (path && this.selectedElementId()) message.ykHighlightElementId = this.selectedElementId();
+                else if (path) message.ykHighlightEl = path;
                 else if (this.selectedSi >= 0 && this.selLayer === "col" && this.selectedCi >= 0) message.ykHighlightCol = this.selectedSi + "." + this.selectedCi;
                 else if (this.selectedSi >= 0 && this.selLayer === "con") message.ykHighlightCon = this.selectedSi;
                 else if (this.selectedSi >= 0 && this.selectedSectionId()) message.ykHighlightSectionId = this.selectedSectionId();

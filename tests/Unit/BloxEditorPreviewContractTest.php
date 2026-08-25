@@ -419,7 +419,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach ([
             "get('focus_section', '')",
             'initialFocusSectionId:',
-            'applyInitialSectionFocus()',
+            'applyInitialNodeFocus()',
             'sectionIndexById(id, legacyIndex)',
             'message.ykHighlightSectionId = this.selectedSectionId()',
         ] as $token) {
@@ -430,6 +430,29 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('d.ykHighlightSectionId', $canvas);
         $this->assertStringContainsString('sectionTargetPayload(data.ykPickSection)', $bridge);
         $this->assertStringNotContainsString("getInt('focus')", $editor);
+    }
+
+    public function testStableElementLocatorUsesOpaqueIdsAcrossUrlDomAndCanvasMessages(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $renderer = $this->source('includes/builder/BlockRenderer.php');
+        $canvas = $this->source('admin/page_edit_advance.php');
+        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+
+        foreach ([
+            "get('focus_element', '')",
+            'initialFocusElementId:',
+            'elementPathById(id)',
+            'selectElementTarget(target, notifyCanvas)',
+            'message.ykHighlightElementId = this.selectedElementId()',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "editor element locator token {$token} missing");
+        }
+        $this->assertStringContainsString('data-yk-el-id="', $renderer);
+        $this->assertStringContainsString('ykPickElement: target', $canvas);
+        $this->assertStringContainsString('d.ykHighlightElementId', $canvas);
+        $this->assertStringContainsString('elementTargetPayload(data.ykPickElement)', $bridge);
+        $this->assertStringContainsString('elementTargetPayload(data.ykEditElement)', $bridge);
     }
 
     public function testCanvasAndRevisionPreviewLoadFrontendTypographyStyles(): void
