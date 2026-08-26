@@ -57,6 +57,8 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString("return '/admin/blox_editor.php?' . \$query;", $adminBar);
         self::assertStringContainsString("'/admin/setting_home.php'", $adminBar);
         self::assertStringContainsString('adminBarResolveEditUrl((string) ($GLOBALS[\'ik_edit_url\'] ?? \'\'))', $adminBar);
+        self::assertStringContainsString('BloxAreaEditorTarget::normalizeReturnTo', $adminBar);
+        self::assertStringContainsString('BloxAreaEditorTarget::withReturnTo', $adminBar);
 
         $home = file_get_contents(ROOT_PATH . '/index.php');
         $contact = file_get_contents(ROOT_PATH . '/contact.php');
@@ -81,6 +83,8 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString('function buildRegionNavigator()', $frontEdit);
         self::assertStringContainsString("target.searchParams.set('focus_section', sectionId)", $frontEdit);
         self::assertStringContainsString("elementTarget.searchParams.set('focus_element', elementId)", $frontEdit);
+        self::assertStringContainsString('function withFrontendReturn(url)', $frontEdit);
+        self::assertStringContainsString("target.searchParams.set('return_to', frontendReturnTo)", $frontEdit);
         self::assertStringContainsString("var groupOrder = ['page', 'header', 'body', 'footer'];", $frontEdit);
         self::assertStringContainsString("section.getAttribute('data-yk-sec-label') || fallbackLabel", $frontEdit);
         self::assertStringContainsString('link.title = item.label;', $frontEdit);

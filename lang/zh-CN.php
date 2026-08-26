@@ -5531,4 +5531,5 @@ voltage|电压|220V',
     'blox_section_name_auto' => '自动名称：',
     'blox_section_name_hint' => '用于编辑器结构树和前台管理条，不显示在页面正文中；留空时自动生成。',
     'blox_section_name_reset' => '恢复自动名称',
+    'blox_return_to_page' => '返回页面',
 ];
