@@ -141,12 +141,25 @@ test('stable section deep link selects the same persisted block @local', async (
   await page.goto(frontendUrl, { waitUntil: 'domcontentloaded' });
   const frontendSection = page.locator('[data-yk-sec-id]').first();
   const frontendSectionId = await frontendSection.getAttribute('data-yk-sec-id');
+  const frontendSectionLabel = await frontendSection.getAttribute('data-yk-sec-label');
   expect(frontendSectionId).toBeTruthy();
+  expect(frontendSectionLabel).toBeTruthy();
   await frontendSection.hover();
   await expect(page.locator('#yk-edit-btn')).toHaveAttribute(
     'href',
     `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`
   );
+  await page.goto(
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`,
+    { waitUntil: 'domcontentloaded' }
+  );
+  const focusedTreeSection = page.locator(
+    `[data-testid="blox-tree-section"][data-section-id="${frontendSectionId}"]`,
+  );
+  await expect(focusedTreeSection).toHaveClass(/border-blue-400/);
+  await expect(focusedTreeSection).toHaveAttribute('data-section-label', frontendSectionLabel);
+  await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveText(frontendSectionLabel);
+  await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveAttribute('title', frontendSectionLabel);
   expect(consoleEntries).toEqual([]);
 });
 
