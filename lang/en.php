@@ -5480,4 +5480,7 @@ voltage|Voltage|220V',
     'blox_draft_previewing' => 'Previewing draft',
     'blox_draft_preview_private' => 'Visible only to this administrator and does not affect visitors',
     'blox_exit_preview' => 'Exit preview',
+    'dashboard_health_dismiss' => 'Do not remind me again',
+    'dashboard_health_close' => 'Close',
+    'dashboard_health_dismiss_failed' => 'Could not disable the Site Health reminder. Try again.',
 ];

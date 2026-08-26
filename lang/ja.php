@@ -5621,4 +5621,7 @@ voltage|電圧|220V',
     'blox_draft_previewing' => '下書きをプレビュー中',
     'blox_draft_preview_private' => '現在の管理者だけに表示され、訪問者には影響しません',
     'blox_exit_preview' => 'プレビューを終了',
+    'dashboard_health_dismiss' => '今後表示しない',
+    'dashboard_health_close' => '閉じる',
+    'dashboard_health_dismiss_failed' => 'サイトヘルス通知を無効にできませんでした。もう一度お試しください。',
 ];
