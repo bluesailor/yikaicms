@@ -124,6 +124,19 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('ti-layout-grid-add', $editor);
     }
 
+    public function testDesktopElementPanelHasAccessiblePersistentResizer(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        $this->assertStringContainsString('data-testid="blox-left-panel-resizer"', $workspace);
+        $this->assertStringContainsString('role="separator" aria-orientation="vertical"', $workspace);
+        $this->assertStringContainsString('@keydown.left.prevent="resizeLeftPanelBy(-16)"', $workspace);
+        $this->assertStringContainsString('@dblclick="resetLeftPanelWidth()"', $workspace);
+        $this->assertStringContainsString('yikai:blox:left-panel-width:v1', $editor);
+        $this->assertStringContainsString('body.blox-panel-resizing iframe { pointer-events: none; }', $editor);
+    }
+
     /**
      * 空画布提示只能有一处。
      *

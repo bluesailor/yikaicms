@@ -91,6 +91,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   await expect(page.getByTestId('blox-rollback')).toBeDisabled();
 
   if (testInfo.project.name !== 'desktop-1440') {
+    await expect(page.getByTestId('blox-left-panel-resizer')).toBeHidden();
     await expect(page.getByTestId('blox-desktop-actions')).toBeHidden();
     await expect(page.getByTestId('blox-mobile-actions')).toBeVisible();
     await page.getByTestId('blox-mobile-actions-open').click();
@@ -136,6 +137,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await page.getByTestId('blox-mobile-canvas-view').click();
     await expect(leftPanel).not.toHaveClass(/is-open/);
   } else {
+    await expect(page.getByTestId('blox-left-panel-resizer')).toBeVisible();
     await expect(page.getByTestId('blox-desktop-actions')).toBeVisible();
     await expect(page.getByTestId('blox-mobile-actions')).toBeHidden();
     await expect(page.getByTestId('blox-elements-open')).toBeVisible();
@@ -143,6 +145,33 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(templateEntry).toBeVisible();
     await expect(templateEntry.locator('.ti-layout-grid-add')).toBeVisible();
   }
+});
+
+test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
+  const panel = page.getByTestId('blox-left-panel');
+  const resizer = page.getByTestId('blox-left-panel-resizer');
+  const canvasHost = page.getByTestId('blox-canvas-host');
+  await resizer.dblclick();
+  const initialPanel = await panel.boundingBox();
+  const initialCanvas = await canvasHost.boundingBox();
+
+  await resizer.press('ArrowRight');
+  await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 16);
+
+  const handle = await resizer.boundingBox();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 + 64, handle.y + 80, { steps: 4 });
+  await page.mouse.up();
+
+  await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 80);
+  await expect.poll(async () => (await canvasHost.boundingBox()).x).toBe(initialCanvas.x + 80);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('368');
+
+  await resizer.dblclick();
+  await expect.poll(async () => (await panel.boundingBox()).width).toBe(288);
+  await expect(resizer).toHaveAttribute('aria-valuenow', '288');
 });
 
 test('browser image preprocessing reduces pixels and upload bytes @ci', async ({ page }, testInfo) => {

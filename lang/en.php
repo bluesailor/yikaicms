@@ -5492,4 +5492,6 @@ voltage|Voltage|220V',
     'blox_palette_drag_to_insert' => 'Drag “:label” to the canvas or structure tree. You can also press Enter to insert it at the current target.',
     'blox_el_drag_hint' => ' (drag to the tree/canvas; press Enter to insert)',
     'blox_library_drag_hint' => 'On desktop, drag an element to its target in the structure tree or canvas. On touch devices, tap it; with a keyboard, press Enter to insert at the current target.',
+    'blox_resize_element_panel' => 'Resize the element panel',
+    'blox_resize_element_panel_hint' => 'Drag to resize the element panel. Use arrow keys for fine adjustments; double-click to reset.',
 ];

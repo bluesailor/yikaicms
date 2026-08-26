@@ -7,7 +7,10 @@ declare(strict_types=1);
 
         <?php // 左栏（Bricks 式）：元素库 ↔ 设置 同容器切换。选中区块/元素自动进设置，
               // 「＋ 元素」把 libOpen 置真强制回元素库；结构树移右栏常驻。 ?>
-        <aside class="blox-mobile-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col" :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''">
+        <aside data-testid="blox-left-panel"
+               class="blox-mobile-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
+               :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''"
+               :style="leftPanelStyle()">
 
             <!-- ── 元素库（无选中或 libOpen） ── -->
             <div x-show="!sel || libOpen" class="flex-1 flex flex-col min-h-0">
@@ -2745,8 +2748,25 @@ declare(strict_types=1);
             </div>
         </aside>
 
+        <div data-testid="blox-left-panel-resizer"
+             class="blox-panel-resizer"
+             :class="leftPanelResizing ? 'is-active' : ''"
+             role="separator" aria-orientation="vertical" tabindex="0"
+             aria-valuemin="240" :aria-valuemax="leftPanelMaximum()"
+             :aria-valuenow="leftPanelWidth" :aria-valuetext="leftPanelWidth + 'px'"
+             aria-controls="blox-canvas-workspace"
+             title="<?= e(__('blox_resize_element_panel_hint')) ?>"
+             aria-label="<?= e(__('blox_resize_element_panel')) ?>"
+             @pointerdown="startLeftPanelResize($event)"
+             @dblclick="resetLeftPanelWidth()"
+             @keydown.left.prevent="resizeLeftPanelBy(-16)"
+             @keydown.right.prevent="resizeLeftPanelBy(16)"
+             @keydown.home.prevent="resetLeftPanelWidth()">
+            <span aria-hidden="true"></span>
+        </div>
+
         <!-- 中：画布 -->
-        <main x-ref="canvasHost" data-testid="blox-canvas-host" class="flex-1 min-w-0 bg-gray-200 overflow-auto flex flex-col" @contextmenu.prevent="openCtx($event, 'canvas', {})">
+        <main id="blox-canvas-workspace" x-ref="canvasHost" data-testid="blox-canvas-host" class="flex-1 min-w-0 bg-gray-200 overflow-auto flex flex-col" @contextmenu.prevent="openCtx($event, 'canvas', {})">
             <div x-show="legacyPageContent" x-cloak data-testid="blox-legacy-page-notice"
                  class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900 sm:px-4">
                 <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">
