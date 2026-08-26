@@ -379,9 +379,9 @@ test('custom section name survives history and save before returning to automati
   const automaticName = await page.getByTestId('blox-section-auto-name').textContent();
   expect(automaticName).toBeTruthy();
 
-  const marker = `售后 流程 ${Date.now()}`;
+  const marker = `价格<1000元 ${Date.now()}`;
   await performPagePreviewUpdate(page, async () => {
-    await input.fill(`  <b>售后</b>\u200B\n流程 ${marker.split(' ').pop()}  `);
+    await input.fill(`  价格<1000元\u200B\n${marker.split(' ').pop()}  `);
     await input.blur();
   });
   await expect(input).toHaveValue(marker);

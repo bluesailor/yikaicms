@@ -489,14 +489,18 @@ final class BlockRenderer
 
         $sourceSettings = is_array($source['settings'] ?? null) ? $source['settings'] : [];
         $resolvedSettings = is_array($resolved['settings'] ?? null) ? $resolved['settings'] : [];
-        $title = '';
+        $title = array_key_exists('name', $source)
+            ? BloxDocumentPipeline::normalizeSectionName($source['name'])
+            : '';
         foreach ([
-            $source['name'] ?? '',
             $sourceSettings['title'] ?? '',
             $resolved['name'] ?? '',
             $resolvedSettings['title'] ?? '',
             $source['library_name'] ?? '',
         ] as $candidate) {
+            if ($title !== '') {
+                break;
+            }
             $title = self::sectionLabelText($candidate);
             if ($title !== '') {
                 break;

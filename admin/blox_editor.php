@@ -2529,6 +2529,17 @@ $canManageBloxDesign = hasPermission('*');
                 return Array.from(text).slice(0, Math.max(1, Number(maxLength) || 80)).join("");
             },
 
+            sectionNameText(value, maxLength) {
+                if (typeof value !== "string" && typeof value !== "number") return "";
+                var decoder = document.createElement("textarea");
+                decoder.innerHTML = String(value);
+                var text = decoder.value
+                    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                return Array.from(text).slice(0, Math.max(1, Number(maxLength) || 80)).join("");
+            },
+
             sectionElements(section) {
                 var result = [];
                 function collect(element, depth) {
@@ -2577,10 +2588,13 @@ $canManageBloxDesign = hasPermission('*');
                 var settings = section && section.settings && typeof section.settings === "object"
                     ? section.settings : {};
                 var titleCandidates = [];
-                if (includeCustomName) titleCandidates.push(section && section.name);
-                titleCandidates.push(settings.title, section && section.library_name);
                 var title = "";
+                if (includeCustomName) {
+                    title = this.sectionNameText(section && section.name || "", titleMax);
+                }
+                titleCandidates.push(settings.title, section && section.library_name);
                 for (var candidate of titleCandidates) {
+                    if (title) break;
                     title = this.sectionLabelText(candidate || "", titleMax);
                     if (title) break;
                 }
@@ -2611,7 +2625,7 @@ $canManageBloxDesign = hasPermission('*');
                 var target = section || this.sel;
                 if (!target) return;
                 var policy = this.sectionLabelPolicy || {};
-                var normalized = this.sectionLabelText(target.name || "", Number(policy.titleMax) || 80);
+                var normalized = this.sectionNameText(target.name || "", Number(policy.titleMax) || 80);
                 if (normalized) target.name = normalized;
                 else delete target.name;
             },

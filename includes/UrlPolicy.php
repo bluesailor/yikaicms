@@ -95,6 +95,45 @@ final class UrlPolicy
     }
 
     /**
+     * 兼容早期 Blox 文档保存过的图片地址形态，仅用于已存图片字段。
+     * 新输入仍应走 image()；这里额外接受协议相对 URL、uploads 裸路径和栅格 data URI。
+     */
+    public static function storedImage(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return '';
+        }
+        $value = trim($value);
+        $current = self::image($value);
+        if ($current !== '') {
+            return $current;
+        }
+        if (preg_match('#^data:image/(?:png|gif|jpe?g|webp);base64,([a-z0-9+/=]+)$#i', $value, $matches) === 1) {
+            return strlen($value) <= 5_000_000 && base64_decode($matches[1], true) !== false ? $value : '';
+        }
+        if (mb_strlen($value) > self::MAX_LENGTH
+            || preg_match('/[\x00-\x1f\x7f\\\\]/', $value) === 1) {
+            return '';
+        }
+        if (str_starts_with($value, '//')) {
+            $parts = parse_url('https:' . $value);
+            if (is_array($parts) && !isset($parts['user']) && !isset($parts['pass'])
+                && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
+                && (string) ($parts['host'] ?? '') !== '') {
+                return 'https:' . $value;
+            }
+            return '';
+        }
+        if (preg_match('#^uploads/#i', $value) === 1
+            && mb_strlen($value) <= 1000) {
+            $path = rawurldecode((string) parse_url('/' . $value, PHP_URL_PATH));
+            $segments = explode('/', trim($path, '/'));
+            return in_array('..', $segments, true) ? '' : '/' . $value;
+        }
+        return '';
+    }
+
+    /**
      * HTTP Location 目标：仅站内绝对路径或与站点同源的 http(s) URL。
      * 前缀比较不能作为同源判断，example.com.evil.test 会通过 starts_with。
      */

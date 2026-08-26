@@ -153,20 +153,36 @@ test("unsupported formats and browser processing failures keep the original file
     }
 });
 
-test("oversized source files skip browser decoding", async function () {
+test("large source files are preprocessed by default", async function () {
     const originalCreateImageBitmap = global.createImageBitmap;
+    const originalDocument = global.document;
     let decoderCalled = false;
     global.createImageBitmap = function () {
         decoderCalled = true;
-        return Promise.reject(new Error("decoder must not run"));
+        return Promise.resolve({ width: 5000, height: 2500, close: function () {} });
+    };
+    global.document = {
+        createElement: function () {
+            return {
+                width: 0,
+                height: 0,
+                getContext: function () { return { drawImage: function () {} }; },
+                toBlob: function (callback, type) { callback(new Blob(["smaller"], { type })); },
+            };
+        },
     };
 
     try {
         const source = { type: "image/jpeg", size: 25 * 1024 * 1024 };
-        assert.equal(await global.BloxMediaClient.prepareImage(source), source);
+        assert.notEqual(await global.BloxMediaClient.prepareImage(source), source);
+        assert.equal(decoderCalled, true);
+
+        decoderCalled = false;
+        assert.equal(await global.BloxMediaClient.prepareImage(source, { maxSourceBytes: 24 * 1024 * 1024 }), source);
         assert.equal(decoderCalled, false);
     } finally {
         global.createImageBitmap = originalCreateImageBitmap;
+        global.document = originalDocument;
     }
 });
 

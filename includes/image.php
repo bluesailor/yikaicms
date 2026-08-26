@@ -26,13 +26,19 @@ function uploadMaxImageMegapixels(): int
 {
     $value = config('upload_max_megapixels', '40');
     $configured = is_numeric($value) ? (int) $value : 40;
+    if ($configured === 0) {
+        return 0;
+    }
     return $configured >= 1 ? min(200, $configured) : 40;
 }
 
 function imageDimensionsWithinPixelLimit(int $width, int $height, int $maxPixels): bool
 {
-    if ($width < 1 || $height < 1 || $maxPixels < 1) {
+    if ($width < 1 || $height < 1 || $maxPixels < 0) {
         return false;
+    }
+    if ($maxPixels === 0) {
+        return true;
     }
 
     // 用除法避免恶意超大尺寸在 32 位环境做乘法时溢出。
@@ -233,18 +239,24 @@ function thumbnail(?string $url, string $size = 'thumb'): string
  */
 function _localImageDimensions(string $url): array
 {
+    /** @var array<string,array{0:int,1:int}> $memo */
+    static $memo = [];
+    if (array_key_exists($url, $memo)) {
+        return $memo[$url];
+    }
+
     if ($url === '' || _isExternalUrl($url)) {
-        return [0, 0];
+        return $memo[$url] = [0, 0];
     }
 
     $urlPath = parse_url($url, PHP_URL_PATH);
     if (!is_string($urlPath) || $urlPath === '' || str_contains($urlPath, "\0")) {
-        return [0, 0];
+        return $memo[$url] = [0, 0];
     }
 
     $root = realpath(ROOT_PATH);
     if ($root === false) {
-        return [0, 0];
+        return $memo[$url] = [0, 0];
     }
 
     $relative = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, rawurldecode($urlPath)), DIRECTORY_SEPARATOR);
@@ -254,25 +266,35 @@ function _localImageDimensions(string $url): array
         ? strncasecmp($path, $rootPrefix, strlen($rootPrefix)) === 0
         : strncmp($path, $rootPrefix, strlen($rootPrefix)) === 0);
     if (!$insideRoot) {
-        return [0, 0];
+        return $memo[$url] = [0, 0];
     }
 
     $dimensions = @getimagesize($path);
     if ($dimensions === false) {
-        return [0, 0];
+        return $memo[$url] = [0, 0];
     }
 
-    return [max(0, (int) ($dimensions[0] ?? 0)), max(0, (int) ($dimensions[1] ?? 0))];
+    return $memo[$url] = [
+        max(0, (int) ($dimensions[0] ?? 0)),
+        max(0, (int) ($dimensions[1] ?? 0)),
+    ];
 }
 
 /**
  * 组合同一宽高比的本地缩略图与原图候选。
  *
- * @return array{src:string,srcset:string,width:int,height:int}
+ * @return array{src:string,srcset:string,webp_src:string,webp_srcset:string,width:int,height:int}
  */
 function responsiveImageData(?string $url, string $preferredSize = 'medium'): array
 {
     $original = (string) ($url ?? '');
+    $memoKey = $original . "\0" . $preferredSize;
+    /** @var array<string,array{src:string,srcset:string,webp_src:string,webp_srcset:string,width:int,height:int}> $memo */
+    static $memo = [];
+    if (isset($memo[$memoKey])) {
+        return $memo[$memoKey];
+    }
+
     $source = thumbnail($original, $preferredSize);
     [$sourceWidth, $sourceHeight] = _localImageDimensions($source);
     [$originalWidth, $originalHeight] = _localImageDimensions($original);
@@ -299,13 +321,6 @@ function responsiveImageData(?string $url, string $preferredSize = 'medium'): ar
         }
         $webpCandidates[$width] = $webpCandidate;
     }
-    if ($webpCandidates !== [] && count($webpCandidates) === count($candidates)) {
-        $candidates = $webpCandidates;
-        if ($sourceWidth > 0 && isset($candidates[$sourceWidth])) {
-            $source = $candidates[$sourceWidth];
-        }
-    }
-
     $srcsetParts = [];
     if (count($candidates) > 1) {
         foreach ($candidates as $width => $candidate) {
@@ -313,9 +328,24 @@ function responsiveImageData(?string $url, string $preferredSize = 'medium'): ar
         }
     }
 
-    return [
+    $webpSource = '';
+    $webpSrcsetParts = [];
+    if ($candidates !== [] && count($webpCandidates) === count($candidates)) {
+        $webpSource = $sourceWidth > 0 && isset($webpCandidates[$sourceWidth])
+            ? $webpCandidates[$sourceWidth]
+            : (string) reset($webpCandidates);
+        if (count($webpCandidates) > 1) {
+            foreach ($webpCandidates as $width => $candidate) {
+                $webpSrcsetParts[] = $candidate . ' ' . (int) $width . 'w';
+            }
+        }
+    }
+
+    return $memo[$memoKey] = [
         'src' => $source,
         'srcset' => implode(', ', $srcsetParts),
+        'webp_src' => $webpSource,
+        'webp_srcset' => implode(', ', $webpSrcsetParts),
         'width' => $sourceWidth,
         'height' => $sourceHeight,
     ];

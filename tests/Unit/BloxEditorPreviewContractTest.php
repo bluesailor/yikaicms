@@ -782,8 +782,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach ([
             'automaticSectionLabel(section, si)',
             'resolveSectionLabel(section, si, includeCustomName)',
-            'if (includeCustomName) titleCandidates.push(section && section.name);',
+            'title = this.sectionNameText(section && section.name || "", titleMax);',
             'normalizeSectionName(section)',
+            'sectionNameText(value, maxLength)',
             'clearSectionName(section)',
             'delete target.name;',
         ] as $token) {

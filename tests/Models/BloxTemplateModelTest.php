@@ -200,7 +200,7 @@ final class BloxTemplateModelTest extends TestCase
         $originalSession = $_SESSION ?? null;
         $originalGet = $_GET;
         try {
-            $_SESSION = ['admin_id' => 7];
+            $_SESSION = ['admin_id' => 7, 'admin_permissions' => ['*']];
             $_GET = [];
             $publishedJson = '[{"id":"published","type":"section","settings":[],"columns":[]}]';
             $draftJson = '[{"id":"draft","type":"section","settings":[],"columns":[]}]';

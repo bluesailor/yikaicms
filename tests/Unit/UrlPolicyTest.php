@@ -61,6 +61,19 @@ final class UrlPolicyTest extends TestCase
         $this->assertSame('', UrlPolicy::image('a.png'));   // 裸相对名（无 / 前缀）历来拒绝
     }
 
+    public function testStoredImageCompatibilityIsNarrowAndRasterOnly(): void
+    {
+        $data = 'data:image/png;base64,iVBORw0KGgo=';
+        $this->assertSame('https://cdn.example.com/a.png', UrlPolicy::storedImage('//cdn.example.com/a.png'));
+        $this->assertSame('/uploads/legacy/a.jpg', UrlPolicy::storedImage('uploads/legacy/a.jpg'));
+        $this->assertSame($data, UrlPolicy::storedImage($data));
+
+        foreach (['uploads/../config.php', 'data:image/svg+xml;base64,PHN2Zz4=',
+            'data:text/html;base64,PGgxPng8L2gxPg==', '//user@example.com/a.png', 'javascript:alert(1)'] as $bad) {
+            $this->assertSame('', UrlPolicy::storedImage($bad), $bad);
+        }
+    }
+
     public function testRedirectAllowsOnlyRelativeOrSameOriginTargets(): void
     {
         $site = 'https://example.com';

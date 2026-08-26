@@ -84,7 +84,7 @@ final class ImageElement extends AbstractElement
             }
             $imageAttrs .= ' /}';
         } else {
-            $rawSrc = UrlPolicy::image($rawSrc);
+            $rawSrc = UrlPolicy::storedImage($rawSrc);
             $imageAttrs = responsiveImageAttributes($rawSrc, 'medium', '100vw');
         }
         $alt = htmlspecialchars((string) ($data['alt'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

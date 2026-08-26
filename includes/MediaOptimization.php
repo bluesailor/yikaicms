@@ -264,11 +264,34 @@ final class MediaOptimization
     private static function sourcePath(array $media): ?string
     {
         $raw = (string) ($media['path'] ?? '');
-        if ($raw === '' || is_link($raw)) {
-            return null;
+        $candidates = $raw !== '' ? [$raw] : [];
+
+        foreach ([$raw, (string) ($media['url'] ?? '')] as $storedLocation) {
+            $normalized = str_replace('\\', '/', trim($storedLocation));
+            $uploadsAt = strripos('/' . ltrim($normalized, '/'), '/uploads/');
+            if ($uploadsAt === false) {
+                continue;
+            }
+            $relative = rawurldecode(substr('/' . ltrim($normalized, '/'), $uploadsAt + strlen('/uploads/')));
+            if ($relative === '' || str_contains($relative, "\0") || str_contains($relative, '\\')
+                || in_array('..', explode('/', $relative), true)) {
+                continue;
+            }
+            $uploadsRoot = defined('UPLOADS_PATH') ? UPLOADS_PATH : ROOT_PATH . '/uploads';
+            $candidates[] = rtrim($uploadsRoot, '/\\') . DIRECTORY_SEPARATOR
+                . str_replace('/', DIRECTORY_SEPARATOR, $relative);
         }
-        $path = realpath($raw);
-        return $path !== false && is_file($path) && self::isInsideUploads($path) ? $path : null;
+
+        foreach (array_values(array_unique($candidates)) as $candidate) {
+            if ($candidate === '' || is_link($candidate)) {
+                continue;
+            }
+            $path = realpath($candidate);
+            if ($path !== false && is_file($path) && self::isInsideUploads($path)) {
+                return $path;
+            }
+        }
+        return null;
     }
 
     private static function isInsideUploads(string $path): bool
