@@ -208,6 +208,17 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     await expect(regionMenu.locator('.ik-ab-region-heading')).toHaveText(regionHeadings);
     await expect(regionMenu.locator('a[href*="focus_section="]')).not.toHaveCount(0);
     await expect(regionMenu.locator('a[href*="focus_element="]')).not.toHaveCount(0);
+    const labeledSection = page.locator('[data-yk-sec-id][data-yk-sec-label]').first();
+    await expect(labeledSection).toHaveCount(1);
+    const labeledSectionId = await labeledSection.getAttribute('data-yk-sec-id');
+    const labeledSectionText = await labeledSection.getAttribute('data-yk-sec-label');
+    expect(labeledSectionId).toBeTruthy();
+    expect(labeledSectionText).toBeTruthy();
+    const labeledSectionLink = regionMenu.locator(
+      `a[href*="focus_section=${encodeURIComponent(labeledSectionId)}"]`,
+    );
+    await expect(labeledSectionLink).toHaveText(labeledSectionText);
+    await expect(labeledSectionLink).toHaveAttribute('title', labeledSectionText);
     const regionLayout = await regionMenu.evaluate((element) => ({
       left: element.getBoundingClientRect().left,
       right: element.getBoundingClientRect().right,

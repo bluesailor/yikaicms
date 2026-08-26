@@ -14,6 +14,10 @@ require_once __DIR__ . '/../HtmlTagRewriter.php';
 
 final class BlockRenderer
 {
+    private const SECTION_LABEL_DECORATIVE_TYPES = [
+        'heading', 'text', 'button', 'image', 'icon', 'code', 'divider', 'spacer', 'container', 'div',
+    ];
+
     /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
     private const PADDING_MAP = [
         'none' => ['py-0', 'md:py-0', 'lg:py-0'],
@@ -107,6 +111,7 @@ final class BlockRenderer
         $html = '';
         $renderedAnchors = [];
         foreach ($sections as $secIndex => $section) {
+            $sourceSection = $section;
             // 定位协议绑定文档中的引用节点，而不是展开后的块库副本。
             $sectionLocatorId = trim((string) ($section['id'] ?? ''));
             // 可复用块引用：{library_id: N} → 渲染时从块库展开（改库一处全站生效）。
@@ -233,6 +238,12 @@ final class BlockRenderer
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
             if ($editMode && $sectionLocatorId !== '') {
                 $editAttr .= ' data-yk-sec-id="' . htmlspecialchars($sectionLocatorId, ENT_QUOTES) . '"';
+            }
+            if ($editMode) {
+                $sectionLabel = self::sectionEditLabel($sourceSection, $section);
+                if ($sectionLabel !== '') {
+                    $editAttr .= ' data-yk-sec-label="' . htmlspecialchars($sectionLabel, ENT_QUOTES) . '"';
+                }
             }
             if ($editMode && BloxDisplayConditions::hasInput($sectionConditions)) {
                 $editAttr .= ' data-yk-conditions="'
@@ -435,6 +446,119 @@ final class BlockRenderer
         }
 
         return $html;
+    }
+
+    /** @param array<string,mixed> $source @param array<string,mixed> $resolved */
+    private static function sectionEditLabel(array $source, array $resolved): string
+    {
+        $elements = self::sectionElements($resolved);
+        $semanticElement = null;
+        foreach ($elements as $element) {
+            $type = trim((string) ($element['type'] ?? ''));
+            if ($type !== '' && !in_array($type, self::SECTION_LABEL_DECORATIVE_TYPES, true)) {
+                $semanticElement = $element;
+                break;
+            }
+        }
+
+        $typeLabel = '';
+        if ($semanticElement !== null) {
+            $type = trim((string) ($semanticElement['type'] ?? ''));
+            $registered = BuilderRegistry::get($type);
+            $declared = $registered === null ? BloxPluginRegistry::declaration($type) : null;
+            $typeLabel = self::sectionLabelText($registered?->label() ?? ($declared['label'] ?? ''));
+        }
+
+        $sourceSettings = is_array($source['settings'] ?? null) ? $source['settings'] : [];
+        $resolvedSettings = is_array($resolved['settings'] ?? null) ? $resolved['settings'] : [];
+        $title = '';
+        foreach ([
+            $source['name'] ?? '',
+            $sourceSettings['title'] ?? '',
+            $resolved['name'] ?? '',
+            $resolvedSettings['title'] ?? '',
+            $source['library_name'] ?? '',
+        ] as $candidate) {
+            $title = self::sectionLabelText($candidate);
+            if ($title !== '') {
+                break;
+            }
+        }
+
+        if ($title === '') {
+            foreach ($elements as $element) {
+                if ((string) ($element['type'] ?? '') !== 'heading') {
+                    continue;
+                }
+                $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+                $title = self::sectionLabelText($data['text'] ?? '');
+                if ($title !== '') {
+                    break;
+                }
+            }
+        }
+
+        if ($title === '' && $semanticElement !== null) {
+            $data = is_array($semanticElement['data'] ?? null) ? $semanticElement['data'] : [];
+            $registered = BuilderRegistry::get((string) ($semanticElement['type'] ?? ''));
+            $keys = array_values(array_unique(array_filter([
+                $registered?->treeLabelField(), 'title', 'name', 'label',
+            ])));
+            foreach ($keys as $key) {
+                $title = self::sectionLabelText($data[$key] ?? '');
+                if ($title !== '') {
+                    break;
+                }
+            }
+        }
+
+        if ($typeLabel !== '' && $title !== '' && mb_strtolower($typeLabel) !== mb_strtolower($title)) {
+            return self::sectionLabelText($typeLabel . ' · ' . $title, 120);
+        }
+        return $title !== '' ? $title : $typeLabel;
+    }
+
+    /** @param array<string,mixed> $section @return list<array<string,mixed>> */
+    private static function sectionElements(array $section): array
+    {
+        $result = [];
+        foreach (is_array($section['columns'] ?? null) ? $section['columns'] : [] as $column) {
+            if (!is_array($column)) {
+                continue;
+            }
+            foreach (is_array($column['elements'] ?? null) ? $column['elements'] : [] as $element) {
+                if (is_array($element)) {
+                    self::collectSectionElement($element, $result, 0);
+                }
+            }
+        }
+        return $result;
+    }
+
+    /** @param array<string,mixed> $element @param list<array<string,mixed>> $result */
+    private static function collectSectionElement(array $element, array &$result, int $depth): void
+    {
+        $result[] = $element;
+        if ($depth >= 3) {
+            return;
+        }
+        $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+        foreach (is_array($data['children'] ?? null) ? $data['children'] : [] as $child) {
+            if (is_array($child)) {
+                self::collectSectionElement($child, $result, $depth + 1);
+            }
+        }
+    }
+
+    private static function sectionLabelText(mixed $value, int $maxLength = 80): string
+    {
+        if (!is_string($value) && !is_int($value) && !is_float($value)) {
+            return '';
+        }
+        $text = html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[\p{Cc}\p{Cf}]+/u', ' ', $text) ?? '';
+        $text = preg_replace('/\s+/u', ' ', $text) ?? '';
+        return mb_substr(trim($text), 0, $maxLength);
     }
 
     /** 标题字段只接受预设字号和 cssColor() 白名单颜色。 */
