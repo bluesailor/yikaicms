@@ -356,6 +356,37 @@ final class HomeBloxDocumentTest extends TestCase
         HomeBloxDocument::load();
     }
 
+    public function testHomeDraftStatusIgnoresAutomaticImportAndEquivalentPublication(): void
+    {
+        $draft = [
+            'schema' => 1,
+            'settings' => [],
+            'version' => 1,
+            'source' => 'legacy-import',
+            'updated_at' => 10,
+            'sections' => [['id' => 'home-status', 'type' => 'section', 'settings' => [], 'columns' => []]],
+        ];
+        $GLOBALS['_test_config'][HomeBloxDocument::DATA_KEY] = json_encode($draft, JSON_THROW_ON_ERROR);
+        $GLOBALS['_test_config'][HomeBloxDocument::PUBLISHED_KEY] = '';
+        self::assertSame([], \BloxPublicationStatus::query(['/admin/blox_editor.php?home=1'], '/'));
+
+        $draft['source'] = 'blox';
+        $GLOBALS['_test_config'][HomeBloxDocument::DATA_KEY] = json_encode($draft, JSON_THROW_ON_ERROR);
+        $items = \BloxPublicationStatus::query(['/admin/blox_editor.php?home=1'], '/?probe=1');
+        self::assertCount(1, $items);
+        self::assertSame('home', $items[0]['kind']);
+        self::assertSame('/?probe=1&preview=draft&blox_draft=home', $items[0]['preview_url']);
+
+        $published = $draft;
+        $published['updated_at'] = 99;
+        $GLOBALS['_test_config'][HomeBloxDocument::PUBLISHED_KEY] = json_encode($published, JSON_THROW_ON_ERROR);
+        self::assertSame([], \BloxPublicationStatus::query(['/admin/blox_editor.php?home=1'], '/'));
+
+        $draft['sections'][0]['id'] = 'home-status-changed';
+        $GLOBALS['_test_config'][HomeBloxDocument::DATA_KEY] = json_encode($draft, JSON_THROW_ON_ERROR);
+        self::assertCount(1, \BloxPublicationStatus::query(['/admin/blox_editor.php?home=1'], '/'));
+    }
+
     public function testSaveAndPublishStoresTheSameValidatedDocumentAtomically(): void
     {
         db()->execute(

@@ -104,4 +104,28 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString("if (event.key !== 'Escape' || !regions.open) return;", $frontEdit);
         self::assertStringContainsString('summary.focus();', $frontEdit);
     }
+
+    public function testFrontendAdminBarExposesPersistentDraftStateAndPrivatePreview(): void
+    {
+        $adminBar = file_get_contents(ROOT_PATH . '/includes/admin_bar.php');
+        $status = file_get_contents(ROOT_PATH . '/includes/builder/BloxPublicationStatus.php');
+        $functions = file_get_contents(ROOT_PATH . '/includes/functions.php');
+        self::assertIsString($adminBar);
+        self::assertIsString($status);
+        self::assertIsString($functions);
+
+        self::assertStringContainsString('BloxPublicationStatus::query', $adminBar);
+        self::assertStringContainsString('data-testid="admin-unpublished-changes"', $adminBar);
+        self::assertStringContainsString('data-testid="blox-draft-preview-bar"', $adminBar);
+        self::assertStringContainsString("(\$_GET['preview'] ?? null) !== 'draft'", $status);
+        self::assertStringContainsString("empty(\$_SESSION['admin_id'])", $status);
+        self::assertStringContainsString("preg_match('/^(page|template):([1-9][0-9]*)$/',", $status);
+        self::assertStringContainsString('BloxPublicationStatus::areaDraftPreview($area)', $functions);
+
+        foreach (['index.php', 'page.php', 'list.php', 'news.php', 'contact.php'] as $path) {
+            $source = file_get_contents(ROOT_PATH . '/' . $path);
+            self::assertIsString($source);
+            self::assertStringContainsString('BloxPublicationStatus::', $source, $path);
+        }
+    }
 }
