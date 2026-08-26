@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 final class BloxAreaEditorTarget
 {
+    private const RETURN_TO_MAX = 2048;
+
     /** @param array<string,mixed> $template */
     public static function isThemeFallbackTemplate(array $template, string $area): bool
     {
@@ -65,6 +67,72 @@ final class BloxAreaEditorTarget
             error_log('[BloxAreaEditorTarget] ' . $e->getMessage());
             return $fallback;
         }
+    }
+
+    public static function normalizeReturnTo(mixed $value): string
+    {
+        if (!is_string($value)) {
+            return '';
+        }
+        $target = trim($value);
+        if ($target === '' || strlen($target) > self::RETURN_TO_MAX
+            || preg_match('/[\x00-\x1F\x7F]/', $target) === 1
+            || str_contains($target, '\\')) {
+            return '';
+        }
+
+        $parts = parse_url($target);
+        if (!is_array($parts) || isset($parts['scheme']) || isset($parts['host'])
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['port'])) {
+            return '';
+        }
+        $path = (string) ($parts['path'] ?? '');
+        if ($path === '' || !str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return '';
+        }
+
+        $decodedPath = $path;
+        for ($i = 0; $i < 2; $i++) {
+            $decoded = rawurldecode($decodedPath);
+            if ($decoded === $decodedPath) {
+                break;
+            }
+            $decodedPath = $decoded;
+        }
+        if (str_starts_with($decodedPath, '//') || str_contains($decodedPath, '\\')
+            || preg_match('/[\x00-\x1F\x7F]/', $decodedPath) === 1
+            || preg_match('#^/admin(?:/|$)#i', $decodedPath) === 1) {
+            return '';
+        }
+        foreach (explode('/', $decodedPath) as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return '';
+            }
+        }
+
+        return $path
+            . (isset($parts['query']) ? '?' . $parts['query'] : '')
+            . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+    }
+
+    public static function withReturnTo(string $editorUrl, string $returnTo): string
+    {
+        $returnTo = self::normalizeReturnTo($returnTo);
+        if ($returnTo === '') {
+            return $editorUrl;
+        }
+
+        $parts = parse_url($editorUrl);
+        if (!is_array($parts) || isset($parts['scheme']) || isset($parts['host'])
+            || (string) ($parts['path'] ?? '') !== '/admin/blox_editor.php') {
+            return $editorUrl;
+        }
+        $params = [];
+        parse_str((string) ($parts['query'] ?? ''), $params);
+        $params['return_to'] = $returnTo;
+
+        return '/admin/blox_editor.php?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986)
+            . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
     }
 
     private static function customAreaEnabled(string $area): bool

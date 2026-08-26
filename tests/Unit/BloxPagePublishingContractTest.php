@@ -216,7 +216,10 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('$primaryEditTarget = pagePrimaryEditTarget($page);', $editor);
         $this->assertStringContainsString('$primaryEditUrl = pagePrimaryEditUrl($page);', $editor);
         $this->assertStringContainsString("(int) (\$primaryEditTarget['id'] ?? 0) !== (int) \$page['id']", $editor);
-        $this->assertStringContainsString("header('Location: ' . \$primaryEditUrl);", $editor);
+        $this->assertStringContainsString(
+            "header('Location: ' . BloxAreaEditorTarget::withReturnTo(\$primaryEditUrl, \$editorReturnTo));",
+            $editor
+        );
         $this->assertStringContainsString('if (isTimelinePageChannel($channel))', $frontend);
         $this->assertStringContainsString("include __DIR__ . '/history.php';", $frontend);
         $this->assertSame(2, substr_count($timeline, 'href="/about/history.html"'));

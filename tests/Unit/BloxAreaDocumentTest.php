@@ -100,6 +100,38 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertStringNotContainsString('data-yk-edit', $external);
     }
 
+    public function testFrontendReturnTargetsStayOnPublicSameSitePaths(): void
+    {
+        $valid = '/en/service/process.html?tab=flow&step=2#details';
+        self::assertSame($valid, BloxAreaEditorTarget::normalizeReturnTo($valid));
+        self::assertSame(
+            '/admin/blox_editor.php?id=11&focus_section=sec_1&return_to=' . rawurlencode($valid),
+            BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=11&focus_section=sec_1', $valid)
+        );
+
+        foreach ([
+            'https://evil.example/page',
+            '//evil.example/page',
+            'javascript:alert(1)',
+            '/admin/users.php',
+            '/%61dmin/users.php',
+            '/service/../admin/users.php',
+            "/service\nprocess.html",
+            '\\evil.example\\page',
+        ] as $invalid) {
+            self::assertSame('', BloxAreaEditorTarget::normalizeReturnTo($invalid), $invalid);
+        }
+        self::assertSame('', BloxAreaEditorTarget::normalizeReturnTo([]));
+        self::assertSame(
+            'https://evil.example/admin/blox_editor.php?id=11',
+            BloxAreaEditorTarget::withReturnTo('https://evil.example/admin/blox_editor.php?id=11', $valid)
+        );
+        self::assertSame(
+            '/admin/page_edit.php?id=11',
+            BloxAreaEditorTarget::withReturnTo('/admin/page_edit.php?id=11', $valid)
+        );
+    }
+
     public function testBundledAreaPackagesPassTheSameImporterAsUploadedTemplates(): void
     {
         $expected = [

@@ -138,6 +138,8 @@ test('stable section deep link selects the same persisted block @local', async (
   await expect((await frame(page)).locator(`[data-yk-sec-id="${sectionId}"]`)).toHaveClass(/yk-selected/);
 
   const frontendUrl = `${fixtures.blox_page_url}${fixtures.blox_page_url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+  const frontendTarget = new URL(frontendUrl, 'http://yikaicms.local');
+  const frontendReturnTo = frontendTarget.pathname + frontendTarget.search;
   await page.goto(frontendUrl, { waitUntil: 'domcontentloaded' });
   const frontendSection = page.locator('[data-yk-sec-id]').first();
   const frontendSectionId = await frontendSection.getAttribute('data-yk-sec-id');
@@ -147,7 +149,7 @@ test('stable section deep link selects the same persisted block @local', async (
   await frontendSection.hover();
   await expect(page.locator('#yk-edit-btn')).toHaveAttribute(
     'href',
-    `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(frontendReturnTo)}&focus_section=${encodeURIComponent(frontendSectionId)}`
   );
   await page.goto(
     `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`,
@@ -160,6 +162,74 @@ test('stable section deep link selects the same persisted block @local', async (
   await expect(focusedTreeSection).toHaveAttribute('data-section-label', frontendSectionLabel);
   await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveText(frontendSectionLabel);
   await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveAttribute('title', frontendSectionLabel);
+  expect(consoleEntries).toEqual([]);
+});
+
+test('frontend return target preserves source and guards unsaved edits @local', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single return-navigation baseline');
+  expect(fixtures.blox_page).toBeGreaterThan(0);
+
+  const consoleEntries = observeConsole(page);
+  const sourceUrl = `${fixtures.blox_page_url}${fixtures.blox_page_url.includes('?') ? '&' : '?'}return_probe=${Date.now()}`;
+  const source = new URL(sourceUrl, 'http://yikaicms.local');
+  const returnTo = source.pathname + source.search;
+  const editorBase = `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(returnTo)}`;
+
+  await page.goto(sourceUrl, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.ik-ab-page-edit')).toHaveAttribute('href', editorBase);
+  const section = page.locator('[data-yk-sec-id]').first();
+  const sectionId = await section.getAttribute('data-yk-sec-id');
+  expect(sectionId).toBeTruthy();
+  await section.hover();
+  const preciseEditorUrl = `${editorBase}&focus_section=${encodeURIComponent(sectionId)}`;
+  await expect(page.locator('#yk-edit-btn')).toHaveAttribute('href', preciseEditorUrl);
+
+  await page.goto(preciseEditorUrl, { waitUntil: 'domcontentloaded' });
+  const back = page.getByTestId('blox-back');
+  await expect(back).toHaveAttribute('href', returnTo);
+  await expect(back).toContainText('返回页面');
+  await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
+    .toHaveClass(/border-blue-400/);
+
+  const sectionName = page.getByTestId('blox-section-name');
+  const originalName = await sectionName.inputValue();
+  await performPagePreviewUpdate(page, async () => {
+    await sectionName.fill(`Return guard ${Date.now()}`);
+    await sectionName.blur();
+  });
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  let beforeUnloadSeen = false;
+  page.once('dialog', async (dialog) => {
+    beforeUnloadSeen = dialog.type() === 'beforeunload';
+    await dialog.dismiss();
+  });
+  await back.click();
+  expect(beforeUnloadSeen).toBe(true);
+  await expect(page).toHaveURL(new RegExp('/admin/blox_editor\\.php'));
+
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+  await expect(sectionName).toHaveValue(originalName);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname + url.search === returnTo),
+    back.click(),
+  ]);
+
+  for (const malicious of [
+    'https://evil.example/page',
+    '//evil.example/page',
+    '/admin/users.php',
+    '/%61dmin/users.php',
+    '/service/../admin/users.php',
+  ]) {
+    const response = await page.request.get(
+      `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(malicious)}`,
+    );
+    expect(response.ok()).toBe(true);
+    expect(await response.text()).toContain('href="/admin/page.php" data-testid="blox-back"');
+  }
   expect(consoleEntries).toEqual([]);
 });
 

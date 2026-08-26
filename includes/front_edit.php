@@ -14,7 +14,11 @@ function renderFrontEdit(): void
     if (isCleanFrontendPreview()) return;
     if (empty($_SESSION['admin_id'])) return;
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
-    $bloxEditUrl = adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? ''));
+    $frontendReturnTo = BloxAreaEditorTarget::normalizeReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));
+    $bloxEditUrl = BloxAreaEditorTarget::withReturnTo(
+        adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? '')),
+        $frontendReturnTo
+    );
     if (!str_starts_with($bloxEditUrl, '/admin/blox_editor.php?')) {
         $bloxEditUrl = '';
     }
@@ -82,6 +86,7 @@ function renderFrontEdit(): void
     (function () {
       var current = null, hideTimer = null;
       var bloxEditUrl = <?php echo json_encode($bloxEditUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var frontendReturnTo = <?php echo json_encode($frontendReturnTo, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
@@ -93,6 +98,18 @@ function renderFrontEdit(): void
       document.body.appendChild(box);
 
       function hide() { box.style.display = 'none'; current = null; }
+
+      function withFrontendReturn(url) {
+        if (!url || !frontendReturnTo) return url;
+        try {
+          var target = new URL(url, window.location.origin);
+          if (target.origin !== window.location.origin || target.pathname !== '/admin/blox_editor.php') return url;
+          target.searchParams.set('return_to', frontendReturnTo);
+          return target.pathname + target.search + target.hash;
+        } catch (error) {
+          return url;
+        }
+      }
 
       // 按元素上的标记算编辑链接：Blox 区块 / 导航 / 页脚 / 合作伙伴 / 通用内容。
       function editUrl(el) {
@@ -106,7 +123,7 @@ function renderFrontEdit(): void
               elementTarget.searchParams.set('focus_element', elementId);
               elementTarget.searchParams.delete('focus_section');
               elementTarget.searchParams.delete('open');
-              return elementTarget.pathname + elementTarget.search + elementTarget.hash;
+              return withFrontendReturn(elementTarget.pathname + elementTarget.search + elementTarget.hash);
             }
           }
           return null;
@@ -116,7 +133,7 @@ function renderFrontEdit(): void
           if (!sectionId) return '#';
           var target = new URL(bloxEditUrl, window.location.origin);
           target.searchParams.set('focus_section', sectionId);
-          return target.pathname + target.search + target.hash;
+          return withFrontendReturn(target.pathname + target.search + target.hash);
         }
         if (el.hasAttribute('data-yk-nav')) {
           return '/admin/channel.php';
@@ -128,7 +145,7 @@ function renderFrontEdit(): void
           return '/admin/link.php';
         }
         if (el.hasAttribute('data-yk-edit')) {
-          return el.getAttribute('data-yk-edit');  // 通用：URL 直接写在属性上（内容/产品/单页详情）
+          return withFrontendReturn(el.getAttribute('data-yk-edit'));  // 通用：URL 直接写在属性上（内容/产品/单页详情）
         }
         return '#';
       }
@@ -182,7 +199,7 @@ function renderFrontEdit(): void
         }
         function addArea(area, group, areaLabel) {
           if (!area) return;
-          add(group, area.getAttribute('data-yk-edit') || '', areaLabel);
+          add(group, withFrontendReturn(area.getAttribute('data-yk-edit') || ''), areaLabel);
           area.querySelectorAll('[data-yk-element-edit][data-yk-element-id]').forEach(function (target) {
             add(group, editUrl(target), target.getAttribute('data-yk-element-label') || regionLabels.editContent);
           });
