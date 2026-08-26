@@ -767,6 +767,10 @@ $canManageBloxDesign = hasPermission('*');
     function bloxEditor() {
         return {
             sections: <?php echo $initBlocks; ?>,
+            sectionLabelPolicy: <?php echo json_encode(
+                BlockRenderer::sectionLabelPolicy(),
+                JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
+            ); ?>,
             selectedSi: -1,
             previewDevice: "desktop",
             headerPreviewState: "normal",
@@ -2510,18 +2514,90 @@ $canManageBloxDesign = hasPermission('*');
                 if (this.selectedSectionField) return this.sectionFieldName(this.selectedSectionField) + this.uiText.ofSection.replace(":n", n);
                 if (this.selLayer === "con") return this.uiText.containerWord + this.uiText.ofSection.replace(":n", n);
                 if (this.selLayer === "col") return this.uiText.colWord.replace(":n", this.selectedCi + 1) + this.uiText.ofSection.replace(":n", n);
-                return this.uiText.settingsOf.replace(":t", this.uiText.sectionWord.replace(":n", n));
+                return this.uiText.settingsOf.replace(":t", this.sectionLabel(this.sel, this.selectedSi));
+            },
+
+            sectionLabelText(value, maxLength) {
+                if (typeof value !== "string" && typeof value !== "number") return "";
+                var decoder = document.createElement("textarea");
+                decoder.innerHTML = String(value).replace(/<[^>]*>/g, "");
+                var text = decoder.value
+                    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                return Array.from(text).slice(0, Math.max(1, Number(maxLength) || 80)).join("");
+            },
+
+            sectionElements(section) {
+                var result = [];
+                function collect(element, depth) {
+                    if (!element || typeof element !== "object") return;
+                    result.push(element);
+                    if (depth >= 3) return;
+                    var children = element.data && Array.isArray(element.data.children)
+                        ? element.data.children : [];
+                    children.forEach(function (child) { collect(child, depth + 1); });
+                }
+                var columns = section && Array.isArray(section.columns) ? section.columns : [];
+                columns.forEach(function (column) {
+                    (column && Array.isArray(column.elements) ? column.elements : []).forEach(function (element) {
+                        collect(element, 0);
+                    });
+                });
+                return result;
             },
 
             sectionLabel(section, si) {
-                var columns = section && Array.isArray(section.columns) ? section.columns : [];
-                var elements = columns.length === 1 && Array.isArray(columns[0].elements) ? columns[0].elements : [];
-                var homeData = elements.length === 1 && elements[0].type === "home-block"
-                    && elements[0].data && typeof elements[0].data === "object" ? elements[0].data : null;
-                var homeLabel = homeData && typeof homeData.label === "string" ? homeData.label.trim() : "";
-                if (homeLabel) return homeLabel;
-                var name = section && typeof section.name === "string" ? section.name.trim() : "";
-                return name || this.uiText.sectionWord.replace(":n", si + 1);
+                var policy = this.sectionLabelPolicy || {};
+                var titleMax = Number(policy.titleMax) || 80;
+                var labelMax = Number(policy.labelMax) || 120;
+                var elements = this.sectionElements(section);
+                var decorative = Array.isArray(policy.decorativeTypes) ? policy.decorativeTypes : [];
+                var semanticElement = elements.find(function (element) {
+                    var type = String((element || {}).type || "").trim();
+                    return type && decorative.indexOf(type) < 0;
+                }) || null;
+                var typeLabel = "";
+                if (semanticElement) {
+                    typeLabel = this.sectionLabelText(
+                        (this.elSchema(semanticElement.type) || {}).label || "",
+                        titleMax
+                    );
+                }
+
+                var settings = section && section.settings && typeof section.settings === "object"
+                    ? section.settings : {};
+                var titleCandidates = [
+                    section && section.name,
+                    settings.title,
+                    section && section.library_name,
+                ];
+                var title = "";
+                for (var candidate of titleCandidates) {
+                    title = this.sectionLabelText(candidate || "", titleMax);
+                    if (title) break;
+                }
+                if (!title) {
+                    var heading = elements.find(function (element) { return element && element.type === "heading"; });
+                    title = this.sectionLabelText(((heading || {}).data || {}).text || "", titleMax);
+                }
+                if (!title && semanticElement) {
+                    var schema = this.elSchema(semanticElement.type) || {};
+                    var keys = [schema.treeLabelField].concat(
+                        Array.isArray(policy.elementTitleKeys) ? policy.elementTitleKeys : []
+                    ).filter(function (key, index, list) { return key && list.indexOf(key) === index; });
+                    var data = semanticElement.data && typeof semanticElement.data === "object"
+                        ? semanticElement.data : {};
+                    for (var key of keys) {
+                        title = this.sectionLabelText(data[key] || "", titleMax);
+                        if (title) break;
+                    }
+                }
+
+                if (typeLabel && title && typeLabel.toLocaleLowerCase() !== title.toLocaleLowerCase()) {
+                    return this.sectionLabelText(typeLabel + " · " + title, labelMax);
+                }
+                return title || typeLabel || this.uiText.sectionWord.replace(":n", si + 1);
             },
 
             isSectionFieldSelected(si, field) {
