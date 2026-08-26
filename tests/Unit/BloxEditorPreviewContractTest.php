@@ -103,7 +103,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
     }
 
-    /** 空画布双入口 + 模板库按钮文字（2026-08-08 用户反馈：图标识别度差、空白画布缺模板导入） */
+    /** 空画布双入口 + 顶栏元素/预制区块分流。 */
     public function testEmptyCanvasEntryPointsAndTemplateButtonLabel(): void
     {
         $advance = $this->source('admin/page_edit_advance.php');
@@ -117,9 +117,11 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('data.ykEmptyAction === "templates" || data.ykEmptyAction === "section"', $bridge);
 
-        // 编辑器：接线到模板库/插空白区块；工具栏模板库按钮带文字标签
+        // 编辑器：空态接线到模板库/插空白区块；工具栏提供两个语义明确的独立入口。
         $this->assertStringContainsString('onEmptyAction: function (action)', $editor);
-        $this->assertStringContainsString('<i class="ti ti-layout-grid text-base"></i><span', $editor);
+        $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
+        $this->assertStringContainsString('ti-layout-grid-add', $editor);
     }
 
     /**
@@ -281,7 +283,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $editor);
         $this->assertStringNotContainsString('$isBasicPageRequest', $editor);
         $this->assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
-        $this->assertStringContainsString('data-testid="blox-templates-open"', $editor);
+        $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
         $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $homeApi);
 

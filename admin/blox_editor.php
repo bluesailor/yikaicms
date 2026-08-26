@@ -1067,6 +1067,7 @@ $canManageBloxDesign = hasPermission('*');
                 'nColInserted' => __('blox_n_col_inserted'),
                 'insertAtEnd' => __('blox_insert_at_end'),
                 'insertAfterSection' => __('blox_insert_after_section'),
+                'dragToInsert' => __('blox_palette_drag_to_insert'),
                 'insertedContainer' => __('blox_inserted_container'),
                 'inserted' => __('blox_inserted'),
                 'insertedCol' => __('blox_inserted_col'),
@@ -1098,6 +1099,10 @@ $canManageBloxDesign = hasPermission('*');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             templateText: <?php echo json_encode([
                 'title' => __('blox_template_library'),
+                'prebuiltTitle' => __('blox_prebuilt_sections'),
+                'allTemplates' => __('blox_all_templates'),
+                'insertTarget' => __('blox_prebuilt_insert_target'),
+                'insertSection' => __('blox_prebuilt_insert'),
                 'saveAsPrompt' => __('blox_tpl_save_as_prompt'),
                 'saveAsNameRequired' => __('blox_tpl_name_required'),
                 'saveAsDone' => __('blox_tpl_save_as_done'),
@@ -1222,6 +1227,7 @@ $canManageBloxDesign = hasPermission('*');
             mobilePanel: "",            // 窄屏下的面板抽屉：library / structure / settings / 空=画布
             mobileActionsOpen: false,
             libOpen: false,             // true = 有选中项时仍显示元素库（「＋ 元素」按钮）
+            paletteSelected: "",       // 桌面单击只选中提示；拖放、键盘或触屏才执行插入
             panelTab: "content",        // 设置面板页签：content | style | condition
             boxOpen: { margin: false, padding: false },
             boxExactOpen: { margin: false, padding: false },
@@ -1620,6 +1626,7 @@ $canManageBloxDesign = hasPermission('*');
             templateScope: "local",
             templateError: "",
             templateRemoteError: "",
+            templateEntry: "all",      // all | sections | pages，决定入口语义与画廊密度
             templateFilters: [
                 { key: "all", label: <?php echo json_encode(__('blox_template_filter_all'), JSON_UNESCAPED_UNICODE); ?> },
                 { key: "section", label: <?php echo json_encode(__('blox_template_type_section'), JSON_UNESCAPED_UNICODE); ?> },
@@ -1655,19 +1662,36 @@ $canManageBloxDesign = hasPermission('*');
                 this.releaseDialog(root);
             },
 
-            openTemplates() {
+            openTemplateDialog() {
                 var alreadyOpen = this.templateOpen;
                 this.templateOpen = true;
                 if (!alreadyOpen) this.focusDialog(this.$refs.templateDialog, "[data-dialog-initial]");
                 if (!this.templateLoaded) this.loadTemplates();
             },
 
+            openTemplates() {
+                this.templateEntry = "all";
+                this.templateFilter = "all";
+                this.templateCategory = "all";
+                this.templateQuery = "";
+                this.openTemplateDialog();
+            },
+
+            openPrebuiltSections() {
+                this.templateEntry = "sections";
+                this.templateFilter = "section";
+                this.templateCategory = "all";
+                this.templateQuery = "";
+                this.openTemplateDialog();
+            },
+
             openPageTemplates() {
+                this.templateEntry = "pages";
                 this.templateScope = "local";
                 this.templateFilter = "page";
                 this.templateCategory = "page";
                 this.templateQuery = "";
-                this.openTemplates();
+                this.openTemplateDialog();
             },
 
             loadTemplates(force) {
@@ -1723,12 +1747,17 @@ $canManageBloxDesign = hasPermission('*');
                 return window.BloxTemplateLibrary.scope(this.templateItems, this.templateScope);
             },
 
+            templateEntryItems(items) {
+                var source = Array.isArray(items) ? items : this.scopedTemplates();
+                return window.BloxTemplateLibrary.filter(source, "", this.templateFilter, "all", "all");
+            },
+
             templateScopeCount(scope) {
-                return window.BloxTemplateLibrary.scopeCount(this.templateItems, scope);
+                return this.templateEntryItems(window.BloxTemplateLibrary.scope(this.templateItems, scope)).length;
             },
 
             templateCategoryOptions() {
-                return window.BloxTemplateLibrary.categories(this.scopedTemplates());
+                return window.BloxTemplateLibrary.categories(this.templateEntryItems());
             },
 
             templateCategoryLabel(category) {
@@ -4705,7 +4734,7 @@ $canManageBloxDesign = hasPermission('*');
             insertAtBoundary(payload) {
                 this._insertAt = payload.index;
                 if (payload.kind === "templates") {
-                    this.openTemplates();
+                    this.openPrebuiltSections();
                     return;
                 }
                 var spans = payload.kind === "layout" && Array.isArray(payload.spans) ? payload.spans : 1;
@@ -6153,6 +6182,33 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             // ── 元素库 ──────────────────────────────────────
+
+            openElementLibrary() {
+                this.libOpen = true;
+                if (window.innerWidth <= 1023) this.mobilePanel = "library";
+                var self = this;
+                this.$nextTick(function () {
+                    if (self.$refs.libSearch) self.$refs.libSearch.focus();
+                });
+            },
+
+            /**
+             * 精细指针的普通单击只选中元素卡片，不立即改文档；拖放负责表达落点。
+             * 键盘与触屏没有可靠拖放能力，继续通过 Enter/点击插入到当前目标。
+             */
+            activatePaletteElement(el, event) {
+                if (!el) return;
+                this.paletteSelected = el.type;
+                var keyboard = !event || event.detail === 0;
+                var coarse = window.innerWidth <= 1023
+                    || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+                if (keyboard || coarse) {
+                    this.addElement(el);
+                    this.paletteSelected = "";
+                    return;
+                }
+                this.toast(this.uiText.dragToInsert.replace(":label", el.label));
+            },
 
             /**
              * 目标列下标。夹在有效范围内——换了区块后 targetCi 可能越界

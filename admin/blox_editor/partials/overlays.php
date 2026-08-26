@@ -266,11 +266,13 @@ declare(strict_types=1);
          role="dialog" aria-modal="true" aria-labelledby="blox-template-dialog-title"
          class="fixed inset-0 z-[130] flex items-center justify-center p-6">
         <div class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
-        <div class="relative bg-white rounded-xl shadow-2xl w-[900px] max-w-[94vw] flex flex-col"
+        <div class="relative bg-white rounded-xl shadow-2xl max-w-[94vw] flex flex-col"
+             :class="templateEntry === 'sections' ? 'w-[1180px]' : 'w-[900px]'"
              style="max-height:calc(100vh - 4rem)">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-template-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
-                    <i class="ti ti-template text-base text-blue-500"></i><span x-text="templateText.title"></span>
+                    <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : 'ti-template'"></i>
+                    <span x-text="templateEntry === 'sections' ? templateText.prebuiltTitle : templateText.title"></span>
                 </span>
                 <button type="button" @click="closeTemplates()" data-testid="blox-template-close" class="text-gray-400 hover:text-gray-600 p-1"
                         :title="templateText.close" :aria-label="templateText.close">
@@ -304,7 +306,7 @@ declare(strict_types=1);
                            data-dialog-initial data-testid="blox-template-search"
                            class="w-full border border-gray-200 rounded pl-8 pr-3 py-1.5 text-sm">
                 </div>
-                <div class="inline-flex rounded border border-gray-200 p-0.5">
+                <div x-show="templateEntry === 'all'" class="inline-flex rounded border border-gray-200 p-0.5">
                     <template x-for="filter in templateFilters" :key="filter.key">
                         <button type="button" @click="templateFilter = filter.key"
                                 :aria-pressed="templateFilter === filter.key"
@@ -330,6 +332,11 @@ declare(strict_types=1);
                     <i class="ti" :class="templateLoading ? 'ti-loader-2 animate-spin' : 'ti-refresh'"></i>
                 </button>
             </div>
+            <div x-show="templateEntry === 'sections'"
+                 class="px-4 py-2 border-b border-blue-100 bg-blue-50 text-xs text-blue-700 inline-flex items-center gap-2">
+                <i class="ti ti-map-pin-check shrink-0"></i>
+                <span x-text="templateText.insertTarget.replace(':target', insertHint())"></span>
+            </div>
             <div class="min-h-[320px] overflow-y-auto blox-scroll p-4">
                 <div x-show="templateLoading" class="py-16 text-center text-sm text-gray-400">
                     <i class="ti ti-loader-2 animate-spin text-xl block mb-2"></i><span x-text="templateText.loading"></span>
@@ -347,12 +354,15 @@ declare(strict_types=1);
                     <span x-text="templateScope === 'remote' ? templateText.emptyRemote : templateText.emptyLocal"></span>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length > 0"
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                     class="grid gap-3"
+                     :class="templateEntry === 'sections' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'">
                     <template x-for="item in filteredTemplates()" :key="item.key">
                         <article data-testid="blox-template-item" :data-template-key="item.key"
                                  :title="item.description || item.name"
-                                 class="min-h-52 overflow-hidden border border-gray-200 rounded-lg text-left flex flex-col transition hover:border-blue-300">
-                            <span class="relative block aspect-[16/7] overflow-hidden border-b border-gray-100 bg-gray-100">
+                                 class="overflow-hidden border border-gray-200 rounded-lg text-left flex flex-col transition hover:border-blue-300 hover:shadow-sm"
+                                 :class="templateEntry === 'sections' ? 'min-h-64' : 'min-h-52'">
+                            <span class="relative block overflow-hidden border-b border-gray-100 bg-gray-100"
+                                  :class="templateEntry === 'sections' ? 'aspect-[16/8]' : 'aspect-[16/7]'">
                                 <img x-show="item.thumbnail" :src="item.thumbnail" alt="" loading="lazy"
                                      class="h-full w-full object-cover">
                                 <span x-show="!item.thumbnail" class="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -367,7 +377,7 @@ declare(strict_types=1);
                                 <span class="inline-flex items-center gap-1">
                                     <span x-show="item.paid" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
                                           x-text="templateText.premium"></span>
-                                    <span class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
+                                    <span x-show="templateEntry !== 'sections'" class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
                                           x-text="templateTypeLabel(item.type)"></span>
                                 </span>
                             </span>
@@ -400,7 +410,7 @@ declare(strict_types=1);
                                             ? 'w-auto border border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
                                             : 'flex-1 border border-blue-600 bg-blue-600 text-white hover:border-blue-500 hover:bg-blue-500'">
                                     <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
-                                    <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insert"></span>
+                                    <span x-text="item.source === 'remote' ? templateText.downloadImport : (templateEntry === 'sections' ? templateText.insertSection : templateText.insert)"></span>
                                 </button>
                                 <button type="button" x-show="item.type === 'page' && pageMode && sections.length > 0"
                                         @click="insertTemplate(item)" :disabled="templateInserting !== '' || !!item.locked"
@@ -423,8 +433,12 @@ declare(strict_types=1);
             </div>
             <div class="h-12 px-4 flex items-center justify-between border-t border-gray-100 shrink-0">
                 <span class="text-xs text-gray-400" aria-live="polite"
-                      x-text="templateText.resultCount.replace(':shown', filteredTemplates().length).replace(':total', scopedTemplates().length)"></span>
+                      x-text="templateText.resultCount.replace(':shown', filteredTemplates().length).replace(':total', templateEntryItems().length)"></span>
                 <span class="inline-flex items-center gap-4">
+                    <button type="button" x-show="templateEntry === 'sections'" @click="openTemplates()"
+                            class="text-xs text-gray-500 hover:text-blue-700 inline-flex items-center gap-1">
+                        <i class="ti ti-template"></i><span x-text="templateText.allTemplates"></span>
+                    </button>
                     <a x-show="templateScope === 'remote' && hasLockedTemplates()" href="/admin/license.php"
                        class="text-xs text-amber-700 hover:text-amber-800 inline-flex items-center gap-1">
                         <i class="ti ti-key"></i><span x-text="templateText.manageLicense"></span>

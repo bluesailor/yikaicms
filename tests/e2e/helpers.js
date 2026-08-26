@@ -127,7 +127,7 @@ async function addTemporaryHeading(page, columns = 1) {
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const section = page.getByTestId('blox-tree-section').last();
   await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-heading').click();
+  await page.getByTestId('blox-add-element-heading').press('Enter');
   await expect(section.getByTestId('blox-tree-element')).toHaveCount(1);
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]')).toHaveCount(headingBefore + 1);
   return { before, section, sectionIndex: before };
