@@ -285,6 +285,7 @@ file_put_contents($root . '/installed.lock', date('Y-m-d H:i:s'));
 
 $templateId = 0;
 $headerTemplateId = 0;
+$footerTemplateId = 0;
 if (!$i18nOnly) {
     // 5) 通过正式导入器准备 Blox 模板；后台 i18n 扫描不需要这组编辑器 fixture。
     define('IK_CLI', true);
@@ -299,6 +300,10 @@ if (!$i18nOnly) {
     // 首页入口必须打开它，不能误开另一个已发布但已停用的 Header。
     $headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'builtin', 'clean-site-header');
     $headerTemplateId = (int) $headerTemplate['id'];
+
+    $footerTemplateJson = (string) file_get_contents(ROOT_PATH . '/templates/blox/areas/clean-site-footer.json');
+    $footerTemplate = BloxTemplateImporter::importJson($footerTemplateJson, 1, 'builtin', 'clean-site-footer');
+    $footerTemplateId = (int) $footerTemplate['id'];
 }
 
 // 6) 报告可用的 parent id（供冒烟客户端引用）
@@ -353,6 +358,7 @@ $out = [
     'tables'       => (int) $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")->fetchColumn(),
     'blox_template' => $templateId,
     'blox_header_template' => $headerTemplateId,
+    'blox_footer_template' => $footerTemplateId,
     'blox_page' => $bloxPageId,
     'blox_page_url' => $bloxPageUrl,
     'redirect_parent' => (int) ($redirectPage['parent_id'] ?? 0),

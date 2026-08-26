@@ -318,6 +318,27 @@ test('home canvas exposes dedicated edit links for the readonly header and foote
   await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
 });
 
+test('footer template opens with the editable footer visible at the bottom of the canvas @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas position baseline');
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'footer editing is an advanced feature');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+
+  await page.goto(`/admin/blox_editor.php?template=${fixtures.blox_footer_template}`, {
+    waitUntil: 'domcontentloaded',
+  });
+  const contentFrame = await frame(page);
+  const footerArea = contentFrame.locator('[data-yk-area="footer"]');
+  await expect(footerArea).toBeVisible();
+  await expect.poll(async () => contentFrame.evaluate(() => {
+    const footer = document.querySelector('[data-yk-area="footer"]');
+    if (!footer) return false;
+    const rect = footer.getBoundingClientRect();
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    return scrollTop > 0 && rect.bottom <= window.innerHeight + 2 && rect.bottom > 0;
+  }), { timeout: 10000 }).toBe(true);
+});
+
 test('current theme header allows publishing unsaved canvas changes @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single publish control baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
