@@ -94,7 +94,7 @@ function renderAdminBar(): void
       #ik-adminbar .ik-ab-region-heading { display: block; padding: 4px 12px 3px; color: #94a3b8;
         font-size: 11px; font-weight: 700; line-height: 1.4; }
       #ik-adminbar .ik-ab-region-menu a { box-sizing: border-box; width: 100%; min-height: 36px; height: auto;
-        padding: 7px 12px; line-height: 1.35; }
+        padding: 7px 12px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; }
       #ik-adminbar .ik-ab-region-menu a:focus-visible { outline: 2px solid #93c5fd; outline-offset: -2px; color: #fff; }
       @media (max-width: 767px) {
         #ik-adminbar { padding: 0 2px; }

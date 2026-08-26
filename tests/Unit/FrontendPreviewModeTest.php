@@ -82,6 +82,8 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString("target.searchParams.set('focus_section', sectionId)", $frontEdit);
         self::assertStringContainsString("elementTarget.searchParams.set('focus_element', elementId)", $frontEdit);
         self::assertStringContainsString("var groupOrder = ['page', 'header', 'body', 'footer'];", $frontEdit);
+        self::assertStringContainsString("section.getAttribute('data-yk-sec-label') || fallbackLabel", $frontEdit);
+        self::assertStringContainsString('link.title = item.label;', $frontEdit);
         self::assertStringContainsString("target.origin !== window.location.origin || !target.pathname.startsWith('/admin/')", $frontEdit);
         self::assertStringContainsString("section.setAttribute('aria-labelledby', heading.id);", $frontEdit);
         self::assertStringContainsString("if (event.key !== 'Escape' || !regions.open) return;", $frontEdit);
