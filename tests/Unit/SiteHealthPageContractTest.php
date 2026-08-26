@@ -48,6 +48,29 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString('!empty($opts[\'remote\'])', $command);
     }
 
+    public function testDashboardNoticeSupportsSessionCloseAndPersistentDismissal(): void
+    {
+        $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
+        $defaults = (string) file_get_contents(ROOT_PATH . '/config/defaults.php');
+
+        self::assertStringContainsString("post('action') === 'dismiss_site_health_notice'", $dashboard);
+        self::assertStringContainsString("settingModel()->saveBatch(['dashboard_site_health_dismissed' => '1'])", $dashboard);
+        self::assertStringContainsString("config('dashboard_site_health_dismissed', '0')", $dashboard);
+        self::assertStringContainsString('verifyCsrf();', $dashboard);
+        self::assertStringContainsString("requirePermission('*')", $dashboard);
+        self::assertStringContainsString('data-testid="dashboard-health-dismiss"', $dashboard);
+        self::assertStringContainsString('data-testid="dashboard-health-close"', $dashboard);
+        self::assertStringContainsString("sessionStorage.setItem(sessionKey, '1')", $dashboard);
+        self::assertStringContainsString("'dashboard_site_health_dismissed'", $defaults);
+
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            self::assertArrayHasKey('dashboard_health_dismiss', $strings);
+            self::assertArrayHasKey('dashboard_health_close', $strings);
+            self::assertArrayHasKey('dashboard_health_dismiss_failed', $strings);
+        }
+    }
+
     public function testMediaHealthUsesServerSideBoundedCursorBatches(): void
     {
         $page = (string) file_get_contents(ROOT_PATH . '/admin/site_health.php');

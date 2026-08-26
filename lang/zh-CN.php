@@ -5548,4 +5548,7 @@ voltage|电压|220V',
     'blox_draft_previewing' => '正在预览草稿',
     'blox_draft_preview_private' => '仅当前管理员可见，不影响访客',
     'blox_exit_preview' => '退出预览',
+    'dashboard_health_dismiss' => '不再提醒',
+    'dashboard_health_close' => '关闭',
+    'dashboard_health_dismiss_failed' => '无法关闭站点健康提醒，请稍后重试。',
 ];
