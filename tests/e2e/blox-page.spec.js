@@ -146,10 +146,13 @@ test('stable section deep link selects the same persisted block @local', async (
   const frontendSectionLabel = await frontendSection.getAttribute('data-yk-sec-label');
   expect(frontendSectionId).toBeTruthy();
   expect(frontendSectionLabel).toBeTruthy();
+  const focusedFrontendReturn = new URL(frontendReturnTo, 'http://yikaicms.local');
+  focusedFrontendReturn.searchParams.set('yk_focus_section', frontendSectionId);
+  const focusedFrontendReturnTo = focusedFrontendReturn.pathname + focusedFrontendReturn.search;
   await frontendSection.hover();
   await expect(page.locator('#yk-edit-btn')).toHaveAttribute(
     'href',
-    `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(frontendReturnTo)}&focus_section=${encodeURIComponent(frontendSectionId)}`
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(focusedFrontendReturnTo)}&focus_section=${encodeURIComponent(frontendSectionId)}`
   );
   await page.goto(
     `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`,
@@ -179,14 +182,19 @@ test('frontend return target preserves source and guards unsaved edits @local', 
   await expect(page.locator('.ik-ab-page-edit')).toHaveAttribute('href', editorBase);
   const section = page.locator('[data-yk-sec-id]').first();
   const sectionId = await section.getAttribute('data-yk-sec-id');
+  const sectionLabel = await section.getAttribute('data-yk-sec-label');
   expect(sectionId).toBeTruthy();
+  expect(sectionLabel).toBeTruthy();
   await section.hover();
-  const preciseEditorUrl = `${editorBase}&focus_section=${encodeURIComponent(sectionId)}`;
+  const focusedReturn = new URL(returnTo, 'http://yikaicms.local');
+  focusedReturn.searchParams.set('yk_focus_section', sectionId);
+  const focusedReturnTo = focusedReturn.pathname + focusedReturn.search;
+  const preciseEditorUrl = `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(focusedReturnTo)}&focus_section=${encodeURIComponent(sectionId)}`;
   await expect(page.locator('#yk-edit-btn')).toHaveAttribute('href', preciseEditorUrl);
 
   await page.goto(preciseEditorUrl, { waitUntil: 'domcontentloaded' });
   const back = page.getByTestId('blox-back');
-  await expect(back).toHaveAttribute('href', returnTo);
+  await expect(back).toHaveAttribute('href', focusedReturnTo);
   await expect(back).toContainText('返回页面');
   await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
     .toHaveClass(/border-blue-400/);
@@ -212,10 +220,20 @@ test('frontend return target preserves source and guards unsaved edits @local', 
   await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
   await expect(sectionName).toHaveValue(originalName);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await Promise.all([
     page.waitForURL((url) => url.pathname + url.search === returnTo),
     back.click(),
   ]);
+  const returnedSection = page.locator(`[data-yk-sec-id="${sectionId}"]`).first();
+  await expect(returnedSection).toHaveClass(/yk-return-focus/);
+  await expect(page.getByTestId('frontend-return-focus-status')).toHaveText(`已返回：${sectionLabel}`);
+  await expect(returnedSection).toHaveCSS('animation-name', 'none');
+  expect(page.url()).not.toContain('yk_focus_section');
+
+  await page.goto(`${returnTo}&yk_focus_section=missing-${Date.now()}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForURL((url) => url.pathname + url.search === returnTo);
+  await expect(page.getByTestId('frontend-return-focus-status')).toHaveCount(0);
 
   for (const malicious of [
     'https://evil.example/page',
