@@ -711,6 +711,27 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($token, $editor);
         }
     }
+    public function testBloxEditorSharesReadableSectionLabelsWithFrontendNavigation(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'BlockRenderer::sectionLabelPolicy()',
+            'sectionLabelText(value, maxLength)',
+            'sectionElements(section)',
+            'policy.decorativeTypes',
+            'policy.elementTitleKeys',
+            'typeLabel + " · " + title',
+            'this.sectionLabel(this.sel, this.selectedSi)',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor);
+        }
+        $this->assertStringContainsString(':data-section-label="sectionLabel(section, si)"', $workspace);
+        $this->assertStringContainsString('data-testid="blox-tree-section-label"', $workspace);
+        $this->assertStringContainsString(':title="sectionLabel(section, si)"', $workspace);
+    }
+
     public function testFreeHomeLayoutEditorKeepsLargeDocumentsUsable(): void
     {
         $editor = $this->source('admin/page_edit_advance.php');

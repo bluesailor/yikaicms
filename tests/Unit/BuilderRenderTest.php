@@ -934,6 +934,12 @@ final class BuilderRenderTest extends TestCase
 
     public function testEditModeDerivesSafeReadableSectionLabels(): void
     {
+        $policy = BlockRenderer::sectionLabelPolicy();
+        $this->assertContains('heading', $policy['decorativeTypes']);
+        $this->assertContains('title', $policy['elementTitleKeys']);
+        $this->assertSame(80, $policy['titleMax']);
+        $this->assertSame(120, $policy['labelMax']);
+
         $json = json_encode([[
             'id' => 'section-process',
             'name' => "<b>Service\nProcess</b>\u{200B}",
