@@ -144,6 +144,100 @@ function renderFrontEdit(): void
         return '✎ ' + <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>;
       }
 
+      var regionLabels = {
+        page: <?php echo json_encode(__('ab_edit_group_page'), JSON_UNESCAPED_UNICODE); ?>,
+        header: <?php echo json_encode(__('ab_edit_group_header'), JSON_UNESCAPED_UNICODE); ?>,
+        body: <?php echo json_encode(__('ab_edit_group_body'), JSON_UNESCAPED_UNICODE); ?>,
+        footer: <?php echo json_encode(__('ab_edit_group_footer'), JSON_UNESCAPED_UNICODE); ?>,
+        editPage: <?php echo json_encode(__('ab_edit_page'), JSON_UNESCAPED_UNICODE); ?>,
+        editHeader: <?php echo json_encode(__('ab_edit_header'), JSON_UNESCAPED_UNICODE); ?>,
+        editFooter: <?php echo json_encode(__('fe_edit_footer'), JSON_UNESCAPED_UNICODE); ?>,
+        section: <?php echo json_encode(__('ab_edit_section', ['n' => ':n']), JSON_UNESCAPED_UNICODE); ?>,
+        editContent: <?php echo json_encode(__('fe_edit_content'), JSON_UNESCAPED_UNICODE); ?>
+      };
+
+      function buildRegionNavigator() {
+        var regions = document.getElementById('ik-ab-regions');
+        if (!regions) return;
+        var menu = regions.querySelector('.ik-ab-region-menu');
+        var summary = regions.querySelector('summary');
+        if (!menu || !summary) return;
+
+        var groups = { page: [], header: [], body: [], footer: [] };
+        var pageUrl = regions.getAttribute('data-page-edit-url') || '';
+        if (pageUrl) groups.page.push({ url: pageUrl, label: regionLabels.editPage });
+
+        function add(group, url, label) {
+          if (!url || url === '#') return;
+          var target;
+          try {
+            target = new URL(url, window.location.origin);
+          } catch (error) {
+            return;
+          }
+          if (target.origin !== window.location.origin || !target.pathname.startsWith('/admin/')) return;
+          var normalizedUrl = target.pathname + target.search + target.hash;
+          if (groups[group].some(function (item) { return item.url === normalizedUrl; })) return;
+          groups[group].push({ url: normalizedUrl, label: label || regionLabels.editContent });
+        }
+        function addArea(area, group, areaLabel) {
+          if (!area) return;
+          add(group, area.getAttribute('data-yk-edit') || '', areaLabel);
+          area.querySelectorAll('[data-yk-element-edit][data-yk-element-id]').forEach(function (target) {
+            add(group, editUrl(target), target.getAttribute('data-yk-element-label') || regionLabels.editContent);
+          });
+        }
+
+        var header = document.querySelector('.yk-blox-header[data-yk-edit]');
+        var footer = document.querySelector('.yk-blox-footer[data-yk-edit]');
+        addArea(header, 'header', regionLabels.editHeader);
+        document.querySelectorAll('[data-yk-sec-id]').forEach(function (section, index) {
+          if (section.closest('.yk-blox-header,.yk-blox-footer')) return;
+          add('body', editUrl(section), regionLabels.section.replace(':n', String(index + 1)));
+        });
+        document.querySelectorAll('[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(function (target) {
+          if (target === header || target === footer || target.closest('.yk-blox-header,.yk-blox-footer')) return;
+          if (target.hasAttribute('data-yk-sec-id')) return;
+          add('body', editUrl(target), (editLabel(target) || '').replace(/^✎\s*/, ''));
+        });
+        addArea(footer, 'footer', regionLabels.editFooter);
+
+        var groupOrder = ['page', 'header', 'body', 'footer'];
+        var regionCount = groups.header.length + groups.body.length + groups.footer.length;
+        if (!regionCount) return;
+
+        menu.textContent = '';
+        groupOrder.forEach(function (group) {
+          if (!groups[group].length) return;
+          var section = document.createElement('section');
+          section.className = 'ik-ab-region-group';
+          var heading = document.createElement('span');
+          heading.className = 'ik-ab-region-heading';
+          heading.id = 'ik-ab-region-heading-' + group;
+          heading.textContent = regionLabels[group];
+          section.setAttribute('aria-labelledby', heading.id);
+          section.appendChild(heading);
+          groups[group].forEach(function (item) {
+            var link = document.createElement('a');
+            link.href = item.url;
+            link.textContent = item.label;
+            section.appendChild(link);
+          });
+          menu.appendChild(section);
+        });
+        regions.hidden = false;
+
+        document.addEventListener('click', function (event) {
+          if (regions.open && !regions.contains(event.target)) regions.open = false;
+        });
+        regions.addEventListener('keydown', function (event) {
+          if (event.key !== 'Escape' || !regions.open) return;
+          event.preventDefault();
+          regions.open = false;
+          summary.focus();
+        });
+      }
+
       function place(sec) {
         var r = sec.getBoundingClientRect();
         var targetUrl = editUrl(sec);
@@ -170,6 +264,7 @@ function renderFrontEdit(): void
       }
       onReady(function () {
         document.querySelectorAll('[data-yk-element-edit][data-yk-element-id],[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
+        buildRegionNavigator();
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
