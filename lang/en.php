@@ -5464,4 +5464,6 @@ voltage|Voltage|220V',
     'blox_section_name_hint' => 'Used in the editor tree and frontend admin bar, but not shown in page content. Leave blank to generate it automatically.',
     'blox_section_name_reset' => 'Restore automatic name',
     'blox_return_to_page' => 'Back to page',
+    'fe_return_focus' => 'Returned to: :label',
+    'fe_return_focus_fallback' => 'Returned to the edited location',
 ];

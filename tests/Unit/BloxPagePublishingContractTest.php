@@ -256,6 +256,11 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("target.searchParams.set('focus_section', sectionId)", $overlay);
         $this->assertStringContainsString("elementTarget.searchParams.set('focus_element', elementId)", $overlay);
         $this->assertStringContainsString("elementTarget.searchParams.delete('open')", $overlay);
+        $this->assertStringContainsString("source.searchParams.set('yk_focus_section', sectionId)", $overlay);
+        $this->assertStringContainsString("source.searchParams.set('yk_focus_element', elementId)", $overlay);
+        $this->assertStringContainsString("currentUrl.searchParams.delete('yk_focus_section')", $overlay);
+        $this->assertStringContainsString("currentUrl.searchParams.delete('yk_focus_element')", $overlay);
+        $this->assertStringContainsString("attribute = elementId ? 'data-yk-element-id' : 'data-yk-sec-id'", $overlay);
         $this->assertStringNotContainsString('&focus=', $overlay);
         foreach (['data-yk-element-edit', 'data-yk-element-id', 'data-yk-element-label', 'data-yk-sec-id', 'data-yk-nav', 'data-yk-footer', 'data-yk-partners', 'data-yk-edit'] as $marker) {
             $this->assertStringContainsString($marker, $overlay);

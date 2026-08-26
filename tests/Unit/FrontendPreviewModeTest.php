@@ -84,7 +84,15 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString("target.searchParams.set('focus_section', sectionId)", $frontEdit);
         self::assertStringContainsString("elementTarget.searchParams.set('focus_element', elementId)", $frontEdit);
         self::assertStringContainsString('function withFrontendReturn(url)', $frontEdit);
-        self::assertStringContainsString("target.searchParams.set('return_to', frontendReturnTo)", $frontEdit);
+        self::assertStringContainsString("source.searchParams.set('yk_focus_element', elementId)", $frontEdit);
+        self::assertStringContainsString("source.searchParams.set('yk_focus_section', sectionId)", $frontEdit);
+        self::assertStringContainsString("target.searchParams.set('return_to', source.pathname + source.search + source.hash)", $frontEdit);
+        self::assertStringContainsString('function consumeReturnFocus()', $frontEdit);
+        self::assertStringContainsString("window.history.replaceState(", $frontEdit);
+        self::assertStringContainsString("target.scrollIntoView({", $frontEdit);
+        self::assertStringContainsString("window.matchMedia('(prefers-reduced-motion: reduce)').matches", $frontEdit);
+        self::assertStringContainsString('data-testid', $frontEdit);
+        self::assertStringContainsString('frontend-return-focus-status', $frontEdit);
         self::assertStringContainsString("var groupOrder = ['page', 'header', 'body', 'footer'];", $frontEdit);
         self::assertStringContainsString("section.getAttribute('data-yk-sec-label') || fallbackLabel", $frontEdit);
         self::assertStringContainsString('link.title = item.label;', $frontEdit);
