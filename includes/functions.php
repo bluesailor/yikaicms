@@ -331,20 +331,17 @@ function bloxAreaHtml(string $area): string
     if (!in_array($area, ['header', 'footer'], true)) {
         return '';
     }
+    $previewTemplate = BloxPublicationStatus::areaDraftPreview($area);
     // 停用仅改变前台接管状态，不取消发布或删除模板，便于随时恢复原设计。
     $areaEnabledSetting = [
         'header' => 'blox_custom_header_enabled',
         'footer' => 'blox_custom_footer_enabled',
     ][$area];
-    if ((string) config($areaEnabledSetting, '1') !== '1') {
+    if ($previewTemplate === null && (string) config($areaEnabledSetting, '1') !== '1') {
         return '';
     }
     try {
         if (!db()->tableExists('blox_templates')) {
-            return '';
-        }
-        $templates = bloxTemplateModel()->publishedAreaTemplates($area);
-        if ($templates === []) {
             return '';
         }
         $script = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
@@ -353,15 +350,24 @@ function bloxAreaHtml(string $area): string
             'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
             'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
         ];
-        $row = BloxAreaResolver::resolve($templates, $context);
+        $row = $previewTemplate;
+        if ($row === null) {
+            $templates = bloxTemplateModel()->publishedAreaTemplates($area);
+            if ($templates === []) {
+                return '';
+            }
+            $row = BloxAreaResolver::resolve($templates, $context);
+        }
         if ($row === null) {
             return '';
         }
-        $publishedData = (string) ($row['published_data'] ?? '');
-        $document = BloxAreaDocument::decode($area, $publishedData);
+        $documentJson = $previewTemplate !== null
+            ? (string) ($row['draft_data'] ?? '')
+            : (string) ($row['published_data'] ?? '');
+        $document = BloxAreaDocument::decode($area, $documentJson);
         $body = BloxFrontendEditTarget::inArea(
             $area,
-            static fn (): string => BlockRenderer::render($publishedData)
+            static fn (): string => BlockRenderer::render($documentJson)
         );
         if ($body === '') {
             return '';

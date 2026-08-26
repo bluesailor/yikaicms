@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { observeConsole } = require('./helpers');
+const { addTemporaryHeading, observeConsole, performPreviewUpdate } = require('./helpers');
 
 const AREA_TEMPLATES = [
   { slug: 'corporate-site-header', name: 'Corporate Site Header' },
@@ -297,6 +297,47 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(page.getByTestId('blox-copyright-content-source')).toBeVisible();
       await expect(page.getByTestId('blox-copyright-content-manage')).toHaveAttribute('href', /tab=footer/);
       await expect(page.getByTestId('blox-filing-content-manage')).toHaveAttribute('href', /tab=basic/);
+
+      await page.goto(headerEditorHref, { waitUntil: 'domcontentloaded' });
+      await addTemporaryHeading(page);
+      const headerDraftMarker = `Header draft ${Date.now()}`;
+      const headerDraftInput = page.locator('[data-control-key="text"] input[type="text"]').first();
+      await performPreviewUpdate(page, () => headerDraftInput.fill(headerDraftMarker));
+      const saveDraftResponse = page.waitForResponse((response) => {
+        const body = new URLSearchParams(response.request().postData() || '');
+        return new URL(response.url()).pathname === '/admin/blox_template_api.php'
+          && body.get('action') === 'save_draft';
+      });
+      await page.getByTestId('blox-save').click();
+      expect((await (await saveDraftResponse).json()).code).toBe(0);
+
+      await page.goto(fixtures.blox_page_url, { waitUntil: 'domcontentloaded' });
+      const headerDraftItem = page.locator('[data-draft-kind="header"]');
+      await page.getByTestId('admin-unpublished-changes').locator('summary').click();
+      await expect(headerDraftItem).toBeVisible();
+      const headerDraftPreviewHref = await headerDraftItem.getByText('预览草稿').getAttribute('href');
+      const headerContinueHref = await headerDraftItem.getByText('继续编辑').getAttribute('href');
+      expect(headerDraftPreviewHref).toBeTruthy();
+      expect(headerContinueHref).toBeTruthy();
+
+      const publishedHeader = await page.request.get(`${fixtures.blox_page_url}&preview=1`);
+      expect(await publishedHeader.text()).not.toContain(headerDraftMarker);
+      await page.goto(headerDraftPreviewHref, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('blox-draft-preview-bar')).toBeVisible();
+      await expect(page.locator('.yk-blox-header')).toContainText(headerDraftMarker);
+
+      await page.goto(headerContinueHref, { waitUntil: 'domcontentloaded' });
+      page.on('dialog', async (dialog) => dialog.accept());
+      const publishResponse = page.waitForResponse((response) => {
+        const body = new URLSearchParams(response.request().postData() || '');
+        return new URL(response.url()).pathname === '/admin/blox_template_api.php'
+          && body.get('action') === 'publish';
+      });
+      await page.getByTestId('blox-publish-template').click();
+      expect((await (await publishResponse).json()).code).toBe(0);
+      await page.goto(fixtures.blox_page_url, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('[data-draft-kind="header"]')).toHaveCount(0);
+      await expect(page.locator('.yk-blox-header')).toContainText(headerDraftMarker);
     }
     expect(consoleEntries, 'published default areas must not log browser errors').toEqual([]);
   } finally {
