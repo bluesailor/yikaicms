@@ -29,9 +29,40 @@ function adminBarResolveEditUrl(string $editUrl): string
     return '/admin/blox_editor.php?' . $query;
 }
 
+function renderBloxDraftPreviewBar(): void
+{
+    $exitUrl = BloxPublicationStatus::exitPreviewUrl((string) ($_SERVER['REQUEST_URI'] ?? '/'));
+    ?>
+    <style>
+      html { margin-top: 38px !important; }
+      #ik-draft-previewbar { position: fixed; inset: 0 0 auto; z-index: 99999; height: 38px;
+        box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px;
+        padding: 0 12px; background: #fffbeb; border-bottom: 1px solid #f59e0b; color: #78350f;
+        font: 600 13px/1.3 system-ui,-apple-system,"Microsoft YaHei",sans-serif; }
+      #ik-draft-previewbar .ik-draft-previewbar-note { color: #92400e; font-weight: 400; }
+      #ik-draft-previewbar a { margin-left: 6px; color: #1d4ed8; text-decoration: none; white-space: nowrap; }
+      #ik-draft-previewbar a:hover { text-decoration: underline; }
+      @media (max-width: 520px) {
+        #ik-draft-previewbar .ik-draft-previewbar-note { display: none; }
+      }
+      @media print { #ik-draft-previewbar { display: none; } html { margin-top: 0 !important; } }
+    </style>
+    <div id="ik-draft-previewbar" role="status" data-testid="blox-draft-preview-bar">
+      <span><?php echo e(__('blox_draft_previewing')); ?></span>
+      <span class="ik-draft-previewbar-note"><?php echo e(__('blox_draft_preview_private')); ?></span>
+      <a href="<?php echo e($exitUrl); ?>"><?php echo e(__('blox_exit_preview')); ?></a>
+    </div>
+    <?php
+}
+
 function renderAdminBar(): void
 {
-    if (isCleanFrontendPreview()) return;
+    if (isCleanFrontendPreview()) {
+        if (BloxPublicationStatus::activePreview() !== null) {
+            renderBloxDraftPreviewBar();
+        }
+        return;
+    }
     if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
 
     $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
@@ -41,6 +72,27 @@ function renderAdminBar(): void
         $returnTo
     );
     $brand = config('site_name', '') ?: adminBrandName();
+    $draftEditorUrls = $editUrl !== '' ? [$editUrl] : [];
+    if (bloxAdvancedFeaturesEnabled()) {
+        $areaContext = [
+            'home' => basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'index.php',
+            'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
+            'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
+        ];
+        foreach (['header', 'footer'] as $area) {
+            $draftEditorUrls[] = BloxAreaEditorTarget::withReturnTo(
+                BloxAreaEditorTarget::url($area, $areaContext),
+                $returnTo
+            );
+        }
+    }
+    $draftItems = BloxPublicationStatus::query($draftEditorUrls, $returnTo);
+    $draftKindLabels = [
+        'home' => __('ab_draft_home'),
+        'page' => __('ab_draft_page'),
+        'header' => __('ab_draft_header'),
+        'footer' => __('ab_draft_footer'),
+    ];
 
     // 「新建」跟随站点实际启用的模块：按 channels 里存在的栏目类型生成
     $createMap = [
@@ -80,6 +132,26 @@ function renderAdminBar(): void
         min-width: 130px; flex-direction: column; box-shadow: 0 6px 16px rgba(0,0,0,.35); padding: 4px 0; }
       #ik-adminbar .ik-ab-new:hover .ik-ab-menu { display: flex; }
       #ik-adminbar .ik-ab-menu a { height: 32px; line-height: 32px; }
+      #ik-adminbar .ik-ab-drafts { position: relative; height: 34px; }
+      #ik-adminbar .ik-ab-drafts summary { box-sizing: border-box; height: 34px; padding: 0 10px;
+        color: #fcd34d; display: flex; align-items: center; gap: 5px; cursor: pointer; list-style: none;
+        white-space: nowrap; user-select: none; font-weight: 600; }
+      #ik-adminbar .ik-ab-drafts summary::-webkit-details-marker { display: none; }
+      #ik-adminbar .ik-ab-drafts summary:hover,
+      #ik-adminbar .ik-ab-drafts[open] summary { background: #374151; color: #fde68a; }
+      #ik-adminbar .ik-ab-drafts summary:focus-visible { outline: 2px solid #fcd34d; outline-offset: -2px; }
+      #ik-adminbar .ik-ab-draft-dot { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b;
+        box-shadow: 0 0 0 2px rgba(245,158,11,.2); flex: 0 0 auto; }
+      #ik-adminbar .ik-ab-draft-menu { position: absolute; top: 34px; left: 0; width: 310px;
+        max-width: calc(100vw - 12px); padding: 8px 0; background: #1f2937; color: #cbd5e1;
+        box-shadow: 0 8px 24px rgba(0,0,0,.38); }
+      #ik-adminbar .ik-ab-draft-heading { display: block; padding: 3px 12px 7px; color: #fcd34d;
+        font-size: 11px; font-weight: 700; }
+      #ik-adminbar .ik-ab-draft-item { padding: 7px 12px; border-top: 1px solid #374151; }
+      #ik-adminbar .ik-ab-draft-kind { display: block; color: #fff; font-weight: 600; line-height: 1.4; }
+      #ik-adminbar .ik-ab-draft-actions { display: flex; gap: 14px; margin-top: 3px; }
+      #ik-adminbar .ik-ab-draft-actions a { height: auto; line-height: 1.5; padding: 2px 0; color: #bfdbfe; }
+      #ik-adminbar .ik-ab-draft-actions a:hover { background: transparent; color: #fff; text-decoration: underline; }
       #ik-adminbar .ik-ab-regions { position: relative; height: 34px; }
       #ik-adminbar .ik-ab-regions[hidden] { display: none; }
       #ik-adminbar .ik-ab-regions summary { box-sizing: border-box; height: 34px; padding: 0 10px;
@@ -102,13 +174,15 @@ function renderAdminBar(): void
       #ik-adminbar .ik-ab-region-menu a:focus-visible { outline: 2px solid #93c5fd; outline-offset: -2px; color: #fff; }
       @media (max-width: 767px) {
         #ik-adminbar { padding: 0 2px; }
-        #ik-adminbar a, #ik-adminbar .ik-ab-regions summary { padding-left: 8px; padding-right: 8px; }
+        #ik-adminbar a, #ik-adminbar .ik-ab-regions summary, #ik-adminbar .ik-ab-drafts summary { padding-left: 8px; padding-right: 8px; }
         #ik-adminbar .ik-ab-optional, #ik-adminbar .ik-ab-profile { display: none; }
         #ik-adminbar .ik-ab-region-menu { position: fixed; top: 34px; left: 6px; right: 6px; width: auto; max-width: none; }
+        #ik-adminbar .ik-ab-draft-menu { position: fixed; top: 34px; left: 6px; right: 6px; width: auto; max-width: none; }
       }
       @media (max-width: 520px) {
         #ik-adminbar .ik-ab-brand-name { display: none; }
         #ik-adminbar .ik-ab-page-edit-label { display: none; }
+        #ik-adminbar .ik-ab-draft-label { display: none; }
       }
       @media print { #ik-adminbar { display: none; } html { margin-top: 0 !important; } }
     </style>
@@ -132,6 +206,27 @@ function renderAdminBar(): void
         <svg class="ik-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         <span class="ik-ab-page-edit-label"><?php echo e(__('ab_edit_page')); ?></span>
       </a>
+      <?php endif; ?>
+      <?php if ($draftItems !== []): ?>
+      <details class="ik-ab-drafts" data-testid="admin-unpublished-changes">
+        <summary aria-label="<?php echo e(__('ab_unpublished_changes')); ?>">
+          <span class="ik-ab-draft-dot" aria-hidden="true"></span>
+          <span class="ik-ab-draft-label"><?php echo e(__('ab_unpublished_changes')); ?></span>
+          <span aria-hidden="true"><?php echo count($draftItems); ?></span>
+        </summary>
+        <div class="ik-ab-draft-menu">
+          <span class="ik-ab-draft-heading"><?php echo e(__('ab_unpublished_changes')); ?></span>
+          <?php foreach ($draftItems as $draftItem): ?>
+          <div class="ik-ab-draft-item" data-draft-kind="<?php echo e($draftItem['kind']); ?>">
+            <span class="ik-ab-draft-kind"><?php echo e($draftKindLabels[$draftItem['kind']] ?? __('ab_draft_page')); ?></span>
+            <span class="ik-ab-draft-actions">
+              <a href="<?php echo e($draftItem['editor_url']); ?>"><?php echo e(__('ab_continue_editing')); ?></a>
+              <a href="<?php echo e($draftItem['preview_url']); ?>"><?php echo e(__('ab_preview_draft')); ?></a>
+            </span>
+          </div>
+          <?php endforeach; ?>
+        </div>
+      </details>
       <?php endif; ?>
       <details id="ik-ab-regions" class="ik-ab-regions" data-page-edit-url="<?php echo e($editUrl); ?>" data-testid="admin-edit-regions" hidden>
         <summary aria-label="<?php echo e(__('ab_edit_regions')); ?>">

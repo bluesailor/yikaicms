@@ -186,6 +186,19 @@ if ($hasPublishedBlox) {
     $content = contentModel()->getFirstByChannel($channelId);
 }
 
+$draftPreviewJson = BloxPublicationStatus::pageDraftPreview($channelId);
+if ($draftPreviewJson !== null) {
+    $content = [
+        'id' => (int) ($publishedContent['id'] ?? 0),
+        'title' => (string) ($channel['name'] ?? ''),
+        'cover' => (string) ($channel['image'] ?? ''),
+        'content' => '',
+        'images' => null,
+        'content_type' => 'blocks',
+        'blocks_data' => $draftPreviewJson,
+    ];
+}
+
 // 页面信息
 // 在 header 前确定顶部管理条的页级编辑目标，避免主题布局分支漏设。
 if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && is_array($content)) {

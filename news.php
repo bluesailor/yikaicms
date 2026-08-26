@@ -22,6 +22,10 @@ extract((new NewsListController())->prepare([
 ]), EXTR_OVERWRITE);
 
 $newsBloxJson = $newsChannelId > 0 ? ChannelBloxDocument::publishedJson($newsChannelId) : null;
+$newsDraftPreview = $newsChannelId > 0 ? BloxPublicationStatus::pageDraftPreview($newsChannelId) : null;
+if ($newsDraftPreview !== null) {
+    $newsBloxJson = $newsDraftPreview;
+}
 $hasPublishedNewsBlox = is_string($newsBloxJson) && $newsBloxJson !== '';
 if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && $newsChannelId > 0) {
     $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $newsChannelId;
