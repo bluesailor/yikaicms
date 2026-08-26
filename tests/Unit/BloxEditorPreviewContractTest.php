@@ -732,6 +732,34 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString(':title="sectionLabel(section, si)"', $workspace);
     }
 
+    public function testBloxEditorSupportsCustomSectionNamesAndAutomaticFallback(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'automaticSectionLabel(section, si)',
+            'resolveSectionLabel(section, si, includeCustomName)',
+            'if (includeCustomName) titleCandidates.push(section && section.name);',
+            'normalizeSectionName(section)',
+            'clearSectionName(section)',
+            'delete target.name;',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor);
+        }
+        foreach ([
+            'data-testid="blox-section-name-control"',
+            'data-testid="blox-section-name"',
+            'data-testid="blox-section-name-reset"',
+            'data-testid="blox-section-auto-name"',
+            '@blur="normalizeSectionName(sel)"',
+            '@click="clearSectionName(sel)"',
+            ':placeholder="automaticSectionLabel(sel, selectedSi)"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $workspace);
+        }
+    }
+
     public function testFreeHomeLayoutEditorKeepsLargeDocumentsUsable(): void
     {
         $editor = $this->source('admin/page_edit_advance.php');

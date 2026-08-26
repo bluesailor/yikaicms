@@ -7,6 +7,7 @@ final class BloxDocumentPipeline
 {
     public const MAX_JSON_BYTES = 2_000_000;
     public const MAX_SECTIONS = 100;
+    public const SECTION_NAME_MAX = 80;
 
     /**
      * 文档信封 schema 版本（r10 起写入）。历史两形态（裸 sections 数组 /
@@ -410,8 +411,11 @@ final class BloxDocumentPipeline
                 'settings' => $settings,
                 'columns' => $columns,
             ];
-            if (isset($section['name'])) {
-                $normalizedSection['name'] = (string) $section['name'];
+            if (array_key_exists('name', $section)) {
+                $sectionName = self::normalizeSectionName($section['name']);
+                if ($sectionName !== '') {
+                    $normalizedSection['name'] = $sectionName;
+                }
             }
             $normalized[] = $normalizedSection;
         }
@@ -423,6 +427,19 @@ final class BloxDocumentPipeline
     {
         $anchorId = is_string($value) || is_int($value) ? ltrim(trim((string) $value), '#') : '';
         return preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $anchorId) === 1 ? $anchorId : '';
+    }
+
+    public static function normalizeSectionName(mixed $value): string
+    {
+        if (!is_string($value) && !is_int($value) && !is_float($value)) {
+            return '';
+        }
+
+        $name = html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $name = preg_replace('/[\p{Cc}\p{Cf}]+/u', ' ', $name) ?? '';
+        $name = preg_replace('/\s+/u', ' ', trim($name)) ?? '';
+
+        return mb_substr($name, 0, self::SECTION_NAME_MAX);
     }
 
     /** @param array<string,mixed> $element @param array<string,true> $usedIds @return array<string,mixed> */

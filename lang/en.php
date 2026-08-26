@@ -5459,4 +5459,8 @@ voltage|Voltage|220V',
     'ab_edit_group_footer' => 'Footer',
     'ab_edit_header' => 'Edit header',
     'ab_edit_section' => 'Edit section :n',
+    'blox_section_name' => 'Section name',
+    'blox_section_name_auto' => 'Automatic name: ',
+    'blox_section_name_hint' => 'Used in the editor tree and frontend admin bar, but not shown in page content. Leave blank to generate it automatically.',
+    'blox_section_name_reset' => 'Restore automatic name',
 ];

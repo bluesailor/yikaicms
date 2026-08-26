@@ -163,6 +163,78 @@ test('stable section deep link selects the same persisted block @local', async (
   expect(consoleEntries).toEqual([]);
 });
 
+test('custom section name survives history and save before returning to automatic label @local', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single section-name write-path baseline');
+  expect(fixtures.blox_page).toBeGreaterThan(0);
+
+  const consoleEntries = observeConsole(page);
+  await openPageEditor(page, fixtures.blox_page);
+  const treeSection = page.getByTestId('blox-tree-section').first();
+  const sectionId = await treeSection.getAttribute('data-section-id');
+  expect(sectionId).toBeTruthy();
+  await treeSection.click();
+
+  const input = page.getByTestId('blox-section-name');
+  const originalName = await input.inputValue();
+  const automaticName = await page.getByTestId('blox-section-auto-name').textContent();
+  expect(automaticName).toBeTruthy();
+
+  const marker = `售后 流程 ${Date.now()}`;
+  await performPagePreviewUpdate(page, async () => {
+    await input.fill(`  <b>售后</b>\u200B\n流程 ${marker.split(' ').pop()}  `);
+    await input.blur();
+  });
+  await expect(input).toHaveValue(marker);
+  await expect(treeSection.getByTestId('blox-tree-section-label')).toContainText(marker);
+
+  await expect(page.getByTestId('blox-undo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+  await expect(input).toHaveValue(originalName);
+  await expect(page.getByTestId('blox-redo')).toBeEnabled();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-redo').click());
+  await expect(input).toHaveValue(marker);
+
+  const saveDraft = async () => {
+    const response = page.waitForResponse((candidate) => {
+      const url = new URL(candidate.url());
+      const body = new URLSearchParams(candidate.request().postData() || '');
+      return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'save_draft';
+    });
+    await page.getByTestId('blox-save').click();
+    expect((await (await response).json()).code).toBe(0);
+    await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  };
+
+  await saveDraft();
+  await page.goto(
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(sectionId)}`,
+    { waitUntil: 'domcontentloaded' }
+  );
+  await expect(page.getByTestId('blox-section-name')).toHaveValue(marker);
+
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-section-name-reset').click());
+  await expect(page.getByTestId('blox-section-name')).toHaveValue('');
+  await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
+    .toHaveAttribute('data-section-label', automaticName);
+  await saveDraft();
+
+  await page.goto(
+    `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(sectionId)}`,
+    { waitUntil: 'domcontentloaded' }
+  );
+  await expect(page.getByTestId('blox-section-name')).toHaveValue('');
+  await expect(page.getByTestId('blox-section-auto-name')).toHaveText(automaticName);
+
+  if (originalName) {
+    await performPagePreviewUpdate(page, async () => {
+      await page.getByTestId('blox-section-name').fill(originalName);
+      await page.getByTestId('blox-section-name').blur();
+    });
+    await saveDraft();
+  }
+  expect(consoleEntries).toEqual([]);
+});
+
 test('auto-redirect parent edits the page visitors actually see @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single navigation baseline');
   expect(fixtures.redirect_parent).toBeGreaterThan(0);
