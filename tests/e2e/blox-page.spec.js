@@ -21,7 +21,14 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   expect(fixtures.blox_page).toBeGreaterThan(0);
 
   const consoleEntries = observeConsole(page);
-  await openPageEditor(page, fixtures.blox_page);
+  const sourceUrl = `${fixtures.blox_page_url}&result_probe=${Date.now()}`;
+  await page.goto(sourceUrl, { waitUntil: 'domcontentloaded' });
+  const source = new URL(page.url());
+  const sourceReturnTo = source.pathname + source.search;
+  const editorHref = await page.locator('.ik-ab-page-edit').getAttribute('href');
+  expect(editorHref).toBeTruthy();
+  await page.goto(editorHref, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
     await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
     await expect(page.getByTestId('blox-templates-open')).toBeVisible();
@@ -41,18 +48,73 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(headingInput).toBeVisible();
   await performPagePreviewUpdate(page, () => headingInput.fill(marker));
 
+  await page.route('**/admin/blox_page_api.php*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ code: 1, msg: 'Injected save failure' }),
+  }), { times: 1 });
+  const failedSaveResponse = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    const body = new URLSearchParams(candidate.request().postData() || '');
+    return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'save_draft';
+  });
+  await page.getByTestId('blox-save').click();
+  expect((await (await failedSaveResponse).json()).code).toBe(1);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+  expect(await page.getByTestId('blox-back').getAttribute('href')).not.toContain('yk_edit_receipt');
+
   const saveResponse = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
     const body = new URLSearchParams(candidate.request().postData() || '');
     return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'save_draft';
   });
   await page.getByTestId('blox-save').click();
-  expect((await (await saveResponse).json()).code).toBe(0);
+  const saveResult = await (await saveResponse).json();
+  expect(saveResult.code).toBe(0);
+  expect(saveResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  const back = page.getByTestId('blox-back');
+  const draftBack = new URL(await back.getAttribute('href'), 'http://yikaicms.local');
+  expect(draftBack.searchParams.get('yk_edit_receipt')).toBe(saveResult.data.return_receipt);
 
   const draftFrontend = await page.request.get(`${fixtures.blox_page_url}&preview=1`);
   expect(draftFrontend.ok()).toBe(true);
   expect(await draftFrontend.text()).not.toContain(marker);
+
+  await Promise.all([
+    page.waitForURL((url) => url.pathname + url.search === sourceReturnTo),
+    back.click(),
+  ]);
+  await expect(page.getByTestId('frontend-return-focus-status'))
+    .toHaveText('草稿已保存，前台仍显示已发布版本');
+  await expect(page.getByTestId('frontend-return-focus-status')).toHaveClass(/is-draft/);
+  expect(page.url()).not.toContain('yk_edit_receipt');
+
+  const publishTarget = page.locator('[data-yk-sec-id]').first();
+  const publishSectionId = await publishTarget.getAttribute('data-yk-sec-id');
+  expect(publishSectionId).toBeTruthy();
+  await publishTarget.hover();
+  const draftEditorHref = await page.locator('#yk-edit-btn').getAttribute('href');
+  expect(draftEditorHref).toBeTruthy();
+  expect(draftEditorHref).not.toContain('yk_edit_receipt');
+  await page.goto(draftEditorHref, { waitUntil: 'domcontentloaded' });
+  await expect((await frame(page)).getByText(marker, { exact: true })).toBeVisible();
+
+  await page.route('**/admin/blox_page_api.php*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ code: 1, msg: 'Injected publish failure' }),
+  }), { times: 1 });
+  page.once('dialog', (dialog) => dialog.accept());
+  const failedPublishResponse = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    const body = new URLSearchParams(candidate.request().postData() || '');
+    return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'publish';
+  });
+  await page.getByTestId('blox-publish-page').click();
+  expect((await (await failedPublishResponse).json()).code).toBe(1);
+  expect(await page.getByTestId('blox-back').getAttribute('href')).not.toContain('yk_edit_receipt');
 
   page.once('dialog', (dialog) => dialog.accept());
   const publishResponse = page.waitForResponse((candidate) => {
@@ -61,8 +123,22 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
     return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'publish';
   });
   await page.getByTestId('blox-publish-page').click();
-  expect((await (await publishResponse).json()).code).toBe(0);
+  const publishResult = await (await publishResponse).json();
+  expect(publishResult.code).toBe(0);
+  expect(publishResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+
+  const publishedBack = new URL(await page.getByTestId('blox-back').getAttribute('href'), 'http://yikaicms.local');
+  expect(publishedBack.searchParams.get('yk_edit_receipt')).toBe(publishResult.data.return_receipt);
+  await Promise.all([
+    page.waitForURL((url) => url.pathname + url.search === sourceReturnTo),
+    page.getByTestId('blox-back').click(),
+  ]);
+  await expect(page.getByTestId('frontend-return-focus-status')).toHaveText('已发布，并返回到修改位置');
+  await expect(page.getByTestId('frontend-return-focus-status')).toHaveClass(/is-published/);
+  await expect(page.locator(`[data-yk-sec-id="${publishSectionId}"]`).first()).toHaveClass(/yk-return-focus/);
+  expect(page.url()).not.toContain('yk_edit_receipt');
+  expect(await page.content()).toContain(marker);
 
   const publishedFrontend = await page.request.get(`${fixtures.blox_page_url}&preview=1&v=${Date.now()}`);
   expect(publishedFrontend.ok()).toBe(true);

@@ -6399,6 +6399,7 @@ $canManageBloxDesign = hasPermission('*');
                         }
                         if (action === "publish") {
                             self.acceptSavedDocument(payload, savedData, res);
+                            self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                         }
                         self.homePublished = action === "publish";
                         self.toast(action === "publish" ? self.homeText.publishDone : self.homeText.rollbackDone);
@@ -6448,6 +6449,7 @@ $canManageBloxDesign = hasPermission('*');
                         }
                         if (Number(res.code) === 0) {
                             self.acceptSavedDocument(payload, savedData, res);
+                            self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                             var activated = res.data && res.data.activated_area;
                             self.toast(activated ? self.uiText.tplPublishedAndUsed : self.uiText.tplPublished);
                         }
@@ -6484,6 +6486,7 @@ $canManageBloxDesign = hasPermission('*');
                             return;
                         }
                         self.acceptSavedDocument(payload, savedData, res);
+                        self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                         self.pagePublished = true;
                         self.pageHasUnpublishedChanges = false;
                         self.toast(self.pageText.publishDone);
@@ -6498,6 +6501,22 @@ $canManageBloxDesign = hasPermission('*');
 
             rollbackHome() {
                 this.homeAction("rollback");
+            },
+
+            setEditorReturnReceipt(receipt) {
+                var token = typeof receipt === "string" ? receipt.trim() : "";
+                if (!/^[a-f0-9]{48}$/.test(token)) return;
+                var back = document.querySelector('[data-testid="blox-back"][data-frontend-return="1"]');
+                if (!back) return;
+                try {
+                    var target = new URL(back.getAttribute("href") || "", window.location.origin);
+                    if (target.origin !== window.location.origin
+                        || target.pathname === "/admin" || target.pathname.startsWith("/admin/")) return;
+                    target.searchParams.set("yk_edit_receipt", token);
+                    back.setAttribute("href", target.pathname + target.search + target.hash);
+                } catch (error) {
+                    return;
+                }
             },
 
             acceptSavedDocument(payload, savedData, res) {
@@ -6556,6 +6575,7 @@ $canManageBloxDesign = hasPermission('*');
                             && (typeof res.code === "undefined" || Number(res.code) === 0);
                         if (ok) {
                             self.acceptSavedDocument(payload, savedData, res);
+                            self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                             self.toast(self.uiText.saved);
                         } else {
                             self.toast(self.uiText.saveFailedMsg.replace(":msg", res.message || res.msg || ""));

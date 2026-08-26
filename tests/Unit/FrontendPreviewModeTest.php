@@ -57,7 +57,7 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString("return '/admin/blox_editor.php?' . \$query;", $adminBar);
         self::assertStringContainsString("'/admin/setting_home.php'", $adminBar);
         self::assertStringContainsString('adminBarResolveEditUrl((string) ($GLOBALS[\'ik_edit_url\'] ?? \'\'))', $adminBar);
-        self::assertStringContainsString('BloxAreaEditorTarget::normalizeReturnTo', $adminBar);
+        self::assertStringContainsString('BloxAreaEditorTarget::frontendSourceReturnTo', $adminBar);
         self::assertStringContainsString('BloxAreaEditorTarget::withReturnTo', $adminBar);
 
         $home = file_get_contents(ROOT_PATH . '/index.php');
@@ -86,8 +86,11 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString('function withFrontendReturn(url)', $frontEdit);
         self::assertStringContainsString("source.searchParams.set('yk_focus_element', elementId)", $frontEdit);
         self::assertStringContainsString("source.searchParams.set('yk_focus_section', sectionId)", $frontEdit);
+        self::assertStringContainsString("source.searchParams.delete('yk_edit_receipt')", $frontEdit);
         self::assertStringContainsString("target.searchParams.set('return_to', source.pathname + source.search + source.hash)", $frontEdit);
         self::assertStringContainsString('function consumeReturnFocus()', $frontEdit);
+        self::assertStringContainsString("BloxAreaEditorTarget::consumeReturnReceipt", $frontEdit);
+        self::assertStringContainsString("currentUrl.searchParams.delete('yk_edit_receipt')", $frontEdit);
         self::assertStringContainsString("window.history.replaceState(", $frontEdit);
         self::assertStringContainsString("target.scrollIntoView({", $frontEdit);
         self::assertStringContainsString("window.matchMedia('(prefers-reduced-motion: reduce)').matches", $frontEdit);

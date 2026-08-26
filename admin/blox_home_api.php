@@ -48,6 +48,7 @@ if ($action === 'publish') {
             $result = HomeBloxDocument::publishDraft();
         }
         adminLog('home', 'publish', '保存并发布 Blox 首页');
+        $result['return_receipt'] = BloxAreaEditorTarget::issueReturnReceipt('published');
         success($result);
     } catch (Throwable $e) {
         error($e->getMessage());
@@ -80,6 +81,7 @@ try {
         'active'   => $document['active'],
         'source'   => $document['source'],
         'base_revision' => BloxDocumentPipeline::fingerprint($savedJson),
+        'return_receipt' => BloxAreaEditorTarget::issueReturnReceipt('draft'),
     ]);
 } catch (Throwable $e) {
     error($e->getMessage());
