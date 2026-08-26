@@ -33,7 +33,7 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
 
   await page.getByTestId('blox-library-open').last().click();
-  await page.getByTestId('blox-add-element-list-dynamic').click();
+  await page.getByTestId('blox-add-element-list-dynamic').press('Enter');
   const pagination = page.locator('[data-control-key="pagination_mode"] select');
   await expect(pagination).toBeVisible();
 
@@ -56,7 +56,7 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
   expect(loop.data.pagination_mode).toBe('numbers');
 
   await page.getByTestId('blox-library-open').last().click();
-  await page.getByTestId('blox-add-element-heading').click();
+  await page.getByTestId('blox-add-element-heading').press('Enter');
   await expect(page.locator('[data-control-key="loop_field"] select')).toBeVisible();
   await expect(page.locator('[data-control-key="loop_fallback"] input')).toBeVisible();
   await expect(page.locator('[data-control-key="site_field"]')).toHaveCount(0);

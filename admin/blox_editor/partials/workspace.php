@@ -68,14 +68,14 @@ declare(strict_types=1);
                             </button>
                             <div x-show="isCatOpen(grp.cat) || libQuery.trim()" class="grid grid-cols-2 gap-1.5">
                                 <template x-for="el in grp.items" :key="el.type">
-                                    <?php // 点击=插入到选中目标；拖拽=拖到结构树或画布的目标位置（路线图③）。
-                                          // 拖拽自带目标，所以瓦片不再因未选中而禁用 ?>
-                                    <button type="button" @click="addElement(el)" :data-testid="'blox-add-element-' + el.type"
+                                    <?php // 桌面点击只选中并提示拖拽，键盘/触屏则沿用选中目标插入，兼顾防误触与可访问性。 ?>
+                                    <button type="button" @click="activatePaletteElement(el, $event)" :data-testid="'blox-add-element-' + el.type"
                                             draggable="true"
-                                            @dragstart="dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
-                                            @dragend="dragEl = null; dragOver = ''; canvasBridge().post({ ykDragType: '' })"
+                                            @dragstart="paletteSelected = el.type; dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
+                                            @dragend="paletteSelected = ''; dragEl = null; dragOver = ''; canvasBridge().post({ ykDragType: '' })"
                                             class="h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
-                                            :title="el.label + <?= e($jt('blox_el_insert_hint')) ?>">
+                                            :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
+                                            :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
                                         <i class="ti text-lg" :class="'ti-' + el.icon"></i>
                                         <span class="text-[11px] leading-none" x-text="el.label"></span>
                                     </button>
@@ -87,7 +87,7 @@ declare(strict_types=1);
                         <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_no_matching_elements') ?></p>
                     </template>
                     <p class="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2 mt-1">
-                        <?= __('blox_library_hint') ?>
+                        <?= __('blox_library_drag_hint') ?>
                         <?= __('blox_banner_hint') ?>
                     </p>
                 </div>

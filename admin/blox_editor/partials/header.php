@@ -323,11 +323,19 @@ declare(strict_types=1);
             </span>
 <?php endif; ?>
             <span class="text-xs text-gray-400" x-show="previewLoading"><?= __('blox_refreshing') ?></span>
-            <button type="button" @click="openTemplates()" data-testid="blox-templates-open"
-                    class="text-gray-300 hover:text-blue-300 text-sm inline-flex items-center gap-1 px-2 py-1.5 transition-colors"
-                    title="<?php echo e(__('blox_template_library')); ?>" aria-label="<?php echo e(__('blox_template_library')); ?>">
-                <i class="ti ti-layout-grid text-base"></i><span class="text-xs"><?php echo e(__('blox_template_library')); ?></span>
-            </button>
+            <div class="inline-flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5"
+                 role="group" aria-label="<?php echo e(__('blox_add_content')); ?>">
+                <button type="button" @click="openElementLibrary()" data-testid="blox-elements-open"
+                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 transition"
+                        title="<?php echo e(__('blox_open_elements')); ?>" aria-label="<?php echo e(__('blox_open_elements')); ?>">
+                    <i class="ti ti-circle-plus text-lg"></i>
+                </button>
+                <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
+                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
+                        title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
+                    <i class="ti ti-layout-grid-add text-lg"></i>
+                </button>
+            </div>
 <?php if ($canManageBloxDesign): ?>
             <button type="button" @click="openDesignSystem()" data-testid="blox-design-open"
                     class="text-gray-300 hover:text-emerald-300 text-sm inline-flex items-center gap-1 px-2 py-1.5 transition-colors"
@@ -440,8 +448,11 @@ declare(strict_types=1);
                     <i class="ti ti-rocket"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
                 </button>
 <?php endif; ?>
-                <button type="button" @click="openTemplates(); mobileActionsOpen = false">
-                    <i class="ti ti-layout-grid"></i><?php echo e(__('blox_template_library')); ?>
+                <button type="button" @click="openElementLibrary(); mobileActionsOpen = false">
+                    <i class="ti ti-circle-plus"></i><?php echo e(__('blox_open_elements')); ?>
+                </button>
+                <button type="button" @click="openPrebuiltSections(); mobileActionsOpen = false">
+                    <i class="ti ti-layout-grid-add"></i><?php echo e(__('blox_prebuilt_sections')); ?>
                 </button>
 <?php if ($canManageBloxDesign): ?>
                 <button type="button" @click="openDesignSystem(); mobileActionsOpen = false">

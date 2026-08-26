@@ -98,13 +98,14 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(menu).toBeVisible();
     await expect(menu.getByRole('button', { name: /撤销/ })).toBeVisible();
     await expect(menu.getByRole('button', { name: /重做/ })).toBeVisible();
-    await expect(menu.getByRole('button', { name: /模板/ })).toBeVisible();
+    await expect(menu.getByRole('button', { name: /添加元素/ })).toBeVisible();
+    await expect(menu.getByRole('button', { name: /预制区块/ })).toBeVisible();
     await expect(menu.getByRole('link', { name: /前台/ })).toBeVisible();
     await expect(menu.getByRole('button', { name: /保存/ })).toBeVisible();
     const actionHeights = await menu.locator(':scope > button, :scope > a').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
     expect(Math.min(...actionHeights)).toBeGreaterThanOrEqual(44);
     if (testInfo.project.name !== 'mobile-390') return;
-    await menu.getByRole('button', { name: /模板/ }).click();
+    await menu.getByRole('button', { name: /预制区块/ }).click();
     const templateDialog = page.locator('[x-ref="templateDialog"]');
     await expect(templateDialog).toBeVisible();
     await expect(page.getByTestId('blox-template-search')).toBeFocused();
@@ -137,10 +138,10 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   } else {
     await expect(page.getByTestId('blox-desktop-actions')).toBeVisible();
     await expect(page.getByTestId('blox-mobile-actions')).toBeHidden();
-    const templateEntry = page.getByTestId('blox-templates-open');
+    await expect(page.getByTestId('blox-elements-open')).toBeVisible();
+    const templateEntry = page.getByTestId('blox-prebuilt-open');
     await expect(templateEntry).toBeVisible();
-    await expect(templateEntry.locator('.ti-layout-grid')).toBeVisible();
-    await expect(templateEntry.locator('span')).not.toHaveText('');
+    await expect(templateEntry.locator('.ti-layout-grid-add')).toBeVisible();
   }
 });
 
@@ -514,7 +515,7 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-container').click();
+  await page.getByTestId('blox-add-element-container').press('Enter');
 
   const tabletDevice = page.getByTestId('blox-container-responsive-device-tablet');
   const inheritButton = page.getByTestId('blox-container-gap-inherit');
@@ -961,7 +962,7 @@ test('built-in section library filters previews and inserts a fresh section @ci'
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
 
-  await page.getByTestId('blox-templates-open').click();
+  await page.getByTestId('blox-prebuilt-open').click();
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
@@ -1074,7 +1075,7 @@ test('local template insertion uses catalog resolve without reload @ci', async (
   });
   const originalURL = page.url();
   const before = await countSections(page);
-  await page.getByTestId('blox-templates-open').click();
+  await page.getByTestId('blox-prebuilt-open').click();
   const item = page.getByTestId('blox-template-item');
   await expect(item).toHaveCount(1);
   await expect(item.getByTestId('blox-template-edit')).toHaveAttribute('href', '/admin/blox_editor.php?template=1');
@@ -1119,7 +1120,7 @@ test('template catalog separates local and remote libraries and traps dialog foc
     });
   });
 
-  const opener = page.getByTestId('blox-templates-open');
+  const opener = page.getByTestId('blox-prebuilt-open');
   await opener.focus();
   await opener.click();
   const dialog = page.locator('[x-ref="templateDialog"]');
@@ -1158,7 +1159,7 @@ test('template catalog separates local and remote libraries and traps dialog foc
 
 test('real remote template channel @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440' || process.env.BLOX_E2E_REMOTE !== '1', 'opt-in signed remote channel check');
-  await page.getByTestId('blox-templates-open').click();
+  await page.getByTestId('blox-prebuilt-open').click();
   await page.getByTestId('blox-template-tab-remote').click();
   const remote = page.getByTestId('blox-template-item').filter({ has: page.locator('[class*="ti-cloud-download"]') }).first();
   await expect(remote).toBeVisible();
@@ -1502,21 +1503,25 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   const secondColumnAdd = contentFrame.locator(`[data-yk-quick-add="column:${sectionIndex}.1"]`);
   await pointerClick(page, secondColumnAdd);
   await expect(page.getByTestId('blox-add-element-heading')).toBeVisible();
-  await page.getByTestId('blox-add-element-heading').click();
-  await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(1);
+  const headingTile = page.getByTestId('blox-add-element-heading');
+  const secondColumnBefore = await columns.nth(1).getByTestId('blox-tree-element').count();
+  await headingTile.click();
+  await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(secondColumnBefore);
+  await headingTile.dragTo(columns.nth(1));
+  await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(secondColumnBefore + 1);
 
   await waitPreviewSettled(page);
   contentFrame = await frame(page);
   const firstColumnAdd = contentFrame.locator(`[data-yk-quick-add="column:${sectionIndex}.0"]`);
   await pointerClick(page, firstColumnAdd);
-  await page.getByTestId('blox-add-element-container').click();
+  await page.getByTestId('blox-add-element-container').press('Enter');
   await expect(columns.nth(0).getByTestId('blox-tree-element')).toHaveCount(1);
 
   await waitPreviewSettled(page);
   contentFrame = await frame(page);
   const containerAdd = contentFrame.locator(`[data-yk-quick-add="container:${sectionIndex}.0.0"]`);
   await pointerClick(page, containerAdd);
-  await page.getByTestId('blox-add-element-heading').click();
+  await page.getByTestId('blox-add-element-heading').press('Enter');
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0.0"]`)).toHaveCount(1);
   expect(page.url()).toBe(originalURL);
 
@@ -1573,7 +1578,7 @@ test('Bootstrap icon picker selects and renders without reload @ci', async ({ pa
   const { sectionIndex } = await addTemporaryHeading(page);
 
   await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-icon').click();
+  await page.getByTestId('blox-add-element-icon').press('Enter');
   await expect(page.getByTestId('blox-icon-value')).toBeVisible();
   await page.getByTestId('blox-icon-library-toggle').click();
   await page.getByTestId('blox-icon-provider-bootstrap').click();

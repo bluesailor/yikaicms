@@ -74,7 +74,7 @@ test('token catalog and named preset apply through stable references @ci', async
 
   await addTemporaryHeading(page);
   await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-icon').click();
+  await page.getByTestId('blox-add-element-icon').press('Enter');
   await page.getByTestId('blox-style-tab').click();
 
   await performPreviewUpdate(page, () => page.getByTestId('blox-color-token-select').selectOption('c_accent'));
