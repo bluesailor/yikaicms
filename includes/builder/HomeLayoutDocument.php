@@ -273,8 +273,11 @@ public static function isActive(): bool
                 'settings' => $settings,
                 'columns'  => $normalizedColumns,
             ];
-            if (isset($section['name'])) {
-                $normalizedSection['name'] = (string) $section['name'];
+            if (array_key_exists('name', $section)) {
+                $sectionName = BloxDocumentPipeline::normalizeSectionName($section['name']);
+                if ($sectionName !== '') {
+                    $normalizedSection['name'] = $sectionName;
+                }
             }
             $out[] = $normalizedSection;
         }

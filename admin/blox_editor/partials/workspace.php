@@ -2045,6 +2045,35 @@ declare(strict_types=1);
                                         <?= __('blox_column_help') ?>
                                     </p>
                                 </template>
+                                <div x-show="selLayer === 'sec'" data-testid="blox-section-name-control">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"
+                                           for="blox-section-name"><?= e(__('blox_section_name')) ?></label>
+                                    <div class="flex items-center gap-2">
+                                        <input id="blox-section-name" type="text" x-model="sel.name"
+                                               maxlength="<?= BloxDocumentPipeline::SECTION_NAME_MAX ?>"
+                                               @blur="normalizeSectionName(sel)"
+                                               @keydown.enter.prevent="$event.target.blur()"
+                                               data-testid="blox-section-name"
+                                               :placeholder="automaticSectionLabel(sel, selectedSi)"
+                                               class="flex-1 min-w-0 h-9 border border-gray-200 rounded px-2.5 text-sm">
+                                        <button type="button" x-show="sectionLabelText(sel.name || '', sectionLabelPolicy.titleMax)"
+                                                @click="clearSectionName(sel)"
+                                                data-testid="blox-section-name-reset"
+                                                title="<?= e(__('blox_section_name_reset')) ?>"
+                                                aria-label="<?= e(__('blox_section_name_reset')) ?>"
+                                                class="w-9 h-9 shrink-0 rounded border border-gray-200 text-gray-500 hover:border-blue-300 hover:text-blue-600 transition inline-flex items-center justify-center">
+                                            <i class="ti ti-refresh text-base" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <p class="mt-1.5 text-[10px] text-gray-500 leading-relaxed">
+                                        <span><?= e(__('blox_section_name_auto')) ?></span>
+                                        <span class="font-medium text-gray-600" data-testid="blox-section-auto-name"
+                                              x-text="automaticSectionLabel(sel, selectedSi)"></span>
+                                    </p>
+                                    <p class="mt-1 text-[10px] text-gray-400 leading-relaxed">
+                                        <?= e(__('blox_section_name_hint')) ?>
+                                    </p>
+                                </div>
                                 <!-- 区块标题 / 副标题：渲染器会输出成居中的段落头 -->
                                 <div x-show="selLayer === 'sec'">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_field_section_title') ?></label>

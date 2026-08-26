@@ -2548,6 +2548,14 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             sectionLabel(section, si) {
+                return this.resolveSectionLabel(section, si, true);
+            },
+
+            automaticSectionLabel(section, si) {
+                return this.resolveSectionLabel(section, si, false);
+            },
+
+            resolveSectionLabel(section, si, includeCustomName) {
                 var policy = this.sectionLabelPolicy || {};
                 var titleMax = Number(policy.titleMax) || 80;
                 var labelMax = Number(policy.labelMax) || 120;
@@ -2567,11 +2575,9 @@ $canManageBloxDesign = hasPermission('*');
 
                 var settings = section && section.settings && typeof section.settings === "object"
                     ? section.settings : {};
-                var titleCandidates = [
-                    section && section.name,
-                    settings.title,
-                    section && section.library_name,
-                ];
+                var titleCandidates = [];
+                if (includeCustomName) titleCandidates.push(section && section.name);
+                titleCandidates.push(settings.title, section && section.library_name);
                 var title = "";
                 for (var candidate of titleCandidates) {
                     title = this.sectionLabelText(candidate || "", titleMax);
@@ -2598,6 +2604,21 @@ $canManageBloxDesign = hasPermission('*');
                     return this.sectionLabelText(typeLabel + " · " + title, labelMax);
                 }
                 return title || typeLabel || this.uiText.sectionWord.replace(":n", si + 1);
+            },
+
+            normalizeSectionName(section) {
+                var target = section || this.sel;
+                if (!target) return;
+                var policy = this.sectionLabelPolicy || {};
+                var normalized = this.sectionLabelText(target.name || "", Number(policy.titleMax) || 80);
+                if (normalized) target.name = normalized;
+                else delete target.name;
+            },
+
+            clearSectionName(section) {
+                var target = section || this.sel;
+                if (!target) return;
+                delete target.name;
             },
 
             isSectionFieldSelected(si, field) {

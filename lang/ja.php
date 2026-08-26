@@ -5600,4 +5600,8 @@ voltage|電圧|220V',
     'ab_edit_group_footer' => 'フッター',
     'ab_edit_header' => 'ヘッダーを編集',
     'ab_edit_section' => 'セクション :n を編集',
+    'blox_section_name' => 'セクション名',
+    'blox_section_name_auto' => '自動名：',
+    'blox_section_name_hint' => 'エディターの構造ツリーと公開サイトの管理バーで使用し、ページ本文には表示しません。空欄の場合は自動生成されます。',
+    'blox_section_name_reset' => '自動名に戻す',
 ];

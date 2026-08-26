@@ -18,7 +18,6 @@ final class BlockRenderer
         'heading', 'text', 'button', 'image', 'icon', 'code', 'divider', 'spacer', 'container', 'div',
     ];
     private const SECTION_LABEL_ELEMENT_TITLE_KEYS = ['title', 'name', 'label'];
-    private const SECTION_LABEL_TITLE_MAX = 80;
     private const SECTION_LABEL_MAX = 120;
 
     /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
@@ -462,7 +461,7 @@ final class BlockRenderer
         return [
             'decorativeTypes' => self::SECTION_LABEL_DECORATIVE_TYPES,
             'elementTitleKeys' => self::SECTION_LABEL_ELEMENT_TITLE_KEYS,
-            'titleMax' => self::SECTION_LABEL_TITLE_MAX,
+            'titleMax' => BloxDocumentPipeline::SECTION_NAME_MAX,
             'labelMax' => self::SECTION_LABEL_MAX,
         ];
     }
@@ -569,7 +568,10 @@ final class BlockRenderer
         }
     }
 
-    private static function sectionLabelText(mixed $value, int $maxLength = self::SECTION_LABEL_TITLE_MAX): string
+    private static function sectionLabelText(
+        mixed $value,
+        int $maxLength = BloxDocumentPipeline::SECTION_NAME_MAX
+    ): string
     {
         if (!is_string($value) && !is_int($value) && !is_float($value)) {
             return '';
