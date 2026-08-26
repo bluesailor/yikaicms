@@ -239,6 +239,24 @@ final class BuilderPluginPipelineTest extends TestCase
         $this->assertSame('pricing_2026', BloxDocumentPipeline::normalizeSectionAnchorId('pricing_2026'));
     }
 
+    public function testSectionNamesAreSanitizedAndEmptyNamesReturnToAutomaticLabels(): void
+    {
+        $longName = str_repeat('名', BloxDocumentPipeline::SECTION_NAME_MAX + 10);
+        $document = BloxDocumentPipeline::process((string) json_encode([
+            ['name' => "  <b>售后</b>\u{200B}\n流程 &amp; 支持  ", 'columns' => []],
+            ['name' => "\u{0000}\u{200B}  ", 'columns' => []],
+            ['name' => $longName, 'columns' => []],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'name');
+
+        $this->assertSame('售后 流程 & 支持', $document['sections'][0]['name']);
+        $this->assertArrayNotHasKey('name', $document['sections'][1]);
+        $this->assertSame(
+            str_repeat('名', BloxDocumentPipeline::SECTION_NAME_MAX),
+            $document['sections'][2]['name']
+        );
+        $this->assertSame('', BloxDocumentPipeline::normalizeSectionName([]));
+    }
+
     /** 渲染黄金对拍：信封输入与裸数组输入输出逐字节一致（settings 不影响 sections 渲染） */
     public function testRendererOutputIdenticalForEnvelopeAndBareArray(): void
     {
