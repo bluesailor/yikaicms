@@ -17,6 +17,9 @@ final class BlockRenderer
     private const SECTION_LABEL_DECORATIVE_TYPES = [
         'heading', 'text', 'button', 'image', 'icon', 'code', 'divider', 'spacer', 'container', 'div',
     ];
+    private const SECTION_LABEL_ELEMENT_TITLE_KEYS = ['title', 'name', 'label'];
+    private const SECTION_LABEL_TITLE_MAX = 80;
+    private const SECTION_LABEL_MAX = 120;
 
     /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
     private const PADDING_MAP = [
@@ -448,6 +451,22 @@ final class BlockRenderer
         return $html;
     }
 
+    /**
+     * 编辑器读取同一套标签判定参数，避免前台与结构树随演进产生两套名称。
+     *
+     * @return array{decorativeTypes:list<string>,elementTitleKeys:list<string>,titleMax:int,labelMax:int}
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 admin/blox_editor.php（不在 Psalm projectFiles 内）。
+     */
+    public static function sectionLabelPolicy(): array
+    {
+        return [
+            'decorativeTypes' => self::SECTION_LABEL_DECORATIVE_TYPES,
+            'elementTitleKeys' => self::SECTION_LABEL_ELEMENT_TITLE_KEYS,
+            'titleMax' => self::SECTION_LABEL_TITLE_MAX,
+            'labelMax' => self::SECTION_LABEL_MAX,
+        ];
+    }
+
     /** @param array<string,mixed> $source @param array<string,mixed> $resolved */
     private static function sectionEditLabel(array $source, array $resolved): string
     {
@@ -502,7 +521,7 @@ final class BlockRenderer
             $data = is_array($semanticElement['data'] ?? null) ? $semanticElement['data'] : [];
             $registered = BuilderRegistry::get((string) ($semanticElement['type'] ?? ''));
             $keys = array_values(array_unique(array_filter([
-                $registered?->treeLabelField(), 'title', 'name', 'label',
+                $registered?->treeLabelField(), ...self::SECTION_LABEL_ELEMENT_TITLE_KEYS,
             ])));
             foreach ($keys as $key) {
                 $title = self::sectionLabelText($data[$key] ?? '');
@@ -513,7 +532,7 @@ final class BlockRenderer
         }
 
         if ($typeLabel !== '' && $title !== '' && mb_strtolower($typeLabel) !== mb_strtolower($title)) {
-            return self::sectionLabelText($typeLabel . ' · ' . $title, 120);
+            return self::sectionLabelText($typeLabel . ' · ' . $title, self::SECTION_LABEL_MAX);
         }
         return $title !== '' ? $title : $typeLabel;
     }
@@ -550,7 +569,7 @@ final class BlockRenderer
         }
     }
 
-    private static function sectionLabelText(mixed $value, int $maxLength = 80): string
+    private static function sectionLabelText(mixed $value, int $maxLength = self::SECTION_LABEL_TITLE_MAX): string
     {
         if (!is_string($value) && !is_int($value) && !is_float($value)) {
             return '';
