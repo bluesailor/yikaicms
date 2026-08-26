@@ -242,6 +242,8 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(editButton).toHaveText(`✎ ${navigationLabel}`);
       await expect(editButton).toHaveAttribute('href', new RegExp(`focus_element=${encodeURIComponent(navigationId)}`));
       const navigationHref = await editButton.getAttribute('href');
+      const frontendLocation = new URL(page.url());
+      const frontendReturnTo = frontendLocation.pathname + frontendLocation.search;
 
       const contactTargets = page.locator('[data-yk-element-edit="contact"]');
       await expect(contactTargets).toHaveCount(2);
@@ -271,6 +273,14 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(selectedNavigation).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-nav-content-source')).toBeVisible();
       await expect(page.getByTestId('blox-nav-content-manage')).toHaveAttribute('href', /\/admin\/nav_menu\.php/);
+      await Promise.all([
+        page.waitForURL((url) => url.pathname + url.search === frontendReturnTo),
+        page.getByTestId('blox-back').click(),
+      ]);
+      const returnedNavigation = page.locator(`[data-yk-element-id="${navigationId}"]:visible`).first();
+      await expect(returnedNavigation).toHaveClass(/yk-return-focus/);
+      await expect(page.getByTestId('frontend-return-focus-status')).toContainText(navigationLabel);
+      expect(page.url()).not.toContain('yk_focus_element');
 
       await page.goto(`${headerEditorHref}&focus_element=${encodeURIComponent(searchId)}`, { waitUntil: 'domcontentloaded' });
       await expect(page.locator(`[data-sort-child-item][data-item-id="${searchId}"]`).first()).toHaveClass(/bg-blue-100/);

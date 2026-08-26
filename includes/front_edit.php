@@ -42,6 +42,18 @@ function renderFrontEdit(): void
       [data-yk-logo]:hover::after { border-color: #2563eb; background: rgba(37,99,235,.10); }
       .yk-logo-btns { position: absolute; top: -10px; right: -10px; z-index: 99991; display: none; gap: 4px; }
       [data-yk-logo]:hover .yk-logo-btns, .yk-logo-btns:hover { display: flex; }
+      .yk-return-focus { scroll-margin-top: 50px; outline: 3px solid #2563eb; outline-offset: 4px;
+        animation: yk-return-focus 2.4s cubic-bezier(.16,1,.3,1) both; }
+      #yk-return-focus-status { position: fixed; z-index: 99998; top: 46px; left: 50%;
+        transform: translateX(-50%); box-sizing: border-box; max-width: calc(100vw - 24px);
+        padding: 8px 12px; border: 1px solid #93c5fd; border-radius: 6px;
+        background: #eff6ff; color: #1e3a8a; font: 600 13px/1.4 system-ui,-apple-system,"Microsoft YaHei",sans-serif;
+        text-align: center; pointer-events: none; }
+      @keyframes yk-return-focus {
+        0% { outline-color: rgba(37,99,235,.18); }
+        20%, 72% { outline-color: #2563eb; }
+        100% { outline-color: rgba(37,99,235,.18); }
+      }
       .yk-logo-btn { background: #2563eb; color: #fff; font-size: 11px; line-height: 1; font-weight: 600;
         padding: 4px 8px; border-radius: 999px; white-space: nowrap; cursor: pointer;
         box-shadow: 0 2px 8px rgba(0,0,0,.25); font-family: system-ui,-apple-system,"Microsoft YaHei",sans-serif;
@@ -53,7 +65,13 @@ function renderFrontEdit(): void
       @media (max-width: 1023px), (hover: none) {
         #yk-edit-outline, .yk-logo-btns { display: none !important; }
       }
-      @media print { #yk-edit-outline, .yk-logo-btns { display: none !important; } }
+      @media (prefers-reduced-motion: reduce) {
+        .yk-return-focus { animation: none; }
+      }
+      @media print {
+        #yk-edit-outline, .yk-logo-btns, #yk-return-focus-status { display: none !important; }
+        .yk-return-focus { outline: 0 !important; animation: none !important; }
+      }
       /* 换Logo 对话框 */
       .yk-lgd-mask { position: fixed; inset: 0; z-index: 99995; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
       .yk-lgd { background: #fff; border-radius: 12px; width: 560px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.3); font-size: 14px; color: #111827; }
@@ -87,6 +105,8 @@ function renderFrontEdit(): void
       var current = null, hideTimer = null;
       var bloxEditUrl = <?php echo json_encode($bloxEditUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var frontendReturnTo = <?php echo json_encode($frontendReturnTo, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var returnFocusText = <?php echo json_encode(__('fe_return_focus', ['label' => ':label']), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var returnFocusFallback = <?php echo json_encode(__('fe_return_focus_fallback'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
@@ -99,16 +119,86 @@ function renderFrontEdit(): void
 
       function hide() { box.style.display = 'none'; current = null; }
 
+      function safeFocusId(value) {
+        var id = typeof value === 'string' ? value.trim() : '';
+        return id && id.length <= 512 && !/[\x00-\x1F\x7F]/.test(id) ? id : '';
+      }
+
       function withFrontendReturn(url) {
         if (!url || !frontendReturnTo) return url;
         try {
           var target = new URL(url, window.location.origin);
           if (target.origin !== window.location.origin || target.pathname !== '/admin/blox_editor.php') return url;
-          target.searchParams.set('return_to', frontendReturnTo);
+          var source = new URL(frontendReturnTo, window.location.origin);
+          source.searchParams.delete('yk_focus_section');
+          source.searchParams.delete('yk_focus_element');
+          var elementId = safeFocusId(target.searchParams.get('focus_element'));
+          var sectionId = safeFocusId(target.searchParams.get('focus_section'));
+          if (elementId) source.searchParams.set('yk_focus_element', elementId);
+          else if (sectionId) source.searchParams.set('yk_focus_section', sectionId);
+          target.searchParams.set('return_to', source.pathname + source.search + source.hash);
           return target.pathname + target.search + target.hash;
         } catch (error) {
           return url;
         }
+      }
+
+      function findReturnFocusTarget(attribute, id) {
+        var targets = document.querySelectorAll('[' + attribute + ']');
+        for (var i = 0; i < targets.length; i++) {
+          if (targets[i].getAttribute(attribute) !== id) continue;
+          if (targets[i].getClientRects().length) return targets[i];
+        }
+        return null;
+      }
+
+      function consumeReturnFocus() {
+        if (!window.URL || !window.history || !window.history.replaceState) return;
+        var currentUrl = new URL(window.location.href);
+        var hasElement = currentUrl.searchParams.has('yk_focus_element');
+        var hasSection = currentUrl.searchParams.has('yk_focus_section');
+        if (!hasElement && !hasSection) return;
+
+        var elementId = safeFocusId(currentUrl.searchParams.get('yk_focus_element'));
+        var sectionId = elementId ? '' : safeFocusId(currentUrl.searchParams.get('yk_focus_section'));
+        currentUrl.searchParams.delete('yk_focus_element');
+        currentUrl.searchParams.delete('yk_focus_section');
+        window.history.replaceState(
+          window.history.state,
+          '',
+          currentUrl.pathname + currentUrl.search + currentUrl.hash
+        );
+
+        var attribute = elementId ? 'data-yk-element-id' : 'data-yk-sec-id';
+        var id = elementId || sectionId;
+        if (!id) return;
+        var target = findReturnFocusTarget(attribute, id);
+        if (!target) return;
+
+        var labelAttribute = elementId ? 'data-yk-element-label' : 'data-yk-sec-label';
+        var label = (target.getAttribute(labelAttribute) || '').trim();
+        var status = document.createElement('div');
+        status.id = 'yk-return-focus-status';
+        status.setAttribute('data-testid', 'frontend-return-focus-status');
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        status.setAttribute('aria-atomic', 'true');
+        status.textContent = label ? returnFocusText.replace(':label', label) : returnFocusFallback;
+        document.body.appendChild(status);
+
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.requestAnimationFrame(function () {
+          target.classList.add('yk-return-focus');
+          target.scrollIntoView({
+            behavior: reduceMotion ? 'auto' : 'smooth',
+            block: elementId ? 'center' : 'start',
+            inline: 'nearest'
+          });
+        });
+        window.setTimeout(function () {
+          target.classList.remove('yk-return-focus');
+          status.remove();
+        }, 4200);
       }
 
       // 按元素上的标记算编辑链接：Blox 区块 / 导航 / 页脚 / 合作伙伴 / 通用内容。
@@ -284,6 +374,7 @@ function renderFrontEdit(): void
       onReady(function () {
         document.querySelectorAll('[data-yk-element-edit][data-yk-element-id],[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(attach);
         buildRegionNavigator();
+        consumeReturnFocus();
       });
 
       btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
