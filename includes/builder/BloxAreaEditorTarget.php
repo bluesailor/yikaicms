@@ -6,6 +6,9 @@ declare(strict_types=1);
 final class BloxAreaEditorTarget
 {
     private const RETURN_TO_MAX = 2048;
+    private const RETURN_RECEIPT_KEY = '_blox_return_receipts';
+    private const RETURN_RECEIPT_LIMIT = 8;
+    private const RETURN_RECEIPT_TTL = 600;
 
     /** @param array<string,mixed> $template */
     public static function isThemeFallbackTemplate(array $template, string $area): bool
@@ -115,6 +118,34 @@ final class BloxAreaEditorTarget
             . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
     }
 
+    public static function frontendSourceReturnTo(mixed $value): string
+    {
+        $target = self::normalizeReturnTo($value);
+        if ($target === '') {
+            return '';
+        }
+        $parts = parse_url($target);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $query = [];
+        foreach (explode('&', (string) ($parts['query'] ?? '')) as $segment) {
+            if ($segment === '') {
+                continue;
+            }
+            $key = rawurldecode(str_replace('+', ' ', explode('=', $segment, 2)[0]));
+            if (in_array($key, ['yk_focus_section', 'yk_focus_element', 'yk_edit_receipt'], true)) {
+                continue;
+            }
+            $query[] = $segment;
+        }
+
+        return (string) ($parts['path'] ?? '')
+            . ($query === [] ? '' : '?' . implode('&', $query))
+            . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+    }
+
     public static function withReturnTo(string $editorUrl, string $returnTo): string
     {
         $returnTo = self::normalizeReturnTo($returnTo);
@@ -133,6 +164,74 @@ final class BloxAreaEditorTarget
 
         return '/admin/blox_editor.php?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986)
             . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
+    }
+
+    public static function issueReturnReceipt(string $result): string
+    {
+        if (!in_array($result, ['draft', 'published'], true)
+            || !isset($_SESSION) || !is_array($_SESSION)) {
+            return '';
+        }
+
+        try {
+            $token = bin2hex(random_bytes(24));
+        } catch (Throwable) {
+            return '';
+        }
+        $receipts = self::activeReturnReceipts();
+        $receipts[$token] = [
+            'result' => $result,
+            'expires' => time() + self::RETURN_RECEIPT_TTL,
+        ];
+        if (count($receipts) > self::RETURN_RECEIPT_LIMIT) {
+            uasort($receipts, static fn (array $left, array $right): int => $left['expires'] <=> $right['expires']);
+            $receipts = array_slice($receipts, -self::RETURN_RECEIPT_LIMIT, null, true);
+        }
+        $_SESSION[self::RETURN_RECEIPT_KEY] = $receipts;
+        return $token;
+    }
+
+    public static function consumeReturnReceipt(mixed $token): string
+    {
+        if (!is_string($token) || preg_match('/^[a-f0-9]{48}$/', $token) !== 1
+            || !isset($_SESSION) || !is_array($_SESSION)) {
+            return '';
+        }
+
+        $receipts = self::activeReturnReceipts();
+        $receipt = $receipts[$token] ?? null;
+        unset($receipts[$token]);
+        if ($receipts === []) {
+            unset($_SESSION[self::RETURN_RECEIPT_KEY]);
+        } else {
+            $_SESSION[self::RETURN_RECEIPT_KEY] = $receipts;
+        }
+        return is_array($receipt) ? (string) ($receipt['result'] ?? '') : '';
+    }
+
+    /** @return array<string,array{result:string,expires:int}> */
+    private static function activeReturnReceipts(): array
+    {
+        $stored = $_SESSION[self::RETURN_RECEIPT_KEY] ?? [];
+        if (!is_array($stored)) {
+            return [];
+        }
+
+        $now = time();
+        $active = [];
+        foreach ($stored as $token => $receipt) {
+            if (!is_string($token) || preg_match('/^[a-f0-9]{48}$/', $token) !== 1
+                || !is_array($receipt)
+                || !in_array((string) ($receipt['result'] ?? ''), ['draft', 'published'], true)
+                || (int) ($receipt['expires'] ?? 0) < $now) {
+                continue;
+            }
+            $active[$token] = [
+                'result' => (string) $receipt['result'],
+                'expires' => (int) $receipt['expires'],
+            ];
+        }
+        return $active;
     }
 
     private static function customAreaEnabled(string $area): bool

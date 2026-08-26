@@ -14,7 +14,8 @@ function renderFrontEdit(): void
     if (isCleanFrontendPreview()) return;
     if (empty($_SESSION['admin_id'])) return;
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
-    $frontendReturnTo = BloxAreaEditorTarget::normalizeReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));
+    $frontendEditResult = BloxAreaEditorTarget::consumeReturnReceipt($_GET['yk_edit_receipt'] ?? '');
+    $frontendReturnTo = BloxAreaEditorTarget::frontendSourceReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));
     $bloxEditUrl = BloxAreaEditorTarget::withReturnTo(
         adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? '')),
         $frontendReturnTo
@@ -49,6 +50,8 @@ function renderFrontEdit(): void
         padding: 8px 12px; border: 1px solid #93c5fd; border-radius: 6px;
         background: #eff6ff; color: #1e3a8a; font: 600 13px/1.4 system-ui,-apple-system,"Microsoft YaHei",sans-serif;
         text-align: center; pointer-events: none; }
+      #yk-return-focus-status.is-draft { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+      #yk-return-focus-status.is-published { border-color: #34d399; background: #ecfdf5; color: #065f46; }
       @keyframes yk-return-focus {
         0% { outline-color: rgba(37,99,235,.18); }
         20%, 72% { outline-color: #2563eb; }
@@ -105,8 +108,12 @@ function renderFrontEdit(): void
       var current = null, hideTimer = null;
       var bloxEditUrl = <?php echo json_encode($bloxEditUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var frontendReturnTo = <?php echo json_encode($frontendReturnTo, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var frontendEditResult = <?php echo json_encode($frontendEditResult, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var returnFocusText = <?php echo json_encode(__('fe_return_focus', ['label' => ':label']), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var returnFocusFallback = <?php echo json_encode(__('fe_return_focus_fallback'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var returnDraftText = <?php echo json_encode(__('fe_return_result_draft'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var returnPublishedText = <?php echo json_encode(__('fe_return_result_published'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var returnPublishedPageText = <?php echo json_encode(__('fe_return_result_published_page'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
       var box = document.createElement('div');
       box.id = 'yk-edit-outline';
@@ -132,6 +139,7 @@ function renderFrontEdit(): void
           var source = new URL(frontendReturnTo, window.location.origin);
           source.searchParams.delete('yk_focus_section');
           source.searchParams.delete('yk_focus_element');
+          source.searchParams.delete('yk_edit_receipt');
           var elementId = safeFocusId(target.searchParams.get('focus_element'));
           var sectionId = safeFocusId(target.searchParams.get('focus_section'));
           if (elementId) source.searchParams.set('yk_focus_element', elementId);
@@ -157,12 +165,14 @@ function renderFrontEdit(): void
         var currentUrl = new URL(window.location.href);
         var hasElement = currentUrl.searchParams.has('yk_focus_element');
         var hasSection = currentUrl.searchParams.has('yk_focus_section');
-        if (!hasElement && !hasSection) return;
+        var hasReceipt = currentUrl.searchParams.has('yk_edit_receipt');
+        if (!hasElement && !hasSection && !hasReceipt) return;
 
         var elementId = safeFocusId(currentUrl.searchParams.get('yk_focus_element'));
         var sectionId = elementId ? '' : safeFocusId(currentUrl.searchParams.get('yk_focus_section'));
         currentUrl.searchParams.delete('yk_focus_element');
         currentUrl.searchParams.delete('yk_focus_section');
+        currentUrl.searchParams.delete('yk_edit_receipt');
         window.history.replaceState(
           window.history.state,
           '',
@@ -171,32 +181,41 @@ function renderFrontEdit(): void
 
         var attribute = elementId ? 'data-yk-element-id' : 'data-yk-sec-id';
         var id = elementId || sectionId;
-        if (!id) return;
-        var target = findReturnFocusTarget(attribute, id);
-        if (!target) return;
+        var target = id ? findReturnFocusTarget(attribute, id) : null;
+        if (!target && !frontendEditResult) return;
 
         var labelAttribute = elementId ? 'data-yk-element-label' : 'data-yk-sec-label';
-        var label = (target.getAttribute(labelAttribute) || '').trim();
+        var label = target ? (target.getAttribute(labelAttribute) || '').trim() : '';
         var status = document.createElement('div');
         status.id = 'yk-return-focus-status';
         status.setAttribute('data-testid', 'frontend-return-focus-status');
         status.setAttribute('role', 'status');
         status.setAttribute('aria-live', 'polite');
         status.setAttribute('aria-atomic', 'true');
-        status.textContent = label ? returnFocusText.replace(':label', label) : returnFocusFallback;
+        if (frontendEditResult === 'draft') {
+          status.className = 'is-draft';
+          status.textContent = returnDraftText;
+        } else if (frontendEditResult === 'published') {
+          status.className = 'is-published';
+          status.textContent = target ? returnPublishedText : returnPublishedPageText;
+        } else {
+          status.textContent = label ? returnFocusText.replace(':label', label) : returnFocusFallback;
+        }
         document.body.appendChild(status);
 
-        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        window.requestAnimationFrame(function () {
-          target.classList.add('yk-return-focus');
-          target.scrollIntoView({
-            behavior: reduceMotion ? 'auto' : 'smooth',
-            block: elementId ? 'center' : 'start',
-            inline: 'nearest'
+        if (target) {
+          var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          window.requestAnimationFrame(function () {
+            target.classList.add('yk-return-focus');
+            target.scrollIntoView({
+              behavior: reduceMotion ? 'auto' : 'smooth',
+              block: elementId ? 'center' : 'start',
+              inline: 'nearest'
+            });
           });
-        });
+        }
         window.setTimeout(function () {
-          target.classList.remove('yk-return-focus');
+          if (target) target.classList.remove('yk-return-focus');
           status.remove();
         }, 4200);
       }

@@ -5607,4 +5607,7 @@ voltage|電圧|220V',
     'blox_return_to_page' => 'ページに戻る',
     'fe_return_focus' => '戻りました：:label',
     'fe_return_focus_fallback' => '編集した位置に戻りました',
+    'fe_return_result_draft' => '下書きを保存しました。公開ページには公開済みの内容が表示されています。',
+    'fe_return_result_published' => '公開し、編集した位置に戻りました。',
+    'fe_return_result_published_page' => '公開しました。ページは最新の状態です。',
 ];
