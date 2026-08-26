@@ -13,11 +13,14 @@ final class BloxPublicationStatus
      */
     public static function query(array $editorUrls, string $frontendUrl): array
     {
+        if (empty($_SESSION['admin_id'])) {
+            return [];
+        }
         $items = [];
         $seen = [];
         foreach ($editorUrls as $editorUrl) {
             $descriptor = self::editorDescriptor($editorUrl);
-            if ($descriptor === null || isset($seen[$descriptor['key']])) {
+            if ($descriptor === null || isset($seen[$descriptor['key']]) || !self::canPreview($descriptor)) {
                 continue;
             }
             $seen[$descriptor['key']] = true;
@@ -44,15 +47,24 @@ final class BloxPublicationStatus
             return null;
         }
         if ($raw === 'home') {
-            return ['kind' => 'home', 'key' => 'home', 'id' => 0];
+            $target = ['kind' => 'home', 'key' => 'home', 'id' => 0];
+            return self::canPreview($target) ? $target : null;
         }
         if (preg_match('/^(page|template):([1-9][0-9]*)$/', $raw, $matches) !== 1) {
             return null;
         }
         $id = (int) $matches[2];
-        return $id > 0
-            ? ['kind' => $matches[1], 'key' => $matches[1] . ':' . $id, 'id' => $id]
-            : null;
+        if ($id < 1) {
+            return null;
+        }
+        if ($matches[1] === 'template') {
+            $descriptor = self::editorDescriptor('/admin/blox_editor.php?template=' . $id);
+            return $descriptor !== null && self::canPreview($descriptor)
+                ? ['kind' => 'template', 'key' => 'template:' . $id, 'id' => $id]
+                : null;
+        }
+        $target = ['kind' => 'page', 'key' => 'page:' . $id, 'id' => $id];
+        return self::canPreview($target) ? $target : null;
     }
 
     /** @return array{kind:string,key:string,id:int}|null */
@@ -113,7 +125,7 @@ final class BloxPublicationStatus
 
     public static function exitPreviewUrl(string $frontendUrl): string
     {
-        return self::frontendUrl($frontendUrl, false, '');
+        return self::frontendUrl($frontendUrl, false, '') ?: '/';
     }
 
     /** @return array{kind:string,key:string,id:int}|null */
@@ -228,7 +240,10 @@ final class BloxPublicationStatus
     private static function frontendUrl(string $frontendUrl, bool $preview, string $key): string
     {
         $target = BloxAreaEditorTarget::frontendSourceReturnTo($frontendUrl);
-        $parts = parse_url($target !== '' ? $target : '/');
+        if ($target === '') {
+            return '';
+        }
+        $parts = parse_url($target);
         $params = [];
         if (is_array($parts)) {
             parse_str((string) ($parts['query'] ?? ''), $params);
@@ -252,5 +267,16 @@ final class BloxPublicationStatus
         return is_scalar($value) && preg_match('/^[1-9][0-9]*$/', (string) $value) === 1
             ? (int) $value
             : 0;
+    }
+
+    /** @param array{kind:string,key:string,id:int} $descriptor */
+    private static function canPreview(array $descriptor): bool
+    {
+        $permissions = $_SESSION['admin_permissions'] ?? [];
+        if (!is_array($permissions) || !in_array('*', $permissions, true)
+            && !($descriptor['kind'] === 'page' && in_array('edit_page', $permissions, true))) {
+            return false;
+        }
+        return true;
     }
 }

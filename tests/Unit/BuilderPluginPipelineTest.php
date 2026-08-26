@@ -246,14 +246,16 @@ final class BuilderPluginPipelineTest extends TestCase
             ['name' => "  <b>售后</b>\u{200B}\n流程 &amp; 支持  ", 'columns' => []],
             ['name' => "\u{0000}\u{200B}  ", 'columns' => []],
             ['name' => $longName, 'columns' => []],
+            ['name' => '价格<1000元', 'columns' => []],
         ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'name');
 
-        $this->assertSame('售后 流程 & 支持', $document['sections'][0]['name']);
+        $this->assertSame('<b>售后</b> 流程 & 支持', $document['sections'][0]['name']);
         $this->assertArrayNotHasKey('name', $document['sections'][1]);
         $this->assertSame(
             str_repeat('名', BloxDocumentPipeline::SECTION_NAME_MAX),
             $document['sections'][2]['name']
         );
+        $this->assertSame('价格<1000元', $document['sections'][3]['name']);
         $this->assertSame('', BloxDocumentPipeline::normalizeSectionName([]));
     }
 

@@ -56,6 +56,7 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString("\$action === 'scan_media'", $page);
         self::assertStringContainsString('MediaOptimization::MAX_BATCH', $page);
         self::assertStringContainsString("\$_SESSION['site_health_scan']['media']", $page);
+        self::assertStringContainsString("\$_SESSION['site_health_scan']['created_at'] = time();", $page);
         self::assertStringNotContainsString("post('cursor')", $page);
         self::assertStringContainsString('WHERE type = ? AND id > ? ORDER BY id ASC LIMIT ?', $model);
         self::assertStringContainsString('site_health_media_summary', $page);

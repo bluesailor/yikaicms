@@ -47,10 +47,12 @@ test('media library repairs responsive image derivatives @ci', async ({ page }, 
 
     await expect(card).toHaveAttribute('data-health', 'healthy', { timeout: 10_000 });
     const preview = card.locator('img');
-    await expect(preview).toHaveAttribute('src', `/uploads/images/${name}_thumb.webp`);
+    await expect(preview).toHaveAttribute('src', `/uploads/images/${name}_thumb.png`);
     await expect(preview).toHaveAttribute('width', '300');
     await expect(preview).toHaveAttribute('height', '300');
     await expect(preview).toHaveAttribute('decoding', 'async');
+    expect(fs.existsSync(path.join(root, 'uploads', 'images', `${name}_thumb.webp`))).toBe(true);
+    expect(fs.existsSync(path.join(root, 'uploads', 'images', `${name}.webp`))).toBe(true);
     await page.screenshot({ path: testInfo.outputPath('media-healthy.png'), fullPage: true });
   } finally {
     for (const file of fs.readdirSync(path.dirname(original))) {

@@ -36,56 +36,61 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     await expect(image).toHaveAttribute('width', '600');
     await expect(image).toHaveAttribute('height', '338');
     await expect(image).toHaveAttribute('sizes', '100vw');
-    await expect(image).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
-    await expect(image).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(image).toHaveAttribute('src', `/uploads/images/${name}_medium.png`);
+    await expect(image).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.png 600w, .*${name}\\.png 1200w`));
     await expect.poll(() => image.evaluate((element) => element.complete && element.naturalWidth > 0)).toBe(true);
 
     const cardImage = page.locator('a.group img').first();
     await expect(cardImage).toHaveAttribute('decoding', 'async');
     await expect(cardImage).toHaveAttribute('width', '600');
     await expect(cardImage).toHaveAttribute('height', '338');
-    await expect(cardImage).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(cardImage).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.png 600w, .*${name}\\.png 1200w`));
 
     const selected = await image.evaluate((element) => new URL(element.currentSrc).pathname);
     const expected = testInfo.project.name === 'mobile-390'
-      ? `/uploads/images/${name}_medium.webp`
-      : `/uploads/images/${name}.webp`;
+      ? `/uploads/images/${name}_medium.png`
+      : `/uploads/images/${name}.png`;
     expect(selected).toBe(expected);
 
     const previewLink = page.getByTestId('preview-original');
     const previewThumb = page.getByTestId('preview-thumb');
     await expect(previewLink).toHaveAttribute('href', `/uploads/images/${name}.png`);
-    await expect(previewThumb).toHaveAttribute('src', `/uploads/images/${name}_thumb.webp`);
+    await expect(previewThumb).toHaveAttribute('src', `/uploads/images/${name}_thumb.png`);
     await expect(previewThumb).not.toHaveAttribute('srcset', /.+/);
     await expect(previewThumb).toHaveAttribute('width', '300');
     await expect(previewThumb).toHaveAttribute('height', '300');
     await expect.poll(() => previewThumb.evaluate((element) => new URL(element.currentSrc).pathname))
-      .toBe(`/uploads/images/${name}_thumb.webp`);
+      .toBe(`/uploads/images/${name}_thumb.png`);
 
     const builderImage = page.getByTestId('builder-image').locator('img');
-    await expect(builderImage).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
-    await expect(builderImage).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(builderImage).toHaveAttribute('src', `/uploads/images/${name}_medium.png`);
+    await expect(builderImage).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.png 600w, .*${name}\\.png 1200w`));
     await expect(builderImage).toHaveAttribute('decoding', 'async');
     await expect(page.getByTestId('builder-image').locator('a')).toHaveAttribute('href', `/uploads/images/${name}.png`);
 
     const builderCard = page.getByTestId('builder-card').locator('img');
-    await expect(builderCard).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
+    await expect(builderCard).toHaveAttribute('src', `/uploads/images/${name}_medium.png`);
     await expect(builderCard).toHaveAttribute('sizes', '(min-width: 1280px) 384px, (min-width: 768px) 50vw, 100vw');
 
     const builderBanner = page.getByTestId('builder-banner').locator('picture');
-    await expect(builderBanner.locator('source')).toHaveAttribute('srcset', new RegExp(`${name}-alt_medium\\.webp 500w, .*${name}-alt\\.webp 1000w`));
-    await expect(builderBanner.locator('source')).toHaveAttribute('sizes', '100vw');
-    await expect(builderBanner.locator('img')).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
+    const mobileWebp = builderBanner.locator('source[type="image/webp"][media]');
+    const mobileFallback = builderBanner.locator('source[media]:not([type])');
+    const desktopWebp = builderBanner.locator('source[type="image/webp"]:not([media])');
+    await expect(mobileWebp).toHaveAttribute('srcset', new RegExp(`${name}-alt_medium\\.webp 500w, .*${name}-alt\\.webp 1000w`));
+    await expect(mobileFallback).toHaveAttribute('srcset', new RegExp(`${name}-alt_medium\\.png 500w, .*${name}-alt\\.png 1000w`));
+    await expect(desktopWebp).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(mobileWebp).toHaveAttribute('sizes', '100vw');
+    await expect(builderBanner.locator('img')).toHaveAttribute('src', `/uploads/images/${name}_medium.png`);
 
     const dynamicCard = page.getByTestId('builder-dynamic-card').locator('img');
-    await expect(dynamicCard).toHaveAttribute('src', `/uploads/images/${name}_medium.webp`);
-    await expect(dynamicCard).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.webp 600w, .*${name}\\.webp 1200w`));
+    await expect(dynamicCard).toHaveAttribute('src', `/uploads/images/${name}_medium.png`);
+    await expect(dynamicCard).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.png 600w, .*${name}\\.png 1200w`));
     await expect(dynamicCard).toHaveAttribute('decoding', 'async');
 
     const galleryMain = page.getByTestId('product-gallery-main');
     await page.getByTestId('product-gallery-next').click();
-    await expect(galleryMain).toHaveAttribute('src', `/uploads/images/${name}-alt_medium.webp`);
-    await expect(galleryMain).toHaveAttribute('srcset', new RegExp(`${name}-alt_medium\\.webp 500w, .*${name}-alt\\.webp 1000w`));
+    await expect(galleryMain).toHaveAttribute('src', `/uploads/images/${name}-alt_medium.png`);
+    await expect(galleryMain).toHaveAttribute('srcset', new RegExp(`${name}-alt_medium\\.png 500w, .*${name}-alt\\.png 1000w`));
     await expect(galleryMain).toHaveAttribute('sizes', '(min-width: 1024px) 50vw, 100vw');
     await expect(galleryMain).toHaveAttribute('width', '500');
     await expect(galleryMain).toHaveAttribute('height', '375');

@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
 
-test('image pixel limit stays on the upload tab and clamps unsafe values @ci', async ({ page }, testInfo) => {
+test('image pixel limit stays on the upload tab and supports an explicit off switch @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single persistent security-settings check');
   const consoleEntries = observeConsole(page);
 
@@ -10,7 +10,7 @@ test('image pixel limit stays on the upload tab and clamps unsafe values @ci', a
   await page.goto('/admin/setting_security.php?tab=upload', { waitUntil: 'domcontentloaded' });
   const pixelLimit = page.getByTestId('upload-max-megapixels');
   await expect(pixelLimit).toBeVisible();
-  await expect(pixelLimit).toHaveAttribute('min', '1');
+  await expect(pixelLimit).toHaveAttribute('min', '0');
   await expect(pixelLimit).toHaveAttribute('max', '200');
 
   const savePixelLimit = (value) => page.evaluate(async (nextValue) => {
@@ -26,6 +26,10 @@ test('image pixel limit stays on the upload tab and clamps unsafe values @ci', a
   }, value);
 
   try {
+    expect((await savePixelLimit('0')).code).toBe(0);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('upload-max-megapixels')).toHaveValue('0');
+
     expect((await savePixelLimit('500')).code).toBe(0);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('upload-max-megapixels')).toHaveValue('200');
