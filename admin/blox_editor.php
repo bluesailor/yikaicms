@@ -629,6 +629,36 @@ $canManageBloxDesign = hasPermission('*');
         .blox-sort-ghost { opacity: .45; border: 1px dashed #3b82f6; background: #eff6ff; }
         .blox-scroll::-webkit-scrollbar { width: 6px; }
         .blox-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .blox-panel-resizer {
+            display: flex;
+            width: 8px;
+            flex: 0 0 8px;
+            align-items: center;
+            justify-content: center;
+            cursor: col-resize;
+            touch-action: none;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+        }
+        .blox-panel-resizer > span {
+            width: 2px;
+            height: 2.5rem;
+            border-radius: 2px;
+            background: #cbd5e1;
+            transition: background-color .15s ease, height .15s ease;
+        }
+        .blox-panel-resizer:hover > span,
+        .blox-panel-resizer:focus-visible > span,
+        .blox-panel-resizer.is-active > span {
+            height: 3.5rem;
+            background: #3b82f6;
+        }
+        .blox-panel-resizer:focus-visible {
+            outline: 2px solid #60a5fa;
+            outline-offset: -2px;
+        }
+        body.blox-panel-resizing { cursor: col-resize; user-select: none; }
+        body.blox-panel-resizing iframe { pointer-events: none; }
         /* 盒模型四边输入框（blox 不加载 admin.css，样式必须内联在此）。
            Tailwind preflight 清了 input 边框，这里补回；边框色由行内 border-* 类给 */
         .yk-box-in {
@@ -680,6 +710,7 @@ $canManageBloxDesign = hasPermission('*');
         .blox-mobile-actions-menu > a:hover { background: #f3f4f6; }
         .blox-mobile-actions-menu > button:disabled { opacity: .4; cursor: not-allowed; }
         @media (max-width: 1439px) {
+            .blox-panel-resizer { display: none; }
             .blox-mobile-panel { display: none !important; }
             .blox-mobile-panel.is-open {
                 display: flex !important;
@@ -756,6 +787,9 @@ $canManageBloxDesign = hasPermission('*');
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-init="init()" x-cloak
+      @pointermove.window="resizeLeftPanel($event)"
+      @pointerup.window="finishLeftPanelResize($event)"
+      @pointercancel.window="finishLeftPanelResize($event)"
       data-blox-advanced="<?php echo $advancedBloxEnabled ? '1' : '0'; ?>"
       data-blox-recovery-key="<?= e($recoveryKey) ?>"
       data-blox-base-revision="<?= e($baseRevision) ?>">
@@ -1228,6 +1262,14 @@ $canManageBloxDesign = hasPermission('*');
             mobileActionsOpen: false,
             libOpen: false,             // true = 有选中项时仍显示元素库（「＋ 元素」按钮）
             paletteSelected: "",       // 桌面单击只选中提示；拖放、键盘或触屏才执行插入
+            leftPanelWidth: 288,
+            leftPanelMin: 240,
+            leftPanelMax: 480,
+            leftPanelResizing: false,
+            leftPanelStorageKey: "yikai:blox:left-panel-width:v1",
+            _leftPanelResizeStartX: 0,
+            _leftPanelResizeStartWidth: 288,
+            _leftPanelPointerId: null,
             panelTab: "content",        // 设置面板页签：content | style | condition
             boxOpen: { margin: false, padding: false },
             boxExactOpen: { margin: false, padding: false },
@@ -4559,6 +4601,7 @@ $canManageBloxDesign = hasPermission('*');
 
             init() {
                 var self = this;
+                this.restoreLeftPanelWidth();
                 this.normalizeHeaderSettings();
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
@@ -4580,6 +4623,7 @@ $canManageBloxDesign = hasPermission('*');
                     if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
                 });
                 window.addEventListener("pagehide", function () {
+                    self.finishLeftPanelResize();
                     if (self._draftRecovery) self._draftRecovery.dispose(self.dirty);
                     if (self._previewClient) self._previewClient.cancel();
                     if (self._canvasBridge) self._canvasBridge.dispose();
@@ -6182,6 +6226,86 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             // ── 元素库 ──────────────────────────────────────
+
+            leftPanelMaximum() {
+                return Math.min(
+                    this.leftPanelMax,
+                    Math.max(this.leftPanelMin, window.innerWidth - 984)
+                );
+            },
+
+            clampLeftPanelWidth(value) {
+                var width = Number(value);
+                if (!Number.isFinite(width)) width = 288;
+                return Math.round(Math.max(this.leftPanelMin, Math.min(this.leftPanelMaximum(), width)));
+            },
+
+            leftPanelStyle() {
+                this.canvasViewportTick;
+                return window.innerWidth >= 1440 ? "width:" + this.leftPanelWidth + "px" : "";
+            },
+
+            restoreLeftPanelWidth() {
+                try {
+                    var stored = window.localStorage.getItem(this.leftPanelStorageKey);
+                    if (stored !== null) this.leftPanelWidth = this.clampLeftPanelWidth(stored);
+                } catch (error) {
+                    this.leftPanelWidth = 288;
+                }
+            },
+
+            persistLeftPanelWidth() {
+                try {
+                    window.localStorage.setItem(this.leftPanelStorageKey, String(this.leftPanelWidth));
+                } catch (error) {
+                    // 隐私模式或禁用存储时仍保留本次会话内的宽度。
+                }
+            },
+
+            setLeftPanelWidth(value, persist) {
+                this.leftPanelWidth = this.clampLeftPanelWidth(value);
+                this.canvasViewportTick++;
+                if (persist !== false) this.persistLeftPanelWidth();
+            },
+
+            startLeftPanelResize(event) {
+                if (window.innerWidth < 1440 || !event || event.button !== 0) return;
+                event.preventDefault();
+                this.leftPanelResizing = true;
+                this._leftPanelPointerId = event.pointerId;
+                this._leftPanelResizeStartX = event.clientX;
+                this._leftPanelResizeStartWidth = this.leftPanelWidth;
+                document.body.classList.add("blox-panel-resizing");
+                if (event.currentTarget && typeof event.currentTarget.setPointerCapture === "function") {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                }
+            },
+
+            resizeLeftPanel(event) {
+                if (!this.leftPanelResizing || !event) return;
+                if (this._leftPanelPointerId !== null && event.pointerId !== this._leftPanelPointerId) return;
+                this.setLeftPanelWidth(
+                    this._leftPanelResizeStartWidth + event.clientX - this._leftPanelResizeStartX,
+                    false
+                );
+            },
+
+            finishLeftPanelResize(event) {
+                if (!this.leftPanelResizing) return;
+                if (event && this._leftPanelPointerId !== null && event.pointerId !== this._leftPanelPointerId) return;
+                this.leftPanelResizing = false;
+                this._leftPanelPointerId = null;
+                document.body.classList.remove("blox-panel-resizing");
+                this.persistLeftPanelWidth();
+            },
+
+            resizeLeftPanelBy(delta) {
+                this.setLeftPanelWidth(this.leftPanelWidth + Number(delta || 0));
+            },
+
+            resetLeftPanelWidth() {
+                this.setLeftPanelWidth(288);
+            },
 
             openElementLibrary() {
                 this.libOpen = true;

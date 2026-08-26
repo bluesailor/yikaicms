@@ -41,7 +41,9 @@ final class LogoElement extends AbstractElement
         $display = in_array($data['display'] ?? '', ['both', 'image', 'text'], true) ? $data['display'] : 'both';
         $height = self::HEIGHT_MAP[$data['height'] ?? ''] ?? self::HEIGHT_MAP['md'];
         $textClass = ($data['tone'] ?? 'dark') === 'light' ? 'text-white' : 'text-gray-900';
-        $logo = function_exists('configRawLang') ? (string) configRawLang('site_logo', '') : '';
+        $logo = function_exists('configRawLang')
+            ? self::availableLogoUrl((string) configRawLang('site_logo', ''))
+            : '';
         $name = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
         // 精确像素高度（16-200）覆盖三档位；未设置时输出与历史逐字节一致
         $customHeight = (int) ($data['custom_height'] ?? 0);
@@ -69,6 +71,37 @@ final class LogoElement extends AbstractElement
             ? '<a href="' . htmlspecialchars($homeUrl, ENT_QUOTES) . '" class="' . $wrap . ' no-underline">' . $inner . '</a>'
             : '<span class="' . $wrap . '">' . $inner . '</span>';
         return '<div' . $this->animationAttrs($data) . '>' . $body . '</div>';
+    }
+
+    /** 本地 Logo 文件被迁移或删除时回退站名，避免浏览器用 alt 文本撑出破图。 */
+    private static function availableLogoUrl(string $logo): string
+    {
+        $logo = trim($logo);
+        if ($logo === '') {
+            return '';
+        }
+        if (str_starts_with($logo, '//')) {
+            return $logo;
+        }
+
+        $parts = parse_url($logo);
+        if ($parts === false) {
+            return '';
+        }
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        if ($scheme !== '') {
+            return in_array($scheme, ['http', 'https'], true) ? $logo : '';
+        }
+
+        $path = rawurldecode((string) ($parts['path'] ?? ''));
+        $normalized = str_replace('\\', '/', $path);
+        if ($normalized === '' || str_contains($normalized, "\0")
+            || in_array('..', explode('/', $normalized), true)) {
+            return '';
+        }
+
+        $root = defined('ROOT_PATH') ? rtrim((string) ROOT_PATH, '/\\') : '';
+        return $root !== '' && is_file($root . '/' . ltrim($normalized, '/')) ? $logo : '';
     }
 
 }
