@@ -193,7 +193,8 @@ function renderFrontEdit(): void
         addArea(header, 'header', regionLabels.editHeader);
         document.querySelectorAll('[data-yk-sec-id]').forEach(function (section, index) {
           if (section.closest('.yk-blox-header,.yk-blox-footer')) return;
-          add('body', editUrl(section), regionLabels.section.replace(':n', String(index + 1)));
+          var fallbackLabel = regionLabels.section.replace(':n', String(index + 1));
+          add('body', editUrl(section), section.getAttribute('data-yk-sec-label') || fallbackLabel);
         });
         document.querySelectorAll('[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(function (target) {
           if (target === header || target === footer || target.closest('.yk-blox-header,.yk-blox-footer')) return;
@@ -221,6 +222,7 @@ function renderFrontEdit(): void
             var link = document.createElement('a');
             link.href = item.url;
             link.textContent = item.label;
+            link.title = item.label;
             section.appendChild(link);
           });
           menu.appendChild(section);

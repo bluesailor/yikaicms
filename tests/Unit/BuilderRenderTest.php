@@ -915,7 +915,10 @@ final class BuilderRenderTest extends TestCase
             BlockRenderer::$editChannelId = 2;
             $_SESSION['admin_id'] = 1;
             $out = BlockRenderer::render($json);
-            $this->assertStringContainsString('data-yk-sec="0" data-yk-sec-id="section-stable-1"', $out);
+            $this->assertStringContainsString(
+                'data-yk-sec="0" data-yk-sec-id="section-stable-1" data-yk-sec-label="Section title"',
+                $out
+            );
             $this->assertStringContainsString('data-yk-sec-field="0.title"', $out);
             $this->assertStringContainsString('data-yk-sec-field="0.subtitle"', $out);
             $this->assertStringContainsString('data-yk-el="0.0.0" data-yk-el-id="element-heading-1" data-yk-el-type="heading"', $out);
@@ -927,6 +930,55 @@ final class BuilderRenderTest extends TestCase
 
         $this->assertStringNotContainsString('data-yk-el-type', BlockRenderer::render($json));
         $this->assertStringNotContainsString('data-yk-el-id', BlockRenderer::render($json));
+    }
+
+    public function testEditModeDerivesSafeReadableSectionLabels(): void
+    {
+        $json = json_encode([[
+            'id' => 'section-process',
+            'name' => "<b>Service\nProcess</b>\u{200B}",
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'container',
+                    'data' => [
+                        'children' => [[
+                            'type' => 'process-steps',
+                            'data' => [],
+                        ]],
+                    ],
+                ]],
+            ]],
+        ], [
+            'id' => 'section-stats',
+            'columns' => [[
+                'elements' => [[
+                    'type' => 'stats-group',
+                    'data' => [],
+                ]],
+            ]],
+        ]], JSON_UNESCAPED_UNICODE);
+
+        $oldChannelId = BlockRenderer::$editChannelId;
+        $oldSession = is_array($_SESSION ?? null) ? $_SESSION : [];
+        try {
+            BlockRenderer::$editChannelId = 2;
+            $_SESSION['admin_id'] = 1;
+            $out = BlockRenderer::render((string) $json);
+        } finally {
+            BlockRenderer::$editChannelId = $oldChannelId;
+            $_SESSION = $oldSession;
+        }
+
+        $this->assertStringContainsString(
+            'data-yk-sec-label="' . e(__('blox_el_process_steps') . ' · Service Process') . '"',
+            $out
+        );
+        $this->assertStringContainsString(
+            'data-yk-sec-label="' . e(__('blox_el_stats_group')) . '"',
+            $out
+        );
+        $this->assertStringNotContainsString('<b>Service', $out);
+        $this->assertStringNotContainsString('data-yk-sec-label', BlockRenderer::render((string) $json));
     }
 
     public function testNestedCustomBlockUsesNamespacedHomeFieldsInsteadOfInnerCoordinates(): void
