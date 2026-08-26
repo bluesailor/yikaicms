@@ -221,7 +221,9 @@ function renderAdminBar(): void
             <span class="ik-ab-draft-kind"><?php echo e($draftKindLabels[$draftItem['kind']] ?? __('ab_draft_page')); ?></span>
             <span class="ik-ab-draft-actions">
               <a href="<?php echo e($draftItem['editor_url']); ?>"><?php echo e(__('ab_continue_editing')); ?></a>
+              <?php if ($draftItem['preview_url'] !== ''): ?>
               <a href="<?php echo e($draftItem['preview_url']); ?>"><?php echo e(__('ab_preview_draft')); ?></a>
+              <?php endif; ?>
             </span>
           </div>
           <?php endforeach; ?>

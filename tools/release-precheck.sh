@@ -4,6 +4,7 @@
 #
 # 用法：
 #   bash tools/release-precheck.sh 1.7.0
+#   bash tools/release-precheck.sh 1.7.0 --candidate
 #
 # 任一红灯（FAIL）退出码非 0；黄灯（WARN）只提醒不阻塞。
 # 设计目标：本地一行命令验证 release-process.md 全部硬性要求。
@@ -20,9 +21,27 @@ else
 fi
 
 # ───── 参数 ─────
-VERSION="${1:-}"
+VERSION=""
+MODE="release"
+for arg in "$@"; do
+    case "$arg" in
+        --candidate) MODE="candidate" ;;
+        --release) MODE="release" ;;
+        -*)
+            echo "${R}未知参数: $arg${X}"
+            exit 2
+            ;;
+        *)
+            if [ -n "$VERSION" ]; then
+                echo "${R}只能指定一个版本号${X}"
+                exit 2
+            fi
+            VERSION="$arg"
+            ;;
+    esac
+done
 if [ -z "$VERSION" ]; then
-    echo "${R}用法: bash tools/release-precheck.sh <version>${X}"
+    echo "${R}用法: bash tools/release-precheck.sh <version> [--candidate]${X}"
     echo "示例: bash tools/release-precheck.sh 1.7.0"
     exit 2
 fi
@@ -34,7 +53,11 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${X}"
-echo "${B}  Yikai CMS 发版预检 — 目标版本: v${VERSION}${X}"
+if [ "$MODE" = "candidate" ]; then
+    echo "${B}  Yikai CMS 候选版预检 — 目标版本: v${VERSION}${X}"
+else
+    echo "${B}  Yikai CMS 发版预检 — 目标版本: v${VERSION}${X}"
+fi
 echo "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${X}"
 echo
 
@@ -165,7 +188,11 @@ PHPEOF
                 warn "config.php 解析 DB 配置失败，跳过实际表数对比"
             fi
         else
-            warn "config/config.php 不存在，跳过实际表数对比"
+            if [ "$MODE" = "candidate" ]; then
+                info "候选工作树无 config/config.php，跳过本地运行库对比"
+            else
+                warn "config/config.php 不存在，跳过实际表数对比"
+            fi
         fi
     else
         warn "未找到 PHP 可执行，跳过实际表数对比"
@@ -226,7 +253,9 @@ section "6. update.yikaicms 升级服务器（releases.json）"
 # ─────────────────────────────────────────────────────────────
 
 releases_json="/mnt/d/phpstudy_pro/WWW/update.yikaicms/data/releases.json"
-if [ -f "$releases_json" ]; then
+if [ "$MODE" = "candidate" ]; then
+    info "候选阶段不修改升级服务器，跳过渠道版本校验"
+elif [ -f "$releases_json" ]; then
     latest=$(python3 -c "import json; print(json.load(open('$releases_json'))['latest'])" 2>/dev/null)
     if [ "$latest" = "$VERSION" ]; then
         pass "releases.json  latest = '$latest'"
@@ -248,6 +277,9 @@ section "7. 官网 yikaicms.com（index.html / changelog.html）"
 # ─────────────────────────────────────────────────────────────
 
 site="/mnt/d/phpstudy_pro/WWW/yikaicms.com.yikai"
+if [ "$MODE" = "candidate" ]; then
+    info "候选阶段不更新官网，跳过渠道版本校验"
+else
 for f in index.html changelog.html; do
     fp="$site/$f"
     if [ ! -f "$fp" ]; then
@@ -265,13 +297,16 @@ for f in index.html changelog.html; do
         fail "$f  「最新版」徽章贴在 $old_latest 上（期望: v${VERSION}）"
     fi
 done
+fi
 
 # ─────────────────────────────────────────────────────────────
 section "8. 演示站 demo.yikaicms config"
 # ─────────────────────────────────────────────────────────────
 
 demo_cfg="/mnt/d/phpstudy_pro/WWW/demo.yikaicms/config/config.php"
-if [ -f "$demo_cfg" ]; then
+if [ "$MODE" = "candidate" ]; then
+    info "候选阶段不升级演示站，跳过版本校验"
+elif [ -f "$demo_cfg" ]; then
     v=$(grep -oE "CMS_VERSION', '[0-9.]+'" "$demo_cfg" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
     if [ "$v" = "$VERSION" ]; then
         pass "demo.yikaicms/config/config.php  CMS_VERSION = '$v'"
@@ -296,7 +331,9 @@ section "9. release zip 是否已 build"
 # ─────────────────────────────────────────────────────────────
 
 zip="releases/yikaicms-v${VERSION}.zip"
-if [ -f "$zip" ]; then
+if [ "$MODE" = "candidate" ]; then
+    info "候选阶段不生成安装包，跳过 zip 校验"
+elif [ -f "$zip" ]; then
     size=$(du -h "$zip" | awk '{print $1}')
     pass "$zip 已存在 ($size)"
 else
@@ -309,13 +346,21 @@ fi
 echo
 echo "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${X}"
 if [ "$FAIL" -eq 0 ] && [ "$WARN" -eq 0 ]; then
-    echo "${G}✓ 全部预检通过，可以发版 v${VERSION}${X}"
+    if [ "$MODE" = "candidate" ]; then
+        echo "${G}✓ 候选版预检通过，可继续独立复查 v${VERSION}${X}"
+    else
+        echo "${G}✓ 全部预检通过，可以发版 v${VERSION}${X}"
+    fi
     exit 0
 elif [ "$FAIL" -eq 0 ]; then
     echo "${Y}⚠ 通过，但有 $WARN 个警告（不阻塞，但建议看一眼）${X}"
     exit 0
 else
     echo "${R}✗ 预检未通过：$FAIL 个 FAIL / $WARN 个 WARN${X}"
-    echo "${R}  请修复 FAIL 项后重跑：bash tools/release-precheck.sh ${VERSION}${X}"
+    if [ "$MODE" = "candidate" ]; then
+        echo "${R}  请修复 FAIL 项后重跑：bash tools/release-precheck.sh ${VERSION} --candidate${X}"
+    else
+        echo "${R}  请修复 FAIL 项后重跑：bash tools/release-precheck.sh ${VERSION}${X}"
+    fi
     exit 1
 fi

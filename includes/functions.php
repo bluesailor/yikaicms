@@ -2437,7 +2437,8 @@ function uploadFile(array $file, string $type = 'images'): array
         $width = (int) ($check[0] ?? 0);
         $height = (int) ($check[1] ?? 0);
         $maxMegapixels = uploadMaxImageMegapixels();
-        if (!imageDimensionsWithinPixelLimit($width, $height, $maxMegapixels * 1_000_000)) {
+        if ($maxMegapixels > 0
+            && !imageDimensionsWithinPixelLimit($width, $height, $maxMegapixels * 1_000_000)) {
             return ['error' => __('upload_image_pixels_exceeded', ['limit' => $maxMegapixels])];
         }
     }

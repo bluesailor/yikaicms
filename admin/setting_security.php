@@ -58,10 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pixelLimit = is_numeric($settings['upload_max_megapixels'])
             ? (int) $settings['upload_max_megapixels']
             : 40;
-        $settings['upload_max_megapixels'] = (string) max(
-            1,
-            min(200, $pixelLimit)
-        );
+        $settings['upload_max_megapixels'] = $pixelLimit === 0
+            ? '0'
+            : (string) max(1, min(200, $pixelLimit));
     }
 
     foreach (['trusted_proxies', 'admin_ip_whitelist'] as $ruleKey) {
@@ -451,7 +450,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="md:col-span-3">
                     <input type="number" name="settings[upload_max_megapixels]" data-testid="upload-max-megapixels"
                            value="<?php echo e($secConfig['upload_max_megapixels']); ?>"
-                           min="1" max="200" step="1"
+                           min="0" max="200" step="1"
                            class="w-full border rounded px-4 py-2">
                     <div class="text-xs text-gray-400 mt-1">
                         <?php echo e(__('sec_max_image_megapixels_note')); ?>
@@ -499,7 +498,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <li>&#10003; 文件扩展名白名单校验</li>
                         <li>&#10003; MIME 类型验证（防伪造扩展名）</li>
                         <li>&#10003; 图片文件 getimagesize 验证</li>
-                        <li>&#10003; <?php echo e(__('sec_image_pixel_guard_enabled', ['limit' => uploadMaxImageMegapixels()])); ?></li>
+                        <li>&#10003; <?php echo e(uploadMaxImageMegapixels() > 0
+                            ? __('sec_image_pixel_guard_enabled', ['limit' => uploadMaxImageMegapixels()])
+                            : __('sec_image_pixel_guard_disabled')); ?></li>
                         <li>&#10003; 上传文件自动随机重命名</li>
                         <li>&#10003; uploads 目录禁止执行 PHP</li>
                     </ul>

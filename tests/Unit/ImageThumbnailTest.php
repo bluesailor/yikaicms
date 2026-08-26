@@ -49,6 +49,7 @@ final class ImageThumbnailTest extends TestCase
         $this->assertFalse(imageDimensionsWithinPixelLimit(8_001, 5_000, 40_000_000));
         $this->assertFalse(imageDimensionsWithinPixelLimit(PHP_INT_MAX, PHP_INT_MAX, 40_000_000));
         $this->assertFalse(imageDimensionsWithinPixelLimit(0, 1, 40_000_000));
+        $this->assertTrue(imageDimensionsWithinPixelLimit(PHP_INT_MAX, PHP_INT_MAX, 0));
     }
 
     public function testConfiguredImagePixelLimitIsClampedToSafeBounds(): void
@@ -62,7 +63,7 @@ final class ImageThumbnailTest extends TestCase
             $this->assertSame(200, uploadMaxImageMegapixels());
 
             $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 0;
-            $this->assertSame(40, uploadMaxImageMegapixels());
+            $this->assertSame(0, uploadMaxImageMegapixels());
 
             $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = [];
             $this->assertSame(40, uploadMaxImageMegapixels());
@@ -144,7 +145,7 @@ final class ImageThumbnailTest extends TestCase
         }
     }
 
-    public function testWebpDerivativesAreGeneratedAndPreferredAsACompleteCandidateSet(): void
+    public function testWebpDerivativesAreExposedWithoutReplacingOriginalFallbacks(): void
     {
         if (!function_exists('imagewebp')) {
             $this->markTestSkipped('GD WebP support is not available');
@@ -167,9 +168,12 @@ final class ImageThumbnailTest extends TestCase
             $this->assertFileExists($directory . '/photo_thumb.webp');
 
             $image = responsiveImageData($url, 'medium');
-            $this->assertSame('/storage/cache/' . $name . '/photo_medium.webp', $image['src']);
-            $this->assertStringContainsString('photo_medium.webp 800w', $image['srcset']);
-            $this->assertStringContainsString('photo.webp 1600w', $image['srcset']);
+            $this->assertSame('/storage/cache/' . $name . '/photo_medium.png', $image['src']);
+            $this->assertStringContainsString('photo_medium.png 800w', $image['srcset']);
+            $this->assertStringContainsString('photo.png 1600w', $image['srcset']);
+            $this->assertSame('/storage/cache/' . $name . '/photo_medium.webp', $image['webp_src']);
+            $this->assertStringContainsString('photo_medium.webp 800w', $image['webp_srcset']);
+            $this->assertStringContainsString('photo.webp 1600w', $image['webp_srcset']);
 
             $current = generateWebpDerivatives($directory . '/photo.png', 'png', 82);
             $this->assertSame(0, $current['generated']);
@@ -196,6 +200,8 @@ final class ImageThumbnailTest extends TestCase
             $image = responsiveImageData($url, 'medium');
             $this->assertSame('/storage/cache/' . $name . '/photo_medium.png', $image['src']);
             $this->assertStringNotContainsString('.webp', $image['srcset']);
+            $this->assertSame('', $image['webp_src']);
+            $this->assertSame('', $image['webp_srcset']);
         } finally {
             @unlink($directory . '/photo_medium.webp');
             @unlink($directory . '/photo_medium.png');

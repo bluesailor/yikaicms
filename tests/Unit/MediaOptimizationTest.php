@@ -102,6 +102,20 @@ final class MediaOptimizationTest extends TestCase
         $this->assertFileExists($outside);
     }
 
+    public function testMovedSiteResolvesMediaFromCurrentUploadsLocation(): void
+    {
+        $path = $this->directory . '/moved.png';
+        $this->writePng($path, 80, 45);
+        $uploadsPath = defined('UPLOADS_PATH') ? UPLOADS_PATH : ROOT_PATH . '/uploads';
+        $relative = ltrim(str_replace('\\', '/', substr($path, strlen($uploadsPath))), '/');
+        $media = $this->media('D:/retired-site/uploads/' . $relative, 9, 'png', '/uploads/' . $relative);
+
+        $health = MediaOptimization::inspect($media, false);
+
+        $this->assertSame('healthy', $health['status']);
+        $this->assertSame(1, $health['ready']);
+    }
+
     public function testDeleteArtifactsRemovesSourceThumbnailsAndWebpOnlyInsideUploads(): void
     {
         $this->requireWebp();
@@ -215,12 +229,13 @@ final class MediaOptimizationTest extends TestCase
     }
 
     /** @return array<string,mixed> */
-    private function media(string $path, int $id = 1, string $ext = 'png'): array
+    private function media(string $path, int $id = 1, string $ext = 'png', string $url = ''): array
     {
         return [
             'id' => $id,
             'type' => 'image',
             'path' => $path,
+            'url' => $url,
             'ext' => $ext,
         ];
     }

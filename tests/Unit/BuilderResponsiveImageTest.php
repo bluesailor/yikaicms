@@ -41,7 +41,7 @@ final class BuilderResponsiveImageTest extends TestCase
         parent::tearDown();
     }
 
-    public function testImageElementUsesWebpCandidatesAndKeepsOriginalLightboxHref(): void
+    public function testImageElementKeepsOriginalFallbackAndLightboxHref(): void
     {
         $url = $this->urlBase . '/desktop.png';
         $html = (new ImageElement())->render([
@@ -51,9 +51,9 @@ final class BuilderResponsiveImageTest extends TestCase
         ]);
 
         $this->assertStringContainsString('href="' . $url . '"', $html);
-        $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.webp"', $html);
-        $this->assertStringContainsString('desktop_medium.webp 800w', $html);
-        $this->assertStringContainsString('desktop.webp 1600w', $html);
+        $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.png"', $html);
+        $this->assertStringContainsString('desktop_medium.png 800w', $html);
+        $this->assertStringContainsString('desktop.png 1600w', $html);
         $this->assertStringContainsString('sizes="100vw"', $html);
         $this->assertStringContainsString('decoding="async"', $html);
     }
@@ -69,12 +69,13 @@ final class BuilderResponsiveImageTest extends TestCase
             'title' => 'Banner',
         ]);
 
-        $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.webp"', $card);
+        $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.png"', $card);
         $this->assertStringContainsString('sizes="(min-width: 1280px) 384px, (min-width: 768px) 50vw, 100vw"', $card);
         $this->assertStringContainsString('decoding="async"', $card);
+        $this->assertStringContainsString('type="image/webp"', $banner);
         $this->assertStringContainsString('mobile_medium.webp 450w', $banner);
-        $this->assertStringContainsString('mobile.webp 900w', $banner);
-        $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.webp"', $banner);
+        $this->assertStringContainsString('mobile_medium.png 450w', $banner);
+        $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.png"', $banner);
         $this->assertStringContainsString('sizes="100vw"', $banner);
     }
 
@@ -94,8 +95,8 @@ final class BuilderResponsiveImageTest extends TestCase
         $controlled = TagEngine::render($controlledTemplate);
 
         foreach ([$card, $controlled] as $html) {
-            $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.webp"', $html);
-            $this->assertStringContainsString('desktop.webp 1600w', $html);
+            $this->assertStringContainsString('src="' . $this->urlBase . '/desktop_medium.png"', $html);
+            $this->assertStringContainsString('desktop.png 1600w', $html);
             $this->assertStringContainsString('decoding="async"', $html);
         }
         $this->assertStringContainsString('alt="Dynamic"', $controlled);
@@ -108,6 +109,21 @@ final class BuilderResponsiveImageTest extends TestCase
         $html = TagEngine::render('<img {yk:image-attrs name=cover size=invalid sizes="50vw" /} alt="">');
 
         $this->assertSame('<img src="" alt="">', $html);
+    }
+
+    public function testLegacyStoredImageShapesRemainVisible(): void
+    {
+        $data = 'data:image/png;base64,iVBORw0KGgo=';
+        foreach ([
+            '//cdn.example.com/legacy.png' => 'https://cdn.example.com/legacy.png',
+            'uploads/legacy.png' => '/uploads/legacy.png',
+            $data => $data,
+        ] as $stored => $expected) {
+            $image = (new ImageElement())->render(['src' => $stored, 'alt' => 'Legacy']);
+            $card = (new CardElement())->render(['image' => $stored, 'title' => 'Legacy']);
+            $this->assertStringContainsString('src="' . $expected . '"', $image, $stored);
+            $this->assertStringContainsString('src="' . $expected . '"', $card, $stored);
+        }
     }
 
     private function writeCandidates(string $name, int $width, int $height, int $mediumWidth, int $mediumHeight): void

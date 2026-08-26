@@ -178,9 +178,22 @@ final class HomeBannerItemElement extends AbstractElement
         $html = '<picture class="block w-full h-full" data-blox-banner-bg>';
         if ($item['image_mobile'] !== '') {
             $mobile = responsiveImageData($item['image_mobile'], 'medium');
+            $mobileWebpSrcset = $mobile['webp_srcset'] !== '' ? $mobile['webp_srcset'] : $mobile['webp_src'];
+            if ($mobileWebpSrcset !== '') {
+                $html .= '<source media="(max-width: 767px)" type="image/webp" srcset="'
+                    . htmlspecialchars($mobileWebpSrcset, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                    . '" sizes="100vw">';
+            }
             $mobileSrcset = $mobile['srcset'] !== '' ? $mobile['srcset'] : $mobile['src'];
             $html .= '<source media="(max-width: 767px)" srcset="'
                 . htmlspecialchars($mobileSrcset, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                . '" sizes="100vw">';
+        }
+        $desktop = responsiveImageData($item['image'], 'medium');
+        $desktopWebpSrcset = $desktop['webp_srcset'] !== '' ? $desktop['webp_srcset'] : $desktop['webp_src'];
+        if ($desktopWebpSrcset !== '') {
+            $html .= '<source type="image/webp" srcset="'
+                . htmlspecialchars($desktopWebpSrcset, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
                 . '" sizes="100vw">';
         }
         $html .= '<img ' . responsiveImageAttributes($item['image'], 'medium', '100vw')

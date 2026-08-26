@@ -793,6 +793,7 @@ $canManageBloxDesign = hasPermission('*');
             _savedDocumentSnapshot: "",
             _draftRecovery: null,
             _pendingInitialFocus: false,
+            _pendingInitialFooterScroll: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             recoveryOpen: false,
             recoveryDraft: null,
             conflictOpen: false,
@@ -815,6 +816,7 @@ $canManageBloxDesign = hasPermission('*');
             ctxHit: null,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
+            footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
             initialPanel: <?php echo json_encode($initialPanel); ?>,
             initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -2529,6 +2531,17 @@ $canManageBloxDesign = hasPermission('*');
                 return Array.from(text).slice(0, Math.max(1, Number(maxLength) || 80)).join("");
             },
 
+            sectionNameText(value, maxLength) {
+                if (typeof value !== "string" && typeof value !== "number") return "";
+                var decoder = document.createElement("textarea");
+                decoder.innerHTML = String(value);
+                var text = decoder.value
+                    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                return Array.from(text).slice(0, Math.max(1, Number(maxLength) || 80)).join("");
+            },
+
             sectionElements(section) {
                 var result = [];
                 function collect(element, depth) {
@@ -2577,10 +2590,13 @@ $canManageBloxDesign = hasPermission('*');
                 var settings = section && section.settings && typeof section.settings === "object"
                     ? section.settings : {};
                 var titleCandidates = [];
-                if (includeCustomName) titleCandidates.push(section && section.name);
-                titleCandidates.push(settings.title, section && section.library_name);
                 var title = "";
+                if (includeCustomName) {
+                    title = this.sectionNameText(section && section.name || "", titleMax);
+                }
+                titleCandidates.push(settings.title, section && section.library_name);
                 for (var candidate of titleCandidates) {
+                    if (title) break;
                     title = this.sectionLabelText(candidate || "", titleMax);
                     if (title) break;
                 }
@@ -2611,7 +2627,7 @@ $canManageBloxDesign = hasPermission('*');
                 var target = section || this.sel;
                 if (!target) return;
                 var policy = this.sectionLabelPolicy || {};
-                var normalized = this.sectionLabelText(target.name || "", Number(policy.titleMax) || 80);
+                var normalized = this.sectionNameText(target.name || "", Number(policy.titleMax) || 80);
                 if (normalized) target.name = normalized;
                 else delete target.name;
             },
@@ -4518,7 +4534,7 @@ $canManageBloxDesign = hasPermission('*');
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
                 this.normalizeIds();
-                this.applyInitialNodeFocus();
+                if (this.applyInitialNodeFocus()) this._pendingInitialFooterScroll = false;
                 this.initHistory();
                 this.initDraftRecovery();
                 this.$nextTick(function() {
@@ -4615,7 +4631,10 @@ $canManageBloxDesign = hasPermission('*');
                     onPickContainer: function (si) { self.selectContainer(si, false); },
                     onPickSection: function (target) { self.selectSectionTarget(target, false); },
                     onClear: function () { self.deselectAll(); },
-                    onAreaHit: function (id) { self.ctxHit = id; },
+                    onAreaHit: function (id) {
+                        self.ctxHit = id;
+                        self.scrollInitialFooterIntoView();
+                    },
                     onEditArea: function (payload) { window.location.assign(payload.url); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
@@ -4812,7 +4831,12 @@ $canManageBloxDesign = hasPermission('*');
                     onLoaded: function () {
                         var shouldScroll = self._pendingInitialFocus;
                         self._pendingInitialFocus = false;
-                        self.highlightCanvasSelection(shouldScroll);
+                        if (shouldScroll) {
+                            self.highlightCanvasSelection(true);
+                        } else {
+                            self.scrollInitialFooterIntoView();
+                            self.highlightCanvasSelection(false);
+                        }
                     },
                     onError: function () { self.toast(self.uiText.previewFailed); },
                 });
@@ -4879,6 +4903,29 @@ $canManageBloxDesign = hasPermission('*');
 
             refreshPreview() {
                 return this.previewClient().refresh();
+            },
+
+            scrollInitialFooterIntoView() {
+                if (!this.footerTemplateMode || !this._pendingInitialFooterScroll) return false;
+                var frame = this.$refs.canvas;
+                if (!frame || !frame.contentWindow || !frame.contentDocument) return false;
+                try {
+                    var footer = frame.contentDocument.querySelector('[data-yk-area="footer"]');
+                    if (!footer) return false;
+                    this._pendingInitialFooterScroll = false;
+                    var root = frame.contentDocument.documentElement;
+                    var previousBehavior = root.style.scrollBehavior;
+                    var footerRect = footer.getBoundingClientRect();
+                    root.style.scrollBehavior = "auto";
+                    frame.contentWindow.scrollTo(0, Math.max(
+                        0,
+                        (frame.contentWindow.scrollY || 0) + footerRect.bottom - frame.contentWindow.innerHeight
+                    ));
+                    root.style.scrollBehavior = previousBehavior;
+                    return true;
+                } catch (error) {
+                    return false;
+                }
             },
 
             setHeaderPreviewState(state) {
