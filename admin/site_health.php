@@ -108,6 +108,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $media['total'] = max((int) ($media['total'] ?? 0), (int) $media['scanned']);
         }
         $_SESSION['site_health_scan']['media'] = $media;
+        // 大媒体库可能需要很多批次；每个成功批次都续期，600 秒表示空闲超时而非总时长。
+        $_SESSION['site_health_scan']['created_at'] = time();
         success($media, '');
     }
 

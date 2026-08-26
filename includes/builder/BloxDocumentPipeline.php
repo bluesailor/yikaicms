@@ -435,7 +435,8 @@ final class BloxDocumentPipeline
             return '';
         }
 
-        $name = html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // 自定义区块名按纯文本输出，不把合法的比较符号（如“价格<1000元”）误当 HTML 截断。
+        $name = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $name = preg_replace('/[\p{Cc}\p{Cf}]+/u', ' ', $name) ?? '';
         $name = preg_replace('/\s+/u', ' ', trim($name)) ?? '';
 

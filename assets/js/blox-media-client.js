@@ -33,7 +33,7 @@
         var maxDimension = hasMaxDimension ? Number(value.maxDimension) : 2560;
         var minBytes = hasMinBytes ? Number(value.minBytes) : 512 * 1024;
         var maxCanvasPixels = hasMaxCanvasPixels ? Number(value.maxCanvasPixels) : 16 * 1024 * 1024;
-        var maxSourceBytes = hasMaxSourceBytes ? Number(value.maxSourceBytes) : 24 * 1024 * 1024;
+        var maxSourceBytes = hasMaxSourceBytes ? Number(value.maxSourceBytes) : 0;
         return {
             maxDimension: Number.isFinite(maxDimension) && maxDimension === 0
                 ? 0
@@ -45,7 +45,7 @@
                 : Math.max(1, Number.isFinite(maxCanvasPixels) ? maxCanvasPixels : 16 * 1024 * 1024),
             maxSourceBytes: Number.isFinite(maxSourceBytes) && maxSourceBytes === 0
                 ? 0
-                : Math.max(1, Number.isFinite(maxSourceBytes) ? maxSourceBytes : 24 * 1024 * 1024),
+                : Math.max(1, Number.isFinite(maxSourceBytes) ? maxSourceBytes : 0),
         };
     }
 

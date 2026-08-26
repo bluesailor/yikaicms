@@ -98,7 +98,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         // 编辑器：切换重建预览客户端（先 cancel 防旧上下文响应覆盖），黄条按命中 id 显隐
         $this->assertStringContainsString('data-testid="blox-ctx-select"', $editor);
         $this->assertStringContainsString('this._previewClient.cancel();', $editor);
-        $this->assertStringContainsString('onAreaHit: function (id) { self.ctxHit = id; }', $editor);
+        $this->assertStringContainsString('onAreaHit: function (id)', $editor);
+        $this->assertStringContainsString('self.ctxHit = id;', $editor);
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
     }
 
@@ -351,7 +352,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('<script src="/assets/js/blox-preview-client.js?v=', $editor);
         $this->assertStringContainsString('return this.previewClient().refresh();', $editor);
         $this->assertStringContainsString('var shouldScroll = self._pendingInitialFocus;', $editor);
-        $this->assertStringContainsString('self.highlightCanvasSelection(shouldScroll);', $editor);
+        $this->assertStringContainsString('if (shouldScroll) {', $editor);
+        $this->assertStringContainsString('self.highlightCanvasSelection(true);', $editor);
+        $this->assertStringContainsString('self.highlightCanvasSelection(false);', $editor);
 
         $this->assertStringContainsString('this.controller.abort()', $client);
         $this->assertStringContainsString('var sequence = ++this.sequence;', $client);
@@ -407,6 +410,20 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('if (shouldScroll && col) col.scrollIntoView', $protocol);
         $this->assertStringContainsString('if (shouldScroll && t) t.scrollIntoView', $protocol);
         $this->assertStringContainsString('if (shouldScroll) stableTarget.scrollIntoView', $protocol);
+    }
+
+    public function testFooterTemplateDefaultsCanvasToEditableFooterArea(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+
+        $this->assertStringContainsString('$templateType === \'footer\' ? \'true\' : \'false\'', $editor);
+        $this->assertStringContainsString('if (this.applyInitialNodeFocus()) this._pendingInitialFooterScroll = false;', $editor);
+        $this->assertStringContainsString('onAreaHit: function (id)', $editor);
+        $this->assertStringContainsString('self.scrollInitialFooterIntoView();', $editor);
+        $this->assertStringContainsString('self.highlightCanvasSelection(false);', $editor);
+        $this->assertStringContainsString("querySelector('[data-yk-area=\"footer\"]')", $editor);
+        $this->assertStringContainsString('root.style.scrollBehavior = "auto";', $editor);
+        $this->assertStringContainsString('(frame.contentWindow.scrollY || 0) + footerRect.bottom - frame.contentWindow.innerHeight', $editor);
     }
 
     public function testStableSectionLocatorUsesOpaqueIdsAcrossUrlDomAndCanvasMessages(): void
@@ -782,8 +799,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach ([
             'automaticSectionLabel(section, si)',
             'resolveSectionLabel(section, si, includeCustomName)',
-            'if (includeCustomName) titleCandidates.push(section && section.name);',
+            'title = this.sectionNameText(section && section.name || "", titleMax);',
             'normalizeSectionName(section)',
+            'sectionNameText(value, maxLength)',
             'clearSectionName(section)',
             'delete target.name;',
         ] as $token) {

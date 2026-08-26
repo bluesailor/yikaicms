@@ -21,6 +21,14 @@ final class HomeBloxDocumentTest extends TestCase
     protected function setUp(): void
     {
         $GLOBALS['_test_config'] = [];
+        $_SESSION['admin_id'] = 1;
+        $_SESSION['admin_permissions'] = ['*'];
+    }
+
+    protected function tearDown(): void
+    {
+        unset($_SESSION['admin_id'], $_SESSION['admin_permissions']);
+        unset($_GET['preview'], $_GET['blox_draft']);
     }
 
     public function testLegacyHomeBlocksBecomeSortableBloxSections(): void
@@ -385,6 +393,35 @@ final class HomeBloxDocumentTest extends TestCase
         $draft['sections'][0]['id'] = 'home-status-changed';
         $GLOBALS['_test_config'][HomeBloxDocument::DATA_KEY] = json_encode($draft, JSON_THROW_ON_ERROR);
         self::assertCount(1, \BloxPublicationStatus::query(['/admin/blox_editor.php?home=1'], '/'));
+    }
+
+    public function testHomeDraftStatusRequiresPermissionAndNeverPreviewsTheWrongPage(): void
+    {
+        $draft = [
+            'schema' => 1,
+            'settings' => [],
+            'version' => 1,
+            'source' => 'blox',
+            'updated_at' => 10,
+            'sections' => [['id' => 'permission-status', 'type' => 'section', 'settings' => [], 'columns' => []]],
+        ];
+        $GLOBALS['_test_config'][HomeBloxDocument::DATA_KEY] = json_encode($draft, JSON_THROW_ON_ERROR);
+        $GLOBALS['_test_config'][HomeBloxDocument::PUBLISHED_KEY] = '';
+        $_SESSION['admin_permissions'] = ['edit_page'];
+
+        self::assertSame([], \BloxPublicationStatus::query(['/admin/blox_editor.php?home=1'], '/'));
+        $_GET['preview'] = 'draft';
+        $_GET['blox_draft'] = 'home';
+        self::assertNull(\BloxPublicationStatus::requestedPreview());
+
+        $_SESSION['admin_permissions'] = ['*'];
+        $items = \BloxPublicationStatus::query(
+            ['/admin/blox_editor.php?home=1'],
+            '/' . str_repeat('a', 2048)
+        );
+        self::assertCount(1, $items);
+        self::assertSame('', $items[0]['preview_url']);
+        self::assertSame('home', \BloxPublicationStatus::requestedPreview()['kind'] ?? '');
     }
 
     public function testSaveAndPublishStoresTheSameValidatedDocumentAtomically(): void
