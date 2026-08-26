@@ -5466,4 +5466,7 @@ voltage|Voltage|220V',
     'blox_return_to_page' => 'Back to page',
     'fe_return_focus' => 'Returned to: :label',
     'fe_return_focus_fallback' => 'Returned to the edited location',
+    'fe_return_result_draft' => 'Draft saved. The public page still shows the published version.',
+    'fe_return_result_published' => 'Published and returned to the edited location.',
+    'fe_return_result_published_page' => 'Published. The page is now up to date.',
 ];

@@ -447,10 +447,30 @@ final class BloxEditorPreviewContractTest extends TestCase
             '$hasFrontendReturn',
             "__('blox_return_to_page')",
             'data-testid="blox-back"',
+            'data-frontend-return=',
             "withReturnTo('/admin/blox_editor.php?id='",
             '$mobileLanguageUrl',
         ] as $token) {
             $this->assertStringContainsString($token, $header);
+        }
+
+        foreach ([
+            'setEditorReturnReceipt(receipt)',
+            'target.searchParams.set("yk_edit_receipt", token)',
+            'self.setEditorReturnReceipt(res.data && res.data.return_receipt);',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor);
+        }
+
+        foreach ([
+            'admin/blox_page_api.php' => ["issueReturnReceipt('draft')", "issueReturnReceipt('published')"],
+            'admin/blox_template_api.php' => ["issueReturnReceipt('draft')", "issueReturnReceipt('published')"],
+            'admin/blox_home_api.php' => ["issueReturnReceipt('draft')", "issueReturnReceipt('published')"],
+        ] as $path => $tokens) {
+            $api = $this->source($path);
+            foreach ($tokens as $token) {
+                $this->assertStringContainsString($token, $api, $path);
+            }
         }
     }
 
