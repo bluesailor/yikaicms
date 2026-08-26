@@ -188,13 +188,38 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       expect(footerSnapshot).toMatchSnapshot('r35-default-corporate-footer.png', visualOptions);
     }
 
-    if (testInfo.project.name === 'desktop-1440') {
-      await page.goto(fixtures.blox_page_url, { waitUntil: 'networkidle' });
-      const liveHeader = page.locator('.yk-blox-header');
-      const liveFooter = page.locator('.yk-blox-footer');
-      await expect(liveHeader).toHaveAttribute('data-yk-edit', /\/admin\/blox_editor\.php\?template=\d+/);
-      await expect(liveFooter).toHaveAttribute('data-yk-edit', /\/admin\/blox_editor\.php\?template=\d+/);
+    await page.goto(fixtures.blox_page_url, { waitUntil: 'networkidle' });
+    const liveHeader = page.locator('.yk-blox-header');
+    const liveFooter = page.locator('.yk-blox-footer');
+    await expect(liveHeader).toHaveAttribute('data-yk-edit', /\/admin\/blox_editor\.php\?template=\d+/);
+    await expect(liveFooter).toHaveAttribute('data-yk-edit', /\/admin\/blox_editor\.php\?template=\d+/);
 
+    const regionNavigator = page.getByTestId('admin-edit-regions');
+    const regionSummary = regionNavigator.locator('summary');
+    const regionMenu = page.getByTestId('admin-edit-region-menu');
+    await expect(regionNavigator).toBeVisible();
+    await regionSummary.click();
+    await expect(regionMenu).toBeVisible();
+    const regionHeadings = {
+      'zh-CN': ['当前页面', '页头', '正文', '页脚'],
+      en: ['Current page', 'Header', 'Body', 'Footer'],
+      ja: ['現在のページ', 'ヘッダー', '本文', 'フッター'],
+    }[await page.locator('html').getAttribute('lang')];
+    await expect(regionMenu.locator('.ik-ab-region-heading')).toHaveText(regionHeadings);
+    await expect(regionMenu.locator('a[href*="focus_section="]')).not.toHaveCount(0);
+    await expect(regionMenu.locator('a[href*="focus_element="]')).not.toHaveCount(0);
+    const regionLayout = await regionMenu.evaluate((element) => ({
+      left: element.getBoundingClientRect().left,
+      right: element.getBoundingClientRect().right,
+      viewport: document.documentElement.clientWidth,
+    }));
+    expect(regionLayout.left).toBeGreaterThanOrEqual(0);
+    expect(regionLayout.right).toBeLessThanOrEqual(regionLayout.viewport + 1);
+    await page.keyboard.press('Escape');
+    await expect(regionNavigator).not.toHaveAttribute('open', '');
+    await expect(regionSummary).toBeFocused();
+
+    if (testInfo.project.name === 'desktop-1440') {
       const navigationTarget = liveHeader.locator('[data-yk-element-edit="header-navigation"]').first();
       await expect(navigationTarget).toBeVisible();
       const navigationId = await navigationTarget.getAttribute('data-yk-element-id');

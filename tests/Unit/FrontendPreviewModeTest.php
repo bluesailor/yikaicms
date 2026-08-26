@@ -65,4 +65,26 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertStringContainsString("'/admin/blox_editor.php?home=1'", $home);
         self::assertStringContainsString("\$GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id='", $contact);
     }
+
+    public function testFrontendAdminBarProvidesAccessibleStableRegionNavigation(): void
+    {
+        $adminBar = file_get_contents(ROOT_PATH . '/includes/admin_bar.php');
+        $frontEdit = file_get_contents(ROOT_PATH . '/includes/front_edit.php');
+        self::assertIsString($adminBar);
+        self::assertIsString($frontEdit);
+
+        self::assertStringContainsString('<details id="ik-ab-regions"', $adminBar);
+        self::assertStringContainsString('<summary aria-label="<?php echo e(__(\'ab_edit_regions\')); ?>">', $adminBar);
+        self::assertStringContainsString('data-page-edit-url="<?php echo e($editUrl); ?>"', $adminBar);
+        self::assertStringContainsString('data-testid="admin-edit-region-menu"', $adminBar);
+
+        self::assertStringContainsString('function buildRegionNavigator()', $frontEdit);
+        self::assertStringContainsString("target.searchParams.set('focus_section', sectionId)", $frontEdit);
+        self::assertStringContainsString("elementTarget.searchParams.set('focus_element', elementId)", $frontEdit);
+        self::assertStringContainsString("var groupOrder = ['page', 'header', 'body', 'footer'];", $frontEdit);
+        self::assertStringContainsString("target.origin !== window.location.origin || !target.pathname.startsWith('/admin/')", $frontEdit);
+        self::assertStringContainsString("section.setAttribute('aria-labelledby', heading.id);", $frontEdit);
+        self::assertStringContainsString("if (event.key !== 'Escape' || !regions.open) return;", $frontEdit);
+        self::assertStringContainsString('summary.focus();', $frontEdit);
+    }
 }
