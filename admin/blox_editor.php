@@ -793,6 +793,7 @@ $canManageBloxDesign = hasPermission('*');
             _savedDocumentSnapshot: "",
             _draftRecovery: null,
             _pendingInitialFocus: false,
+            _pendingInitialFooterScroll: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             recoveryOpen: false,
             recoveryDraft: null,
             conflictOpen: false,
@@ -815,6 +816,7 @@ $canManageBloxDesign = hasPermission('*');
             ctxHit: null,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
+            footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
             initialPanel: <?php echo json_encode($initialPanel); ?>,
             initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -4532,7 +4534,7 @@ $canManageBloxDesign = hasPermission('*');
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
                 this.normalizeIds();
-                this.applyInitialNodeFocus();
+                if (this.applyInitialNodeFocus()) this._pendingInitialFooterScroll = false;
                 this.initHistory();
                 this.initDraftRecovery();
                 this.$nextTick(function() {
@@ -4629,7 +4631,10 @@ $canManageBloxDesign = hasPermission('*');
                     onPickContainer: function (si) { self.selectContainer(si, false); },
                     onPickSection: function (target) { self.selectSectionTarget(target, false); },
                     onClear: function () { self.deselectAll(); },
-                    onAreaHit: function (id) { self.ctxHit = id; },
+                    onAreaHit: function (id) {
+                        self.ctxHit = id;
+                        self.scrollInitialFooterIntoView();
+                    },
                     onEditArea: function (payload) { window.location.assign(payload.url); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
@@ -4826,7 +4831,12 @@ $canManageBloxDesign = hasPermission('*');
                     onLoaded: function () {
                         var shouldScroll = self._pendingInitialFocus;
                         self._pendingInitialFocus = false;
-                        self.highlightCanvasSelection(shouldScroll);
+                        if (shouldScroll) {
+                            self.highlightCanvasSelection(true);
+                        } else {
+                            self.scrollInitialFooterIntoView();
+                            self.highlightCanvasSelection(false);
+                        }
                     },
                     onError: function () { self.toast(self.uiText.previewFailed); },
                 });
@@ -4893,6 +4903,29 @@ $canManageBloxDesign = hasPermission('*');
 
             refreshPreview() {
                 return this.previewClient().refresh();
+            },
+
+            scrollInitialFooterIntoView() {
+                if (!this.footerTemplateMode || !this._pendingInitialFooterScroll) return false;
+                var frame = this.$refs.canvas;
+                if (!frame || !frame.contentWindow || !frame.contentDocument) return false;
+                try {
+                    var footer = frame.contentDocument.querySelector('[data-yk-area="footer"]');
+                    if (!footer) return false;
+                    this._pendingInitialFooterScroll = false;
+                    var root = frame.contentDocument.documentElement;
+                    var previousBehavior = root.style.scrollBehavior;
+                    var footerRect = footer.getBoundingClientRect();
+                    root.style.scrollBehavior = "auto";
+                    frame.contentWindow.scrollTo(0, Math.max(
+                        0,
+                        (frame.contentWindow.scrollY || 0) + footerRect.bottom - frame.contentWindow.innerHeight
+                    ));
+                    root.style.scrollBehavior = previousBehavior;
+                    return true;
+                } catch (error) {
+                    return false;
+                }
             },
 
             setHeaderPreviewState(state) {
