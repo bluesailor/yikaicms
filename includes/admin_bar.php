@@ -35,7 +35,11 @@ function renderAdminBar(): void
     if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
 
     $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
-    $editUrl = adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? ''));
+    $returnTo = BloxAreaEditorTarget::normalizeReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));
+    $editUrl = BloxAreaEditorTarget::withReturnTo(
+        adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? '')),
+        $returnTo
+    );
     $brand = config('site_name', '') ?: adminBrandName();
 
     // 「新建」跟随站点实际启用的模块：按 channels 里存在的栏目类型生成

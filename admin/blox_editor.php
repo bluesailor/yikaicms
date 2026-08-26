@@ -72,6 +72,7 @@ $isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
 $editorBackTo = BloxAreaEditorTarget::isAllowedBack((string) ($_GET['back'] ?? ''))
     ? (string) $_GET['back']
     : '';
+$editorReturnTo = BloxAreaEditorTarget::normalizeReturnTo($_GET['return_to'] ?? '');
 $id = getInt('id');
 $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
 $isCurrentThemeHeaderEdit = false;
@@ -213,7 +214,7 @@ if ($isHomeBlox) {
         $primaryEditUrl = pagePrimaryEditUrl($page);
         if ((int) ($primaryEditTarget['id'] ?? 0) !== (int) $page['id']
             || !str_starts_with($primaryEditUrl, '/admin/blox_editor.php?')) {
-            header('Location: ' . $primaryEditUrl);
+            header('Location: ' . BloxAreaEditorTarget::withReturnTo($primaryEditUrl, $editorReturnTo));
             exit;
         }
 
