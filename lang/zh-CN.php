@@ -5534,4 +5534,7 @@ voltage|电压|220V',
     'blox_return_to_page' => '返回页面',
     'fe_return_focus' => '已返回：:label',
     'fe_return_focus_fallback' => '已返回到刚编辑的位置',
+    'fe_return_result_draft' => '草稿已保存，前台仍显示已发布版本',
+    'fe_return_result_published' => '已发布，并返回到修改位置',
+    'fe_return_result_published_page' => '已发布，页面已更新',
 ];

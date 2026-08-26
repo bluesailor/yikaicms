@@ -130,6 +130,38 @@ final class BloxAreaDocumentTest extends TestCase
             '/admin/page_edit.php?id=11',
             BloxAreaEditorTarget::withReturnTo('/admin/page_edit.php?id=11', $valid)
         );
+
+        self::assertSame(
+            '/service/process.html?tab=flow&tab=detail#step',
+            BloxAreaEditorTarget::frontendSourceReturnTo(
+                '/service/process.html?tab=flow&yk_focus_section=sec_1&tab=detail&yk_edit_receipt=old#step'
+            )
+        );
+    }
+
+    public function testReturnReceiptsAreServerIssuedAndConsumedOnce(): void
+    {
+        $originalSession = $_SESSION ?? null;
+        try {
+            $_SESSION = [];
+            self::assertSame('', BloxAreaEditorTarget::issueReturnReceipt('unknown'));
+            self::assertSame('', BloxAreaEditorTarget::consumeReturnReceipt(str_repeat('0', 48)));
+
+            $draft = BloxAreaEditorTarget::issueReturnReceipt('draft');
+            self::assertMatchesRegularExpression('/^[a-f0-9]{48}$/', $draft);
+            self::assertSame('draft', BloxAreaEditorTarget::consumeReturnReceipt($draft));
+            self::assertSame('', BloxAreaEditorTarget::consumeReturnReceipt($draft));
+
+            $published = BloxAreaEditorTarget::issueReturnReceipt('published');
+            self::assertSame('published', BloxAreaEditorTarget::consumeReturnReceipt($published));
+            self::assertSame('', BloxAreaEditorTarget::consumeReturnReceipt([]));
+        } finally {
+            if ($originalSession === null) {
+                unset($_SESSION);
+            } else {
+                $_SESSION = $originalSession;
+            }
+        }
     }
 
     public function testBundledAreaPackagesPassTheSameImporterAsUploadedTemplates(): void

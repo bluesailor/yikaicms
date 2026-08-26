@@ -100,6 +100,7 @@ try {
         success([
             'id' => $id,
             'base_revision' => $templateFingerprint($type, $processed['json']),
+            'return_receipt' => BloxAreaEditorTarget::issueReturnReceipt('draft'),
         ]);
     }
     if ($action === 'save_section' && $method === 'POST') {
@@ -247,6 +248,7 @@ try {
         $response = [
             'id' => $id,
             'base_revision' => $templateFingerprint($type, $publishedDocument),
+            'return_receipt' => BloxAreaEditorTarget::issueReturnReceipt('published'),
         ];
         if ($replaceTheme) {
             $response['activated_area'] = $type;

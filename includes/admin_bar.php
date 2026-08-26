@@ -35,7 +35,7 @@ function renderAdminBar(): void
     if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
 
     $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
-    $returnTo = BloxAreaEditorTarget::normalizeReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));
+  $returnTo = BloxAreaEditorTarget::frontendSourceReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));
     $editUrl = BloxAreaEditorTarget::withReturnTo(
         adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? '')),
         $returnTo

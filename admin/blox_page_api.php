@@ -48,12 +48,14 @@ try {
     if ($action === 'save_draft') {
         $result = $documentClass::saveDraft($pageId, $blocksJson, $baseRevision, $adminId);
         adminLog($isContentList ? 'channel' : 'page', 'save_draft', 'save Blox document draft #' . $pageId);
+        $result['return_receipt'] = BloxAreaEditorTarget::issueReturnReceipt('draft');
         success($result);
     }
 
     if ($action === 'publish') {
         $result = $documentClass::saveAndPublish($pageId, $blocksJson, $baseRevision, $adminId);
         adminLog($isContentList ? 'channel' : 'page', 'publish', 'save and publish Blox document #' . $pageId);
+        $result['return_receipt'] = BloxAreaEditorTarget::issueReturnReceipt('published');
         success($result);
     }
 
