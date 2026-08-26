@@ -6,18 +6,22 @@ declare(strict_types=1);
     <header class="blox-editor-header h-14 bg-gray-900 text-white flex items-center justify-between px-4 gap-4 select-none">
         <div class="blox-header-brand flex items-center gap-3 min-w-0">
             <?php
-            // 返回目标：带 back=home（从首页编辑器画布跳来）时回首页编辑器，
-            // 否则按编辑对象回各自管理页
-            $bloxBackUrl = ($editorBackTo ?? '') === 'home'
-                ? '/admin/blox_editor.php?home=1'
-                : ($templateId ? '/admin/blox_templates.php' : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php'));
-            $bloxBackTitle = ($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back');
+            // 前台来源优先；没有来源时保留 back=home 与对象管理页的既有返回路径。
+            $hasFrontendReturn = ($editorReturnTo ?? '') !== '';
+            $bloxBackUrl = $hasFrontendReturn
+                ? $editorReturnTo
+                : (($editorBackTo ?? '') === 'home'
+                    ? '/admin/blox_editor.php?home=1'
+                    : ($templateId ? '/admin/blox_templates.php' : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')));
+            $bloxBackTitle = $hasFrontendReturn
+                ? __('blox_return_to_page')
+                : (($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back'));
             ?>
             <a href="<?php echo e($bloxBackUrl); ?>" data-testid="blox-back"
                class="text-gray-300 hover:text-white inline-flex items-center gap-1 text-sm shrink-0" title="<?= e($bloxBackTitle) ?>">
                 <i class="ti ti-chevron-left text-lg"></i>
-                <?php if (($editorBackTo ?? '') === 'home'): ?>
-                <span class="text-xs whitespace-nowrap"><?php echo e(__('blox_back_to_home_editor')); ?></span>
+                <?php if ($hasFrontendReturn || ($editorBackTo ?? '') === 'home'): ?>
+                <span class="text-xs whitespace-nowrap"><?php echo e($bloxBackTitle); ?></span>
                 <?php endif; ?>
             </a>
             <span class="blox-header-brand-copy inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
@@ -37,7 +41,7 @@ declare(strict_types=1);
                  class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
                 <?php foreach ($pageLanguageVersions as $languageVersion): ?>
                     <?php if ($languageVersion['id'] > 0): ?>
-                    <a href="/admin/blox_editor.php?id=<?= (int) $languageVersion['id'] ?>"
+                    <a href="<?= e(BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $languageVersion['id'], (string) ($editorReturnTo ?? ''))) ?>"
                        data-testid="blox-language-<?= e($languageVersion['code']) ?>"
                        title="<?= e($languageVersion['label'] . ($languageVersion['has_blox'] ? '' : ' · ' . __('blox_language_no_blox'))) ?>"
                        <?php if ($languageVersion['current']): ?>aria-current="page"<?php endif; ?>
@@ -422,7 +426,10 @@ declare(strict_types=1);
                     <i class="ti ti-rocket"></i><?php echo e(__('blox_page_publish')); ?>
                 </button>
                 <?php foreach ($pageLanguageVersions as $languageVersion): ?>
-                <a href="<?= $languageVersion['id'] > 0 ? '/admin/blox_editor.php?id=' . (int) $languageVersion['id'] : '/admin/page_edit.php?id=' . (int) $page['id'] ?>"
+                <?php $mobileLanguageUrl = $languageVersion['id'] > 0
+                    ? BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $languageVersion['id'], (string) ($editorReturnTo ?? ''))
+                    : '/admin/page_edit.php?id=' . (int) $page['id']; ?>
+                <a href="<?= e($mobileLanguageUrl) ?>"
                    data-testid="blox-mobile-language-<?= e($languageVersion['code']) ?>">
                     <i class="ti ti-language"></i><?= e($languageVersion['label']) ?><?= $languageVersion['current'] ? ' · ' . e(__('lse_current')) : '' ?>
                 </a>

@@ -432,6 +432,28 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringNotContainsString("getInt('focus')", $editor);
     }
 
+    public function testFrontendReturnTargetSurvivesEditorNavigationWithoutOpeningRedirects(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $header = $this->source('admin/blox_editor/partials/header.php');
+
+        foreach ([
+            "normalizeReturnTo(\$_GET['return_to'] ?? '')",
+            'withReturnTo($primaryEditUrl, $editorReturnTo)',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor);
+        }
+        foreach ([
+            '$hasFrontendReturn',
+            "__('blox_return_to_page')",
+            'data-testid="blox-back"',
+            "withReturnTo('/admin/blox_editor.php?id='",
+            '$mobileLanguageUrl',
+        ] as $token) {
+            $this->assertStringContainsString($token, $header);
+        }
+    }
+
     public function testStableElementLocatorUsesOpaqueIdsAcrossUrlDomAndCanvasMessages(): void
     {
         $editor = $this->source('admin/blox_editor.php');

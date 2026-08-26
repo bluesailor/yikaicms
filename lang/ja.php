@@ -5604,4 +5604,5 @@ voltage|電圧|220V',
     'blox_section_name_auto' => '自動名：',
     'blox_section_name_hint' => 'エディターの構造ツリーと公開サイトの管理バーで使用し、ページ本文には表示しません。空欄の場合は自動生成されます。',
     'blox_section_name_reset' => '自動名に戻す',
+    'blox_return_to_page' => 'ページに戻る',
 ];
