@@ -193,6 +193,54 @@ final class BloxTemplateModelTest extends TestCase
         }
     }
 
+    public function testAreaDraftStatusProvidesPrivatePreviewUntilPublish(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
+        $originalSession = $_SESSION ?? null;
+        $originalGet = $_GET;
+        try {
+            $_SESSION = ['admin_id' => 7];
+            $_GET = [];
+            $publishedJson = '[{"id":"published","type":"section","settings":[],"columns":[]}]';
+            $draftJson = '[{"id":"draft","type":"section","settings":[],"columns":[]}]';
+            $id = bloxTemplateModel()->createDraft('header', 'Status header', $publishedJson);
+            bloxTemplateModel()->publishDraft($id);
+            $editorUrl = '/admin/blox_editor.php?template=' . $id . '&open=header-settings';
+
+            self::assertSame([], \BloxPublicationStatus::query([$editorUrl], '/service/process.html?probe=1'));
+
+            bloxTemplateModel()->updateDraft($id, $draftJson, [], $publishedJson);
+            $items = \BloxPublicationStatus::query(
+                [$editorUrl, $editorUrl],
+                '/service/process.html?probe=1&yk_edit_receipt=' . str_repeat('a', 48)
+            );
+            self::assertCount(1, $items);
+            self::assertSame('header', $items[0]['kind']);
+            self::assertSame($editorUrl, $items[0]['editor_url']);
+            self::assertSame(
+                '/service/process.html?probe=1&preview=draft&blox_draft=template%3A' . $id,
+                $items[0]['preview_url']
+            );
+
+            $_GET = ['preview' => 'draft', 'blox_draft' => 'template:' . $id];
+            self::assertSame('template:' . $id, \BloxPublicationStatus::activePreview()['key']);
+            self::assertSame($draftJson, \BloxPublicationStatus::areaDraftPreview('header')['draft_data']);
+            self::assertNull(\BloxPublicationStatus::areaDraftPreview('footer'));
+
+            bloxTemplateModel()->publishDraft($id);
+            self::assertSame([], \BloxPublicationStatus::query([$editorUrl], '/service/process.html'));
+            self::assertNull(\BloxPublicationStatus::activePreview());
+        } finally {
+            $_GET = $originalGet;
+            if ($originalSession === null) {
+                unset($_SESSION);
+            } else {
+                $_SESSION = $originalSession;
+            }
+        }
+    }
+
     public function testAreaPublishConflictMessageUsesPublishedCandidates(): void
     {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';

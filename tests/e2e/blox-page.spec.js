@@ -91,6 +91,41 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.getByTestId('frontend-return-focus-status')).toHaveClass(/is-draft/);
   expect(page.url()).not.toContain('yk_edit_receipt');
 
+  const unpublished = page.getByTestId('admin-unpublished-changes');
+  const pageDraftItem = unpublished.locator('[data-draft-kind="page"]');
+  await expect(unpublished).toBeVisible();
+  await unpublished.locator('summary').click();
+  await expect(pageDraftItem).toBeVisible();
+  await expect(pageDraftItem.getByText('继续编辑')).toHaveAttribute('href', editorHref);
+  const draftPreviewHref = await pageDraftItem.getByText('预览草稿').getAttribute('href');
+  expect(draftPreviewHref).toBeTruthy();
+  const draftPreviewUrl = new URL(draftPreviewHref, 'http://yikaicms.local');
+  expect(draftPreviewUrl.searchParams.get('preview')).toBe('draft');
+  expect(draftPreviewUrl.searchParams.get('blox_draft')).toBe(`page:${fixtures.blox_page}`);
+
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+    const adminBarBox = await page.locator('#ik-adminbar').boundingBox();
+    const draftMenuBox = await unpublished.locator('.ik-ab-draft-menu').boundingBox();
+    expect(adminBarBox).not.toBeNull();
+    expect(draftMenuBox).not.toBeNull();
+    expect(adminBarBox.x + adminBarBox.width).toBeLessThanOrEqual(width + 1);
+    expect(draftMenuBox.x).toBeGreaterThanOrEqual(0);
+    expect(draftMenuBox.x + draftMenuBox.width).toBeLessThanOrEqual(width + 1);
+  }
+
+  await page.goto(draftPreviewHref, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-draft-preview-bar')).toBeVisible();
+  await expect(page.getByTestId('blox-draft-preview-bar')).toContainText('正在预览草稿');
+  await expect(page.locator('#ik-adminbar')).toHaveCount(0);
+  expect(await page.content()).toContain(marker);
+  await page.getByText('退出预览').click();
+  await page.waitForLoadState('domcontentloaded');
+  expect(page.url()).not.toContain('preview=draft');
+  expect(page.url()).not.toContain('blox_draft');
+  expect(await page.content()).not.toContain(marker);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
   const publishTarget = page.locator('[data-yk-sec-id]').first();
   const publishSectionId = await publishTarget.getAttribute('data-yk-sec-id');
   expect(publishSectionId).toBeTruthy();
@@ -137,6 +172,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.getByTestId('frontend-return-focus-status')).toHaveText('已发布，并返回到修改位置');
   await expect(page.getByTestId('frontend-return-focus-status')).toHaveClass(/is-published/);
   await expect(page.locator(`[data-yk-sec-id="${publishSectionId}"]`).first()).toHaveClass(/yk-return-focus/);
+  await expect(page.locator('[data-draft-kind="page"]')).toHaveCount(0);
   expect(page.url()).not.toContain('yk_edit_receipt');
   expect(await page.content()).toContain(marker);
 

@@ -155,6 +155,15 @@ if ($productPageChannel && (int) ($productPageChannel['parent_id'] ?? 0) === 0) 
     $hasPublishedProductBlox = is_array($productBloxContent)
         && (string) ($productBloxContent['content_type'] ?? '') === 'blocks'
         && trim((string) ($productBloxContent['blocks_data'] ?? '')) !== '';
+    $productDraftPreview = BloxPublicationStatus::pageDraftPreview((int) $productPageChannel['id']);
+    if ($productDraftPreview !== null) {
+        $productBloxContent = [
+            'content_type' => 'blocks',
+            'blocks_data' => $productDraftPreview,
+            'content' => '',
+        ];
+        $hasPublishedProductBlox = true;
+    }
 }
 $contentListPageChannel = (string) ($channel['type'] ?? '') === 'list' ? $channel : null;
 while ($contentListPageChannel && (int) ($contentListPageChannel['parent_id'] ?? 0) > 0) {
@@ -167,6 +176,12 @@ while ($contentListPageChannel && (int) ($contentListPageChannel['parent_id'] ??
 $contentListBloxJson = $contentListPageChannel
     ? ChannelBloxDocument::publishedJson((int) $contentListPageChannel['id'])
     : null;
+$contentListDraftPreview = $contentListPageChannel
+    ? BloxPublicationStatus::pageDraftPreview((int) $contentListPageChannel['id'])
+    : null;
+if ($contentListDraftPreview !== null) {
+    $contentListBloxJson = $contentListDraftPreview;
+}
 $hasPublishedContentListBlox = is_string($contentListBloxJson) && $contentListBloxJson !== '';
 
 // 顶部管理条：有 Blox 页面时编辑整页，其余列表页进入对应数据管理。

@@ -171,8 +171,11 @@ $blockTemplates = [
 // 首页文档必须在 Header 输出前解析：全屏 Banner 可据此让页头叠放在首屏底图上。
 $homeLayoutActive = HomeLayoutDocument::isActive() && HomeLayoutDocument::hasPublished();
 $homeBloxActive = !$homeLayoutActive && HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished();
-$homeBloxDocument = null;
-if ($homeLayoutActive) {
+$homeBloxDocument = BloxPublicationStatus::homeDraftPreview();
+if (is_array($homeBloxDocument)) {
+    $homeLayoutActive = false;
+    $homeBloxActive = true;
+} elseif ($homeLayoutActive) {
     $homeBloxDocument = HomeLayoutDocument::loadPublished();
 } elseif ($homeBloxActive) {
     $homeBloxDocument = HomeBloxDocument::loadPublished();

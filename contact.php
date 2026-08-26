@@ -38,10 +38,13 @@ $iconPaths = contactIconPaths();
 // 尚未排版的老站继续走下方固定版式。
 $contactBlocksHtml = '';
 if ($currentChannelId > 0) {
-    $__cRow = contentModel()->queryOne(
-        'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 AND deleted_at IS NULL ORDER BY is_top DESC, id DESC LIMIT 1',
-        [$currentChannelId]
-    );
+    $contactDraftPreview = BloxPublicationStatus::pageDraftPreview($currentChannelId);
+    $__cRow = $contactDraftPreview !== null
+        ? ['content_type' => 'blocks', 'blocks_data' => $contactDraftPreview, 'content' => '']
+        : contentModel()->queryOne(
+            'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 AND deleted_at IS NULL ORDER BY is_top DESC, id DESC LIMIT 1',
+            [$currentChannelId]
+        );
     if ($__cRow && ($__cRow['content_type'] ?? '') === 'blocks' && !empty($__cRow['blocks_data'])) {
         if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
             $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $currentChannelId;
