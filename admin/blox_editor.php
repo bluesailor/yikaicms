@@ -1188,6 +1188,9 @@ $canManageBloxDesign = hasPermission('*');
                 'recent' => __('blox_recent_sections'),
                 'addFavorite' => __('blox_add_section_favorite'),
                 'removeFavorite' => __('blox_remove_section_favorite'),
+                'density' => __('blox_template_density'),
+                'densityStandard' => __('blox_template_density_standard'),
+                'densityCompact' => __('blox_template_density_compact'),
                 'saveAsPrompt' => __('blox_tpl_save_as_prompt'),
                 'saveAsNameRequired' => __('blox_tpl_name_required'),
                 'saveAsDone' => __('blox_tpl_save_as_done'),
@@ -1750,10 +1753,12 @@ $canManageBloxDesign = hasPermission('*');
             templateFilter: "all",
             templateCategory: "all",
             templateQuickFilter: "all",
+            templateDensity: "standard",
             favoriteTemplateKeys: [],
             recentTemplateKeys: [],
             favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1",
             recentTemplatesStorageKey: "yikai:blox:template-recent:v1",
+            templateDensityStorageKey: "yikai:blox:template-density:v1",
             legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
@@ -1823,6 +1828,10 @@ $canManageBloxDesign = hasPermission('*');
             templateSectionsDocked() {
                 this.canvasViewportTick;
                 return this.templateEntry === "sections" && window.innerWidth >= 1200 && !this.paletteTapMode;
+            },
+
+            templateCompactSections() {
+                return this.templateEntry === "sections" && this.templateDensity === "compact";
             },
 
             templateSectionDraggable(item) {
@@ -6636,12 +6645,19 @@ $canManageBloxDesign = hasPermission('*');
                 };
                 this.favoriteTemplateKeys = read(this.favoriteTemplatesStorageKey, 50);
                 this.recentTemplateKeys = read(this.recentTemplatesStorageKey, 6);
+                try {
+                    var density = window.localStorage.getItem(this.templateDensityStorageKey);
+                    this.templateDensity = density === "compact" ? "compact" : "standard";
+                } catch (error) {
+                    this.templateDensity = "standard";
+                }
             },
 
             persistTemplateLibraryPreferences() {
                 try {
                     window.localStorage.setItem(this.favoriteTemplatesStorageKey, JSON.stringify(this.favoriteTemplateKeys));
                     window.localStorage.setItem(this.recentTemplatesStorageKey, JSON.stringify(this.recentTemplateKeys));
+                    window.localStorage.setItem(this.templateDensityStorageKey, this.templateDensity);
                 } catch (error) {
                     // 禁用存储时仍保留本次编辑会话内的快捷筛选。
                 }
@@ -6653,6 +6669,11 @@ $canManageBloxDesign = hasPermission('*');
 
             isTemplateRecent(key) {
                 return this.recentTemplateKeys.indexOf(String(key || "")) !== -1;
+            },
+
+            setTemplateDensity(density) {
+                this.templateDensity = density === "compact" ? "compact" : "standard";
+                this.persistTemplateLibraryPreferences();
             },
 
             toggleTemplateFavorite(key) {
