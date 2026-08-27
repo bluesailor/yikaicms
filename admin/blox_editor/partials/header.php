@@ -332,9 +332,9 @@ declare(strict_types=1);
                 </button>
 <?php if ($templateId && ($templateType ?? '') === 'header'): ?>
                 <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
-                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
+                        class="h-8 rounded inline-flex items-center justify-center gap-1.5 px-2.5 text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
                         title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
-                    <i class="ti ti-layout-navbar text-lg"></i>
+                    <i class="ti ti-layout-navbar text-lg"></i><span class="text-xs whitespace-nowrap"><?php echo e(__('blox_header_presets')); ?></span>
                 </button>
 <?php else: ?>
                 <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
