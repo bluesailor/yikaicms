@@ -1209,6 +1209,37 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 });
 
+test('prebuilt compact density shortens the library and persists locally @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template density baseline');
+  await page.evaluate(() => localStorage.removeItem('yikai:blox:template-density:v1'));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  const standardButton = page.getByTestId('blox-template-density-standard');
+  const compactButton = page.getByTestId('blox-template-density-compact');
+  const libraryScroller = page.locator('[x-ref="templateDialog"] .blox-scroll');
+  const firstCard = page.getByTestId('blox-template-item').first();
+  await expect(standardButton).toHaveAttribute('aria-pressed', 'true');
+  await expect(firstCard).toBeVisible();
+  const standardHeight = await firstCard.evaluate((element) => element.getBoundingClientRect().height);
+  const standardScrollHeight = await libraryScroller.evaluate((element) => element.scrollHeight);
+  expect(standardHeight).toBeGreaterThanOrEqual(250);
+
+  await compactButton.click();
+  await expect(compactButton).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:template-density:v1'))).toBe('compact');
+  const compactHeight = await firstCard.evaluate((element) => element.getBoundingClientRect().height);
+  const compactScrollHeight = await libraryScroller.evaluate((element) => element.scrollHeight);
+  expect(compactHeight).toBeGreaterThanOrEqual(94);
+  expect(compactHeight).toBeLessThanOrEqual(98);
+  expect(compactScrollHeight).toBeLessThan(standardScrollHeight);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+  await expect(page.getByTestId('blox-template-density-compact')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-template-item').first()).toHaveCSS('height', '96px');
+});
+
 test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const beforeSections = await countSections(page);

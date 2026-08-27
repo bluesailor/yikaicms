@@ -1361,6 +1361,32 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
+    public function testPrebuiltLibraryDensityIsPersistentAndCompactLayoutIsBounded(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'templateDensity: "standard"',
+            'templateDensityStorageKey: "yikai:blox:template-density:v1"',
+            'templateCompactSections()',
+            'setTemplateDensity(density)',
+            'density === "compact" ? "compact" : "standard"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt density token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-template-density-standard"',
+            'data-testid="blox-template-density-compact"',
+            '@click="setTemplateDensity(\'compact\')"',
+            "templateCompactSections() ? 'h-24 min-h-0 flex-row'",
+            "templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto'",
+            'item.description && !templateCompactSections()',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt density UI token {$token} missing");
+        }
+    }
+
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
     {
         $editor = $this->source('admin/blox_editor.php');

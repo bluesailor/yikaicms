@@ -354,6 +354,24 @@ declare(strict_types=1);
                         <i class="ti ti-history text-xs"></i><span x-text="templateQuickCount('recent')"></span>
                     </button>
                 </div>
+                <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.density"
+                     data-testid="blox-template-density"
+                     class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">
+                    <button type="button" @click="setTemplateDensity('standard')"
+                            data-testid="blox-template-density-standard" :aria-pressed="templateDensity === 'standard'"
+                            :title="templateText.densityStandard" :aria-label="templateText.densityStandard"
+                            class="w-7 rounded inline-flex items-center justify-center transition"
+                            :class="templateDensity === 'standard' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'">
+                        <i class="ti ti-layout-grid text-sm"></i>
+                    </button>
+                    <button type="button" @click="setTemplateDensity('compact')"
+                            data-testid="blox-template-density-compact" :aria-pressed="templateDensity === 'compact'"
+                            :title="templateText.densityCompact" :aria-label="templateText.densityCompact"
+                            class="w-7 rounded inline-flex items-center justify-center transition"
+                            :class="templateDensity === 'compact' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'">
+                        <i class="ti ti-list text-sm"></i>
+                    </button>
+                </div>
                 <button type="button" @click="loadTemplates(true)" :disabled="templateLoading"
                         class="w-8 h-8 inline-flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-40"
                         :title="templateText.reload" :aria-label="templateText.reload">
@@ -382,19 +400,19 @@ declare(strict_types=1);
                     <span x-text="templateScope === 'remote' ? templateText.emptyRemote : templateText.emptyLocal"></span>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length > 0"
-                     class="grid gap-3"
-                     :class="templateEntry === 'sections' ? (templateSectionsDocked() ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2') : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'">
+                     class="grid"
+                     :class="templateEntry === 'sections' ? [(templateSectionsDocked() ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'), (templateCompactSections() ? 'gap-2' : 'gap-3')] : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'">
                     <template x-for="item in filteredTemplates()" :key="item.key">
                         <article data-testid="blox-template-item" :data-template-key="item.key"
                                  :draggable="templateSectionDraggable(item)"
                                  @dragstart="startTemplateDrag(item, $event)" @dragend="finishPaletteDrag()"
                                  :title="templateSectionDraggable(item) ? templateText.dragHint.replace(':name', item.name) : (item.description || item.name)"
-                                 class="overflow-hidden border border-gray-200 rounded-lg text-left flex flex-col transition hover:border-blue-300 hover:shadow-sm"
-                                 :class="[(templateEntry === 'sections' ? 'min-h-64' : 'min-h-52'), (templateSectionDraggable(item) ? 'cursor-grab active:cursor-grabbing' : '')]">
-                            <span class="relative block overflow-hidden border-b border-gray-100 bg-gray-100"
-                                  :class="templateEntry === 'sections' ? 'aspect-[16/8]' : 'aspect-[16/7]'">
+                                 class="overflow-hidden border border-gray-200 rounded-lg text-left flex transition hover:border-blue-300 hover:shadow-sm"
+                                 :class="[(templateCompactSections() ? 'h-24 min-h-0 flex-row' : ((templateEntry === 'sections' ? 'min-h-64' : 'min-h-52') + ' flex-col')), (templateSectionDraggable(item) ? 'cursor-grab active:cursor-grabbing' : '')]">
+                            <span class="relative block overflow-hidden bg-gray-100"
+                                :class="templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto' : ((templateEntry === 'sections' ? 'aspect-[16/8]' : 'aspect-[16/7]') + ' border-b border-gray-100')">
                                 <img x-show="item.thumbnail" :src="item.thumbnail" alt="" loading="lazy"
-                                     class="h-full w-full object-cover">
+                                     class="h-full w-full" :class="templateCompactSections() ? 'object-contain' : 'object-cover'">
                                 <span x-show="!item.thumbnail" class="absolute inset-0 flex items-center justify-center text-gray-400">
                                     <i class="ti text-3xl" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
                                 </span>
@@ -404,13 +422,13 @@ declare(strict_types=1);
                                         :aria-pressed="isTemplateFavorite(item.key)"
                                         :title="(isTemplateFavorite(item.key) ? templateText.removeFavorite : templateText.addFavorite).replace(':label', item.name)"
                                         :aria-label="(isTemplateFavorite(item.key) ? templateText.removeFavorite : templateText.addFavorite).replace(':label', item.name)"
-                                        class="absolute right-2 top-2 w-8 h-8 inline-flex items-center justify-center rounded shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
-                                        :class="isTemplateFavorite(item.key) ? 'bg-amber-50 text-amber-600' : 'bg-white/95 text-gray-500 hover:text-amber-500'">
+                                        class="absolute inline-flex items-center justify-center rounded shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                        :class="[(isTemplateFavorite(item.key) ? 'bg-amber-50 text-amber-600' : 'bg-white/95 text-gray-500 hover:text-amber-500'), (templateCompactSections() ? 'right-1.5 top-1.5 w-7 h-7' : 'right-2 top-2 w-8 h-8')]">
                                     <i class="ti ti-star text-base"></i>
                                 </button>
                             </span>
-                            <span class="flex flex-1 flex-col p-3">
-                            <span class="flex items-start justify-between gap-3">
+                            <span class="flex flex-1 min-w-0 flex-col" :class="templateCompactSections() ? 'p-2.5' : 'p-3'">
+                            <span class="flex items-start justify-between gap-3" :class="templateCompactSections() ? 'hidden' : ''">
                                 <span class="w-9 h-9 rounded bg-gray-100 text-gray-500 inline-flex items-center justify-center shrink-0">
                                     <i class="ti text-lg" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
                                 </span>
@@ -421,8 +439,8 @@ declare(strict_types=1);
                                           x-text="templateTypeLabel(item.type)"></span>
                                 </span>
                             </span>
-                            <span class="block mt-3 text-sm font-medium text-gray-800 truncate" x-text="item.name"></span>
-                            <span x-show="item.description" class="block mt-1 text-xs text-gray-500 overflow-hidden"
+                            <span class="block text-sm font-medium text-gray-800 truncate" :class="templateCompactSections() ? 'mt-0' : 'mt-3'" x-text="item.name"></span>
+                            <span x-show="item.description && !templateCompactSections()" class="block mt-1 text-xs text-gray-500 overflow-hidden"
                                   style="min-height:2.5rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"
                                   x-text="item.description"></span>
                             <span class="mt-1 text-[11px] text-gray-400 inline-flex items-center gap-1">
@@ -432,7 +450,7 @@ declare(strict_types=1);
                             <span x-show="item.locked" class="block mt-1 text-[11px] text-amber-700">
                                 <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
                             </span>
-                            <span class="mt-auto pt-3 flex items-center gap-2">
+                            <span class="mt-auto flex items-center gap-2" :class="templateCompactSections() ? 'pt-1.5' : 'pt-3'">
                                 <button type="button" x-show="item.type === 'page' && pageMode" @click="replaceWithTemplate(item)"
                                         :disabled="templateInserting !== '' || !!item.locked"
                                         data-testid="blox-template-replace"
