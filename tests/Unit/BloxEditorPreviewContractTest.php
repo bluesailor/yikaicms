@@ -97,6 +97,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         // 编辑器：切换重建预览客户端（先 cancel 防旧上下文响应覆盖），黄条按命中 id 显隐
         $this->assertStringContainsString('data-testid="blox-ctx-select"', $editor);
+        $this->assertStringContainsString('$areaCtxOptionGroups[$ctxLang][]', $editor);
+        $this->assertStringContainsString('<optgroup label="<?php echo e($ctxGroup[\'label\']); ?>">', $editor);
         $this->assertStringContainsString('this._previewClient.cancel();', $editor);
         $this->assertStringContainsString('onAreaHit: function (id)', $editor);
         $this->assertStringContainsString('self.ctxHit = id;', $editor);
@@ -774,7 +776,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
         $this->assertStringContainsString('if (!title && this.headerTemplateMode)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets-open"', $header);
-        $this->assertStringContainsString('<span class="text-xs whitespace-nowrap"><?php echo e(__(\'blox_header_presets\')); ?></span>', $header);
+        $this->assertStringContainsString('<span class="whitespace-nowrap"><?php echo e(__(\'blox_header_presets\')); ?></span>', $header);
+        $this->assertStringContainsString('@media (max-width: 1199px)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);

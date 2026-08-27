@@ -541,10 +541,10 @@ test('page editor switches between translated Blox documents @local', async ({ p
   expect(fixtures.blox_page).toBeGreaterThan(0);
 
   const consoleEntries = observeConsole(page);
-  // 编辑器页头在 <1024px 整体切移动布局（blox_editor.php 的 max-width:1023px 媒体查询隐藏
+  // 编辑器页头在 <1200px 切紧凑操作菜单（blox_editor.php 的 max-width:1199px 媒体查询隐藏
   // 语言切换与桌面动作条），断点要按视口宽度取——tablet-768 同样落在移动布局里，
   // 只认项目名 mobile-390 会让它去断言一个被 CSS 隐藏的元素可见。
-  const isMobile = (testInfo.project.use?.viewport?.width ?? 1440) < 1024;
+  const isMobile = (testInfo.project.use?.viewport?.width ?? 1440) < 1200;
   const chooseLanguage = async (language) => {
     if (isMobile) {
       await page.getByTestId('blox-mobile-actions-open').click();

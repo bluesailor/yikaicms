@@ -1754,6 +1754,11 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
 
   // 网页头模式给专属样式库，不再把普通正文区块入口伪装成网页头模板。
   await expect(page.getByTestId('blox-prebuilt-open')).toHaveCount(0);
+  await expect(page.getByTestId('blox-header-presets-open')).toContainText('网页头样式');
+  await expect(page.getByText('预览页面', { exact: true })).toBeVisible();
+  const contextLanguages = await page.getByTestId('blox-ctx-select').locator('optgroup')
+    .evaluateAll((groups) => groups.map((group) => group.label));
+  expect(contextLanguages).toEqual(expect.arrayContaining(['中文', 'English', '日本語']));
   await page.getByTestId('blox-header-presets-open').click();
   const headerPresets = page.getByTestId('blox-header-presets');
   await expect(headerPresets).toBeVisible();

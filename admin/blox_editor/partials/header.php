@@ -126,6 +126,11 @@ declare(strict_types=1);
             </button>
 <?php elseif ($templateId): ?>
 <?php if ($templateId && $templateType === 'header'): ?>
+            <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
+                    class="h-8 rounded bg-blue-500/20 px-2.5 text-xs font-medium text-blue-200 hover:bg-blue-500/30 hover:text-white inline-flex items-center justify-center gap-1.5 transition"
+                    title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
+                <i class="ti ti-layout-navbar text-base"></i><span class="whitespace-nowrap"><?php echo e(__('blox_header_presets')); ?></span>
+            </button>
             <?php // 默认收起：进入页头编辑不应自动弹出设置层盖住画布，由用户点「网页头设置」展开。 ?>
             <details class="relative" data-testid="blox-sticky-settings">
                 <summary class="list-none rounded bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 hover:text-white text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer font-medium">
@@ -303,13 +308,23 @@ declare(strict_types=1);
             </details>
 <?php endif; ?>
 <?php if ($areaCtxOptions !== []): ?>
-            <select x-model="previewContext" @change="ctxChanged()" data-testid="blox-ctx-select"
-                    title="<?php echo e(__('blox_ctx_label')); ?>" aria-label="<?php echo e(__('blox_ctx_label')); ?>"
-                    class="bg-gray-800 border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 max-w-[11rem]">
-                <?php foreach ($areaCtxOptions as $ctxOpt): ?>
-                <option value="<?php echo e($ctxOpt['value']); ?>"><?php echo e($ctxOpt['label']); ?></option>
-                <?php endforeach; ?>
-            </select>
+            <label class="inline-flex min-w-0 items-center gap-1.5 text-xs text-gray-400">
+                <span class="whitespace-nowrap"><?php echo e(__('blox_ctx_label')); ?></span>
+                <select x-model="previewContext" @change="ctxChanged()" data-testid="blox-ctx-select"
+                        title="<?php echo e(__('blox_ctx_label')); ?>" aria-label="<?php echo e(__('blox_ctx_label')); ?>"
+                        class="bg-gray-800 border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 max-w-[12rem]">
+                    <?php foreach ($areaCtxOptions as $ctxOpt): ?>
+                    <option value="<?php echo e($ctxOpt['value']); ?>"><?php echo e($ctxOpt['label']); ?></option>
+                    <?php endforeach; ?>
+                    <?php foreach ($areaCtxOptionGroups as $ctxGroup): ?>
+                    <optgroup label="<?php echo e($ctxGroup['label']); ?>">
+                        <?php foreach ($ctxGroup['options'] as $ctxOpt): ?>
+                        <option value="<?php echo e($ctxOpt['value']); ?>"><?php echo e($ctxOpt['label']); ?></option>
+                        <?php endforeach; ?>
+                    </optgroup>
+                    <?php endforeach; ?>
+                </select>
+            </label>
             <span x-show="ctxHit !== null && ctxHit !== <?php echo (int) $templateId; ?>" x-cloak
                   data-testid="blox-ctx-warn"
                   class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]">
@@ -330,13 +345,7 @@ declare(strict_types=1);
                         title="<?php echo e(__('blox_open_elements')); ?>" aria-label="<?php echo e(__('blox_open_elements')); ?>">
                     <i class="ti ti-circle-plus text-lg"></i>
                 </button>
-<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
-                <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
-                        class="h-8 rounded inline-flex items-center justify-center gap-1.5 px-2.5 text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
-                        title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
-                    <i class="ti ti-layout-navbar text-lg"></i><span class="text-xs whitespace-nowrap"><?php echo e(__('blox_header_presets')); ?></span>
-                </button>
-<?php else: ?>
+<?php if (!$templateId || ($templateType ?? '') !== 'header'): ?>
                 <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
                         class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
                         title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
