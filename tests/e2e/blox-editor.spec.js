@@ -1583,7 +1583,7 @@ test('local template insertion uses catalog resolve without reload @ci', async (
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
-test('template catalog separates local and remote libraries and traps dialog focus @ci', async ({ page }, testInfo) => {
+test('template catalog separates local and remote libraries without trapping docked focus @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await page.route('**/admin/blox_template_api.php?action=list**', async (route) => {
     await route.fulfill({
@@ -1644,7 +1644,8 @@ test('template catalog separates local and remote libraries and traps dialog foc
   const lastFocusable = dialog.getByRole('link').last();
   await lastFocusable.focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByTestId('blox-template-close')).toBeFocused();
+  await expect(page.getByTestId('blox-template-close')).not.toBeFocused();
+  await lastFocusable.focus();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
