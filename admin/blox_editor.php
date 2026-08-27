@@ -6582,7 +6582,66 @@ $canManageBloxDesign = hasPermission('*');
 
             // ── 拖拽插入（路线图③）：库瓦片拖到结构树/画布 ──
             dragEl: null,          // 正在拖的库条目
+            canvasDragActive: false,
             treeDropIntent: null,  // {key, intent, target, valid, label}，与画布使用同一目标协议
+
+            startPaletteDrag(el, event) {
+                if (!el || !event || !event.dataTransfer) return;
+                this.paletteSelected = el.type;
+                this.dragEl = el;
+                this.canvasDragActive = true;
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("application/x-yikai-blox", JSON.stringify({
+                    version: 1,
+                    source: "palette",
+                    type: el.type,
+                }));
+                event.dataTransfer.setData("text/plain", el.type);
+                this.canvasBridge().post({ ykDragType: el.type });
+            },
+
+            finishPaletteDrag() {
+                this.paletteSelected = "";
+                this.dragEl = null;
+                this.canvasDragActive = false;
+                this.treeDropIntent = null;
+                this.canvasBridge().post({ ykPaletteDrag: { version: 1, phase: "cancel" } });
+                this.canvasBridge().post({ ykDragType: "" });
+            },
+
+            canvasPaletteDragMessage(event, phase) {
+                var frame = this.$refs.canvas;
+                if (!frame || !this.dragEl || !event) return false;
+                var rect = frame.getBoundingClientRect();
+                if (!rect.width || !rect.height) return false;
+                var frameWidth = frame.clientWidth || rect.width;
+                var frameHeight = frame.clientHeight || rect.height;
+                var clientX = (event.clientX - rect.left) * (frameWidth / rect.width);
+                var clientY = (event.clientY - rect.top) * (frameHeight / rect.height);
+                return this.canvasBridge().post({ ykPaletteDrag: {
+                    version: 1,
+                    phase: phase,
+                    type: this.dragEl.type,
+                    clientX: Math.max(0, Math.min(frameWidth, clientX)),
+                    clientY: Math.max(0, Math.min(frameHeight, clientY)),
+                } });
+            },
+
+            canvasPaletteDragOver(event) {
+                if (!this.dragEl) return;
+                if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+                this.canvasPaletteDragMessage(event, "move");
+            },
+
+            canvasPaletteDragLeave(event) {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                this.canvasBridge().post({ ykPaletteDrag: { version: 1, phase: "cancel" } });
+            },
+
+            canvasPaletteDrop(event) {
+                if (!this.dragEl) return;
+                this.canvasPaletteDragMessage(event, "drop");
+            },
 
             /**
              * 结构树拖放与画布同语义：元素上下半区表示前后，容器中部表示放入。

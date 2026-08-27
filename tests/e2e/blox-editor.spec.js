@@ -1827,6 +1827,62 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
+test('native palette drag reaches the canvas @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+
+  const before = await countSections(page);
+  try {
+    await page.getByTestId('blox-add-section-1').click();
+    await page.getByTestId('blox-library-open').click();
+    const source = page.getByTestId('blox-add-element-heading').first();
+    const contentFrame = await frame(page);
+    const target = contentFrame.locator(`[data-yk-col="${before}.0"]`);
+    await target.scrollIntoViewIfNeeded();
+    await expect(target).toBeVisible();
+    const sourceBox = await source.boundingBox();
+    const frameBox = await page.getByTestId('blox-canvas').boundingBox();
+    const bridgeBox = await page.getByTestId('blox-canvas-drop-bridge').boundingBox();
+    const targetRect = await target.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    });
+    const frameViewport = await contentFrame.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+    expect(sourceBox).not.toBeNull();
+    expect(frameBox).not.toBeNull();
+    expect(bridgeBox).not.toBeNull();
+    const targetCenter = {
+      x: frameBox.x + (targetRect.left + targetRect.width / 2) * (frameBox.width / frameViewport.width),
+      y: frameBox.y + (targetRect.top + targetRect.height / 2) * (frameBox.height / frameViewport.height),
+    };
+    expect(
+      targetCenter.x >= bridgeBox.x && targetCenter.x <= bridgeBox.x + bridgeBox.width
+        && targetCenter.y >= bridgeBox.y && targetCenter.y <= bridgeBox.y + bridgeBox.height,
+      JSON.stringify({ targetRect, frameBox, frameViewport, bridgeBox })
+    ).toBe(true);
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 12, sourceBox.y + sourceBox.height / 2 + 4, { steps: 4 });
+    await expect(page.getByTestId('blox-canvas-drop-bridge')).toHaveClass(/pointer-events-auto/);
+    await page.mouse.move(targetCenter.x, targetCenter.y, { steps: 16 });
+    const parentHit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.getAttribute('data-testid') || '', {
+      x: targetCenter.x,
+      y: targetCenter.y,
+    });
+    expect(parentHit).toBe('blox-canvas-drop-bridge');
+    await expect(contentFrame.locator('.yk-drop-line')).toBeVisible();
+    await page.mouse.up();
+    await waitPreviewSettled(page);
+    await expect(page.getByTestId('blox-tree-section').last().getByTestId('blox-tree-element')).toHaveCount(1);
+    await expect((await frame(page)).locator(`[data-yk-el="${before}.0.0"][data-yk-el-type="heading"]`)).toHaveCount(1);
+  } finally {
+    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+  }
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
 test('structure tree drag labels before and inside intentions @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop structure drag baseline');
   const clear = page.getByTestId('blox-clear-selection');
