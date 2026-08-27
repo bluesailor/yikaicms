@@ -1380,11 +1380,29 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-template-density-compact"',
             '@click="setTemplateDensity(\'compact\')"',
             "templateCompactSections() ? 'h-24 min-h-0 flex-row'",
-            "templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto'",
-            'item.description && !templateCompactSections()',
+            "templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto bg-white'",
+            'data-testid="blox-template-section-bar"',
         ] as $token) {
             $this->assertStringContainsString($token, $overlays, "prebuilt density UI token {$token} missing");
         }
+    }
+
+    public function testPrebuiltCardsUseVisualFirstPreviewAndStableActionBar(): void
+    {
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            "templateEntry === 'sections' ? 'object-contain' : 'object-cover'",
+            'data-testid="blox-template-section-bar"',
+            'group-hover:bg-blue-50/50',
+            "templateDragItem && templateDragItem.key === item.key ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm'",
+            'border border-blue-200 bg-white px-3',
+            'data-testid="blox-template-edit"',
+            'h-8 w-8 shrink-0 rounded border border-gray-200 bg-white',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "visual-first prebuilt card token {$token} missing");
+        }
+        $this->assertStringNotContainsString('item.description && !templateCompactSections()', $overlays);
     }
 
     public function testPrebuiltLibraryRestoresSessionFiltersAndScrollPosition(): void
