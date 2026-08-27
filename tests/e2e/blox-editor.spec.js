@@ -208,6 +208,8 @@ test('element library keeps favorites and successful recent inserts discoverable
   await expect(page.getByTestId('blox-quick-element-heading')).toHaveCount(0);
   await page.locator('[x-ref="libSearch"]').fill('');
 
+  await page.getByTestId('blox-tree-section').first().click();
+  await page.getByTestId('blox-elements-open').click();
   await page.getByTestId('blox-add-element-text').press('Enter');
   await page.getByTestId('blox-library-open').click();
   await expect(page.getByTestId('blox-element-group-__recent')).toBeVisible();
