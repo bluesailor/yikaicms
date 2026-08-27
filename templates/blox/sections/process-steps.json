@@ -1,0 +1,26 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Four-step process",
+    "requires": {"elements": ["heading", "text", "process-steps", "process-step"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "四步服务流程",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg"},
+            "columns": [{"elements": [
+                {"type": "heading", "data": {"text": "合作流程", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "center"}},
+                {"type": "text", "data": {"html": "<p class=\"yk-lead text-center\">四个清晰节点，让目标、进度与交付结果始终可确认。</p>"}},
+                {"type": "process-steps", "data": {"auto_number": true, "tablet_columns": "2", "desktop_columns": "4", "gap": "lg", "children": [
+                    {"type": "process-step", "data": {"number": "01", "icon": "message-circle", "title": "需求确认", "text": "明确目标、范围、时间和关键联系人。"}},
+                    {"type": "process-step", "data": {"number": "02", "icon": "clipboard-check", "title": "方案与报价", "text": "确认实施方案、交付清单与费用。"}},
+                    {"type": "process-step", "data": {"number": "03", "icon": "tool", "title": "执行与验收", "text": "按里程碑推进，并依据标准逐项验收。"}},
+                    {"type": "process-step", "data": {"number": "04", "icon": "headset", "title": "交付后支持", "text": "提供文档、培训与持续服务响应。"}}
+                ]}}
+            ]}]
+        }]
+    }
+}
