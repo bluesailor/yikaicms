@@ -1180,6 +1180,7 @@ $canManageBloxDesign = hasPermission('*');
                 'allTemplates' => __('blox_all_templates'),
                 'insertTarget' => __('blox_prebuilt_insert_target'),
                 'insertSection' => __('blox_prebuilt_insert'),
+                'dragHint' => __('blox_prebuilt_drag_hint'),
                 'saveAsPrompt' => __('blox_tpl_save_as_prompt'),
                 'saveAsNameRequired' => __('blox_tpl_name_required'),
                 'saveAsDone' => __('blox_tpl_save_as_done'),
@@ -1776,6 +1777,7 @@ $canManageBloxDesign = hasPermission('*');
             closeTemplates() {
                 if (!this.templateOpen) return;
                 var root = this.$refs.templateDialog;
+                if (this.templateDragItem) this.finishPaletteDrag();
                 this.templateOpen = false;
                 this._insertAt = null;
                 this.releaseDialog(root);
@@ -1802,6 +1804,16 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateCategory = "all";
                 this.templateQuery = "";
                 this.openTemplateDialog();
+            },
+
+            templateSectionsDocked() {
+                this.canvasViewportTick;
+                return this.templateEntry === "sections" && window.innerWidth >= 1200 && !this.paletteTapMode;
+            },
+
+            templateSectionDraggable(item) {
+                return this.templateSectionsDocked() && item && item.type === "section"
+                    && !item.locked && this.templateInserting === "";
             },
 
             openPageTemplates() {
@@ -1926,13 +1938,18 @@ $canManageBloxDesign = hasPermission('*');
                 this.applyTemplate(item, "append");
             },
 
+            insertTemplateAt(item, index) {
+                this.applyTemplate(item, "append", index);
+            },
+
             replaceWithTemplate(item) {
                 this.applyTemplate(item, "replace");
             },
 
-            applyTemplate(item, mode) {
+            applyTemplate(item, mode, insertAt) {
                 if (!item || item.locked || this.templateInserting) return;
                 var replacing = mode === "replace";
+                var requestedIndex = Number.isInteger(insertAt) ? insertAt : null;
                 if (replacing && this.sections.length > 0
                     && !window.confirm(this.templateText.replaceConfirm)) return;
                 if (!replacing && item.type === "page" && this.sections.length > 0
@@ -1956,7 +1973,9 @@ $canManageBloxDesign = hasPermission('*');
                                 sections,
                                 function (prefix) { return self.uid(prefix); }
                             );
-                            var at = replacing ? 0 : self.insertIndex();
+                            var at = replacing ? 0 : (requestedIndex === null
+                                ? self.insertIndex()
+                                : Math.max(0, Math.min(requestedIndex, self.sections.length)));
                             if (replacing) {
                                 self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
                                 self.legacyPageContent = false;
@@ -4714,7 +4733,7 @@ $canManageBloxDesign = hasPermission('*');
                     if (self._historyStore) self._historyStore.dispose();
                 });
                 window.addEventListener("keydown", function (e) {
-                    if (e.key === "Escape" && self.dragEl) { e.preventDefault(); self.finishPaletteDrag(); return; }
+                    if (e.key === "Escape" && self.canvasDragActive) { e.preventDefault(); self.finishPaletteDrag(); return; }
                     if (e.key === "Escape" && self.ctx.open) { e.preventDefault(); self.closeCtx(); return; }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.tinymce && tinymce.activeEditor;
@@ -4778,6 +4797,7 @@ $canManageBloxDesign = hasPermission('*');
                     onColumnRatio: function (payload) { self.applyCanvasColumnRatio(payload); },
                     onContext: function (payload) { self.openCtxFromCanvas(payload); },
                     onDrop: function (payload) { self.handleCanvasDrop(payload); },
+                    onTemplateDrop: function (payload) { self.handleTemplateDrop(payload); },
                     onInlineEdit: function (payload) { self.applyInlineEdit(payload); },
                     onEditSectionField: function (payload) { self.editSectionField(payload.si, payload.field); },
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
@@ -4971,6 +4991,13 @@ $canManageBloxDesign = hasPermission('*');
                     : parseInt(String(target.path || "").split(".")[0], 10);
                 if (!isNaN(targetSi)) this.selectSection(targetSi, false);
                 this.addElement(lib, target);
+            },
+
+            handleTemplateDrop(payload) {
+                var item = this.templateItems.find(function (entry) { return entry.key === payload.key; });
+                this.finishPaletteDrag();
+                if (!item || item.type !== "section" || item.locked) return;
+                this.insertTemplateAt(item, payload.index);
             },
 
             schedulePreview() {
@@ -6591,6 +6618,7 @@ $canManageBloxDesign = hasPermission('*');
 
             // ── 拖拽插入（路线图③）：库瓦片拖到结构树/画布 ──
             dragEl: null,          // 正在拖的库条目
+            templateDragItem: null,
             canvasDragActive: false,
             treeDropIntent: null,  // {key, intent, target, valid, label}，与画布使用同一目标协议
 
@@ -6644,10 +6672,26 @@ $canManageBloxDesign = hasPermission('*');
                 this.canvasBridge().post({ ykDragType: el.type });
             },
 
+            startTemplateDrag(item, event) {
+                if (!this.templateSectionDraggable(item) || !event || !event.dataTransfer) return;
+                this.templateDragItem = item;
+                this.canvasDragActive = true;
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("application/x-yikai-blox-template", JSON.stringify({
+                    version: 1,
+                    source: "template",
+                    key: item.key,
+                }));
+                event.dataTransfer.setData("text/plain", item.name || item.key);
+                this.createPaletteDragGhost({ type: "section", label: item.name, icon: "layout-grid-add" }, event);
+                this.canvasBridge().post({ ykDragType: "__section_template" });
+            },
+
             finishPaletteDrag() {
                 this.clearPaletteDragGhost();
                 this.paletteSelected = "";
                 this.dragEl = null;
+                this.templateDragItem = null;
                 this.canvasDragActive = false;
                 this.treeDropIntent = null;
                 this.canvasBridge().post({ ykPaletteDrag: { version: 1, phase: "cancel" } });
@@ -6656,7 +6700,11 @@ $canManageBloxDesign = hasPermission('*');
 
             canvasPaletteDragMessage(event, phase) {
                 var frame = this.$refs.canvas;
-                if (!frame || !this.dragEl || !event) return false;
+                var paletteType = this.dragEl ? this.dragEl.type : "";
+                var templateKey = this.templateDragItem ? this.templateDragItem.key : "";
+                var source = templateKey ? "template" : "palette";
+                var type = templateKey ? "__section_template" : paletteType;
+                if (!frame || !type || !event) return false;
                 var rect = frame.getBoundingClientRect();
                 if (!rect.width || !rect.height) return false;
                 var frameWindow = frame.contentWindow;
@@ -6667,14 +6715,16 @@ $canManageBloxDesign = hasPermission('*');
                 return this.canvasBridge().post({ ykPaletteDrag: {
                     version: 1,
                     phase: phase,
-                    type: this.dragEl.type,
+                    source: source,
+                    type: type,
+                    templateKey: templateKey,
                     clientX: Math.max(0, Math.min(frameWidth, clientX)),
                     clientY: Math.max(0, Math.min(frameHeight, clientY)),
                 } });
             },
 
             canvasPaletteDragOver(event) {
-                if (!this.dragEl) return;
+                if (!this.canvasDragActive) return;
                 if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
                 this.canvasPaletteDragMessage(event, "move");
             },
@@ -6685,7 +6735,7 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             canvasPaletteDrop(event) {
-                if (!this.dragEl) return;
+                if (!this.canvasDragActive) return;
                 this.canvasPaletteDragMessage(event, "drop");
             },
 

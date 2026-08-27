@@ -1240,6 +1240,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         }
         if (target.kind === 'container') return ykDropText.intoContainer;
         if (target.kind === 'column') return ykDropText.intoColumnEnd;
+        if (target.kind === 'section') return target.position === 'before' ? ykDropText.sectionBefore : ykDropText.sectionAfter;
         return target.position === 'before' ? ykDropText.before : ykDropText.after;
     }
     function showDropLine(target, verdict) {
@@ -1248,6 +1249,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         if (target.kind === 'element') node = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
         else if (target.kind === 'container') node = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
         else if (target.kind === 'column') node = document.querySelector('[data-yk-col="' + cssEscape(String(target.sec) + '.' + String(target.col)) + '"]');
+        else if (target.kind === 'section') node = document.querySelector('[data-yk-sec="' + cssEscape(String(target.sec)) + '"]');
         var box = boxNode(node);
         if (!box) { hideDropLine(); return; }
         var rect = box.getBoundingClientRect();
@@ -1265,7 +1267,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             dropState = target;
             return;
         }
-        var top = target.kind === 'element' && target.position === 'before' ? rect.top : rect.bottom;
+        var top = (target.kind === 'element' || target.kind === 'section') && target.position === 'before' ? rect.top : rect.bottom;
         if (target.kind === 'column' && rect.height <= 56) top = rect.top + 12;
         dropLine.style.left = Math.max(0, Math.round(rect.left)) + 'px';
         dropLine.style.top = Math.max(0, Math.round(top - 1.5)) + 'px';
@@ -1343,27 +1345,55 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             target: target
         } });
     }
+    function renderTemplateDragTarget(payload, dropping) {
+        var node = document.elementFromPoint(payload.clientX, payload.clientY);
+        var section = node && node.closest ? node.closest('[data-yk-sec]') : null;
+        if (!section) { hideDropLine(); return; }
+        var sec = parseInt(section.getAttribute('data-yk-sec'), 10);
+        if (!Number.isInteger(sec) || sec < 0) { hideDropLine(); return; }
+        var rect = section.getBoundingClientRect();
+        var position = payload.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+        var target = { kind: 'section', sec: sec, position: position };
+        if (!dropping) {
+            highlightSection(sec);
+            showDropLine(target, { valid: true });
+            return;
+        }
+        hideDropLine();
+        postToEditor({ ykTemplateDrop: {
+            version: 1,
+            dropId: 'template_drop_' + Date.now() + '_' + (++dropSequence),
+            key: payload.templateKey,
+            index: sec + (position === 'after' ? 1 : 0)
+        } });
+    }
     // 父页面在 iframe 上方接住原生拖放，再把等比换算后的画布坐标传进来。
     // 拖动只解析当前可见区域内的落点，不自动滚动画布或后台页面。
     function handlePaletteDragMessage(payload) {
         if (!payload || payload.version !== 1) return;
         if (payload.phase === 'cancel') { stopPaletteDragPreview(); hideDropLine(); return; }
+        var templateDrag = payload.source === 'template';
         if ((payload.phase !== 'move' && payload.phase !== 'drop')
             || typeof payload.type !== 'string'
             || !/^[a-z_][a-z0-9_-]{0,63}$/i.test(payload.type)
             || !Number.isFinite(payload.clientX)
             || !Number.isFinite(payload.clientY)) return;
+        if (templateDrag && (payload.type !== '__section_template'
+            || typeof payload.templateKey !== 'string'
+            || !/^[a-z0-9][a-z0-9:._\/-]{0,191}$/i.test(payload.templateKey))) return;
         ykDragType = payload.type;
         if (payload.phase === 'move') {
             document.documentElement.classList.add('yk-palette-dragging');
-            renderPaletteDragTarget(payload, false);
+            if (templateDrag) renderTemplateDragTarget(payload, false);
+            else renderPaletteDragTarget(payload, false);
             return;
         }
         stopPaletteDragPreview();
-        renderPaletteDragTarget(payload, true);
+        if (templateDrag) renderTemplateDragTarget(payload, true);
+        else renderPaletteDragTarget(payload, true);
     }
 
-    // Palette tiles use a versioned payload. The target is a column end, a container, or an element before/after position.
+    // Library tiles use a versioned payload. Elements target columns/containers; templates target section boundaries.
     document.addEventListener('dragover', function (e) {
         var s = e.target.closest('[data-yk-sec]');
         if (!s || !dataTransferType(e)) return;
@@ -1638,6 +1668,8 @@ HTML;
             '__YK_DROP_TEXT__' => json_encode([
                 'before' => __('blox_drop_before'),
                 'after' => __('blox_drop_after'),
+                'sectionBefore' => __('blox_drop_section_before'),
+                'sectionAfter' => __('blox_drop_section_after'),
                 'intoContainer' => __('blox_drop_into_container'),
                 'intoColumnEnd' => __('blox_drop_into_column_end'),
                 'restricted' => __('blox_drop_restricted'),

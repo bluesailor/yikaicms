@@ -1139,9 +1139,11 @@ test('built-in section library filters previews and inserts a fresh section @ci'
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
   await expect(builtins).toHaveCount(8);
-  await expect.poll(async () => builtins.locator('img').evaluateAll((images) => images.every((image) => (
+  const firstPreview = builtins.first().locator('img');
+  await expect(firstPreview).toBeVisible();
+  await expect.poll(() => firstPreview.evaluate((image) => (
     image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
-  )))).toBe(true);
+  ))).toBe(true);
 
   const category = page.getByTestId('blox-template-category');
   await expect(category).toBeVisible();
@@ -1160,6 +1162,80 @@ test('built-in section library filters previews and inserts a fresh section @ci'
 
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
+  const beforeSections = await countSections(page);
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  const dialog = page.locator('[x-ref="templateDialog"]');
+  const panel = dialog.locator(':scope > .relative');
+  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  await expect(dialog).toHaveAttribute('aria-modal', 'false');
+  await expect(source).toHaveAttribute('draggable', 'true');
+  const panelBox = await panel.boundingBox();
+  expect(panelBox).not.toBeNull();
+  expect(panelBox.x).toBe(0);
+  expect(panelBox.width).toBeLessThanOrEqual(520);
+
+  const contentFrame = await frame(page);
+  const targetPath = await contentFrame.locator('[data-yk-sec]').evaluateAll((nodes) => {
+    const target = nodes.find((node) => {
+      const rect = node.getBoundingClientRect();
+      const centerY = rect.top + rect.height / 2;
+      return rect.width > 0 && rect.height > 0 && centerY >= 80 && centerY <= window.innerHeight - 80;
+    });
+    return target?.getAttribute('data-yk-sec') || '';
+  });
+  expect(targetPath).not.toBe('');
+  const target = contentFrame.locator(`[data-yk-sec="${targetPath}"]`);
+  const sourceBox = await source.boundingBox();
+  const frameBox = await page.getByTestId('blox-canvas').boundingBox();
+  const frameViewport = await contentFrame.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+  const targetRect = await target.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  });
+  expect(sourceBox).not.toBeNull();
+  expect(frameBox).not.toBeNull();
+  const targetPoint = {
+    x: frameBox.x + (targetRect.left + targetRect.width / 2) * (frameBox.width / frameViewport.width),
+    y: frameBox.y + (targetRect.top + targetRect.height * 0.75) * (frameBox.height / frameViewport.height),
+  };
+  expect(targetPoint.x).toBeGreaterThan(panelBox.x + panelBox.width + 16);
+
+  const pageScrollBefore = await page.evaluate(() => window.scrollY);
+  const hostScrollBefore = await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop);
+  const frameScrollBefore = await contentFrame.evaluate(() => window.scrollY);
+  let mouseDown = false;
+  try {
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + Math.min(96, sourceBox.height / 3));
+    await page.mouse.down();
+    mouseDown = true;
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 12, sourceBox.y + Math.min(96, sourceBox.height / 3) + 4, { steps: 4 });
+    await expect(page.getByTestId('blox-canvas-drop-bridge')).toHaveClass(/pointer-events-auto/);
+    await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 18 });
+    await page.mouse.move(targetPoint.x + 1, targetPoint.y);
+    await expect(contentFrame.locator('.yk-drop-line')).toBeVisible();
+    await expect(contentFrame.locator('.yk-drop-line')).toHaveAttribute('data-yk-drop-intent', 'section');
+    await expect(contentFrame.locator('.yk-drop-label')).toContainText('区块之后');
+    await page.waitForTimeout(150);
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
+    expect(await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop)).toBe(hostScrollBefore);
+    expect(await contentFrame.evaluate(() => window.scrollY)).toBe(frameScrollBefore);
+    await page.mouse.up();
+    mouseDown = false;
+    await waitPreviewSettled(page);
+    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections + 1);
+    await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+  } finally {
+    if (mouseDown) await page.mouse.up().catch(() => {});
+    if (await page.getByTestId('blox-dirty').isVisible()) await undo(page);
+  }
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 

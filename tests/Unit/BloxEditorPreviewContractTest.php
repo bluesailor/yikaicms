@@ -723,7 +723,13 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['handleCanvasDrop(payload)', 'if (!isNaN(targetSi)) this.selectSection(targetSi, false);', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor insert contract {$token} missing");
         }
-        foreach (['startPaletteDrag(el, event)', 'createPaletteDragGhost(el, event)', 'clearPaletteDragGhost()', 'setDragImage(ghost, 18, 18)', 'blox-palette-drag-ghost', 'ghost.setAttribute("aria-hidden", "true")', 'e.key === "Escape" && self.dragEl', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
+        foreach (['startTemplateDrag(item, event)', 'templateSectionsDocked()', 'if (this.templateDragItem) this.finishPaletteDrag();', 'onTemplateDrop: function (payload)', 'handleTemplateDrop(payload)', 'insertTemplateAt(item, payload.index)', 'requestedIndex === null'] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt drag contract {$token} missing");
+        }
+        foreach ([':draggable="templateSectionDraggable(item)"', '@dragstart="startTemplateDrag(item, $event)"', "templateSectionsDocked() ? 'grid-cols-1'", "pointer-events-none"] as $token) {
+            $this->assertStringContainsString($token, $workspace . $this->source('admin/blox_editor/partials/overlays.php'), "prebuilt dock token {$token} missing");
+        }
+        foreach (['startPaletteDrag(el, event)', 'createPaletteDragGhost(el, event)', 'clearPaletteDragGhost()', 'setDragImage(ghost, 18, 18)', 'blox-palette-drag-ghost', 'ghost.setAttribute("aria-hidden", "true")', 'e.key === "Escape" && self.canvasDragActive', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
             $this->assertStringContainsString($token, $editor, "cross-frame drag bridge token {$token} missing");
         }
         foreach (['data-testid="blox-canvas-drop-bridge"', 'canvasPaletteDragOver($event)', 'canvasPaletteDrop($event)', 'pointer-events-none', "canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"] as $token) {
@@ -732,6 +738,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['e.source !== window.parent', 'handlePaletteDragMessage(d.ykPaletteDrag)', 'document.elementFromPoint(payload.clientX, payload.clientY)', "payload.phase !== 'move' && payload.phase !== 'drop'"] as $token) {
             $this->assertStringContainsString($token, $preview, "preview coordinate drop token {$token} missing");
         }
+        foreach (['renderTemplateDragTarget(payload, dropping)', "kind: 'section'", 'ykTemplateDrop', "position === 'after' ? 1 : 0"] as $token) {
+            $this->assertStringContainsString($token, $preview, "prebuilt canvas target token {$token} missing");
+        }
         foreach (["classList.add('yk-palette-dragging')", "classList.remove('yk-palette-dragging')", 'scrollbar-color:transparent transparent'] as $token) {
             $this->assertStringContainsString($token, $preview, "canvas drag preview token {$token} missing");
         }
@@ -739,7 +748,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringNotContainsString($token, $preview, "canvas drag must not auto-scroll: {$token}");
         }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
-        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'isTopLevelElementPath(value.target.path)'] as $token) {
+        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isTopLevelElementPath(value.target.path)'] as $token) {
             $this->assertStringContainsString($token, $bridge, "canvas bridge drop contract {$token} missing");
         }
     }
