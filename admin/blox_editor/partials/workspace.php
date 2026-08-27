@@ -2791,7 +2791,10 @@ declare(strict_types=1);
         </div>
 
         <!-- 中：画布 -->
-        <main id="blox-canvas-workspace" x-ref="canvasHost" data-testid="blox-canvas-host" class="flex-1 min-w-0 bg-gray-200 overflow-auto flex flex-col" @contextmenu.prevent="openCtx($event, 'canvas', {})">
+        <main id="blox-canvas-workspace" x-ref="canvasHost" data-testid="blox-canvas-host"
+              class="flex-1 min-w-0 bg-gray-200 flex flex-col"
+              :class="canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"
+              @contextmenu.prevent="openCtx($event, 'canvas', {})">
             <div x-show="legacyPageContent" x-cloak data-testid="blox-legacy-page-notice"
                  class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900 sm:px-4">
                 <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">

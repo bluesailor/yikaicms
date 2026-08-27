@@ -723,14 +723,17 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['handleCanvasDrop(payload)', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor insert contract {$token} missing");
         }
-        foreach (['startPaletteDrag(el, event)', 'canvasPaletteDragMessage(event, phase)', 'frame.clientWidth || rect.width', 'ykPaletteDrag'] as $token) {
+        foreach (['startPaletteDrag(el, event)', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
             $this->assertStringContainsString($token, $editor, "cross-frame drag bridge token {$token} missing");
         }
-        foreach (['data-testid="blox-canvas-drop-bridge"', 'canvasPaletteDragOver($event)', 'canvasPaletteDrop($event)', 'pointer-events-none'] as $token) {
+        foreach (['data-testid="blox-canvas-drop-bridge"', 'canvasPaletteDragOver($event)', 'canvasPaletteDrop($event)', 'pointer-events-none', "canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"] as $token) {
             $this->assertStringContainsString($token, $workspace, "canvas drop overlay token {$token} missing");
         }
         foreach (['e.source !== window.parent', 'handlePaletteDragMessage(d.ykPaletteDrag)', 'document.elementFromPoint(payload.clientX, payload.clientY)', "payload.phase !== 'move' && payload.phase !== 'drop'"] as $token) {
             $this->assertStringContainsString($token, $preview, "preview coordinate drop token {$token} missing");
+        }
+        foreach (['paletteAutoPanSpeed(clientY)', 'setInterval(function autoPanTick()', 'window.scrollBy(0, speed)', "classList.add('yk-palette-dragging')", 'scroll-behavior:auto!important', 'scrollbar-color:transparent transparent'] as $token) {
+            $this->assertStringContainsString($token, $preview, "canvas auto-pan token {$token} missing");
         }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'isTopLevelElementPath(value.target.path)'] as $token) {

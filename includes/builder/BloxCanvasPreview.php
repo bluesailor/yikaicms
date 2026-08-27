@@ -310,6 +310,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 .yk-drop-label{position:absolute;left:50%;bottom:9px;max-width:calc(100vw - 24px);transform:translateX(-50%);padding:4px 8px;border-radius:4px;background:#1d4ed8;color:#fff;font:700 11px/1.35 system-ui,sans-serif;white-space:nowrap;box-shadow:0 3px 10px rgba(15,23,42,.24)}
 .yk-drop-line.yk-drop-inside .yk-drop-label{top:8px;bottom:auto}
 .yk-drop-line.yk-drop-invalid .yk-drop-label{background:#b91c1c}
+html.yk-palette-dragging{scroll-behavior:auto!important;scrollbar-color:transparent transparent}
+html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-webkit-scrollbar-track{background:transparent}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
 .yk-insert-rail{position:absolute;top:-14px;left:0;right:0;height:28px;z-index:35;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s ease;pointer-events:auto}
@@ -354,6 +356,8 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     var inlineEdit = null;
     var dropState = null;
     var dropSequence = 0;
+    var paletteDragScrollTimer = 0;
+    var paletteDragPayload = null;
     var columnResizeState = null;
 
     var editorOrigin = window.parent.location.origin;
@@ -1306,17 +1310,21 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         return { valid: true }; // 列级/顶级元素前后：任何元素均可
     }
 
-    // 父页面在 iframe 上方接住原生拖放，再把等比换算后的画布坐标传进来。
-    // 这里仍由真实 DOM 命中目标，落点协议和合法性校验与 iframe 内原生 drop 共用。
-    function handlePaletteDragMessage(payload) {
-        if (!payload || payload.version !== 1) return;
-        if (payload.phase === 'cancel') { hideDropLine(); return; }
-        if ((payload.phase !== 'move' && payload.phase !== 'drop')
-            || typeof payload.type !== 'string'
-            || !/^[a-z_][a-z0-9_-]{0,63}$/i.test(payload.type)
-            || !Number.isFinite(payload.clientX)
-            || !Number.isFinite(payload.clientY)) return;
-        ykDragType = payload.type;
+    function stopPaletteAutoPan() {
+        if (paletteDragScrollTimer) clearInterval(paletteDragScrollTimer);
+        paletteDragScrollTimer = 0;
+        paletteDragPayload = null;
+        document.documentElement.classList.remove('yk-palette-dragging');
+    }
+    function paletteAutoPanSpeed(clientY) {
+        var edge = Math.min(120, Math.max(72, window.innerHeight * .12));
+        if (clientY < edge) return -Math.ceil((edge - Math.max(0, clientY)) / edge * 18);
+        if (clientY > window.innerHeight - edge) {
+            return Math.ceil((Math.min(window.innerHeight, clientY) - (window.innerHeight - edge)) / edge * 18);
+        }
+        return 0;
+    }
+    function renderPaletteDragTarget(payload, dropping) {
         var node = document.elementFromPoint(payload.clientX, payload.clientY);
         var section = node && node.closest ? node.closest('[data-yk-sec]') : null;
         if (!section) { hideDropLine(); return; }
@@ -1327,7 +1335,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         }, section);
         if (!target) { hideDropLine(); return; }
         var verdict = dropTargetVerdict(target);
-        if (payload.phase === 'move') {
+        if (!dropping) {
             if (target.kind === 'element' || target.kind === 'container') highlightEl(target.path);
             else highlightColumn(String(target.sec) + '.' + String(target.col));
             showDropLine(target, verdict);
@@ -1347,6 +1355,51 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             type: payload.type,
             target: target
         } });
+    }
+    function schedulePaletteAutoPan() {
+        if (paletteDragScrollTimer || !paletteDragPayload) return;
+        if (!paletteAutoPanSpeed(paletteDragPayload.clientY)) return;
+        // Chromium pauses repeated animation frames during a native HTML5 drag.
+        // A short timer keeps edge panning active while the pointer is stationary.
+        paletteDragScrollTimer = setInterval(function autoPanTick() {
+            if (!paletteDragPayload) { stopPaletteAutoPan(); return; }
+            var speed = paletteAutoPanSpeed(paletteDragPayload.clientY);
+            if (!speed) {
+                clearInterval(paletteDragScrollTimer);
+                paletteDragScrollTimer = 0;
+                return;
+            }
+            var before = window.scrollY;
+            window.scrollBy(0, speed);
+            if (window.scrollY === before) {
+                clearInterval(paletteDragScrollTimer);
+                paletteDragScrollTimer = 0;
+                return;
+            }
+            renderPaletteDragTarget(paletteDragPayload, false);
+        }, 16);
+    }
+
+    // 父页面在 iframe 上方接住原生拖放，再把等比换算后的画布坐标传进来。
+    // 靠近上下边缘时只平移 iframe 内容，不带动后台页面，也不新增滚动控件。
+    function handlePaletteDragMessage(payload) {
+        if (!payload || payload.version !== 1) return;
+        if (payload.phase === 'cancel') { stopPaletteAutoPan(); hideDropLine(); return; }
+        if ((payload.phase !== 'move' && payload.phase !== 'drop')
+            || typeof payload.type !== 'string'
+            || !/^[a-z_][a-z0-9_-]{0,63}$/i.test(payload.type)
+            || !Number.isFinite(payload.clientX)
+            || !Number.isFinite(payload.clientY)) return;
+        ykDragType = payload.type;
+        if (payload.phase === 'move') {
+            paletteDragPayload = payload;
+            document.documentElement.classList.add('yk-palette-dragging');
+            renderPaletteDragTarget(payload, false);
+            schedulePaletteAutoPan();
+            return;
+        }
+        stopPaletteAutoPan();
+        renderPaletteDragTarget(payload, true);
     }
 
     // Palette tiles use a versioned payload. The target is a column end, a container, or an element before/after position.
