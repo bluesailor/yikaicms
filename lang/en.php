@@ -5508,4 +5508,6 @@ voltage|Voltage|220V',
     'blox_recent_elements' => 'Recently used',
     'blox_add_favorite' => 'Add “:label” to favorites',
     'blox_remove_favorite' => 'Remove “:label” from favorites',
+    'blox_all_element_categories' => 'All',
+    'blox_element_category_filter' => 'Filter element categories',
 ];
