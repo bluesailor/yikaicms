@@ -130,6 +130,12 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     const rightPanel = page.locator('aside.blox-mobile-panel').last();
     await page.getByTestId('blox-mobile-library').click();
     await expect(leftPanel).toHaveClass(/is-open/);
+    await expect(page.getByTestId('blox-pick-section-hint')).toBeVisible();
+    const sectionCount = await page.getByTestId('blox-tree-section').count();
+    await page.getByTestId('blox-add-element-heading').click();
+    await expect(page.getByTestId('blox-toast')).toContainText('选择目标区块');
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionCount);
+    await expect(page.getByTestId('blox-dirty')).toBeHidden();
     await page.getByTestId('blox-mobile-canvas-view').click();
     await expect(leftPanel).not.toHaveClass(/is-open/);
     await page.getByTestId('blox-mobile-structure').click();
@@ -199,6 +205,18 @@ test('element category filter narrows the library and resets on reload @ci', asy
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-element-category')).toHaveValue('all');
   await expect(page.getByTestId('blox-element-group-layout')).toBeVisible();
+});
+
+test('desktop keyboard insertion requires a selected target @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  await expect(page.getByTestId('blox-pick-section-hint')).toHaveCount(0);
+  const sectionCount = await page.getByTestId('blox-tree-section').count();
+
+  await page.getByTestId('blox-add-element-heading').press('Enter');
+
+  await expect(page.getByTestId('blox-toast')).toContainText('选择目标区块');
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionCount);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
 test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {

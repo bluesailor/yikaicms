@@ -2282,7 +2282,7 @@ return [
     'blox_element_library' => 'Element library',
     'blox_back_to_settings' => 'Back to settings',
     'blox_blank_auto_section' => 'A blank page creates its first section automatically.',
-    'blox_pick_section_first' => 'Pick a section in the tree or canvas first; the element will be inserted there',
+    'blox_pick_section_first' => 'Before tapping an element or pressing Enter, select its target section in the tree or canvas.',
     'blox_insert_into_container' => 'Will be inserted into the selected container',
     'blox_library_hint' => 'Common content, media, layout and dynamic elements are available; inserted elements are auto-selected for configuration in the right panel.',
     'blox_banner_hint' => 'The homepage banner can be managed as sortable, per-item editable content via the homepage dynamic block.',
