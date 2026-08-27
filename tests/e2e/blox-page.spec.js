@@ -16,6 +16,25 @@ const fixtures = JSON.parse(fs.readFileSync(
   'utf8'
 ));
 
+test('page canvas includes the effective readonly header and footer @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas context baseline');
+  expect(fixtures.blox_page).toBeGreaterThan(0);
+
+  await openPageEditor(page, fixtures.blox_page);
+  const contentFrame = await frame(page);
+  const header = contentFrame.getByTestId('blox-context-edit-header');
+  const footer = contentFrame.getByTestId('blox-context-edit-footer');
+
+  await expect(header).toBeVisible();
+  await expect(footer).toBeVisible();
+  await expect(header).toHaveAttribute('target', '_top');
+  await expect(footer).toHaveAttribute('target', '_top');
+  await expect(header).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-header)/);
+  await expect(footer).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)/);
+  await expect(contentFrame.locator('.yk-home-context-area')).toHaveCount(2);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
 test('page draft stays private until explicit publish @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single write-path baseline');
   expect(fixtures.blox_page).toBeGreaterThan(0);

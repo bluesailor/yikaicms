@@ -93,14 +93,19 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $this->assertStringContainsString("'@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false'", $canvas);
-        $this->assertStringContainsString('$renderPublishedArea = static function (string $area): string', $canvas);
-        $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\') : \'\';', $canvas);
-        $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\') : \'\';', $canvas);
+        $this->assertStringContainsString('$renderPublishedArea = static function (string $area, array $context, string $scriptName): string', $canvas);
+        $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\', $areaContext, $contextScript) : \'\';', $canvas);
+        $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\', $areaContext, $contextScript) : \'\';', $canvas);
+        $this->assertStringContainsString("\$GLOBALS['currentChannelId'] = \$context['channel_id'];", $canvas);
+        $this->assertStringContainsString("\$GLOBALS['ykBloxPageId'] = \$context['page_id'];", $canvas);
+        $this->assertStringContainsString("require_once ROOT_PATH . '/includes/customer_service.php';", $canvas);
         $this->assertStringContainsString('yk-home-context-area', $canvas);
         $this->assertStringContainsString('data-testid="blox-context-edit-\' . $area', $canvas);
         // v1.18.6：首页画布的页头编辑入口带 back=home——编辑完页头一键返回首页编辑器
-        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$homeAreaContext, 'home')", $canvas);
-        $this->assertStringContainsString('$body = $headerBody . $homeBody . $footerBody;', $canvas);
+        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$areaContext, \$isHomeLayout ? 'home' : '')", $canvas);
+        $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
+        $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
+        $this->assertStringContainsString('$body = $headerBody . $pageBody . $footerBody;', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
