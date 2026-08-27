@@ -31,7 +31,7 @@ final class SiteAssetTest extends TestCase
         self::assertSame('/images/logo.png?v=1#brand', SiteAsset::availableUrl('images/logo.png?v=1#brand', ROOT_PATH));
         self::assertSame('https://cdn.example.test/logo.png', SiteAsset::availableUrl('https://cdn.example.test/logo.png', ROOT_PATH));
         self::assertSame('', SiteAsset::availableUrl('/uploads/brand/missing.png', ROOT_PATH));
-        self::assertFalse(SiteAsset::canPreview('data:image/png;base64,AAAA', ROOT_PATH));
+        self::assertSame('', SiteAsset::availableUrl('data:image/png;base64,AAAA', ROOT_PATH));
     }
 
     public function testBareLocalPathIsCanonicalizedWithoutWeakeningTraversalChecks(): void

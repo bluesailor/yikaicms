@@ -78,21 +78,32 @@ echo "[2/5] Psalm 静态分析"
 # **gitignored 的本机开发文件**：blox_editor*、plugins/*/admin-local.php 不入库，
 # CI 根本扫不到它们，本地却会报错——不排除的话每台开发机结果都不一样。
 PSALM_IGNORE='blox_editor|admin-local|config\.php'
-psalm_errors() {
-    php vendor/vimeo/psalm/psalm --no-progress 2>&1 | grep ERROR | grep -vcE "$PSALM_IGNORE"
+PSALM_OUTPUT=''
+PSALM_EXIT=0
+run_psalm() {
+    PSALM_OUTPUT=$(php vendor/vimeo/psalm/psalm --no-progress 2>&1)
+    PSALM_EXIT=$?
 }
+psalm_errors() {
+    printf '%s\n' "$PSALM_OUTPUT" | grep ERROR | grep -vcE "$PSALM_IGNORE"
+}
+run_psalm
 N=$(psalm_errors)
 if [ "$N" != "0" ]; then
     # 已知模式：Psalm 缓存会对存在的类误报 UndefinedClass。清缓存后仍在才算真错。
     note "首轮 $N 个错误，清缓存复验（本项目已知的缓存幻影模式）…"
     php vendor/vimeo/psalm/psalm --clear-cache >/dev/null 2>&1
+    run_psalm
     N=$(psalm_errors)
 fi
-if [ "$N" = "0" ]; then
+if [ "$N" = "0" ] && { [ "$PSALM_EXIT" = "0" ] || printf '%s\n' "$PSALM_OUTPUT" | grep -q ERROR; }; then
     pass "跟踪源码 0 ERROR"
+elif [ "$N" = "0" ]; then
+    fail "Psalm 执行失败（退出码 $PSALM_EXIT，未产生可过滤的 ERROR）"
+    printf '%s\n' "$PSALM_OUTPUT" | tail -12 | sed 's/^/      /'
 else
     fail "Psalm 有 $N 个错误"
-    php vendor/vimeo/psalm/psalm --no-progress 2>&1 | grep -A3 ERROR | grep -vE "$PSALM_IGNORE" | head -12 | sed 's/^/      /'
+    printf '%s\n' "$PSALM_OUTPUT" | grep -A3 ERROR | grep -vE "$PSALM_IGNORE" | head -12 | sed 's/^/      /'
 fi
 note "本地永远比 CI 宽松：CI 无 config/config.php。新增独立入口（自带 define ROOT_PATH +"
 note "require config.php 的 admin/*.php、plugins/*/xxx_api.php）必须加进 psalm.xml 的"

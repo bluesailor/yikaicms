@@ -73,8 +73,4 @@ final class SiteAsset
             : '';
     }
 
-    public static function canPreview(string $url, ?string $root = null): bool
-    {
-        return self::availableUrl($url, $root) !== '';
-    }
 }
