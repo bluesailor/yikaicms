@@ -74,14 +74,17 @@ final class ReleaseUploadGuard
         }
 
         $extras = [];
-        $matches = glob($releaseDir . '/delta-*-to-' . $version . '.zip');
-        foreach (is_array($matches) ? $matches : [] as $path) {
-            $name = basename($path);
-            if (!isset($listed[$name])) {
-                $extras[] = $name;
+        foreach ([$releaseDir, $updateRoot . '/packages'] as $artifactDir) {
+            $matches = glob($artifactDir . '/delta-*-to-' . $version . '.zip');
+            foreach (is_array($matches) ? $matches : [] as $path) {
+                $name = basename($path);
+                if (!isset($listed[$name])) {
+                    $extras[$name] = true;
+                }
             }
         }
         if ($extras !== []) {
+            $extras = array_keys($extras);
             sort($extras);
             throw new RuntimeException(
                 'Unlisted delta artifacts target this version: ' . implode(', ', $extras)

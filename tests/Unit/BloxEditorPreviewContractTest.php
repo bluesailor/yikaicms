@@ -132,9 +132,12 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-left-panel-resizer"', $workspace);
         $this->assertStringContainsString('role="separator" aria-orientation="vertical"', $workspace);
         $this->assertStringContainsString('@keydown.left.prevent="resizeLeftPanelBy(-16)"', $workspace);
+        $this->assertStringContainsString('@pointermove="resizeLeftPanel($event)"', $workspace);
+        $this->assertStringContainsString('@pointerup="finishLeftPanelResize($event)"', $workspace);
         $this->assertStringContainsString('@dblclick="resetLeftPanelWidth()"', $workspace);
         $this->assertStringContainsString('yikai:blox:left-panel-width:v1', $editor);
         $this->assertStringContainsString('body.blox-panel-resizing iframe { pointer-events: none; }', $editor);
+        $this->assertStringNotContainsString('@pointermove.window="resizeLeftPanel($event); resizeRightPanel($event)"', $editor);
     }
 
     public function testDesktopStructurePanelHasAccessiblePersistentResizerAndCollapseControl(): void
@@ -729,6 +732,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach ([':draggable="templateSectionDraggable(item)"', '@dragstart="startTemplateDrag(item, $event)"', "templateSectionsDocked() ? 'grid-cols-1'", "pointer-events-none"] as $token) {
             $this->assertStringContainsString($token, $workspace . $this->source('admin/blox_editor/partials/overlays.php'), "prebuilt dock token {$token} missing");
         }
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $this->assertStringContainsString('@keydown="templateDialogKeydown($event)"', $overlays);
+        $this->assertStringContainsString('pt-14 pointer-events-none', $overlays);
+        $this->assertStringContainsString('calc(100vh-3.5rem)', str_replace(' ', '', $overlays));
+        $this->assertStringContainsString('if (this.templateSectionsDocked())', $editor);
         foreach (['startPaletteDrag(el, event)', 'createPaletteDragGhost(el, event)', 'clearPaletteDragGhost()', 'setDragImage(ghost, 18, 18)', 'blox-palette-drag-ghost', 'ghost.setAttribute("aria-hidden", "true")', 'e.key === "Escape" && self.canvasDragActive', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
             $this->assertStringContainsString($token, $editor, "cross-frame drag bridge token {$token} missing");
         }
@@ -772,6 +780,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         ] as $token) {
             $this->assertStringContainsString($token, $editor, "structure tree intent token {$token} missing");
         }
+        $this->assertStringContainsString('var rect = row.getBoundingClientRect();', $editor);
         foreach ([
             'data-testid="blox-tree-drop-indicator"',
             'data-drop-intent="before"',

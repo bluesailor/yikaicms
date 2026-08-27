@@ -38,10 +38,19 @@ final class SiteAsset
         $path = rawurldecode((string) ($parts['path'] ?? ''));
         $normalized = str_replace('\\', '/', $path);
         $segments = explode('/', trim($normalized, '/'));
-        if ($normalized === '' || !str_starts_with($normalized, '/')
+        if ($normalized === ''
             || preg_match('/[\x00-\x1f\x7f]/', $normalized) === 1
             || in_array('..', $segments, true)) {
             return ['state' => self::INVALID, 'url' => $url, 'path' => $normalized];
+        }
+
+        $normalized = '/' . ltrim($normalized, '/');
+        $renderUrl = $normalized;
+        if (isset($parts['query'])) {
+            $renderUrl .= '?' . $parts['query'];
+        }
+        if (isset($parts['fragment'])) {
+            $renderUrl .= '#' . $parts['fragment'];
         }
 
         $root ??= defined('ROOT_PATH') ? (string) ROOT_PATH : '';
@@ -51,7 +60,7 @@ final class SiteAsset
 
         return [
             'state' => $file !== '' && is_file($file) ? self::LOCAL_AVAILABLE : self::LOCAL_MISSING,
-            'url' => $url,
+            'url' => $renderUrl,
             'path' => $normalized,
         ];
     }

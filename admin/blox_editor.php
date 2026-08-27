@@ -823,9 +823,6 @@ $canManageBloxDesign = hasPermission('*');
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-init="init()" x-cloak
-      @pointermove.window="resizeLeftPanel($event); resizeRightPanel($event)"
-      @pointerup.window="finishLeftPanelResize($event); finishRightPanelResize($event)"
-      @pointercancel.window="finishLeftPanelResize($event); finishRightPanelResize($event)"
       data-blox-advanced="<?php echo $advancedBloxEnabled ? '1' : '0'; ?>"
       data-blox-recovery-key="<?= e($recoveryKey) ?>"
       data-blox-base-revision="<?= e($baseRevision) ?>">
@@ -1791,6 +1788,18 @@ $canManageBloxDesign = hasPermission('*');
 
             dialogKeydown(event, root, onEscape) {
                 if (window.BloxDialogFocus) window.BloxDialogFocus.keydown(event, root, onEscape);
+            },
+
+            templateDialogKeydown(event) {
+                if (this.templateSectionsDocked()) {
+                    if (event && event.key === "Escape") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.closeTemplates();
+                    }
+                    return;
+                }
+                this.dialogKeydown(event, this.$refs.templateDialog, () => this.closeTemplates());
             },
 
             /**
@@ -3241,7 +3250,7 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             openMobileSettings() {
-                if (window.innerWidth <= 1023 && this.selectedSi >= 0) {
+                if (window.innerWidth < 1440 && this.selectedSi >= 0) {
                     this.mobilePanel = "settings";
                     this.libOpen = false;
                 }
@@ -5038,7 +5047,7 @@ $canManageBloxDesign = hasPermission('*');
                 }
                 this.libQuery = "";
                 this.libOpen = true;
-                if (window.innerWidth <= 1023) this.mobilePanel = "library";
+                if (window.innerWidth < 1440) this.mobilePanel = "library";
                 var self = this;
                 this.$nextTick(function () {
                     if (self.$refs.libSearch) self.$refs.libSearch.focus();
@@ -6707,7 +6716,7 @@ $canManageBloxDesign = hasPermission('*');
 
             openElementLibrary() {
                 this.libOpen = true;
-                if (window.innerWidth <= 1023) this.mobilePanel = "library";
+                if (window.innerWidth < 1440) this.mobilePanel = "library";
                 var self = this;
                 this.$nextTick(function () {
                     if (self.$refs.libSearch) self.$refs.libSearch.focus();
@@ -7053,11 +7062,10 @@ $canManageBloxDesign = hasPermission('*');
                     : null;
                 if (!row || !this.$refs.tree || !this.$refs.tree.contains(row)) return;
                 var si = parseInt(row.getAttribute("data-section-index"), 10);
-                var handle = row.querySelector("[data-section-drag-handle]");
-                if (isNaN(si) || !handle) return;
+                if (isNaN(si)) return;
                 event.preventDefault();
                 event.stopPropagation();
-                var rect = handle.getBoundingClientRect();
+                var rect = row.getBoundingClientRect();
                 var after = event.clientY >= rect.top + rect.height / 2;
                 var position = after ? "after" : "before";
                 this.setTreeDropIntent(
