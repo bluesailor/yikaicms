@@ -4966,6 +4966,10 @@ $canManageBloxDesign = hasPermission('*');
                 var target = payload.target && payload.target.kind
                     ? payload.target
                     : { kind: "column", sec: payload.sec, col: payload.col, position: "end" };
+                var targetSi = target.kind === "column"
+                    ? parseInt(target.sec, 10)
+                    : parseInt(String(target.path || "").split(".")[0], 10);
+                if (!isNaN(targetSi)) this.selectSection(targetSi, false);
                 this.addElement(lib, target);
             },
 
