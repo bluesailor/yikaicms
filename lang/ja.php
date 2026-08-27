@@ -5635,4 +5635,8 @@ voltage|電圧|220V',
     'blox_library_drag_hint' => 'デスクトップでは要素を構造ツリーまたはキャンバスの目的位置へドラッグします。タッチ操作はタップ、キーボードは Enter キーで現在の対象へ挿入できます。',
     'blox_resize_element_panel' => '要素パネルの幅を調整',
     'blox_resize_element_panel_hint' => 'ドラッグで幅を調整します。矢印キーで微調整、ダブルクリックで初期値に戻せます。',
+    'blox_resize_structure_panel' => '構造パネルの幅を調整',
+    'blox_resize_structure_panel_hint' => 'ドラッグで構造パネルの幅を調整します。矢印キーで微調整、ダブルクリックで初期値に戻せます。',
+    'blox_collapse_structure_panel' => '構造パネルを折りたたむ',
+    'blox_expand_structure_panel' => '構造パネルを展開',
 ];

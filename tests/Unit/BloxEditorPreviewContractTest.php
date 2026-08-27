@@ -137,6 +137,20 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('body.blox-panel-resizing iframe { pointer-events: none; }', $editor);
     }
 
+    public function testDesktopStructurePanelHasAccessiblePersistentResizerAndCollapseControl(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        $this->assertStringContainsString('data-testid="blox-right-panel-resizer"', $workspace);
+        $this->assertStringContainsString('@keydown.left.prevent="resizeRightPanelBy(16)"', $workspace);
+        $this->assertStringContainsString('@dblclick="resetRightPanelWidth()"', $workspace);
+        $this->assertStringContainsString('data-testid="blox-right-panel-toggle"', $workspace);
+        $this->assertStringContainsString(':aria-expanded="String(!rightPanelCollapsed)"', $workspace);
+        $this->assertStringContainsString('yikai:blox:right-panel-width:v1', $editor);
+        $this->assertStringContainsString('yikai:blox:right-panel-collapsed:v1', $editor);
+    }
+
     /**
      * 空画布提示只能有一处。
      *

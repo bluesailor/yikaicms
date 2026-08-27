@@ -640,6 +640,10 @@ $canManageBloxDesign = hasPermission('*');
             background: #f8fafc;
             border-right: 1px solid #e2e8f0;
         }
+        .blox-panel-resizer.is-right {
+            border-right: 0;
+            border-left: 1px solid #e2e8f0;
+        }
         .blox-panel-resizer > span {
             width: 2px;
             height: 2.5rem;
@@ -659,6 +663,8 @@ $canManageBloxDesign = hasPermission('*');
         }
         body.blox-panel-resizing { cursor: col-resize; user-select: none; }
         body.blox-panel-resizing iframe { pointer-events: none; }
+        .blox-structure-panel { transition: width .15s ease; }
+        body.blox-panel-resizing .blox-structure-panel { transition: none; }
         /* 盒模型四边输入框（blox 不加载 admin.css，样式必须内联在此）。
            Tailwind preflight 清了 input 边框，这里补回；边框色由行内 border-* 类给 */
         .yk-box-in {
@@ -711,6 +717,7 @@ $canManageBloxDesign = hasPermission('*');
         .blox-mobile-actions-menu > button:disabled { opacity: .4; cursor: not-allowed; }
         @media (max-width: 1439px) {
             .blox-panel-resizer { display: none; }
+            .blox-structure-collapse { display: none !important; }
             .blox-mobile-panel { display: none !important; }
             .blox-mobile-panel.is-open {
                 display: flex !important;
@@ -787,9 +794,9 @@ $canManageBloxDesign = hasPermission('*');
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-init="init()" x-cloak
-      @pointermove.window="resizeLeftPanel($event)"
-      @pointerup.window="finishLeftPanelResize($event)"
-      @pointercancel.window="finishLeftPanelResize($event)"
+      @pointermove.window="resizeLeftPanel($event); resizeRightPanel($event)"
+      @pointerup.window="finishLeftPanelResize($event); finishRightPanelResize($event)"
+      @pointercancel.window="finishLeftPanelResize($event); finishRightPanelResize($event)"
       data-blox-advanced="<?php echo $advancedBloxEnabled ? '1' : '0'; ?>"
       data-blox-recovery-key="<?= e($recoveryKey) ?>"
       data-blox-base-revision="<?= e($baseRevision) ?>">
@@ -1270,6 +1277,20 @@ $canManageBloxDesign = hasPermission('*');
             _leftPanelResizeStartX: 0,
             _leftPanelResizeStartWidth: 288,
             _leftPanelPointerId: null,
+            rightPanelWidth: 256,
+            rightPanelMin: 224,
+            rightPanelMax: 400,
+            rightPanelCollapsed: false,
+            rightPanelResizing: false,
+            rightPanelStorageKey: "yikai:blox:right-panel-width:v1",
+            rightPanelCollapsedStorageKey: "yikai:blox:right-panel-collapsed:v1",
+            _rightPanelResizeStartX: 0,
+            _rightPanelResizeStartWidth: 256,
+            _rightPanelPointerId: null,
+            rightPanelText: <?php echo json_encode([
+                'collapse' => __('blox_collapse_structure_panel'),
+                'expand' => __('blox_expand_structure_panel'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             panelTab: "content",        // 设置面板页签：content | style | condition
             boxOpen: { margin: false, padding: false },
             boxExactOpen: { margin: false, padding: false },
@@ -4602,6 +4623,7 @@ $canManageBloxDesign = hasPermission('*');
             init() {
                 var self = this;
                 this.restoreLeftPanelWidth();
+                this.restoreRightPanelState();
                 this.normalizeHeaderSettings();
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
@@ -4624,6 +4646,7 @@ $canManageBloxDesign = hasPermission('*');
                 });
                 window.addEventListener("pagehide", function () {
                     self.finishLeftPanelResize();
+                    self.finishRightPanelResize();
                     if (self._draftRecovery) self._draftRecovery.dispose(self.dirty);
                     if (self._previewClient) self._previewClient.cancel();
                     if (self._canvasBridge) self._canvasBridge.dispose();
@@ -6305,6 +6328,102 @@ $canManageBloxDesign = hasPermission('*');
 
             resetLeftPanelWidth() {
                 this.setLeftPanelWidth(288);
+            },
+
+            rightPanelMaximum() {
+                return Math.min(
+                    this.rightPanelMax,
+                    Math.max(this.rightPanelMin, window.innerWidth - this.leftPanelWidth - 768)
+                );
+            },
+
+            clampRightPanelWidth(value) {
+                var width = Number(value);
+                if (!Number.isFinite(width)) width = 256;
+                return Math.round(Math.max(this.rightPanelMin, Math.min(this.rightPanelMaximum(), width)));
+            },
+
+            rightPanelStyle() {
+                this.canvasViewportTick;
+                if (window.innerWidth < 1440) return "";
+                return "width:" + (this.rightPanelCollapsed ? 40 : this.rightPanelWidth) + "px";
+            },
+
+            rightPanelContentVisible() {
+                this.canvasViewportTick;
+                return window.innerWidth < 1440 || !this.rightPanelCollapsed;
+            },
+
+            restoreRightPanelState() {
+                try {
+                    var storedWidth = window.localStorage.getItem(this.rightPanelStorageKey);
+                    if (storedWidth !== null) this.rightPanelWidth = this.clampRightPanelWidth(storedWidth);
+                    this.rightPanelCollapsed = window.localStorage.getItem(this.rightPanelCollapsedStorageKey) === "1";
+                } catch (error) {
+                    this.rightPanelWidth = 256;
+                    this.rightPanelCollapsed = false;
+                }
+            },
+
+            persistRightPanelState() {
+                try {
+                    window.localStorage.setItem(this.rightPanelStorageKey, String(this.rightPanelWidth));
+                    window.localStorage.setItem(this.rightPanelCollapsedStorageKey, this.rightPanelCollapsed ? "1" : "0");
+                } catch (error) {
+                    // 隐私模式或禁用存储时仍保留本次会话状态。
+                }
+            },
+
+            setRightPanelWidth(value, persist) {
+                this.rightPanelWidth = this.clampRightPanelWidth(value);
+                this.canvasViewportTick++;
+                if (persist !== false) this.persistRightPanelState();
+            },
+
+            startRightPanelResize(event) {
+                if (window.innerWidth < 1440 || this.rightPanelCollapsed || !event || event.button !== 0) return;
+                event.preventDefault();
+                this.rightPanelResizing = true;
+                this._rightPanelPointerId = event.pointerId;
+                this._rightPanelResizeStartX = event.clientX;
+                this._rightPanelResizeStartWidth = this.rightPanelWidth;
+                document.body.classList.add("blox-panel-resizing");
+                if (event.currentTarget && typeof event.currentTarget.setPointerCapture === "function") {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                }
+            },
+
+            resizeRightPanel(event) {
+                if (!this.rightPanelResizing || !event) return;
+                if (this._rightPanelPointerId !== null && event.pointerId !== this._rightPanelPointerId) return;
+                this.setRightPanelWidth(
+                    this._rightPanelResizeStartWidth - event.clientX + this._rightPanelResizeStartX,
+                    false
+                );
+            },
+
+            finishRightPanelResize(event) {
+                if (!this.rightPanelResizing) return;
+                if (event && this._rightPanelPointerId !== null && event.pointerId !== this._rightPanelPointerId) return;
+                this.rightPanelResizing = false;
+                this._rightPanelPointerId = null;
+                document.body.classList.remove("blox-panel-resizing");
+                this.persistRightPanelState();
+            },
+
+            resizeRightPanelBy(delta) {
+                this.setRightPanelWidth(this.rightPanelWidth + Number(delta || 0));
+            },
+
+            resetRightPanelWidth() {
+                this.setRightPanelWidth(256);
+            },
+
+            toggleRightPanel() {
+                this.finishRightPanelResize();
+                this.rightPanelCollapsed = !this.rightPanelCollapsed;
+                this.canvasViewportTick++;
+                this.persistRightPanelState();
             },
 
             openElementLibrary() {
