@@ -1139,6 +1139,8 @@ $canManageBloxDesign = hasPermission('*');
                 'settingsWord' => __('blox_ctx_settings'),
                 'settingsOf' => __('blox_settings_of'),
                 'sectionWord' => __('blox_section_word'),
+                'headerSection' => __('blox_header_section_name'),
+                'headerSectionIndexed' => __('blox_header_section_name_indexed'),
                 'colWord' => __('blox_col_word'),
                 'containerWord' => __('blox_tree_container'),
                 'elementWord' => __('blox_element_label'),
@@ -3022,6 +3024,13 @@ $canManageBloxDesign = hasPermission('*');
                     }
                 }
 
+                // 网页头是一个完整编辑对象，不应因首个 Logo 元素而显示成“站点标识”。
+                // 用户填写的自定义区块名仍优先；仅改写自动命名的最后兜底。
+                if (!title && this.headerTemplateMode) {
+                    return this.sections.length > 1
+                        ? this.uiText.headerSectionIndexed.replace(":n", si + 1)
+                        : this.uiText.headerSection;
+                }
                 if (typeLabel && title && typeLabel.toLocaleLowerCase() !== title.toLocaleLowerCase()) {
                     return this.sectionLabelText(typeLabel + " · " + title, labelMax);
                 }

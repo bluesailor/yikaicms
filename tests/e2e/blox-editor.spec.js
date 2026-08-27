@@ -1750,6 +1750,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   const contentFrame = await frame(page);
   await expect(contentFrame.locator('[data-yk-area="header"]')).toHaveCount(1);
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(0);
+  await expect(page.getByTestId('blox-tree-section-label')).toHaveText('网页页头');
 
   // 网页头模式给专属样式库，不再把普通正文区块入口伪装成网页头模板。
   await expect(page.getByTestId('blox-prebuilt-open')).toHaveCount(0);
@@ -1762,6 +1763,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
     .getByTestId('blox-header-preset-apply').click();
   await expect(headerPresets).toBeHidden();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
+  await expect(page.getByTestId('blox-tree-section-label')).toHaveText(['网页页头 1', '网页页头 2']);
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount);

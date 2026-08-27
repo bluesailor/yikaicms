@@ -2704,6 +2704,8 @@ return [
     'blox_header_presets_hint' => 'Choose a starter to replace the current header draft. You can undo it, and the live site stays unchanged until publishing.',
     'blox_header_preset_apply' => 'Apply this header',
     'blox_header_preset_applied' => 'Applied “:name”',
+    'blox_header_section_name' => 'Page header',
+    'blox_header_section_name_indexed' => 'Page header :n',
     'blox_area_preset_corporate_footer_name' => 'Multi-column corporate footer',
     'blox_area_preset_corporate_footer_desc' => 'A responsive footer with site identity, social links, navigation, contact details, and dynamic legal information.',
     'blox_area_preset_not_active' => 'Not installed; live site unchanged',

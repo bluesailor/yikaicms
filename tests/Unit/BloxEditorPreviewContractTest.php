@@ -771,6 +771,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['BloxAreaTemplatePresets::editorCatalog(\'header\')', 'headerPresets:', 'openHeaderPresets()', 'applyHeaderPreset(preset)', 'apply-header-preset'] as $token) {
             $this->assertStringContainsString($token, $editor, "header preset editor token {$token} missing");
         }
+        $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
+        $this->assertStringContainsString('if (!title && this.headerTemplateMode)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets-open"', $header);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
