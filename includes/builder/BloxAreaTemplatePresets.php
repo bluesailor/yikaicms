@@ -27,19 +27,33 @@ final class BloxAreaTemplatePresets
             'description_key' => 'blox_area_preset_centered_header_desc',
             'preview' => 'centered-brand',
         ],
-        'clean-site-footer' => [
-            'type' => 'footer',
-            'file' => 'clean-site-footer.json',
-            'name_key' => 'blox_area_preset_footer_name',
-            'description_key' => 'blox_area_preset_footer_desc',
-            'preview' => 'footer-columns',
-        ],
         'corporate-site-header' => [
             'type' => 'header',
             'file' => 'corporate-site-header.json',
             'name_key' => 'blox_area_preset_corporate_header_name',
             'description_key' => 'blox_area_preset_corporate_header_desc',
             'preview' => 'corporate',
+        ],
+        'topbar-site-header' => [
+            'type' => 'header',
+            'file' => 'topbar-site-header.json',
+            'name_key' => 'blox_area_preset_topbar_header_name',
+            'description_key' => 'blox_area_preset_topbar_header_desc',
+            'preview' => 'topbar',
+        ],
+        'search-site-header' => [
+            'type' => 'header',
+            'file' => 'search-site-header.json',
+            'name_key' => 'blox_area_preset_search_header_name',
+            'description_key' => 'blox_area_preset_search_header_desc',
+            'preview' => 'search',
+        ],
+        'clean-site-footer' => [
+            'type' => 'footer',
+            'file' => 'clean-site-footer.json',
+            'name_key' => 'blox_area_preset_footer_name',
+            'description_key' => 'blox_area_preset_footer_desc',
+            'preview' => 'footer-columns',
         ],
         'corporate-site-footer' => [
             'type' => 'footer',
@@ -64,6 +78,50 @@ final class BloxAreaTemplatePresets
                 'name' => __($preset['name_key']),
                 'description' => __($preset['description_key']),
                 'preview' => (string) ($preset['preview'] ?? ''),
+            ];
+        }
+        return $items;
+    }
+
+    /**
+     * 编辑器直接读取随包预置，避免要求用户先把它们安装成数据库模板。
+     *
+     * @return list<array{
+     *   slug:string,type:string,name:string,description:string,preview:string,
+     *   settings:array<string,mixed>,sections:array<int,array<string,mixed>>
+     * }>
+     * @psalm-suppress PossiblyUnusedMethod 独立后台入口 admin/blox_editor.php 在 Psalm 扫描图之外调用
+     */
+    public static function editorCatalog(string $type): array
+    {
+        if (!in_array($type, ['header', 'footer'], true)) {
+            return [];
+        }
+
+        $items = [];
+        foreach (self::PRESETS as $slug => $preset) {
+            if ($preset['type'] !== $type) {
+                continue;
+            }
+            $json = file_get_contents(self::packagePath($preset['file']));
+            if (!is_string($json)) {
+                continue;
+            }
+            try {
+                $prepared = BloxTemplateImporter::prepare($json);
+                $document = BloxAreaDocument::decode($type, $prepared['draft_json']);
+            } catch (Throwable $e) {
+                error_log('[BloxAreaTemplatePresets] ' . $slug . ': ' . $e->getMessage());
+                continue;
+            }
+            $items[] = [
+                'slug' => $slug,
+                'type' => $type,
+                'name' => __($preset['name_key']),
+                'description' => __($preset['description_key']),
+                'preview' => (string) ($preset['preview'] ?? ''),
+                'settings' => $document['settings'],
+                'sections' => $document['sections'],
             ];
         }
         return $items;

@@ -330,11 +330,19 @@ declare(strict_types=1);
                         title="<?php echo e(__('blox_open_elements')); ?>" aria-label="<?php echo e(__('blox_open_elements')); ?>">
                     <i class="ti ti-circle-plus text-lg"></i>
                 </button>
+<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
+                <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
+                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
+                        title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
+                    <i class="ti ti-layout-navbar text-lg"></i>
+                </button>
+<?php else: ?>
                 <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
                         class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
                         title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
                     <i class="ti ti-layout-grid-add text-lg"></i>
                 </button>
+<?php endif; ?>
             </div>
 <?php if ($canManageBloxDesign): ?>
             <button type="button" @click="openDesignSystem()" data-testid="blox-design-open"
@@ -451,9 +459,15 @@ declare(strict_types=1);
                 <button type="button" @click="openElementLibrary(); mobileActionsOpen = false">
                     <i class="ti ti-circle-plus"></i><?php echo e(__('blox_open_elements')); ?>
                 </button>
+<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
+                <button type="button" @click="openHeaderPresets(); mobileActionsOpen = false">
+                    <i class="ti ti-layout-navbar"></i><?php echo e(__('blox_header_presets')); ?>
+                </button>
+<?php else: ?>
                 <button type="button" @click="openPrebuiltSections(); mobileActionsOpen = false">
                     <i class="ti ti-layout-grid-add"></i><?php echo e(__('blox_prebuilt_sections')); ?>
                 </button>
+<?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
                 <button type="button" @click="openDesignSystem(); mobileActionsOpen = false">
                     <i class="ti ti-palette"></i><?php echo e(__('blox_design_system')); ?>

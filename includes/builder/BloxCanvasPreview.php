@@ -22,7 +22,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
         BlockRenderer::$editChannelId = $isHomeLayout ? 1 : $id;
     }
-    // 头尾模板画布：可编辑模板段 + 正文只读上下文（灰罩不可选）。
+    // 页头模板只显示可编辑页头；页尾保留正文只读上下文，帮助判断落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');
     if ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
         $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
@@ -47,36 +47,39 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             }
         }
 
-        // 上下文正文：无编辑标记（editChannelId 归零后再渲染），画布上不可点选
-        $savedEditChannel = BlockRenderer::$editChannelId;
-        BlockRenderer::$editChannelId = 0;
-        if ($ctxType === 'page' && $ctxRow !== null) {
-            // 单页近似：优先该页排版数据（与前台/编辑器同源取法），回退富文本 content
-            $pageContent = contentModel()->queryOne(
-                'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
-                [(int) $ctxRow['id']]
-            );
-            $inner = trim((string) ($pageContent['blocks_data'] ?? '')) !== ''
-                ? renderBlocksToHtml((string) $pageContent['blocks_data'])
-                : (string) ($ctxRow['content'] ?? ($pageContent['content'] ?? ''));
-            $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
-                . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1>' . $inner . '</div>';
-        } elseif ($ctxType === 'channel' && $ctxRow !== null) {
-            // 栏目近似：栏目名 + 最近内容标题列表（灰罩只读示意，不复刻主题列表版式）
-            $items = contentModel()->getList((int) $ctxRow['id'], 6, 0, ['_skip_lang' => 1]);
-            $lis = '';
-            foreach ($items as $it) {
-                $lis .= '<li class="border-b border-gray-100 py-3">' . htmlspecialchars((string) ($it['title'] ?? ''), ENT_QUOTES) . '</li>';
+        $contextBody = '';
+        if ($templateArea === 'footer') {
+            // 页尾需要正文落底参照；参照区不输出编辑标记，画布上不可点选。
+            $savedEditChannel = BlockRenderer::$editChannelId;
+            BlockRenderer::$editChannelId = 0;
+            if ($ctxType === 'page' && $ctxRow !== null) {
+                // 单页近似：优先该页排版数据（与前台/编辑器同源取法），回退富文本 content
+                $pageContent = contentModel()->queryOne(
+                    'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
+                    [(int) $ctxRow['id']]
+                );
+                $inner = trim((string) ($pageContent['blocks_data'] ?? '')) !== ''
+                    ? renderBlocksToHtml((string) $pageContent['blocks_data'])
+                    : (string) ($ctxRow['content'] ?? ($pageContent['content'] ?? ''));
+                $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
+                    . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1>' . $inner . '</div>';
+            } elseif ($ctxType === 'channel' && $ctxRow !== null) {
+                // 栏目近似：栏目名 + 最近内容标题列表（灰罩只读示意，不复刻主题列表版式）
+                $items = contentModel()->getList((int) $ctxRow['id'], 6, 0, ['_skip_lang' => 1]);
+                $lis = '';
+                foreach ($items as $it) {
+                    $lis .= '<li class="border-b border-gray-100 py-3">' . htmlspecialchars((string) ($it['title'] ?? ''), ENT_QUOTES) . '</li>';
+                }
+                $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
+                    . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1><ul>'
+                    . ($lis !== '' ? $lis : '<li class="py-3 text-gray-400">…</li>') . '</ul></div>';
+            } else {
+                $homeDoc = HomeBloxDocument::load();
+                $ctxContext = HomeBloxRenderContext::fromCurrentSite(false);
+                $contextBody = HomeBloxRenderer::render($homeDoc['sections'], [$ctxContext, 'renderLegacyBlock']);
             }
-            $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
-                . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1><ul>'
-                . ($lis !== '' ? $lis : '<li class="py-3 text-gray-400">…</li>') . '</ul></div>';
-        } else {
-            $homeDoc = HomeBloxDocument::load();
-            $ctxContext = HomeBloxRenderContext::fromCurrentSite(false);
-            $contextBody = HomeBloxRenderer::render($homeDoc['sections'], [$ctxContext, 'renderLegacyBlock']);
+            BlockRenderer::$editChannelId = $savedEditChannel;
         }
-        BlockRenderer::$editChannelId = $savedEditChannel;
 
         // 命中报告：按所选上下文跑与前台 bloxAreaHtml() 同一套 Resolver 评分，
         // 报告该上下文线上实际激活哪个已发布模板——保证「预览命中 = 线上命中」。
@@ -94,8 +97,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // data-yk-area：区域契约标记——画布侧点选/拖放的作用域边界（编辑器据此圈定可编辑区）
         $editableArea = '<div data-yk-area="' . htmlspecialchars($templateArea, ENT_QUOTES) . '"'
             . ' data-yk-ctx-hit="' . $ctxHitId . '">' . $editableArea . '</div>';
-        $dim = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>';
-        $body = $templateArea === 'header' ? $editableArea . $dim : $dim . $editableArea;
+        $body = $templateArea === 'header'
+            ? $editableArea
+            : '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>' . $editableArea;
     } else {
         if ($isHomeLayout) {
             $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);

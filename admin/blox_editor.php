@@ -81,6 +81,7 @@ if ($isHomeBlox) {
     requirePermission('*');
 }
 $areaCtxOptions = []; // 头尾模板的预览上下文选项（首页/单页/栏目），仅 header/footer 模板非空
+$areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $documentIdentity = '';
 $homeBannerSeeds = [];
 $pageHasPublished = false;
@@ -176,10 +177,12 @@ if ($isHomeBlox) {
         ? 'current-theme-header:' . (string) config('current_theme', 'default')
         : 'template:' . $templateId;
     if (in_array($templateType, ['header', 'footer'], true)) {
-        // 头尾模板：预览 = 可编辑模板段 + 正文只读上下文（Bricks 的「可编辑区+上下文」模型）。
-        // r9：上下文可切换（首页/单页/栏目），服务端按所选上下文渲染正文并用前台同一套
-        // Resolver 报告命中模板——预览命中即线上命中。
+        // 页头只显示可编辑区域；页尾保留正文落底上下文。上下文选择仍使用前台同一套
+        // Resolver 报告命中模板，避免编辑中的适用范围与线上实际命中脱节。
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType;
+        if ($templateType === 'header') {
+            $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog('header');
+        }
         $areaCtxOptions[] = ['value' => 'home', 'label' => __('blox_ctx_home')];
         foreach (channelModel()->where(['status' => 1]) as $ctxCh) {
             $ctxChType = (string) ($ctxCh['type'] ?? '');
@@ -885,6 +888,15 @@ $canManageBloxDesign = hasPermission('*');
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
+            headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            headerPresetOpen: false,
+            headerPresetText: <?php echo json_encode([
+                'title' => __('blox_header_presets'),
+                'hint' => __('blox_header_presets_hint'),
+                'apply' => __('blox_header_preset_apply'),
+                'applied' => __('blox_header_preset_applied'),
+                'close' => __('close'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
             initialPanel: <?php echo json_encode($initialPanel); ?>,
             initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -1832,6 +1844,42 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateQuickFilter = "all";
                 this.templateQuery = "";
                 this.openTemplateDialog();
+            },
+
+            openHeaderPresets() {
+                if (!this.headerTemplateMode || this.headerPresets.length === 0) return;
+                this.headerPresetOpen = true;
+                this.focusDialog(this.$refs.headerPresetDialog, "[data-dialog-initial]");
+            },
+
+            closeHeaderPresets() {
+                if (!this.headerPresetOpen) return;
+                var root = this.$refs.headerPresetDialog;
+                this.headerPresetOpen = false;
+                this.releaseDialog(root);
+            },
+
+            applyHeaderPreset(preset) {
+                if (!this.headerTemplateMode || !preset || !Array.isArray(preset.sections)
+                    || preset.sections.length === 0) return;
+                var self = this;
+                var applied = this.commandRunner().execute("apply-header-preset", function () {
+                    var fresh = window.BloxTemplateLibrary.freshSections(
+                        preset.sections,
+                        function (prefix) { return self.uid(prefix); }
+                    );
+                    self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
+                    self.docSettings = JSON.parse(JSON.stringify(preset.settings || {}));
+                    self.normalizeHeaderSettings();
+                    self.selectedSi = fresh.length > 0 ? 0 : -1;
+                    self.selectedCi = -1;
+                    self.selectedEi = -1;
+                    self.selectedSubEi = -1;
+                    self.selLayer = fresh.length > 0 ? "sec" : "";
+                    self.closeHeaderPresets();
+                });
+                if (!applied.ok) return;
+                this.toast(this.headerPresetText.applied.replace(":name", preset.name || ""));
             },
 
             openPrebuiltSections() {
