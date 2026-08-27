@@ -419,6 +419,11 @@ DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境
 DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：不为更老版本生成增量（含 vendor 结构差异大，走全量更稳）
 DELTA_EXTRA_FILE="${DELTA_EXTRA_FILE:-$ROOT_DIR/tools/delta-bases.txt}"
 DELTA_JSON_ITEMS=()                    # 收集 releases.json 用的片段
+# 同一目标版本可能残留灰度时代或中断构建的 delta。新构建开始前先清掉，最终允许
+# 上传的集合只由本次生成的 deltas-v<version>.json 决定。
+rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
+      "$RELEASE_DIR"/delta-*-to-"$VERSION".sha256 \
+      "$RELEASE_DIR/deltas-v${VERSION}.json"
 if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
     # 基线集合 = 最近 N 个发布 ∪ 在野版本清单（tools/delta-bases.txt）。
     # 只取最近 N 个远远不够：增量包按 from 精确匹配，客户实际在跑的版本才是要覆盖的对象。

@@ -262,15 +262,22 @@ declare(strict_types=1);
 
     <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
-         @keydown="dialogKeydown($event, $refs.templateDialog, () => closeTemplates())"
-         role="dialog" aria-modal="true" aria-labelledby="blox-template-dialog-title"
-         class="fixed inset-0 z-[130] flex items-center justify-center p-6">
-        <div class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
-        <div class="relative bg-white rounded-xl shadow-2xl w-[900px] max-w-[94vw] flex flex-col"
-             style="max-height:calc(100vh - 4rem)">
+         data-testid="blox-template-dialog"
+         @keydown="templateDialogKeydown($event)"
+         role="dialog" :aria-modal="templateSectionsDocked() ? 'false' : 'true'" aria-labelledby="blox-template-dialog-title"
+         class="fixed inset-0 z-[130] flex"
+         :class="templateSectionsDocked() ? 'items-stretch justify-start pt-14 pointer-events-none' : 'items-center justify-center p-6'">
+        <div x-show="!templateSectionsDocked()" class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
+        <div data-testid="blox-template-panel"
+             class="relative bg-white shadow-2xl max-w-[94vw] flex flex-col pointer-events-auto"
+             :class="templateSectionsDocked()
+                 ? 'w-[520px] max-w-[calc(100vw-320px)] h-[calc(100vh-3.5rem)] rounded-none border-r border-gray-200'
+                : (templateEntry === 'sections' ? 'w-[1180px] rounded-xl' : 'w-[900px] rounded-xl')"
+             :style="templateSectionsDocked() ? 'max-height:calc(100vh - 3.5rem)' : 'max-height:calc(100vh - 4rem)'">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-template-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
-                    <i class="ti ti-template text-base text-blue-500"></i><span x-text="templateText.title"></span>
+                    <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : 'ti-template'"></i>
+                    <span x-text="templateEntry === 'sections' ? templateText.prebuiltTitle : templateText.title"></span>
                 </span>
                 <button type="button" @click="closeTemplates()" data-testid="blox-template-close" class="text-gray-400 hover:text-gray-600 p-1"
                         :title="templateText.close" :aria-label="templateText.close">
@@ -279,7 +286,7 @@ declare(strict_types=1);
             </div>
             <div class="h-11 px-3 border-b border-gray-100 shrink-0 flex items-end gap-1" role="tablist" :aria-label="templateText.title">
                 <button type="button" role="tab" data-testid="blox-template-tab-local"
-                        @click="templateScope = 'local'; templateCategory = 'all'" :aria-selected="templateScope === 'local'"
+                        @click="templateScope = 'local'; templateCategory = 'all'; templateQuickFilter = 'all'" :aria-selected="templateScope === 'local'"
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="templateScope === 'local' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-folders text-base"></i>
@@ -288,7 +295,7 @@ declare(strict_types=1);
                           x-text="templateScopeCount('local')"></span>
                 </button>
                 <button type="button" role="tab" data-testid="blox-template-tab-remote"
-                        @click="templateScope = 'remote'; templateCategory = 'all'" :aria-selected="templateScope === 'remote'"
+                        @click="templateScope = 'remote'; templateCategory = 'all'; templateQuickFilter = 'all'" :aria-selected="templateScope === 'remote'"
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="templateScope === 'remote' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-cloud-download text-base"></i>
@@ -298,13 +305,13 @@ declare(strict_types=1);
                 </button>
             </div>
             <div class="p-3 border-b border-gray-100 shrink-0 flex flex-wrap items-center gap-2">
-                <div class="relative flex-1 min-w-48">
+                <div class="relative flex-1 min-w-48" :class="templateSectionsDocked() ? 'basis-full' : ''">
                     <i class="ti ti-search text-sm text-gray-300 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
                     <input type="text" x-model="templateQuery" :placeholder="templateText.search"
                            data-dialog-initial data-testid="blox-template-search"
                            class="w-full border border-gray-200 rounded pl-8 pr-3 py-1.5 text-sm">
                 </div>
-                <div class="inline-flex rounded border border-gray-200 p-0.5">
+                <div x-show="templateEntry === 'all'" class="inline-flex rounded border border-gray-200 p-0.5">
                     <template x-for="filter in templateFilters" :key="filter.key">
                         <button type="button" @click="templateFilter = filter.key"
                                 :aria-pressed="templateFilter === filter.key"
@@ -324,13 +331,62 @@ declare(strict_types=1);
                         </template>
                     </select>
                 </label>
+                <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.prebuiltTitle"
+                     data-testid="blox-template-quick-filters"
+                     class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">
+                    <button type="button" @click="templateQuickFilter = 'all'"
+                            data-testid="blox-template-quick-all" :aria-pressed="templateQuickFilter === 'all'"
+                            class="px-2 rounded text-[11px] inline-flex items-center gap-1 transition"
+                            :class="templateQuickFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'">
+                        <span x-text="templateText.quickAll"></span>
+                        <span class="opacity-70" x-text="templateQuickCount('all')"></span>
+                    </button>
+                    <button type="button" @click="templateQuickFilter = 'favorites'"
+                            data-testid="blox-template-quick-favorites" :aria-pressed="templateQuickFilter === 'favorites'"
+                            :title="templateText.favorites" :aria-label="templateText.favorites"
+                            class="px-2 rounded text-[11px] inline-flex items-center gap-1 transition"
+                            :class="templateQuickFilter === 'favorites' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-amber-600'">
+                        <i class="ti ti-star text-xs"></i><span x-text="templateQuickCount('favorites')"></span>
+                    </button>
+                    <button type="button" @click="templateQuickFilter = 'recent'"
+                            data-testid="blox-template-quick-recent" :aria-pressed="templateQuickFilter === 'recent'"
+                            :title="templateText.recent" :aria-label="templateText.recent"
+                            class="px-2 rounded text-[11px] inline-flex items-center gap-1 transition"
+                            :class="templateQuickFilter === 'recent' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'">
+                        <i class="ti ti-history text-xs"></i><span x-text="templateQuickCount('recent')"></span>
+                    </button>
+                </div>
+                <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.density"
+                     data-testid="blox-template-density"
+                     class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">
+                    <button type="button" @click="setTemplateDensity('standard')"
+                            data-testid="blox-template-density-standard" :aria-pressed="templateDensity === 'standard'"
+                            :title="templateText.densityStandard" :aria-label="templateText.densityStandard"
+                            class="w-7 rounded inline-flex items-center justify-center transition"
+                            :class="templateDensity === 'standard' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'">
+                        <i class="ti ti-layout-grid text-sm"></i>
+                    </button>
+                    <button type="button" @click="setTemplateDensity('compact')"
+                            data-testid="blox-template-density-compact" :aria-pressed="templateDensity === 'compact'"
+                            :title="templateText.densityCompact" :aria-label="templateText.densityCompact"
+                            class="w-7 rounded inline-flex items-center justify-center transition"
+                            :class="templateDensity === 'compact' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'">
+                        <i class="ti ti-list text-sm"></i>
+                    </button>
+                </div>
                 <button type="button" @click="loadTemplates(true)" :disabled="templateLoading"
                         class="w-8 h-8 inline-flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-40"
                         :title="templateText.reload" :aria-label="templateText.reload">
                     <i class="ti" :class="templateLoading ? 'ti-loader-2 animate-spin' : 'ti-refresh'"></i>
                 </button>
             </div>
-            <div class="min-h-[320px] overflow-y-auto blox-scroll p-4">
+            <div x-show="templateEntry === 'sections'"
+                 class="px-4 py-2 border-b border-blue-100 bg-blue-50 text-xs text-blue-700 inline-flex items-center gap-2">
+                <i class="ti ti-map-pin-check shrink-0"></i>
+                <span x-text="templateText.insertTarget.replace(':target', insertHint())"></span>
+            </div>
+            <div x-ref="templateScroll" @scroll.passive="rememberTemplateSectionScroll($event.target.scrollTop)"
+                 class="min-h-[320px] overflow-y-auto blox-scroll p-4">
                 <div x-show="templateLoading" class="py-16 text-center text-sm text-gray-400">
                     <i class="ti ti-loader-2 animate-spin text-xl block mb-2"></i><span x-text="templateText.loading"></span>
                 </div>
@@ -342,47 +398,102 @@ declare(strict_types=1);
                     <i class="ti ti-cloud-off shrink-0"></i><span x-text="templateRemoteError"></span>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length === 0"
-                     class="py-16 text-center text-sm text-gray-400">
-                    <i class="ti text-2xl block mb-2" :class="templateScope === 'remote' ? 'ti-cloud-off' : 'ti-template-off'"></i>
-                    <span x-text="templateScope === 'remote' ? templateText.emptyRemote : templateText.emptyLocal"></span>
+                     data-testid="blox-template-empty" :data-empty-reason="templateEmptyReason()"
+                     class="py-16 text-center text-sm text-gray-500">
+                    <i class="ti text-2xl block mb-2" :class="templateEmptyIcon()"></i>
+                    <span class="block" x-text="templateEmptyMessage()"></span>
+                    <button type="button" x-show="templateCanClearFilters()" @click="clearTemplateSectionFilters()"
+                            data-testid="blox-template-clear-filters"
+                            class="mt-3 h-8 rounded border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 inline-flex items-center justify-center gap-1.5 hover:border-blue-300 hover:text-blue-700">
+                        <i class="ti ti-filter-off text-sm"></i><span x-text="templateText.clearFilters"></span>
+                    </button>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length > 0"
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                     class="grid"
+                     :class="templateEntry === 'sections' ? [(templateSectionsDocked() ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'), (templateCompactSections() ? 'gap-2' : 'gap-3')] : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'">
                     <template x-for="item in filteredTemplates()" :key="item.key">
                         <article data-testid="blox-template-item" :data-template-key="item.key"
-                                 :title="item.description || item.name"
-                                 class="min-h-52 overflow-hidden border border-gray-200 rounded-lg text-left flex flex-col transition hover:border-blue-300">
-                            <span class="relative block aspect-[16/7] overflow-hidden border-b border-gray-100 bg-gray-100">
+                                 :draggable="templateSectionDraggable(item)"
+                                 @dragstart="startTemplateDrag(item, $event)" @dragend="finishPaletteDrag()"
+                                 :title="templateSectionDraggable(item) ? templateText.dragHint.replace(':name', item.name) : (item.description || item.name)"
+                                 class="group overflow-hidden border border-gray-200 rounded-lg text-left flex transition hover:border-blue-300 hover:shadow-sm focus-within:border-blue-400"
+                                 :class="[(templateCompactSections() ? 'h-24 min-h-0 flex-row' : ((templateEntry === 'sections' ? 'min-h-64' : 'min-h-52') + ' flex-col')), (templateSectionDraggable(item) ? 'cursor-grab active:cursor-grabbing' : ''), (templateDragItem && templateDragItem.key === item.key ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm' : '')]">
+                            <span class="relative block overflow-hidden"
+                                :class="templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto bg-white' : ((templateEntry === 'sections' ? 'aspect-[16/8] bg-white' : 'aspect-[16/7] bg-gray-100') + ' border-b border-gray-100')">
                                 <img x-show="item.thumbnail" :src="item.thumbnail" alt="" loading="lazy"
-                                     class="h-full w-full object-cover">
+                                     class="h-full w-full" :class="templateEntry === 'sections' ? 'object-contain' : 'object-cover'">
                                 <span x-show="!item.thumbnail" class="absolute inset-0 flex items-center justify-center text-gray-400">
                                     <i class="ti text-3xl" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
                                 </span>
+                                <button type="button" x-show="templateEntry === 'sections' && item.type === 'section'"
+                                        @pointerdown.stop @click.stop="toggleTemplateFavorite(item.key)" draggable="false"
+                                        :data-testid="'blox-template-favorite-' + item.key"
+                                        :aria-pressed="isTemplateFavorite(item.key)"
+                                        :title="(isTemplateFavorite(item.key) ? templateText.removeFavorite : templateText.addFavorite).replace(':label', item.name)"
+                                        :aria-label="(isTemplateFavorite(item.key) ? templateText.removeFavorite : templateText.addFavorite).replace(':label', item.name)"
+                                        class="absolute inline-flex items-center justify-center rounded shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                        :class="[(isTemplateFavorite(item.key) ? 'bg-amber-50 text-amber-600' : 'bg-white/95 text-gray-500 hover:text-amber-500'), (templateCompactSections() ? 'right-1.5 top-1.5 w-7 h-7' : 'right-2 top-2 w-8 h-8')]">
+                                    <i class="ti ti-star text-base"></i>
+                                </button>
                             </span>
-                            <span class="flex flex-1 flex-col p-3">
-                            <span class="flex items-start justify-between gap-3">
-                                <span class="w-9 h-9 rounded bg-gray-100 text-gray-500 inline-flex items-center justify-center shrink-0">
-                                    <i class="ti text-lg" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
+                            <template x-if="templateEntry === 'sections'">
+                                <span data-testid="blox-template-section-bar"
+                                      class="flex flex-1 min-w-0 items-center gap-2 transition group-hover:bg-blue-50/50"
+                                      :class="templateCompactSections() ? 'p-2.5' : 'px-3 py-2.5 bg-gray-50'">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex min-w-0 items-center gap-1.5">
+                                            <span class="truncate text-sm font-semibold text-gray-800" x-text="item.name"></span>
+                                            <span x-show="item.paid" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                                  x-text="templateText.premium"></span>
+                                        </span>
+                                        <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
+                                              :class="item.locked ? 'text-amber-700' : 'text-gray-400'">
+                                            <i class="ti shrink-0" :class="item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user'))"></i>
+                                            <span class="truncate" x-text="item.locked ? templateLockLabel(item) : templateProviderLabel(item)"></span>
+                                        </span>
+                                    </span>
+                                    <template x-if="canEditLocalTemplate(item)">
+                                        <a :href="localTemplateEditUrl(item)" target="_blank" rel="noopener"
+                                           data-testid="blox-template-edit" :title="templateText.edit" :aria-label="templateText.edit + ': ' + item.name"
+                                           class="h-8 w-8 shrink-0 rounded border border-gray-200 bg-white text-gray-500 inline-flex items-center justify-center hover:border-blue-300 hover:text-blue-600">
+                                            <i class="ti ti-pencil text-sm"></i>
+                                        </a>
+                                    </template>
+                                    <button type="button" @click="insertTemplate(item)"
+                                            :disabled="templateInserting !== '' || !!item.locked"
+                                            data-testid="blox-template-insert"
+                                            :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insertSection)"
+                                            class="h-8 shrink-0 rounded border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 inline-flex items-center justify-center gap-1.5 hover:border-blue-600 hover:bg-blue-600 hover:text-white disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
+                                        <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
+                                        <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insertSection"></span>
+                                    </button>
                                 </span>
-                                <span class="inline-flex items-center gap-1">
-                                    <span x-show="item.paid" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
-                                          x-text="templateText.premium"></span>
-                                    <span class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
-                                          x-text="templateTypeLabel(item.type)"></span>
+                            </template>
+                            <template x-if="templateEntry !== 'sections'">
+                                <span class="flex flex-1 min-w-0 flex-col p-3">
+                                <span class="flex items-start justify-between gap-3">
+                                    <span class="w-9 h-9 rounded bg-gray-100 text-gray-500 inline-flex items-center justify-center shrink-0">
+                                        <i class="ti text-lg" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
+                                    </span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <span x-show="item.paid" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                              x-text="templateText.premium"></span>
+                                        <span class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
+                                              x-text="templateTypeLabel(item.type)"></span>
+                                    </span>
                                 </span>
-                            </span>
-                            <span class="block mt-3 text-sm font-medium text-gray-800 truncate" x-text="item.name"></span>
-                            <span x-show="item.description" class="block mt-1 text-xs text-gray-500 overflow-hidden"
-                                  style="min-height:2.5rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"
-                                  x-text="item.description"></span>
-                            <span class="mt-1 text-[11px] text-gray-400 inline-flex items-center gap-1">
-                                <i class="ti" :class="item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user')"></i>
-                                <span x-text="templateProviderLabel(item)"></span>
-                            </span>
-                            <span x-show="item.locked" class="block mt-1 text-[11px] text-amber-700">
-                                <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
-                            </span>
-                            <span class="mt-auto pt-3 flex items-center gap-2">
+                                <span class="block mt-3 text-sm font-medium text-gray-800 truncate" x-text="item.name"></span>
+                                <span x-show="item.description" class="block mt-1 text-xs text-gray-500 overflow-hidden"
+                                      style="min-height:2.5rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"
+                                      x-text="item.description"></span>
+                                <span class="mt-1 text-[11px] text-gray-400 inline-flex items-center gap-1">
+                                    <i class="ti" :class="item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user')"></i>
+                                    <span x-text="templateProviderLabel(item)"></span>
+                                </span>
+                                <span x-show="item.locked" class="block mt-1 text-[11px] text-amber-700">
+                                    <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
+                                </span>
+                                <span class="mt-auto pt-3 flex items-center gap-2">
                                 <button type="button" x-show="item.type === 'page' && pageMode" @click="replaceWithTemplate(item)"
                                         :disabled="templateInserting !== '' || !!item.locked"
                                         data-testid="blox-template-replace"
@@ -400,7 +511,7 @@ declare(strict_types=1);
                                             ? 'w-auto border border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
                                             : 'flex-1 border border-blue-600 bg-blue-600 text-white hover:border-blue-500 hover:bg-blue-500'">
                                     <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
-                                    <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insert"></span>
+                                    <span x-text="item.source === 'remote' ? templateText.downloadImport : (templateEntry === 'sections' ? templateText.insertSection : templateText.insert)"></span>
                                 </button>
                                 <button type="button" x-show="item.type === 'page' && pageMode && sections.length > 0"
                                         @click="insertTemplate(item)" :disabled="templateInserting !== '' || !!item.locked"
@@ -415,16 +526,21 @@ declare(strict_types=1);
                                         <i class="ti ti-pencil text-sm"></i><span x-text="templateText.edit"></span>
                                     </a>
                                 </template>
-                            </span>
-                            </span>
+                                </span>
+                                </span>
+                            </template>
                         </article>
                     </template>
                 </div>
             </div>
             <div class="h-12 px-4 flex items-center justify-between border-t border-gray-100 shrink-0">
                 <span class="text-xs text-gray-400" aria-live="polite"
-                      x-text="templateText.resultCount.replace(':shown', filteredTemplates().length).replace(':total', scopedTemplates().length)"></span>
+                      x-text="templateText.resultCount.replace(':shown', filteredTemplates().length).replace(':total', templateEntryItems().length)"></span>
                 <span class="inline-flex items-center gap-4">
+                    <button type="button" x-show="templateEntry === 'sections'" @click="openTemplates()"
+                            class="text-xs text-gray-500 hover:text-blue-700 inline-flex items-center gap-1">
+                        <i class="ti ti-template"></i><span x-text="templateText.allTemplates"></span>
+                    </button>
                     <a x-show="templateScope === 'remote' && hasLockedTemplates()" href="/admin/license.php"
                        class="text-xs text-amber-700 hover:text-amber-800 inline-flex items-center gap-1">
                         <i class="ti ti-key"></i><span x-text="templateText.manageLicense"></span>
@@ -537,7 +653,8 @@ declare(strict_types=1);
 
     <!-- toast -->
     <div x-show="toastMsg" x-transition data-testid="blox-toast"
-         class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
+         role="status" aria-live="polite" aria-atomic="true"
+         class="pointer-events-none fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
          x-text="toastMsg" style="display:none"></div>
 
     <!-- context menu -->

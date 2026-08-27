@@ -60,7 +60,7 @@ test("template resolution uses CSRF-protected POST", async function () {
     assert.equal(request.options.body.get("key"), "remote:pricing");
     assert.equal(request.options.body.get("_token"), "csrf-1");
 });
-test("filter searches remote descriptions and categories", function () {
+test("filter searches remote descriptions, keywords, and categories", function () {
     const items = [{
         key: "remote:pricing",
         type: "section",
@@ -68,10 +68,12 @@ test("filter searches remote descriptions and categories", function () {
         description: "Three pricing tiers",
         category: "marketing",
         provider: "update.yikaicms.com",
+        keywords: ["price", "comparison"],
     }];
 
     assert.equal(global.BloxTemplateLibrary.filter(items, "tiers", "all").length, 1);
     assert.equal(global.BloxTemplateLibrary.filter(items, "marketing", "section").length, 1);
+    assert.equal(global.BloxTemplateLibrary.filter(items, "comparison", "section").length, 1);
     assert.equal(global.BloxTemplateLibrary.filter(items, "marketing", "page").length, 0);
 });
 

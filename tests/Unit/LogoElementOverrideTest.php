@@ -16,12 +16,13 @@ use PHPUnit\Framework\TestCase;
 
 final class LogoElementOverrideTest extends TestCase
 {
-    /** @runInSeparateProcess 隔离全局函数定义（configRawLang stub 与其它测试互不污染） */
-    private function renderLogo(array $data): string
+    /** 通过全局测试值切换站点 Logo，configRawLang 桩只定义一次。 */
+    private function renderLogo(array $data, string $logo = '/images/logo.png'): string
     {
+        $GLOBALS['yikai_logo_test_url'] = $logo;
         if (!function_exists('configRawLang')) {
             eval('function configRawLang(string $key, string $default = ""): string {
-                return ["site_logo" => "/uploads/brand/site.png", "site_name" => "Acme"][$key] ?? $default;
+                return ["site_logo" => (string) ($GLOBALS["yikai_logo_test_url"] ?? ""), "site_name" => "Acme"][$key] ?? $default;
             }');
         }
         return (new LogoElement())->render($data);
@@ -30,15 +31,23 @@ final class LogoElementOverrideTest extends TestCase
     public function testDefaultFollowsSiteLogoWithPresetHeight(): void
     {
         $out = $this->renderLogo(['display' => 'image']);
-        $this->assertStringContainsString('src="/uploads/brand/site.png"', $out);
+        $this->assertStringContainsString('src="/images/logo.png"', $out);
         $this->assertStringContainsString('class="h-10 w-auto"', $out);
     }
 
     public function testLegacyCustomLogoDoesNotOverrideSiteSetting(): void
     {
         $out = $this->renderLogo(['display' => 'image', 'custom_logo' => '/uploads/brand/white.png']);
-        $this->assertStringContainsString('src="/uploads/brand/site.png"', $out);
+        $this->assertStringContainsString('src="/images/logo.png"', $out);
         $this->assertStringNotContainsString('white.png', $out);
+    }
+
+    public function testMissingLocalLogoFallsBackToSiteName(): void
+    {
+        $out = $this->renderLogo(['display' => 'both'], '/uploads/brand/missing-logo.png');
+
+        $this->assertStringNotContainsString('<img', $out);
+        $this->assertStringContainsString('>Acme</span>', $out);
     }
 
     public function testControlsDoNotExposePerHeaderLogoOverride(): void

@@ -1276,7 +1276,10 @@ function siteFaviconUrl(): string
 {
     $set = trim((string) config('site_favicon', ''));
     if ($set !== '') {
-        return $set;
+        $available = SiteAsset::availableUrl($set);
+        if ($available !== '') {
+            return $available;
+        }
     }
     return is_file(ROOT_PATH . '/favicon.ico') ? '/favicon.ico' : '';
 }

@@ -5,9 +5,12 @@ declare(strict_types=1);
     <!-- ===== 三栏主体 ===== -->
     <div class="flex" style="height: calc(100vh - 3.5rem);">
 
-        <?php // 左栏（Bricks 式）：元素库 ↔ 设置 同容器切换。选中区块/元素自动进设置，
+        <?php // 左栏：元素库 ↔ 设置在同一容器切换。选中区块/元素自动进设置，
               // 「＋ 元素」把 libOpen 置真强制回元素库；结构树移右栏常驻。 ?>
-        <aside class="blox-mobile-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col" :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''">
+        <aside data-testid="blox-left-panel"
+               class="blox-mobile-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
+               :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''"
+               :style="leftPanelStyle()">
 
             <!-- ── 元素库（无选中或 libOpen） ── -->
             <div x-show="!sel || libOpen" class="flex-1 flex flex-col min-h-0">
@@ -21,19 +24,30 @@ declare(strict_types=1);
                     </button>
                 </div>
                 <div class="p-2 border-b border-gray-100 shrink-0">
-                    <div class="relative">
-                        <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
-                        <input type="text" x-ref="libSearch" x-model="libQuery" placeholder="<?= e(__('blox_search_elements')) ?>"
-                               class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
+                    <div class="flex items-center gap-1.5">
+                        <div class="relative flex-1 min-w-0">
+                            <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" x-ref="libSearch" x-model="libQuery" placeholder="<?= e(__('blox_search_elements')) ?>"
+                                   class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
+                        </div>
+                        <select x-model="libCategory" data-testid="blox-element-category"
+                                title="<?= e(__('blox_element_category_filter')) ?>"
+                                aria-label="<?= e(__('blox_element_category_filter')) ?>"
+                                class="w-24 shrink-0 border border-gray-200 rounded bg-white px-2 py-1.5 text-xs text-gray-600">
+                            <template x-for="option in elementCategoryOptions" :key="option.value">
+                                <option :value="option.value" x-text="option.label"></option>
+                            </template>
+                        </select>
                     </div>
-                                        <?php // 插入目标：空白页可直接点元素，已有区块但未选中时才提示选择目标 ?>
+                    <?php // 触屏插入目标：空白页可直接点元素，已有区块但未选中时提示选择目标。 ?>
                     <template x-if="sections.length === 0">
                         <p class="text-[10px] text-blue-500 mt-1.5 leading-relaxed">
                             <?= __('blox_blank_auto_section') ?>
                         </p>
                     </template>
-                    <template x-if="selectedSi < 0 && sections.length > 0">
-                        <p class="text-[10px] text-amber-600 mt-1.5 leading-relaxed">
+                    <template x-if="paletteTapMode && selectedSi < 0 && sections.length > 0">
+                        <p data-testid="blox-pick-section-hint"
+                           class="text-[10px] text-amber-600 mt-1.5 leading-relaxed">
                             <?= __('blox_pick_section_first') ?>
                         </p>
                     </template>
@@ -59,26 +73,40 @@ declare(strict_types=1);
                 <?php // pb-24：滚动到底时给最后一排瓦片留出充足空位（用户 2026-08-20 反馈 pb-16 仍紧） ?>
                 <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24">
                     <template x-for="grp in filteredLib()" :key="grp.cat">
-                        <div class="mb-3">
-                            <?php // 分类标题可折叠（Bricks 式）；搜索时忽略折叠态全部展开 ?>
+                        <div class="mb-3" :data-testid="'blox-element-group-' + grp.cat">
+                            <?php // 分类标题可折叠；搜索或单类筛选时忽略折叠态全部展开 ?>
                             <button type="button" @click="catOpen[grp.cat] = !isCatOpen(grp.cat)"
                                     class="w-full flex items-center justify-between px-1 mb-1.5 text-[11px] font-medium text-gray-500 hover:text-gray-700">
-                                <span x-text="grp.label"></span>
-                                <i class="ti ti-chevron-down text-xs transition-transform" :class="isCatOpen(grp.cat) || libQuery.trim() ? '' : '-rotate-90'"></i>
+                                <span class="inline-flex items-center gap-1">
+                                    <i x-show="grp.icon" class="ti text-xs" :class="'ti-' + grp.icon"></i>
+                                    <span x-text="grp.label"></span>
+                                </span>
+                                <i class="ti ti-chevron-down text-xs transition-transform" :class="isCatOpen(grp.cat) || libQuery.trim() || libCategory !== 'all' ? '' : '-rotate-90'"></i>
                             </button>
-                            <div x-show="isCatOpen(grp.cat) || libQuery.trim()" class="grid grid-cols-2 gap-1.5">
+                            <div x-show="isCatOpen(grp.cat) || libQuery.trim() || libCategory !== 'all'" class="grid grid-cols-2 gap-1.5">
                                 <template x-for="el in grp.items" :key="el.type">
-                                    <?php // 点击=插入到选中目标；拖拽=拖到结构树或画布的目标位置（路线图③）。
-                                          // 拖拽自带目标，所以瓦片不再因未选中而禁用 ?>
-                                    <button type="button" @click="addElement(el)" :data-testid="'blox-add-element-' + el.type"
-                                            draggable="true"
-                                            @dragstart="dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
-                                            @dragend="dragEl = null; dragOver = ''; canvasBridge().post({ ykDragType: '' })"
-                                            class="h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
-                                            :title="el.label + <?= e($jt('blox_el_insert_hint')) ?>">
-                                        <i class="ti text-lg" :class="'ti-' + el.icon"></i>
-                                        <span class="text-[11px] leading-none" x-text="el.label"></span>
-                                    </button>
+                                    <?php // 桌面点击只选中并提示拖拽，键盘/触屏则沿用选中目标插入，兼顾防误触与可访问性。 ?>
+                                    <div class="relative min-w-0">
+                                        <button type="button" @click="activatePaletteElement(el, $event)"
+                                                :data-testid="(grp.quick ? 'blox-quick-element-' : 'blox-add-element-') + el.type"
+                                                draggable="true"
+                                                @dragstart="startPaletteDrag(el, $event)"
+                                                @dragend="finishPaletteDrag()"
+                                                class="w-full h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
+                                                :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
+                                                :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
+                                            <i class="ti text-lg" :class="'ti-' + el.icon"></i>
+                                            <span class="max-w-full px-2 text-[11px] leading-tight text-center truncate" x-text="el.label"></span>
+                                        </button>
+                                        <button type="button" @click.stop="toggleElementFavorite(el.type)"
+                                                :data-testid="(grp.quick ? 'blox-quick-favorite-element-' : 'blox-favorite-element-') + el.type"
+                                                :title="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
+                                                :aria-label="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
+                                                class="absolute top-0.5 right-0.5 w-7 h-7 inline-flex items-center justify-center rounded text-gray-300 hover:text-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                                :class="isElementFavorite(el.type) ? 'text-amber-500' : ''">
+                                            <i class="ti text-sm" :class="isElementFavorite(el.type) ? 'ti-star-filled' : 'ti-star'"></i>
+                                        </button>
+                                    </div>
                                 </template>
                             </div>
                         </div>
@@ -87,7 +115,7 @@ declare(strict_types=1);
                         <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_no_matching_elements') ?></p>
                     </template>
                     <p class="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2 mt-1">
-                        <?= __('blox_library_hint') ?>
+                        <?= __('blox_library_drag_hint') ?>
                         <?= __('blox_banner_hint') ?>
                     </p>
                 </div>
@@ -2103,7 +2131,7 @@ declare(strict_types=1);
                             </div>
 
                             <div x-show="panelTab === 'style'" class="space-y-5">
-                                <?php // 分层随结构树选中（Bricks 心智）：树里选「区块」→ 全宽背景层设置，
+                                <?php // 分层随结构树选中：树里选「区块」→ 全宽背景层设置，
                                       // 选「容器」节点 → 内容层设置。一次只显示当前层。 ?>
                                 <div x-show="selLayer === 'sec'" class="space-y-5">
                                 <!-- 背景色 -->
@@ -2745,8 +2773,31 @@ declare(strict_types=1);
             </div>
         </aside>
 
+        <div data-testid="blox-left-panel-resizer"
+             class="blox-panel-resizer"
+             :class="leftPanelResizing ? 'is-active' : ''"
+             role="separator" aria-orientation="vertical" tabindex="0"
+             aria-valuemin="240" :aria-valuemax="leftPanelMaximum()"
+             :aria-valuenow="leftPanelWidth" :aria-valuetext="leftPanelWidth + 'px'"
+             aria-controls="blox-canvas-workspace"
+             title="<?= e(__('blox_resize_element_panel_hint')) ?>"
+             aria-label="<?= e(__('blox_resize_element_panel')) ?>"
+             @pointerdown="startLeftPanelResize($event)"
+             @pointermove="resizeLeftPanel($event)"
+             @pointerup="finishLeftPanelResize($event)"
+             @pointercancel="finishLeftPanelResize($event)"
+             @dblclick="resetLeftPanelWidth()"
+             @keydown.left.prevent="resizeLeftPanelBy(-16)"
+             @keydown.right.prevent="resizeLeftPanelBy(16)"
+             @keydown.home.prevent="resetLeftPanelWidth()">
+            <span aria-hidden="true"></span>
+        </div>
+
         <!-- 中：画布 -->
-        <main x-ref="canvasHost" data-testid="blox-canvas-host" class="flex-1 min-w-0 bg-gray-200 overflow-auto flex flex-col" @contextmenu.prevent="openCtx($event, 'canvas', {})">
+        <main id="blox-canvas-workspace" x-ref="canvasHost" data-testid="blox-canvas-host"
+              class="flex-1 min-w-0 bg-gray-200 flex flex-col"
+              :class="canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"
+              @contextmenu.prevent="openCtx($event, 'canvas', {})">
             <div x-show="legacyPageContent" x-cloak data-testid="blox-legacy-page-notice"
                  class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900 sm:px-4">
                 <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">
@@ -2778,6 +2829,15 @@ declare(strict_types=1);
                 <iframe x-ref="canvas" data-testid="blox-canvas"
                         class="bg-white shadow-xl border-0 rounded"
                         :style="previewFrameStyle()"></iframe>
+                <?php // 原生 HTML5 拖放无法可靠跨 iframe。拖动期间由父页面透明层接收事件，
+                      // 再把画布坐标交给预览页解析，普通点击时保持 pointer-events:none。 ?>
+                <div data-testid="blox-canvas-drop-bridge"
+                     aria-hidden="true"
+                     @dragover.prevent.stop="canvasPaletteDragOver($event)"
+                     @dragleave="canvasPaletteDragLeave($event)"
+                     @drop.prevent.stop="canvasPaletteDrop($event)"
+                     class="absolute inset-0 z-30"
+                     :class="canvasDragActive ? 'pointer-events-auto' : 'pointer-events-none'"></div>
                 <?php
                 // 空画布的提示只保留一处 —— 由预览页自己渲染（BloxCanvasPreview 的
                 // .yk-empty-doc：「画布还是空的 / 从模板库导入 / 从空白区块开始」）。
@@ -2794,43 +2854,95 @@ declare(strict_types=1);
             </div>
         </main>
 
-        <!-- 右：结构树（常驻，Bricks / PS 图层式） -->
-        <aside class="blox-mobile-panel w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col" :class="mobilePanel === 'structure' ? 'is-open' : ''">
-            <div class="h-10 px-3 flex items-center border-b border-gray-100 shrink-0">
-                <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1">
+        <div x-show="!rightPanelCollapsed"
+             data-testid="blox-right-panel-resizer"
+             class="blox-panel-resizer is-right"
+             :class="rightPanelResizing ? 'is-active' : ''"
+             role="separator" aria-orientation="vertical" tabindex="0"
+             aria-valuemin="224" :aria-valuemax="rightPanelMaximum()"
+             :aria-valuenow="rightPanelWidth" :aria-valuetext="rightPanelWidth + 'px'"
+             aria-controls="blox-structure-panel"
+             title="<?= e(__('blox_resize_structure_panel_hint')) ?>"
+             aria-label="<?= e(__('blox_resize_structure_panel')) ?>"
+             @pointerdown="startRightPanelResize($event)"
+             @pointermove="resizeRightPanel($event)"
+             @pointerup="finishRightPanelResize($event)"
+             @pointercancel="finishRightPanelResize($event)"
+             @dblclick="resetRightPanelWidth()"
+             @keydown.left.prevent="resizeRightPanelBy(16)"
+             @keydown.right.prevent="resizeRightPanelBy(-16)"
+             @keydown.home.prevent="resetRightPanelWidth()">
+            <span aria-hidden="true"></span>
+        </div>
+
+        <!-- 右：常驻结构树 -->
+        <aside id="blox-structure-panel" data-testid="blox-right-panel"
+               class="blox-mobile-panel blox-structure-panel w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col"
+               :class="mobilePanel === 'structure' ? 'is-open' : ''" :style="rightPanelStyle()">
+            <div class="h-10 px-2 flex items-center border-b border-gray-100 shrink-0"
+                 :class="rightPanelContentVisible() ? 'justify-between' : 'justify-center'">
+                <span x-show="rightPanelContentVisible()" class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1">
                     <i class="ti ti-list-tree text-sm"></i><?= __('blox_mobile_structure') ?>
                     <span class="text-[10px] font-normal opacity-70" x-text="sections.length"></span>
                 </span>
+                <button type="button" data-testid="blox-right-panel-toggle"
+                        class="blox-structure-collapse h-7 w-7 shrink-0 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 inline-flex items-center justify-center"
+                        :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
+                        :aria-label="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
+                        :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel"
+                        @click="toggleRightPanel()">
+                    <i class="ti text-sm" :class="rightPanelCollapsed ? 'ti-chevron-left' : 'ti-chevron-right'"></i>
+                </button>
             </div>
-            <div class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
+            <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
+                <p class="sr-only" role="status" aria-live="polite" aria-atomic="true"
+                   x-text="treeDropIntent ? treeDropIntent.label : ''"></p>
                 <template x-if="sections.length === 0">
                     <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_click_any_element') ?></p>
                 </template>
                 <template x-for="(section, si) in sections" :key="section.id">
                     <div @click="selectSection(si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
-                         :data-section-id="section.id" :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
+                         :data-section-id="section.id" :data-section-index="si"
+                         :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
                          class="rounded-lg border cursor-pointer transition group"
                          :class="selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200'">
-                        <div data-section-drag-handle class="flex items-center gap-2 px-2.5 py-2">
+                        <div data-section-drag-handle class="blox-tree-drop-node flex items-center gap-2 px-2.5 py-2">
+                            <span x-cloak x-show="treeDropMatches('template-section:' + si + ':before')"
+                                  class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                  :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                  :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                            </span>
                             <i class="ti ti-layout-board text-sm shrink-0"
                                :class="selectedSi === si ? 'text-blue-500' : 'text-gray-400'"></i>
                             <span class="text-sm truncate flex-1" :title="sectionLabel(section, si)"
                                   data-testid="blox-tree-section-label" x-text="sectionLabel(section, si)"></span>
                             <span class="text-[10px] text-gray-400" x-text="<?= e($jt('blox_n_elements')) ?>.replace(':n', elCount(section))"></span>
+                            <span x-cloak x-show="treeDropMatches('template-section:' + si + ':after')"
+                                  class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                  :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                  :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                            </span>
                         </div>
-                        <!-- 该区块展开：容器节点 → 列 → 元素（Bricks 的 Section/Container 分层树） -->
+                        <!-- 该区块展开：容器节点 → 列 → 元素 -->
                         <div x-show="selectedSi === si" x-collapse>
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"
                                      @contextmenu.prevent.stop="openCtx($event, 'container', {si: si})"
-                                     @dragover.prevent="dragOver = 'con' + si" @dragleave="dragOver = ''"
-                                     @drop.prevent="treeDrop(si, 0, null)"
-                                     class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer transition"
-                                     :class="dragOver === 'con' + si ? 'ring-2 ring-blue-300 bg-blue-50' : (isContainerSelected(si) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                     @dragover="treeColumnDragOver($event, si, 0, 'section-container:' + si + '.0')"
+                                     @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
+                                     class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer transition"
+                                     :class="(treeDropMatches('section-container:' + si + '.0:column-end') || treeDropMatches('section-container:' + si + '.0:section-after')) ? 'blox-tree-drop-inside-valid' : (isContainerSelected(si) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
                                     <i class="ti ti-box-margin text-xs shrink-0"></i>
                                     <span class="text-xs flex-1"><?= __('blox_tree_container') ?></span>
                                     <span class="text-[10px] text-gray-400" x-text="section.columns.length > 1 ? <?= e($jt('blox_n_cols')) ?>.replace(':n', section.columns.length) : ''"></span>
+                                    <span x-cloak x-show="treeDropMatches('section-container:' + si + '.0:column-end') || treeDropMatches('section-container:' + si + '.0:section-after')"
+                                          class="blox-tree-drop-inside" data-testid="blox-tree-drop-indicator"
+                                          :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                          :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
+                                          x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                 </div>
                             <div class="ml-3 pl-1.5 border-l border-gray-100 space-y-1">
                                 <template x-if="section.settings && section.settings.title">
@@ -2888,11 +3000,10 @@ declare(strict_types=1);
                                 </template>
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
                                     <div x-show="!isProjectedHomeColumnsSection(section)"
-                                         @dragover.prevent="dragOver = 'c' + si + '-' + ci" @dragleave="dragOver = ''"
-                                         @drop.prevent="treeDrop(si, ci, null)"
+                                         @dragover="treeColumnDragOver($event, si, ci, 'column:' + si + '.' + ci)"
+                                         @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                          :data-si="si" :data-ci="ci" data-sort-elements data-testid="blox-tree-column"
-                                         class="rounded transition"
-                                         :class="dragOver === 'c' + si + '-' + ci ? 'ring-2 ring-blue-300 bg-blue-50' : ''">
+                                         class="blox-tree-drop-node rounded transition">
                                         <?php // 单列时不显示列标题——只有一列，说「列1」是噪音 ?>
                                         <div @click.stop="selectColumn(si, ci)"
                                              @contextmenu.prevent.stop="openCtx($event, 'column', {si: si, ci: ci})"
@@ -2905,6 +3016,13 @@ declare(strict_types=1);
                                         <template x-if="col.elements.length === 0">
                                             <p class="text-[10px] text-gray-300 pl-2 py-1"><?= __('blox_tree_empty') ?></p>
                                         </template>
+                                        <span x-cloak x-show="treeDropMatches('column:' + si + '.' + ci + ':column-end') || treeDropMatches('column:' + si + '.' + ci + ':section-after')"
+                                              class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                              :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                              :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                              :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                            <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                        </span>
                                         <template x-for="(el, ei) in col.elements" :key="el.id">
                                             <div :data-item-id="el.id"
                                                  :data-element-type="el.type"
@@ -2912,10 +3030,10 @@ declare(strict_types=1);
                                                  data-sort-el-item data-testid="blox-tree-element">
                                                 <div data-element-drag-handle @click.stop="selectElement(si, ci, ei)"
                                                      @contextmenu.prevent.stop="openCtx($event, 'element', {si: si, ci: ci, ei: ei})"
-                                                     @dragover.prevent.stop="elSchema(el.type).container && (dragOver = 'ce' + si + '-' + ci + '-' + ei)"
-                                                     @drop.prevent.stop="elSchema(el.type).container ? treeDrop(si, ci, ei) : treeDrop(si, ci, null)"
-                                                     class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/el transition"
-                                                     :class="dragOver === 'ce' + si + '-' + ci + '-' + ei ? 'ring-2 ring-blue-300 bg-blue-50' : (isElSelected(si,ci,ei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                                     @dragover="treeElementDragOver($event, si, ci, ei, el)"
+                                                     @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
+                                                     class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/el transition"
+                                                     :class="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside') ? (treeDropIntent && treeDropIntent.valid ? 'blox-tree-drop-inside-valid' : 'blox-tree-drop-inside-invalid') : (isElSelected(si,ci,ei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
                                                     <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(el.type)"></i>
                                                     <span class="text-xs truncate flex-1" x-text="elLabel(el)"></span>
                                                     <span class="hidden group-hover/el:flex items-center gap-0.5 shrink-0">
@@ -2929,6 +3047,23 @@ declare(strict_types=1);
                                                                 class="p-0.5 hover:text-red-500" title="<?= e(__('delete')) ?>">
                                                             <i class="ti ti-trash text-xs"></i></button>
                                                     </span>
+                                                    <span x-cloak x-show="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':before')"
+                                                          class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                          data-drop-intent="before" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                        <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                    </span>
+                                                    <span x-cloak x-show="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':after')"
+                                                          class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                          data-drop-intent="after" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                        <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                    </span>
+                                                    <span x-cloak x-show="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside')"
+                                                          class="blox-tree-drop-inside" data-testid="blox-tree-drop-indicator"
+                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                          data-drop-intent="inside" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
+                                                          x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                 </div>
                                                 <!-- 容器：子元素嵌套一层（图层式） -->
                                                 <template x-if="elSchema(el.type).container && (el.type !== 'home-block' || String((el.data || {}).block_type || '') === 'banner')">
@@ -2939,8 +3074,10 @@ declare(strict_types=1);
                                                         <template x-for="(cel, cei) in (el.data.children || [])" :key="cel.id">
                                                             <div data-child-drag-handle @click.stop="selectChild(si, ci, ei, cei)"
                                                                  @contextmenu.prevent.stop="openCtx($event, 'child', {si: si, ci: ci, ei: ei, cei: cei})"
+                                                                 @dragover="treeChildDragOver($event, si, ci, ei, cei)"
+                                                                 @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                                                  :data-item-id="cel.id" :data-element-type="cel.type" data-sort-child-item
-                                                                 class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
+                                                                 class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
                                                                  :class="isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
                                                                 <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(cel.type)"></i>
                                                                 <span class="text-xs truncate flex-1" x-text="elLabel(cel)"></span>
@@ -2954,6 +3091,18 @@ declare(strict_types=1);
                                                                     <button type="button" @click.stop="deleteChild(si,ci,ei,cei)"
                                                                             class="p-0.5 hover:text-red-500" title="<?= e(__('delete')) ?>">
                                                                         <i class="ti ti-trash text-xs"></i></button>
+                                                                </span>
+                                                                <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':before')"
+                                                                      class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                                                      :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                                      data-drop-intent="before" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                                    <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                                </span>
+                                                                <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':after')"
+                                                                      class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                                                      :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                                      data-drop-intent="after" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                                    <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                                 </span>
                                                             </div>
                                                         </template>
@@ -3014,7 +3163,7 @@ declare(strict_types=1);
                 </template>
             </div>
             <!-- 加区块 -->
-            <div class="border-t border-gray-100 p-2 shrink-0">
+            <div x-show="rightPanelContentVisible()" class="border-t border-gray-100 p-2 shrink-0">
                 <div class="flex items-center justify-between mb-1.5 px-1">
                     <span class="text-[10px] text-gray-400"><?= __('blox_add_section_cols') ?></span>
                     <span class="text-[10px] text-blue-500" x-text="insertHint()"></span>

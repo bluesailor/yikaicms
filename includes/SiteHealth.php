@@ -4,6 +4,8 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/SiteAsset.php';
+
 final class SiteHealth
 {
     public const CRITICAL = 'critical';
@@ -38,6 +40,7 @@ final class SiteHealth
             self::checkPasswordHashes(),
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
+            self::checkBrandAssets($root),
         ];
 
         if (function_exists('apply_filters')) {
@@ -136,6 +139,45 @@ final class SiteHealth
                 'healthy' => (string) $healthy,
                 'unsupported' => (string) $unsupported,
             ]
+        );
+    }
+
+    /**
+     * @param list<array{label:string,url:string}> $assets
+     * @return array<string,mixed>
+     */
+    public static function brandAssetsResult(array $assets, ?string $root = null): array
+    {
+        $configured = 0;
+        $remote = 0;
+        $issues = [];
+        foreach ($assets as $asset) {
+            $url = trim((string) ($asset['url'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+            $configured++;
+            $inspection = SiteAsset::inspect($url, $root);
+            if ($inspection['state'] === SiteAsset::REMOTE) {
+                $remote++;
+            } elseif (in_array($inspection['state'], [SiteAsset::LOCAL_MISSING, SiteAsset::INVALID], true)) {
+                $label = trim((string) ($asset['label'] ?? ''));
+                $issues[] = $label !== '' ? $label : self::t('health_brand_assets_unnamed');
+            }
+        }
+
+        if ($issues !== []) {
+            return self::result(
+                'brand_assets', self::RECOMMENDED, 'operations',
+                'health_brand_assets_title', 'health_brand_assets_bad', '/admin/setting.php?tab=basic',
+                ['assets' => implode(', ', array_values(array_unique($issues)))]
+            );
+        }
+
+        return self::result(
+            'brand_assets', self::GOOD, 'operations',
+            'health_brand_assets_title', 'health_brand_assets_good', '/admin/setting.php?tab=basic',
+            ['count' => (string) $configured, 'remote' => (string) $remote]
         );
     }
 
@@ -652,6 +694,36 @@ final class SiteHealth
         $recent = $latest > time() - 14 * 86400;
         return self::result('recent_backup', $recent ? self::GOOD : self::RECOMMENDED, 'operations',
             'health_backup_title', $recent ? 'health_backup_good' : 'health_backup_bad', '/admin/database.php?tab=backup');
+    }
+
+    /** @return array<string,mixed> */
+    private static function checkBrandAssets(string $root): array
+    {
+        $siteLogo = (string) config('site_logo', '');
+        $assets = [
+            ['label' => self::t('setting_site_logo'), 'url' => $siteLogo],
+            ['label' => self::t('setting_site_favicon'), 'url' => (string) config('site_favicon', '')],
+            ['label' => self::t('setting_admin_logo'), 'url' => (string) config('admin_logo', '')],
+        ];
+
+        $enabled = json_decode((string) config('enabled_languages', '[]'), true);
+        if (is_array($enabled)) {
+            foreach ($enabled as $language) {
+                $language = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $language) ?? '';
+                if ($language === '') {
+                    continue;
+                }
+                $localized = (string) config('site_logo_' . $language, '');
+                if ($localized !== '' && $localized !== $siteLogo) {
+                    $assets[] = [
+                        'label' => self::t('setting_site_logo') . ' (' . $language . ')',
+                        'url' => $localized,
+                    ];
+                }
+            }
+        }
+
+        return self::brandAssetsResult($assets, $root);
     }
 
     /**

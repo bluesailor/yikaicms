@@ -1,0 +1,25 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Image and text reversed",
+    "requires": {"elements": ["image", "heading", "divider", "text", "button"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "图文介绍（图片在左）",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center"},
+            "columns": [
+                {"elements": [{"type": "image", "data": {"src": "/images/product-demo.jpg", "alt": "产品与服务展示"}}]},
+                {"elements": [
+                    {"type": "heading", "data": {"text": "把复杂问题说清楚", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+                    {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm"}},
+                    {"type": "text", "data": {"html": "<p class=\"yk-copy\">先说明客户面对的具体问题，再介绍您的解决方式和最关键的差异。</p><p class=\"yk-copy\">用可验证的数据、交付范围或服务承诺支撑结论，避免只写宽泛口号。</p>"}},
+                    {"type": "button", "data": {"text": "查看解决方案", "url": "/service.html", "variant": "primary", "align": "left"}}
+                ]}
+            ]
+        }]
+    }
+}

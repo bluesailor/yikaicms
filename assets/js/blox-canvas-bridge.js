@@ -25,6 +25,10 @@
         return typeof value === "string" && /^\d+\.\d+\.\d+(?:\.\d+)?$/.test(value);
     }
 
+    function isTopLevelElementPath(value) {
+        return typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
+    }
+
     function elementTargetPayload(value) {
         if (!isObject(value) || !isSectionId(value.id) || !isElementPath(value.path)) return null;
         return { id: value.id, path: value.path };
@@ -155,6 +159,8 @@
         if (value.target.kind === "column" && isIndex(value.target.sec) && isIndex(value.target.col)
             && value.target.position === "end") {
             target = { kind: "column", sec: value.target.sec, col: value.target.col, position: "end" };
+        } else if (value.target.kind === "container" && isTopLevelElementPath(value.target.path)) {
+            target = { kind: "container", path: value.target.path };
         } else if (value.target.kind === "element" && isElementPath(value.target.path)
             && (value.target.position === "before" || value.target.position === "after")) {
             target = { kind: "element", path: value.target.path, position: value.target.position };
@@ -164,12 +170,20 @@
         return { version: 1, type: value.type, sec: value.sec, col: value.col, dropId: value.dropId, target: target };
     }
 
+    function templateDropPayload(value) {
+        if (!isObject(value) || value.version !== 1 || !isIndex(value.index)) return null;
+        if (typeof value.key !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9:._\/-]{0,191}$/.test(value.key)) return null;
+        if (typeof value.dropId !== "string" || value.dropId.length < 1 || value.dropId.length > 128) return null;
+        return { version: 1, key: value.key, index: value.index, dropId: value.dropId };
+    }
+
     function BloxCanvasBridge(options) {
         options = options || {};
         this.getFrame = options.getFrame;
         this.onColumnRatio = options.onColumnRatio || noop;
         this.onContext = options.onContext || noop;
         this.onDrop = options.onDrop || noop;
+        this.onTemplateDrop = options.onTemplateDrop || noop;
         this.onInlineEdit = options.onInlineEdit || noop;
         this.onEditSectionField = options.onEditSectionField || noop;
         this.onPickSectionField = options.onPickSectionField || noop;
@@ -242,6 +256,14 @@
             if (this.lastDropId === payload.dropId) return true;
             this.lastDropId = payload.dropId;
             this.onDrop(payload);
+            return true;
+        }
+        if (data.ykTemplateDrop !== undefined) {
+            payload = templateDropPayload(data.ykTemplateDrop);
+            if (!payload) return false;
+            if (this.lastDropId === payload.dropId) return true;
+            this.lastDropId = payload.dropId;
+            this.onTemplateDrop(payload);
             return true;
         }
         if (data.ykInlineEdit !== undefined) {

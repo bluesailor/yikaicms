@@ -627,8 +627,73 @@ $canManageBloxDesign = hasPermission('*');
         [x-cloak] { display: none !important; }
         .blox-scroll { scrollbar-width: thin; }
         .blox-sort-ghost { opacity: .45; border: 1px dashed #3b82f6; background: #eff6ff; }
+        .blox-palette-drag-ghost { position: fixed; left: -9999px; top: -9999px; z-index: 9999; display: flex; max-width: 220px; align-items: center; gap: 8px; overflow: hidden; border-radius: 6px; background: #fff; padding: 7px 10px 7px 7px; color: #1e3a8a; box-shadow: 0 8px 20px rgba(15, 23, 42, .18); font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
+        .blox-palette-drag-ghost-icon { display: flex; width: 26px; height: 26px; flex: 0 0 26px; align-items: center; justify-content: center; border-radius: 4px; background: #eff6ff; color: #2563eb; }
+        .blox-palette-drag-ghost-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .blox-tree-drop-node { position: relative; }
+        .blox-tree-drop-line {
+            position: absolute; left: .25rem; right: .25rem; z-index: 20; height: 2px;
+            background: #2563eb; border-radius: 2px; pointer-events: none;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, .9);
+        }
+        .blox-tree-drop-line.is-before { top: -1px; }
+        .blox-tree-drop-line.is-after { bottom: -1px; }
+        .blox-tree-drop-line.is-invalid { background: #dc2626; }
+        .blox-tree-drop-label {
+            position: absolute; right: 0; top: 50%; max-width: 11rem; padding: 2px 5px;
+            transform: translateY(-50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            color: #fff; background: #1d4ed8; border-radius: 3px;
+            font: 600 10px/1.35 system-ui, sans-serif; box-shadow: 0 2px 6px rgba(15, 23, 42, .2);
+        }
+        .blox-tree-drop-line.is-invalid .blox-tree-drop-label,
+        .blox-tree-drop-inside.is-invalid { background: #b91c1c; }
+        .blox-tree-drop-inside {
+            position: absolute; right: .25rem; top: 50%; z-index: 20; max-width: 11rem;
+            transform: translateY(-50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            padding: 2px 5px; color: #fff; background: #1d4ed8; border-radius: 3px;
+            font: 600 10px/1.35 system-ui, sans-serif; pointer-events: none;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, .2);
+        }
+        .blox-tree-drop-inside-valid { outline: 2px solid #60a5fa; outline-offset: -2px; }
+        .blox-tree-drop-inside-invalid { outline: 2px solid #ef4444; outline-offset: -2px; }
         .blox-scroll::-webkit-scrollbar { width: 6px; }
         .blox-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .blox-panel-resizer {
+            display: flex;
+            width: 8px;
+            flex: 0 0 8px;
+            align-items: center;
+            justify-content: center;
+            cursor: col-resize;
+            touch-action: none;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+        }
+        .blox-panel-resizer.is-right {
+            border-right: 0;
+            border-left: 1px solid #e2e8f0;
+        }
+        .blox-panel-resizer > span {
+            width: 2px;
+            height: 2.5rem;
+            border-radius: 2px;
+            background: #cbd5e1;
+            transition: background-color .15s ease, height .15s ease;
+        }
+        .blox-panel-resizer:hover > span,
+        .blox-panel-resizer:focus-visible > span,
+        .blox-panel-resizer.is-active > span {
+            height: 3.5rem;
+            background: #3b82f6;
+        }
+        .blox-panel-resizer:focus-visible {
+            outline: 2px solid #60a5fa;
+            outline-offset: -2px;
+        }
+        body.blox-panel-resizing { cursor: col-resize; user-select: none; }
+        body.blox-panel-resizing iframe { pointer-events: none; }
+        .blox-structure-panel { transition: width .15s ease; }
+        body.blox-panel-resizing .blox-structure-panel { transition: none; }
         /* 盒模型四边输入框（blox 不加载 admin.css，样式必须内联在此）。
            Tailwind preflight 清了 input 边框，这里补回；边框色由行内 border-* 类给 */
         .yk-box-in {
@@ -680,6 +745,8 @@ $canManageBloxDesign = hasPermission('*');
         .blox-mobile-actions-menu > a:hover { background: #f3f4f6; }
         .blox-mobile-actions-menu > button:disabled { opacity: .4; cursor: not-allowed; }
         @media (max-width: 1439px) {
+            .blox-panel-resizer { display: none; }
+            .blox-structure-collapse { display: none !important; }
             .blox-mobile-panel { display: none !important; }
             .blox-mobile-panel.is-open {
                 display: flex !important;
@@ -773,6 +840,7 @@ $canManageBloxDesign = hasPermission('*');
                 JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
             ); ?>,
             selectedSi: -1,
+            paletteTapMode: false,
             previewDevice: "desktop",
             headerPreviewState: "normal",
             canvasViewportTick: 0,
@@ -1067,6 +1135,8 @@ $canManageBloxDesign = hasPermission('*');
                 'nColInserted' => __('blox_n_col_inserted'),
                 'insertAtEnd' => __('blox_insert_at_end'),
                 'insertAfterSection' => __('blox_insert_after_section'),
+                'dragToInsert' => __('blox_palette_drag_to_insert'),
+                'pickSectionFirst' => __('blox_pick_section_first'),
                 'insertedContainer' => __('blox_inserted_container'),
                 'inserted' => __('blox_inserted'),
                 'insertedCol' => __('blox_inserted_col'),
@@ -1082,6 +1152,13 @@ $canManageBloxDesign = hasPermission('*');
                 'saveConflict' => __('blox_save_conflict'),
                 'noNestedContainer' => __('blox_no_nested_container'),
                 'dropRestricted' => __('blox_drop_restricted'),
+                'dropBefore' => __('blox_drop_before'),
+                'dropAfter' => __('blox_drop_after'),
+                'dropIntoContainer' => __('blox_drop_into_container'),
+                'dropIntoColumnEnd' => __('blox_drop_into_column_end'),
+                'dropInvalid' => __('blox_drop_invalid'),
+                'dropSectionBefore' => __('blox_drop_section_before'),
+                'dropSectionAfter' => __('blox_drop_section_after'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             recoveryText: <?php echo json_encode([
                 'title' => __('blox_recovery_title'),
@@ -1098,6 +1175,19 @@ $canManageBloxDesign = hasPermission('*');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             templateText: <?php echo json_encode([
                 'title' => __('blox_template_library'),
+                'prebuiltTitle' => __('blox_prebuilt_sections'),
+                'allTemplates' => __('blox_all_templates'),
+                'insertTarget' => __('blox_prebuilt_insert_target'),
+                'insertSection' => __('blox_prebuilt_insert'),
+                'dragHint' => __('blox_prebuilt_drag_hint'),
+                'quickAll' => __('all'),
+                'favorites' => __('blox_favorite_sections'),
+                'recent' => __('blox_recent_sections'),
+                'addFavorite' => __('blox_add_section_favorite'),
+                'removeFavorite' => __('blox_remove_section_favorite'),
+                'density' => __('blox_template_density'),
+                'densityStandard' => __('blox_template_density_standard'),
+                'densityCompact' => __('blox_template_density_compact'),
                 'saveAsPrompt' => __('blox_tpl_save_as_prompt'),
                 'saveAsNameRequired' => __('blox_tpl_name_required'),
                 'saveAsDone' => __('blox_tpl_save_as_done'),
@@ -1121,6 +1211,11 @@ $canManageBloxDesign = hasPermission('*');
                 'empty' => __('blox_template_empty'),
                 'emptyLocal' => __('blox_template_empty_local'),
                 'emptyRemote' => __('blox_template_empty_remote'),
+                'emptySearch' => __('blox_template_empty_search'),
+                'emptyFavorites' => __('blox_template_empty_favorites'),
+                'emptyRecent' => __('blox_template_empty_recent'),
+                'emptyCategory' => __('blox_template_empty_category'),
+                'clearFilters' => __('blox_template_clear_filters'),
                 'manage' => __('blox_template_manage'),
                 'countUnit' => __('blox_template_count_unit'),
                 'local' => __('blox_template_source_local'),
@@ -1222,6 +1317,48 @@ $canManageBloxDesign = hasPermission('*');
             mobilePanel: "",            // 窄屏下的面板抽屉：library / structure / settings / 空=画布
             mobileActionsOpen: false,
             libOpen: false,             // true = 有选中项时仍显示元素库（「＋ 元素」按钮）
+            paletteSelected: "",       // 桌面单击只选中提示；拖放、键盘或触屏才执行插入
+            _paletteDragGhost: null,
+            favoriteElementTypes: [],
+            recentElementTypes: [],
+            favoriteElementsStorageKey: "yikai:blox:element-favorites:v1",
+            recentElementsStorageKey: "yikai:blox:element-recent:v1",
+            elementLibraryText: <?php echo json_encode([
+                'favorites' => __('blox_favorite_elements'),
+                'recent' => __('blox_recent_elements'),
+                'addFavorite' => __('blox_add_favorite'),
+                'removeFavorite' => __('blox_remove_favorite'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            elementCategoryOptions: <?php echo json_encode(array_merge(
+                [['value' => 'all', 'label' => __('blox_all_element_categories')]],
+                array_map(
+                    static fn(string $value, string $label): array => ['value' => $value, 'label' => $label],
+                    array_keys($catLabels),
+                    array_values($catLabels)
+                )
+            ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            leftPanelWidth: 288,
+            leftPanelMin: 240,
+            leftPanelMax: 480,
+            leftPanelResizing: false,
+            leftPanelStorageKey: "yikai:blox:left-panel-width:v1",
+            _leftPanelResizeStartX: 0,
+            _leftPanelResizeStartWidth: 288,
+            _leftPanelPointerId: null,
+            rightPanelWidth: 256,
+            rightPanelMin: 224,
+            rightPanelMax: 400,
+            rightPanelCollapsed: false,
+            rightPanelResizing: false,
+            rightPanelStorageKey: "yikai:blox:right-panel-width:v1",
+            rightPanelCollapsedStorageKey: "yikai:blox:right-panel-collapsed:v1",
+            _rightPanelResizeStartX: 0,
+            _rightPanelResizeStartWidth: 256,
+            _rightPanelPointerId: null,
+            rightPanelText: <?php echo json_encode([
+                'collapse' => __('blox_collapse_structure_panel'),
+                'expand' => __('blox_expand_structure_panel'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             panelTab: "content",        // 设置面板页签：content | style | condition
             boxOpen: { margin: false, padding: false },
             boxExactOpen: { margin: false, padding: false },
@@ -1254,6 +1391,7 @@ $canManageBloxDesign = hasPermission('*');
             ctrlQuery: "",              // 设置搜索关键词（仅元素设置）
             modifiedOnly: false,        // 只看已修改的设置项
             libQuery: "",
+            libCategory: "all",
             layoutPresets: [
                 { label: <?= $jt('blox_layout_1col') ?>, spans: [12] },
                 { label: <?= $jt('blox_layout_2equal') ?>, spans: [6, 6] },
@@ -1616,10 +1754,20 @@ $canManageBloxDesign = hasPermission('*');
             templateQuery: "",
             templateFilter: "all",
             templateCategory: "all",
+            templateQuickFilter: "all",
+            templateDensity: "standard",
+            favoriteTemplateKeys: [],
+            recentTemplateKeys: [],
+            favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1",
+            recentTemplatesStorageKey: "yikai:blox:template-recent:v1",
+            templateDensityStorageKey: "yikai:blox:template-density:v1",
+            templateSectionViewStorageKey: "yikai:blox:template-section-view:v1",
+            templateSectionScrollTop: 0,
             legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
             templateRemoteError: "",
+            templateEntry: "all",      // all | sections | pages，决定入口语义与画廊密度
             templateFilters: [
                 { key: "all", label: <?php echo json_encode(__('blox_template_filter_all'), JSON_UNESCAPED_UNICODE); ?> },
                 { key: "section", label: <?php echo json_encode(__('blox_template_type_section'), JSON_UNESCAPED_UNICODE); ?> },
@@ -1642,32 +1790,83 @@ $canManageBloxDesign = hasPermission('*');
                 if (window.BloxDialogFocus) window.BloxDialogFocus.keydown(event, root, onEscape);
             },
 
+            templateDialogKeydown(event) {
+                if (this.templateSectionsDocked()) {
+                    if (event && event.key === "Escape") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.closeTemplates();
+                    }
+                    return;
+                }
+                this.dialogKeydown(event, this.$refs.templateDialog, () => this.closeTemplates());
+            },
+
             /**
              * 关闭模板面板 = 取消未消费的定点插入意图（审计 r17-1：Esc/遮罩/关闭按钮
              * 此前只收面板不清 _insertAt，取消后从常规入口添加会落到旧边界）。
-             * 成功插入路径不经此处（insertTemplate 的应用段 → watcher 清位）。
+             * 成功插入也会走此处，因此先保存预制区块库上下文，再统一收起面板和清理落点。
              */
             closeTemplates() {
                 if (!this.templateOpen) return;
                 var root = this.$refs.templateDialog;
+                if (this.templateDragItem) this.finishPaletteDrag();
+                this.persistTemplateSectionViewState();
                 this.templateOpen = false;
                 this._insertAt = null;
                 this.releaseDialog(root);
             },
 
-            openTemplates() {
+            openTemplateDialog() {
                 var alreadyOpen = this.templateOpen;
                 this.templateOpen = true;
                 if (!alreadyOpen) this.focusDialog(this.$refs.templateDialog, "[data-dialog-initial]");
                 if (!this.templateLoaded) this.loadTemplates();
             },
 
+            openTemplates() {
+                this.persistTemplateSectionViewState();
+                this.templateEntry = "all";
+                this.templateFilter = "all";
+                this.templateCategory = "all";
+                this.templateQuickFilter = "all";
+                this.templateQuery = "";
+                this.openTemplateDialog();
+            },
+
+            openPrebuiltSections() {
+                this.templateEntry = "sections";
+                this.templateFilter = "section";
+                this.restoreTemplateSectionViewState();
+                this.openTemplateDialog();
+                if (this.templateLoaded) {
+                    this.normalizeTemplateSectionViewState();
+                    this.restoreTemplateSectionScroll();
+                }
+            },
+
+            templateSectionsDocked() {
+                this.canvasViewportTick;
+                return this.templateEntry === "sections" && window.innerWidth >= 1200 && !this.paletteTapMode;
+            },
+
+            templateCompactSections() {
+                return this.templateEntry === "sections" && this.templateDensity === "compact";
+            },
+
+            templateSectionDraggable(item) {
+                return this.templateSectionsDocked() && item && item.type === "section"
+                    && !item.locked && this.templateInserting === "";
+            },
+
             openPageTemplates() {
+                this.persistTemplateSectionViewState();
+                this.templateEntry = "pages";
                 this.templateScope = "local";
                 this.templateFilter = "page";
                 this.templateCategory = "page";
                 this.templateQuery = "";
-                this.openTemplates();
+                this.openTemplateDialog();
             },
 
             loadTemplates(force) {
@@ -1691,6 +1890,10 @@ $canManageBloxDesign = hasPermission('*');
                         self.templateItems = items;
                         self.templateRemoteError = String(items.remoteError || "");
                         self.templateLoaded = true;
+                        if (self.templateEntry === "sections") {
+                            self.normalizeTemplateSectionViewState();
+                            self.restoreTemplateSectionScroll();
+                        }
                     })
                     .catch(function (error) {
                         // 刷新失败时保留已显示的本地目录，尤其不能抹掉刚另存成功的模板。
@@ -1710,29 +1913,175 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             filteredTemplates() {
-                return window.BloxTemplateLibrary.filter(
+                var items = window.BloxTemplateLibrary.filter(
                     this.scopedTemplates(),
                     this.templateQuery,
                     this.templateFilter,
                     "all",
                     this.templateCategory
                 );
+                if (this.templateEntry !== "sections") return items;
+                var self = this;
+                if (this.templateQuickFilter === "favorites") {
+                    return items.filter(function (item) { return self.isTemplateFavorite(item.key); });
+                }
+                if (this.templateQuickFilter === "recent") {
+                    return items.filter(function (item) { return self.isTemplateRecent(item.key); });
+                }
+                return items.map(function (item, index) {
+                    return {
+                        item: item,
+                        index: index,
+                        rank: self.isTemplateFavorite(item.key) ? 0 : (self.isTemplateRecent(item.key) ? 1 : 2),
+                    };
+                }).sort(function (a, b) {
+                    return a.rank === b.rank ? a.index - b.index : a.rank - b.rank;
+                }).map(function (entry) { return entry.item; });
             },
 
             scopedTemplates() {
                 return window.BloxTemplateLibrary.scope(this.templateItems, this.templateScope);
             },
 
+            templateEntryItems(items) {
+                var source = Array.isArray(items) ? items : this.scopedTemplates();
+                return window.BloxTemplateLibrary.filter(source, "", this.templateFilter, "all", "all");
+            },
+
+            templateQuickCount(mode) {
+                var self = this;
+                var items = this.templateEntryItems();
+                if (mode === "favorites") return items.filter(function (item) { return self.isTemplateFavorite(item.key); }).length;
+                if (mode === "recent") return items.filter(function (item) { return self.isTemplateRecent(item.key); }).length;
+                return items.length;
+            },
+
+            templateEmptyReason() {
+                if (this.templateEntry === "sections") {
+                    if (String(this.templateQuery || "").trim()) return "search";
+                    if (this.templateQuickFilter === "favorites") return "favorites";
+                    if (this.templateQuickFilter === "recent") return "recent";
+                    if (this.templateCategory !== "all") return "category";
+                }
+                return this.templateScope === "remote" ? "remote" : "local";
+            },
+
+            templateEmptyMessage() {
+                var reason = this.templateEmptyReason();
+                if (reason === "search") {
+                    return this.templateText.emptySearch.replace(":query", String(this.templateQuery || "").trim());
+                }
+                if (reason === "favorites") return this.templateText.emptyFavorites;
+                if (reason === "recent") return this.templateText.emptyRecent;
+                if (reason === "category") return this.templateText.emptyCategory;
+                return reason === "remote" ? this.templateText.emptyRemote : this.templateText.emptyLocal;
+            },
+
+            templateEmptyIcon() {
+                var reason = this.templateEmptyReason();
+                if (reason === "search") return "ti-search-off";
+                if (reason === "favorites") return "ti-star";
+                if (reason === "recent") return "ti-history";
+                if (reason === "category") return "ti-category";
+                return reason === "remote" ? "ti-cloud-off" : "ti-template-off";
+            },
+
+            templateCanClearFilters() {
+                return this.templateEntry === "sections" && (
+                    String(this.templateQuery || "").trim() !== ""
+                    || this.templateCategory !== "all"
+                    || this.templateQuickFilter !== "all"
+                );
+            },
+
+            clearTemplateSectionFilters() {
+                if (this.templateEntry !== "sections") return;
+                this.templateQuery = "";
+                this.templateCategory = "all";
+                this.templateQuickFilter = "all";
+                var scroller = this.$refs.templateScroll;
+                if (scroller) scroller.scrollTop = 0;
+                this.templateSectionScrollTop = 0;
+                this.persistTemplateSectionViewState();
+                this.restoreTemplateSectionScroll();
+            },
+
             templateScopeCount(scope) {
-                return window.BloxTemplateLibrary.scopeCount(this.templateItems, scope);
+                return this.templateEntryItems(window.BloxTemplateLibrary.scope(this.templateItems, scope)).length;
             },
 
             templateCategoryOptions() {
-                return window.BloxTemplateLibrary.categories(this.scopedTemplates());
+                return window.BloxTemplateLibrary.categories(this.templateEntryItems());
             },
 
             templateCategoryLabel(category) {
                 return window.BloxTemplateLibrary.categoryLabel(category, this.templateText);
+            },
+
+            restoreTemplateSectionViewState() {
+                var state = {};
+                try {
+                    state = JSON.parse(window.sessionStorage.getItem(this.templateSectionViewStorageKey) || "{}");
+                } catch (error) {
+                    state = {};
+                }
+                this.templateScope = state.scope === "remote" ? "remote" : "local";
+                this.templateCategory = typeof state.category === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.category)
+                    ? state.category
+                    : "all";
+                this.templateQuickFilter = ["all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
+                    ? state.quickFilter
+                    : "all";
+                this.templateQuery = typeof state.query === "string" ? state.query.slice(0, 120) : "";
+                var scrollTop = Number(state.scrollTop);
+                this.templateSectionScrollTop = Number.isFinite(scrollTop)
+                    ? Math.max(0, Math.min(scrollTop, 1000000))
+                    : 0;
+            },
+
+            normalizeTemplateSectionViewState() {
+                if (this.templateCategory !== "all"
+                    && this.templateCategoryOptions().indexOf(this.templateCategory) === -1) {
+                    this.templateCategory = "all";
+                    this.templateSectionScrollTop = 0;
+                }
+            },
+
+            rememberTemplateSectionScroll(scrollTop) {
+                if (this.templateEntry !== "sections") return;
+                scrollTop = Number(scrollTop);
+                if (Number.isFinite(scrollTop)) {
+                    this.templateSectionScrollTop = Math.max(0, Math.min(scrollTop, 1000000));
+                }
+            },
+
+            persistTemplateSectionViewState() {
+                if (this.templateEntry !== "sections") return;
+                var scroller = this.$refs.templateScroll;
+                if (scroller) this.rememberTemplateSectionScroll(scroller.scrollTop);
+                try {
+                    window.sessionStorage.setItem(this.templateSectionViewStorageKey, JSON.stringify({
+                        scope: this.templateScope === "remote" ? "remote" : "local",
+                        category: this.templateCategory,
+                        quickFilter: this.templateQuickFilter,
+                        query: String(this.templateQuery || "").slice(0, 120),
+                        scrollTop: this.templateSectionScrollTop,
+                    }));
+                } catch (error) {
+                    // 禁用会话存储时仍保留本次页面生命周期内的状态。
+                }
+            },
+
+            restoreTemplateSectionScroll() {
+                var self = this;
+                this.$nextTick(function () {
+                    window.requestAnimationFrame(function () {
+                        var scroller = self.$refs.templateScroll;
+                        if (!scroller || !self.templateOpen || self.templateEntry !== "sections") return;
+                        var maximum = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+                        scroller.scrollTop = Math.min(self.templateSectionScrollTop, maximum);
+                    });
+                });
             },
 
             templateTypeLabel(type) {
@@ -1778,13 +2127,18 @@ $canManageBloxDesign = hasPermission('*');
                 this.applyTemplate(item, "append");
             },
 
+            insertTemplateAt(item, index) {
+                this.applyTemplate(item, "append", index);
+            },
+
             replaceWithTemplate(item) {
                 this.applyTemplate(item, "replace");
             },
 
-            applyTemplate(item, mode) {
+            applyTemplate(item, mode, insertAt) {
                 if (!item || item.locked || this.templateInserting) return;
                 var replacing = mode === "replace";
+                var requestedIndex = Number.isInteger(insertAt) ? insertAt : null;
                 if (replacing && this.sections.length > 0
                     && !window.confirm(this.templateText.replaceConfirm)) return;
                 if (!replacing && item.type === "page" && this.sections.length > 0
@@ -1808,7 +2162,9 @@ $canManageBloxDesign = hasPermission('*');
                                 sections,
                                 function (prefix) { return self.uid(prefix); }
                             );
-                            var at = replacing ? 0 : self.insertIndex();
+                            var at = replacing ? 0 : (requestedIndex === null
+                                ? self.insertIndex()
+                                : Math.max(0, Math.min(requestedIndex, self.sections.length)));
                             if (replacing) {
                                 self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
                                 self.legacyPageContent = false;
@@ -1824,6 +2180,7 @@ $canManageBloxDesign = hasPermission('*');
                             self.toast((template.name || item.name) + (replacing ? self.templateText.replaced : self.templateText.inserted));
                         }, { silent: true });
                         if (!applied.ok) throw (applied.error || new Error(self.templateText.insertFailed));
+                        if (item.type === "section") self.rememberRecentTemplate(item.key);
                     })
                     .catch(function (error) {
                         self.templateError = error.message || self.templateText.insertFailed;
@@ -2893,7 +3250,7 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             openMobileSettings() {
-                if (window.innerWidth <= 1023 && this.selectedSi >= 0) {
+                if (window.innerWidth < 1440 && this.selectedSi >= 0) {
                     this.mobilePanel = "settings";
                     this.libOpen = false;
                 }
@@ -4530,6 +4887,11 @@ $canManageBloxDesign = hasPermission('*');
 
             init() {
                 var self = this;
+                this.syncPaletteInputMode();
+                this.restoreLeftPanelWidth();
+                this.restoreRightPanelState();
+                this.restoreElementLibraryPreferences();
+                this.restoreTemplateLibraryPreferences();
                 this.normalizeHeaderSettings();
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
@@ -4545,18 +4907,28 @@ $canManageBloxDesign = hasPermission('*');
                     if (self.initialPanel === "design") self.openDesignSystem();
                     else if (self.initialPanel === "templates") self.openTemplates();
                 });
-                window.addEventListener("resize", function () { self.canvasViewportTick++; });
+                window.addEventListener("resize", function () {
+                    self.canvasViewportTick++;
+                    self.syncPaletteInputMode();
+                });
+                // Sortable 会截断结构树内的外部 dragover；捕获阶段先识别预制区块落点。
+                window.addEventListener("dragenter", function (e) { self.treeSectionDragOver(e); }, true);
+                window.addEventListener("dragover", function (e) { self.treeSectionDragOver(e); }, true);
+                window.addEventListener("drop", function (e) { self.treeSectionDrop(e); }, true);
                 // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
                 window.addEventListener("beforeunload", function (e) {
                     if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
                 });
                 window.addEventListener("pagehide", function () {
+                    self.finishLeftPanelResize();
+                    self.finishRightPanelResize();
                     if (self._draftRecovery) self._draftRecovery.dispose(self.dirty);
                     if (self._previewClient) self._previewClient.cancel();
                     if (self._canvasBridge) self._canvasBridge.dispose();
                     if (self._historyStore) self._historyStore.dispose();
                 });
                 window.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape" && self.canvasDragActive) { e.preventDefault(); self.finishPaletteDrag(); return; }
                     if (e.key === "Escape" && self.ctx.open) { e.preventDefault(); self.closeCtx(); return; }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.tinymce && tinymce.activeEditor;
@@ -4620,6 +4992,7 @@ $canManageBloxDesign = hasPermission('*');
                     onColumnRatio: function (payload) { self.applyCanvasColumnRatio(payload); },
                     onContext: function (payload) { self.openCtxFromCanvas(payload); },
                     onDrop: function (payload) { self.handleCanvasDrop(payload); },
+                    onTemplateDrop: function (payload) { self.handleTemplateDrop(payload); },
                     onInlineEdit: function (payload) { self.applyInlineEdit(payload); },
                     onEditSectionField: function (payload) { self.editSectionField(payload.si, payload.field); },
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
@@ -4674,7 +5047,7 @@ $canManageBloxDesign = hasPermission('*');
                 }
                 this.libQuery = "";
                 this.libOpen = true;
-                if (window.innerWidth <= 1023) this.mobilePanel = "library";
+                if (window.innerWidth < 1440) this.mobilePanel = "library";
                 var self = this;
                 this.$nextTick(function () {
                     if (self.$refs.libSearch) self.$refs.libSearch.focus();
@@ -4705,7 +5078,7 @@ $canManageBloxDesign = hasPermission('*');
             insertAtBoundary(payload) {
                 this._insertAt = payload.index;
                 if (payload.kind === "templates") {
-                    this.openTemplates();
+                    this.openPrebuiltSections();
                     return;
                 }
                 var spans = payload.kind === "layout" && Array.isArray(payload.spans) ? payload.spans : 1;
@@ -4808,7 +5181,18 @@ $canManageBloxDesign = hasPermission('*');
                 var target = payload.target && payload.target.kind
                     ? payload.target
                     : { kind: "column", sec: payload.sec, col: payload.col, position: "end" };
+                var targetSi = target.kind === "column"
+                    ? parseInt(target.sec, 10)
+                    : parseInt(String(target.path || "").split(".")[0], 10);
+                if (!isNaN(targetSi)) this.selectSection(targetSi, false);
                 this.addElement(lib, target);
+            },
+
+            handleTemplateDrop(payload) {
+                var item = this.templateItems.find(function (entry) { return entry.key === payload.key; });
+                this.finishPaletteDrag();
+                if (!item || item.type !== "section" || item.locked) return;
+                this.insertTemplateAt(item, payload.index);
             },
 
             schedulePreview() {
@@ -6154,6 +6538,329 @@ $canManageBloxDesign = hasPermission('*');
 
             // ── 元素库 ──────────────────────────────────────
 
+            leftPanelMaximum() {
+                return Math.min(
+                    this.leftPanelMax,
+                    Math.max(this.leftPanelMin, window.innerWidth - 984)
+                );
+            },
+
+            clampLeftPanelWidth(value) {
+                var width = Number(value);
+                if (!Number.isFinite(width)) width = 288;
+                return Math.round(Math.max(this.leftPanelMin, Math.min(this.leftPanelMaximum(), width)));
+            },
+
+            leftPanelStyle() {
+                this.canvasViewportTick;
+                return window.innerWidth >= 1440 ? "width:" + this.leftPanelWidth + "px" : "";
+            },
+
+            restoreLeftPanelWidth() {
+                try {
+                    var stored = window.localStorage.getItem(this.leftPanelStorageKey);
+                    if (stored !== null) this.leftPanelWidth = this.clampLeftPanelWidth(stored);
+                } catch (error) {
+                    this.leftPanelWidth = 288;
+                }
+            },
+
+            persistLeftPanelWidth() {
+                try {
+                    window.localStorage.setItem(this.leftPanelStorageKey, String(this.leftPanelWidth));
+                } catch (error) {
+                    // 隐私模式或禁用存储时仍保留本次会话内的宽度。
+                }
+            },
+
+            setLeftPanelWidth(value, persist) {
+                this.leftPanelWidth = this.clampLeftPanelWidth(value);
+                this.canvasViewportTick++;
+                if (persist !== false) this.persistLeftPanelWidth();
+            },
+
+            startLeftPanelResize(event) {
+                if (window.innerWidth < 1440 || !event || event.button !== 0) return;
+                event.preventDefault();
+                this.leftPanelResizing = true;
+                this._leftPanelPointerId = event.pointerId;
+                this._leftPanelResizeStartX = event.clientX;
+                this._leftPanelResizeStartWidth = this.leftPanelWidth;
+                document.body.classList.add("blox-panel-resizing");
+                if (event.currentTarget && typeof event.currentTarget.setPointerCapture === "function") {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                }
+            },
+
+            resizeLeftPanel(event) {
+                if (!this.leftPanelResizing || !event) return;
+                if (this._leftPanelPointerId !== null && event.pointerId !== this._leftPanelPointerId) return;
+                this.setLeftPanelWidth(
+                    this._leftPanelResizeStartWidth + event.clientX - this._leftPanelResizeStartX,
+                    false
+                );
+            },
+
+            finishLeftPanelResize(event) {
+                if (!this.leftPanelResizing) return;
+                if (event && this._leftPanelPointerId !== null && event.pointerId !== this._leftPanelPointerId) return;
+                this.leftPanelResizing = false;
+                this._leftPanelPointerId = null;
+                document.body.classList.remove("blox-panel-resizing");
+                this.persistLeftPanelWidth();
+            },
+
+            resizeLeftPanelBy(delta) {
+                this.setLeftPanelWidth(this.leftPanelWidth + Number(delta || 0));
+            },
+
+            resetLeftPanelWidth() {
+                this.setLeftPanelWidth(288);
+            },
+
+            rightPanelMaximum() {
+                return Math.min(
+                    this.rightPanelMax,
+                    Math.max(this.rightPanelMin, window.innerWidth - this.leftPanelWidth - 768)
+                );
+            },
+
+            clampRightPanelWidth(value) {
+                var width = Number(value);
+                if (!Number.isFinite(width)) width = 256;
+                return Math.round(Math.max(this.rightPanelMin, Math.min(this.rightPanelMaximum(), width)));
+            },
+
+            rightPanelStyle() {
+                this.canvasViewportTick;
+                if (window.innerWidth < 1440) return "";
+                return "width:" + (this.rightPanelCollapsed ? 40 : this.rightPanelWidth) + "px";
+            },
+
+            rightPanelContentVisible() {
+                this.canvasViewportTick;
+                return window.innerWidth < 1440 || !this.rightPanelCollapsed;
+            },
+
+            restoreRightPanelState() {
+                try {
+                    var storedWidth = window.localStorage.getItem(this.rightPanelStorageKey);
+                    if (storedWidth !== null) this.rightPanelWidth = this.clampRightPanelWidth(storedWidth);
+                    this.rightPanelCollapsed = window.localStorage.getItem(this.rightPanelCollapsedStorageKey) === "1";
+                } catch (error) {
+                    this.rightPanelWidth = 256;
+                    this.rightPanelCollapsed = false;
+                }
+            },
+
+            persistRightPanelState() {
+                try {
+                    window.localStorage.setItem(this.rightPanelStorageKey, String(this.rightPanelWidth));
+                    window.localStorage.setItem(this.rightPanelCollapsedStorageKey, this.rightPanelCollapsed ? "1" : "0");
+                } catch (error) {
+                    // 隐私模式或禁用存储时仍保留本次会话状态。
+                }
+            },
+
+            setRightPanelWidth(value, persist) {
+                this.rightPanelWidth = this.clampRightPanelWidth(value);
+                this.canvasViewportTick++;
+                if (persist !== false) this.persistRightPanelState();
+            },
+
+            startRightPanelResize(event) {
+                if (window.innerWidth < 1440 || this.rightPanelCollapsed || !event || event.button !== 0) return;
+                event.preventDefault();
+                this.rightPanelResizing = true;
+                this._rightPanelPointerId = event.pointerId;
+                this._rightPanelResizeStartX = event.clientX;
+                this._rightPanelResizeStartWidth = this.rightPanelWidth;
+                document.body.classList.add("blox-panel-resizing");
+                if (event.currentTarget && typeof event.currentTarget.setPointerCapture === "function") {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                }
+            },
+
+            resizeRightPanel(event) {
+                if (!this.rightPanelResizing || !event) return;
+                if (this._rightPanelPointerId !== null && event.pointerId !== this._rightPanelPointerId) return;
+                this.setRightPanelWidth(
+                    this._rightPanelResizeStartWidth - event.clientX + this._rightPanelResizeStartX,
+                    false
+                );
+            },
+
+            finishRightPanelResize(event) {
+                if (!this.rightPanelResizing) return;
+                if (event && this._rightPanelPointerId !== null && event.pointerId !== this._rightPanelPointerId) return;
+                this.rightPanelResizing = false;
+                this._rightPanelPointerId = null;
+                document.body.classList.remove("blox-panel-resizing");
+                this.persistRightPanelState();
+            },
+
+            resizeRightPanelBy(delta) {
+                this.setRightPanelWidth(this.rightPanelWidth + Number(delta || 0));
+            },
+
+            resetRightPanelWidth() {
+                this.setRightPanelWidth(256);
+            },
+
+            toggleRightPanel() {
+                this.finishRightPanelResize();
+                this.rightPanelCollapsed = !this.rightPanelCollapsed;
+                this.canvasViewportTick++;
+                this.persistRightPanelState();
+            },
+
+            openElementLibrary() {
+                this.libOpen = true;
+                if (window.innerWidth < 1440) this.mobilePanel = "library";
+                var self = this;
+                this.$nextTick(function () {
+                    if (self.$refs.libSearch) self.$refs.libSearch.focus();
+                });
+            },
+
+            restoreElementLibraryPreferences() {
+                var known = {};
+                this.elementLib.forEach(function (el) {
+                    if (!el.deprecated) known[el.type] = true;
+                });
+                var read = function (key) {
+                    try {
+                        var value = JSON.parse(window.localStorage.getItem(key) || "[]");
+                        if (!Array.isArray(value)) return [];
+                        return value.filter(function (type, index) {
+                            return typeof type === "string" && known[type] && value.indexOf(type) === index;
+                        });
+                    } catch (error) {
+                        return [];
+                    }
+                };
+                this.favoriteElementTypes = read(this.favoriteElementsStorageKey);
+                this.recentElementTypes = read(this.recentElementsStorageKey).slice(0, 6);
+            },
+
+            persistElementLibraryPreferences() {
+                try {
+                    window.localStorage.setItem(this.favoriteElementsStorageKey, JSON.stringify(this.favoriteElementTypes));
+                    window.localStorage.setItem(this.recentElementsStorageKey, JSON.stringify(this.recentElementTypes));
+                } catch (error) {
+                    // 禁用存储时仍保留本次编辑会话内的快捷分组。
+                }
+            },
+
+            isElementFavorite(type) {
+                return this.favoriteElementTypes.indexOf(type) !== -1;
+            },
+
+            toggleElementFavorite(type) {
+                var index = this.favoriteElementTypes.indexOf(type);
+                if (index === -1) this.favoriteElementTypes.push(type);
+                else this.favoriteElementTypes.splice(index, 1);
+                this.persistElementLibraryPreferences();
+            },
+
+            rememberRecentElement(type) {
+                if (!type) return;
+                this.recentElementTypes = [type].concat(this.recentElementTypes.filter(function (item) {
+                    return item !== type;
+                })).slice(0, 6);
+                this.persistElementLibraryPreferences();
+            },
+
+            restoreTemplateLibraryPreferences() {
+                var read = function (key, limit) {
+                    try {
+                        var value = JSON.parse(window.localStorage.getItem(key) || "[]");
+                        if (!Array.isArray(value)) return [];
+                        return value.filter(function (item, index) {
+                            return typeof item === "string" && item.length > 0 && item.length <= 160
+                                && value.indexOf(item) === index;
+                        }).slice(0, limit);
+                    } catch (error) {
+                        return [];
+                    }
+                };
+                this.favoriteTemplateKeys = read(this.favoriteTemplatesStorageKey, 50);
+                this.recentTemplateKeys = read(this.recentTemplatesStorageKey, 6);
+                try {
+                    var density = window.localStorage.getItem(this.templateDensityStorageKey);
+                    this.templateDensity = density === "compact" ? "compact" : "standard";
+                } catch (error) {
+                    this.templateDensity = "standard";
+                }
+            },
+
+            persistTemplateLibraryPreferences() {
+                try {
+                    window.localStorage.setItem(this.favoriteTemplatesStorageKey, JSON.stringify(this.favoriteTemplateKeys));
+                    window.localStorage.setItem(this.recentTemplatesStorageKey, JSON.stringify(this.recentTemplateKeys));
+                    window.localStorage.setItem(this.templateDensityStorageKey, this.templateDensity);
+                } catch (error) {
+                    // 禁用存储时仍保留本次编辑会话内的快捷筛选。
+                }
+            },
+
+            isTemplateFavorite(key) {
+                return this.favoriteTemplateKeys.indexOf(String(key || "")) !== -1;
+            },
+
+            isTemplateRecent(key) {
+                return this.recentTemplateKeys.indexOf(String(key || "")) !== -1;
+            },
+
+            setTemplateDensity(density) {
+                this.templateDensity = density === "compact" ? "compact" : "standard";
+                this.persistTemplateLibraryPreferences();
+            },
+
+            toggleTemplateFavorite(key) {
+                key = String(key || "");
+                if (!key) return;
+                var index = this.favoriteTemplateKeys.indexOf(key);
+                if (index === -1) this.favoriteTemplateKeys.push(key);
+                else this.favoriteTemplateKeys.splice(index, 1);
+                this.persistTemplateLibraryPreferences();
+            },
+
+            rememberRecentTemplate(key) {
+                key = String(key || "");
+                if (!key) return;
+                this.recentTemplateKeys = [key].concat(this.recentTemplateKeys.filter(function (item) {
+                    return item !== key;
+                })).slice(0, 6);
+                this.persistTemplateLibraryPreferences();
+            },
+
+            /**
+             * 精细指针的普通单击只选中元素卡片，不立即改文档；拖放负责表达落点。
+             * 键盘与触屏没有可靠拖放能力，通过 Enter/点击插入；已有区块时必须先明确目标。
+             */
+            syncPaletteInputMode() {
+                this.paletteTapMode = window.innerWidth <= 1023
+                    || !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+            },
+
+            activatePaletteElement(el, event) {
+                if (!el) return;
+                this.paletteSelected = el.type;
+                var keyboard = !event || event.detail === 0;
+                if (keyboard || this.paletteTapMode) {
+                    if (this.sections.length > 0 && this.selectedSi < 0) {
+                        this.paletteSelected = "";
+                        this.toast(this.uiText.pickSectionFirst);
+                        return;
+                    }
+                    this.addElement(el);
+                    this.paletteSelected = "";
+                    return;
+                }
+                this.toast(this.uiText.dragToInsert.replace(":label", el.label));
+            },
+
             /**
              * 目标列下标。夹在有效范围内——换了区块后 targetCi 可能越界
              * （比如从 3 列区块切到 1 列），越界会把元素塞进不存在的列里丢掉。
@@ -6170,42 +6877,337 @@ $canManageBloxDesign = hasPermission('*');
 
             // ── 拖拽插入（路线图③）：库瓦片拖到结构树/画布 ──
             dragEl: null,          // 正在拖的库条目
-            dragOver: "",          // 当前悬停的放置目标 key（高亮用）
+            templateDragItem: null,
+            canvasDragActive: false,
+            treeDropIntent: null,  // {key, intent, target, valid, label}，与画布使用同一目标协议
 
-            /**
-             * 结构树放置：ei=null → 插到 si 区块的 ci 列末尾；ei≥0 → 插进该列 ei 号容器。
-             * 通过先选中目标再走 addElement，复用其全部规则（容器嵌套约束、插入即选中、toast）。
-             */
-            treeDrop(si, ci, ei) {
-                var el = this.dragEl;
-                this.dragEl = null;
-                this.dragOver = "";
-                if (!el) return;
-                if (el.type === "__section") { this.selectSection(si, false); this.addSection(1); return; }
-                if (ei === null) {
-                    this.selectSection(si, false);
-                    this.targetCi = ci;
-                } else {
-                    this.selectElement(si, ci, ei, false);
+            clearPaletteDragGhost() {
+                if (this._paletteDragGhost && this._paletteDragGhost.parentNode) {
+                    this._paletteDragGhost.parentNode.removeChild(this._paletteDragGhost);
                 }
-                this.addElement(el);
+                this._paletteDragGhost = null;
             },
 
-            /** 按分类分组 + 关键词过滤；布局组置顶、组内 区块/容器 领先（对齐 Bricks） */
+            createPaletteDragGhost(el, event) {
+                this.clearPaletteDragGhost();
+                if (!event || !event.dataTransfer || typeof event.dataTransfer.setDragImage !== "function") return;
+                var iconName = String(el.icon || "box").replace(/[^a-z0-9-]/gi, "") || "box";
+                var ghost = document.createElement("div");
+                ghost.setAttribute("data-testid", "blox-palette-drag-ghost");
+                ghost.setAttribute("aria-hidden", "true");
+                ghost.className = "blox-palette-drag-ghost";
+                var icon = document.createElement("span");
+                icon.className = "blox-palette-drag-ghost-icon";
+                var iconGlyph = document.createElement("i");
+                iconGlyph.className = "ti ti-" + iconName;
+                icon.appendChild(iconGlyph);
+                var label = document.createElement("span");
+                label.className = "blox-palette-drag-ghost-label";
+                label.textContent = String(el.label || el.type || "");
+                ghost.appendChild(icon);
+                ghost.appendChild(label);
+                document.body.appendChild(ghost);
+                this._paletteDragGhost = ghost;
+                try {
+                    event.dataTransfer.setDragImage(ghost, 18, 18);
+                } catch (error) {
+                    this.clearPaletteDragGhost();
+                }
+            },
+
+            startPaletteDrag(el, event) {
+                if (!el || !event || !event.dataTransfer) return;
+                this.paletteSelected = el.type;
+                this.dragEl = el;
+                this.canvasDragActive = true;
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("application/x-yikai-blox", JSON.stringify({
+                    version: 1,
+                    source: "palette",
+                    type: el.type,
+                }));
+                event.dataTransfer.setData("text/plain", el.type);
+                this.createPaletteDragGhost(el, event);
+                this.canvasBridge().post({ ykDragType: el.type });
+            },
+
+            startTemplateDrag(item, event) {
+                if (!this.templateSectionDraggable(item) || !event || !event.dataTransfer) return;
+                this.templateDragItem = item;
+                this.canvasDragActive = true;
+                event.dataTransfer.effectAllowed = "copy";
+                event.dataTransfer.setData("application/x-yikai-blox-template", JSON.stringify({
+                    version: 1,
+                    source: "template",
+                    key: item.key,
+                }));
+                event.dataTransfer.setData("text/plain", item.name || item.key);
+                this.createPaletteDragGhost({ type: "section", label: item.name, icon: "layout-grid-add" }, event);
+                this.canvasBridge().post({ ykDragType: "__section_template" });
+            },
+
+            finishPaletteDrag() {
+                this.clearPaletteDragGhost();
+                this.paletteSelected = "";
+                this.dragEl = null;
+                this.templateDragItem = null;
+                this.canvasDragActive = false;
+                this.treeDropIntent = null;
+                this.canvasBridge().post({ ykPaletteDrag: { version: 1, phase: "cancel" } });
+                this.canvasBridge().post({ ykDragType: "" });
+            },
+
+            canvasPaletteDragMessage(event, phase) {
+                var frame = this.$refs.canvas;
+                var paletteType = this.dragEl ? this.dragEl.type : "";
+                var templateKey = this.templateDragItem ? this.templateDragItem.key : "";
+                var source = templateKey ? "template" : "palette";
+                var type = templateKey ? "__section_template" : paletteType;
+                if (!frame || !type || !event) return false;
+                var rect = frame.getBoundingClientRect();
+                if (!rect.width || !rect.height) return false;
+                var frameWindow = frame.contentWindow;
+                var frameWidth = frameWindow && frameWindow.innerWidth ? frameWindow.innerWidth : (frame.clientWidth || rect.width);
+                var frameHeight = frameWindow && frameWindow.innerHeight ? frameWindow.innerHeight : (frame.clientHeight || rect.height);
+                var clientX = (event.clientX - rect.left) * (frameWidth / rect.width);
+                var clientY = (event.clientY - rect.top) * (frameHeight / rect.height);
+                return this.canvasBridge().post({ ykPaletteDrag: {
+                    version: 1,
+                    phase: phase,
+                    source: source,
+                    type: type,
+                    templateKey: templateKey,
+                    clientX: Math.max(0, Math.min(frameWidth, clientX)),
+                    clientY: Math.max(0, Math.min(frameHeight, clientY)),
+                } });
+            },
+
+            canvasPaletteDragOver(event) {
+                if (!this.canvasDragActive) return;
+                if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+                this.canvasPaletteDragMessage(event, "move");
+            },
+
+            canvasPaletteDragLeave(event) {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                this.canvasBridge().post({ ykPaletteDrag: { version: 1, phase: "cancel" } });
+            },
+
+            canvasPaletteDrop(event) {
+                if (!this.canvasDragActive) return;
+                this.canvasPaletteDragMessage(event, "drop");
+            },
+
+            /**
+             * 结构树拖放与画布同语义：元素上下半区表示前后，容器中部表示放入。
+             * 这里只生成标准目标，写入仍由 addElement/insertElementAt 集中处理。
+             */
+            treeDropMatches(key) {
+                return !!this.treeDropIntent && this.treeDropIntent.key === key;
+            },
+
+            treeDropVerdict(target) {
+                if (!target) return { valid: false, reason: "invalid" };
+                if (this.templateDragItem) {
+                    return target.kind === "template-section" ? { valid: true } : { valid: false, reason: "invalid" };
+                }
+                var el = this.dragEl;
+                if (!el) return { valid: false, reason: "invalid" };
+                if (el.type === "__section") {
+                    return target.kind === "section" ? { valid: true } : { valid: false, reason: "invalid" };
+                }
+                if (target.kind === "section") return { valid: false, reason: "invalid" };
+                var host = null;
+                if (target.kind === "container") {
+                    host = this.elementAtPath(target.path);
+                } else if (target.kind === "element") {
+                    var parts = String(target.path || "").split(".");
+                    if (parts.length === 4) host = this.elementAtPath(parts.slice(0, 3).join("."));
+                }
+                if (!host) return { valid: true };
+                if (this.canNestElement(host, { type: el.type })) return { valid: true };
+                return {
+                    valid: false,
+                    reason: this.elSchema(el.type).container ? "no-nested-container" : "restricted-children",
+                };
+            },
+
+            setTreeDropIntent(key, intent, target) {
+                var verdict = this.treeDropVerdict(target);
+                var label = this.uiText.dropInvalid;
+                if (!verdict.valid) {
+                    label = verdict.reason === "restricted-children" ? this.uiText.dropRestricted
+                        : (verdict.reason === "no-nested-container" ? this.uiText.noNestedContainer : this.uiText.dropInvalid);
+                } else if (intent === "before") label = this.uiText.dropBefore;
+                else if (intent === "after") label = this.uiText.dropAfter;
+                else if (intent === "inside") label = this.uiText.dropIntoContainer;
+                else if (intent === "column-end") label = this.uiText.dropIntoColumnEnd;
+                else if (intent === "section-after") label = target.kind === "template-section"
+                    ? this.uiText.dropSectionAfter
+                    : this.uiText.insertAfterSection.replace(":n", parseInt(target.sec, 10) + 1);
+                else if (intent === "section-before") label = this.uiText.dropSectionBefore;
+                if (this.treeDropIntent && this.treeDropIntent.key === key
+                    && this.treeDropIntent.valid === verdict.valid && this.treeDropIntent.label === label) return;
+                this.treeDropIntent = { key: key, intent: intent, target: target, valid: verdict.valid, label: label };
+            },
+
+            applyTreeDropEffect(event) {
+                if (event.dataTransfer) event.dataTransfer.dropEffect = this.treeDropIntent && this.treeDropIntent.valid ? "copy" : "none";
+            },
+
+            treeSectionDragOver(event) {
+                if (!this.templateDragItem) return;
+                var row = event.target && event.target.closest
+                    ? event.target.closest('[data-testid="blox-tree-section"]')
+                    : null;
+                if (!row || !this.$refs.tree || !this.$refs.tree.contains(row)) return;
+                var si = parseInt(row.getAttribute("data-section-index"), 10);
+                if (isNaN(si)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                var rect = row.getBoundingClientRect();
+                var after = event.clientY >= rect.top + rect.height / 2;
+                var position = after ? "after" : "before";
+                this.setTreeDropIntent(
+                    "template-section:" + si + ":" + position,
+                    after ? "section-after" : "section-before",
+                    { kind: "template-section", index: si + (after ? 1 : 0) }
+                );
+                this.applyTreeDropEffect(event);
+            },
+
+            treeSectionDrop(event) {
+                if (!this.templateDragItem) return;
+                var row = event.target && event.target.closest
+                    ? event.target.closest('[data-testid="blox-tree-section"]')
+                    : null;
+                if (!row || !this.$refs.tree || !this.$refs.tree.contains(row)) return;
+                this.treeDrop(event);
+            },
+
+            treeColumnDragOver(event, si, ci, key) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (this.dragEl.type === "__section") {
+                    this.setTreeDropIntent(key + ":section-after", "section-after", { kind: "section", sec: si });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                this.setTreeDropIntent(key + ":column-end", "column-end", { kind: "column", sec: si, col: ci, position: "end" });
+                this.applyTreeDropEffect(event);
+            },
+
+            treeElementDragOver(event, si, ci, ei, el) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                var path = [si, ci, ei].join(".");
+                if (this.dragEl.type === "__section") {
+                    this.setTreeDropIntent("section:" + si + ":section-after", "section-after", { kind: "section", sec: si });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                var rect = event.currentTarget.getBoundingClientRect();
+                var ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0;
+                var isContainer = this.elSchema(el.type).container;
+                if (isContainer && ratio >= .25 && ratio <= .75) {
+                    this.setTreeDropIntent("element:" + path + ":inside", "inside", { kind: "container", path: path });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                var position = ratio < .5 ? "before" : "after";
+                this.setTreeDropIntent("element:" + path + ":" + position, position, { kind: "element", path: path, position: position });
+                this.applyTreeDropEffect(event);
+            },
+
+            treeChildDragOver(event, si, ci, ei, cei) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (this.dragEl.type === "__section") {
+                    this.setTreeDropIntent("section:" + si + ":section-after", "section-after", { kind: "section", sec: si });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                var rect = event.currentTarget.getBoundingClientRect();
+                var position = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+                var path = [si, ci, ei, cei].join(".");
+                this.setTreeDropIntent("child:" + path + ":" + position, position, { kind: "element", path: path, position: position });
+                this.applyTreeDropEffect(event);
+            },
+
+            treeDragLeave(event) {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                this.treeDropIntent = null;
+            },
+
+            treeDrop(event) {
+                if (!this.dragEl && !this.templateDragItem) return;
+                event.preventDefault();
+                event.stopPropagation();
+                var el = this.dragEl;
+                var template = this.templateDragItem;
+                var drop = this.treeDropIntent;
+                this.finishPaletteDrag();
+                if (!drop) return;
+                if (!drop.valid) {
+                    this.toast(drop.label);
+                    return;
+                }
+                if (template) {
+                    if (drop.target.kind === "template-section") {
+                        this.insertTemplateAt(template, parseInt(drop.target.index, 10));
+                    }
+                    return;
+                }
+                if (drop.target.kind === "section") {
+                    this.selectSection(parseInt(drop.target.sec, 10), false);
+                    this.addSection(1);
+                    return;
+                }
+                var targetSi = drop.target.kind === "column"
+                    ? parseInt(drop.target.sec, 10)
+                    : parseInt(String(drop.target.path || "").split(".")[0], 10);
+                if (!isNaN(targetSi)) this.selectSection(targetSi, false);
+                this.addElement(el, drop.target);
+            },
+
+            /** 收藏/最近使用作为快捷副本置顶；搜索时只显示普通分类结果。 */
             filteredLib() {
                 var q = this.libQuery.trim().toLowerCase();
+                var category = this.libCategory || "all";
                 var self = this;
                 var groups = [];
                 var host = this.selTopEl && this.elSchema(this.selTopEl.type).container ? this.selTopEl : null;
-                this.elementLib.forEach(function (el) {
+                var items = this.elementLib.filter(function (el) {
                     if (el.type === "__section") {
-                        if (host) return;
+                        if (host) return false;
                     } else if (host) {
-                        if (!self.canNestElement(host, { type: el.type })) return;
+                        if (!self.canNestElement(host, { type: el.type })) return false;
                     } else if (el.paletteVisible !== true || el.deprecated) {
-                        return;
+                        return false;
                     }
-                    if (q && el.label.toLowerCase().indexOf(q) === -1 && el.type.indexOf(q) === -1) return;
+                    if (category !== "all" && el.category !== category) return false;
+                    return !q || el.label.toLowerCase().indexOf(q) !== -1 || el.type.indexOf(q) !== -1;
+                });
+                var favorites = {};
+                if (!q && category === "all") {
+                    var byType = {};
+                    items.forEach(function (el) { byType[el.type] = el; });
+                    var favoriteItems = this.favoriteElementTypes.map(function (type) { return byType[type]; }).filter(Boolean);
+                    if (favoriteItems.length) {
+                        favoriteItems.forEach(function (el) { favorites[el.type] = true; });
+                        groups.push({ cat: "__favorites", label: this.elementLibraryText.favorites, icon: "star", quick: true, items: favoriteItems });
+                    }
+                    var recentItems = this.recentElementTypes.map(function (type) { return byType[type]; }).filter(function (el) {
+                        return !!el && !favorites[el.type];
+                    });
+                    if (recentItems.length) {
+                        groups.push({ cat: "__recent", label: this.elementLibraryText.recent, icon: "history", quick: true, items: recentItems });
+                    }
+                }
+                items.forEach(function (el) {
                     var g = groups.find(function (x) { return x.cat === el.category; });
                     if (!g) {
                         g = { cat: el.category, label: self.catLabels[el.category] || el.category, items: [] };
@@ -6213,8 +7215,9 @@ $canManageBloxDesign = hasPermission('*');
                     }
                     g.items.push(el);
                 });
+                var quickCount = groups.filter(function (g) { return g.cat.indexOf("__") === 0; }).length;
                 var li = groups.findIndex(function (g) { return g.cat === "layout"; });
-                if (li > 0) groups.unshift(groups.splice(li, 1)[0]);
+                if (li > quickCount) groups.splice(quickCount, 0, groups.splice(li, 1)[0]);
                 groups.forEach(function (g) {
                     if (g.cat !== "layout") return;
                     var w = { "__section": 0, "container": 1, "div": 2 };
@@ -6228,7 +7231,12 @@ $canManageBloxDesign = hasPermission('*');
              * data 用注册表给的 defaults 深拷贝——直接引用会让多次插入共享同一个对象，
              * 改一个全变。
              */
-            addElement(el, target) { return this.runCommand("add-element", function () { return this._addElementRaw(el, target); }); },
+            addElement(el, target) {
+                var before = this.historyData();
+                var outcome = this.runCommand("add-element", function () { return this._addElementRaw(el, target); });
+                if (outcome && outcome.ok && this.historyData() !== before) this.rememberRecentElement(el.type);
+                return outcome;
+            },
             _addElementRaw(el, target) {
                 // 合成项「区块」：插顶层 section（1 列起步；多列预设在右下角）
                 if (el.type === "__section") { this.addSection(1); return; }
@@ -6285,7 +7293,7 @@ $canManageBloxDesign = hasPermission('*');
 
             /**
              * 统一处理画布和结构树使用的插入目标：
-             * column/end 追加到列尾；element/before|after 插入到节点同级。
+             * column/end 追加到列尾；container 放入容器；element/before|after 插入到节点同级。
              * 子元素路径按同一套 si.ci.ei.cei 规则处理，容器约束在这里集中校验。
              */
             insertElementAt(node, target, label) {
@@ -6301,6 +7309,24 @@ $canManageBloxDesign = hasPermission('*');
                     column.elements.splice(endIndex, 0, node);
                     this.selectElement(si, ci, endIndex, false);
                     this.toast((section.columns.length > 1 ? this.uiText.insertedCol.replace(":n", ci + 1) : this.uiText.inserted).replace(":label", label || this.uiText.elementWord));
+                    return true;
+                }
+                if (target.kind === "container") {
+                    var hostParts = String(target.path || "").split(".").map(function (value) { return parseInt(value, 10); });
+                    if (hostParts.length !== 3 || hostParts.some(function (value) { return isNaN(value); })) return false;
+                    var hostSection = this.sections[hostParts[0]];
+                    var hostColumn = hostSection && hostSection.columns ? hostSection.columns[hostParts[1]] : null;
+                    var host = hostColumn && hostColumn.elements ? hostColumn.elements[hostParts[2]] : null;
+                    if (!host || !this.elSchema(host.type).container) return false;
+                    if (!this.canNestElement(host, node)) {
+                        this.toast(this.isLoopTemplateHost(host) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
+                        return true;
+                    }
+                    host.data.children = host.data.children || [];
+                    if (this.isHomeBannerHost(host)) host.data.items_mode = "custom";
+                    host.data.children.push(node);
+                    this.selectChild(hostParts[0], hostParts[1], hostParts[2], host.data.children.length - 1, false);
+                    this.toast(this.uiText.insertedContainer.replace(":label", label || this.uiText.elementWord));
                     return true;
                 }
                 if (target.kind !== "element") return false;

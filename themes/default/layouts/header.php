@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 // 获取站点配置（多语言感知）
 $siteName = configRawLang('site_name', 'Yikai CMS');
-$siteLogo = configRawLang('site_logo', '');
+$siteLogo = SiteAsset::availableUrl((string) configRawLang('site_logo', ''));
 // 前台 Logo 显示高度上限（px）：按原始比例、封顶该值；默认 40 与旧版 h-10 观感一致
 $siteLogoMaxH = (int) config('site_logo_max_height', 40);
 $siteLogoMaxH = max(16, min(200, $siteLogoMaxH ?: 40));
@@ -45,7 +45,7 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 $siteUrl = siteBaseUrl();
 $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
 $ogType = $ogType ?? 'website';
-$ogImage = $ogImage ?? config('seo_og_image', '') ?: configRawLang('site_logo', '');
+$ogImage = $ogImage ?? config('seo_og_image', '') ?: $siteLogo;
 if ($ogImage && !str_starts_with($ogImage, 'http')) {
     $ogImage = $siteUrl . $ogImage;
 }

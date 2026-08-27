@@ -13,7 +13,7 @@
                 <div class="md:col-span-2">
                     <a href="/" class="inline-flex items-center gap-2.5 group">
                         <?php $_siteName = configRawLang('site_name', 'Yikai CMS'); ?>
-                        <?php $_siteLogo = configRawLang('site_logo', ''); ?>
+                        <?php $_siteLogo = SiteAsset::availableUrl((string) configRawLang('site_logo', '')); ?>
                         <?php if ($_siteLogo): ?>
                         <img src="<?php echo e($_siteLogo); ?>" alt="<?php echo e($_siteName); ?>" class="h-7">
                         <?php else: ?>

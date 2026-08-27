@@ -1,0 +1,22 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Trust and assurance grid",
+    "requires": {"elements": ["heading", "text", "icon-box"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "信任背书",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+            "columns": [
+                {"elements": [{"type": "heading", "data": {"text": "可核验的交付标准", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">把资质、质量控制和服务承诺放在一起，让客户快速判断合作是否可靠。</p>"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "certificate", "title": "资质与认证", "text": "展示真实有效、可查询的行业认证与企业资质。"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "shield-check", "title": "质量可追溯", "text": "说明检查节点、记录方式和问题处理机制。"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "clock-check", "title": "响应有时限", "text": "写明咨询、售后和紧急事项的响应承诺。"}}]}
+            ]
+        }]
+    }
+}

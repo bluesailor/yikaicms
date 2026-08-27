@@ -906,6 +906,7 @@ final class BuilderRenderTest extends TestCase
             'columns' => [['elements' => [
                 ['id' => 'element-heading-1', 'type' => 'heading', 'data' => ['text' => 'Heading']],
                 ['id' => 'element-text-1', 'type' => 'text', 'data' => ['html' => '<p>Plain text</p>']],
+                ['id' => 'element-container-1', 'type' => 'container', 'data' => ['children' => []]],
             ]]],
         ]]);
 
@@ -923,6 +924,8 @@ final class BuilderRenderTest extends TestCase
             $this->assertStringContainsString('data-yk-sec-field="0.subtitle"', $out);
             $this->assertStringContainsString('data-yk-el="0.0.0" data-yk-el-id="element-heading-1" data-yk-el-type="heading"', $out);
             $this->assertStringContainsString('data-yk-el="0.0.1" data-yk-el-id="element-text-1" data-yk-el-type="text"', $out);
+            $this->assertStringContainsString('data-yk-el-id="element-container-1" data-yk-el-type="container" data-yk-el-container="1"', $out);
+            $this->assertSame(1, substr_count($out, 'data-yk-el-container="1"'));
         } finally {
             BlockRenderer::$editChannelId = $oldChannelId;
             $_SESSION = $oldSession;

@@ -78,6 +78,8 @@
             return String(item.name || "").toLowerCase().indexOf(q) !== -1
                 || String(item.provider || "").toLowerCase().indexOf(q) !== -1
                 || String(item.description || "").toLowerCase().indexOf(q) !== -1
+                || (Array.isArray(item.keywords) ? item.keywords.join(" ") : String(item.keywords || ""))
+                    .toLowerCase().indexOf(q) !== -1
                 || String(item.category || "").toLowerCase().indexOf(q) !== -1;
         });
     }
