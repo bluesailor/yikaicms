@@ -774,6 +774,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
         $this->assertStringContainsString('if (!title && this.headerTemplateMode)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets-open"', $header);
+        $this->assertStringContainsString('<span class="text-xs whitespace-nowrap"><?php echo e(__(\'blox_header_presets\')); ?></span>', $header);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
