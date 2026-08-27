@@ -2874,6 +2874,8 @@ return [
     'blox_header_presets_hint' => 'スターターを選ぶと現在のヘッダー下書きを置き換えます。元に戻すことができ、公開するまでサイトには反映されません。',
     'blox_header_preset_apply' => 'このヘッダーを適用',
     'blox_header_preset_applied' => '「:name」を適用しました',
+    'blox_header_section_name' => 'ページヘッダー',
+    'blox_header_section_name_indexed' => 'ページヘッダー :n',
     'blox_area_preset_corporate_footer_name' => '企業向けマルチカラムフッター',
     'blox_area_preset_corporate_footer_desc' => 'サイト情報、SNS、ナビ、連絡先、動的な著作権・登録情報をまとめたレスポンシブフッターです。',
     'blox_area_preset_not_active' => '未インストール（公開サイトに影響なし）',

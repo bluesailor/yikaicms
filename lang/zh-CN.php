@@ -2773,6 +2773,8 @@ return [
     'blox_header_presets_hint' => '选择一个起步样式替换当前网页头草稿；可撤销，保存前不会影响前台。',
     'blox_header_preset_apply' => '应用此网页头',
     'blox_header_preset_applied' => '已应用“:name”',
+    'blox_header_section_name' => '网页页头',
+    'blox_header_section_name_indexed' => '网页页头 :n',
     'blox_area_preset_corporate_footer_name' => '多列企业页尾',
     'blox_area_preset_corporate_footer_desc' => '站点标识、社交入口、栏目导航、联系方式和动态版权备案组成的响应式页尾。',
     'blox_area_preset_not_active' => '未安装，不影响前台',
