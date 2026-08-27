@@ -723,7 +723,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['handleCanvasDrop(payload)', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor insert contract {$token} missing");
         }
-        foreach (['startPaletteDrag(el, event)', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
+        foreach (['startPaletteDrag(el, event)', 'createPaletteDragGhost(el, event)', 'clearPaletteDragGhost()', 'setDragImage(ghost, 18, 18)', 'blox-palette-drag-ghost', 'ghost.setAttribute("aria-hidden", "true")', 'e.key === "Escape" && self.dragEl', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
             $this->assertStringContainsString($token, $editor, "cross-frame drag bridge token {$token} missing");
         }
         foreach (['data-testid="blox-canvas-drop-bridge"', 'canvasPaletteDragOver($event)', 'canvasPaletteDrop($event)', 'pointer-events-none', "canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"] as $token) {

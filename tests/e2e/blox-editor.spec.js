@@ -1871,17 +1871,17 @@ test('native palette drag auto-pans inside the canvas and inserts @ci', async ({
         const rect = node.getBoundingClientRect();
         const centerY = rect.top + rect.height / 2;
         return {
-          centerInViewport: centerY >= 0 && centerY <= window.innerHeight,
+          centerInDropZone: centerY >= 144 && centerY <= window.innerHeight - 144,
           rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
           scrollY: window.scrollY,
           scrollHeight: document.documentElement.scrollHeight,
           innerHeight: window.innerHeight,
         };
       });
-      if (targetSnapshot.centerInViewport) break;
+      if (targetSnapshot.centerInDropZone) break;
       await page.waitForTimeout(100);
     } while (Date.now() < panDeadline);
-    expect(targetSnapshot?.centerInViewport, JSON.stringify(targetSnapshot)).toBe(true);
+    expect(targetSnapshot?.centerInDropZone, JSON.stringify(targetSnapshot)).toBe(true);
     expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
     expect(await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop)).toBe(canvasHostScrollBefore);
     const neutralPoint = {
@@ -1927,6 +1927,52 @@ test('native palette drag auto-pans inside the canvas and inserts @ci', async ({
     await expect(page.getByTestId('blox-tree-section').last().getByTestId('blox-tree-element')).toHaveCount(1);
     await expect((await frame(page)).locator(`[data-yk-el="${before}.0.0"][data-yk-el-type="heading"]`)).toHaveCount(1);
   } finally {
+    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+  }
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('palette drag uses a compact ghost and Escape cancels cleanly @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+
+  const before = await countSections(page);
+  let mouseDown = false;
+  try {
+    const source = page.getByTestId('blox-add-element-heading').first();
+    const sourceLabel = (await source.locator('span').last().textContent())?.trim() || '';
+    const sourceBox = await source.boundingBox();
+    const bridge = page.getByTestId('blox-canvas-drop-bridge');
+    const bridgeBox = await bridge.boundingBox();
+    expect(sourceBox).not.toBeNull();
+    expect(bridgeBox).not.toBeNull();
+
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+    await page.mouse.down();
+    mouseDown = true;
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 12, sourceBox.y + sourceBox.height / 2 + 4, { steps: 4 });
+    await expect(bridge).toHaveClass(/pointer-events-auto/);
+    await expect(page.getByTestId('blox-canvas-host')).toHaveClass(/overflow-hidden/);
+    const ghost = page.getByTestId('blox-palette-drag-ghost');
+    await expect(ghost).toHaveCount(1);
+    await expect(ghost).toContainText(sourceLabel);
+
+    await page.mouse.move(bridgeBox.x + bridgeBox.width / 2, bridgeBox.y + Math.min(240, bridgeBox.height / 2), { steps: 12 });
+    const contentFrame = await frame(page);
+    await expect(contentFrame.locator('html')).toHaveClass(/yk-palette-dragging/);
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    mouseDown = false;
+
+    await expect(ghost).toHaveCount(0);
+    await expect(bridge).toHaveClass(/pointer-events-none/);
+    await expect(page.getByTestId('blox-canvas-host')).toHaveClass(/overflow-auto/);
+    await expect(contentFrame.locator('html')).not.toHaveClass(/yk-palette-dragging/);
+    await expect(contentFrame.locator('.yk-drop-line')).toBeHidden();
+  } finally {
+    if (mouseDown) await page.mouse.up().catch(() => {});
     if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
