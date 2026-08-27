@@ -55,6 +55,38 @@ async function pointerClick(page, locator, clickCount = 1) {
   }, clickCount);
 }
 
+async function dragPaletteToTree(page, source, target, ratio, intent, label, valid = '1') {
+  const point = await target.evaluate((node, targetRatio) => {
+    const rect = node.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height * targetRatio,
+    };
+  }, ratio);
+  const transfer = await page.evaluateHandle(() => new DataTransfer());
+  await source.dispatchEvent('dragstart', { dataTransfer: transfer });
+  try {
+    await target.dispatchEvent('dragover', {
+      dataTransfer: transfer,
+      clientX: point.x,
+      clientY: point.y,
+    });
+    const indicator = page.locator(
+      `[data-testid="blox-tree-drop-indicator"][data-drop-intent="${intent}"][data-drop-valid="${valid}"]:visible`
+    );
+    await expect(indicator).toBeVisible();
+    await expect(indicator).toHaveText(label);
+    await target.dispatchEvent('drop', {
+      dataTransfer: transfer,
+      clientX: point.x,
+      clientY: point.y,
+    });
+  } finally {
+    await source.dispatchEvent('dragend', { dataTransfer: transfer }).catch(() => {});
+    await transfer.dispose();
+  }
+}
+
 test.beforeEach(async ({ page }, testInfo) => {
   consoleEntries = null;
   unsafeWrites = null;
@@ -1788,6 +1820,71 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
     contentFrame = await frame(page);
     await expect(treeContainer.locator('[data-sort-child-item]')).toHaveCount(1);
     await expect(contentFrame.locator(`[data-yk-el-id="${containerId}"] [data-yk-el-type="heading"]`)).toHaveCount(1);
+  } finally {
+    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+  }
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('structure tree drag labels before and inside intentions @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop structure drag baseline');
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+
+  const before = await countSections(page);
+  try {
+    await page.getByTestId('blox-add-section-1').click();
+    const section = page.getByTestId('blox-tree-section').last();
+    await page.getByTestId('blox-library-open').click();
+    await page.getByTestId('blox-add-element-heading').press('Enter');
+
+    let elements = section.getByTestId('blox-tree-element');
+    const headingRow = elements.first().locator('[data-element-drag-handle]');
+    await page.getByTestId('blox-library-open').click();
+    await dragPaletteToTree(
+      page,
+      page.getByTestId('blox-add-element-text'),
+      headingRow,
+      0.1,
+      'before',
+      '插入到此元素之前'
+    );
+    elements = section.getByTestId('blox-tree-element');
+    await expect(elements).toHaveCount(2);
+    await expect(elements.first()).toHaveAttribute('data-element-type', 'text');
+    await expect(elements.nth(1)).toHaveAttribute('data-element-type', 'heading');
+
+    const columnHeading = section.getByTestId('blox-tree-column').locator(':scope > div').first();
+    await columnHeading.click();
+    await page.getByTestId('blox-library-open').click();
+    await page.getByTestId('blox-add-element-container').press('Enter');
+    const container = section.locator('[data-sort-el-item][data-element-type="container"]');
+    const containerRow = container.locator('[data-element-drag-handle]');
+    await page.getByTestId('blox-library-open').click();
+    await dragPaletteToTree(
+      page,
+      page.getByTestId('blox-add-element-heading'),
+      containerRow,
+      0.5,
+      'inside',
+      '放入此容器'
+    );
+    await expect(container.locator('[data-sort-child-item]')).toHaveCount(1);
+    await expect(container.locator('[data-sort-child-item]')).toHaveAttribute('data-element-type', 'heading');
+
+    await columnHeading.click();
+    await page.getByTestId('blox-library-open').click();
+    await dragPaletteToTree(
+      page,
+      page.getByTestId('blox-add-element-container').first(),
+      containerRow,
+      0.5,
+      'inside',
+      '容器内不能再放容器',
+      '0'
+    );
+    await expect(container.locator('[data-sort-child-item]')).toHaveCount(1);
   } finally {
     if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
   }

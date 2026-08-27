@@ -91,7 +91,7 @@ declare(strict_types=1);
                                                 :data-testid="(grp.quick ? 'blox-quick-element-' : 'blox-add-element-') + el.type"
                                                 draggable="true"
                                                 @dragstart="paletteSelected = el.type; dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
-                                                @dragend="paletteSelected = ''; dragEl = null; dragOver = ''; canvasBridge().post({ ykDragType: '' })"
+                                                @dragend="paletteSelected = ''; dragEl = null; treeDropIntent = null; canvasBridge().post({ ykDragType: '' })"
                                                 class="w-full h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
                                                 :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
                                                 :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
@@ -2877,6 +2877,8 @@ declare(strict_types=1);
                 </button>
             </div>
             <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
+                <p class="sr-only" role="status" aria-live="polite" aria-atomic="true"
+                   x-text="treeDropIntent ? treeDropIntent.label : ''"></p>
                 <template x-if="sections.length === 0">
                     <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_click_any_element') ?></p>
                 </template>
@@ -2898,13 +2900,18 @@ declare(strict_types=1);
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"
                                      @contextmenu.prevent.stop="openCtx($event, 'container', {si: si})"
-                                     @dragover.prevent="dragOver = 'con' + si" @dragleave="dragOver = ''"
-                                     @drop.prevent="treeDrop(si, 0, null)"
-                                     class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer transition"
-                                     :class="dragOver === 'con' + si ? 'ring-2 ring-blue-300 bg-blue-50' : (isContainerSelected(si) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                     @dragover="treeColumnDragOver($event, si, 0, 'section-container:' + si + '.0')"
+                                     @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
+                                     class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer transition"
+                                     :class="(treeDropMatches('section-container:' + si + '.0:column-end') || treeDropMatches('section-container:' + si + '.0:section-after')) ? 'blox-tree-drop-inside-valid' : (isContainerSelected(si) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
                                     <i class="ti ti-box-margin text-xs shrink-0"></i>
                                     <span class="text-xs flex-1"><?= __('blox_tree_container') ?></span>
                                     <span class="text-[10px] text-gray-400" x-text="section.columns.length > 1 ? <?= e($jt('blox_n_cols')) ?>.replace(':n', section.columns.length) : ''"></span>
+                                    <span x-cloak x-show="treeDropMatches('section-container:' + si + '.0:column-end') || treeDropMatches('section-container:' + si + '.0:section-after')"
+                                          class="blox-tree-drop-inside" data-testid="blox-tree-drop-indicator"
+                                          :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                          :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
+                                          x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                 </div>
                             <div class="ml-3 pl-1.5 border-l border-gray-100 space-y-1">
                                 <template x-if="section.settings && section.settings.title">
@@ -2962,11 +2969,10 @@ declare(strict_types=1);
                                 </template>
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
                                     <div x-show="!isProjectedHomeColumnsSection(section)"
-                                         @dragover.prevent="dragOver = 'c' + si + '-' + ci" @dragleave="dragOver = ''"
-                                         @drop.prevent="treeDrop(si, ci, null)"
+                                         @dragover="treeColumnDragOver($event, si, ci, 'column:' + si + '.' + ci)"
+                                         @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                          :data-si="si" :data-ci="ci" data-sort-elements data-testid="blox-tree-column"
-                                         class="rounded transition"
-                                         :class="dragOver === 'c' + si + '-' + ci ? 'ring-2 ring-blue-300 bg-blue-50' : ''">
+                                         class="blox-tree-drop-node rounded transition">
                                         <?php // 单列时不显示列标题——只有一列，说「列1」是噪音 ?>
                                         <div @click.stop="selectColumn(si, ci)"
                                              @contextmenu.prevent.stop="openCtx($event, 'column', {si: si, ci: ci})"
@@ -2979,6 +2985,13 @@ declare(strict_types=1);
                                         <template x-if="col.elements.length === 0">
                                             <p class="text-[10px] text-gray-300 pl-2 py-1"><?= __('blox_tree_empty') ?></p>
                                         </template>
+                                        <span x-cloak x-show="treeDropMatches('column:' + si + '.' + ci + ':column-end') || treeDropMatches('column:' + si + '.' + ci + ':section-after')"
+                                              class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                              :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                              :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                              :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                            <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                        </span>
                                         <template x-for="(el, ei) in col.elements" :key="el.id">
                                             <div :data-item-id="el.id"
                                                  :data-element-type="el.type"
@@ -2986,10 +2999,10 @@ declare(strict_types=1);
                                                  data-sort-el-item data-testid="blox-tree-element">
                                                 <div data-element-drag-handle @click.stop="selectElement(si, ci, ei)"
                                                      @contextmenu.prevent.stop="openCtx($event, 'element', {si: si, ci: ci, ei: ei})"
-                                                     @dragover.prevent.stop="elSchema(el.type).container && (dragOver = 'ce' + si + '-' + ci + '-' + ei)"
-                                                     @drop.prevent.stop="elSchema(el.type).container ? treeDrop(si, ci, ei) : treeDrop(si, ci, null)"
-                                                     class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/el transition"
-                                                     :class="dragOver === 'ce' + si + '-' + ci + '-' + ei ? 'ring-2 ring-blue-300 bg-blue-50' : (isElSelected(si,ci,ei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                                     @dragover="treeElementDragOver($event, si, ci, ei, el)"
+                                                     @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
+                                                     class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/el transition"
+                                                     :class="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside') ? (treeDropIntent && treeDropIntent.valid ? 'blox-tree-drop-inside-valid' : 'blox-tree-drop-inside-invalid') : (isElSelected(si,ci,ei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
                                                     <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(el.type)"></i>
                                                     <span class="text-xs truncate flex-1" x-text="elLabel(el)"></span>
                                                     <span class="hidden group-hover/el:flex items-center gap-0.5 shrink-0">
@@ -3003,6 +3016,23 @@ declare(strict_types=1);
                                                                 class="p-0.5 hover:text-red-500" title="<?= e(__('delete')) ?>">
                                                             <i class="ti ti-trash text-xs"></i></button>
                                                     </span>
+                                                    <span x-cloak x-show="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':before')"
+                                                          class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                          data-drop-intent="before" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                        <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                    </span>
+                                                    <span x-cloak x-show="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':after')"
+                                                          class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                          data-drop-intent="after" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                        <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                    </span>
+                                                    <span x-cloak x-show="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside')"
+                                                          class="blox-tree-drop-inside" data-testid="blox-tree-drop-indicator"
+                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                          data-drop-intent="inside" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
+                                                          x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                 </div>
                                                 <!-- 容器：子元素嵌套一层（图层式） -->
                                                 <template x-if="elSchema(el.type).container && (el.type !== 'home-block' || String((el.data || {}).block_type || '') === 'banner')">
@@ -3013,8 +3043,10 @@ declare(strict_types=1);
                                                         <template x-for="(cel, cei) in (el.data.children || [])" :key="cel.id">
                                                             <div data-child-drag-handle @click.stop="selectChild(si, ci, ei, cei)"
                                                                  @contextmenu.prevent.stop="openCtx($event, 'child', {si: si, ci: ci, ei: ei, cei: cei})"
+                                                                 @dragover="treeChildDragOver($event, si, ci, ei, cei)"
+                                                                 @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                                                  :data-item-id="cel.id" :data-element-type="cel.type" data-sort-child-item
-                                                                 class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
+                                                                 class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
                                                                  :class="isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
                                                                 <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(cel.type)"></i>
                                                                 <span class="text-xs truncate flex-1" x-text="elLabel(cel)"></span>
@@ -3028,6 +3060,18 @@ declare(strict_types=1);
                                                                     <button type="button" @click.stop="deleteChild(si,ci,ei,cei)"
                                                                             class="p-0.5 hover:text-red-500" title="<?= e(__('delete')) ?>">
                                                                         <i class="ti ti-trash text-xs"></i></button>
+                                                                </span>
+                                                                <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':before')"
+                                                                      class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                                                      :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                                      data-drop-intent="before" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                                    <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                                </span>
+                                                                <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':after')"
+                                                                      class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                                                      :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                                      data-drop-intent="after" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                                    <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                                 </span>
                                                             </div>
                                                         </template>

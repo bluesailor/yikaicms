@@ -728,6 +728,31 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
+    public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'treeDropIntent: null',
+            'treeElementDragOver(event, si, ci, ei, el)',
+            'treeChildDragOver(event, si, ci, ei, cei)',
+            'treeDropVerdict(target)',
+            'this.addElement(el, drop.target)',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "structure tree intent token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-tree-drop-indicator"',
+            'data-drop-intent="before"',
+            'data-drop-intent="after"',
+            'treeDrop($event)',
+            'treeDropIntent ? treeDropIntent.label :',
+        ] as $token) {
+            $this->assertStringContainsString($token, $workspace, "structure tree marker token {$token} missing");
+        }
+    }
+
     public function testHomeCanvasAndFrontendUseSharedDynamicRenderContext(): void
     {
         $canvas = $this->source('admin/page_edit_advance.php');

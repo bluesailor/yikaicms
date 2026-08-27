@@ -627,6 +627,32 @@ $canManageBloxDesign = hasPermission('*');
         [x-cloak] { display: none !important; }
         .blox-scroll { scrollbar-width: thin; }
         .blox-sort-ghost { opacity: .45; border: 1px dashed #3b82f6; background: #eff6ff; }
+        .blox-tree-drop-node { position: relative; }
+        .blox-tree-drop-line {
+            position: absolute; left: .25rem; right: .25rem; z-index: 20; height: 2px;
+            background: #2563eb; border-radius: 2px; pointer-events: none;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, .9);
+        }
+        .blox-tree-drop-line.is-before { top: -1px; }
+        .blox-tree-drop-line.is-after { bottom: -1px; }
+        .blox-tree-drop-line.is-invalid { background: #dc2626; }
+        .blox-tree-drop-label {
+            position: absolute; right: 0; top: 50%; max-width: 11rem; padding: 2px 5px;
+            transform: translateY(-50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            color: #fff; background: #1d4ed8; border-radius: 3px;
+            font: 600 10px/1.35 system-ui, sans-serif; box-shadow: 0 2px 6px rgba(15, 23, 42, .2);
+        }
+        .blox-tree-drop-line.is-invalid .blox-tree-drop-label,
+        .blox-tree-drop-inside.is-invalid { background: #b91c1c; }
+        .blox-tree-drop-inside {
+            position: absolute; right: .25rem; top: 50%; z-index: 20; max-width: 11rem;
+            transform: translateY(-50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            padding: 2px 5px; color: #fff; background: #1d4ed8; border-radius: 3px;
+            font: 600 10px/1.35 system-ui, sans-serif; pointer-events: none;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, .2);
+        }
+        .blox-tree-drop-inside-valid { outline: 2px solid #60a5fa; outline-offset: -2px; }
+        .blox-tree-drop-inside-invalid { outline: 2px solid #ef4444; outline-offset: -2px; }
         .blox-scroll::-webkit-scrollbar { width: 6px; }
         .blox-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .blox-panel-resizer {
@@ -1126,6 +1152,11 @@ $canManageBloxDesign = hasPermission('*');
                 'saveConflict' => __('blox_save_conflict'),
                 'noNestedContainer' => __('blox_no_nested_container'),
                 'dropRestricted' => __('blox_drop_restricted'),
+                'dropBefore' => __('blox_drop_before'),
+                'dropAfter' => __('blox_drop_after'),
+                'dropIntoContainer' => __('blox_drop_into_container'),
+                'dropIntoColumnEnd' => __('blox_drop_into_column_end'),
+                'dropInvalid' => __('blox_drop_invalid'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             recoveryText: <?php echo json_encode([
                 'title' => __('blox_recovery_title'),
@@ -6551,25 +6582,138 @@ $canManageBloxDesign = hasPermission('*');
 
             // ── 拖拽插入（路线图③）：库瓦片拖到结构树/画布 ──
             dragEl: null,          // 正在拖的库条目
-            dragOver: "",          // 当前悬停的放置目标 key（高亮用）
+            treeDropIntent: null,  // {key, intent, target, valid, label}，与画布使用同一目标协议
 
             /**
-             * 结构树放置：ei=null → 插到 si 区块的 ci 列末尾；ei≥0 → 插进该列 ei 号容器。
-             * 通过先选中目标再走 addElement，复用其全部规则（容器嵌套约束、插入即选中、toast）。
+             * 结构树拖放与画布同语义：元素上下半区表示前后，容器中部表示放入。
+             * 这里只生成标准目标，写入仍由 addElement/insertElementAt 集中处理。
              */
-            treeDrop(si, ci, ei) {
+            treeDropMatches(key) {
+                return !!this.treeDropIntent && this.treeDropIntent.key === key;
+            },
+
+            treeDropVerdict(target) {
                 var el = this.dragEl;
-                this.dragEl = null;
-                this.dragOver = "";
-                if (!el) return;
-                if (el.type === "__section") { this.selectSection(si, false); this.addSection(1); return; }
-                if (ei === null) {
-                    this.selectSection(si, false);
-                    this.targetCi = ci;
-                } else {
-                    this.selectElement(si, ci, ei, false);
+                if (!el || !target) return { valid: false, reason: "invalid" };
+                if (el.type === "__section") {
+                    return target.kind === "section" ? { valid: true } : { valid: false, reason: "invalid" };
                 }
-                this.addElement(el);
+                if (target.kind === "section") return { valid: false, reason: "invalid" };
+                var host = null;
+                if (target.kind === "container") {
+                    host = this.elementAtPath(target.path);
+                } else if (target.kind === "element") {
+                    var parts = String(target.path || "").split(".");
+                    if (parts.length === 4) host = this.elementAtPath(parts.slice(0, 3).join("."));
+                }
+                if (!host) return { valid: true };
+                if (this.canNestElement(host, { type: el.type })) return { valid: true };
+                return {
+                    valid: false,
+                    reason: this.elSchema(el.type).container ? "no-nested-container" : "restricted-children",
+                };
+            },
+
+            setTreeDropIntent(key, intent, target) {
+                var verdict = this.treeDropVerdict(target);
+                var label = this.uiText.dropInvalid;
+                if (!verdict.valid) {
+                    label = verdict.reason === "restricted-children" ? this.uiText.dropRestricted
+                        : (verdict.reason === "no-nested-container" ? this.uiText.noNestedContainer : this.uiText.dropInvalid);
+                } else if (intent === "before") label = this.uiText.dropBefore;
+                else if (intent === "after") label = this.uiText.dropAfter;
+                else if (intent === "inside") label = this.uiText.dropIntoContainer;
+                else if (intent === "column-end") label = this.uiText.dropIntoColumnEnd;
+                else if (intent === "section-after") label = this.uiText.insertAfterSection.replace(":n", parseInt(target.sec, 10) + 1);
+                if (this.treeDropIntent && this.treeDropIntent.key === key
+                    && this.treeDropIntent.valid === verdict.valid && this.treeDropIntent.label === label) return;
+                this.treeDropIntent = { key: key, intent: intent, target: target, valid: verdict.valid, label: label };
+            },
+
+            applyTreeDropEffect(event) {
+                if (event.dataTransfer) event.dataTransfer.dropEffect = this.treeDropIntent && this.treeDropIntent.valid ? "copy" : "none";
+            },
+
+            treeColumnDragOver(event, si, ci, key) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (this.dragEl.type === "__section") {
+                    this.setTreeDropIntent(key + ":section-after", "section-after", { kind: "section", sec: si });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                this.setTreeDropIntent(key + ":column-end", "column-end", { kind: "column", sec: si, col: ci, position: "end" });
+                this.applyTreeDropEffect(event);
+            },
+
+            treeElementDragOver(event, si, ci, ei, el) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                var path = [si, ci, ei].join(".");
+                if (this.dragEl.type === "__section") {
+                    this.setTreeDropIntent("section:" + si + ":section-after", "section-after", { kind: "section", sec: si });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                var rect = event.currentTarget.getBoundingClientRect();
+                var ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0;
+                var isContainer = this.elSchema(el.type).container;
+                if (isContainer && ratio >= .25 && ratio <= .75) {
+                    this.setTreeDropIntent("element:" + path + ":inside", "inside", { kind: "container", path: path });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                var position = ratio < .5 ? "before" : "after";
+                this.setTreeDropIntent("element:" + path + ":" + position, position, { kind: "element", path: path, position: position });
+                this.applyTreeDropEffect(event);
+            },
+
+            treeChildDragOver(event, si, ci, ei, cei) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (this.dragEl.type === "__section") {
+                    this.setTreeDropIntent("section:" + si + ":section-after", "section-after", { kind: "section", sec: si });
+                    this.applyTreeDropEffect(event);
+                    return;
+                }
+                var rect = event.currentTarget.getBoundingClientRect();
+                var position = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+                var path = [si, ci, ei, cei].join(".");
+                this.setTreeDropIntent("child:" + path + ":" + position, position, { kind: "element", path: path, position: position });
+                this.applyTreeDropEffect(event);
+            },
+
+            treeDragLeave(event) {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                this.treeDropIntent = null;
+            },
+
+            treeDrop(event) {
+                if (!this.dragEl) return;
+                event.preventDefault();
+                event.stopPropagation();
+                var el = this.dragEl;
+                var drop = this.treeDropIntent;
+                this.dragEl = null;
+                this.treeDropIntent = null;
+                if (!drop) return;
+                if (!drop.valid) {
+                    this.toast(drop.label);
+                    return;
+                }
+                if (drop.target.kind === "section") {
+                    this.selectSection(parseInt(drop.target.sec, 10), false);
+                    this.addSection(1);
+                    return;
+                }
+                var targetSi = drop.target.kind === "column"
+                    ? parseInt(drop.target.sec, 10)
+                    : parseInt(String(drop.target.path || "").split(".")[0], 10);
+                if (!isNaN(targetSi)) this.selectSection(targetSi, false);
+                this.addElement(el, drop.target);
             },
 
             /** 收藏/最近使用作为快捷副本置顶；搜索时只显示普通分类结果。 */
