@@ -105,12 +105,13 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
     }
 
-    /** 空画布双入口 + 顶栏元素/预制区块分流。 */
+    /** 空画布双入口 + 元素库/预制区块分流。 */
     public function testEmptyCanvasEntryPointsAndTemplateButtonLabel(): void
     {
         $advance = $this->source('admin/page_edit_advance.php');
         $editor = $this->source('admin/blox_editor.php');
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         // 画布注入：文档级空态卡（每次预览更新先清后建），动作经 postMessage 白名单出画布
         $this->assertStringContainsString('yk-empty-doc', $advance);
@@ -119,11 +120,11 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('data.ykEmptyAction === "templates" || data.ykEmptyAction === "section"', $bridge);
 
-        // 编辑器：空态接线到模板库/插空白区块；工具栏提供两个语义明确的独立入口。
+        // 编辑器：空态接线到模板库/插空白区块；元素入口在顶栏，预制区块入口固定在结构面板上方。
         $this->assertStringContainsString('onEmptyAction: function (action)', $editor);
         $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
-        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
-        $this->assertStringContainsString('ti-layout-grid-add', $editor);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $workspace);
+        $this->assertStringContainsString('<span class="truncate"><?php echo e(__(\'blox_prebuilt_sections\')); ?></span>', $workspace);
     }
 
     public function testDesktopElementPanelHasAccessiblePersistentResizer(): void
@@ -767,6 +768,7 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
 
@@ -775,8 +777,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
         $this->assertStringContainsString('if (!title && this.headerTemplateMode)', $editor);
-        $this->assertStringContainsString('data-testid="blox-header-presets-open"', $header);
-        $this->assertStringContainsString('<span class="whitespace-nowrap"><?php echo e(__(\'blox_header_presets\')); ?></span>', $header);
+        $this->assertStringNotContainsString('data-testid="blox-header-presets-open"', $header);
+        $this->assertStringContainsString('data-testid="blox-header-presets-open"', $workspace);
+        $this->assertStringContainsString('<span class="truncate"><?php echo e(__(\'blox_header_presets\')); ?></span>', $workspace);
         $this->assertStringContainsString('@media (max-width: 1199px)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
