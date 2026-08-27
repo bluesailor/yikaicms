@@ -1160,6 +1160,8 @@ $canManageBloxDesign = hasPermission('*');
                 'dropIntoContainer' => __('blox_drop_into_container'),
                 'dropIntoColumnEnd' => __('blox_drop_into_column_end'),
                 'dropInvalid' => __('blox_drop_invalid'),
+                'dropSectionBefore' => __('blox_drop_section_before'),
+                'dropSectionAfter' => __('blox_drop_section_after'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             recoveryText: <?php echo json_encode([
                 'title' => __('blox_recovery_title'),
@@ -4720,6 +4722,10 @@ $canManageBloxDesign = hasPermission('*');
                     self.canvasViewportTick++;
                     self.syncPaletteInputMode();
                 });
+                // Sortable 会截断结构树内的外部 dragover；捕获阶段先识别预制区块落点。
+                window.addEventListener("dragenter", function (e) { self.treeSectionDragOver(e); }, true);
+                window.addEventListener("dragover", function (e) { self.treeSectionDragOver(e); }, true);
+                window.addEventListener("drop", function (e) { self.treeSectionDrop(e); }, true);
                 // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
                 window.addEventListener("beforeunload", function (e) {
                     if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
@@ -6748,8 +6754,12 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             treeDropVerdict(target) {
+                if (!target) return { valid: false, reason: "invalid" };
+                if (this.templateDragItem) {
+                    return target.kind === "template-section" ? { valid: true } : { valid: false, reason: "invalid" };
+                }
                 var el = this.dragEl;
-                if (!el || !target) return { valid: false, reason: "invalid" };
+                if (!el) return { valid: false, reason: "invalid" };
                 if (el.type === "__section") {
                     return target.kind === "section" ? { valid: true } : { valid: false, reason: "invalid" };
                 }
@@ -6779,7 +6789,10 @@ $canManageBloxDesign = hasPermission('*');
                 else if (intent === "after") label = this.uiText.dropAfter;
                 else if (intent === "inside") label = this.uiText.dropIntoContainer;
                 else if (intent === "column-end") label = this.uiText.dropIntoColumnEnd;
-                else if (intent === "section-after") label = this.uiText.insertAfterSection.replace(":n", parseInt(target.sec, 10) + 1);
+                else if (intent === "section-after") label = target.kind === "template-section"
+                    ? this.uiText.dropSectionAfter
+                    : this.uiText.insertAfterSection.replace(":n", parseInt(target.sec, 10) + 1);
+                else if (intent === "section-before") label = this.uiText.dropSectionBefore;
                 if (this.treeDropIntent && this.treeDropIntent.key === key
                     && this.treeDropIntent.valid === verdict.valid && this.treeDropIntent.label === label) return;
                 this.treeDropIntent = { key: key, intent: intent, target: target, valid: verdict.valid, label: label };
@@ -6787,6 +6800,37 @@ $canManageBloxDesign = hasPermission('*');
 
             applyTreeDropEffect(event) {
                 if (event.dataTransfer) event.dataTransfer.dropEffect = this.treeDropIntent && this.treeDropIntent.valid ? "copy" : "none";
+            },
+
+            treeSectionDragOver(event) {
+                if (!this.templateDragItem) return;
+                var row = event.target && event.target.closest
+                    ? event.target.closest('[data-testid="blox-tree-section"]')
+                    : null;
+                if (!row || !this.$refs.tree || !this.$refs.tree.contains(row)) return;
+                var si = parseInt(row.getAttribute("data-section-index"), 10);
+                var handle = row.querySelector("[data-section-drag-handle]");
+                if (isNaN(si) || !handle) return;
+                event.preventDefault();
+                event.stopPropagation();
+                var rect = handle.getBoundingClientRect();
+                var after = event.clientY >= rect.top + rect.height / 2;
+                var position = after ? "after" : "before";
+                this.setTreeDropIntent(
+                    "template-section:" + si + ":" + position,
+                    after ? "section-after" : "section-before",
+                    { kind: "template-section", index: si + (after ? 1 : 0) }
+                );
+                this.applyTreeDropEffect(event);
+            },
+
+            treeSectionDrop(event) {
+                if (!this.templateDragItem) return;
+                var row = event.target && event.target.closest
+                    ? event.target.closest('[data-testid="blox-tree-section"]')
+                    : null;
+                if (!row || !this.$refs.tree || !this.$refs.tree.contains(row)) return;
+                this.treeDrop(event);
             },
 
             treeColumnDragOver(event, si, ci, key) {
@@ -6847,16 +6891,22 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             treeDrop(event) {
-                if (!this.dragEl) return;
+                if (!this.dragEl && !this.templateDragItem) return;
                 event.preventDefault();
                 event.stopPropagation();
                 var el = this.dragEl;
+                var template = this.templateDragItem;
                 var drop = this.treeDropIntent;
-                this.dragEl = null;
-                this.treeDropIntent = null;
+                this.finishPaletteDrag();
                 if (!drop) return;
                 if (!drop.valid) {
                     this.toast(drop.label);
+                    return;
+                }
+                if (template) {
+                    if (drop.target.kind === "template-section") {
+                        this.insertTemplateAt(template, parseInt(drop.target.index, 10));
+                    }
                     return;
                 }
                 if (drop.target.kind === "section") {

@@ -2897,15 +2897,28 @@ declare(strict_types=1);
                 <template x-for="(section, si) in sections" :key="section.id">
                     <div @click="selectSection(si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
-                         :data-section-id="section.id" :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
+                         :data-section-id="section.id" :data-section-index="si"
+                         :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
                          class="rounded-lg border cursor-pointer transition group"
                          :class="selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200'">
-                        <div data-section-drag-handle class="flex items-center gap-2 px-2.5 py-2">
+                        <div data-section-drag-handle class="blox-tree-drop-node flex items-center gap-2 px-2.5 py-2">
+                            <span x-cloak x-show="treeDropMatches('template-section:' + si + ':before')"
+                                  class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                  :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                  :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                            </span>
                             <i class="ti ti-layout-board text-sm shrink-0"
                                :class="selectedSi === si ? 'text-blue-500' : 'text-gray-400'"></i>
                             <span class="text-sm truncate flex-1" :title="sectionLabel(section, si)"
                                   data-testid="blox-tree-section-label" x-text="sectionLabel(section, si)"></span>
                             <span class="text-[10px] text-gray-400" x-text="<?= e($jt('blox_n_elements')) ?>.replace(':n', elCount(section))"></span>
+                            <span x-cloak x-show="treeDropMatches('template-section:' + si + ':after')"
+                                  class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                  :data-drop-intent="treeDropIntent ? treeDropIntent.intent : ''"
+                                  :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                            </span>
                         </div>
                         <!-- 该区块展开：容器节点 → 列 → 元素（Bricks 的 Section/Container 分层树） -->
                         <div x-show="selectedSi === si" x-collapse>

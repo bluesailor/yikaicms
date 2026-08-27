@@ -5583,7 +5583,7 @@ voltage|电压|220V',
     'blox_drop_into_container' => '放入此容器',
     'blox_drop_into_column_end' => '放入此列末尾',
     'blox_drop_invalid' => '此位置不能放置该元素',
-    'blox_prebuilt_drag_hint' => '拖动“:name”到画布可见位置',
+    'blox_prebuilt_drag_hint' => '拖动“:name”到画布或右侧结构',
     'blox_drop_section_before' => '插入到此区块之前',
     'blox_drop_section_after' => '插入到此区块之后',
 ];

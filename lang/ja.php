@@ -5656,7 +5656,7 @@ voltage|電圧|220V',
     'blox_drop_into_container' => 'このコンテナ内に配置',
     'blox_drop_into_column_end' => 'この列の末尾に配置',
     'blox_drop_invalid' => 'ここにはこの要素を配置できません',
-    'blox_prebuilt_drag_hint' => '「:name」をキャンバスの表示位置へドラッグ',
+    'blox_prebuilt_drag_hint' => '「:name」をキャンバスまたは右側の構造へドラッグ',
     'blox_drop_section_before' => 'このセクションの前に挿入',
     'blox_drop_section_after' => 'このセクションの後に挿入',
 ];
