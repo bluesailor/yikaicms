@@ -80,7 +80,8 @@ $templateStoredDraft = '';
 if ($isHomeBlox) {
     requirePermission('*');
 }
-$areaCtxOptions = []; // 头尾模板的预览上下文选项（首页/单页/栏目），仅 header/footer 模板非空
+$areaCtxOptions = []; // 头尾模板的首页预览入口，仅 header/footer 模板非空
+$areaCtxOptionGroups = []; // 其余单页/栏目按语言分组，避免多语言站点混排
 $areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $documentIdentity = '';
 $homeBannerSeeds = [];
@@ -189,10 +190,33 @@ if ($isHomeBlox) {
             if ($ctxChType === 'redirect') {
                 continue;
             }
-            $areaCtxOptions[] = [
+            $ctxLang = trim((string) ($ctxCh['lang'] ?? ''));
+            if ($ctxLang === '') {
+                $ctxLang = (string) config('site_lang', 'zh-CN');
+            }
+            $areaCtxOptionGroups[$ctxLang][] = [
                 'value' => ($ctxChType === 'page' ? 'page:' : 'channel:') . (int) $ctxCh['id'],
                 'label' => (string) $ctxCh['name'],
             ];
+        }
+        if ($areaCtxOptionGroups !== []) {
+            $contextLanguageLabels = availableLanguages();
+            $contextLanguageOrder = array_values(array_unique(array_merge(
+                [getLang()],
+                array_keys(enabledLanguages()),
+                array_keys($areaCtxOptionGroups)
+            )));
+            $orderedContextGroups = [];
+            foreach ($contextLanguageOrder as $contextLanguage) {
+                if (!isset($areaCtxOptionGroups[$contextLanguage])) {
+                    continue;
+                }
+                $orderedContextGroups[$contextLanguage] = [
+                    'label' => $contextLanguageLabels[$contextLanguage] ?? $contextLanguage,
+                    'options' => $areaCtxOptionGroups[$contextLanguage],
+                ];
+            }
+            $areaCtxOptionGroups = $orderedContextGroups;
         }
     } else {
         // section/page 模板：纯段落预览，借沙盒页通道
@@ -805,7 +829,7 @@ $canManageBloxDesign = hasPermission('*');
             }
             main { padding: .75rem .5rem calc(4.25rem + env(safe-area-inset-bottom)) !important; }
         }
-        @media (max-width: 1023px) {
+        @media (max-width: 1199px) {
             .blox-editor-header { padding-right: .5rem; padding-left: .5rem; gap: .25rem; }
             .blox-header-brand { gap: 0; }
             .blox-header-brand-copy,
