@@ -39,14 +39,15 @@ declare(strict_types=1);
                             </template>
                         </select>
                     </div>
-                                        <?php // 插入目标：空白页可直接点元素，已有区块但未选中时才提示选择目标 ?>
+                    <?php // 触屏插入目标：空白页可直接点元素，已有区块但未选中时提示选择目标。 ?>
                     <template x-if="sections.length === 0">
                         <p class="text-[10px] text-blue-500 mt-1.5 leading-relaxed">
                             <?= __('blox_blank_auto_section') ?>
                         </p>
                     </template>
-                    <template x-if="selectedSi < 0 && sections.length > 0">
-                        <p class="text-[10px] text-amber-600 mt-1.5 leading-relaxed">
+                    <template x-if="paletteTapMode && selectedSi < 0 && sections.length > 0">
+                        <p data-testid="blox-pick-section-hint"
+                           class="text-[10px] text-amber-600 mt-1.5 leading-relaxed">
                             <?= __('blox_pick_section_first') ?>
                         </p>
                     </template>

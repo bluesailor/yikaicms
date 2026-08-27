@@ -2451,7 +2451,7 @@ return [
     'blox_element_library' => '要素ライブラリ',
     'blox_back_to_settings' => '設定に戻る',
     'blox_blank_auto_section' => '空白ページには最初のセクションが自動作成されます。',
-    'blox_pick_section_first' => '先にツリーまたはキャンバスでセクションを選択すると、要素がそこに挿入されます',
+    'blox_pick_section_first' => '要素をタップするか Enter キーで挿入する前に、ツリーまたはキャンバスで対象セクションを選択してください。',
     'blox_insert_into_container' => '選択中のコンテナに挿入されます',
     'blox_library_hint' => 'コンテンツ・メディア・レイアウト・動的要素が利用可能です。挿入後は自動選択され、右パネルで設定できます。',
     'blox_banner_hint' => 'ホームページのバナーは「ホーム動的ブロック」で並べ替え・個別編集できます。',

@@ -814,6 +814,7 @@ $canManageBloxDesign = hasPermission('*');
                 JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
             ); ?>,
             selectedSi: -1,
+            paletteTapMode: false,
             previewDevice: "desktop",
             headerPreviewState: "normal",
             canvasViewportTick: 0,
@@ -1109,6 +1110,7 @@ $canManageBloxDesign = hasPermission('*');
                 'insertAtEnd' => __('blox_insert_at_end'),
                 'insertAfterSection' => __('blox_insert_after_section'),
                 'dragToInsert' => __('blox_palette_drag_to_insert'),
+                'pickSectionFirst' => __('blox_pick_section_first'),
                 'insertedContainer' => __('blox_inserted_container'),
                 'inserted' => __('blox_inserted'),
                 'insertedCol' => __('blox_inserted_col'),
@@ -4641,6 +4643,7 @@ $canManageBloxDesign = hasPermission('*');
 
             init() {
                 var self = this;
+                this.syncPaletteInputMode();
                 this.restoreLeftPanelWidth();
                 this.restoreRightPanelState();
                 this.restoreElementLibraryPreferences();
@@ -4659,7 +4662,10 @@ $canManageBloxDesign = hasPermission('*');
                     if (self.initialPanel === "design") self.openDesignSystem();
                     else if (self.initialPanel === "templates") self.openTemplates();
                 });
-                window.addEventListener("resize", function () { self.canvasViewportTick++; });
+                window.addEventListener("resize", function () {
+                    self.canvasViewportTick++;
+                    self.syncPaletteInputMode();
+                });
                 // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
                 window.addEventListener("beforeunload", function (e) {
                     if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
@@ -6505,15 +6511,23 @@ $canManageBloxDesign = hasPermission('*');
 
             /**
              * 精细指针的普通单击只选中元素卡片，不立即改文档；拖放负责表达落点。
-             * 键盘与触屏没有可靠拖放能力，继续通过 Enter/点击插入到当前目标。
+             * 键盘与触屏没有可靠拖放能力，通过 Enter/点击插入；已有区块时必须先明确目标。
              */
+            syncPaletteInputMode() {
+                this.paletteTapMode = window.innerWidth <= 1023
+                    || !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+            },
+
             activatePaletteElement(el, event) {
                 if (!el) return;
                 this.paletteSelected = el.type;
                 var keyboard = !event || event.detail === 0;
-                var coarse = window.innerWidth <= 1023
-                    || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-                if (keyboard || coarse) {
+                if (keyboard || this.paletteTapMode) {
+                    if (this.sections.length > 0 && this.selectedSi < 0) {
+                        this.paletteSelected = "";
+                        this.toast(this.uiText.pickSectionFirst);
+                        return;
+                    }
                     this.addElement(el);
                     this.paletteSelected = "";
                     return;

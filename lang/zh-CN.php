@@ -2350,7 +2350,7 @@ return [
     'blox_element_library' => '元素库',
     'blox_back_to_settings' => '返回设置',
     'blox_blank_auto_section' => '空白页会自动创建首个区块。',
-    'blox_pick_section_first' => '先在右侧「结构」或画布里点选一个区块，元素会插进去',
+    'blox_pick_section_first' => '触屏点击或按 Enter 插入前，请先在「结构」或画布中选择目标区块。',
     'blox_insert_into_container' => '将插入到选中的容器内',
     'blox_library_hint' => '已开放常用内容、媒体、布局与动态元素；插入后会自动选中，可在右侧面板继续配置。',
     'blox_banner_hint' => '首页 Banner 可在「首页动态区块」中接管为可排序、可逐项编辑的内容。',

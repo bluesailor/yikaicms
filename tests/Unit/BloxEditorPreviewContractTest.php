@@ -1271,4 +1271,24 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('x-model="libCategory"', $workspace);
         $this->assertStringContainsString("libCategory !== 'all'", $workspace);
     }
+
+    public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'paletteTapMode: false',
+            'syncPaletteInputMode()',
+            'keyboard || this.paletteTapMode',
+            'this.sections.length > 0 && this.selectedSi < 0',
+            'this.toast(this.uiText.pickSectionFirst)',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "palette insertion token {$token} missing");
+        }
+        $this->assertStringContainsString('paletteTapMode && selectedSi < 0', $workspace);
+        $this->assertStringContainsString('data-testid="blox-pick-section-hint"', $workspace);
+        $this->assertStringContainsString('aria-live="polite"', $overlays);
+    }
 }
