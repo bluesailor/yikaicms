@@ -62,6 +62,25 @@ final class SiteHealthTest extends TestCase
         self::assertSame('/admin/media.php', $good['action_url']);
     }
 
+    public function testBrandAssetHealthReportsMissingLocalFilesWithoutRejectingRemoteAssets(): void
+    {
+        $good = SiteHealth::brandAssetsResult([
+            ['label' => 'Logo', 'url' => '/images/logo.png'],
+            ['label' => 'Icon', 'url' => 'https://cdn.example.test/favicon.png'],
+            ['label' => 'Optional', 'url' => ''],
+        ], ROOT_PATH);
+        self::assertSame(SiteHealth::GOOD, $good['status']);
+
+        $bad = SiteHealth::brandAssetsResult([
+            ['label' => 'Logo', 'url' => '/uploads/brand/missing.png'],
+            ['label' => 'Icon', 'url' => 'javascript:alert(1)'],
+        ], ROOT_PATH);
+        self::assertSame(SiteHealth::RECOMMENDED, $bad['status']);
+        self::assertSame('/admin/setting.php?tab=basic', $bad['action_url']);
+        self::assertStringContainsString('Logo', $bad['description']);
+        self::assertStringContainsString('Icon', $bad['description']);
+    }
+
     public function testBrowserProbesDetectSourceAndStorageExposure(): void
     {
         $checks = SiteHealth::evaluateBrowserProbes([
