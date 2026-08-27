@@ -6692,7 +6692,7 @@ $canManageBloxDesign = hasPermission('*');
 
             /**
              * 统一处理画布和结构树使用的插入目标：
-             * column/end 追加到列尾；element/before|after 插入到节点同级。
+             * column/end 追加到列尾；container 放入容器；element/before|after 插入到节点同级。
              * 子元素路径按同一套 si.ci.ei.cei 规则处理，容器约束在这里集中校验。
              */
             insertElementAt(node, target, label) {
@@ -6708,6 +6708,24 @@ $canManageBloxDesign = hasPermission('*');
                     column.elements.splice(endIndex, 0, node);
                     this.selectElement(si, ci, endIndex, false);
                     this.toast((section.columns.length > 1 ? this.uiText.insertedCol.replace(":n", ci + 1) : this.uiText.inserted).replace(":label", label || this.uiText.elementWord));
+                    return true;
+                }
+                if (target.kind === "container") {
+                    var hostParts = String(target.path || "").split(".").map(function (value) { return parseInt(value, 10); });
+                    if (hostParts.length !== 3 || hostParts.some(function (value) { return isNaN(value); })) return false;
+                    var hostSection = this.sections[hostParts[0]];
+                    var hostColumn = hostSection && hostSection.columns ? hostSection.columns[hostParts[1]] : null;
+                    var host = hostColumn && hostColumn.elements ? hostColumn.elements[hostParts[2]] : null;
+                    if (!host || !this.elSchema(host.type).container) return false;
+                    if (!this.canNestElement(host, node)) {
+                        this.toast(this.isLoopTemplateHost(host) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
+                        return true;
+                    }
+                    host.data.children = host.data.children || [];
+                    if (this.isHomeBannerHost(host)) host.data.items_mode = "custom";
+                    host.data.children.push(node);
+                    this.selectChild(hostParts[0], hostParts[1], hostParts[2], host.data.children.length - 1, false);
+                    this.toast(this.uiText.insertedContainer.replace(":label", label || this.uiText.elementWord));
                     return true;
                 }
                 if (target.kind !== "element") return false;

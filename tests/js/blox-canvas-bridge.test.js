@@ -116,7 +116,15 @@ test("拖放只接受 v1 且按 dropId 去重", function () {
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDrop: Object.assign({}, payload, { target: { kind: "element", path: "bad", position: "after" } }) } }), false);
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDrop: payload } }), true);
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDrop: payload } }), true);
-    assert.deepEqual(current.calls, [["drop", "drop-1"]]);
+    const containerPayload = Object.assign({}, payload, {
+        dropId: "drop-2",
+        target: { kind: "container", path: "1.0.2" },
+    });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDrop: containerPayload } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykDrop: Object.assign({}, containerPayload, { dropId: "drop-3", target: { kind: "container", path: "1.0.2.0" } }),
+    } }), false);
+    assert.deepEqual(current.calls, [["drop", "drop-1"], ["drop", "drop-2"]]);
 });
 
 test('ykClear 路由到 onClear，非 true 形态不路由', function () {
