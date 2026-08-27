@@ -383,7 +383,8 @@ declare(strict_types=1);
                 <i class="ti ti-map-pin-check shrink-0"></i>
                 <span x-text="templateText.insertTarget.replace(':target', insertHint())"></span>
             </div>
-            <div class="min-h-[320px] overflow-y-auto blox-scroll p-4">
+            <div x-ref="templateScroll" @scroll.passive="rememberTemplateSectionScroll($event.target.scrollTop)"
+                 class="min-h-[320px] overflow-y-auto blox-scroll p-4">
                 <div x-show="templateLoading" class="py-16 text-center text-sm text-gray-400">
                     <i class="ti ti-loader-2 animate-spin text-xl block mb-2"></i><span x-text="templateText.loading"></span>
                 </div>

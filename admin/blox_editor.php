@@ -1759,6 +1759,8 @@ $canManageBloxDesign = hasPermission('*');
             favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1",
             recentTemplatesStorageKey: "yikai:blox:template-recent:v1",
             templateDensityStorageKey: "yikai:blox:template-density:v1",
+            templateSectionViewStorageKey: "yikai:blox:template-section-view:v1",
+            templateSectionScrollTop: 0,
             legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
@@ -1789,12 +1791,13 @@ $canManageBloxDesign = hasPermission('*');
             /**
              * 关闭模板面板 = 取消未消费的定点插入意图（审计 r17-1：Esc/遮罩/关闭按钮
              * 此前只收面板不清 _insertAt，取消后从常规入口添加会落到旧边界）。
-             * 成功插入路径不经此处（insertTemplate 的应用段 → watcher 清位）。
+             * 成功插入也会走此处，因此先保存预制区块库上下文，再统一收起面板和清理落点。
              */
             closeTemplates() {
                 if (!this.templateOpen) return;
                 var root = this.$refs.templateDialog;
                 if (this.templateDragItem) this.finishPaletteDrag();
+                this.persistTemplateSectionViewState();
                 this.templateOpen = false;
                 this._insertAt = null;
                 this.releaseDialog(root);
@@ -1808,6 +1811,7 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             openTemplates() {
+                this.persistTemplateSectionViewState();
                 this.templateEntry = "all";
                 this.templateFilter = "all";
                 this.templateCategory = "all";
@@ -1819,10 +1823,12 @@ $canManageBloxDesign = hasPermission('*');
             openPrebuiltSections() {
                 this.templateEntry = "sections";
                 this.templateFilter = "section";
-                this.templateCategory = "all";
-                this.templateQuickFilter = "all";
-                this.templateQuery = "";
+                this.restoreTemplateSectionViewState();
                 this.openTemplateDialog();
+                if (this.templateLoaded) {
+                    this.normalizeTemplateSectionViewState();
+                    this.restoreTemplateSectionScroll();
+                }
             },
 
             templateSectionsDocked() {
@@ -1840,6 +1846,7 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             openPageTemplates() {
+                this.persistTemplateSectionViewState();
                 this.templateEntry = "pages";
                 this.templateScope = "local";
                 this.templateFilter = "page";
@@ -1869,6 +1876,10 @@ $canManageBloxDesign = hasPermission('*');
                         self.templateItems = items;
                         self.templateRemoteError = String(items.remoteError || "");
                         self.templateLoaded = true;
+                        if (self.templateEntry === "sections") {
+                            self.normalizeTemplateSectionViewState();
+                            self.restoreTemplateSectionScroll();
+                        }
                     })
                     .catch(function (error) {
                         // 刷新失败时保留已显示的本地目录，尤其不能抹掉刚另存成功的模板。
@@ -1941,6 +1952,72 @@ $canManageBloxDesign = hasPermission('*');
 
             templateCategoryLabel(category) {
                 return window.BloxTemplateLibrary.categoryLabel(category, this.templateText);
+            },
+
+            restoreTemplateSectionViewState() {
+                var state = {};
+                try {
+                    state = JSON.parse(window.sessionStorage.getItem(this.templateSectionViewStorageKey) || "{}");
+                } catch (error) {
+                    state = {};
+                }
+                this.templateScope = state.scope === "remote" ? "remote" : "local";
+                this.templateCategory = typeof state.category === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.category)
+                    ? state.category
+                    : "all";
+                this.templateQuickFilter = ["all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
+                    ? state.quickFilter
+                    : "all";
+                this.templateQuery = typeof state.query === "string" ? state.query.slice(0, 120) : "";
+                var scrollTop = Number(state.scrollTop);
+                this.templateSectionScrollTop = Number.isFinite(scrollTop)
+                    ? Math.max(0, Math.min(scrollTop, 1000000))
+                    : 0;
+            },
+
+            normalizeTemplateSectionViewState() {
+                if (this.templateCategory !== "all"
+                    && this.templateCategoryOptions().indexOf(this.templateCategory) === -1) {
+                    this.templateCategory = "all";
+                    this.templateSectionScrollTop = 0;
+                }
+            },
+
+            rememberTemplateSectionScroll(scrollTop) {
+                if (this.templateEntry !== "sections") return;
+                scrollTop = Number(scrollTop);
+                if (Number.isFinite(scrollTop)) {
+                    this.templateSectionScrollTop = Math.max(0, Math.min(scrollTop, 1000000));
+                }
+            },
+
+            persistTemplateSectionViewState() {
+                if (this.templateEntry !== "sections") return;
+                var scroller = this.$refs.templateScroll;
+                if (scroller) this.rememberTemplateSectionScroll(scroller.scrollTop);
+                try {
+                    window.sessionStorage.setItem(this.templateSectionViewStorageKey, JSON.stringify({
+                        scope: this.templateScope === "remote" ? "remote" : "local",
+                        category: this.templateCategory,
+                        quickFilter: this.templateQuickFilter,
+                        query: String(this.templateQuery || "").slice(0, 120),
+                        scrollTop: this.templateSectionScrollTop,
+                    }));
+                } catch (error) {
+                    // 禁用会话存储时仍保留本次页面生命周期内的状态。
+                }
+            },
+
+            restoreTemplateSectionScroll() {
+                var self = this;
+                this.$nextTick(function () {
+                    window.requestAnimationFrame(function () {
+                        var scroller = self.$refs.templateScroll;
+                        if (!scroller || !self.templateOpen || self.templateEntry !== "sections") return;
+                        var maximum = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+                        scroller.scrollTop = Math.min(self.templateSectionScrollTop, maximum);
+                    });
+                });
             },
 
             templateTypeLabel(type) {

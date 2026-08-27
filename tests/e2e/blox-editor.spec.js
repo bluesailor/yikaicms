@@ -1240,6 +1240,58 @@ test('prebuilt compact density shortens the library and persists locally @ci', a
   await expect(page.getByTestId('blox-template-item').first()).toHaveCSS('height', '96px');
 });
 
+test('prebuilt library restores session filters and scroll after closing or inserting @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template session continuity baseline');
+  await page.evaluate(() => sessionStorage.removeItem('yikai:blox:template-section-view:v1'));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  const category = page.getByTestId('blox-template-category');
+  const search = page.getByTestId('blox-template-search');
+  await category.selectOption('content');
+  await search.fill('图文');
+  await page.getByTestId('blox-template-close').click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    sessionStorage.getItem('yikai:blox:template-section-view:v1') || '{}'
+  ))).toMatchObject({ scope: 'local', category: 'content', quickFilter: 'all', query: '图文' });
+
+  await page.getByTestId('blox-prebuilt-open').click();
+  await expect(category).toHaveValue('content');
+  await expect(search).toHaveValue('图文');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
+  await search.fill('');
+  await category.selectOption('all');
+  await page.getByTestId('blox-template-density-compact').click();
+  const scroller = page.locator('[x-ref="templateScroll"]');
+  await scroller.evaluate((element) => { element.scrollTop = Math.min(240, element.scrollHeight); });
+  const savedScroll = await scroller.evaluate((element) => element.scrollTop);
+  expect(savedScroll).toBeGreaterThan(100);
+  await page.getByTestId('blox-template-close').click();
+
+  await page.getByTestId('blox-prebuilt-open').click();
+  await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThanOrEqual(savedScroll - 2);
+  await search.fill('图文');
+  const imageText = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]');
+  await imageText.getByTestId('blox-template-insert').click();
+  await waitPreviewSettled(page);
+  await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    sessionStorage.getItem('yikai:blox:template-section-view:v1') || '{}'
+  ).query)).toBe('图文');
+  await undo(page);
+
+  await page.getByTestId('blox-prebuilt-open').click();
+  await expect(search).toHaveValue('图文');
+  await search.fill('');
+  await page.getByTestId('blox-template-quick-recent').click();
+  await page.getByTestId('blox-template-close').click();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+  await expect(page.getByTestId('blox-template-quick-recent')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
+});
+
 test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const beforeSections = await countSections(page);
