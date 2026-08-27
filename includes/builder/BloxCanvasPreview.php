@@ -96,18 +96,36 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             . ' data-yk-ctx-hit="' . $ctxHitId . '">' . $editableArea . '</div>';
         $dim = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>';
         $body = $templateArea === 'header' ? $editableArea . $dim : $dim . $editableArea;
-    } elseif ($isHomeLayout) {
-        $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
-        if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
-            $previewSections = $previewSections['sections'];
+    } else {
+        if ($isHomeLayout) {
+            $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
+            if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
+                $previewSections = $previewSections['sections'];
+            }
+            $previewSections = is_array($previewSections) ? $previewSections : [];
+            $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
+            $pageBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+            $pageRow = null;
+            $pageType = '';
+        } else {
+            $pageBody = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+            $pageRow = channelModel()->find($id);
+            $pageType = (string) ($pageRow['type'] ?? '');
         }
-        $previewSections = is_array($previewSections) ? $previewSections : [];
-        $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
-        $homeBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
 
-        // 首页画布同时展示当前生效的 Blox 页头/页尾，帮助管理员判断首屏和整页比例。
-        // 它们是只读上下文，不进入首页 sections，也不参与首页保存；头尾模板仍在各自模板编辑器中修改。
-        $renderPublishedArea = static function (string $area): string {
+        $areaContext = [
+            'home' => $isHomeLayout,
+            'channel_id' => $isHomeLayout ? 0 : $id,
+            'page_id' => !$isHomeLayout && $pageType === 'page' ? $id : 0,
+        ];
+        $contextScript = $isHomeLayout ? '/index.php' : ($pageType === 'page' ? '/page.php' : '/list.php');
+        $contextTitle = $isHomeLayout ? __('home') : (string) ($pageRow['name'] ?? '');
+        $contextSlug = $isHomeLayout ? '' : (string) ($pageRow['slug'] ?? '');
+
+        // 画布同时展示当前页面实际生效的 Blox 页头/页尾，帮助管理员判断整页结构。
+        // 它们是只读上下文，不进入当前文档，也不参与当前文档保存。
+        /** @param array{home:bool,channel_id:int,page_id:int} $context */
+        $renderPublishedArea = static function (string $area, array $context, string $scriptName): string {
             if (!in_array($area, ['header', 'footer'], true)) {
                 return '';
             }
@@ -115,11 +133,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 return '';
             }
             $templates = bloxTemplateModel()->publishedAreaTemplates($area);
-            $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, [
-                'home' => true,
-                'channel_id' => 0,
-                'page_id' => 0,
-            ]);
+            $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, $context);
             if ($resolved === null) {
                 return '';
             }
@@ -127,6 +141,12 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             if ($publishedData === '') {
                 return '';
             }
+            $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+            $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
+            $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
+            $_SERVER['SCRIPT_NAME'] = $scriptName;
+            $GLOBALS['currentChannelId'] = $context['channel_id'];
+            $GLOBALS['ykBloxPageId'] = $context['page_id'];
             try {
                 $document = BloxAreaDocument::decode($area, $publishedData);
                 $html = BlockRenderer::render($publishedData);
@@ -137,19 +157,44 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             } catch (Throwable $e) {
                 error_log('[bloxCanvasPreview] area context: ' . $e->getMessage());
                 return '';
+            } finally {
+                $_SERVER['SCRIPT_NAME'] = $savedScriptName;
+                if ($savedChannelId === null) {
+                    unset($GLOBALS['currentChannelId']);
+                } else {
+                    $GLOBALS['currentChannelId'] = $savedChannelId;
+                }
+                if ($savedPageId === null) {
+                    unset($GLOBALS['ykBloxPageId']);
+                } else {
+                    $GLOBALS['ykBloxPageId'] = $savedPageId;
+                }
             }
         };
 
         // 自定义区域未启用或没有命中时，画布仍需显示当前主题的默认头尾，
         // 否则管理员看到的页面比例会与前台不一致。这里只截取主题布局的 body 区域，
         // 不把主题的 html/head/main 外壳嵌入预览 iframe。
-        /** @psalm-suppress UnusedVariable 本闭包内变量均供 require 的主题布局模板使用 */
-        $renderThemeArea = static function (string $area): string {
+        /**
+         * @psalm-suppress UnusedVariable 本闭包内变量均供 require 的主题布局模板使用
+         * @psalm-suppress UnusedClosureParam Psalm 无法跟踪 require 模板读取的局部变量
+         */
+        $renderThemeArea = static function (
+            string $area,
+            string $scriptName,
+            int $channelId,
+            int $pageId,
+            string $title,
+            string $slug
+        ): string {
             $layout = theme_path_optional('layouts/' . $area . '.php');
             if ($layout === null || !is_file($layout)) {
                 return '';
             }
-            $pageTitle = __('home');
+            if ($area === 'footer' && !function_exists('renderCustomerService')) {
+                require_once ROOT_PATH . '/includes/customer_service.php';
+            }
+            $pageTitle = $title;
             $pageDescription = '';
             $pageKeywords = '';
             $canonicalUrl = siteBaseUrl() . '/';
@@ -161,9 +206,11 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
             $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
             $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
-            $_SERVER['SCRIPT_NAME'] = '/index.php';
-            $GLOBALS['currentChannelId'] = 0;
-            $GLOBALS['ykBloxPageId'] = 0;
+            $_SERVER['SCRIPT_NAME'] = $scriptName;
+            $GLOBALS['currentChannelId'] = $channelId;
+            $GLOBALS['ykBloxPageId'] = $pageId;
+            $currentChannelId = $channelId;
+            $currentSlug = $slug;
             ob_start();
             try {
                 require $layout;
@@ -225,25 +272,36 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         BlockRenderer::$editChannelId = 0;
         $headerEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
         $footerEnabled = (string) config('blox_custom_footer_enabled', '1') === '1';
-        $homeAreaContext = ['home' => true, 'channel_id' => 0, 'page_id' => 0];
-        $headerBlox = $headerEnabled ? $renderPublishedArea('header') : '';
-        $footerBlox = $footerEnabled ? $renderPublishedArea('footer') : '';
+        $headerBlox = $headerEnabled ? $renderPublishedArea('header', $areaContext, $contextScript) : '';
+        $footerBlox = $footerEnabled ? $renderPublishedArea('footer', $areaContext, $contextScript) : '';
         $headerBody = $wrapContextArea(
             'header',
-            $headerBlox !== '' ? $headerBlox : $renderThemeArea('header'),
+            $headerBlox !== '' ? $headerBlox : $renderThemeArea(
+                'header',
+                $contextScript,
+                $areaContext['channel_id'],
+                $areaContext['page_id'],
+                $contextTitle,
+                $contextSlug
+            ),
             $headerBlox !== '' ? 'blox' : 'theme',
-            BloxAreaEditorTarget::url('header', $homeAreaContext, 'home')
+            BloxAreaEditorTarget::url('header', $areaContext, $isHomeLayout ? 'home' : '')
         );
         $footerBody = $wrapContextArea(
             'footer',
-            $footerBlox !== '' ? $footerBlox : $renderThemeArea('footer'),
+            $footerBlox !== '' ? $footerBlox : $renderThemeArea(
+                'footer',
+                $contextScript,
+                $areaContext['channel_id'],
+                $areaContext['page_id'],
+                $contextTitle,
+                $contextSlug
+            ),
             $footerBlox !== '' ? 'blox' : 'theme',
-            BloxAreaEditorTarget::url('footer', $homeAreaContext, 'home')
+            BloxAreaEditorTarget::url('footer', $areaContext, $isHomeLayout ? 'home' : '')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
-        $body = $headerBody . $homeBody . $footerBody;
-    } else {
-        $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+        $body = $headerBody . $pageBody . $footerBody;
     }
 
     $bloxInject = '';
