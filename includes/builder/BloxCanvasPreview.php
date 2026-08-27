@@ -920,10 +920,12 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     var ykDragRules = null;   // {containers:{type:[childTypes]}, isContainer:{type:bool}, generic:{type:bool}}
     var ykDragType = '';      // 编辑器 palette dragstart 广播的当前拖拽类型（dragend 清空）
     window.addEventListener('message', function (e) {
+        if (e.source !== window.parent || e.origin !== editorOrigin) return;
         var d = e.data || {};
         var shouldScroll = d.ykScroll === true;
         if (d.ykDragRules && typeof d.ykDragRules === 'object') { ykDragRules = d.ykDragRules; return; }
         if ('ykDragType' in d) { ykDragType = typeof d.ykDragType === 'string' ? d.ykDragType : ''; return; }
+        if (d.ykPaletteDrag) { handlePaletteDragMessage(d.ykPaletteDrag); return; }
         if (Number.isInteger(d.ykBannerSlide)) {
             var bannerNode = null;
             if (typeof d.ykBannerPath === 'string' && /^\d+\.\d+\.\d+$/.test(d.ykBannerPath)) {
@@ -1303,6 +1305,50 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         }
         return { valid: true }; // 列级/顶级元素前后：任何元素均可
     }
+
+    // 父页面在 iframe 上方接住原生拖放，再把等比换算后的画布坐标传进来。
+    // 这里仍由真实 DOM 命中目标，落点协议和合法性校验与 iframe 内原生 drop 共用。
+    function handlePaletteDragMessage(payload) {
+        if (!payload || payload.version !== 1) return;
+        if (payload.phase === 'cancel') { hideDropLine(); return; }
+        if ((payload.phase !== 'move' && payload.phase !== 'drop')
+            || typeof payload.type !== 'string'
+            || !/^[a-z_][a-z0-9_-]{0,63}$/i.test(payload.type)
+            || !Number.isFinite(payload.clientX)
+            || !Number.isFinite(payload.clientY)) return;
+        ykDragType = payload.type;
+        var node = document.elementFromPoint(payload.clientX, payload.clientY);
+        var section = node && node.closest ? node.closest('[data-yk-sec]') : null;
+        if (!section) { hideDropLine(); return; }
+        var target = dropTargetFromEvent({
+            target: node,
+            clientX: payload.clientX,
+            clientY: payload.clientY
+        }, section);
+        if (!target) { hideDropLine(); return; }
+        var verdict = dropTargetVerdict(target);
+        if (payload.phase === 'move') {
+            if (target.kind === 'element' || target.kind === 'container') highlightEl(target.path);
+            else highlightColumn(String(target.sec) + '.' + String(target.col));
+            showDropLine(target, verdict);
+            return;
+        }
+        hideDropLine();
+        if (!verdict.valid) {
+            postToEditor({ ykDropRejected: verdict.reason || 'invalid' });
+            return;
+        }
+        postToEditor({ ykDrop: {
+            version: 1,
+            source: 'palette',
+            dropId: 'drop_' + Date.now() + '_' + (++dropSequence),
+            sec: parseInt(section.getAttribute('data-yk-sec'), 10),
+            col: parseInt(target.col, 10) || 0,
+            type: payload.type,
+            target: target
+        } });
+    }
+
     // Palette tiles use a versioned payload. The target is a column end, a container, or an element before/after position.
     document.addEventListener('dragover', function (e) {
         var s = e.target.closest('[data-yk-sec]');

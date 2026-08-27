@@ -709,8 +709,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
         $canvas = $this->source('admin/page_edit_advance.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
-        foreach (['application/x-yikai-blox', 'version: 1', "source: 'palette'"] as $token) {
+        foreach (['application/x-yikai-blox', 'version: 1', 'source: "palette"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor drag payload {$token} missing");
         }
         foreach (['yk-drop-line', 'dropTargetFromEvent', "position: before ? 'before' : 'after'", 'target: target', 'dropId: ' ] as $token) {
@@ -721,6 +722,15 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         foreach (['handleCanvasDrop(payload)', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor insert contract {$token} missing");
+        }
+        foreach (['startPaletteDrag(el, event)', 'canvasPaletteDragMessage(event, phase)', 'frame.clientWidth || rect.width', 'ykPaletteDrag'] as $token) {
+            $this->assertStringContainsString($token, $editor, "cross-frame drag bridge token {$token} missing");
+        }
+        foreach (['data-testid="blox-canvas-drop-bridge"', 'canvasPaletteDragOver($event)', 'canvasPaletteDrop($event)', 'pointer-events-none'] as $token) {
+            $this->assertStringContainsString($token, $workspace, "canvas drop overlay token {$token} missing");
+        }
+        foreach (['e.source !== window.parent', 'handlePaletteDragMessage(d.ykPaletteDrag)', 'document.elementFromPoint(payload.clientX, payload.clientY)', "payload.phase !== 'move' && payload.phase !== 'drop'"] as $token) {
+            $this->assertStringContainsString($token, $preview, "preview coordinate drop token {$token} missing");
         }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'isTopLevelElementPath(value.target.path)'] as $token) {

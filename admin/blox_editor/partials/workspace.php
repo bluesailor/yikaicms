@@ -90,8 +90,8 @@ declare(strict_types=1);
                                         <button type="button" @click="activatePaletteElement(el, $event)"
                                                 :data-testid="(grp.quick ? 'blox-quick-element-' : 'blox-add-element-') + el.type"
                                                 draggable="true"
-                                                @dragstart="paletteSelected = el.type; dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
-                                                @dragend="paletteSelected = ''; dragEl = null; treeDropIntent = null; canvasBridge().post({ ykDragType: '' })"
+                                                @dragstart="startPaletteDrag(el, $event)"
+                                                @dragend="finishPaletteDrag()"
                                                 class="w-full h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
                                                 :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
                                                 :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
@@ -2823,6 +2823,15 @@ declare(strict_types=1);
                 <iframe x-ref="canvas" data-testid="blox-canvas"
                         class="bg-white shadow-xl border-0 rounded"
                         :style="previewFrameStyle()"></iframe>
+                <?php // 原生 HTML5 拖放无法可靠跨 iframe。拖动期间由父页面透明层接收事件，
+                      // 再把画布坐标交给预览页解析，普通点击时保持 pointer-events:none。 ?>
+                <div data-testid="blox-canvas-drop-bridge"
+                     aria-hidden="true"
+                     @dragover.prevent.stop="canvasPaletteDragOver($event)"
+                     @dragleave="canvasPaletteDragLeave($event)"
+                     @drop.prevent.stop="canvasPaletteDrop($event)"
+                     class="absolute inset-0 z-30"
+                     :class="canvasDragActive ? 'pointer-events-auto' : 'pointer-events-none'"></div>
                 <?php
                 // 空画布的提示只保留一处 —— 由预览页自己渲染（BloxCanvasPreview 的
                 // .yk-empty-doc：「画布还是空的 / 从模板库导入 / 从空白区块开始」）。
