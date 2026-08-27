@@ -1431,6 +1431,36 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
+    public function testPrebuiltLibraryEmptyStatesExplainAndClearActiveFilters(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'templateEmptyReason()',
+            'templateEmptyMessage()',
+            'templateEmptyIcon()',
+            'templateCanClearFilters()',
+            'clearTemplateSectionFilters()',
+            'this.templateQuery = "";',
+            'this.templateCategory = "all";',
+            'this.templateQuickFilter = "all";',
+            'this.templateSectionScrollTop = 0;',
+            'this.persistTemplateSectionViewState();',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt empty state token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-template-empty"',
+            ':data-empty-reason="templateEmptyReason()"',
+            'x-text="templateEmptyMessage()"',
+            'data-testid="blox-template-clear-filters"',
+            '@click="clearTemplateSectionFilters()"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt empty UI token {$token} missing");
+        }
+    }
+
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
     {
         $editor = $this->source('admin/blox_editor.php');

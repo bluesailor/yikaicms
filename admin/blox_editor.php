@@ -1214,6 +1214,11 @@ $canManageBloxDesign = hasPermission('*');
                 'empty' => __('blox_template_empty'),
                 'emptyLocal' => __('blox_template_empty_local'),
                 'emptyRemote' => __('blox_template_empty_remote'),
+                'emptySearch' => __('blox_template_empty_search'),
+                'emptyFavorites' => __('blox_template_empty_favorites'),
+                'emptyRecent' => __('blox_template_empty_recent'),
+                'emptyCategory' => __('blox_template_empty_category'),
+                'clearFilters' => __('blox_template_clear_filters'),
                 'manage' => __('blox_template_manage'),
                 'countUnit' => __('blox_template_count_unit'),
                 'local' => __('blox_template_source_local'),
@@ -1940,6 +1945,56 @@ $canManageBloxDesign = hasPermission('*');
                 if (mode === "favorites") return items.filter(function (item) { return self.isTemplateFavorite(item.key); }).length;
                 if (mode === "recent") return items.filter(function (item) { return self.isTemplateRecent(item.key); }).length;
                 return items.length;
+            },
+
+            templateEmptyReason() {
+                if (this.templateEntry === "sections") {
+                    if (String(this.templateQuery || "").trim()) return "search";
+                    if (this.templateQuickFilter === "favorites") return "favorites";
+                    if (this.templateQuickFilter === "recent") return "recent";
+                    if (this.templateCategory !== "all") return "category";
+                }
+                return this.templateScope === "remote" ? "remote" : "local";
+            },
+
+            templateEmptyMessage() {
+                var reason = this.templateEmptyReason();
+                if (reason === "search") {
+                    return this.templateText.emptySearch.replace(":query", String(this.templateQuery || "").trim());
+                }
+                if (reason === "favorites") return this.templateText.emptyFavorites;
+                if (reason === "recent") return this.templateText.emptyRecent;
+                if (reason === "category") return this.templateText.emptyCategory;
+                return reason === "remote" ? this.templateText.emptyRemote : this.templateText.emptyLocal;
+            },
+
+            templateEmptyIcon() {
+                var reason = this.templateEmptyReason();
+                if (reason === "search") return "ti-search-off";
+                if (reason === "favorites") return "ti-star";
+                if (reason === "recent") return "ti-history";
+                if (reason === "category") return "ti-category";
+                return reason === "remote" ? "ti-cloud-off" : "ti-template-off";
+            },
+
+            templateCanClearFilters() {
+                return this.templateEntry === "sections" && (
+                    String(this.templateQuery || "").trim() !== ""
+                    || this.templateCategory !== "all"
+                    || this.templateQuickFilter !== "all"
+                );
+            },
+
+            clearTemplateSectionFilters() {
+                if (this.templateEntry !== "sections") return;
+                this.templateQuery = "";
+                this.templateCategory = "all";
+                this.templateQuickFilter = "all";
+                var scroller = this.$refs.templateScroll;
+                if (scroller) scroller.scrollTop = 0;
+                this.templateSectionScrollTop = 0;
+                this.persistTemplateSectionViewState();
+                this.restoreTemplateSectionScroll();
             },
 
             templateScopeCount(scope) {
