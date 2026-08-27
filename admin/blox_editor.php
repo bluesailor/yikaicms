@@ -627,6 +627,9 @@ $canManageBloxDesign = hasPermission('*');
         [x-cloak] { display: none !important; }
         .blox-scroll { scrollbar-width: thin; }
         .blox-sort-ghost { opacity: .45; border: 1px dashed #3b82f6; background: #eff6ff; }
+        .blox-palette-drag-ghost { position: fixed; left: -9999px; top: -9999px; z-index: 9999; display: flex; max-width: 220px; align-items: center; gap: 8px; overflow: hidden; border-radius: 6px; background: #fff; padding: 7px 10px 7px 7px; color: #1e3a8a; box-shadow: 0 8px 20px rgba(15, 23, 42, .18); font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
+        .blox-palette-drag-ghost-icon { display: flex; width: 26px; height: 26px; flex: 0 0 26px; align-items: center; justify-content: center; border-radius: 4px; background: #eff6ff; color: #2563eb; }
+        .blox-palette-drag-ghost-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
         .blox-tree-drop-node { position: relative; }
         .blox-tree-drop-line {
             position: absolute; left: .25rem; right: .25rem; z-index: 20; height: 2px;
@@ -1302,6 +1305,7 @@ $canManageBloxDesign = hasPermission('*');
             mobileActionsOpen: false,
             libOpen: false,             // true = 有选中项时仍显示元素库（「＋ 元素」按钮）
             paletteSelected: "",       // 桌面单击只选中提示；拖放、键盘或触屏才执行插入
+            _paletteDragGhost: null,
             favoriteElementTypes: [],
             recentElementTypes: [],
             favoriteElementsStorageKey: "yikai:blox:element-favorites:v1",
@@ -4710,6 +4714,7 @@ $canManageBloxDesign = hasPermission('*');
                     if (self._historyStore) self._historyStore.dispose();
                 });
                 window.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape" && self.dragEl) { e.preventDefault(); self.finishPaletteDrag(); return; }
                     if (e.key === "Escape" && self.ctx.open) { e.preventDefault(); self.closeCtx(); return; }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.tinymce && tinymce.activeEditor;
@@ -6585,6 +6590,40 @@ $canManageBloxDesign = hasPermission('*');
             canvasDragActive: false,
             treeDropIntent: null,  // {key, intent, target, valid, label}，与画布使用同一目标协议
 
+            clearPaletteDragGhost() {
+                if (this._paletteDragGhost && this._paletteDragGhost.parentNode) {
+                    this._paletteDragGhost.parentNode.removeChild(this._paletteDragGhost);
+                }
+                this._paletteDragGhost = null;
+            },
+
+            createPaletteDragGhost(el, event) {
+                this.clearPaletteDragGhost();
+                if (!event || !event.dataTransfer || typeof event.dataTransfer.setDragImage !== "function") return;
+                var iconName = String(el.icon || "box").replace(/[^a-z0-9-]/gi, "") || "box";
+                var ghost = document.createElement("div");
+                ghost.setAttribute("data-testid", "blox-palette-drag-ghost");
+                ghost.setAttribute("aria-hidden", "true");
+                ghost.className = "blox-palette-drag-ghost";
+                var icon = document.createElement("span");
+                icon.className = "blox-palette-drag-ghost-icon";
+                var iconGlyph = document.createElement("i");
+                iconGlyph.className = "ti ti-" + iconName;
+                icon.appendChild(iconGlyph);
+                var label = document.createElement("span");
+                label.className = "blox-palette-drag-ghost-label";
+                label.textContent = String(el.label || el.type || "");
+                ghost.appendChild(icon);
+                ghost.appendChild(label);
+                document.body.appendChild(ghost);
+                this._paletteDragGhost = ghost;
+                try {
+                    event.dataTransfer.setDragImage(ghost, 18, 18);
+                } catch (error) {
+                    this.clearPaletteDragGhost();
+                }
+            },
+
             startPaletteDrag(el, event) {
                 if (!el || !event || !event.dataTransfer) return;
                 this.paletteSelected = el.type;
@@ -6597,10 +6636,12 @@ $canManageBloxDesign = hasPermission('*');
                     type: el.type,
                 }));
                 event.dataTransfer.setData("text/plain", el.type);
+                this.createPaletteDragGhost(el, event);
                 this.canvasBridge().post({ ykDragType: el.type });
             },
 
             finishPaletteDrag() {
+                this.clearPaletteDragGhost();
                 this.paletteSelected = "";
                 this.dragEl = null;
                 this.canvasDragActive = false;
