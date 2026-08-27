@@ -720,7 +720,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['yk-drop-label', 'yk-drop-inside', "kind: 'container'", 'dropIndicatorText(target, verdict)', '__YK_DROP_TEXT__'] as $token) {
             $this->assertStringContainsString($token, $preview, "canvas drop intent token {$token} missing");
         }
-        foreach (['handleCanvasDrop(payload)', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
+        foreach (['handleCanvasDrop(payload)', 'if (!isNaN(targetSi)) this.selectSection(targetSi, false);', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor insert contract {$token} missing");
         }
         foreach (['startPaletteDrag(el, event)', 'createPaletteDragGhost(el, event)', 'clearPaletteDragGhost()', 'setDragImage(ghost, 18, 18)', 'blox-palette-drag-ghost', 'ghost.setAttribute("aria-hidden", "true")', 'e.key === "Escape" && self.dragEl', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
@@ -732,8 +732,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['e.source !== window.parent', 'handlePaletteDragMessage(d.ykPaletteDrag)', 'document.elementFromPoint(payload.clientX, payload.clientY)', "payload.phase !== 'move' && payload.phase !== 'drop'"] as $token) {
             $this->assertStringContainsString($token, $preview, "preview coordinate drop token {$token} missing");
         }
-        foreach (['paletteAutoPanSpeed(clientY)', 'setInterval(function autoPanTick()', 'window.scrollBy(0, speed)', "classList.add('yk-palette-dragging')", 'scroll-behavior:auto!important', 'scrollbar-color:transparent transparent'] as $token) {
-            $this->assertStringContainsString($token, $preview, "canvas auto-pan token {$token} missing");
+        foreach (["classList.add('yk-palette-dragging')", "classList.remove('yk-palette-dragging')", 'scrollbar-color:transparent transparent'] as $token) {
+            $this->assertStringContainsString($token, $preview, "canvas drag preview token {$token} missing");
+        }
+        foreach (['paletteAutoPanSpeed(', 'setInterval(function autoPanTick()', 'window.scrollBy(0, speed)'] as $token) {
+            $this->assertStringNotContainsString($token, $preview, "canvas drag must not auto-scroll: {$token}");
         }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'isTopLevelElementPath(value.target.path)'] as $token) {
