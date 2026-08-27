@@ -1387,6 +1387,32 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
+    public function testPrebuiltLibraryRestoresSessionFiltersAndScrollPosition(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'templateSectionViewStorageKey: "yikai:blox:template-section-view:v1"',
+            'templateSectionScrollTop: 0',
+            'restoreTemplateSectionViewState()',
+            'normalizeTemplateSectionViewState()',
+            'rememberTemplateSectionScroll(scrollTop)',
+            'persistTemplateSectionViewState()',
+            'restoreTemplateSectionScroll()',
+            'window.sessionStorage.setItem(this.templateSectionViewStorageKey',
+            'this.persistTemplateSectionViewState();',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt session state token {$token} missing");
+        }
+        foreach ([
+            'x-ref="templateScroll"',
+            '@scroll.passive="rememberTemplateSectionScroll($event.target.scrollTop)"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt session scroll token {$token} missing");
+        }
+    }
+
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
     {
         $editor = $this->source('admin/blox_editor.php');
