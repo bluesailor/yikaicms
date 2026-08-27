@@ -263,12 +263,15 @@ declare(strict_types=1);
     <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.templateDialog, () => closeTemplates())"
-         role="dialog" aria-modal="true" aria-labelledby="blox-template-dialog-title"
-         class="fixed inset-0 z-[130] flex items-center justify-center p-6">
-        <div class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
-        <div class="relative bg-white rounded-xl shadow-2xl max-w-[94vw] flex flex-col"
-             :class="templateEntry === 'sections' ? 'w-[1180px]' : 'w-[900px]'"
-             style="max-height:calc(100vh - 4rem)">
+         role="dialog" :aria-modal="templateSectionsDocked() ? 'false' : 'true'" aria-labelledby="blox-template-dialog-title"
+         class="fixed inset-0 z-[130] flex"
+         :class="templateSectionsDocked() ? 'items-stretch justify-start pt-11 pointer-events-none' : 'items-center justify-center p-6'">
+        <div x-show="!templateSectionsDocked()" class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
+        <div class="relative bg-white shadow-2xl max-w-[94vw] flex flex-col pointer-events-auto"
+             :class="templateSectionsDocked()
+                ? 'w-[520px] max-w-[calc(100vw-320px)] h-[calc(100vh-2.75rem)] rounded-none border-r border-gray-200'
+                : (templateEntry === 'sections' ? 'w-[1180px] rounded-xl' : 'w-[900px] rounded-xl')"
+             :style="templateSectionsDocked() ? 'max-height:calc(100vh - 2.75rem)' : 'max-height:calc(100vh - 4rem)'">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-template-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
                     <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : 'ti-template'"></i>
@@ -355,12 +358,14 @@ declare(strict_types=1);
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length > 0"
                      class="grid gap-3"
-                     :class="templateEntry === 'sections' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'">
+                     :class="templateEntry === 'sections' ? (templateSectionsDocked() ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2') : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'">
                     <template x-for="item in filteredTemplates()" :key="item.key">
                         <article data-testid="blox-template-item" :data-template-key="item.key"
-                                 :title="item.description || item.name"
+                                 :draggable="templateSectionDraggable(item)"
+                                 @dragstart="startTemplateDrag(item, $event)" @dragend="finishPaletteDrag()"
+                                 :title="templateSectionDraggable(item) ? templateText.dragHint.replace(':name', item.name) : (item.description || item.name)"
                                  class="overflow-hidden border border-gray-200 rounded-lg text-left flex flex-col transition hover:border-blue-300 hover:shadow-sm"
-                                 :class="templateEntry === 'sections' ? 'min-h-64' : 'min-h-52'">
+                                 :class="[(templateEntry === 'sections' ? 'min-h-64' : 'min-h-52'), (templateSectionDraggable(item) ? 'cursor-grab active:cursor-grabbing' : '')]">
                             <span class="relative block overflow-hidden border-b border-gray-100 bg-gray-100"
                                   :class="templateEntry === 'sections' ? 'aspect-[16/8]' : 'aspect-[16/7]'">
                                 <img x-show="item.thumbnail" :src="item.thumbnail" alt="" loading="lazy"

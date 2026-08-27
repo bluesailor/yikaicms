@@ -26,6 +26,7 @@ function fixture(overrides = {}) {
         onPickColumn: function (si, ci) { calls.push(["column", si, ci]); },
         onPickElement: function (target) { calls.push(["element", target]); },
         onDrop: function (payload) { calls.push(["drop", payload.dropId]); },
+        onTemplateDrop: function (payload) { calls.push(["template-drop", payload.key, payload.index, payload.dropId]); },
         onColumnRatio: function (payload) { calls.push(["ratio", payload]); },
         onContext: function (payload) { calls.push(["context", payload]); },
         onInlineEdit: function (payload) { calls.push(["inline", payload.value]); },
@@ -125,6 +126,20 @@ test("拖放只接受 v1 且按 dropId 去重", function () {
         ykDrop: Object.assign({}, containerPayload, { dropId: "drop-3", target: { kind: "container", path: "1.0.2.0" } }),
     } }), false);
     assert.deepEqual(current.calls, [["drop", "drop-1"], ["drop", "drop-2"]]);
+});
+
+test("预制区块拖放只接受白名单模板键和插入索引", function () {
+    const current = fixture();
+    const payload = { version: 1, key: "builtin:hero-intro", index: 3, dropId: "template-drop-1" };
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykTemplateDrop: Object.assign({}, payload, { key: "bad key" }),
+    } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykTemplateDrop: Object.assign({}, payload, { index: -1 }),
+    } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykTemplateDrop: payload } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykTemplateDrop: payload } }), true);
+    assert.deepEqual(current.calls, [["template-drop", "builtin:hero-intro", 3, "template-drop-1"]]);
 });
 
 test('ykClear 路由到 onClear，非 true 形态不路由', function () {
