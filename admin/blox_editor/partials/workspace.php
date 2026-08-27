@@ -2894,6 +2894,21 @@ declare(strict_types=1);
                     <i class="ti text-sm" :class="rightPanelCollapsed ? 'ti-chevron-left' : 'ti-chevron-right'"></i>
                 </button>
             </div>
+            <div x-show="rightPanelContentVisible()" class="border-b border-gray-100 p-2 shrink-0">
+<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
+                <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
+                        class="h-9 w-full rounded-md border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
+                        title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
+                    <i class="ti ti-layout-navbar text-base"></i><span class="truncate"><?php echo e(__('blox_header_presets')); ?></span>
+                </button>
+<?php else: ?>
+                <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
+                        class="h-9 w-full rounded-md border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
+                        title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
+                    <i class="ti ti-layout-grid-add text-base"></i><span class="truncate"><?php echo e(__('blox_prebuilt_sections')); ?></span>
+                </button>
+<?php endif; ?>
+            </div>
             <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
                 <p class="sr-only" role="status" aria-live="polite" aria-atomic="true"
                    x-text="treeDropIntent ? treeDropIntent.label : ''"></p>

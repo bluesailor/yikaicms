@@ -126,11 +126,6 @@ declare(strict_types=1);
             </button>
 <?php elseif ($templateId): ?>
 <?php if ($templateId && $templateType === 'header'): ?>
-            <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
-                    class="h-8 rounded bg-blue-500/20 px-2.5 text-xs font-medium text-blue-200 hover:bg-blue-500/30 hover:text-white inline-flex items-center justify-center gap-1.5 transition"
-                    title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
-                <i class="ti ti-layout-navbar text-base"></i><span class="whitespace-nowrap"><?php echo e(__('blox_header_presets')); ?></span>
-            </button>
             <?php // 默认收起：进入页头编辑不应自动弹出设置层盖住画布，由用户点「网页头设置」展开。 ?>
             <details class="relative" data-testid="blox-sticky-settings">
                 <summary class="list-none rounded bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 hover:text-white text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer font-medium">
@@ -345,13 +340,6 @@ declare(strict_types=1);
                         title="<?php echo e(__('blox_open_elements')); ?>" aria-label="<?php echo e(__('blox_open_elements')); ?>">
                     <i class="ti ti-circle-plus text-lg"></i>
                 </button>
-<?php if (!$templateId || ($templateType ?? '') !== 'header'): ?>
-                <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
-                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-blue-300 hover:bg-gray-800 transition"
-                        title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
-                    <i class="ti ti-layout-grid-add text-lg"></i>
-                </button>
-<?php endif; ?>
             </div>
 <?php if ($canManageBloxDesign): ?>
             <button type="button" @click="openDesignSystem()" data-testid="blox-design-open"

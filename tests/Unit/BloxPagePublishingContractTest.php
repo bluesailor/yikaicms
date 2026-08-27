@@ -84,12 +84,14 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $editor = $this->source('admin/blox_editor.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $this->assertStringContainsString('$advancedBloxEnabled = bloxAdvancedFeaturesEnabled();', $editor);
         $this->assertStringContainsString('data-blox-advanced="<?php echo $advancedBloxEnabled', $editor);
         $this->assertStringContainsString('advancedMode: <?php echo $advancedBloxEnabled', $editor);
         $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
         $this->assertStringNotContainsString("loadTemplates(force) {\n                if (!this.advancedMode)", $editor);
-        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $header);
+        $this->assertStringNotContainsString('data-testid="blox-prebuilt-open"', $header);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $workspace);
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $this->assertStringContainsString("'@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false'", $canvas);
