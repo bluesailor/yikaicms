@@ -5576,4 +5576,6 @@ voltage|电压|220V',
     'blox_recent_elements' => '最近使用',
     'blox_add_favorite' => '收藏“:label”',
     'blox_remove_favorite' => '取消收藏“:label”',
+    'blox_all_element_categories' => '全部',
+    'blox_element_category_filter' => '筛选元素分类',
 ];

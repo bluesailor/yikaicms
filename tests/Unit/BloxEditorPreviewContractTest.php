@@ -1252,4 +1252,23 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('@click.stop="toggleElementFavorite(el.type)"', $workspace);
         $this->assertStringContainsString('focus-visible:ring-2', $workspace);
     }
+
+    public function testElementLibraryCategoryFilterComposesWithSearch(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'elementCategoryOptions:',
+            'libCategory: "all"',
+            'var category = this.libCategory || "all";',
+            'el.category !== category',
+            'if (!q && category === "all")',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "element category token {$token} missing");
+        }
+        $this->assertStringContainsString('data-testid="blox-element-category"', $workspace);
+        $this->assertStringContainsString('x-model="libCategory"', $workspace);
+        $this->assertStringContainsString("libCategory !== 'all'", $workspace);
+    }
 }

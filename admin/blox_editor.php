@@ -1279,6 +1279,14 @@ $canManageBloxDesign = hasPermission('*');
                 'addFavorite' => __('blox_add_favorite'),
                 'removeFavorite' => __('blox_remove_favorite'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            elementCategoryOptions: <?php echo json_encode(array_merge(
+                [['value' => 'all', 'label' => __('blox_all_element_categories')]],
+                array_map(
+                    static fn(string $value, string $label): array => ['value' => $value, 'label' => $label],
+                    array_keys($catLabels),
+                    array_values($catLabels)
+                )
+            ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             leftPanelWidth: 288,
             leftPanelMin: 240,
             leftPanelMax: 480,
@@ -1333,6 +1341,7 @@ $canManageBloxDesign = hasPermission('*');
             ctrlQuery: "",              // 设置搜索关键词（仅元素设置）
             modifiedOnly: false,        // 只看已修改的设置项
             libQuery: "",
+            libCategory: "all",
             layoutPresets: [
                 { label: <?= $jt('blox_layout_1col') ?>, spans: [12] },
                 { label: <?= $jt('blox_layout_2equal') ?>, spans: [6, 6] },
@@ -6552,6 +6561,7 @@ $canManageBloxDesign = hasPermission('*');
             /** 收藏/最近使用作为快捷副本置顶；搜索时只显示普通分类结果。 */
             filteredLib() {
                 var q = this.libQuery.trim().toLowerCase();
+                var category = this.libCategory || "all";
                 var self = this;
                 var groups = [];
                 var host = this.selTopEl && this.elSchema(this.selTopEl.type).container ? this.selTopEl : null;
@@ -6563,10 +6573,11 @@ $canManageBloxDesign = hasPermission('*');
                     } else if (el.paletteVisible !== true || el.deprecated) {
                         return false;
                     }
+                    if (category !== "all" && el.category !== category) return false;
                     return !q || el.label.toLowerCase().indexOf(q) !== -1 || el.type.indexOf(q) !== -1;
                 });
                 var favorites = {};
-                if (!q) {
+                if (!q && category === "all") {
                     var byType = {};
                     items.forEach(function (el) { byType[el.type] = el; });
                     var favoriteItems = this.favoriteElementTypes.map(function (type) { return byType[type]; }).filter(Boolean);

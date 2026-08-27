@@ -5649,4 +5649,6 @@ voltage|電圧|220V',
     'blox_recent_elements' => '最近使用した要素',
     'blox_add_favorite' => '「:label」をお気に入りに追加',
     'blox_remove_favorite' => '「:label」をお気に入りから削除',
+    'blox_all_element_categories' => 'すべて',
+    'blox_element_category_filter' => '要素カテゴリーを絞り込む',
 ];

@@ -24,10 +24,20 @@ declare(strict_types=1);
                     </button>
                 </div>
                 <div class="p-2 border-b border-gray-100 shrink-0">
-                    <div class="relative">
-                        <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
-                        <input type="text" x-ref="libSearch" x-model="libQuery" placeholder="<?= e(__('blox_search_elements')) ?>"
-                               class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
+                    <div class="flex items-center gap-1.5">
+                        <div class="relative flex-1 min-w-0">
+                            <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" x-ref="libSearch" x-model="libQuery" placeholder="<?= e(__('blox_search_elements')) ?>"
+                                   class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
+                        </div>
+                        <select x-model="libCategory" data-testid="blox-element-category"
+                                title="<?= e(__('blox_element_category_filter')) ?>"
+                                aria-label="<?= e(__('blox_element_category_filter')) ?>"
+                                class="w-24 shrink-0 border border-gray-200 rounded bg-white px-2 py-1.5 text-xs text-gray-600">
+                            <template x-for="option in elementCategoryOptions" :key="option.value">
+                                <option :value="option.value" x-text="option.label"></option>
+                            </template>
+                        </select>
                     </div>
                                         <?php // 插入目标：空白页可直接点元素，已有区块但未选中时才提示选择目标 ?>
                     <template x-if="sections.length === 0">
@@ -63,16 +73,16 @@ declare(strict_types=1);
                 <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24">
                     <template x-for="grp in filteredLib()" :key="grp.cat">
                         <div class="mb-3" :data-testid="'blox-element-group-' + grp.cat">
-                            <?php // 分类标题可折叠（Bricks 式）；搜索时忽略折叠态全部展开 ?>
+                            <?php // 分类标题可折叠（Bricks 式）；搜索或单类筛选时忽略折叠态全部展开 ?>
                             <button type="button" @click="catOpen[grp.cat] = !isCatOpen(grp.cat)"
                                     class="w-full flex items-center justify-between px-1 mb-1.5 text-[11px] font-medium text-gray-500 hover:text-gray-700">
                                 <span class="inline-flex items-center gap-1">
                                     <i x-show="grp.icon" class="ti text-xs" :class="'ti-' + grp.icon"></i>
                                     <span x-text="grp.label"></span>
                                 </span>
-                                <i class="ti ti-chevron-down text-xs transition-transform" :class="isCatOpen(grp.cat) || libQuery.trim() ? '' : '-rotate-90'"></i>
+                                <i class="ti ti-chevron-down text-xs transition-transform" :class="isCatOpen(grp.cat) || libQuery.trim() || libCategory !== 'all' ? '' : '-rotate-90'"></i>
                             </button>
-                            <div x-show="isCatOpen(grp.cat) || libQuery.trim()" class="grid grid-cols-2 gap-1.5">
+                            <div x-show="isCatOpen(grp.cat) || libQuery.trim() || libCategory !== 'all'" class="grid grid-cols-2 gap-1.5">
                                 <template x-for="el in grp.items" :key="el.type">
                                     <?php // 桌面点击只选中并提示拖拽，键盘/触屏则沿用选中目标插入，兼顾防误触与可访问性。 ?>
                                     <div class="relative min-w-0">

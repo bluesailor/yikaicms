@@ -181,6 +181,26 @@ test('element library keeps favorites and successful recent inserts discoverable
   await restoreClean(page);
 });
 
+test('element category filter narrows the library and resets on reload @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const category = page.getByTestId('blox-element-category');
+  await expect(category).toHaveValue('all');
+
+  await category.selectOption('media');
+  await expect(page.getByTestId('blox-element-group-media')).toBeVisible();
+  await expect(page.getByTestId('blox-element-group-layout')).toHaveCount(0);
+  await expect(page.getByTestId('blox-add-element-image')).toHaveCount(1);
+  await expect(page.getByTestId('blox-add-element-heading')).toHaveCount(0);
+
+  await page.locator('[x-ref="libSearch"]').fill('video');
+  await expect(page.getByTestId('blox-add-element-video')).toHaveCount(1);
+  await expect(page.getByTestId('blox-add-element-image')).toHaveCount(0);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-element-category')).toHaveValue('all');
+  await expect(page.getByTestId('blox-element-group-layout')).toBeVisible();
+});
+
 test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-left-panel');
