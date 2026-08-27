@@ -5562,4 +5562,8 @@ voltage|电压|220V',
     'blox_library_drag_hint' => '桌面端请把元素拖到结构树或画布中的目标位置；触屏点击或键盘按 Enter 可插入到当前目标。',
     'blox_resize_element_panel' => '调整元素库宽度',
     'blox_resize_element_panel_hint' => '拖动调整元素库宽度；方向键微调，双击恢复默认',
+    'blox_resize_structure_panel' => '调整结构面板宽度',
+    'blox_resize_structure_panel_hint' => '拖动调整结构面板宽度；方向键微调，双击恢复默认',
+    'blox_collapse_structure_panel' => '折叠结构面板',
+    'blox_expand_structure_panel' => '展开结构面板',
 ];

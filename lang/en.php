@@ -5494,4 +5494,8 @@ voltage|Voltage|220V',
     'blox_library_drag_hint' => 'On desktop, drag an element to its target in the structure tree or canvas. On touch devices, tap it; with a keyboard, press Enter to insert at the current target.',
     'blox_resize_element_panel' => 'Resize the element panel',
     'blox_resize_element_panel_hint' => 'Drag to resize the element panel. Use arrow keys for fine adjustments; double-click to reset.',
+    'blox_resize_structure_panel' => 'Resize the structure panel',
+    'blox_resize_structure_panel_hint' => 'Drag to resize the structure panel. Use arrow keys for fine adjustments; double-click to reset.',
+    'blox_collapse_structure_panel' => 'Collapse the structure panel',
+    'blox_expand_structure_panel' => 'Expand the structure panel',
 ];

@@ -2814,15 +2814,44 @@ declare(strict_types=1);
             </div>
         </main>
 
+        <div x-show="!rightPanelCollapsed"
+             data-testid="blox-right-panel-resizer"
+             class="blox-panel-resizer is-right"
+             :class="rightPanelResizing ? 'is-active' : ''"
+             role="separator" aria-orientation="vertical" tabindex="0"
+             aria-valuemin="224" :aria-valuemax="rightPanelMaximum()"
+             :aria-valuenow="rightPanelWidth" :aria-valuetext="rightPanelWidth + 'px'"
+             aria-controls="blox-structure-panel"
+             title="<?= e(__('blox_resize_structure_panel_hint')) ?>"
+             aria-label="<?= e(__('blox_resize_structure_panel')) ?>"
+             @pointerdown="startRightPanelResize($event)"
+             @dblclick="resetRightPanelWidth()"
+             @keydown.left.prevent="resizeRightPanelBy(16)"
+             @keydown.right.prevent="resizeRightPanelBy(-16)"
+             @keydown.home.prevent="resetRightPanelWidth()">
+            <span aria-hidden="true"></span>
+        </div>
+
         <!-- 右：结构树（常驻，Bricks / PS 图层式） -->
-        <aside class="blox-mobile-panel w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col" :class="mobilePanel === 'structure' ? 'is-open' : ''">
-            <div class="h-10 px-3 flex items-center border-b border-gray-100 shrink-0">
-                <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1">
+        <aside id="blox-structure-panel" data-testid="blox-right-panel"
+               class="blox-mobile-panel blox-structure-panel w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col"
+               :class="mobilePanel === 'structure' ? 'is-open' : ''" :style="rightPanelStyle()">
+            <div class="h-10 px-2 flex items-center border-b border-gray-100 shrink-0"
+                 :class="rightPanelContentVisible() ? 'justify-between' : 'justify-center'">
+                <span x-show="rightPanelContentVisible()" class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1">
                     <i class="ti ti-list-tree text-sm"></i><?= __('blox_mobile_structure') ?>
                     <span class="text-[10px] font-normal opacity-70" x-text="sections.length"></span>
                 </span>
+                <button type="button" data-testid="blox-right-panel-toggle"
+                        class="blox-structure-collapse h-7 w-7 shrink-0 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 inline-flex items-center justify-center"
+                        :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
+                        :aria-label="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
+                        :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel"
+                        @click="toggleRightPanel()">
+                    <i class="ti text-sm" :class="rightPanelCollapsed ? 'ti-chevron-left' : 'ti-chevron-right'"></i>
+                </button>
             </div>
-            <div class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
+            <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
                 <template x-if="sections.length === 0">
                     <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_click_any_element') ?></p>
                 </template>
@@ -3034,7 +3063,7 @@ declare(strict_types=1);
                 </template>
             </div>
             <!-- 加区块 -->
-            <div class="border-t border-gray-100 p-2 shrink-0">
+            <div x-show="rightPanelContentVisible()" class="border-t border-gray-100 p-2 shrink-0">
                 <div class="flex items-center justify-between mb-1.5 px-1">
                     <span class="text-[10px] text-gray-400"><?= __('blox_add_section_cols') ?></span>
                     <span class="text-[10px] text-blue-500" x-text="insertHint()"></span>

@@ -92,6 +92,8 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
 
   if (testInfo.project.name !== 'desktop-1440') {
     await expect(page.getByTestId('blox-left-panel-resizer')).toBeHidden();
+    await expect(page.getByTestId('blox-right-panel-resizer')).toBeHidden();
+    await expect(page.getByTestId('blox-right-panel-toggle')).toBeHidden();
     await expect(page.getByTestId('blox-desktop-actions')).toBeHidden();
     await expect(page.getByTestId('blox-mobile-actions')).toBeVisible();
     await page.getByTestId('blox-mobile-actions-open').click();
@@ -138,6 +140,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(leftPanel).not.toHaveClass(/is-open/);
   } else {
     await expect(page.getByTestId('blox-left-panel-resizer')).toBeVisible();
+    await expect(page.getByTestId('blox-right-panel-resizer')).toBeVisible();
     await expect(page.getByTestId('blox-desktop-actions')).toBeVisible();
     await expect(page.getByTestId('blox-mobile-actions')).toBeHidden();
     await expect(page.getByTestId('blox-elements-open')).toBeVisible();
@@ -172,6 +175,45 @@ test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, 
   await resizer.dblclick();
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(288);
   await expect(resizer).toHaveAttribute('aria-valuenow', '288');
+});
+
+test('desktop structure panel resizes and collapses persistently @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
+  const panel = page.getByTestId('blox-right-panel');
+  const resizer = page.getByTestId('blox-right-panel-resizer');
+  const toggle = page.getByTestId('blox-right-panel-toggle');
+  const canvasHost = page.getByTestId('blox-canvas-host');
+
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+  await resizer.dblclick();
+  const initialPanel = await panel.boundingBox();
+  const initialCanvas = await canvasHost.boundingBox();
+
+  await resizer.press('ArrowLeft');
+  await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 16);
+
+  const handle = await resizer.boundingBox();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 - 48, handle.y + 80, { steps: 4 });
+  await page.mouse.up();
+
+  await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 64);
+  await expect.poll(async () => (await canvasHost.boundingBox()).width).toBe(initialCanvas.width - 64);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-width:v1'))).toBe('320');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(resizer).toBeHidden();
+  await expect.poll(async () => (await panel.boundingBox()).width).toBe(40);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-collapsed:v1'))).toBe('1');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-right-panel-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await page.getByTestId('blox-right-panel-toggle').click();
+  await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(320);
+  await page.getByTestId('blox-right-panel-resizer').dblclick();
+  await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(256);
 });
 
 test('browser image preprocessing reduces pixels and upload bytes @ci', async ({ page }, testInfo) => {
