@@ -25,6 +25,10 @@
         return typeof value === "string" && /^\d+\.\d+\.\d+(?:\.\d+)?$/.test(value);
     }
 
+    function isTopLevelElementPath(value) {
+        return typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
+    }
+
     function elementTargetPayload(value) {
         if (!isObject(value) || !isSectionId(value.id) || !isElementPath(value.path)) return null;
         return { id: value.id, path: value.path };
@@ -155,6 +159,8 @@
         if (value.target.kind === "column" && isIndex(value.target.sec) && isIndex(value.target.col)
             && value.target.position === "end") {
             target = { kind: "column", sec: value.target.sec, col: value.target.col, position: "end" };
+        } else if (value.target.kind === "container" && isTopLevelElementPath(value.target.path)) {
+            target = { kind: "container", path: value.target.path };
         } else if (value.target.kind === "element" && isElementPath(value.target.path)
             && (value.target.position === "before" || value.target.position === "after")) {
             target = { kind: "element", path: value.target.path, position: value.target.position };

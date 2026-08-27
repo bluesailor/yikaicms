@@ -790,9 +790,10 @@ final class BlockRenderer
             ? ' data-yk-el-id="' . htmlspecialchars($nodeId, ENT_QUOTES) . '"'
             : '';
         $typeAttr = htmlspecialchars($element->type(), ENT_QUOTES);
+        $containerAttr = $element->isContainer() ? ' data-yk-el-container="1"' : '';
         return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '"' . $idAttr
-            . ' data-yk-el-type="' . $typeAttr
-            . '" style="display:contents">' . $html . '</div>';
+            . ' data-yk-el-type="' . $typeAttr . '"' . $containerAttr
+            . ' style="display:contents">' . $html . '</div>';
     }
 
     private static function markElementConditions(string $html, string $badge): string

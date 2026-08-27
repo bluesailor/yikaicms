@@ -1672,6 +1672,128 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
+
+test('canvas drag labels and inserts into a container center @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas drag baseline');
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+
+  const before = await countSections(page);
+  try {
+    await page.getByTestId('blox-add-section-1').click();
+    const section = page.getByTestId('blox-tree-section').last();
+    await page.getByTestId('blox-library-open').click();
+    await page.getByTestId('blox-add-element-container').press('Enter');
+    const treeContainer = section.getByTestId('blox-tree-element').first();
+    const containerId = await treeContainer.getAttribute('data-item-id');
+    expect(containerId).toBeTruthy();
+    await waitPreviewSettled(page);
+
+    await page.getByTestId('blox-library-open').click();
+    const headingTile = page.getByTestId('blox-add-element-heading');
+    let contentFrame = await frame(page);
+    const container = contentFrame.locator(`[data-yk-el-id="${containerId}"]`);
+    await container.evaluate((wrapper) => {
+      const visibleNode = (node) => {
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) return node;
+        for (const child of node.children) {
+          const found = visibleNode(child);
+          if (found) return found;
+        }
+        return null;
+      };
+      const target = visibleNode(wrapper);
+      if (!target) throw new Error('Canvas container box is unavailable');
+      target.scrollIntoView({ block: 'center', inline: 'nearest' });
+    });
+    const sourceTransfer = await page.evaluateHandle(() => new DataTransfer());
+    await headingTile.dispatchEvent('dragstart', { dataTransfer: sourceTransfer });
+    const dragState = await contentFrame.evaluate((id) => {
+      const wrapper = document.querySelector(`[data-yk-el-id="${CSS.escape(id)}"]`);
+      const visibleNode = (node) => {
+        if (!node) return null;
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) return node;
+        for (const child of node.children) {
+          const found = visibleNode(child);
+          if (found) return found;
+        }
+        return null;
+      };
+      const target = visibleNode(wrapper);
+      if (!target) throw new Error('Canvas container target is unavailable');
+      const rect = target.getBoundingClientRect();
+      const transfer = new DataTransfer();
+      transfer.setData('application/x-yikai-blox', JSON.stringify({ version: 1, source: 'palette', type: 'heading' }));
+      transfer.setData('text/plain', 'heading');
+      window.__ykTestDropTransfer = transfer;
+      target.dispatchEvent(new DragEvent('dragover', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: transfer,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+      }));
+      const indicator = document.querySelector('.yk-drop-line');
+      return {
+        hasSection: !!target.closest('[data-yk-sec]'),
+        path: wrapper.getAttribute('data-yk-el'),
+        type: wrapper.getAttribute('data-yk-el-type'),
+        transferType: transfer.getData('text/plain'),
+        intent: indicator ? indicator.getAttribute('data-yk-drop-intent') : null,
+        display: indicator ? indicator.style.display : null,
+      };
+    }, containerId);
+    expect(dragState).toMatchObject({
+      hasSection: true,
+      type: 'container',
+      transferType: 'heading',
+      intent: 'container',
+      display: 'block',
+    });
+    const indicator = contentFrame.locator('.yk-drop-line[data-yk-drop-intent="container"]');
+    await expect(indicator).toBeVisible();
+    await expect(indicator.locator('.yk-drop-label')).toHaveText('放入此容器');
+    await expect(indicator).toHaveAttribute('data-yk-drop-valid', '1');
+    await contentFrame.evaluate((id) => {
+      const wrapper = document.querySelector(`[data-yk-el-id="${CSS.escape(id)}"]`);
+      const visibleNode = (node) => {
+        if (!node) return null;
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) return node;
+        for (const child of node.children) {
+          const found = visibleNode(child);
+          if (found) return found;
+        }
+        return null;
+      };
+      const target = visibleNode(wrapper);
+      const transfer = window.__ykTestDropTransfer;
+      if (!target || !transfer) throw new Error('Canvas drop state is unavailable');
+      const rect = target.getBoundingClientRect();
+      target.dispatchEvent(new DragEvent('drop', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: transfer,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+      }));
+      delete window.__ykTestDropTransfer;
+    }, containerId);
+    await headingTile.dispatchEvent('dragend', { dataTransfer: sourceTransfer });
+    await sourceTransfer.dispose();
+
+    await waitPreviewSettled(page);
+    contentFrame = await frame(page);
+    await expect(treeContainer.locator('[data-sort-child-item]')).toHaveCount(1);
+    await expect(contentFrame.locator(`[data-yk-el-id="${containerId}"] [data-yk-el-type="heading"]`)).toHaveCount(1);
+  } finally {
+    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+  }
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
 // ── 面包屑（r14）：选择模型的第二视图，点父级两击内回到区块 ──
 test('breadcrumb reflects selection and climbs to parent @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
