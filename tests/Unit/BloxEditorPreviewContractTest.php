@@ -761,6 +761,24 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
+    public function testHeaderEditorUsesDedicatedPresetsAndAnIsolatedCanvas(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $header = $this->source('admin/blox_editor/partials/header.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+
+        foreach (['BloxAreaTemplatePresets::editorCatalog(\'header\')', 'headerPresets:', 'openHeaderPresets()', 'applyHeaderPreset(preset)', 'apply-header-preset'] as $token) {
+            $this->assertStringContainsString($token, $editor, "header preset editor token {$token} missing");
+        }
+        $this->assertStringContainsString('data-testid="blox-header-presets-open"', $header);
+        $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
+        $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
+        $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
+        $this->assertStringContainsString('? $editableArea', $preview);
+        $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);
+    }
+
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void
     {
         $editor = $this->source('admin/blox_editor.php');
