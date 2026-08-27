@@ -1295,6 +1295,37 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 });
 
+test('prebuilt empty states explain active filters and clear them in one action @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop prebuilt empty state baseline');
+  await page.evaluate(() => {
+    localStorage.removeItem('yikai:blox:template-favorites:v1');
+    localStorage.removeItem('yikai:blox:template-recent:v1');
+    sessionStorage.removeItem('yikai:blox:template-section-view:v1');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  await page.getByTestId('blox-template-quick-favorites').click();
+  const empty = page.getByTestId('blox-template-empty');
+  const clear = page.getByTestId('blox-template-clear-filters');
+  await expect(empty).toHaveAttribute('data-empty-reason', 'favorites');
+  await expect(clear).toBeVisible();
+  await clear.click();
+  await expect(page.getByTestId('blox-template-quick-all')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(9);
+
+  const search = page.getByTestId('blox-template-search');
+  await search.fill('__missing_section__');
+  await expect(empty).toHaveAttribute('data-empty-reason', 'search');
+  await clear.click();
+  await expect(search).toHaveValue('');
+  await expect(page.getByTestId('blox-template-category')).toHaveValue('all');
+  await expect(page.locator('[x-ref="templateScroll"]')).toHaveJSProperty('scrollTop', 0);
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    sessionStorage.getItem('yikai:blox:template-section-view:v1') || '{}'
+  ))).toMatchObject({ category: 'all', quickFilter: 'all', query: '', scrollTop: 0 });
+});
+
 test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const beforeSections = await countSections(page);

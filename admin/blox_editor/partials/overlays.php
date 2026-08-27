@@ -396,9 +396,15 @@ declare(strict_types=1);
                     <i class="ti ti-cloud-off shrink-0"></i><span x-text="templateRemoteError"></span>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length === 0"
-                     class="py-16 text-center text-sm text-gray-400">
-                    <i class="ti text-2xl block mb-2" :class="templateScope === 'remote' ? 'ti-cloud-off' : 'ti-template-off'"></i>
-                    <span x-text="templateScope === 'remote' ? templateText.emptyRemote : templateText.emptyLocal"></span>
+                     data-testid="blox-template-empty" :data-empty-reason="templateEmptyReason()"
+                     class="py-16 text-center text-sm text-gray-500">
+                    <i class="ti text-2xl block mb-2" :class="templateEmptyIcon()"></i>
+                    <span class="block" x-text="templateEmptyMessage()"></span>
+                    <button type="button" x-show="templateCanClearFilters()" @click="clearTemplateSectionFilters()"
+                            data-testid="blox-template-clear-filters"
+                            class="mt-3 h-8 rounded border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 inline-flex items-center justify-center gap-1.5 hover:border-blue-300 hover:text-blue-700">
+                        <i class="ti ti-filter-off text-sm"></i><span x-text="templateText.clearFilters"></span>
+                    </button>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length > 0"
                      class="grid"
