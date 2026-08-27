@@ -6614,8 +6614,9 @@ $canManageBloxDesign = hasPermission('*');
                 if (!frame || !this.dragEl || !event) return false;
                 var rect = frame.getBoundingClientRect();
                 if (!rect.width || !rect.height) return false;
-                var frameWidth = frame.clientWidth || rect.width;
-                var frameHeight = frame.clientHeight || rect.height;
+                var frameWindow = frame.contentWindow;
+                var frameWidth = frameWindow && frameWindow.innerWidth ? frameWindow.innerWidth : (frame.clientWidth || rect.width);
+                var frameHeight = frameWindow && frameWindow.innerHeight ? frameWindow.innerHeight : (frame.clientHeight || rect.height);
                 var clientX = (event.clientX - rect.left) * (frameWidth / rect.width);
                 var clientY = (event.clientY - rect.top) * (frameHeight / rect.height);
                 return this.canvasBridge().post({ ykPaletteDrag: {

@@ -1827,7 +1827,7 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
-test('native palette drag reaches the canvas @ci', async ({ page }, testInfo) => {
+test('native palette drag auto-pans inside the canvas and inserts @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const clear = page.getByTestId('blox-clear-selection');
   if (await clear.isVisible()) await clear.click();
@@ -1839,41 +1839,91 @@ test('native palette drag reaches the canvas @ci', async ({ page }, testInfo) =>
     const source = page.getByTestId('blox-add-element-heading').first();
     const contentFrame = await frame(page);
     const target = contentFrame.locator(`[data-yk-col="${before}.0"]`);
-    await target.scrollIntoViewIfNeeded();
-    await expect(target).toBeVisible();
     const sourceBox = await source.boundingBox();
     const frameBox = await page.getByTestId('blox-canvas').boundingBox();
     const bridgeBox = await page.getByTestId('blox-canvas-drop-bridge').boundingBox();
-    const targetRect = await target.evaluate((node) => {
-      const rect = node.getBoundingClientRect();
-      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
-    });
     const frameViewport = await contentFrame.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+    const pageScrollBefore = await page.evaluate(() => window.scrollY);
+    const canvasHostScrollBefore = await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop);
+    const canvasScrollBefore = await contentFrame.evaluate(() => window.scrollY);
     expect(sourceBox).not.toBeNull();
     expect(frameBox).not.toBeNull();
     expect(bridgeBox).not.toBeNull();
-    const targetCenter = {
-      x: frameBox.x + (targetRect.left + targetRect.width / 2) * (frameBox.width / frameViewport.width),
-      y: frameBox.y + (targetRect.top + targetRect.height / 2) * (frameBox.height / frameViewport.height),
-    };
-    expect(
-      targetCenter.x >= bridgeBox.x && targetCenter.x <= bridgeBox.x + bridgeBox.width
-        && targetCenter.y >= bridgeBox.y && targetCenter.y <= bridgeBox.y + bridgeBox.height,
-      JSON.stringify({ targetRect, frameBox, frameViewport, bridgeBox })
-    ).toBe(true);
     await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
     await page.mouse.down();
     await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 12, sourceBox.y + sourceBox.height / 2 + 4, { steps: 4 });
     await expect(page.getByTestId('blox-canvas-drop-bridge')).toHaveClass(/pointer-events-auto/);
+    await expect(page.getByTestId('blox-canvas-host')).toHaveClass(/overflow-hidden/);
+    const viewport = page.viewportSize();
+    const canvasBottomEdge = Math.min(bridgeBox.y + bridgeBox.height - 12, viewport.height - 8);
+    await page.mouse.move(bridgeBox.x + bridgeBox.width / 2, canvasBottomEdge, { steps: 16 });
+    const edgeHit = await page.evaluate(({ x, y }) => {
+      const node = document.elementFromPoint(x, y);
+      return node ? { tag: node.tagName, testId: node.getAttribute('data-testid') || '', className: node.className || '' } : null;
+    }, { x: bridgeBox.x + bridgeBox.width / 2, y: canvasBottomEdge });
+    expect(edgeHit?.testId, JSON.stringify({ edgeHit, bridgeBox, viewport, canvasBottomEdge })).toBe('blox-canvas-drop-bridge');
+    await expect(contentFrame.locator('html')).toHaveClass(/yk-palette-dragging/);
+    await expect.poll(() => contentFrame.evaluate(() => window.scrollY)).toBeGreaterThan(canvasScrollBefore);
+    let targetSnapshot = null;
+    const panDeadline = Date.now() + 8000;
+    do {
+      targetSnapshot = await target.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        return {
+          centerInViewport: centerY >= 0 && centerY <= window.innerHeight,
+          rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
+          scrollY: window.scrollY,
+          scrollHeight: document.documentElement.scrollHeight,
+          innerHeight: window.innerHeight,
+        };
+      });
+      if (targetSnapshot.centerInViewport) break;
+      await page.waitForTimeout(100);
+    } while (Date.now() < panDeadline);
+    expect(targetSnapshot?.centerInViewport, JSON.stringify(targetSnapshot)).toBe(true);
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
+    expect(await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop)).toBe(canvasHostScrollBefore);
+    const neutralPoint = {
+      x: bridgeBox.x + bridgeBox.width / 2,
+      y: frameBox.y + frameBox.height / 2,
+    };
+    await page.mouse.move(neutralPoint.x, neutralPoint.y, { steps: 12 });
+    await page.waitForTimeout(100);
+    const canvasScrollStopped = await contentFrame.evaluate(() => window.scrollY);
+    await page.waitForTimeout(100);
+    expect(await contentFrame.evaluate(() => window.scrollY)).toBe(canvasScrollStopped);
+    const targetRect = await target.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    });
+    const targetCenter = {
+      x: frameBox.x + (targetRect.left + targetRect.width / 2) * (frameBox.width / frameViewport.width),
+      y: frameBox.y + (targetRect.top + targetRect.height / 2) * (frameBox.height / frameViewport.height),
+    };
+    const iframeTargetHit = await contentFrame.evaluate(({ x, y }) => {
+      const node = document.elementFromPoint(x, y);
+      const column = node?.closest?.('[data-yk-col]');
+      return {
+        tag: node?.tagName || '',
+        column: column?.getAttribute('data-yk-col') || '',
+      };
+    }, { x: targetRect.left + targetRect.width / 2, y: targetRect.top + targetRect.height / 2 });
+    expect(iframeTargetHit.column, JSON.stringify({ iframeTargetHit, targetRect, targetCenter, frameBox, frameViewport })).toBe(`${before}.0`);
     await page.mouse.move(targetCenter.x, targetCenter.y, { steps: 16 });
+    await page.mouse.move(targetCenter.x + 1, targetCenter.y);
     const parentHit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.getAttribute('data-testid') || '', {
       x: targetCenter.x,
       y: targetCenter.y,
     });
     expect(parentHit).toBe('blox-canvas-drop-bridge');
+    await expect(contentFrame.locator('html')).toHaveClass(/yk-palette-dragging/);
     await expect(contentFrame.locator('.yk-drop-line')).toBeVisible();
     await page.mouse.up();
     await waitPreviewSettled(page);
+    await expect(page.getByTestId('blox-canvas-host')).toHaveClass(/overflow-auto/);
+    await expect(page.getByTestId('blox-canvas-host')).not.toHaveClass(/overflow-hidden/);
+    await expect((await frame(page)).locator('html')).not.toHaveClass(/yk-palette-dragging/);
     await expect(page.getByTestId('blox-tree-section').last().getByTestId('blox-tree-element')).toHaveCount(1);
     await expect((await frame(page)).locator(`[data-yk-el="${before}.0.0"][data-yk-el-type="heading"]`)).toHaveCount(1);
   } finally {
