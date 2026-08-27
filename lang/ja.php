@@ -5645,4 +5645,8 @@ voltage|電圧|220V',
     'health_brand_assets_unnamed' => '名称未設定の画像',
     'setting_image_resource_missing' => '画像ファイルが見つかりません。再アップロードするか、メディアライブラリから選択してください。',
     'setting_image_resource_invalid' => '画像アドレスが無効です。再アップロードするか、メディアライブラリから選択してください。',
+    'blox_favorite_elements' => 'お気に入り要素',
+    'blox_recent_elements' => '最近使用した要素',
+    'blox_add_favorite' => '「:label」をお気に入りに追加',
+    'blox_remove_favorite' => '「:label」をお気に入りから削除',
 ];

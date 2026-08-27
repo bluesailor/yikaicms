@@ -5572,4 +5572,8 @@ voltage|电压|220V',
     'health_brand_assets_unnamed' => '未命名图片',
     'setting_image_resource_missing' => '当前图片文件不存在，请重新上传或从媒体库选择。',
     'setting_image_resource_invalid' => '当前图片地址格式无效，请重新上传或从媒体库选择。',
+    'blox_favorite_elements' => '收藏元素',
+    'blox_recent_elements' => '最近使用',
+    'blox_add_favorite' => '收藏“:label”',
+    'blox_remove_favorite' => '取消收藏“:label”',
 ];

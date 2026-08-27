@@ -1269,6 +1269,16 @@ $canManageBloxDesign = hasPermission('*');
             mobileActionsOpen: false,
             libOpen: false,             // true = 有选中项时仍显示元素库（「＋ 元素」按钮）
             paletteSelected: "",       // 桌面单击只选中提示；拖放、键盘或触屏才执行插入
+            favoriteElementTypes: [],
+            recentElementTypes: [],
+            favoriteElementsStorageKey: "yikai:blox:element-favorites:v1",
+            recentElementsStorageKey: "yikai:blox:element-recent:v1",
+            elementLibraryText: <?php echo json_encode([
+                'favorites' => __('blox_favorite_elements'),
+                'recent' => __('blox_recent_elements'),
+                'addFavorite' => __('blox_add_favorite'),
+                'removeFavorite' => __('blox_remove_favorite'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             leftPanelWidth: 288,
             leftPanelMin: 240,
             leftPanelMax: 480,
@@ -4624,6 +4634,7 @@ $canManageBloxDesign = hasPermission('*');
                 var self = this;
                 this.restoreLeftPanelWidth();
                 this.restoreRightPanelState();
+                this.restoreElementLibraryPreferences();
                 this.normalizeHeaderSettings();
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
@@ -6435,6 +6446,54 @@ $canManageBloxDesign = hasPermission('*');
                 });
             },
 
+            restoreElementLibraryPreferences() {
+                var known = {};
+                this.elementLib.forEach(function (el) {
+                    if (!el.deprecated) known[el.type] = true;
+                });
+                var read = function (key) {
+                    try {
+                        var value = JSON.parse(window.localStorage.getItem(key) || "[]");
+                        if (!Array.isArray(value)) return [];
+                        return value.filter(function (type, index) {
+                            return typeof type === "string" && known[type] && value.indexOf(type) === index;
+                        });
+                    } catch (error) {
+                        return [];
+                    }
+                };
+                this.favoriteElementTypes = read(this.favoriteElementsStorageKey);
+                this.recentElementTypes = read(this.recentElementsStorageKey).slice(0, 6);
+            },
+
+            persistElementLibraryPreferences() {
+                try {
+                    window.localStorage.setItem(this.favoriteElementsStorageKey, JSON.stringify(this.favoriteElementTypes));
+                    window.localStorage.setItem(this.recentElementsStorageKey, JSON.stringify(this.recentElementTypes));
+                } catch (error) {
+                    // 禁用存储时仍保留本次编辑会话内的快捷分组。
+                }
+            },
+
+            isElementFavorite(type) {
+                return this.favoriteElementTypes.indexOf(type) !== -1;
+            },
+
+            toggleElementFavorite(type) {
+                var index = this.favoriteElementTypes.indexOf(type);
+                if (index === -1) this.favoriteElementTypes.push(type);
+                else this.favoriteElementTypes.splice(index, 1);
+                this.persistElementLibraryPreferences();
+            },
+
+            rememberRecentElement(type) {
+                if (!type) return;
+                this.recentElementTypes = [type].concat(this.recentElementTypes.filter(function (item) {
+                    return item !== type;
+                })).slice(0, 6);
+                this.persistElementLibraryPreferences();
+            },
+
             /**
              * 精细指针的普通单击只选中元素卡片，不立即改文档；拖放负责表达落点。
              * 键盘与触屏没有可靠拖放能力，继续通过 Enter/点击插入到当前目标。
@@ -6490,21 +6549,39 @@ $canManageBloxDesign = hasPermission('*');
                 this.addElement(el);
             },
 
-            /** 按分类分组 + 关键词过滤；布局组置顶、组内 区块/容器 领先（对齐 Bricks） */
+            /** 收藏/最近使用作为快捷副本置顶；搜索时只显示普通分类结果。 */
             filteredLib() {
                 var q = this.libQuery.trim().toLowerCase();
                 var self = this;
                 var groups = [];
                 var host = this.selTopEl && this.elSchema(this.selTopEl.type).container ? this.selTopEl : null;
-                this.elementLib.forEach(function (el) {
+                var items = this.elementLib.filter(function (el) {
                     if (el.type === "__section") {
-                        if (host) return;
+                        if (host) return false;
                     } else if (host) {
-                        if (!self.canNestElement(host, { type: el.type })) return;
+                        if (!self.canNestElement(host, { type: el.type })) return false;
                     } else if (el.paletteVisible !== true || el.deprecated) {
-                        return;
+                        return false;
                     }
-                    if (q && el.label.toLowerCase().indexOf(q) === -1 && el.type.indexOf(q) === -1) return;
+                    return !q || el.label.toLowerCase().indexOf(q) !== -1 || el.type.indexOf(q) !== -1;
+                });
+                var favorites = {};
+                if (!q) {
+                    var byType = {};
+                    items.forEach(function (el) { byType[el.type] = el; });
+                    var favoriteItems = this.favoriteElementTypes.map(function (type) { return byType[type]; }).filter(Boolean);
+                    if (favoriteItems.length) {
+                        favoriteItems.forEach(function (el) { favorites[el.type] = true; });
+                        groups.push({ cat: "__favorites", label: this.elementLibraryText.favorites, icon: "star", quick: true, items: favoriteItems });
+                    }
+                    var recentItems = this.recentElementTypes.map(function (type) { return byType[type]; }).filter(function (el) {
+                        return !!el && !favorites[el.type];
+                    });
+                    if (recentItems.length) {
+                        groups.push({ cat: "__recent", label: this.elementLibraryText.recent, icon: "history", quick: true, items: recentItems });
+                    }
+                }
+                items.forEach(function (el) {
                     var g = groups.find(function (x) { return x.cat === el.category; });
                     if (!g) {
                         g = { cat: el.category, label: self.catLabels[el.category] || el.category, items: [] };
@@ -6512,8 +6589,9 @@ $canManageBloxDesign = hasPermission('*');
                     }
                     g.items.push(el);
                 });
+                var quickCount = groups.filter(function (g) { return g.cat.indexOf("__") === 0; }).length;
                 var li = groups.findIndex(function (g) { return g.cat === "layout"; });
-                if (li > 0) groups.unshift(groups.splice(li, 1)[0]);
+                if (li > quickCount) groups.splice(quickCount, 0, groups.splice(li, 1)[0]);
                 groups.forEach(function (g) {
                     if (g.cat !== "layout") return;
                     var w = { "__section": 0, "container": 1, "div": 2 };
@@ -6527,7 +6605,12 @@ $canManageBloxDesign = hasPermission('*');
              * data 用注册表给的 defaults 深拷贝——直接引用会让多次插入共享同一个对象，
              * 改一个全变。
              */
-            addElement(el, target) { return this.runCommand("add-element", function () { return this._addElementRaw(el, target); }); },
+            addElement(el, target) {
+                var before = this.historyData();
+                var outcome = this.runCommand("add-element", function () { return this._addElementRaw(el, target); });
+                if (outcome && outcome.ok && this.historyData() !== before) this.rememberRecentElement(el.type);
+                return outcome;
+            },
             _addElementRaw(el, target) {
                 // 合成项「区块」：插顶层 section（1 列起步；多列预设在右下角）
                 if (el.type === "__section") { this.addSection(1); return; }
