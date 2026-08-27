@@ -1,0 +1,20 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Contact action strip",
+    "requires": {"elements": ["heading", "text", "button"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "联系行动条",
+            "settings": {"padding": {"d": "lg", "m": "md"}, "max_width": "wide", "gap": "lg", "content_v_align": "center", "bg_color": "#eff6ff"},
+            "columns": [
+                {"elements": [{"type": "heading", "data": {"text": "让我们讨论您的项目", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">告诉我们目标、时间和当前难点，我们会尽快给出明确的下一步建议。</p>"}}]},
+                {"elements": [{"type": "button", "data": {"text": "联系项目顾问", "url": "/contact.html", "variant": "primary", "align": "center"}}]}
+            ]
+        }]
+    }
+}

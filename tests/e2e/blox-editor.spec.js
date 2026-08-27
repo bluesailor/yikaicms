@@ -1170,20 +1170,28 @@ test('built-in section library filters previews and inserts a fresh section @ci'
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
-  await expect(builtins).toHaveCount(8);
+  await expect(builtins).toHaveCount(14);
   const firstPreview = builtins.first().locator('img');
   await expect(firstPreview).toBeVisible();
   await expect.poll(() => firstPreview.evaluate((image) => (
     image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
   ))).toBe(true);
 
+  const search = page.getByTestId('blox-template-search');
+  await search.fill('项目流程');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:process-steps"]')).toBeVisible();
+  await expect(builtins).toHaveCount(1);
+  await search.fill('');
+
   const category = page.getByTestId('blox-template-category');
   await expect(category).toBeVisible();
   await category.selectOption('content');
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text-reverse"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:text-columns"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
-  await expect(builtins).toHaveCount(3);
+  await expect(builtins).toHaveCount(5);
 
   await category.selectOption('all');
   const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');

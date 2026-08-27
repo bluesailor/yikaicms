@@ -24,12 +24,18 @@ final class SectionTemplateLibraryTest extends TestCase
         return [
             'hero' => ['hero-intro', 'landing', '以专业与稳健'],
             'image and text' => ['image-text', 'content', '我们是谁'],
+            'reverse image and text' => ['image-text-reverse', 'content', '把复杂问题说清楚'],
+            'text columns' => ['text-columns', 'content', '定位与目标'],
             'metrics' => ['stats-band', 'business', '成立年份'],
             'features' => ['feature-grid', 'business', '资质齐全'],
+            'process' => ['process-steps', 'business', '需求确认'],
+            'trust' => ['trust-grid', 'business', '可核验的交付标准'],
             'cards' => ['card-grid', 'marketing', '研发设计'],
+            'cases' => ['case-grid', 'marketing', '生产流程数字化'],
             'quote' => ['testimonial-quote', 'content', '客户反馈'],
             'faq' => ['faq-accordion', 'content', '多久能收到回复'],
             'cta' => ['cta-banner', 'marketing', '立即咨询'],
+            'contact strip' => ['contact-strip', 'marketing', '让我们讨论您的项目'],
         ];
     }
 
@@ -50,6 +56,9 @@ final class SectionTemplateLibraryTest extends TestCase
                 self::assertSame($category, $items[$key]['category']);
                 self::assertNotSame('', $items[$key]['name']);
                 self::assertNotSame('', $items[$key]['description']);
+                if (isset($items[$key]['keywords'])) {
+                    self::assertIsString($items[$key]['keywords']);
+                }
 
                 $thumbnail = ROOT_PATH . $items[$key]['thumbnail'];
                 self::assertFileExists($thumbnail);
