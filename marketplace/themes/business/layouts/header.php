@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 $siteName = configRawLang('site_name', 'Yikai CMS');
-$siteLogo = configRawLang('site_logo', '');
+$siteLogo = SiteAsset::availableUrl((string) configRawLang('site_logo', ''));
 $siteKeywords = config('site_keywords', '');
 $siteDescription = config('site_description', '');
 $primaryColor = config('primary_color', '#3B6CF5');
@@ -16,7 +16,7 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 
 $siteUrl = siteBaseUrl();
 $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
-$ogImage = config('seo_og_image', '') ?: configRawLang('site_logo', '');
+$ogImage = SiteAsset::availableUrl((string) (config('seo_og_image', '') ?: $siteLogo));
 if ($ogImage && !str_starts_with($ogImage, 'http')) $ogImage = $siteUrl . $ogImage;
 
 $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);

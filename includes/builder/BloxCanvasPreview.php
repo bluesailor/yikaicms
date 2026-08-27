@@ -304,6 +304,14 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 .yk-drop-line:before{left:-2px}.yk-drop-line:after{right:-2px}
 .yk-drop-line.yk-drop-invalid{background:#dc2626}
 .yk-drop-line.yk-drop-invalid:before,.yk-drop-line.yk-drop-invalid:after{background:#dc2626;content:'\00d7';width:auto;height:auto;font:700 12px/1 system-ui;color:#dc2626;background:transparent;top:-14px}
+.yk-drop-line.yk-drop-inside{height:auto;min-width:0;border:2px solid #2563eb;border-radius:8px;background:rgba(37,99,235,.08);box-shadow:inset 0 0 0 2px rgba(255,255,255,.72),0 4px 14px rgba(37,99,235,.2)}
+.yk-drop-line.yk-drop-inside:before,.yk-drop-line.yk-drop-inside:after{display:none}
+.yk-drop-line.yk-drop-inside.yk-drop-invalid{border-color:#dc2626;background:rgba(220,38,38,.08);box-shadow:inset 0 0 0 2px rgba(255,255,255,.72),0 4px 14px rgba(220,38,38,.18)}
+.yk-drop-label{position:absolute;left:50%;bottom:9px;max-width:calc(100vw - 24px);transform:translateX(-50%);padding:4px 8px;border-radius:4px;background:#1d4ed8;color:#fff;font:700 11px/1.35 system-ui,sans-serif;white-space:nowrap;box-shadow:0 3px 10px rgba(15,23,42,.24)}
+.yk-drop-line.yk-drop-inside .yk-drop-label{top:8px;bottom:auto}
+.yk-drop-line.yk-drop-invalid .yk-drop-label{background:#b91c1c}
+html.yk-palette-dragging{scrollbar-color:transparent transparent}
+html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-webkit-scrollbar-track{background:transparent}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
 .yk-insert-rail{position:absolute;top:-14px;left:0;right:0;height:28px;z-index:35;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s ease;pointer-events:auto}
@@ -341,6 +349,9 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     var dropLine = document.createElement('div');
     dropLine.className = 'yk-drop-line';
     dropLine.style.display = 'none';
+    var dropLabel = document.createElement('span');
+    dropLabel.className = 'yk-drop-label';
+    dropLine.appendChild(dropLabel);
     document.body.appendChild(dropLine);
     var inlineEdit = null;
     var dropState = null;
@@ -907,13 +918,16 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         postToEditor(target ? { ykEditElement: target } : { ykEditEl: path });
     }, true);
 
+    var ykDropText = __YK_DROP_TEXT__;
     var ykDragRules = null;   // {containers:{type:[childTypes]}, isContainer:{type:bool}, generic:{type:bool}}
     var ykDragType = '';      // 编辑器 palette dragstart 广播的当前拖拽类型（dragend 清空）
     window.addEventListener('message', function (e) {
+        if (e.source !== window.parent || e.origin !== editorOrigin) return;
         var d = e.data || {};
         var shouldScroll = d.ykScroll === true;
         if (d.ykDragRules && typeof d.ykDragRules === 'object') { ykDragRules = d.ykDragRules; return; }
         if ('ykDragType' in d) { ykDragType = typeof d.ykDragType === 'string' ? d.ykDragType : ''; return; }
+        if (d.ykPaletteDrag) { handlePaletteDragMessage(d.ykPaletteDrag); return; }
         if (Number.isInteger(d.ykBannerSlide)) {
             var bannerNode = null;
             if (typeof d.ykBannerPath === 'string' && /^\d+\.\d+\.\d+$/.test(d.ykBannerPath)) {
@@ -1147,6 +1161,10 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     function hideDropLine() {
         dropState = null;
         dropLine.style.display = 'none';
+        dropLine.classList.remove('yk-drop-inside', 'yk-drop-invalid');
+        dropLine.removeAttribute('data-yk-drop-intent');
+        dropLine.removeAttribute('data-yk-drop-valid');
+        dropLabel.textContent = '';
     }
     function dataTransferType(e) {
         var transfer = e && e.dataTransfer;
@@ -1182,6 +1200,15 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
                 var rect = box.getBoundingClientRect();
                 var computed = window.getComputedStyle(el);
                 var horizontal = computed && computed.display === 'flex' && String(computed.flexDirection || '').indexOf('row') === 0;
+                var elementType = el.getAttribute('data-yk-el-type') || '';
+                var isContainer = parts.length === 3 && (
+                    el.getAttribute('data-yk-el-container') === '1'
+                    || !!(ykDragRules && (ykDragRules.isContainer || {})[elementType])
+                );
+                var verticalRatio = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0;
+                if (isContainer && verticalRatio >= .25 && verticalRatio <= .75) {
+                    return { kind: 'container', path: path, sec: parts[0], col: parts[1] };
+                }
                 var before = horizontal
                     ? e.clientX < rect.left + rect.width / 2
                     : e.clientY < rect.top + rect.height / 2;
@@ -1205,19 +1232,47 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
             position: 'end'
         };
     }
-    function showDropLine(target) {
+    function dropIndicatorText(target, verdict) {
+        if (verdict && !verdict.valid) {
+            if (verdict.reason === 'restricted-children') return ykDropText.restricted;
+            if (verdict.reason === 'no-nested-container') return ykDropText.noNested;
+            return ykDropText.invalid;
+        }
+        if (target.kind === 'container') return ykDropText.intoContainer;
+        if (target.kind === 'column') return ykDropText.intoColumnEnd;
+        if (target.kind === 'section') return target.position === 'before' ? ykDropText.sectionBefore : ykDropText.sectionAfter;
+        return target.position === 'before' ? ykDropText.before : ykDropText.after;
+    }
+    function showDropLine(target, verdict) {
         if (!target) { hideDropLine(); return; }
         var node = null;
         if (target.kind === 'element') node = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
+        else if (target.kind === 'container') node = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
         else if (target.kind === 'column') node = document.querySelector('[data-yk-col="' + cssEscape(String(target.sec) + '.' + String(target.col)) + '"]');
+        else if (target.kind === 'section') node = document.querySelector('[data-yk-sec="' + cssEscape(String(target.sec)) + '"]');
         var box = boxNode(node);
         if (!box) { hideDropLine(); return; }
         var rect = box.getBoundingClientRect();
-        var top = target.kind === 'element' && target.position === 'before' ? rect.top : rect.bottom;
+        dropLine.classList.toggle('yk-drop-inside', target.kind === 'container');
+        dropLine.classList.toggle('yk-drop-invalid', !!(verdict && !verdict.valid));
+        dropLine.setAttribute('data-yk-drop-intent', target.kind === 'element' ? target.position : target.kind);
+        dropLine.setAttribute('data-yk-drop-valid', verdict && !verdict.valid ? '0' : '1');
+        dropLabel.textContent = dropIndicatorText(target, verdict);
+        if (target.kind === 'container') {
+            dropLine.style.left = Math.max(0, Math.round(rect.left)) + 'px';
+            dropLine.style.top = Math.max(0, Math.round(rect.top)) + 'px';
+            dropLine.style.width = Math.max(36, Math.round(rect.width)) + 'px';
+            dropLine.style.height = Math.max(36, Math.round(rect.height)) + 'px';
+            dropLine.style.display = 'block';
+            dropState = target;
+            return;
+        }
+        var top = (target.kind === 'element' || target.kind === 'section') && target.position === 'before' ? rect.top : rect.bottom;
         if (target.kind === 'column' && rect.height <= 56) top = rect.top + 12;
         dropLine.style.left = Math.max(0, Math.round(rect.left)) + 'px';
         dropLine.style.top = Math.max(0, Math.round(top - 1.5)) + 'px';
         dropLine.style.width = Math.max(36, Math.round(rect.width)) + 'px';
+        dropLine.style.height = '3px';
         dropLine.style.display = 'block';
         dropState = target;
     }
@@ -1229,6 +1284,15 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
     function dropTargetVerdict(target) {
         if (!ykDragRules || !ykDragType) return { valid: true }; // 规则未下发时不拦（编辑器端仍会校验）
         var draggedIsContainer = !!(ykDragRules.isContainer || {})[ykDragType];
+        if (target.kind === 'container') {
+            var hostNode = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
+            var hostType = hostNode ? (hostNode.getAttribute('data-yk-el-type') || '') : '';
+            var hostAllowed = (ykDragRules.containers || {})[hostType];
+            if (!Array.isArray(hostAllowed)) return { valid: false, reason: 'invalid' };
+            if (hostAllowed.indexOf(ykDragType) !== -1) return { valid: true };
+            if (hostAllowed.indexOf('*') !== -1 && !draggedIsContainer && (ykDragRules.generic || {})[ykDragType] !== false) return { valid: true };
+            return { valid: false, reason: draggedIsContainer ? 'no-nested-container' : 'restricted-children' };
+        }
         if (target.kind === 'element') {
             var parts = pathParts(target.path);
             if (parts.length >= 4) { // 目标在容器内：插入的是该容器的子元素
@@ -1245,23 +1309,104 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         }
         return { valid: true }; // 列级/顶级元素前后：任何元素均可
     }
-    function dropTargetValid(target) {
-        return dropTargetVerdict(target).valid;
+
+    function stopPaletteDragPreview() {
+        document.documentElement.classList.remove('yk-palette-dragging');
+    }
+    function renderPaletteDragTarget(payload, dropping) {
+        var node = document.elementFromPoint(payload.clientX, payload.clientY);
+        var section = node && node.closest ? node.closest('[data-yk-sec]') : null;
+        if (!section) { hideDropLine(); return; }
+        var target = dropTargetFromEvent({
+            target: node,
+            clientX: payload.clientX,
+            clientY: payload.clientY
+        }, section);
+        if (!target) { hideDropLine(); return; }
+        var verdict = dropTargetVerdict(target);
+        if (!dropping) {
+            if (target.kind === 'element' || target.kind === 'container') highlightEl(target.path);
+            else highlightColumn(String(target.sec) + '.' + String(target.col));
+            showDropLine(target, verdict);
+            return;
+        }
+        hideDropLine();
+        if (!verdict.valid) {
+            postToEditor({ ykDropRejected: verdict.reason || 'invalid' });
+            return;
+        }
+        postToEditor({ ykDrop: {
+            version: 1,
+            source: 'palette',
+            dropId: 'drop_' + Date.now() + '_' + (++dropSequence),
+            sec: parseInt(section.getAttribute('data-yk-sec'), 10),
+            col: parseInt(target.col, 10) || 0,
+            type: payload.type,
+            target: target
+        } });
+    }
+    function renderTemplateDragTarget(payload, dropping) {
+        var node = document.elementFromPoint(payload.clientX, payload.clientY);
+        var section = node && node.closest ? node.closest('[data-yk-sec]') : null;
+        if (!section) { hideDropLine(); return; }
+        var sec = parseInt(section.getAttribute('data-yk-sec'), 10);
+        if (!Number.isInteger(sec) || sec < 0) { hideDropLine(); return; }
+        var rect = section.getBoundingClientRect();
+        var position = payload.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+        var target = { kind: 'section', sec: sec, position: position };
+        if (!dropping) {
+            highlightSection(sec);
+            showDropLine(target, { valid: true });
+            return;
+        }
+        hideDropLine();
+        postToEditor({ ykTemplateDrop: {
+            version: 1,
+            dropId: 'template_drop_' + Date.now() + '_' + (++dropSequence),
+            key: payload.templateKey,
+            index: sec + (position === 'after' ? 1 : 0)
+        } });
+    }
+    // 父页面在 iframe 上方接住原生拖放，再把等比换算后的画布坐标传进来。
+    // 拖动只解析当前可见区域内的落点，不自动滚动画布或后台页面。
+    function handlePaletteDragMessage(payload) {
+        if (!payload || payload.version !== 1) return;
+        if (payload.phase === 'cancel') { stopPaletteDragPreview(); hideDropLine(); return; }
+        var templateDrag = payload.source === 'template';
+        if ((payload.phase !== 'move' && payload.phase !== 'drop')
+            || typeof payload.type !== 'string'
+            || !/^[a-z_][a-z0-9_-]{0,63}$/i.test(payload.type)
+            || !Number.isFinite(payload.clientX)
+            || !Number.isFinite(payload.clientY)) return;
+        if (templateDrag && (payload.type !== '__section_template'
+            || typeof payload.templateKey !== 'string'
+            || !/^[a-z0-9][a-z0-9:._\/-]{0,191}$/i.test(payload.templateKey))) return;
+        ykDragType = payload.type;
+        if (payload.phase === 'move') {
+            document.documentElement.classList.add('yk-palette-dragging');
+            if (templateDrag) renderTemplateDragTarget(payload, false);
+            else renderPaletteDragTarget(payload, false);
+            return;
+        }
+        stopPaletteDragPreview();
+        if (templateDrag) renderTemplateDragTarget(payload, true);
+        else renderPaletteDragTarget(payload, true);
     }
 
-    // Palette tiles use a versioned payload. The target is either a column end or an element before/after position.
+    // Library tiles use a versioned payload. Elements target columns/containers; templates target section boundaries.
     document.addEventListener('dragover', function (e) {
         var s = e.target.closest('[data-yk-sec]');
         if (!s || !dataTransferType(e)) return;
         e.preventDefault();
         var target = dropTargetFromEvent(e, s);
         if (!target) return;
-        var valid = dropTargetValid(target);
+        var verdict = dropTargetVerdict(target);
+        var valid = verdict.valid;
         e.dataTransfer.dropEffect = valid ? 'copy' : 'none';
         if (target.kind === 'element') highlightEl(target.path);
+        else if (target.kind === 'container') highlightEl(target.path);
         else highlightColumn(String(target.sec) + '.' + String(target.col));
-        showDropLine(target);
-        dropLine.classList.toggle('yk-drop-invalid', !valid);
+        showDropLine(target, verdict);
     });
     document.addEventListener('drop', function (e) {
         var s = e.target.closest('[data-yk-sec]');
@@ -1271,7 +1416,6 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
         if (!type) return;
         var target = dropTargetFromEvent(e, s) || dropState;
         hideDropLine();
-        dropLine.classList.remove('yk-drop-invalid');
         if (!target) return;
         var verdict = dropTargetVerdict(target);
         if (!verdict.valid) {
@@ -1521,6 +1665,17 @@ HTML;
             '@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false',
             '__YK_COLUMN_RESIZE_LABEL__' => json_encode(__('blox_canvas_column_resize'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '__YK_COLUMN_RESIZE_HINT__' => json_encode(__('blox_canvas_column_resize_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            '__YK_DROP_TEXT__' => json_encode([
+                'before' => __('blox_drop_before'),
+                'after' => __('blox_drop_after'),
+                'sectionBefore' => __('blox_drop_section_before'),
+                'sectionAfter' => __('blox_drop_section_after'),
+                'intoContainer' => __('blox_drop_into_container'),
+                'intoColumnEnd' => __('blox_drop_into_column_end'),
+                'restricted' => __('blox_drop_restricted'),
+                'noNested' => __('blox_no_nested_container'),
+                'invalid' => __('blox_drop_invalid'),
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),
             '@@pea_add_element@@' => json_encode(__('pea_add_element'), JSON_UNESCAPED_UNICODE),
             '@@pea_canvas_empty@@' => json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE),

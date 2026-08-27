@@ -31,7 +31,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
     await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
-    await expect(page.getByTestId('blox-templates-open')).toBeVisible();
+    await expect(page.getByTestId('blox-prebuilt-open')).toBeVisible();
     await page.getByTestId('blox-design-open').click();
     await expect(page.getByTestId('blox-design-tab-colors')).toBeVisible();
     await expect(page.getByTestId('blox-design-token-row')).not.toHaveCount(0);
@@ -190,7 +190,7 @@ test('free mode opens homepage and local templates while remote resolve stays lo
   await openEditor(page);
   await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
 
-  await page.getByTestId('blox-templates-open').click();
+  await page.getByTestId('blox-prebuilt-open').click();
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
   await expect.poll(() => page.getByTestId('blox-template-item').count()).toBeGreaterThan(0);
 
@@ -469,7 +469,7 @@ test('standard page accordion has structured FAQ editing @local', async ({ page 
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionsBefore + 1);
   await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-accordion').click();
+  await page.getByTestId('blox-add-element-accordion').press('Enter');
 
   const items = page.getByTestId('blox-accordion-item');
   await expect(page.getByTestId('blox-accordion-items')).toBeVisible();

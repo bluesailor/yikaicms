@@ -265,6 +265,25 @@ if (!$i18nOnly) {
         }
         $insertSetting->execute(['home', $key, $value, 'text', $key, '', null, 0]);
     }
+    $dashboardFixtureSettings = [
+        'site_health_last_summary' => [
+            (string) json_encode(['critical' => 1, 'recommended' => 2, 'good' => 5], JSON_UNESCAPED_UNICODE),
+            'json',
+            9,
+        ],
+        'site_health_last_at' => [(string) time(), 'number', 10],
+        'dashboard_site_health_dismissed' => ['0', 'switch', 12],
+    ];
+    foreach ($dashboardFixtureSettings as $key => [$value, $type, $sortOrder]) {
+        $settingExists->execute([$key]);
+        $exists = (int) $settingExists->fetchColumn() > 0;
+        $settingExists->closeCursor();
+        if ($exists) {
+            $updateSetting->execute([$value, $key]);
+            continue;
+        }
+        $insertSetting->execute(['system', $key, $value, $type, $key, '', null, $sortOrder]);
+    }
     unset($settingExists, $updateSetting, $insertSetting);
 
     if ($enabled->rowCount() === 0) {

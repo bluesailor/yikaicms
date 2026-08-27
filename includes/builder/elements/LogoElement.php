@@ -6,6 +6,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/SiteAsset.php';
+
 final class LogoElement extends AbstractElement
 {
     private const HEIGHT_MAP = ['sm' => 'h-8', 'md' => 'h-10', 'lg' => 'h-14'];
@@ -41,7 +43,9 @@ final class LogoElement extends AbstractElement
         $display = in_array($data['display'] ?? '', ['both', 'image', 'text'], true) ? $data['display'] : 'both';
         $height = self::HEIGHT_MAP[$data['height'] ?? ''] ?? self::HEIGHT_MAP['md'];
         $textClass = ($data['tone'] ?? 'dark') === 'light' ? 'text-white' : 'text-gray-900';
-        $logo = function_exists('configRawLang') ? (string) configRawLang('site_logo', '') : '';
+        $logo = function_exists('configRawLang')
+            ? SiteAsset::availableUrl((string) configRawLang('site_logo', ''))
+            : '';
         $name = function_exists('configRawLang') ? (string) configRawLang('site_name', '') : '';
         // 精确像素高度（16-200）覆盖三档位；未设置时输出与历史逐字节一致
         $customHeight = (int) ($data['custom_height'] ?? 0);

@@ -103,7 +103,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
     }
 
-    /** 空画布双入口 + 模板库按钮文字（2026-08-08 用户反馈：图标识别度差、空白画布缺模板导入） */
+    /** 空画布双入口 + 顶栏元素/预制区块分流。 */
     public function testEmptyCanvasEntryPointsAndTemplateButtonLabel(): void
     {
         $advance = $this->source('admin/page_edit_advance.php');
@@ -117,9 +117,41 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('data.ykEmptyAction === "templates" || data.ykEmptyAction === "section"', $bridge);
 
-        // 编辑器：接线到模板库/插空白区块；工具栏模板库按钮带文字标签
+        // 编辑器：空态接线到模板库/插空白区块；工具栏提供两个语义明确的独立入口。
         $this->assertStringContainsString('onEmptyAction: function (action)', $editor);
-        $this->assertStringContainsString('<i class="ti ti-layout-grid text-base"></i><span', $editor);
+        $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
+        $this->assertStringContainsString('ti-layout-grid-add', $editor);
+    }
+
+    public function testDesktopElementPanelHasAccessiblePersistentResizer(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        $this->assertStringContainsString('data-testid="blox-left-panel-resizer"', $workspace);
+        $this->assertStringContainsString('role="separator" aria-orientation="vertical"', $workspace);
+        $this->assertStringContainsString('@keydown.left.prevent="resizeLeftPanelBy(-16)"', $workspace);
+        $this->assertStringContainsString('@pointermove="resizeLeftPanel($event)"', $workspace);
+        $this->assertStringContainsString('@pointerup="finishLeftPanelResize($event)"', $workspace);
+        $this->assertStringContainsString('@dblclick="resetLeftPanelWidth()"', $workspace);
+        $this->assertStringContainsString('yikai:blox:left-panel-width:v1', $editor);
+        $this->assertStringContainsString('body.blox-panel-resizing iframe { pointer-events: none; }', $editor);
+        $this->assertStringNotContainsString('@pointermove.window="resizeLeftPanel($event); resizeRightPanel($event)"', $editor);
+    }
+
+    public function testDesktopStructurePanelHasAccessiblePersistentResizerAndCollapseControl(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        $this->assertStringContainsString('data-testid="blox-right-panel-resizer"', $workspace);
+        $this->assertStringContainsString('@keydown.left.prevent="resizeRightPanelBy(16)"', $workspace);
+        $this->assertStringContainsString('@dblclick="resetRightPanelWidth()"', $workspace);
+        $this->assertStringContainsString('data-testid="blox-right-panel-toggle"', $workspace);
+        $this->assertStringContainsString(':aria-expanded="String(!rightPanelCollapsed)"', $workspace);
+        $this->assertStringContainsString('yikai:blox:right-panel-width:v1', $editor);
+        $this->assertStringContainsString('yikai:blox:right-panel-collapsed:v1', $editor);
     }
 
     /**
@@ -281,7 +313,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $editor);
         $this->assertStringNotContainsString('$isBasicPageRequest', $editor);
         $this->assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
-        $this->assertStringContainsString('data-testid="blox-templates-open"', $editor);
+        $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
         $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $homeApi);
 
@@ -678,19 +711,86 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $canvas = $this->source('admin/page_edit_advance.php');
+        $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
-        foreach (['application/x-yikai-blox', 'version: 1', "source: 'palette'"] as $token) {
+        foreach (['application/x-yikai-blox', 'version: 1', 'source: "palette"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor drag payload {$token} missing");
         }
         foreach (['yk-drop-line', 'dropTargetFromEvent', "position: before ? 'before' : 'after'", 'target: target', 'dropId: ' ] as $token) {
             $this->assertStringContainsString($token, $canvas, "canvas drop contract {$token} missing");
         }
-        foreach (['handleCanvasDrop(payload)', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.position === "before"'] as $token) {
+        foreach (['yk-drop-label', 'yk-drop-inside', "kind: 'container'", 'dropIndicatorText(target, verdict)', '__YK_DROP_TEXT__'] as $token) {
+            $this->assertStringContainsString($token, $preview, "canvas drop intent token {$token} missing");
+        }
+        foreach (['handleCanvasDrop(payload)', 'if (!isNaN(targetSi)) this.selectSection(targetSi, false);', 'insertElementAt(node, target, el.label)', 'target.kind === "column"', 'target.kind === "container"', 'target.position === "before"'] as $token) {
             $this->assertStringContainsString($token, $editor, "editor insert contract {$token} missing");
         }
+        foreach (['startTemplateDrag(item, event)', 'templateSectionsDocked()', 'if (this.templateDragItem) this.finishPaletteDrag();', 'onTemplateDrop: function (payload)', 'handleTemplateDrop(payload)', 'insertTemplateAt(item, payload.index)', 'requestedIndex === null'] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt drag contract {$token} missing");
+        }
+        foreach ([':draggable="templateSectionDraggable(item)"', '@dragstart="startTemplateDrag(item, $event)"', "templateSectionsDocked() ? 'grid-cols-1'", "pointer-events-none"] as $token) {
+            $this->assertStringContainsString($token, $workspace . $this->source('admin/blox_editor/partials/overlays.php'), "prebuilt dock token {$token} missing");
+        }
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $this->assertStringContainsString('@keydown="templateDialogKeydown($event)"', $overlays);
+        $this->assertStringContainsString('pt-14 pointer-events-none', $overlays);
+        $this->assertStringContainsString('calc(100vh-3.5rem)', str_replace(' ', '', $overlays));
+        $this->assertStringContainsString('if (this.templateSectionsDocked())', $editor);
+        foreach (['startPaletteDrag(el, event)', 'createPaletteDragGhost(el, event)', 'clearPaletteDragGhost()', 'setDragImage(ghost, 18, 18)', 'blox-palette-drag-ghost', 'ghost.setAttribute("aria-hidden", "true")', 'e.key === "Escape" && self.canvasDragActive', 'canvasPaletteDragMessage(event, phase)', 'frame.contentWindow', 'frameWindow.innerWidth', 'frameWindow.innerHeight', 'ykPaletteDrag'] as $token) {
+            $this->assertStringContainsString($token, $editor, "cross-frame drag bridge token {$token} missing");
+        }
+        foreach (['data-testid="blox-canvas-drop-bridge"', 'canvasPaletteDragOver($event)', 'canvasPaletteDrop($event)', 'pointer-events-none', "canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"] as $token) {
+            $this->assertStringContainsString($token, $workspace, "canvas drop overlay token {$token} missing");
+        }
+        foreach (['e.source !== window.parent', 'handlePaletteDragMessage(d.ykPaletteDrag)', 'document.elementFromPoint(payload.clientX, payload.clientY)', "payload.phase !== 'move' && payload.phase !== 'drop'"] as $token) {
+            $this->assertStringContainsString($token, $preview, "preview coordinate drop token {$token} missing");
+        }
+        foreach (['renderTemplateDragTarget(payload, dropping)', "kind: 'section'", 'ykTemplateDrop', "position === 'after' ? 1 : 0"] as $token) {
+            $this->assertStringContainsString($token, $preview, "prebuilt canvas target token {$token} missing");
+        }
+        foreach (["classList.add('yk-palette-dragging')", "classList.remove('yk-palette-dragging')", 'scrollbar-color:transparent transparent'] as $token) {
+            $this->assertStringContainsString($token, $preview, "canvas drag preview token {$token} missing");
+        }
+        foreach (['paletteAutoPanSpeed(', 'setInterval(function autoPanTick()', 'window.scrollBy(0, speed)'] as $token) {
+            $this->assertStringNotContainsString($token, $preview, "canvas drag must not auto-scroll: {$token}");
+        }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
-        foreach (['payload.dropId', 'this.lastDropId', 'onDrop'] as $token) {
+        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isTopLevelElementPath(value.target.path)'] as $token) {
             $this->assertStringContainsString($token, $bridge, "canvas bridge drop contract {$token} missing");
+        }
+    }
+
+    public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'treeDropIntent: null',
+            'treeSectionDragOver(event)',
+            'treeSectionDrop(event)',
+            'window.addEventListener("dragover", function (e) { self.treeSectionDragOver(e); }, true)',
+            'treeElementDragOver(event, si, ci, ei, el)',
+            'treeChildDragOver(event, si, ci, ei, cei)',
+            'treeDropVerdict(target)',
+            'target.kind === "template-section"',
+            'this.insertTemplateAt(template, parseInt(drop.target.index, 10))',
+            'this.addElement(el, drop.target)',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "structure tree intent token {$token} missing");
+        }
+        $this->assertStringContainsString('var rect = row.getBoundingClientRect();', $editor);
+        foreach ([
+            'data-testid="blox-tree-drop-indicator"',
+            'data-drop-intent="before"',
+            'data-drop-intent="after"',
+            "treeDropMatches('template-section:' + si + ':before')",
+            "treeDropMatches('template-section:' + si + ':after')",
+            'treeDrop($event)',
+            'treeDropIntent ? treeDropIntent.label :',
+        ] as $token) {
+            $this->assertStringContainsString($token, $workspace, "structure tree marker token {$token} missing");
         }
     }
 
@@ -1200,5 +1300,193 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('GRIDCOL_DESKTOP_MAP', $renderer);
         $this->assertStringContainsString('COLSPAN_DESKTOP_MAP', $renderer);
         $this->assertStringContainsString("'tablet_stack'", $renderer);
+    }
+
+    public function testElementLibraryFavoritesAndRecentsStayLocalAndSearchable(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'favoriteElementsStorageKey: "yikai:blox:element-favorites:v1"',
+            'recentElementsStorageKey: "yikai:blox:element-recent:v1"',
+            'restoreElementLibraryPreferences()',
+            'toggleElementFavorite(type)',
+            'rememberRecentElement(type)',
+            'quick: true, items: favoriteItems',
+            'this.historyData() !== before',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "element library token {$token} missing");
+        }
+        $this->assertStringContainsString("'blox-quick-favorite-element-' : 'blox-favorite-element-'", $workspace);
+        $this->assertStringContainsString('@click.stop="toggleElementFavorite(el.type)"', $workspace);
+        $this->assertStringContainsString('focus-visible:ring-2', $workspace);
+    }
+
+    public function testElementLibraryCategoryFilterComposesWithSearch(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'elementCategoryOptions:',
+            'libCategory: "all"',
+            'var category = this.libCategory || "all";',
+            'el.category !== category',
+            'if (!q && category === "all")',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "element category token {$token} missing");
+        }
+        $this->assertStringContainsString('data-testid="blox-element-category"', $workspace);
+        $this->assertStringContainsString('x-model="libCategory"', $workspace);
+        $this->assertStringContainsString("libCategory !== 'all'", $workspace);
+    }
+
+    public function testPrebuiltLibraryFavoritesAndRecentsStayLocalAndOnlyTrackSuccessfulInserts(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1"',
+            'recentTemplatesStorageKey: "yikai:blox:template-recent:v1"',
+            'restoreTemplateLibraryPreferences()',
+            'toggleTemplateFavorite(key)',
+            'rememberRecentTemplate(key)',
+            'if (item.type === "section") self.rememberRecentTemplate(item.key);',
+            'templateQuickCount(mode)',
+            'rank: self.isTemplateFavorite(item.key) ? 0',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt preference token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-template-quick-favorites"',
+            'data-testid="blox-template-quick-recent"',
+            "@click.stop=\"toggleTemplateFavorite(item.key)\"",
+            "'blox-template-favorite-' + item.key",
+            ':aria-pressed="isTemplateFavorite(item.key)"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt preference UI token {$token} missing");
+        }
+    }
+
+    public function testPrebuiltLibraryDensityIsPersistentAndCompactLayoutIsBounded(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'templateDensity: "standard"',
+            'templateDensityStorageKey: "yikai:blox:template-density:v1"',
+            'templateCompactSections()',
+            'setTemplateDensity(density)',
+            'density === "compact" ? "compact" : "standard"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt density token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-template-density-standard"',
+            'data-testid="blox-template-density-compact"',
+            '@click="setTemplateDensity(\'compact\')"',
+            "templateCompactSections() ? 'h-24 min-h-0 flex-row'",
+            "templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto bg-white'",
+            'data-testid="blox-template-section-bar"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt density UI token {$token} missing");
+        }
+    }
+
+    public function testPrebuiltCardsUseVisualFirstPreviewAndStableActionBar(): void
+    {
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            "templateEntry === 'sections' ? 'object-contain' : 'object-cover'",
+            'data-testid="blox-template-section-bar"',
+            'group-hover:bg-blue-50/50',
+            "templateDragItem && templateDragItem.key === item.key ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm'",
+            'border border-blue-200 bg-white px-3',
+            'data-testid="blox-template-edit"',
+            'h-8 w-8 shrink-0 rounded border border-gray-200 bg-white',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "visual-first prebuilt card token {$token} missing");
+        }
+        $this->assertStringNotContainsString('item.description && !templateCompactSections()', $overlays);
+    }
+
+    public function testPrebuiltLibraryRestoresSessionFiltersAndScrollPosition(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'templateSectionViewStorageKey: "yikai:blox:template-section-view:v1"',
+            'templateSectionScrollTop: 0',
+            'restoreTemplateSectionViewState()',
+            'normalizeTemplateSectionViewState()',
+            'rememberTemplateSectionScroll(scrollTop)',
+            'persistTemplateSectionViewState()',
+            'restoreTemplateSectionScroll()',
+            'window.sessionStorage.setItem(this.templateSectionViewStorageKey',
+            'this.persistTemplateSectionViewState();',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt session state token {$token} missing");
+        }
+        foreach ([
+            'x-ref="templateScroll"',
+            '@scroll.passive="rememberTemplateSectionScroll($event.target.scrollTop)"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt session scroll token {$token} missing");
+        }
+    }
+
+    public function testPrebuiltLibraryEmptyStatesExplainAndClearActiveFilters(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'templateEmptyReason()',
+            'templateEmptyMessage()',
+            'templateEmptyIcon()',
+            'templateCanClearFilters()',
+            'clearTemplateSectionFilters()',
+            'this.templateQuery = "";',
+            'this.templateCategory = "all";',
+            'this.templateQuickFilter = "all";',
+            'this.templateSectionScrollTop = 0;',
+            'this.persistTemplateSectionViewState();',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt empty state token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-template-empty"',
+            ':data-empty-reason="templateEmptyReason()"',
+            'x-text="templateEmptyMessage()"',
+            'data-testid="blox-template-clear-filters"',
+            '@click="clearTemplateSectionFilters()"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt empty UI token {$token} missing");
+        }
+    }
+
+    public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'paletteTapMode: false',
+            'syncPaletteInputMode()',
+            'keyboard || this.paletteTapMode',
+            'this.sections.length > 0 && this.selectedSi < 0',
+            'this.toast(this.uiText.pickSectionFirst)',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "palette insertion token {$token} missing");
+        }
+        $this->assertStringContainsString('paletteTapMode && selectedSi < 0', $workspace);
+        $this->assertStringContainsString('data-testid="blox-pick-section-hint"', $workspace);
+        $this->assertStringContainsString('aria-live="polite"', $overlays);
     }
 }

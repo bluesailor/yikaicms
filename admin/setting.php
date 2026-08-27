@@ -590,6 +590,14 @@ async function saveAdminLanguages() {
                               class="w-full border rounded px-4 py-2"><?php echo e($item['value']); ?></textarea>
 
                     <?php elseif ($item['type'] === 'image'): ?>
+                    <?php
+                    $__imageAsset = SiteAsset::inspect((string) $item['value']);
+                    $__imageCanPreview = in_array(
+                        $__imageAsset['state'],
+                        [SiteAsset::LOCAL_AVAILABLE, SiteAsset::REMOTE],
+                        true
+                    );
+                    ?>
                     <div class="flex gap-2 items-center">
                         <input type="text" name="settings[<?php echo e($item['key']); ?>]"
                                value="<?php echo e($item['value']); ?>"
@@ -606,7 +614,16 @@ async function saveAdminLanguages() {
                             <?php echo __("admin_media_library"); ?>
                         </button>
                     </div>
-                    <?php if ($item['value']): ?>
+                    <?php if ($item['value'] && !$__imageCanPreview): ?>
+                    <p data-testid="setting-image-resource-warning" data-setting-key="<?php echo e($item['key']); ?>"
+                       class="mt-2 flex items-start gap-1.5 text-xs text-amber-700">
+                        <i class="ti ti-alert-triangle mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span><?php echo e(__($__imageAsset['state'] === SiteAsset::INVALID
+                            ? 'setting_image_resource_invalid'
+                            : 'setting_image_resource_missing')); ?></span>
+                    </p>
+                    <?php endif; ?>
+                    <?php if ($item['value'] && $__imageCanPreview): ?>
                     <img src="<?php echo e($item['value']); ?>" class="h-16 mt-2 rounded" id="preview_<?php echo e($item['key']); ?>">
                     <?php endif; ?>
                     <?php
@@ -758,6 +775,12 @@ function uploadImage(key) {
     document.getElementById('imageFileInput').click();
 }
 
+function clearImageResourceWarning(key) {
+    document.querySelectorAll('[data-testid="setting-image-resource-warning"]').forEach(function(warning) {
+        if (warning.dataset.settingKey === key) warning.remove();
+    });
+}
+
 document.getElementById('imageFileInput').addEventListener('change', async function() {
     if (!this.files[0]) return;
 
@@ -787,6 +810,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('input_' + currentImageKey).parentNode.parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
+            clearImageResourceWarning(currentImageKey);
             showMessage('<?php echo __('admin_success'); ?>');
         } else {
             showMessage(data.msg || '<?php echo __('setting_upload_failed'); ?>', 'error');
@@ -810,6 +834,7 @@ function pickFromMedia(key) {
             document.getElementById('input_' + key).parentNode.parentNode.appendChild(preview);
         }
         preview.src = url;
+        clearImageResourceWarning(key);
     });
 }
 

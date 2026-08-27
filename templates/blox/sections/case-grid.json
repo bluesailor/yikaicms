@@ -1,0 +1,21 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Case study cards",
+    "requires": {"elements": ["card"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "案例三栏",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg"},
+            "columns": [
+                {"elements": [{"type": "card", "data": {"image": "/images/case-demo.jpg", "title": "生产流程数字化", "text": "交付周期缩短 30%，关键节点实现在线追踪。", "link": "/case.html"}}]},
+                {"elements": [{"type": "card", "data": {"image": "/images/product-demo.jpg", "title": "产品体系升级", "text": "重构产品分级与展示逻辑，询盘质量显著提升。", "link": "/case.html"}}]},
+                {"elements": [{"type": "card", "data": {"image": "/images/cert-1.jpg", "title": "质量标准建设", "text": "梳理检验节点与文档，让交付结果可验证、可追溯。", "link": "/case.html"}}]}
+            ]
+        }]
+    }
+}

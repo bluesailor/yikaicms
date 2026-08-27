@@ -158,7 +158,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                   // 无法为运行时数值预编类）。宽度受侧栏约束自动收缩（含折叠态窄栏）。 ?>
             <div class="min-h-12 py-1 flex items-center justify-center">
                 <?php
-                $adminLogo = config('admin_logo', '');
+                $adminLogo = SiteAsset::availableUrl((string) config('admin_logo', ''));
                 $adminLogoMaxH = (int) config('admin_logo_max_height', 80);
                 $adminLogoMaxH = max(16, min(200, $adminLogoMaxH ?: 80));
                 ?>

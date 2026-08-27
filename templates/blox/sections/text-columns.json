@@ -1,0 +1,22 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Text in columns",
+    "requires": {"elements": ["heading", "text"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "文字四分栏",
+            "settings": {"padding": {"d": "lg", "m": "md"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+            "columns": [
+                {"elements": [{"type": "heading", "data": {"text": "定位与目标", "level": "h3", "visual_size": {"d": "xl", "m": "lg"}, "align": "left"}}, {"type": "text", "data": {"html": "<p>说明您服务谁、解决什么问题，以及客户最终能获得什么结果。</p>"}}]},
+                {"elements": [{"type": "heading", "data": {"text": "核心能力", "level": "h3", "visual_size": {"d": "xl", "m": "lg"}, "align": "left"}}, {"type": "text", "data": {"html": "<p>列出最有说服力的技术、团队、设备、经验或资源优势。</p>"}}]},
+                {"elements": [{"type": "heading", "data": {"text": "交付方式", "level": "h3", "visual_size": {"d": "xl", "m": "lg"}, "align": "left"}}, {"type": "text", "data": {"html": "<p>交代项目如何推进、有哪些成果物，以及双方怎样确认节点。</p>"}}]},
+                {"elements": [{"type": "heading", "data": {"text": "长期支持", "level": "h3", "visual_size": {"d": "xl", "m": "lg"}, "align": "left"}}, {"type": "text", "data": {"html": "<p>写清质保、响应时间、培训、维护或持续优化的服务范围。</p>"}}]}
+            ]
+        }]
+    }
+}

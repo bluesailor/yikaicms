@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 // 获取站点配置
 $siteName = configRawLang('site_name', 'Yikai CMS');
-$siteLogo = configRawLang('site_logo', '');
+$siteLogo = SiteAsset::availableUrl((string) configRawLang('site_logo', ''));
 $siteKeywords = config('site_keywords', '');
 $siteDescription = config('site_description', '');
 
@@ -40,7 +40,7 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 $siteUrl = siteBaseUrl();
 $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
 $ogType = $ogType ?? 'website';
-$ogImage = $ogImage ?? config('seo_og_image', '') ?: configRawLang('site_logo', '');
+$ogImage = $ogImage ?? config('seo_og_image', '') ?: $siteLogo;
 if ($ogImage && !str_starts_with($ogImage, 'http')) {
     $ogImage = $siteUrl . $ogImage;
 }
