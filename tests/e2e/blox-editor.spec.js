@@ -1165,6 +1165,50 @@ test('built-in section library filters previews and inserts a fresh section @ci'
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
+test('prebuilt library persists favorites and tracks only successful recent inserts @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template preference baseline');
+  await page.evaluate(() => {
+    localStorage.removeItem('yikai:blox:template-favorites:v1');
+    localStorage.removeItem('yikai:blox:template-recent:v1');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const before = await countSections(page);
+
+  await page.getByTestId('blox-prebuilt-open').click();
+  const heroFavorite = page.getByTestId('blox-template-favorite-builtin:hero-intro');
+  await heroFavorite.click();
+  await expect(heroFavorite).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    localStorage.getItem('yikai:blox:template-favorites:v1') || '[]'
+  ))).toEqual(['builtin:hero-intro']);
+
+  await page.getByTestId('blox-template-quick-favorites').click();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]')).toBeVisible();
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
+
+  await page.getByTestId('blox-template-quick-all').click();
+  const imageText = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]');
+  await imageText.getByTestId('blox-template-insert').click();
+  await waitPreviewSettled(page);
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    localStorage.getItem('yikai:blox:template-recent:v1') || '[]'
+  )[0])).toBe('builtin:image-text');
+
+  await undo(page);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await page.getByTestId('blox-prebuilt-open').click();
+  await page.getByTestId('blox-template-quick-recent').click();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+  await page.getByTestId('blox-template-quick-favorites').click();
+  await expect(page.getByTestId('blox-template-favorite-builtin:hero-intro')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
+});
+
 test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const beforeSections = await countSections(page);

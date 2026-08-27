@@ -284,7 +284,7 @@ declare(strict_types=1);
             </div>
             <div class="h-11 px-3 border-b border-gray-100 shrink-0 flex items-end gap-1" role="tablist" :aria-label="templateText.title">
                 <button type="button" role="tab" data-testid="blox-template-tab-local"
-                        @click="templateScope = 'local'; templateCategory = 'all'" :aria-selected="templateScope === 'local'"
+                        @click="templateScope = 'local'; templateCategory = 'all'; templateQuickFilter = 'all'" :aria-selected="templateScope === 'local'"
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="templateScope === 'local' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-folders text-base"></i>
@@ -293,7 +293,7 @@ declare(strict_types=1);
                           x-text="templateScopeCount('local')"></span>
                 </button>
                 <button type="button" role="tab" data-testid="blox-template-tab-remote"
-                        @click="templateScope = 'remote'; templateCategory = 'all'" :aria-selected="templateScope === 'remote'"
+                        @click="templateScope = 'remote'; templateCategory = 'all'; templateQuickFilter = 'all'" :aria-selected="templateScope === 'remote'"
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="templateScope === 'remote' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-cloud-download text-base"></i>
@@ -303,7 +303,7 @@ declare(strict_types=1);
                 </button>
             </div>
             <div class="p-3 border-b border-gray-100 shrink-0 flex flex-wrap items-center gap-2">
-                <div class="relative flex-1 min-w-48">
+                <div class="relative flex-1 min-w-48" :class="templateSectionsDocked() ? 'basis-full' : ''">
                     <i class="ti ti-search text-sm text-gray-300 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
                     <input type="text" x-model="templateQuery" :placeholder="templateText.search"
                            data-dialog-initial data-testid="blox-template-search"
@@ -329,6 +329,31 @@ declare(strict_types=1);
                         </template>
                     </select>
                 </label>
+                <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.prebuiltTitle"
+                     data-testid="blox-template-quick-filters"
+                     class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">
+                    <button type="button" @click="templateQuickFilter = 'all'"
+                            data-testid="blox-template-quick-all" :aria-pressed="templateQuickFilter === 'all'"
+                            class="px-2 rounded text-[11px] inline-flex items-center gap-1 transition"
+                            :class="templateQuickFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-800'">
+                        <span x-text="templateText.quickAll"></span>
+                        <span class="opacity-70" x-text="templateQuickCount('all')"></span>
+                    </button>
+                    <button type="button" @click="templateQuickFilter = 'favorites'"
+                            data-testid="blox-template-quick-favorites" :aria-pressed="templateQuickFilter === 'favorites'"
+                            :title="templateText.favorites" :aria-label="templateText.favorites"
+                            class="px-2 rounded text-[11px] inline-flex items-center gap-1 transition"
+                            :class="templateQuickFilter === 'favorites' ? 'bg-amber-500 text-white' : 'text-gray-500 hover:text-amber-600'">
+                        <i class="ti ti-star text-xs"></i><span x-text="templateQuickCount('favorites')"></span>
+                    </button>
+                    <button type="button" @click="templateQuickFilter = 'recent'"
+                            data-testid="blox-template-quick-recent" :aria-pressed="templateQuickFilter === 'recent'"
+                            :title="templateText.recent" :aria-label="templateText.recent"
+                            class="px-2 rounded text-[11px] inline-flex items-center gap-1 transition"
+                            :class="templateQuickFilter === 'recent' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'">
+                        <i class="ti ti-history text-xs"></i><span x-text="templateQuickCount('recent')"></span>
+                    </button>
+                </div>
                 <button type="button" @click="loadTemplates(true)" :disabled="templateLoading"
                         class="w-8 h-8 inline-flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:text-blue-600 disabled:opacity-40"
                         :title="templateText.reload" :aria-label="templateText.reload">
@@ -373,6 +398,16 @@ declare(strict_types=1);
                                 <span x-show="!item.thumbnail" class="absolute inset-0 flex items-center justify-center text-gray-400">
                                     <i class="ti text-3xl" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
                                 </span>
+                                <button type="button" x-show="templateEntry === 'sections' && item.type === 'section'"
+                                        @pointerdown.stop @click.stop="toggleTemplateFavorite(item.key)" draggable="false"
+                                        :data-testid="'blox-template-favorite-' + item.key"
+                                        :aria-pressed="isTemplateFavorite(item.key)"
+                                        :title="(isTemplateFavorite(item.key) ? templateText.removeFavorite : templateText.addFavorite).replace(':label', item.name)"
+                                        :aria-label="(isTemplateFavorite(item.key) ? templateText.removeFavorite : templateText.addFavorite).replace(':label', item.name)"
+                                        class="absolute right-2 top-2 w-8 h-8 inline-flex items-center justify-center rounded shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                        :class="isTemplateFavorite(item.key) ? 'bg-amber-50 text-amber-600' : 'bg-white/95 text-gray-500 hover:text-amber-500'">
+                                    <i class="ti ti-star text-base"></i>
+                                </button>
                             </span>
                             <span class="flex flex-1 flex-col p-3">
                             <span class="flex items-start justify-between gap-3">

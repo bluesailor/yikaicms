@@ -5586,4 +5586,8 @@ voltage|电压|220V',
     'blox_prebuilt_drag_hint' => '拖动“:name”到画布或右侧结构',
     'blox_drop_section_before' => '插入到此区块之前',
     'blox_drop_section_after' => '插入到此区块之后',
+    'blox_favorite_sections' => '收藏区块',
+    'blox_recent_sections' => '最近使用的区块',
+    'blox_add_section_favorite' => '收藏“:label”',
+    'blox_remove_section_favorite' => '取消收藏“:label”',
 ];
