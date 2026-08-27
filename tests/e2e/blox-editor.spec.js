@@ -1352,7 +1352,7 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await expect(clear).toBeVisible();
   await clear.click();
   await expect(page.getByTestId('blox-template-quick-all')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(9);
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(15);
 
   const search = page.getByTestId('blox-template-search');
   await search.fill('__missing_section__');
