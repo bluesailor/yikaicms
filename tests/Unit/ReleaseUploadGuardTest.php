@@ -103,6 +103,18 @@ final class ReleaseUploadGuardTest extends TestCase
         $this->inspect();
     }
 
+    public function testUnlistedServerDeltaForSameTargetBlocksUpload(): void
+    {
+        file_put_contents(
+            $this->updateRoot . '/packages/delta-1.17.2-to-1.18.4.zip',
+            'stale-server-package'
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unlisted delta artifacts');
+        $this->inspect();
+    }
+
     public function testDeltaOlderThanCurrentFullBuildIsRejected(): void
     {
         $deltaPath = $this->releaseDir . '/delta-1.18.3-to-1.18.4.zip';

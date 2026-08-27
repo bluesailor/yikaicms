@@ -32,4 +32,17 @@ final class SiteBrandAssetContractTest extends TestCase
         self::assertStringContainsString('SiteAsset::availableUrl', $logoElement);
         self::assertStringNotContainsString('availableLogoUrl', $logoElement);
     }
+
+    public function testMarketplaceThemesUseTheSharedSiteAssetAvailabilityRule(): void
+    {
+        foreach ([
+            'marketplace/themes/aurora/layouts/header.php',
+            'marketplace/themes/aurora/layouts/footer.php',
+            'marketplace/themes/business/layouts/header.php',
+            'marketplace/themes/minimal/layouts/header.php',
+        ] as $path) {
+            $source = (string) file_get_contents(ROOT_PATH . '/' . $path);
+            self::assertStringContainsString('SiteAsset::availableUrl', $source, $path);
+        }
+    }
 }

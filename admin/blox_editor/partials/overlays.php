@@ -262,16 +262,18 @@ declare(strict_types=1);
 
     <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
-         @keydown="dialogKeydown($event, $refs.templateDialog, () => closeTemplates())"
+         data-testid="blox-template-dialog"
+         @keydown="templateDialogKeydown($event)"
          role="dialog" :aria-modal="templateSectionsDocked() ? 'false' : 'true'" aria-labelledby="blox-template-dialog-title"
          class="fixed inset-0 z-[130] flex"
-         :class="templateSectionsDocked() ? 'items-stretch justify-start pt-11 pointer-events-none' : 'items-center justify-center p-6'">
+         :class="templateSectionsDocked() ? 'items-stretch justify-start pt-14 pointer-events-none' : 'items-center justify-center p-6'">
         <div x-show="!templateSectionsDocked()" class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
-        <div class="relative bg-white shadow-2xl max-w-[94vw] flex flex-col pointer-events-auto"
+        <div data-testid="blox-template-panel"
+             class="relative bg-white shadow-2xl max-w-[94vw] flex flex-col pointer-events-auto"
              :class="templateSectionsDocked()
-                ? 'w-[520px] max-w-[calc(100vw-320px)] h-[calc(100vh-2.75rem)] rounded-none border-r border-gray-200'
+                 ? 'w-[520px] max-w-[calc(100vw-320px)] h-[calc(100vh-3.5rem)] rounded-none border-r border-gray-200'
                 : (templateEntry === 'sections' ? 'w-[1180px] rounded-xl' : 'w-[900px] rounded-xl')"
-             :style="templateSectionsDocked() ? 'max-height:calc(100vh - 2.75rem)' : 'max-height:calc(100vh - 4rem)'">
+             :style="templateSectionsDocked() ? 'max-height:calc(100vh - 3.5rem)' : 'max-height:calc(100vh - 4rem)'">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-template-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
                     <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : 'ti-template'"></i>

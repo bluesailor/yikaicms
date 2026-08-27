@@ -5,7 +5,7 @@ declare(strict_types=1);
     <!-- ===== 三栏主体 ===== -->
     <div class="flex" style="height: calc(100vh - 3.5rem);">
 
-        <?php // 左栏（Bricks 式）：元素库 ↔ 设置 同容器切换。选中区块/元素自动进设置，
+        <?php // 左栏：元素库 ↔ 设置在同一容器切换。选中区块/元素自动进设置，
               // 「＋ 元素」把 libOpen 置真强制回元素库；结构树移右栏常驻。 ?>
         <aside data-testid="blox-left-panel"
                class="blox-mobile-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
@@ -74,7 +74,7 @@ declare(strict_types=1);
                 <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24">
                     <template x-for="grp in filteredLib()" :key="grp.cat">
                         <div class="mb-3" :data-testid="'blox-element-group-' + grp.cat">
-                            <?php // 分类标题可折叠（Bricks 式）；搜索或单类筛选时忽略折叠态全部展开 ?>
+                            <?php // 分类标题可折叠；搜索或单类筛选时忽略折叠态全部展开 ?>
                             <button type="button" @click="catOpen[grp.cat] = !isCatOpen(grp.cat)"
                                     class="w-full flex items-center justify-between px-1 mb-1.5 text-[11px] font-medium text-gray-500 hover:text-gray-700">
                                 <span class="inline-flex items-center gap-1">
@@ -2131,7 +2131,7 @@ declare(strict_types=1);
                             </div>
 
                             <div x-show="panelTab === 'style'" class="space-y-5">
-                                <?php // 分层随结构树选中（Bricks 心智）：树里选「区块」→ 全宽背景层设置，
+                                <?php // 分层随结构树选中：树里选「区块」→ 全宽背景层设置，
                                       // 选「容器」节点 → 内容层设置。一次只显示当前层。 ?>
                                 <div x-show="selLayer === 'sec'" class="space-y-5">
                                 <!-- 背景色 -->
@@ -2783,6 +2783,9 @@ declare(strict_types=1);
              title="<?= e(__('blox_resize_element_panel_hint')) ?>"
              aria-label="<?= e(__('blox_resize_element_panel')) ?>"
              @pointerdown="startLeftPanelResize($event)"
+             @pointermove="resizeLeftPanel($event)"
+             @pointerup="finishLeftPanelResize($event)"
+             @pointercancel="finishLeftPanelResize($event)"
              @dblclick="resetLeftPanelWidth()"
              @keydown.left.prevent="resizeLeftPanelBy(-16)"
              @keydown.right.prevent="resizeLeftPanelBy(16)"
@@ -2862,6 +2865,9 @@ declare(strict_types=1);
              title="<?= e(__('blox_resize_structure_panel_hint')) ?>"
              aria-label="<?= e(__('blox_resize_structure_panel')) ?>"
              @pointerdown="startRightPanelResize($event)"
+             @pointermove="resizeRightPanel($event)"
+             @pointerup="finishRightPanelResize($event)"
+             @pointercancel="finishRightPanelResize($event)"
              @dblclick="resetRightPanelWidth()"
              @keydown.left.prevent="resizeRightPanelBy(16)"
              @keydown.right.prevent="resizeRightPanelBy(-16)"
@@ -2869,7 +2875,7 @@ declare(strict_types=1);
             <span aria-hidden="true"></span>
         </div>
 
-        <!-- 右：结构树（常驻，Bricks / PS 图层式） -->
+        <!-- 右：常驻结构树 -->
         <aside id="blox-structure-panel" data-testid="blox-right-panel"
                class="blox-mobile-panel blox-structure-panel w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col"
                :class="mobilePanel === 'structure' ? 'is-open' : ''" :style="rightPanelStyle()">
@@ -2920,7 +2926,7 @@ declare(strict_types=1);
                                 <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                             </span>
                         </div>
-                        <!-- 该区块展开：容器节点 → 列 → 元素（Bricks 的 Section/Container 分层树） -->
+                        <!-- 该区块展开：容器节点 → 列 → 元素 -->
                         <div x-show="selectedSi === si" x-collapse>
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"

@@ -221,6 +221,36 @@ test('element library keeps favorites and successful recent inserts discoverable
   await restoreClean(page);
 });
 
+test('element library opens in the compact desktop viewport @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'compact desktop breakpoint baseline');
+  await page.setViewportSize({ width: 1200, height: 800 });
+
+  const panel = page.getByTestId('blox-left-panel');
+  await expect(panel).toBeHidden();
+  await page.getByTestId('blox-elements-open').click();
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('[x-ref="libSearch"]')).toBeFocused();
+});
+
+test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop dock accessibility baseline');
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  const dialog = page.getByTestId('blox-template-dialog');
+  const panel = page.getByTestId('blox-template-panel');
+  await expect(dialog).toHaveAttribute('aria-modal', 'false');
+  await expect.poll(async () => Math.round((await panel.boundingBox()).y)).toBe(56);
+  const tabPrevented = await dialog.evaluate((element) => {
+    const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    element.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(tabPrevented).toBe(false);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+});
+
 test('element category filter narrows the library and resets on reload @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const category = page.getByTestId('blox-element-category');
