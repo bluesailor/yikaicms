@@ -408,12 +408,12 @@ declare(strict_types=1);
                                  :draggable="templateSectionDraggable(item)"
                                  @dragstart="startTemplateDrag(item, $event)" @dragend="finishPaletteDrag()"
                                  :title="templateSectionDraggable(item) ? templateText.dragHint.replace(':name', item.name) : (item.description || item.name)"
-                                 class="overflow-hidden border border-gray-200 rounded-lg text-left flex transition hover:border-blue-300 hover:shadow-sm"
-                                 :class="[(templateCompactSections() ? 'h-24 min-h-0 flex-row' : ((templateEntry === 'sections' ? 'min-h-64' : 'min-h-52') + ' flex-col')), (templateSectionDraggable(item) ? 'cursor-grab active:cursor-grabbing' : '')]">
-                            <span class="relative block overflow-hidden bg-gray-100"
-                                :class="templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto' : ((templateEntry === 'sections' ? 'aspect-[16/8]' : 'aspect-[16/7]') + ' border-b border-gray-100')">
+                                 class="group overflow-hidden border border-gray-200 rounded-lg text-left flex transition hover:border-blue-300 hover:shadow-sm focus-within:border-blue-400"
+                                 :class="[(templateCompactSections() ? 'h-24 min-h-0 flex-row' : ((templateEntry === 'sections' ? 'min-h-64' : 'min-h-52') + ' flex-col')), (templateSectionDraggable(item) ? 'cursor-grab active:cursor-grabbing' : ''), (templateDragItem && templateDragItem.key === item.key ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm' : '')]">
+                            <span class="relative block overflow-hidden"
+                                :class="templateCompactSections() ? 'w-32 shrink-0 border-r border-gray-100 aspect-auto bg-white' : ((templateEntry === 'sections' ? 'aspect-[16/8] bg-white' : 'aspect-[16/7] bg-gray-100') + ' border-b border-gray-100')">
                                 <img x-show="item.thumbnail" :src="item.thumbnail" alt="" loading="lazy"
-                                     class="h-full w-full" :class="templateCompactSections() ? 'object-contain' : 'object-cover'">
+                                     class="h-full w-full" :class="templateEntry === 'sections' ? 'object-contain' : 'object-cover'">
                                 <span x-show="!item.thumbnail" class="absolute inset-0 flex items-center justify-center text-gray-400">
                                     <i class="ti text-3xl" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
                                 </span>
@@ -428,30 +428,64 @@ declare(strict_types=1);
                                     <i class="ti ti-star text-base"></i>
                                 </button>
                             </span>
-                            <span class="flex flex-1 min-w-0 flex-col" :class="templateCompactSections() ? 'p-2.5' : 'p-3'">
-                            <span class="flex items-start justify-between gap-3" :class="templateCompactSections() ? 'hidden' : ''">
-                                <span class="w-9 h-9 rounded bg-gray-100 text-gray-500 inline-flex items-center justify-center shrink-0">
-                                    <i class="ti text-lg" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
+                            <template x-if="templateEntry === 'sections'">
+                                <span data-testid="blox-template-section-bar"
+                                      class="flex flex-1 min-w-0 items-center gap-2 transition group-hover:bg-blue-50/50"
+                                      :class="templateCompactSections() ? 'p-2.5' : 'px-3 py-2.5 bg-gray-50'">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex min-w-0 items-center gap-1.5">
+                                            <span class="truncate text-sm font-semibold text-gray-800" x-text="item.name"></span>
+                                            <span x-show="item.paid" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                                  x-text="templateText.premium"></span>
+                                        </span>
+                                        <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
+                                              :class="item.locked ? 'text-amber-700' : 'text-gray-400'">
+                                            <i class="ti shrink-0" :class="item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user'))"></i>
+                                            <span class="truncate" x-text="item.locked ? templateLockLabel(item) : templateProviderLabel(item)"></span>
+                                        </span>
+                                    </span>
+                                    <template x-if="canEditLocalTemplate(item)">
+                                        <a :href="localTemplateEditUrl(item)" target="_blank" rel="noopener"
+                                           data-testid="blox-template-edit" :title="templateText.edit" :aria-label="templateText.edit + ': ' + item.name"
+                                           class="h-8 w-8 shrink-0 rounded border border-gray-200 bg-white text-gray-500 inline-flex items-center justify-center hover:border-blue-300 hover:text-blue-600">
+                                            <i class="ti ti-pencil text-sm"></i>
+                                        </a>
+                                    </template>
+                                    <button type="button" @click="insertTemplate(item)"
+                                            :disabled="templateInserting !== '' || !!item.locked"
+                                            data-testid="blox-template-insert"
+                                            :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insertSection)"
+                                            class="h-8 shrink-0 rounded border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 inline-flex items-center justify-center gap-1.5 hover:border-blue-600 hover:bg-blue-600 hover:text-white disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
+                                        <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
+                                        <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insertSection"></span>
+                                    </button>
                                 </span>
-                                <span class="inline-flex items-center gap-1">
-                                    <span x-show="item.paid" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
-                                          x-text="templateText.premium"></span>
-                                    <span x-show="templateEntry !== 'sections'" class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
-                                          x-text="templateTypeLabel(item.type)"></span>
+                            </template>
+                            <template x-if="templateEntry !== 'sections'">
+                                <span class="flex flex-1 min-w-0 flex-col p-3">
+                                <span class="flex items-start justify-between gap-3">
+                                    <span class="w-9 h-9 rounded bg-gray-100 text-gray-500 inline-flex items-center justify-center shrink-0">
+                                        <i class="ti text-lg" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
+                                    </span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <span x-show="item.paid" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                              x-text="templateText.premium"></span>
+                                        <span class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
+                                              x-text="templateTypeLabel(item.type)"></span>
+                                    </span>
                                 </span>
-                            </span>
-                            <span class="block text-sm font-medium text-gray-800 truncate" :class="templateCompactSections() ? 'mt-0' : 'mt-3'" x-text="item.name"></span>
-                            <span x-show="item.description && !templateCompactSections()" class="block mt-1 text-xs text-gray-500 overflow-hidden"
-                                  style="min-height:2.5rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"
-                                  x-text="item.description"></span>
-                            <span class="mt-1 text-[11px] text-gray-400 inline-flex items-center gap-1">
-                                <i class="ti" :class="item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user')"></i>
-                                <span x-text="templateProviderLabel(item)"></span>
-                            </span>
-                            <span x-show="item.locked" class="block mt-1 text-[11px] text-amber-700">
-                                <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
-                            </span>
-                            <span class="mt-auto flex items-center gap-2" :class="templateCompactSections() ? 'pt-1.5' : 'pt-3'">
+                                <span class="block mt-3 text-sm font-medium text-gray-800 truncate" x-text="item.name"></span>
+                                <span x-show="item.description" class="block mt-1 text-xs text-gray-500 overflow-hidden"
+                                      style="min-height:2.5rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"
+                                      x-text="item.description"></span>
+                                <span class="mt-1 text-[11px] text-gray-400 inline-flex items-center gap-1">
+                                    <i class="ti" :class="item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user')"></i>
+                                    <span x-text="templateProviderLabel(item)"></span>
+                                </span>
+                                <span x-show="item.locked" class="block mt-1 text-[11px] text-amber-700">
+                                    <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
+                                </span>
+                                <span class="mt-auto pt-3 flex items-center gap-2">
                                 <button type="button" x-show="item.type === 'page' && pageMode" @click="replaceWithTemplate(item)"
                                         :disabled="templateInserting !== '' || !!item.locked"
                                         data-testid="blox-template-replace"
@@ -484,8 +518,9 @@ declare(strict_types=1);
                                         <i class="ti ti-pencil text-sm"></i><span x-text="templateText.edit"></span>
                                     </a>
                                 </template>
-                            </span>
-                            </span>
+                                </span>
+                                </span>
+                            </template>
                         </article>
                     </template>
                 </div>

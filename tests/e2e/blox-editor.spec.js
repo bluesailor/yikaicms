@@ -1221,6 +1221,9 @@ test('prebuilt compact density shortens the library and persists locally @ci', a
   const firstCard = page.getByTestId('blox-template-item').first();
   await expect(standardButton).toHaveAttribute('aria-pressed', 'true');
   await expect(firstCard).toBeVisible();
+  await expect(firstCard.getByTestId('blox-template-section-bar')).toBeVisible();
+  await expect(firstCard.getByTestId('blox-template-insert')).toHaveClass(/bg-white/);
+  await expect(firstCard.getByTestId('blox-template-insert')).toHaveClass(/text-blue-700/);
   const standardHeight = await firstCard.evaluate((element) => element.getBoundingClientRect().height);
   const standardScrollHeight = await libraryScroller.evaluate((element) => element.scrollHeight);
   expect(standardHeight).toBeGreaterThanOrEqual(250);
