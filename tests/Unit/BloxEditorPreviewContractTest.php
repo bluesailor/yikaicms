@@ -760,9 +760,14 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         foreach ([
             'treeDropIntent: null',
+            'treeSectionDragOver(event)',
+            'treeSectionDrop(event)',
+            'window.addEventListener("dragover", function (e) { self.treeSectionDragOver(e); }, true)',
             'treeElementDragOver(event, si, ci, ei, el)',
             'treeChildDragOver(event, si, ci, ei, cei)',
             'treeDropVerdict(target)',
+            'target.kind === "template-section"',
+            'this.insertTemplateAt(template, parseInt(drop.target.index, 10))',
             'this.addElement(el, drop.target)',
         ] as $token) {
             $this->assertStringContainsString($token, $editor, "structure tree intent token {$token} missing");
@@ -771,6 +776,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-tree-drop-indicator"',
             'data-drop-intent="before"',
             'data-drop-intent="after"',
+            "treeDropMatches('template-section:' + si + ':before')",
+            "treeDropMatches('template-section:' + si + ':after')",
             'treeDrop($event)',
             'treeDropIntent ? treeDropIntent.label :',
         ] as $token) {

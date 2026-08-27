@@ -5515,7 +5515,7 @@ voltage|Voltage|220V',
     'blox_drop_into_container' => 'Place inside this container',
     'blox_drop_into_column_end' => 'Place at the end of this column',
     'blox_drop_invalid' => 'This element cannot be placed here',
-    'blox_prebuilt_drag_hint' => 'Drag “:name” to a visible canvas position',
+    'blox_prebuilt_drag_hint' => 'Drag “:name” to the canvas or structure panel',
     'blox_drop_section_before' => 'Insert before this section',
     'blox_drop_section_after' => 'Insert after this section',
 ];

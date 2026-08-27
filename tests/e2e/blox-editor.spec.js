@@ -1239,6 +1239,58 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
+test('prebuilt section drags to an exact structure boundary without canvas scroll @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
+  const beforeSections = await countSections(page);
+  expect(beforeSections).toBeGreaterThan(1);
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  const dialog = page.locator('[x-ref="templateDialog"]');
+  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  const targetIndex = 1;
+  const target = page.getByTestId('blox-tree-section').nth(targetIndex).locator('[data-section-drag-handle]');
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+
+  const contentFrame = await frame(page);
+  const pageScrollBefore = await page.evaluate(() => window.scrollY);
+  const hostScrollBefore = await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop);
+  const frameScrollBefore = await contentFrame.evaluate(() => window.scrollY);
+  const treeScrollBefore = await page.getByTestId('blox-tree').evaluate((node) => node.scrollTop);
+  let mouseDown = false;
+  try {
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + Math.min(96, sourceBox.height / 3));
+    await page.mouse.down();
+    mouseDown = true;
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 12, sourceBox.y + Math.min(96, sourceBox.height / 3) + 4, { steps: 4 });
+    await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height * 0.8, { steps: 24 });
+    const indicator = page.locator(
+      '[data-testid="blox-tree-drop-indicator"][data-drop-intent="section-after"][data-drop-valid="1"]:visible'
+    );
+    await expect(indicator).toBeVisible();
+    await expect(indicator).toHaveText('插入到此区块之后');
+    await page.waitForTimeout(150);
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBefore);
+    expect(await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop)).toBe(hostScrollBefore);
+    expect(await contentFrame.evaluate(() => window.scrollY)).toBe(frameScrollBefore);
+    expect(await page.getByTestId('blox-tree').evaluate((node) => node.scrollTop)).toBe(treeScrollBefore);
+
+    await page.mouse.up();
+    mouseDown = false;
+    await waitPreviewSettled(page);
+    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections + 1);
+    await expect((await frame(page)).locator(`[data-yk-sec="${targetIndex + 1}"]`).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+  } finally {
+    if (mouseDown) await page.mouse.up().catch(() => {});
+    if (await page.getByTestId('blox-dirty').isVisible()) await undo(page);
+  }
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
 test('legacy service page can switch to editable built-in process template @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single template replacement baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
