@@ -1333,6 +1333,34 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("libCategory !== 'all'", $workspace);
     }
 
+    public function testPrebuiltLibraryFavoritesAndRecentsStayLocalAndOnlyTrackSuccessfulInserts(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        foreach ([
+            'favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1"',
+            'recentTemplatesStorageKey: "yikai:blox:template-recent:v1"',
+            'restoreTemplateLibraryPreferences()',
+            'toggleTemplateFavorite(key)',
+            'rememberRecentTemplate(key)',
+            'if (item.type === "section") self.rememberRecentTemplate(item.key);',
+            'templateQuickCount(mode)',
+            'rank: self.isTemplateFavorite(item.key) ? 0',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "prebuilt preference token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-template-quick-favorites"',
+            'data-testid="blox-template-quick-recent"',
+            "@click.stop=\"toggleTemplateFavorite(item.key)\"",
+            "'blox-template-favorite-' + item.key",
+            ':aria-pressed="isTemplateFavorite(item.key)"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "prebuilt preference UI token {$token} missing");
+        }
+    }
+
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
     {
         $editor = $this->source('admin/blox_editor.php');

@@ -5518,4 +5518,8 @@ voltage|Voltage|220V',
     'blox_prebuilt_drag_hint' => 'Drag “:name” to the canvas or structure panel',
     'blox_drop_section_before' => 'Insert before this section',
     'blox_drop_section_after' => 'Insert after this section',
+    'blox_favorite_sections' => 'Favorite sections',
+    'blox_recent_sections' => 'Recently used sections',
+    'blox_add_section_favorite' => 'Add “:label” to favorites',
+    'blox_remove_section_favorite' => 'Remove “:label” from favorites',
 ];

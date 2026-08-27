@@ -5659,4 +5659,8 @@ voltage|電圧|220V',
     'blox_prebuilt_drag_hint' => '「:name」をキャンバスまたは右側の構造へドラッグ',
     'blox_drop_section_before' => 'このセクションの前に挿入',
     'blox_drop_section_after' => 'このセクションの後に挿入',
+    'blox_favorite_sections' => 'お気に入りセクション',
+    'blox_recent_sections' => '最近使用したセクション',
+    'blox_add_section_favorite' => '「:label」をお気に入りに追加',
+    'blox_remove_section_favorite' => '「:label」をお気に入りから削除',
 ];

@@ -1183,6 +1183,11 @@ $canManageBloxDesign = hasPermission('*');
                 'insertTarget' => __('blox_prebuilt_insert_target'),
                 'insertSection' => __('blox_prebuilt_insert'),
                 'dragHint' => __('blox_prebuilt_drag_hint'),
+                'quickAll' => __('all'),
+                'favorites' => __('blox_favorite_sections'),
+                'recent' => __('blox_recent_sections'),
+                'addFavorite' => __('blox_add_section_favorite'),
+                'removeFavorite' => __('blox_remove_section_favorite'),
                 'saveAsPrompt' => __('blox_tpl_save_as_prompt'),
                 'saveAsNameRequired' => __('blox_tpl_name_required'),
                 'saveAsDone' => __('blox_tpl_save_as_done'),
@@ -1744,6 +1749,11 @@ $canManageBloxDesign = hasPermission('*');
             templateQuery: "",
             templateFilter: "all",
             templateCategory: "all",
+            templateQuickFilter: "all",
+            favoriteTemplateKeys: [],
+            recentTemplateKeys: [],
+            favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1",
+            recentTemplatesStorageKey: "yikai:blox:template-recent:v1",
             legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
@@ -1796,6 +1806,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateEntry = "all";
                 this.templateFilter = "all";
                 this.templateCategory = "all";
+                this.templateQuickFilter = "all";
                 this.templateQuery = "";
                 this.openTemplateDialog();
             },
@@ -1804,6 +1815,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateEntry = "sections";
                 this.templateFilter = "section";
                 this.templateCategory = "all";
+                this.templateQuickFilter = "all";
                 this.templateQuery = "";
                 this.openTemplateDialog();
             },
@@ -1867,13 +1879,30 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             filteredTemplates() {
-                return window.BloxTemplateLibrary.filter(
+                var items = window.BloxTemplateLibrary.filter(
                     this.scopedTemplates(),
                     this.templateQuery,
                     this.templateFilter,
                     "all",
                     this.templateCategory
                 );
+                if (this.templateEntry !== "sections") return items;
+                var self = this;
+                if (this.templateQuickFilter === "favorites") {
+                    return items.filter(function (item) { return self.isTemplateFavorite(item.key); });
+                }
+                if (this.templateQuickFilter === "recent") {
+                    return items.filter(function (item) { return self.isTemplateRecent(item.key); });
+                }
+                return items.map(function (item, index) {
+                    return {
+                        item: item,
+                        index: index,
+                        rank: self.isTemplateFavorite(item.key) ? 0 : (self.isTemplateRecent(item.key) ? 1 : 2),
+                    };
+                }).sort(function (a, b) {
+                    return a.rank === b.rank ? a.index - b.index : a.rank - b.rank;
+                }).map(function (entry) { return entry.item; });
             },
 
             scopedTemplates() {
@@ -1883,6 +1912,14 @@ $canManageBloxDesign = hasPermission('*');
             templateEntryItems(items) {
                 var source = Array.isArray(items) ? items : this.scopedTemplates();
                 return window.BloxTemplateLibrary.filter(source, "", this.templateFilter, "all", "all");
+            },
+
+            templateQuickCount(mode) {
+                var self = this;
+                var items = this.templateEntryItems();
+                if (mode === "favorites") return items.filter(function (item) { return self.isTemplateFavorite(item.key); }).length;
+                if (mode === "recent") return items.filter(function (item) { return self.isTemplateRecent(item.key); }).length;
+                return items.length;
             },
 
             templateScopeCount(scope) {
@@ -1993,6 +2030,7 @@ $canManageBloxDesign = hasPermission('*');
                             self.toast((template.name || item.name) + (replacing ? self.templateText.replaced : self.templateText.inserted));
                         }, { silent: true });
                         if (!applied.ok) throw (applied.error || new Error(self.templateText.insertFailed));
+                        if (item.type === "section") self.rememberRecentTemplate(item.key);
                     })
                     .catch(function (error) {
                         self.templateError = error.message || self.templateText.insertFailed;
@@ -4703,6 +4741,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.restoreLeftPanelWidth();
                 this.restoreRightPanelState();
                 this.restoreElementLibraryPreferences();
+                this.restoreTemplateLibraryPreferences();
                 this.normalizeHeaderSettings();
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
                 // x-for 的 :key 遇到 undefined/重复会让 Alpine 崩掉、结构树整个不渲染
@@ -6580,6 +6619,58 @@ $canManageBloxDesign = hasPermission('*');
                     return item !== type;
                 })).slice(0, 6);
                 this.persistElementLibraryPreferences();
+            },
+
+            restoreTemplateLibraryPreferences() {
+                var read = function (key, limit) {
+                    try {
+                        var value = JSON.parse(window.localStorage.getItem(key) || "[]");
+                        if (!Array.isArray(value)) return [];
+                        return value.filter(function (item, index) {
+                            return typeof item === "string" && item.length > 0 && item.length <= 160
+                                && value.indexOf(item) === index;
+                        }).slice(0, limit);
+                    } catch (error) {
+                        return [];
+                    }
+                };
+                this.favoriteTemplateKeys = read(this.favoriteTemplatesStorageKey, 50);
+                this.recentTemplateKeys = read(this.recentTemplatesStorageKey, 6);
+            },
+
+            persistTemplateLibraryPreferences() {
+                try {
+                    window.localStorage.setItem(this.favoriteTemplatesStorageKey, JSON.stringify(this.favoriteTemplateKeys));
+                    window.localStorage.setItem(this.recentTemplatesStorageKey, JSON.stringify(this.recentTemplateKeys));
+                } catch (error) {
+                    // 禁用存储时仍保留本次编辑会话内的快捷筛选。
+                }
+            },
+
+            isTemplateFavorite(key) {
+                return this.favoriteTemplateKeys.indexOf(String(key || "")) !== -1;
+            },
+
+            isTemplateRecent(key) {
+                return this.recentTemplateKeys.indexOf(String(key || "")) !== -1;
+            },
+
+            toggleTemplateFavorite(key) {
+                key = String(key || "");
+                if (!key) return;
+                var index = this.favoriteTemplateKeys.indexOf(key);
+                if (index === -1) this.favoriteTemplateKeys.push(key);
+                else this.favoriteTemplateKeys.splice(index, 1);
+                this.persistTemplateLibraryPreferences();
+            },
+
+            rememberRecentTemplate(key) {
+                key = String(key || "");
+                if (!key) return;
+                this.recentTemplateKeys = [key].concat(this.recentTemplateKeys.filter(function (item) {
+                    return item !== key;
+                })).slice(0, 6);
+                this.persistTemplateLibraryPreferences();
             },
 
             /**
