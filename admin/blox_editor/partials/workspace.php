@@ -62,26 +62,40 @@ declare(strict_types=1);
                 <?php // pb-24：滚动到底时给最后一排瓦片留出充足空位（用户 2026-08-20 反馈 pb-16 仍紧） ?>
                 <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24">
                     <template x-for="grp in filteredLib()" :key="grp.cat">
-                        <div class="mb-3">
+                        <div class="mb-3" :data-testid="'blox-element-group-' + grp.cat">
                             <?php // 分类标题可折叠（Bricks 式）；搜索时忽略折叠态全部展开 ?>
                             <button type="button" @click="catOpen[grp.cat] = !isCatOpen(grp.cat)"
                                     class="w-full flex items-center justify-between px-1 mb-1.5 text-[11px] font-medium text-gray-500 hover:text-gray-700">
-                                <span x-text="grp.label"></span>
+                                <span class="inline-flex items-center gap-1">
+                                    <i x-show="grp.icon" class="ti text-xs" :class="'ti-' + grp.icon"></i>
+                                    <span x-text="grp.label"></span>
+                                </span>
                                 <i class="ti ti-chevron-down text-xs transition-transform" :class="isCatOpen(grp.cat) || libQuery.trim() ? '' : '-rotate-90'"></i>
                             </button>
                             <div x-show="isCatOpen(grp.cat) || libQuery.trim()" class="grid grid-cols-2 gap-1.5">
                                 <template x-for="el in grp.items" :key="el.type">
                                     <?php // 桌面点击只选中并提示拖拽，键盘/触屏则沿用选中目标插入，兼顾防误触与可访问性。 ?>
-                                    <button type="button" @click="activatePaletteElement(el, $event)" :data-testid="'blox-add-element-' + el.type"
-                                            draggable="true"
-                                            @dragstart="paletteSelected = el.type; dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
-                                            @dragend="paletteSelected = ''; dragEl = null; dragOver = ''; canvasBridge().post({ ykDragType: '' })"
-                                            class="h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
-                                            :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
-                                            :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
-                                        <i class="ti text-lg" :class="'ti-' + el.icon"></i>
-                                        <span class="text-[11px] leading-none" x-text="el.label"></span>
-                                    </button>
+                                    <div class="relative min-w-0">
+                                        <button type="button" @click="activatePaletteElement(el, $event)"
+                                                :data-testid="(grp.quick ? 'blox-quick-element-' : 'blox-add-element-') + el.type"
+                                                draggable="true"
+                                                @dragstart="paletteSelected = el.type; dragEl = el; $event.dataTransfer.effectAllowed = 'copy'; $event.dataTransfer.setData('application/x-yikai-blox', JSON.stringify({version: 1, source: 'palette', type: el.type})); $event.dataTransfer.setData('text/plain', el.type); canvasBridge().post({ ykDragType: el.type })"
+                                                @dragend="paletteSelected = ''; dragEl = null; dragOver = ''; canvasBridge().post({ ykDragType: '' })"
+                                                class="w-full h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
+                                                :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
+                                                :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
+                                            <i class="ti text-lg" :class="'ti-' + el.icon"></i>
+                                            <span class="max-w-full px-2 text-[11px] leading-tight text-center truncate" x-text="el.label"></span>
+                                        </button>
+                                        <button type="button" @click.stop="toggleElementFavorite(el.type)"
+                                                :data-testid="(grp.quick ? 'blox-quick-favorite-element-' : 'blox-favorite-element-') + el.type"
+                                                :title="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
+                                                :aria-label="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
+                                                class="absolute top-0.5 right-0.5 w-7 h-7 inline-flex items-center justify-center rounded text-gray-300 hover:text-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                                :class="isElementFavorite(el.type) ? 'text-amber-500' : ''">
+                                            <i class="ti text-sm" :class="isElementFavorite(el.type) ? 'ti-star-filled' : 'ti-star'"></i>
+                                        </button>
+                                    </div>
                                 </template>
                             </div>
                         </div>

@@ -150,6 +150,37 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   }
 });
 
+test('element library keeps favorites and successful recent inserts discoverable @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  await page.evaluate(() => {
+    localStorage.removeItem('yikai:blox:element-favorites:v1');
+    localStorage.removeItem('yikai:blox:element-recent:v1');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  await page.getByTestId('blox-favorite-element-heading').click();
+  await expect(page.getByTestId('blox-element-group-__favorites')).toBeVisible();
+  await expect(page.getByTestId('blox-add-element-heading')).toHaveCount(1);
+  await expect(page.getByTestId('blox-quick-element-heading')).toHaveCount(1);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-element-group-__favorites')).toBeVisible();
+  await page.locator('[x-ref="libSearch"]').fill('heading');
+  await expect(page.getByTestId('blox-add-element-heading')).toHaveCount(1);
+  await expect(page.getByTestId('blox-quick-element-heading')).toHaveCount(0);
+  await page.locator('[x-ref="libSearch"]').fill('');
+
+  await page.getByTestId('blox-add-element-text').press('Enter');
+  await page.getByTestId('blox-library-open').click();
+  await expect(page.getByTestId('blox-element-group-__recent')).toBeVisible();
+  await expect(page.getByTestId('blox-add-element-text')).toHaveCount(1);
+  await expect(page.getByTestId('blox-quick-element-text')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    localStorage.getItem('yikai:blox:element-recent:v1') || '[]'
+  )[0])).toBe('text');
+  await restoreClean(page);
+});
+
 test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-left-panel');

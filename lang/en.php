@@ -5504,4 +5504,8 @@ voltage|Voltage|220V',
     'health_brand_assets_unnamed' => 'Unnamed image',
     'setting_image_resource_missing' => 'This image file is missing. Upload it again or select another image from the media library.',
     'setting_image_resource_invalid' => 'This image address is invalid. Upload it again or select another image from the media library.',
+    'blox_favorite_elements' => 'Favorite elements',
+    'blox_recent_elements' => 'Recently used',
+    'blox_add_favorite' => 'Add “:label” to favorites',
+    'blox_remove_favorite' => 'Remove “:label” from favorites',
 ];

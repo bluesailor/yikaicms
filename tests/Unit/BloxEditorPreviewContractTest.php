@@ -1231,4 +1231,25 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('COLSPAN_DESKTOP_MAP', $renderer);
         $this->assertStringContainsString("'tablet_stack'", $renderer);
     }
+
+    public function testElementLibraryFavoritesAndRecentsStayLocalAndSearchable(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'favoriteElementsStorageKey: "yikai:blox:element-favorites:v1"',
+            'recentElementsStorageKey: "yikai:blox:element-recent:v1"',
+            'restoreElementLibraryPreferences()',
+            'toggleElementFavorite(type)',
+            'rememberRecentElement(type)',
+            'quick: true, items: favoriteItems',
+            'this.historyData() !== before',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "element library token {$token} missing");
+        }
+        $this->assertStringContainsString("'blox-quick-favorite-element-' : 'blox-favorite-element-'", $workspace);
+        $this->assertStringContainsString('@click.stop="toggleElementFavorite(el.type)"', $workspace);
+        $this->assertStringContainsString('focus-visible:ring-2', $workspace);
+    }
 }
