@@ -64,9 +64,11 @@ namespace Yikai\Tests\Unit {
 
             $initial = \ChannelBloxDocument::load($channelId);
             $document = \BloxDocumentPipeline::decode($initial['document_json']);
+            $publishedDocument = \BloxDocumentPipeline::decode($initial['published_document_json']);
             self::assertFalse($initial['has_draft']);
             self::assertFalse($initial['has_published']);
             self::assertSame('content-catalog', $document['sections'][1]['columns'][0]['elements'][0]['type']);
+            self::assertSame($document['sections'], $publishedDocument['sections']);
 
             $draft = \ChannelBloxDocument::saveDraft(
                 $channelId,

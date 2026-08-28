@@ -327,11 +327,14 @@ declare(strict_types=1);
                 <span x-text="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)"></span>
             </span>
 <?php endif; ?>
-<?php else: ?>
-            <span x-show="pageHasUnpublishedChanges" x-cloak class="text-[10px] text-amber-300 inline-flex items-center gap-1">
-                <i class="ti ti-pencil-exclamation"></i><?php echo e(__('blox_page_unpublished_changes')); ?>
-            </span>
 <?php endif; ?>
+            <button type="button" x-show="draftSummary().changed" x-cloak @click="openDraftSummary()"
+                    data-testid="blox-draft-summary-open"
+                    class="h-8 max-w-52 rounded border border-amber-400/30 bg-amber-400/10 px-2.5 text-xs font-medium text-amber-200 inline-flex items-center gap-1.5 hover:border-amber-300/60 hover:bg-amber-400/15 hover:text-white transition-colors"
+                    :title="draftSummaryText.title" :aria-label="draftSummaryCountText()">
+                <i class="ti ti-list-details shrink-0 text-sm"></i>
+                <span class="truncate" x-text="draftSummaryCountText()"></span>
+            </button>
             <span class="text-xs text-gray-400" x-show="previewLoading"><?= __('blox_refreshing') ?></span>
             <div class="inline-flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5"
                  role="group" aria-label="<?php echo e(__('blox_add_content')); ?>">
@@ -419,6 +422,10 @@ declare(strict_types=1);
                 </button>
                 <button type="button" @click="redo(); mobileActionsOpen = false" :disabled="!canRedo()">
                     <i class="ti ti-arrow-forward-up"></i><?php echo e(__('blox_redo')); ?>
+                </button>
+                <button type="button" x-show="draftSummary().changed" x-cloak @click="openDraftSummary()"
+                        data-testid="blox-mobile-draft-summary-open">
+                    <i class="ti ti-list-details"></i><span x-text="draftSummaryCountText()"></span>
                 </button>
 <?php if (!$isHomeBlox): ?>
                 <button type="button" @click="openRevisions(); mobileActionsOpen = false">

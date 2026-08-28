@@ -77,6 +77,7 @@ $id = getInt('id');
 $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
 $isCurrentThemeHeaderEdit = false;
 $templateStoredDraft = '';
+$publishedDocumentSource = '[]';
 if ($isHomeBlox) {
     requirePermission('*');
 }
@@ -123,6 +124,14 @@ if (!$id && !$isHomeBlox && !$templateId) {
 
 if ($isHomeBlox) {
     $homeDocument = HomeBloxDocument::load();
+    if (HomeBloxDocument::hasPublished()) {
+        $publishedHomeDocument = HomeBloxDocument::loadPublished();
+        $publishedDocumentSource = json_encode([
+            'schema' => $publishedHomeDocument['schema'],
+            'settings' => $publishedHomeDocument['settings'],
+            'sections' => $publishedHomeDocument['sections'],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
     $page = [
         'id' => 0,
         'name' => __('home'),
@@ -158,6 +167,9 @@ if ($isHomeBlox) {
     ];
     $templateStoredDraft = trim((string) ($templateRow['draft_data'] ?? '')) !== ''
         ? (string) $templateRow['draft_data']
+        : '[]';
+    $publishedDocumentSource = trim((string) ($templateRow['published_data'] ?? '')) !== ''
+        ? (string) $templateRow['published_data']
         : '[]';
     $initBlocks = $templateStoredDraft;
     $wantsCurrentThemeHeader = (string) get('current_header', '') === '1';
@@ -323,6 +335,7 @@ if ($isHomeBlox) {
         ? ChannelBloxDocument::load($id)
         : PageBloxDocument::load($id);
     $initBlocks = $pageDocument['document_json'];
+    $publishedDocumentSource = $pageDocument['published_document_json'];
     $pageHasPublished = $pageDocument['has_published'];
     $pageHasUnpublishedChanges = $pageDocument['has_unpublished_changes'];
     $pageUsesLegacyHtml = $pageDocument['uses_legacy_html'];
@@ -411,6 +424,20 @@ try {
     http_response_code(409);
     exit(e($documentError->getMessage()));
 }
+try {
+    $publishedBootDoc = $templateId && BloxAreaDocument::isArea($templateType)
+        ? BloxAreaDocument::decode($templateType, $publishedDocumentSource)
+        : ($templateId && $templateType === 'popup'
+            ? BloxPopupDocument::decode($publishedDocumentSource)
+            : BloxDocumentPipeline::decode($publishedDocumentSource));
+} catch (RuntimeException) {
+    $publishedBootDoc = BloxDocumentPipeline::decode('[]');
+}
+$publishedDocumentJson = json_encode([
+    'schema' => $publishedBootDoc['schema'],
+    'settings' => $publishedBootDoc['settings'],
+    'sections' => $publishedBootDoc['sections'],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '{"schema":1,"settings":{},"sections":[]}';
 $revisionDocument = $isCurrentThemeHeaderEdit ? $templateStoredDraft : $initBlocks;
 $baseRevision = $templateId && $templateType === 'popup'
     ? BloxPopupDocument::fingerprint($revisionDocument)
@@ -664,6 +691,7 @@ $canManageBloxDesign = hasPermission('*');
     <script src="/assets/js/blox-canvas-bridge.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-canvas-bridge.js') ?>"></script>
     <script src="/assets/js/blox-history-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-history-store.js') ?>"></script>
     <script src="/assets/js/blox-draft-recovery.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-recovery.js') ?>"></script>
+    <script src="/assets/js/blox-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-summary.js') ?>"></script>
     <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
@@ -919,6 +947,10 @@ $canManageBloxDesign = hasPermission('*');
     function bloxEditor() {
         return {
             sections: <?php echo $initBlocks; ?>,
+            publishedDocument: <?php echo $publishedDocumentJson; ?>,
+            draftSummaryOpen: false,
+            _draftSummaryKey: "",
+            _draftSummaryValue: null,
             sectionLabelPolicy: <?php echo json_encode(
                 BlockRenderer::sectionLabelPolicy(),
                 JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
@@ -1081,6 +1113,21 @@ $canManageBloxDesign = hasPermission('*');
                 'publishConfirm' => __('blox_page_publish_confirm'),
                 'publishDone' => __('blox_page_publish_done'),
                 'actionFailed' => __('blox_action_failed'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            draftSummaryText: <?php echo json_encode([
+                'title' => __('blox_draft_summary_title'),
+                'description' => __('blox_draft_summary_desc'),
+                'empty' => __('blox_draft_summary_empty'),
+                'count' => __('blox_draft_summary_count'),
+                'added' => __('blox_change_added'),
+                'removed' => __('blox_change_removed'),
+                'moved' => __('blox_change_moved'),
+                'content' => __('blox_change_content'),
+                'style' => __('blox_change_style'),
+                'settings' => __('blox_change_settings'),
+                'locate' => __('blox_change_locate'),
+                'removedHint' => __('blox_change_removed_hint'),
+                'sectionFallback' => __('blox_section_label'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             orgText: <?php echo json_encode([
                 'name' => __('blox_org_node_name'),
@@ -4712,6 +4759,75 @@ $canManageBloxDesign = hasPermission('*');
                 return JSON.stringify({ schema: 1, settings: this.docSettings || {}, sections: this.sections || [] });
             },
 
+            draftSummary() {
+                var Summary = window.BloxDraftSummary;
+                if (!Summary || typeof Summary.summarize !== "function") {
+                    return {
+                        changed: false,
+                        total: 0,
+                        totals: { added: 0, removed: 0, moved: 0, content: 0, style: 0, settings: 0 },
+                        items: [],
+                    };
+                }
+                var currentDocument = {
+                    schema: 1,
+                    settings: this.docSettings || {},
+                    sections: this.sections || [],
+                };
+                var key = JSON.stringify(this.publishedDocument || {}) + "\n" + JSON.stringify(currentDocument);
+                if (key === this._draftSummaryKey && this._draftSummaryValue) {
+                    return this._draftSummaryValue;
+                }
+                this._draftSummaryKey = key;
+                this._draftSummaryValue = Summary.summarize(this.publishedDocument, currentDocument);
+                return this._draftSummaryValue;
+            },
+
+            draftSummaryCountText() {
+                return this.draftSummaryText.count.replace(":count", this.draftSummary().total);
+            },
+
+            openDraftSummary() {
+                this.draftSummaryOpen = true;
+                this.mobileActionsOpen = false;
+                this.$nextTick(() => {
+                    if (this.$refs.draftSummaryPanel) this.$refs.draftSummaryPanel.focus();
+                });
+            },
+
+            closeDraftSummary() {
+                this.draftSummaryOpen = false;
+            },
+
+            draftChangeLabel(item) {
+                if (item && item.settings) return this.draftSummaryText.settings;
+                if (item && item.id) {
+                    var si = this.sectionIndexById(item.id, -1);
+                    if (si >= 0) return this.sectionLabel(this.sections[si], si);
+                }
+                var label = String((item && item.label) || "").trim();
+                return label || this.draftSummaryText.sectionFallback;
+            },
+
+            locateDraftChange(item) {
+                if (!item || !item.canLocate || !item.id) return;
+                var si = this.sectionIndexById(item.id, -1);
+                if (si < 0) return;
+                this.closeDraftSummary();
+                this.selectSection(si, false);
+                this.$nextTick(() => this.highlightCanvasSelection(true));
+            },
+
+            acceptPublishedDocument(payload) {
+                try {
+                    var document = JSON.parse(payload);
+                    if (!document || !Array.isArray(document.sections)) return;
+                    this.publishedDocument = document;
+                } catch (_) {
+                    return;
+                }
+            },
+
             draftRecovery() {
                 if (this._draftRecovery) return this._draftRecovery;
                 var Recovery = window.BloxDraftRecovery && window.BloxDraftRecovery.DraftRecovery;
@@ -7641,6 +7757,7 @@ $canManageBloxDesign = hasPermission('*');
                         }
                         if (action === "publish") {
                             self.acceptSavedDocument(payload, savedData, res);
+                            self.acceptPublishedDocument(payload);
                             self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                         }
                         self.homePublished = action === "publish";
@@ -7691,6 +7808,7 @@ $canManageBloxDesign = hasPermission('*');
                         }
                         if (Number(res.code) === 0) {
                             self.acceptSavedDocument(payload, savedData, res);
+                            self.acceptPublishedDocument(payload);
                             self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                             var activated = res.data && res.data.activated_area;
                             self.toast(activated ? self.uiText.tplPublishedAndUsed : self.uiText.tplPublished);
@@ -7728,6 +7846,7 @@ $canManageBloxDesign = hasPermission('*');
                             return;
                         }
                         self.acceptSavedDocument(payload, savedData, res);
+                        self.acceptPublishedDocument(payload);
                         self.setEditorReturnReceipt(res.data && res.data.return_receipt);
                         self.pagePublished = true;
                         self.pageHasUnpublishedChanges = false;
