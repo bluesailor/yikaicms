@@ -44,6 +44,18 @@ test('template library separates site-area types @ci', async ({ page }) => {
   await expect(page.getByTestId('blox-current-area-footer')).toHaveCount(0);
   await expect(page.getByTestId('blox-current-area-header').getByTestId('blox-current-area-source-theme')).toBeVisible();
   await expect(page.getByTestId('blox-current-area-header').getByTestId('blox-current-area-draft')).toBeVisible();
+  const assignmentMatrix = page.getByTestId('blox-assignment-matrix');
+  await expect(assignmentMatrix).toBeVisible();
+  const assignmentRows = assignmentMatrix.getByTestId('blox-assignment-row');
+  expect(await assignmentRows.count()).toBeGreaterThan(0);
+  await expect(assignmentMatrix.locator('h3')).toHaveText(/\S+/);
+  const firstAssignmentText = (await assignmentRows.first().locator('td').first().innerText()).trim();
+  await assignmentMatrix.getByTestId('blox-assignment-matrix-search').fill(firstAssignmentText);
+  await expect(assignmentRows.first()).toBeVisible();
+  await assignmentMatrix.getByTestId('blox-assignment-matrix-search').fill('__no_assignment_match__');
+  await expect(assignmentRows.first()).toBeHidden();
+  await assignmentMatrix.getByTestId('blox-assignment-matrix-search').fill('');
+  await expect(assignmentRows.first()).toBeVisible();
   const headerToggle = page.getByTestId('blox-custom-header-toggle');
   await expect(headerToggle).toBeVisible();
   await expect(headerToggle).toHaveAttribute('role', 'switch');

@@ -351,11 +351,16 @@ $customAreaEnabled = [
 ];
 
 // 当前区域状态必须与前台 bloxAreaHtml() 使用同一 Resolver，不能仅凭“有已发布模板”推断。
-$areaContexts = [[
-    'key' => 'home',
-    'label' => __('blox_current_context_home'),
-    'context' => ['home' => true, 'channel_id' => 0, 'page_id' => 0, 'lang' => siteLang()],
-]];
+$siteLanguage = siteLang();
+$homeLanguages = [$siteLanguage => ($conditionLanguages[$siteLanguage] ?? $siteLanguage)] + $conditionLanguages;
+$areaContexts = [];
+foreach ($homeLanguages as $languageCode => $languageLabel) {
+    $areaContexts[] = [
+        'key' => $languageCode === $siteLanguage ? 'home' : 'home:' . $languageCode,
+        'label' => __('blox_current_context_home') . (count($homeLanguages) > 1 ? ' · ' . $languageLabel : ''),
+        'context' => ['home' => true, 'channel_id' => 0, 'page_id' => 0, 'lang' => $languageCode],
+    ];
+}
 foreach ($conditionEntities['channel'] as $entity) {
     $areaContexts[] = [
         'key' => 'channel:' . (int) $entity['id'],
@@ -379,8 +384,9 @@ foreach ($areaContexts as $candidateContext) {
     }
 }
 $areaContextKey = (string) $selectedAreaContext['key'];
-$areaPreviewUrl = '/?preview=1';
-if ($areaContextKey !== 'home') {
+$areaPreviewUrl = langUrl('/', (string) ($selectedAreaContext['context']['lang'] ?? $siteLanguage));
+$areaPreviewUrl .= str_contains($areaPreviewUrl, '?') ? '&preview=1' : '?preview=1';
+if (!str_starts_with($areaContextKey, 'home')) {
     $contextParts = explode(':', $areaContextKey, 2);
     $contextChannel = channelModel()->find((int) ($contextParts[1] ?? 0));
     if ($contextChannel) {
@@ -389,9 +395,13 @@ if ($areaContextKey !== 'home') {
     }
 }
 
+$publishedAreaTemplates = [
+    'header' => $tableReady ? bloxTemplateModel()->publishedAreaTemplates('header') : [],
+    'footer' => $tableReady ? bloxTemplateModel()->publishedAreaTemplates('footer') : [],
+];
 $currentAreas = [];
 foreach (['header', 'footer'] as $areaType) {
-    $publishedCandidates = $tableReady ? bloxTemplateModel()->publishedAreaTemplates($areaType) : [];
+    $publishedCandidates = $publishedAreaTemplates[$areaType];
     $resolvedCandidate = $publishedCandidates === []
         ? null
         : BloxAreaResolver::resolve($publishedCandidates, $selectedAreaContext['context']);
@@ -411,6 +421,11 @@ foreach (['header', 'footer'] as $areaType) {
         'latest_draft' => $drafts[0] ?? null,
     ];
 }
+$areaAssignmentRows = BloxAreaAssignmentMatrix::build(
+    $areaContexts,
+    $publishedAreaTemplates,
+    $customAreaEnabled
+);
 
 $typeLabels = [
     'section' => __('blox_template_type_section'),
@@ -743,6 +758,95 @@ function confirmAreaPublish(form) {
                 </div>
             </article>
             <?php endforeach; ?>
+        </div>
+
+        <div class="mt-5 border-t border-gray-200 pt-5" data-testid="blox-assignment-matrix"
+             x-data="{ matrixQuery: '' }">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900"><?php echo e(__('blox_assignment_matrix_title')); ?></h3>
+                    <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_assignment_matrix_hint')); ?></p>
+                </div>
+                <label class="flex h-9 w-full max-w-72 items-center gap-2 border border-gray-300 bg-white px-3 sm:w-72">
+                    <i class="ti ti-search shrink-0 text-gray-400"></i>
+                    <span class="sr-only"><?php echo e(__('blox_assignment_matrix_search')); ?></span>
+                    <input type="search" x-model="matrixQuery" data-testid="blox-assignment-matrix-search"
+                           placeholder="<?php echo e(__('blox_assignment_matrix_search')); ?>"
+                           class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none focus:ring-0">
+                </label>
+            </div>
+            <div class="mt-3 overflow-x-auto border border-gray-200 bg-white">
+                <table class="w-full min-w-[44rem] text-left text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500">
+                        <tr>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('blox_assignment_matrix_scope')); ?></th>
+                            <th class="px-4 py-3 font-medium"><?php echo e(__('blox_assignment_matrix_language')); ?></th>
+                            <?php foreach ($overviewTypes as $areaType): ?>
+                            <th class="px-4 py-3 font-medium"><?php echo e($typeLabels[$areaType]); ?></th>
+                            <?php endforeach; ?>
+                            <th class="px-4 py-3 text-right font-medium"><?php echo e(__('blox_assignment_matrix_action')); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <?php foreach ($areaAssignmentRows as $assignmentRow):
+                            $contextParams = ['context' => (string) $assignmentRow['key']];
+                            if ($filterType !== 'all') {
+                                $contextParams['type'] = $filterType;
+                            }
+                            $contextUrl = '/admin/blox_templates.php?' . http_build_query($contextParams) . '#blox-current-areas';
+                            $languageCode = (string) $assignmentRow['lang'];
+                            $languageLabel = $conditionLanguages[$languageCode] ?? $languageCode;
+                            $searchParts = [(string) $assignmentRow['label'], $languageCode, $languageLabel];
+                            foreach ($overviewTypes as $areaType) {
+                                $matchedTemplate = $assignmentRow['areas'][$areaType]['template'] ?? null;
+                                if (is_array($matchedTemplate)) {
+                                    $searchParts[] = (string) ($matchedTemplate['name'] ?? '');
+                                }
+                            }
+                            $searchText = strtolower(implode(' ', $searchParts));
+                        ?>
+                        <tr data-testid="blox-assignment-row"
+                            data-context="<?php echo e((string) $assignmentRow['key']); ?>"
+                            data-search="<?php echo e($searchText); ?>"
+                            x-show="matrixQuery.trim() === '' || $el.dataset.search.includes(matrixQuery.trim().toLowerCase())"
+                            class="<?php echo $areaContextKey === $assignmentRow['key'] ? 'bg-blue-50/60' : 'hover:bg-gray-50'; ?>">
+                            <td class="px-4 py-3 font-medium text-gray-900"><?php echo e((string) $assignmentRow['label']); ?></td>
+                            <td class="px-4 py-3 text-gray-500"><span class="whitespace-nowrap"><?php echo e($languageLabel); ?></span></td>
+                            <?php foreach ($overviewTypes as $areaType):
+                                $assignment = $assignmentRow['areas'][$areaType];
+                                $matchedTemplate = $assignment['template'];
+                            ?>
+                            <td class="px-4 py-3">
+                                <?php if (!$assignment['enabled']): ?>
+                                <span class="inline-flex items-center gap-1 text-amber-700" data-testid="blox-assignment-disabled">
+                                    <i class="ti ti-player-pause"></i><?php echo e(__('blox_assignment_matrix_disabled')); ?>
+                                </span>
+                                <?php elseif (is_array($matchedTemplate)): ?>
+                                <a href="/admin/blox_editor.php?template=<?php echo (int) ($matchedTemplate['id'] ?? 0); ?>"
+                                   class="inline-flex items-center gap-1 font-medium text-blue-700 hover:text-blue-900"
+                                   data-testid="blox-assignment-template">
+                                    <i class="ti <?php echo $areaType === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?>"></i>
+                                    <span><?php echo e((string) ($matchedTemplate['name'] ?? '')); ?></span>
+                                </a>
+                                <?php else: ?>
+                                <span class="inline-flex items-center gap-1 text-gray-500" data-testid="blox-assignment-theme">
+                                    <i class="ti ti-palette"></i><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?>
+                                </span>
+                                <?php endif; ?>
+                            </td>
+                            <?php endforeach; ?>
+                            <td class="px-4 py-3 text-right">
+                                <a href="<?php echo e($contextUrl); ?>"
+                                   <?php echo $areaContextKey === $assignmentRow['key'] ? 'aria-current="true"' : ''; ?>
+                                   class="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-gray-600 hover:text-gray-900">
+                                    <i class="ti ti-eye"></i><?php echo e(__('blox_assignment_matrix_action')); ?>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
     <?php endif; ?>
