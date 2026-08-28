@@ -459,9 +459,9 @@ if ($templateId && isset($templateRow, $templateType)
         $replaceThemeAreaOnPublish = $templateType;
     }
 }
-$homeHeaderSettingsUrl = '/admin/blox_templates.php?type=header';
+$homeHeaderEditorUrl = '/admin/blox_templates.php?type=header';
 if ($isHomeBlox && $advancedBloxEnabled && db()->tableExists('blox_templates')) {
-    $homeHeaderSettingsUrl = BloxAreaEditorTarget::url('header', [
+    $homeHeaderEditorUrl = BloxAreaEditorTarget::url('header', [
         'home' => true,
         'channel_id' => 0,
         'page_id' => 0,

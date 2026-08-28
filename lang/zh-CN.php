@@ -5724,4 +5724,6 @@ voltage|电压|220V',
     'blox_cond_language' => '语言',
     'blox_cond_all_languages' => '全部语言',
     'blox_cond_unknown_language' => '语言条件无效：:lang',
+    'blox_edit_header' => '编辑网页头',
+    'blox_edit_header_hint' => '进入网页头编辑器，完成后可返回首页编辑',
 ];

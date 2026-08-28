@@ -5656,4 +5656,6 @@ voltage|Voltage|220V',
     'blox_cond_language' => 'Language',
     'blox_cond_all_languages' => 'All languages',
     'blox_cond_unknown_language' => 'Invalid language condition: :lang',
+    'blox_edit_header' => 'Edit header',
+    'blox_edit_header_hint' => 'Open the header editor, then return to homepage editing when finished',
 ];

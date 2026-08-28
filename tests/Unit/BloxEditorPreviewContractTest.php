@@ -1565,4 +1565,17 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($token, $templates, "area language condition token {$token} missing");
         }
     }
+
+    public function testHomepageHeaderEntryNamesTheNavigationWhileHeaderEditorKeepsSettings(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $header = $this->source('admin/blox_editor/partials/header.php');
+
+        $this->assertStringContainsString('$homeHeaderEditorUrl = BloxAreaEditorTarget::url(', $editor);
+        $this->assertStringContainsString('href="<?= e($homeHeaderEditorUrl) ?>"', $header);
+        $this->assertStringContainsString("__('blox_edit_header_hint')", $header);
+        $this->assertStringContainsString("__('blox_edit_header')", $header);
+        $this->assertStringContainsString("__('blox_header_settings')", $header);
+        $this->assertStringNotContainsString('$homeHeaderSettingsUrl', $editor . $header);
+    }
 }
