@@ -245,6 +245,11 @@ test('legacy page editor and page list converge on Blox @local', async ({ page }
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
 
   await page.goto('/admin/page.php', { waitUntil: 'domcontentloaded' });
+  const homeRow = page.getByTestId('page-home-row');
+  await expect(homeRow.locator('a[href="/admin/setting_home.php"]')).toHaveCount(0);
+  await expect(homeRow.getByTestId('page-home-edit'))
+    .toHaveAttribute('href', '/admin/blox_editor.php?home=1');
+  await expect(homeRow.getByTestId('page-home-edit')).toHaveText('编辑首页');
   await expect(page.getByTestId(`page-primary-edit-${fixtures.blox_page}`))
     .toHaveAttribute('href', `/admin/blox_editor.php?id=${fixtures.blox_page}`);
 });

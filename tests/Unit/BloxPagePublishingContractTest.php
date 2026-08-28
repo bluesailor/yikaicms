@@ -195,9 +195,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString('/admin/page_edit_advance.php?home=1', $page);
         $this->assertStringNotContainsString("__('page_mode_blocks_edit')", $page);
         $this->assertStringNotContainsString('/admin/page_edit_advance.php?id=', $page);
+        $this->assertStringNotContainsString('/admin/setting_home.php', $page);
+        $this->assertStringNotContainsString("__('admin_setting_home')", $page);
         $this->assertStringNotContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/page_edit.php')", $page);
         $this->assertStringNotContainsString("\$__isBlox ? '/admin/blox_editor.php?id=' : '/admin/page_edit.php?id='", $page);
         $this->assertStringContainsString('/admin/blox_editor.php?home=1', $page);
+        $this->assertStringContainsString("__('site_design_open_home')", $page);
         $this->assertStringContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/blox_editor.php')", $page);
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditUrl($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditTarget($item)'));
