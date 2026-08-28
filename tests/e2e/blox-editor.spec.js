@@ -1191,14 +1191,14 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('推荐用于：首页')).toBeVisible();
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(12);
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(14);
   await expect.poll(() => page.getByTestId('blox-template-panel').evaluate((panel) => (
     panel.scrollWidth <= panel.clientWidth
   ))).toBe(true);
   await page.getByTestId('blox-template-quick-all').click();
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
-  await expect(builtins).toHaveCount(14);
+  await expect(builtins).toHaveCount(18);
   const firstPreview = builtins.first().locator('img');
   await expect(firstPreview).toBeVisible();
   await expect.poll(() => firstPreview.evaluate((image) => (
@@ -1219,7 +1219,8 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:text-columns"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
-  await expect(builtins).toHaveCount(5);
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:download-guide"]')).toBeVisible();
+  await expect(builtins).toHaveCount(6);
 
   await category.selectOption('all');
   const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
