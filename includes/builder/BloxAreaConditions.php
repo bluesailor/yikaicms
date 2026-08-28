@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 final class BloxAreaConditions
 {
-    /** @return list<array{main:string,ids:list<int>,exclude:bool}> */
+    /** @return list<array{main:string,ids:list<int>,langs:list<string>,exclude:bool}> */
     /** @param array{channel?:array<int,mixed>,page?:array<int,mixed>}|null $entities */
     public static function parseForSave(string $json, ?array $entities = null): array
     {
@@ -26,6 +26,14 @@ final class BloxAreaConditions
                 throw new RuntimeException(__('blox_cond_page_required'));
             }
         }
+        $enabledLanguages = array_fill_keys(array_keys(self::languageLabels(true)), true);
+        foreach ($conditions as $condition) {
+            foreach ($condition['langs'] as $language) {
+                if (!isset($enabledLanguages[$language])) {
+                    throw new RuntimeException(__('blox_cond_unknown_language', ['lang' => $language]));
+                }
+            }
+        }
         if ($entities !== null) {
             $lookups = self::entityLookups($entities);
             foreach ($conditions as $condition) {
@@ -44,7 +52,7 @@ final class BloxAreaConditions
         return $conditions;
     }
 
-    /** @return array{channel:list<array{id:int,label:string,search:string}>,page:list<array{id:int,label:string,search:string}>} */
+    /** @return array{channel:list<array{id:int,label:string,search:string,lang:string}>,page:list<array{id:int,label:string,search:string,lang:string}>} */
     public static function entityOptions(): array
     {
         $result = ['channel' => [], 'page' => []];
@@ -78,6 +86,7 @@ final class BloxAreaConditions
                 'id' => $id,
                 'label' => $label,
                 'search' => implode(' ', array_filter([$name, $slug, $lang, (string) $id, $type])),
+                'lang' => $lang,
             ];
         }
         return $result;
@@ -108,6 +117,14 @@ final class BloxAreaConditions
                 default => '',
             };
             if ($label !== '') {
+                if ($condition['langs'] !== []) {
+                    $available = self::languageLabels(false);
+                    $languageLabels = array_map(
+                        static fn (string $lang): string => $available[$lang] ?? $lang,
+                        $condition['langs']
+                    );
+                    $label .= ' [' . implode(', ', $languageLabels) . ']';
+                }
                 $parts[] = $condition['exclude'] ? __('blox_cond_summary_exclude', ['scope' => $label]) : $label;
             }
         }
@@ -220,40 +237,67 @@ final class BloxAreaConditions
     }
 
     /**
-     * @param list<array{main:string,ids:list<int>,exclude:bool}> $a
-     * @param list<array{main:string,ids:list<int>,exclude:bool}> $b
-     * @return list<array{home:bool,channel_id:int,page_id:int}>
+     * @param list<array{main:string,ids:list<int>,langs:list<string>,exclude:bool}> $a
+     * @param list<array{main:string,ids:list<int>,langs:list<string>,exclude:bool}> $b
+     * @return list<array{home:bool,channel_id:int,page_id:int,lang:string}>
      */
     private static function sampleContexts(array $a, array $b): array
     {
         $channelIds = [];
         $pageIds = [];
+        $languages = [];
         foreach (array_merge($a, $b) as $condition) {
             if ($condition['main'] === 'channel') {
                 $channelIds = array_merge($channelIds, $condition['ids']);
             } elseif ($condition['main'] === 'page') {
                 $pageIds = array_merge($pageIds, $condition['ids']);
             }
+            $languages = array_merge($languages, $condition['langs']);
         }
         $channelIds = array_values(array_unique(array_map('intval', $channelIds)));
         $pageIds = array_values(array_unique(array_map('intval', $pageIds)));
+        $languages = array_values(array_unique(array_filter(array_map('strval', $languages))));
+        if ($languages === []) {
+            $languages = ['zh-CN'];
+        } elseif (!in_array('zh-CN', $languages, true)) {
+            $languages[] = 'zh-CN';
+        }
         $representative = 2_000_000_000;
         while (in_array($representative, $channelIds, true) || in_array($representative, $pageIds, true)) {
             $representative--;
         }
 
-        $contexts = [
+        $baseContexts = [
             ['home' => false, 'channel_id' => 0, 'page_id' => 0],
             ['home' => true, 'channel_id' => 0, 'page_id' => 0],
             ['home' => false, 'channel_id' => $representative, 'page_id' => 0],
             ['home' => false, 'channel_id' => $representative, 'page_id' => $representative],
         ];
         foreach ($channelIds as $id) {
-            $contexts[] = ['home' => false, 'channel_id' => $id, 'page_id' => 0];
+            $baseContexts[] = ['home' => false, 'channel_id' => $id, 'page_id' => 0];
         }
         foreach ($pageIds as $id) {
-            $contexts[] = ['home' => false, 'channel_id' => $id, 'page_id' => $id];
+            $baseContexts[] = ['home' => false, 'channel_id' => $id, 'page_id' => $id];
+        }
+        $contexts = [];
+        foreach ($languages as $language) {
+            foreach ($baseContexts as $context) {
+                $context['lang'] = $language;
+                $contexts[] = $context;
+            }
         }
         return $contexts;
+    }
+
+    /** @return array<string,string> */
+    private static function languageLabels(bool $enabledOnly): array
+    {
+        if ($enabledOnly && function_exists('enabledLanguages')) {
+            return enabledLanguages();
+        }
+        if (function_exists('availableLanguages')) {
+            return availableLanguages();
+        }
+        return ['zh-CN' => 'zh-CN', 'en' => 'en', 'ja' => 'ja'];
     }
 }

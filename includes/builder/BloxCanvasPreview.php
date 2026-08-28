@@ -90,6 +90,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 'home' => $ctxType === 'home',
                 'channel_id' => $ctxType === 'channel' ? (int) ($ctxRow['id'] ?? 0) : 0,
                 'page_id' => $ctxType === 'page' ? (int) ($ctxRow['id'] ?? 0) : 0,
+                'lang' => trim((string) ($ctxRow['lang'] ?? siteLang())),
             ]);
             $ctxHitId = (int) ($resolveHit['id'] ?? 0);
         }
@@ -131,6 +132,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             'home' => $isHomeLayout,
             'channel_id' => $isHomeLayout ? 0 : $id,
             'page_id' => !$isHomeLayout && $pageType === 'page' ? $id : 0,
+            'lang' => $isHomeLayout ? siteLang() : trim((string) ($pageRow['lang'] ?? siteLang())),
         ];
         $contextScript = $isHomeLayout ? '/index.php' : ($pageType === 'page' ? '/page.php' : '/list.php');
         $contextTitle = $isHomeLayout ? __('home') : (string) ($pageRow['name'] ?? '');
@@ -138,7 +140,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 
         // 画布同时展示当前页面实际生效的 Blox 页头/页尾，帮助管理员判断整页结构。
         // 它们是只读上下文，不进入当前文档，也不参与当前文档保存。
-        /** @param array{home:bool,channel_id:int,page_id:int} $context */
+        /** @param array{home:bool,channel_id:int,page_id:int,lang:string} $context */
         $renderPublishedArea = static function (string $area, array $context, string $scriptName): string {
             if (!in_array($area, ['header', 'footer'], true)) {
                 return '';

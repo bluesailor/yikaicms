@@ -21,7 +21,7 @@ final class BloxAreaEditorTarget
     }
 
     /**
-     * @param array{home?:bool,channel_id?:int,page_id?:int} $context
+     * @param array{home?:bool,channel_id?:int,page_id?:int,lang?:string} $context
      * @param string $back 返回目的地白名单标记（如 'home'=首页编辑器）。
      *                     从首页/页面编辑器画布跳来的用户，编辑完页头要能一键回到
      *                     出发点——此前固定回模板列表页，是「编辑页头很绕」的主断点。
@@ -44,6 +44,7 @@ final class BloxAreaEditorTarget
                     'home' => (bool) ($context['home'] ?? false),
                     'channel_id' => max(0, (int) ($context['channel_id'] ?? 0)),
                     'page_id' => max(0, (int) ($context['page_id'] ?? 0)),
+                    'lang' => trim((string) ($context['lang'] ?? siteLang())),
                 ]);
                 $resolvedId = (int) ($resolved['id'] ?? 0);
                 if ($resolvedId > 0) {

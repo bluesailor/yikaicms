@@ -5653,4 +5653,7 @@ voltage|Voltage|220V',
     'blox_page_library_restore_done' => 'Published content restored',
     'blox_page_library_no_published' => 'This page has no published Blox content yet',
     'blox_page_library_templates' => 'Full-page templates',
+    'blox_cond_language' => 'Language',
+    'blox_cond_all_languages' => 'All languages',
+    'blox_cond_unknown_language' => 'Invalid language condition: :lang',
 ];

@@ -350,6 +350,7 @@ function bloxAreaHtml(string $area): string
             'home' => $script === 'index.php',
             'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
             'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
+            'lang' => siteLang(),
         ];
         $row = $previewTemplate;
         if ($row === null) {
