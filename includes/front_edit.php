@@ -124,7 +124,25 @@ function renderFrontEdit(): void
 
       document.body.appendChild(box);
 
-      function hide() { box.style.display = 'none'; current = null; }
+      function cancelHide() {
+        if (hideTimer === null) return;
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+
+      function hide() {
+        cancelHide();
+        box.style.display = 'none';
+        current = null;
+      }
+
+      function scheduleHide() {
+        cancelHide();
+        hideTimer = setTimeout(function () {
+          hideTimer = null;
+          hide();
+        }, 200);
+      }
 
       function safeFocusId(value) {
         var id = typeof value === 'string' ? value.trim() : '';
@@ -381,8 +399,8 @@ function renderFrontEdit(): void
       }
 
       function attach(sec) {
-        sec.addEventListener('mouseenter', function () { clearTimeout(hideTimer); current = sec; place(sec); });
-        sec.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
+        sec.addEventListener('mouseenter', function () { cancelHide(); current = sec; place(sec); });
+        sec.addEventListener('mouseleave', scheduleHide);
       }
       // 本脚本在 ik_footer_before 处执行，页脚等位于其后的元素此刻尚未入 DOM，
       // 故延到 DOMContentLoaded 再扫描绑定（Logo/导航/首页区块在前，也一并延后无碍）。
@@ -396,8 +414,8 @@ function renderFrontEdit(): void
         consumeReturnFocus();
       });
 
-      btn.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
-      btn.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 200); });
+      btn.addEventListener('mouseenter', cancelHide);
+      btn.addEventListener('mouseleave', scheduleHide);
 
       window.addEventListener('scroll', function () { if (current) place(current); }, { passive: true });
       window.addEventListener('resize', function () { if (current) place(current); });
