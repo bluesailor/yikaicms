@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace Yikai\Tests\Unit;
 
 use HomeBloxDocument;
+use HomeBloxBlockSchema;
 use HomeBlockElement;
 use HomeLayoutDocument;
 use PHPUnit\Framework\TestCase;
@@ -121,6 +122,88 @@ final class HomeBloxDocumentTest extends TestCase
             }
         } finally {
             foreach ($channelIds as $channelId) {
+                db()->delete('channels', 'id = ?', [$channelId]);
+            }
+            if ($createdTable) {
+                db()->execute('DROP TABLE channels');
+            }
+        }
+    }
+
+    public function testStoredChannelSourceFollowsCurrentLanguageInsteadOfLookingLikeBanner(): void
+    {
+        $channelIds = [];
+        $createdTable = !db()->tableExists('channels');
+        try {
+            if ($createdTable) {
+                db()->execute(
+                    'CREATE TABLE channels ('
+                    . 'id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT DEFAULT \'zh-CN\', '
+                    . 'translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, '
+                    . 'name TEXT NOT NULL, slug TEXT NOT NULL, type TEXT DEFAULT \'list\', '
+                    . 'is_nav INTEGER DEFAULT 0, is_home INTEGER DEFAULT 0, status INTEGER DEFAULT 1, '
+                    . 'sort_order INTEGER DEFAULT 0, created_at INTEGER DEFAULT 0)'
+                );
+            }
+            $zhId = db()->insert('channels', [
+                'lang' => 'zh-CN',
+                'translation_group_id' => 0,
+                'parent_id' => 0,
+                'name' => 'Current language products',
+                'slug' => 'current-language-products',
+                'type' => 'product',
+                'is_nav' => 0,
+                'is_home' => 1,
+                'status' => 1,
+                'sort_order' => 990,
+                'created_at' => time(),
+            ]);
+            $channelIds[] = $zhId;
+            db()->update('channels', ['translation_group_id' => $zhId], 'id = ?', [$zhId]);
+            $enId = db()->insert('channels', [
+                'lang' => 'en',
+                'translation_group_id' => $zhId,
+                'parent_id' => 0,
+                'name' => 'Stored language products',
+                'slug' => 'stored-language-products',
+                'type' => 'product',
+                'is_nav' => 0,
+                'is_home' => 1,
+                'status' => 1,
+                'sort_order' => 991,
+                'created_at' => time(),
+            ]);
+            $channelIds[] = $enId;
+
+            $GLOBALS['_test_config']['site_lang'] = 'zh-CN';
+            $GLOBALS['_test_config'][HomeBloxDocument::DATA_KEY] = json_encode([
+                'schema' => 1,
+                'sections' => [[
+                    'id' => 'home_s_language_source',
+                    'type' => 'section',
+                    'settings' => [],
+                    'columns' => [[
+                        'id' => 'home_c_language_source',
+                        'elements' => [[
+                            'id' => 'home_e_language_source',
+                            'type' => 'home-block',
+                            'data' => [
+                                'block_type' => 'channel:' . $enId,
+                                'label' => 'Products',
+                                'enabled' => true,
+                            ],
+                        ]],
+                    ]],
+                ]],
+            ], JSON_THROW_ON_ERROR);
+
+            $document = HomeBloxDocument::load();
+            $source = $document['sections'][0]['columns'][0]['elements'][0]['data']['block_type'];
+
+            $this->assertSame('channel:' . $zhId, $source);
+            $this->assertArrayHasKey($source, HomeBloxBlockSchema::sourceOptions());
+        } finally {
+            foreach (array_reverse($channelIds) as $channelId) {
                 db()->delete('channels', 'id = ?', [$channelId]);
             }
             if ($createdTable) {

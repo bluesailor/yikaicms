@@ -372,10 +372,11 @@ public static function isActive(): bool
                     if (!is_array($element)) {
                         continue;
                     }
+                    $elementData = is_array($element['data'] ?? null) ? $element['data'] : [];
                     $normalizedElements[] = [
                         'id'   => (string) ($element['id'] ?? 'home_e_' . $si . '_' . $ci . '_' . $ei),
                         'type' => (string) ($element['type'] ?? 'home-block'),
-                        'data' => is_array($element['data'] ?? null) ? $element['data'] : [],
+                        'data' => self::normalizeChannelSourceForCurrentLanguage($elementData),
                     ];
                 }
                 $normalizedColumn = [
@@ -416,6 +417,32 @@ public static function isActive(): bool
             $out[] = $normalizedSection;
         }
         return $out;
+    }
+
+    /** @param array<string,mixed> $data @return array<string,mixed> */
+    private static function normalizeChannelSourceForCurrentLanguage(array $data): array
+    {
+        $type = trim((string) ($data['block_type'] ?? ''));
+        if (!str_starts_with($type, 'channel:')) {
+            return $data;
+        }
+
+        $channelId = (int) substr($type, 8);
+        if ($channelId < 1) {
+            return $data;
+        }
+
+        try {
+            $sibling = channelModel()->siblingForLang($channelId);
+        } catch (Throwable) {
+            return $data;
+        }
+        $siblingId = (int) ($sibling['id'] ?? 0);
+        if ($siblingId > 0) {
+            $data['block_type'] = 'channel:' . $siblingId;
+        }
+
+        return $data;
     }
 
     /**
