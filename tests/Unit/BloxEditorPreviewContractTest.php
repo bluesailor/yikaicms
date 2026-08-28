@@ -1482,6 +1482,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             'clearTemplateSectionFilters()',
             'this.templateQuery = "";',
             'this.templateCategory = "all";',
+            'this.templatePurpose = "all";',
             'this.templateQuickFilter = this.templateQuickCount("recommended") > 0 ? "recommended" : "all";',
             'this.templateSectionScrollTop = 0;',
             'this.persistTemplateSectionViewState();',

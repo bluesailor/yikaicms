@@ -121,6 +121,10 @@ try {
             'version' => BloxTemplateImporter::VERSION,
             'type' => 'section',
             'name' => $name,
+            'metadata' => [
+                'page_types' => [trim((string) post('page_intent', 'general'))],
+                'priority' => 60,
+            ],
             'document' => [$decoded],
         ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $result = BloxTemplateImporter::importJson($package, (int) ($_SESSION['admin_id'] ?? 0), 'user', 'canvas');
@@ -139,6 +143,10 @@ try {
                 'provider' => 'user',
                 'category' => 'section',
                 'thumbnail' => '',
+                'metadata' => BloxSectionMetadata::normalize([
+                    'page_types' => [trim((string) post('page_intent', 'general'))],
+                    'priority' => 60,
+                ]),
                 'updated_at' => time(),
             ],
         ]);

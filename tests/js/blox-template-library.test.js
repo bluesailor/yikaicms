@@ -107,6 +107,22 @@ test("remote catalog can be filtered by template scenario", function () {
     assert.equal(global.BloxTemplateLibrary.categoryLabel("custom", {}), "custom");
 });
 
+test("section purposes support filtering, labels, and metadata search", function () {
+    const items = [
+        { key: "a", type: "section", name: "Intro", metadata: { purpose: "company-intro", page_types: ["about"] } },
+        { key: "b", type: "section", name: "Hero", metadata: { purpose: "hero", page_types: ["home"] } },
+        { key: "c", type: "page", name: "Page", metadata: { purpose: "content", page_types: ["general"] } },
+    ];
+
+    assert.deepEqual(global.BloxTemplateLibrary.purposes(items), ["company-intro", "hero"]);
+    assert.deepEqual(
+        global.BloxTemplateLibrary.filter(items, "", "section", "all", "all", "hero").map((item) => item.key),
+        ["b"]
+    );
+    assert.deepEqual(global.BloxTemplateLibrary.filter(items, "about", "section", "all", "all", "all").map((item) => item.key), ["a"]);
+    assert.equal(global.BloxTemplateLibrary.purposeLabel("company-intro", { purposeCompanyIntro: "Company intro" }), "Company intro");
+});
+
 test("presentation helpers keep local and remote template behavior in one module", function () {
     const items = [
         { key: "local:12", source: "local" },

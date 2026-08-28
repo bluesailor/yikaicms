@@ -129,6 +129,16 @@ declare(strict_types=1);
                     <input type="file" accept="image/*" class="hidden" :disabled="mediaUploading"
                            @change="uploadMedia($event.target.files[0]); $event.target.value = ''">
                 </label>
+                <label x-show="templateEntry === 'sections' && templatePurposeOptions().length > 1" class="relative min-w-36">
+                    <span class="sr-only" x-text="templateText.purpose"></span>
+                    <select x-model="templatePurpose" data-testid="blox-template-purpose"
+                            class="w-full h-8 border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
+                        <option value="all" x-text="templateText.purposeAll"></option>
+                        <template x-for="purpose in templatePurposeOptions()" :key="purpose">
+                            <option :value="purpose" x-text="templatePurposeLabel(purpose)"></option>
+                        </template>
+                    </select>
+                </label>
             </div>
             <div class="h-[400px] overflow-y-auto blox-scroll p-3">
                 <p x-show="mediaLoading" class="text-center text-gray-400 text-sm py-12"><?= __('theme_market_loading') ?></p>
@@ -597,8 +607,11 @@ declare(strict_types=1);
                                             <span x-show="templateItemRecommended(item)"
                                                   class="shrink-0 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700"
                                                   x-text="templateText.recommended"></span>
-                                            <span x-show="item.paid" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
-                                                  x-text="templateText.premium"></span>
+                                             <span x-show="item.paid" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                                   x-text="templateText.premium"></span>
+                                            <span x-show="item.metadata && item.metadata.purpose && item.metadata.purpose !== 'general'"
+                                                  class="shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-500"
+                                                  x-text="templatePurposeLabel(item.metadata.purpose)"></span>
                                         </span>
                                         <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
                                               :class="item.locked ? 'text-amber-700' : 'text-gray-400'">

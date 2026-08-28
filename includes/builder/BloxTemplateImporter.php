@@ -29,7 +29,8 @@ final class BloxTemplateImporter
                 $prepared['requirements'],
                 $prepared['thumbnail'],
                 $adminId,
-                $sourceRef
+                $sourceRef,
+                $prepared['metadata']
             );
             db()->commit();
         } catch (Throwable $e) {
@@ -108,6 +109,7 @@ final class BloxTemplateImporter
             'name' => $name,
             'thumbnail' => self::safeThumbnail((string) ($template['thumbnail'] ?? '')),
             'requires' => $requirements,
+            'metadata' => BloxSectionMetadata::normalize(self::decodeStoredMetadata($template['metadata'] ?? null)),
             'meta' => [
                 'source' => (string) ($template['source'] ?? ''),
                 'source_ref' => (string) ($template['source_ref'] ?? ''),
@@ -152,7 +154,8 @@ final class BloxTemplateImporter
      * @return array{
      *   type:string,name:string,schema_version:int,thumbnail:string,
      *   sections:array<int,array<string,mixed>>,draft_json:string,
-     *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>}
+     *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>},
+     *   metadata:array<string,mixed>
      * }
      */
     public static function prepare(string $json): array
@@ -249,7 +252,22 @@ final class BloxTemplateImporter
                 'design_tokens' => $requiredTokens,
                 'design_styles' => $requiredStyles,
             ],
+            'metadata' => BloxSectionMetadata::normalize($package['metadata'] ?? []),
         ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function decodeStoredMetadata(mixed $value): array
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+        try {
+            $decoded = json_decode($value, true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return [];
+        }
+        return is_array($decoded) ? $decoded : [];
     }
 
     /** @param array<string|int,mixed> $package */

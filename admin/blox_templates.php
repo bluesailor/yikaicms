@@ -33,6 +33,9 @@ if (isset($_GET['deleted'])) {
 if (isset($_GET['status'])) {
     $notice = __('blox_tpl_status_updated_msg');
 }
+if (isset($_GET['metadata_saved'])) {
+    $notice = __('blox_tpl_metadata_saved');
+}
 if (isset($_GET['area_enabled'])) {
     $noticeArea = (string) get('area', 'header') === 'footer' ? 'footer' : 'header';
     $noticeEnabled = (string) get('area_enabled', '0') === '1';
@@ -75,6 +78,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$tableReady) {
             throw new RuntimeException(__('blox_tpl_table_missing'));
+        }
+
+        if ($action === 'save_metadata') {
+            $id = max(0, (int) post('id', 0));
+            $row = bloxTemplateModel()->find($id);
+            if (!$row || (string) ($row['type'] ?? '') !== 'section') {
+                throw new RuntimeException(__('blox_tpl_not_found'));
+            }
+            $pageTypes = $_POST['page_types'] ?? [];
+            bloxTemplateModel()->saveMetadata($id, [
+                'purpose' => (string) post('purpose', 'general'),
+                'page_types' => is_array($pageTypes) ? $pageTypes : [],
+                'priority' => (int) post('priority', 0),
+            ]);
+            adminLog('blox_template', 'save_metadata', '更新 Blox 区块模板目录元数据 #' . $id);
+            redirect('/admin/blox_templates.php?type=section&metadata_saved=1');
         }
 
         if ($action === 'create_popup') {
@@ -159,6 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($existing) {
                 $prepared = BloxTemplateImporter::prepare($json);
                 bloxTemplateModel()->updateDraft((int) $existing['id'], $prepared['draft_json'], $prepared['requirements']);
+                bloxTemplateModel()->saveMetadata((int) $existing['id'], $prepared['metadata']);
                 adminLog('blox_template', 'install_remote', '重装官方模板 ' . $slug . ' → #' . $existing['id']);
                 redirect('/admin/blox_templates.php?imported=' . (int) $existing['id']);
             }
@@ -409,6 +429,14 @@ $typeLabels = [
     'footer' => __('blox_tpl_type_footer'),
     'popup' => __('blox_tpl_type_popup'),
 ];
+$metadataPurposeLabels = [];
+foreach (BloxSectionMetadata::purposes() as $purpose) {
+    $metadataPurposeLabels[$purpose] = __(str_replace('-', '_', 'blox_template_purpose_' . $purpose));
+}
+$metadataPageTypeLabels = [];
+foreach (BloxSectionMetadata::pageTypes() as $pageType) {
+    $metadataPageTypeLabels[$pageType] = __(str_replace('-', '_', 'blox_template_page_type_' . $pageType));
+}
 
 /**
  * 区域预设卡片的布局示意线框（纯 CSS，无截图资源）。
@@ -881,12 +909,15 @@ function confirmAreaPublish(form) {
                     <thead class="bg-gray-50 text-xs text-gray-500">
                         <tr><th class="px-5 py-3"><?php echo __('blox_tpl_col_name'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_type'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_source'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_status'); ?></th><th class="px-4 py-3"><?php echo __('blox_tpl_col_updated'); ?></th><th class="px-5 py-3 text-right"><?php echo __('blox_tpl_col_actions'); ?></th></tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100" x-data="{ condOpen: 0 }">
+                    <tbody class="divide-y divide-gray-100" x-data="{ condOpen: 0, metaOpen: 0 }">
                     <?php foreach ($storedTemplates as $template):
                         $templateId = (int) $template['id'];
                         $templateRequirements = json_decode((string) ($template['requirements'] ?? ''), true);
                         $templateRequirements = is_array($templateRequirements) ? $templateRequirements : [];
+                        $templateMetadata = json_decode((string) ($template['metadata'] ?? ''), true);
+                        $templateMetadata = BloxSectionMetadata::normalize(is_array($templateMetadata) ? $templateMetadata : []);
                         $isAreaTemplate = BloxTemplateModel::conditionalType((string) $template['type']);
+                        $isSectionTemplate = (string) $template['type'] === 'section';
                         $templateConflicts = $areaConflicts[$templateId] ?? [];
                         $designDiagnostic = $designDiagnostics[$templateId] ?? ['complete' => true];
                         $conflictSummary = BloxAreaConditions::conflictSummary($templateConflicts);
@@ -939,6 +970,14 @@ function confirmAreaPublish(form) {
                                     <i class="ti ti-adjustments-alt"></i>
                                 </button>
                                 <?php endif; ?>
+                                <?php if ($isSectionTemplate): ?>
+                                <button type="button" class="mr-3 text-emerald-700 hover:text-emerald-900"
+                                        @click="metaOpen = metaOpen === <?php echo $templateId; ?> ? 0 : <?php echo $templateId; ?>"
+                                        data-testid="blox-metadata-toggle"
+                                        title="<?php echo e(__('blox_tpl_metadata')); ?>">
+                                    <i class="ti ti-tags"></i>
+                                </button>
+                                <?php endif; ?>
                                 <a href="/admin/blox_templates.php?action=export&amp;id=<?php echo (int) $template['id']; ?>"
                                    class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_json')); ?>">
                                     <i class="ti ti-download"></i>
@@ -964,6 +1003,45 @@ function confirmAreaPublish(form) {
                                 </form>
                             </td>
                         </tr>
+                        <?php if ($isSectionTemplate): ?>
+                        <tr x-show="metaOpen === <?php echo $templateId; ?>" x-cloak>
+                            <td colspan="6" class="bg-emerald-50/50 px-5 py-4">
+                                <form method="post" data-testid="blox-metadata-form" class="flex flex-wrap items-end gap-4">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="save_metadata">
+                                    <input type="hidden" name="id" value="<?php echo $templateId; ?>">
+                                    <label class="block min-w-44">
+                                        <span class="mb-1 block text-xs text-gray-500"><?php echo e(__('blox_template_purpose')); ?></span>
+                                        <select name="purpose" class="h-9 w-full border border-gray-300 bg-white px-2 text-sm">
+                                            <?php foreach ($metadataPurposeLabels as $value => $label): ?>
+                                            <option value="<?php echo e($value); ?>" <?php echo $templateMetadata['purpose'] === $value ? 'selected' : ''; ?>><?php echo e($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                    <fieldset class="min-w-72 flex-1">
+                                        <legend class="mb-1 text-xs text-gray-500"><?php echo e(__('blox_tpl_page_fit')); ?></legend>
+                                        <div class="flex flex-wrap gap-x-3 gap-y-1.5">
+                                            <?php foreach ($metadataPageTypeLabels as $value => $label): ?>
+                                            <label class="inline-flex items-center gap-1.5 text-xs text-gray-700">
+                                                <input type="checkbox" name="page_types[]" value="<?php echo e($value); ?>"
+                                                       <?php echo in_array($value, $templateMetadata['page_types'], true) ? 'checked' : ''; ?>>
+                                                <?php echo e($label); ?>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </fieldset>
+                                    <label class="block w-28">
+                                        <span class="mb-1 block text-xs text-gray-500"><?php echo e(__('blox_tpl_priority')); ?></span>
+                                        <input type="number" name="priority" min="0" max="100" value="<?php echo (int) $templateMetadata['priority']; ?>"
+                                               class="h-9 w-full border border-gray-300 bg-white px-2 text-sm">
+                                    </label>
+                                    <button type="submit" class="h-9 bg-emerald-700 px-4 text-xs font-medium text-white hover:bg-emerald-600">
+                                        <?php echo e(__('save')); ?>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                         <?php if ($isAreaTemplate): ?>
                         <tr x-show="condOpen === <?php echo (int) $template['id']; ?>" x-cloak>
                             <td colspan="6" class="px-5 py-4 bg-indigo-50/50">

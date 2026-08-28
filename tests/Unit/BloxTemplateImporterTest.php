@@ -25,6 +25,8 @@ final class BloxTemplateImporterTest extends TestCase
         $this->assertSame('企业标准页', $first['name']);
         $this->assertSame(['heading'], $first['requirements']['elements']);
         $this->assertSame([], $first['requirements']['plugins']);
+        $this->assertSame('content', $first['metadata']['purpose']);
+        $this->assertSame(['about'], $first['metadata']['page_types']);
         $this->assertNotSame($first['sections'][0]['id'], $second['sections'][0]['id']);
         $this->assertNotSame(
             $first['sections'][0]['columns'][0]['elements'][0]['id'],
@@ -90,6 +92,7 @@ final class BloxTemplateImporterTest extends TestCase
             'published_data' => '[{"id":"pub","type":"section","settings":[],"columns":[{"id":"c2","elements":[{"id":"e2","type":"heading","data":{"text":"Published","level":"h2"}}]}]}]',
             'requirements' => '{"elements":[],"plugins":[]}',
             'thumbnail' => '/uploads/templates/card.jpg',
+            'metadata' => '{"purpose":"features","page_types":["home"],"priority":82}',
         ]);
 
         $package = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
@@ -97,11 +100,14 @@ final class BloxTemplateImporterTest extends TestCase
         $this->assertSame('section', $package['type']);
         $this->assertSame(['heading'], $package['requires']['elements']);
         $this->assertSame('pub', $package['document'][0]['id']);
+        $this->assertSame('features', $package['metadata']['purpose']);
+        $this->assertSame(['home'], $package['metadata']['page_types']);
         $this->assertSame('blox-template-42.json', \BloxTemplateImporter::exportFilename(['id' => 42, 'name' => '模板 名']));
 
         $prepared = \BloxTemplateImporter::prepare($json);
         $this->assertSame('section', $prepared['type']);
         $this->assertSame('Export Card', $prepared['name']);
+        $this->assertSame('features', $prepared['metadata']['purpose']);
         $this->assertStringNotContainsString('"pub"', $prepared['draft_json']);
     }
     public function testExportMergesStoredRequirementsWithDocumentRequirements(): void
@@ -173,6 +179,7 @@ final class BloxTemplateImporterTest extends TestCase
             'type' => 'page',
             'name' => '企业标准页',
             'requires' => ['elements' => [], 'plugins' => []],
+            'metadata' => ['purpose' => 'content', 'page_types' => ['about'], 'priority' => 70],
             'document' => [[
                 'id' => 'old-section',
                 'type' => 'section',

@@ -200,6 +200,7 @@ CREATE TABLE "yikai_blox_templates" (
   "draft_data" TEXT NOT NULL,
   "published_data" TEXT,
   "requirements" TEXT,
+  "metadata" TEXT,
   "conditions" TEXT,
   "thumbnail" TEXT NOT NULL DEFAULT '',
   "status" INTEGER NOT NULL DEFAULT 0,

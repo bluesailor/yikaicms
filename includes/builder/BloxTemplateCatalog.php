@@ -37,7 +37,7 @@ final class BloxTemplateCatalog
                     'provider' => (string) ($row['source'] ?? 'user'),
                     'category' => $type,
                     'thumbnail' => self::safeLocalThumbnail($row['thumbnail'] ?? ''),
-                    'metadata' => BloxSectionMetadata::normalize([]),
+                    'metadata' => BloxSectionMetadata::normalize(self::decodeMetadata($row['metadata'] ?? null)),
                     'updated_at' => (int) ($row['updated_at'] ?? 0),
                 ];
             }
@@ -278,5 +278,19 @@ final class BloxTemplateCatalog
             }
         }
         return true;
+    }
+
+    /** @return array<string,mixed> */
+    private static function decodeMetadata(mixed $raw): array
+    {
+        if (!is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+        try {
+            $decoded = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return [];
+        }
+        return is_array($decoded) ? $decoded : [];
     }
 }
