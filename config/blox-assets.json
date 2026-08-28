@@ -35,6 +35,7 @@
     "assets/js/blox-control-rules.js",
     "assets/js/blox-dialog-focus.js",
     "assets/js/blox-draft-recovery.js",
+    "assets/js/blox-draft-summary.js",
     "assets/js/blox-history-store.js",
     "assets/js/blox-home-field-store.js",
     "assets/js/blox-icon-utils.js",

@@ -65,6 +65,7 @@ final class PageBloxLegacyImportTest extends TestCase
 
         $state = PageBloxDocument::load($pageId);
         $document = BloxDocumentPipeline::decode($state['document_json']);
+        $publishedDocument = BloxDocumentPipeline::decode($state['published_document_json']);
 
         self::assertFalse($state['has_draft']);
         self::assertFalse($state['has_published']);
@@ -73,6 +74,7 @@ final class PageBloxLegacyImportTest extends TestCase
             '<h2>Existing heading</h2><p>Existing body</p>',
             $document['sections'][0]['columns'][0]['elements'][0]['data']['html']
         );
+        self::assertSame($document['sections'], $publishedDocument['sections']);
         self::assertNull(bloxPageDraftModel()->findByPageId($pageId));
     }
 

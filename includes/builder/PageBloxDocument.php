@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 final class PageBloxDocument
 {
-    /** @return array{page:array<string,mixed>,document_json:string,base_revision:string,has_draft:bool,has_published:bool,has_unpublished_changes:bool,uses_legacy_html:bool,published_at:int} */
+    /** @return array{page:array<string,mixed>,document_json:string,published_document_json:string,base_revision:string,has_draft:bool,has_published:bool,has_unpublished_changes:bool,uses_legacy_html:bool,published_at:int} */
     public static function load(int $pageId): array
     {
         $page = self::page($pageId);
@@ -30,6 +30,7 @@ final class PageBloxDocument
         return [
             'page' => $page,
             'document_json' => $documentJson,
+            'published_document_json' => $publishedJson,
             'base_revision' => BloxDocumentPipeline::fingerprint($documentJson),
             'has_draft' => $hasDraft,
             'has_published' => trim((string) ($published['blocks_data'] ?? '')) !== '',

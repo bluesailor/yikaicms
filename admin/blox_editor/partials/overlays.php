@@ -2,6 +2,75 @@
 
 declare(strict_types=1);
 ?>
+    <!-- 未发布变化摘要：轻量侧栏，不打断画布操作，关闭后按稳定区块 ID 精确定位。 -->
+    <div x-show="draftSummaryOpen" x-cloak class="fixed inset-0 z-[115] pointer-events-none"
+         @keydown.escape.window="closeDraftSummary()">
+        <button type="button" class="absolute inset-0 bg-black/20 pointer-events-auto lg:hidden"
+                @click="closeDraftSummary()" :aria-label="templateText.close"></button>
+        <aside x-ref="draftSummaryPanel" tabindex="-1" data-testid="blox-draft-summary-panel"
+               aria-labelledby="blox-draft-summary-title"
+               class="absolute right-0 top-14 bottom-0 w-[25rem] max-w-full bg-white border-l border-gray-200 shadow-2xl pointer-events-auto flex flex-col focus:outline-none">
+            <header class="min-h-14 px-4 py-3 border-b border-gray-100 flex items-start gap-3 shrink-0">
+                <span class="mt-0.5 w-8 h-8 rounded bg-amber-50 text-amber-700 inline-flex items-center justify-center shrink-0">
+                    <i class="ti ti-list-details text-lg"></i>
+                </span>
+                <span class="min-w-0 flex-1">
+                    <strong id="blox-draft-summary-title" class="block text-sm font-semibold text-gray-800" x-text="draftSummaryText.title"></strong>
+                    <span class="mt-0.5 block text-xs leading-5 text-gray-500" x-text="draftSummaryText.description"></span>
+                </span>
+                <button type="button" @click="closeDraftSummary()"
+                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        :title="templateText.close" :aria-label="templateText.close">
+                    <i class="ti ti-x text-base"></i>
+                </button>
+            </header>
+
+            <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap gap-1.5 shrink-0" data-testid="blox-draft-summary-totals">
+                <span x-show="draftSummary().totals.added" class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700"
+                      x-text="draftSummaryText.added + ' ' + draftSummary().totals.added"></span>
+                <span x-show="draftSummary().totals.removed" class="rounded bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700"
+                      x-text="draftSummaryText.removed + ' ' + draftSummary().totals.removed"></span>
+                <span x-show="draftSummary().totals.moved" class="rounded bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700"
+                      x-text="draftSummaryText.moved + ' ' + draftSummary().totals.moved"></span>
+                <span x-show="draftSummary().totals.content" class="rounded bg-violet-50 px-2 py-1 text-[11px] font-medium text-violet-700"
+                      x-text="draftSummaryText.content + ' ' + draftSummary().totals.content"></span>
+                <span x-show="draftSummary().totals.style" class="rounded bg-cyan-50 px-2 py-1 text-[11px] font-medium text-cyan-700"
+                      x-text="draftSummaryText.style + ' ' + draftSummary().totals.style"></span>
+                <span x-show="draftSummary().totals.settings" class="rounded bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-700"
+                      x-text="draftSummaryText.settings"></span>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto blox-scroll" aria-live="polite">
+                <p x-show="!draftSummary().changed" class="px-5 py-12 text-center text-sm text-gray-400"
+                   x-text="draftSummaryText.empty"></p>
+                <template x-for="(item, index) in draftSummary().items" :key="(item.id || 'settings') + '-' + index">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-start gap-3" data-testid="blox-draft-summary-item">
+                        <span class="mt-0.5 w-7 h-7 rounded bg-gray-50 text-gray-500 inline-flex items-center justify-center shrink-0">
+                            <i class="ti text-sm" :class="item.settings ? 'ti-adjustments' : (item.removed ? 'ti-trash' : 'ti-layout')"></i>
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <strong class="block truncate text-xs font-semibold text-gray-800" x-text="draftChangeLabel(item)"></strong>
+                            <span class="mt-1 flex flex-wrap gap-1">
+                                <span x-show="item.added" class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700" x-text="draftSummaryText.added"></span>
+                                <span x-show="item.removed" class="rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-700" x-text="draftSummaryText.removed"></span>
+                                <span x-show="item.moved" class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700" x-text="draftSummaryText.moved"></span>
+                                <span x-show="item.content" class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-700" x-text="draftSummaryText.content"></span>
+                                <span x-show="item.style" class="rounded bg-cyan-50 px-1.5 py-0.5 text-[10px] text-cyan-700" x-text="draftSummaryText.style"></span>
+                                <span x-show="item.settings" class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-700" x-text="draftSummaryText.settings"></span>
+                            </span>
+                            <span x-show="item.removed" class="mt-1.5 block text-[11px] leading-4 text-gray-400" x-text="draftSummaryText.removedHint"></span>
+                        </span>
+                        <button type="button" x-show="item.canLocate" @click="locateDraftChange(item)"
+                                data-testid="blox-draft-summary-locate"
+                                class="h-8 shrink-0 rounded border border-gray-200 px-2.5 text-xs font-medium text-gray-600 inline-flex items-center gap-1 hover:border-blue-300 hover:text-blue-700">
+                            <i class="ti ti-focus-2 text-sm"></i><span x-text="draftSummaryText.locate"></span>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </aside>
+    </div>
+
     <!-- 富文本编辑弹窗（系统 TinyMCE；不做点遮罩关闭——误点会丢内容） -->
     <div x-show="rteOpen" x-cloak x-ref="rteDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.rteDialog, () => closeRte())"

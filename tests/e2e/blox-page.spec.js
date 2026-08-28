@@ -71,6 +71,15 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(headingInput).toBeVisible();
   await performPagePreviewUpdate(page, () => headingInput.fill(marker));
 
+  const draftSummaryOpen = page.getByTestId('blox-draft-summary-open');
+  const draftSummaryPanel = page.getByTestId('blox-draft-summary-panel');
+  await expect(draftSummaryOpen).toBeVisible();
+  await draftSummaryOpen.click();
+  await expect(draftSummaryPanel).toBeVisible();
+  await expect(draftSummaryPanel.getByTestId('blox-draft-summary-item')).not.toHaveCount(0);
+  await draftSummaryPanel.locator('[data-testid="blox-draft-summary-locate"]:visible').first().click();
+  await expect(draftSummaryPanel).toBeHidden();
+
   await page.route('**/admin/blox_page_api.php*', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -96,6 +105,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   expect(saveResult.code).toBe(0);
   expect(saveResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expect(draftSummaryOpen).toBeVisible();
 
   const back = page.getByTestId('blox-back');
   const draftBack = new URL(await back.getAttribute('href'), 'http://yikaicms.local');
@@ -185,6 +195,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   expect(publishResult.code).toBe(0);
   expect(publishResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expect(draftSummaryOpen).toBeHidden();
 
   const publishedBack = new URL(await page.getByTestId('blox-back').getAttribute('href'), 'http://yikaicms.local');
   expect(publishedBack.searchParams.get('yk_edit_receipt')).toBe(publishResult.data.return_receipt);
