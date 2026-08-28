@@ -1,0 +1,77 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "header",
+  "name": "Search Site Header",
+  "requires": {
+    "elements": ["container", "language-switcher", "logo", "nav-drawer", "nav-mega", "site-search"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {"sticky": false},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "md",
+          "bg_color": "#ffffff",
+          "align_items": "center"
+        },
+        "columns": [
+          {
+            "span": 3,
+            "elements": [
+              {"type": "logo", "data": {"display": "image", "height": "md", "tone": "dark", "link_home": true}}
+            ]
+          },
+          {
+            "span": 6,
+            "elements": [
+              {"type": "site-search", "data": {"layout": "wide", "show_label": false, "tone": "dark"}}
+            ]
+          },
+          {
+            "span": 3,
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "row",
+                  "wrap": "nowrap",
+                  "gap": "sm",
+                  "align": "center",
+                  "justify": "end",
+                  "padding": "none",
+                  "radius": "none",
+                  "children": [
+                    {"type": "language-switcher", "data": {"layout": "dropdown", "display": "name", "tone": "dark"}},
+                    {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "settings": {
+          "padding": "xs",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#111827"
+        },
+        "columns": [
+          {
+            "elements": [
+              {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

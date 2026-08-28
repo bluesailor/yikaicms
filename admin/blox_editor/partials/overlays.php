@@ -260,6 +260,75 @@ declare(strict_types=1);
         </div>
     </div>
 
+    <!-- 网页头样式：随包预置直接替换当前页头草稿，应用动作可撤销。 -->
+    <div x-show="headerPresetOpen" x-cloak x-ref="headerPresetDialog" tabindex="-1"
+         data-testid="blox-header-presets"
+         @keydown="dialogKeydown($event, $refs.headerPresetDialog, () => closeHeaderPresets())"
+         role="dialog" aria-modal="true" aria-labelledby="blox-header-presets-title"
+         class="fixed inset-0 z-[130] flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/50" @click="closeHeaderPresets()"></div>
+        <div class="relative flex max-h-[calc(100vh-4rem)] w-[880px] max-w-[94vw] flex-col rounded-lg bg-white shadow-2xl">
+            <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
+                <span class="min-w-0">
+                    <span id="blox-header-presets-title" class="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                        <i class="ti ti-layout-navbar text-lg text-blue-500"></i>
+                        <span x-text="headerPresetText.title"></span>
+                    </span>
+                    <span class="mt-0.5 block text-xs text-gray-400" x-text="headerPresetText.hint"></span>
+                </span>
+                <button type="button" @click="closeHeaderPresets()"
+                        class="ml-4 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        :title="headerPresetText.close" :aria-label="headerPresetText.close">
+                    <i class="ti ti-x text-base"></i>
+                </button>
+            </div>
+            <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2 blox-scroll">
+                <template x-for="preset in headerPresets" :key="preset.slug">
+                    <article class="flex min-h-52 flex-col overflow-hidden rounded border border-gray-200 bg-white transition hover:border-blue-300 hover:shadow-sm"
+                             :data-testid="'blox-header-preset-' + preset.slug">
+                        <div class="flex h-28 shrink-0 items-center justify-center bg-gray-50 px-5 py-4" aria-hidden="true">
+                            <div class="flex flex-col overflow-hidden border border-gray-200 bg-white shadow-sm"
+                                 :class="preset.preview === 'viewport-left' ? 'w-full' : 'w-5/6'">
+                                <span x-show="preset.preview === 'corporate'" class="flex h-4 items-center justify-end gap-1 bg-gray-800 px-2">
+                                    <i class="h-1 w-7 rounded bg-gray-500"></i><i class="h-1 w-4 rounded bg-gray-500"></i>
+                                </span>
+                                <span x-show="preset.preview === 'topbar'" class="flex h-4 items-center justify-between bg-gray-200 px-2">
+                                    <i class="h-1 w-12 rounded bg-gray-400"></i><i class="h-1 w-5 rounded bg-gray-400"></i>
+                                </span>
+                                <span x-show="preset.preview === 'centered-brand'" class="flex h-16 flex-col items-center justify-center gap-2 px-3">
+                                    <i class="h-2.5 w-12 rounded-sm bg-blue-500"></i>
+                                    <i class="h-1.5 w-28 rounded bg-gray-300"></i>
+                                </span>
+                                <span x-show="preset.preview === 'search'" class="flex h-12 items-center gap-2 px-3">
+                                    <i class="h-2.5 w-10 shrink-0 rounded-sm bg-blue-500"></i>
+                                    <i class="h-5 flex-1 rounded border border-gray-300 bg-gray-50"></i>
+                                    <i class="h-2 w-5 rounded bg-gray-300"></i>
+                                </span>
+                                <span x-show="preset.preview === 'search'" class="flex h-4 items-center justify-center bg-gray-800 px-3">
+                                    <i class="h-1 w-24 rounded bg-gray-500"></i>
+                                </span>
+                                <span x-show="preset.preview !== 'centered-brand' && preset.preview !== 'search'"
+                                      class="flex h-12 items-center justify-between px-3">
+                                    <i class="h-2.5 w-12 rounded-sm bg-blue-500"></i>
+                                    <span class="flex items-center gap-1.5"><i class="h-1.5 w-10 rounded bg-gray-300"></i><i class="h-1.5 w-7 rounded bg-gray-300"></i><i class="h-5 w-8 rounded bg-blue-100"></i></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex flex-1 flex-col border-t border-gray-100 p-4">
+                            <h3 class="text-sm font-semibold text-gray-800" x-text="preset.name"></h3>
+                            <p class="mt-1 min-h-10 text-xs leading-5 text-gray-500" x-text="preset.description"></p>
+                            <button type="button" @click="applyHeaderPreset(preset)" data-header-preset-apply
+                                    data-testid="blox-header-preset-apply"
+                                    class="mt-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
+                                <i class="ti ti-check text-sm"></i><span x-text="headerPresetText.apply"></span>
+                            </button>
+                        </div>
+                    </article>
+                </template>
+            </div>
+        </div>
+    </div>
+
     <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
          data-testid="blox-template-dialog"

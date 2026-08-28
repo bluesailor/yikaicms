@@ -441,6 +441,18 @@ $presetPreviewHtml = static function (string $kind): string {
             . '<span class="h-1 w-5 rounded-sm bg-gray-500"></span><span class="h-1 w-5 rounded-sm bg-gray-500"></span></div>'
             . '<div class="flex items-center justify-between rounded-b-sm border border-t-0 border-gray-200 bg-white px-2 py-1.5">'
             . $logo . '<span class="flex items-center gap-1.5">' . $menu . $cta . '</span></div></div>',
+        // 浅色顶栏：联系信息与语言在上，主导航在下
+        'topbar' => '<div class="flex flex-col">'
+            . '<div class="flex items-center justify-between rounded-t-sm bg-gray-200 px-2 py-1">'
+            . '<span class="h-1 w-12 rounded-sm bg-gray-400"></span><span class="h-1 w-5 rounded-sm bg-gray-400"></span></div>'
+            . '<div class="flex items-center justify-between rounded-b-sm border border-t-0 border-gray-200 bg-white px-2 py-1.5">'
+            . $logo . '<span class="flex items-center gap-1.5">' . $menu . $cta . '</span></div></div>',
+        // 搜索型页头：首行突出宽搜索框，深色导航独立成行
+        'search' => '<div class="flex flex-col rounded-sm border border-gray-200 bg-white">'
+            . '<div class="flex items-center gap-2 px-2 py-1.5">' . $logo
+            . '<span class="h-4 flex-1 rounded-sm border border-gray-300 bg-gray-50"></span>'
+            . '<span class="h-1 w-5 rounded-sm bg-gray-300"></span></div>'
+            . '<div class="flex justify-center bg-gray-800 px-2 py-1">' . $menu . '</div></div>',
         // 简洁页尾：LOGO+链接列 / 底部版权条
         'footer-columns' => '<div class="flex flex-col">'
             . '<div class="flex items-start justify-between rounded-t-sm border border-b-0 border-gray-200 bg-white px-2 py-1.5">'

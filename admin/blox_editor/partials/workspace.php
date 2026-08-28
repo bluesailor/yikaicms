@@ -1039,12 +1039,17 @@ declare(strict_types=1);
                                             <span class="text-xs font-medium text-gray-600"><?= __('blox_layout_preview') ?></span>
                                             <span class="text-[10px] text-gray-400" x-text="<?= e($jt('blox_n_children')) ?>.replace(':n', containerChildCount())"></span>
                                         </div>
-                                        <div class="rounded border border-dashed border-gray-300 p-3 min-h-24 transition"
+                                        <div class="blox-layout-preview rounded border border-dashed border-gray-300 min-h-24 transition"
+                                             data-testid="blox-layout-preview"
                                              :class="containerPreviewClass()"
                                              :style="containerPreviewStyle()">
-                                            <template x-for="n in Math.max(containerChildCount(), 3)" :key="n">
-                                                <div class="rounded bg-white/90 border border-gray-200 shadow-sm h-8 flex items-center justify-center text-[10px] text-gray-400 px-2"
-                                                     x-text="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"></div>
+                                            <template x-for="n in containerPreviewItemCount()" :key="n">
+                                                <div class="blox-layout-preview-item rounded bg-white/90 border border-gray-200 shadow-sm text-[10px] text-gray-400"
+                                                     data-testid="blox-layout-preview-item"
+                                                     :data-placeholder="n > containerChildCount()"
+                                                     :title="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"
+                                                     :aria-label="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"
+                                                     x-text="n <= containerChildCount() ? n : ''"></div>
                                             </template>
                                         </div>
                                     </div>
@@ -2893,6 +2898,21 @@ declare(strict_types=1);
                         @click="toggleRightPanel()">
                     <i class="ti text-sm" :class="rightPanelCollapsed ? 'ti-chevron-left' : 'ti-chevron-right'"></i>
                 </button>
+            </div>
+            <div x-show="rightPanelContentVisible()" class="border-b border-gray-100 p-2 shrink-0">
+<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
+                <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
+                        class="h-9 w-full rounded-md border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
+                        title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
+                    <i class="ti ti-layout-navbar text-base"></i><span class="truncate"><?php echo e(__('blox_header_presets')); ?></span>
+                </button>
+<?php else: ?>
+                <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
+                        class="h-9 w-full rounded-md border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
+                        title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
+                    <i class="ti ti-layout-grid-add text-base"></i><span class="truncate"><?php echo e(__('blox_prebuilt_sections')); ?></span>
+                </button>
+<?php endif; ?>
             </div>
             <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
                 <p class="sr-only" role="status" aria-live="polite" aria-atomic="true"

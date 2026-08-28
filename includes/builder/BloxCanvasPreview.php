@@ -22,7 +22,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
         BlockRenderer::$editChannelId = $isHomeLayout ? 1 : $id;
     }
-    // 头尾模板画布：可编辑模板段 + 正文只读上下文（灰罩不可选）。
+    // 页头模板只显示可编辑页头；页尾保留正文只读上下文，帮助判断落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');
     if ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
         $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
@@ -47,36 +47,39 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             }
         }
 
-        // 上下文正文：无编辑标记（editChannelId 归零后再渲染），画布上不可点选
-        $savedEditChannel = BlockRenderer::$editChannelId;
-        BlockRenderer::$editChannelId = 0;
-        if ($ctxType === 'page' && $ctxRow !== null) {
-            // 单页近似：优先该页排版数据（与前台/编辑器同源取法），回退富文本 content
-            $pageContent = contentModel()->queryOne(
-                'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
-                [(int) $ctxRow['id']]
-            );
-            $inner = trim((string) ($pageContent['blocks_data'] ?? '')) !== ''
-                ? renderBlocksToHtml((string) $pageContent['blocks_data'])
-                : (string) ($ctxRow['content'] ?? ($pageContent['content'] ?? ''));
-            $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
-                . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1>' . $inner . '</div>';
-        } elseif ($ctxType === 'channel' && $ctxRow !== null) {
-            // 栏目近似：栏目名 + 最近内容标题列表（灰罩只读示意，不复刻主题列表版式）
-            $items = contentModel()->getList((int) $ctxRow['id'], 6, 0, ['_skip_lang' => 1]);
-            $lis = '';
-            foreach ($items as $it) {
-                $lis .= '<li class="border-b border-gray-100 py-3">' . htmlspecialchars((string) ($it['title'] ?? ''), ENT_QUOTES) . '</li>';
+        $contextBody = '';
+        if ($templateArea === 'footer') {
+            // 页尾需要正文落底参照；参照区不输出编辑标记，画布上不可点选。
+            $savedEditChannel = BlockRenderer::$editChannelId;
+            BlockRenderer::$editChannelId = 0;
+            if ($ctxType === 'page' && $ctxRow !== null) {
+                // 单页近似：优先该页排版数据（与前台/编辑器同源取法），回退富文本 content
+                $pageContent = contentModel()->queryOne(
+                    'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
+                    [(int) $ctxRow['id']]
+                );
+                $inner = trim((string) ($pageContent['blocks_data'] ?? '')) !== ''
+                    ? renderBlocksToHtml((string) $pageContent['blocks_data'])
+                    : (string) ($ctxRow['content'] ?? ($pageContent['content'] ?? ''));
+                $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
+                    . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1>' . $inner . '</div>';
+            } elseif ($ctxType === 'channel' && $ctxRow !== null) {
+                // 栏目近似：栏目名 + 最近内容标题列表（灰罩只读示意，不复刻主题列表版式）
+                $items = contentModel()->getList((int) $ctxRow['id'], 6, 0, ['_skip_lang' => 1]);
+                $lis = '';
+                foreach ($items as $it) {
+                    $lis .= '<li class="border-b border-gray-100 py-3">' . htmlspecialchars((string) ($it['title'] ?? ''), ENT_QUOTES) . '</li>';
+                }
+                $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
+                    . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1><ul>'
+                    . ($lis !== '' ? $lis : '<li class="py-3 text-gray-400">…</li>') . '</ul></div>';
+            } else {
+                $homeDoc = HomeBloxDocument::load();
+                $ctxContext = HomeBloxRenderContext::fromCurrentSite(false);
+                $contextBody = HomeBloxRenderer::render($homeDoc['sections'], [$ctxContext, 'renderLegacyBlock']);
             }
-            $contextBody = '<div class="max-w-7xl mx-auto px-4 py-12"><h1 class="text-3xl font-bold mb-8">'
-                . htmlspecialchars((string) $ctxRow['name'], ENT_QUOTES) . '</h1><ul>'
-                . ($lis !== '' ? $lis : '<li class="py-3 text-gray-400">…</li>') . '</ul></div>';
-        } else {
-            $homeDoc = HomeBloxDocument::load();
-            $ctxContext = HomeBloxRenderContext::fromCurrentSite(false);
-            $contextBody = HomeBloxRenderer::render($homeDoc['sections'], [$ctxContext, 'renderLegacyBlock']);
+            BlockRenderer::$editChannelId = $savedEditChannel;
         }
-        BlockRenderer::$editChannelId = $savedEditChannel;
 
         // 命中报告：按所选上下文跑与前台 bloxAreaHtml() 同一套 Resolver 评分，
         // 报告该上下文线上实际激活哪个已发布模板——保证「预览命中 = 线上命中」。
@@ -94,20 +97,39 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // data-yk-area：区域契约标记——画布侧点选/拖放的作用域边界（编辑器据此圈定可编辑区）
         $editableArea = '<div data-yk-area="' . htmlspecialchars($templateArea, ENT_QUOTES) . '"'
             . ' data-yk-ctx-hit="' . $ctxHitId . '">' . $editableArea . '</div>';
-        $dim = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>';
-        $body = $templateArea === 'header' ? $editableArea . $dim : $dim . $editableArea;
-    } elseif ($isHomeLayout) {
-        $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
-        if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
-            $previewSections = $previewSections['sections'];
+        $body = $templateArea === 'header'
+            ? $editableArea
+            : '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>' . $editableArea;
+    } else {
+        if ($isHomeLayout) {
+            $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
+            if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
+                $previewSections = $previewSections['sections'];
+            }
+            $previewSections = is_array($previewSections) ? $previewSections : [];
+            $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
+            $pageBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+            $pageRow = null;
+            $pageType = '';
+        } else {
+            $pageBody = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+            $pageRow = channelModel()->find($id);
+            $pageType = (string) ($pageRow['type'] ?? '');
         }
-        $previewSections = is_array($previewSections) ? $previewSections : [];
-        $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
-        $homeBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
 
-        // 首页画布同时展示当前生效的 Blox 页头/页尾，帮助管理员判断首屏和整页比例。
-        // 它们是只读上下文，不进入首页 sections，也不参与首页保存；头尾模板仍在各自模板编辑器中修改。
-        $renderPublishedArea = static function (string $area): string {
+        $areaContext = [
+            'home' => $isHomeLayout,
+            'channel_id' => $isHomeLayout ? 0 : $id,
+            'page_id' => !$isHomeLayout && $pageType === 'page' ? $id : 0,
+        ];
+        $contextScript = $isHomeLayout ? '/index.php' : ($pageType === 'page' ? '/page.php' : '/list.php');
+        $contextTitle = $isHomeLayout ? __('home') : (string) ($pageRow['name'] ?? '');
+        $contextSlug = $isHomeLayout ? '' : (string) ($pageRow['slug'] ?? '');
+
+        // 画布同时展示当前页面实际生效的 Blox 页头/页尾，帮助管理员判断整页结构。
+        // 它们是只读上下文，不进入当前文档，也不参与当前文档保存。
+        /** @param array{home:bool,channel_id:int,page_id:int} $context */
+        $renderPublishedArea = static function (string $area, array $context, string $scriptName): string {
             if (!in_array($area, ['header', 'footer'], true)) {
                 return '';
             }
@@ -115,11 +137,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 return '';
             }
             $templates = bloxTemplateModel()->publishedAreaTemplates($area);
-            $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, [
-                'home' => true,
-                'channel_id' => 0,
-                'page_id' => 0,
-            ]);
+            $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, $context);
             if ($resolved === null) {
                 return '';
             }
@@ -127,6 +145,12 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             if ($publishedData === '') {
                 return '';
             }
+            $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+            $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
+            $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
+            $_SERVER['SCRIPT_NAME'] = $scriptName;
+            $GLOBALS['currentChannelId'] = $context['channel_id'];
+            $GLOBALS['ykBloxPageId'] = $context['page_id'];
             try {
                 $document = BloxAreaDocument::decode($area, $publishedData);
                 $html = BlockRenderer::render($publishedData);
@@ -137,19 +161,44 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             } catch (Throwable $e) {
                 error_log('[bloxCanvasPreview] area context: ' . $e->getMessage());
                 return '';
+            } finally {
+                $_SERVER['SCRIPT_NAME'] = $savedScriptName;
+                if ($savedChannelId === null) {
+                    unset($GLOBALS['currentChannelId']);
+                } else {
+                    $GLOBALS['currentChannelId'] = $savedChannelId;
+                }
+                if ($savedPageId === null) {
+                    unset($GLOBALS['ykBloxPageId']);
+                } else {
+                    $GLOBALS['ykBloxPageId'] = $savedPageId;
+                }
             }
         };
 
         // 自定义区域未启用或没有命中时，画布仍需显示当前主题的默认头尾，
         // 否则管理员看到的页面比例会与前台不一致。这里只截取主题布局的 body 区域，
         // 不把主题的 html/head/main 外壳嵌入预览 iframe。
-        /** @psalm-suppress UnusedVariable 本闭包内变量均供 require 的主题布局模板使用 */
-        $renderThemeArea = static function (string $area): string {
+        /**
+         * @psalm-suppress UnusedVariable 本闭包内变量均供 require 的主题布局模板使用
+         * @psalm-suppress UnusedClosureParam Psalm 无法跟踪 require 模板读取的局部变量
+         */
+        $renderThemeArea = static function (
+            string $area,
+            string $scriptName,
+            int $channelId,
+            int $pageId,
+            string $title,
+            string $slug
+        ): string {
             $layout = theme_path_optional('layouts/' . $area . '.php');
             if ($layout === null || !is_file($layout)) {
                 return '';
             }
-            $pageTitle = __('home');
+            if ($area === 'footer' && !function_exists('renderCustomerService')) {
+                require_once ROOT_PATH . '/includes/customer_service.php';
+            }
+            $pageTitle = $title;
             $pageDescription = '';
             $pageKeywords = '';
             $canonicalUrl = siteBaseUrl() . '/';
@@ -161,9 +210,11 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
             $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
             $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
-            $_SERVER['SCRIPT_NAME'] = '/index.php';
-            $GLOBALS['currentChannelId'] = 0;
-            $GLOBALS['ykBloxPageId'] = 0;
+            $_SERVER['SCRIPT_NAME'] = $scriptName;
+            $GLOBALS['currentChannelId'] = $channelId;
+            $GLOBALS['ykBloxPageId'] = $pageId;
+            $currentChannelId = $channelId;
+            $currentSlug = $slug;
             ob_start();
             try {
                 require $layout;
@@ -225,25 +276,36 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         BlockRenderer::$editChannelId = 0;
         $headerEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
         $footerEnabled = (string) config('blox_custom_footer_enabled', '1') === '1';
-        $homeAreaContext = ['home' => true, 'channel_id' => 0, 'page_id' => 0];
-        $headerBlox = $headerEnabled ? $renderPublishedArea('header') : '';
-        $footerBlox = $footerEnabled ? $renderPublishedArea('footer') : '';
+        $headerBlox = $headerEnabled ? $renderPublishedArea('header', $areaContext, $contextScript) : '';
+        $footerBlox = $footerEnabled ? $renderPublishedArea('footer', $areaContext, $contextScript) : '';
         $headerBody = $wrapContextArea(
             'header',
-            $headerBlox !== '' ? $headerBlox : $renderThemeArea('header'),
+            $headerBlox !== '' ? $headerBlox : $renderThemeArea(
+                'header',
+                $contextScript,
+                $areaContext['channel_id'],
+                $areaContext['page_id'],
+                $contextTitle,
+                $contextSlug
+            ),
             $headerBlox !== '' ? 'blox' : 'theme',
-            BloxAreaEditorTarget::url('header', $homeAreaContext, 'home')
+            BloxAreaEditorTarget::url('header', $areaContext, $isHomeLayout ? 'home' : '')
         );
         $footerBody = $wrapContextArea(
             'footer',
-            $footerBlox !== '' ? $footerBlox : $renderThemeArea('footer'),
+            $footerBlox !== '' ? $footerBlox : $renderThemeArea(
+                'footer',
+                $contextScript,
+                $areaContext['channel_id'],
+                $areaContext['page_id'],
+                $contextTitle,
+                $contextSlug
+            ),
             $footerBlox !== '' ? 'blox' : 'theme',
-            BloxAreaEditorTarget::url('footer', $homeAreaContext, 'home')
+            BloxAreaEditorTarget::url('footer', $areaContext, $isHomeLayout ? 'home' : '')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
-        $body = $headerBody . $homeBody . $footerBody;
-    } else {
-        $body = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
+        $body = $headerBody . $pageBody . $footerBody;
     }
 
     $bloxInject = '';
