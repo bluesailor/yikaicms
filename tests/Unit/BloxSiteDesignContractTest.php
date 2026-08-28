@@ -42,4 +42,17 @@ final class BloxSiteDesignContractTest extends TestCase
         self::assertStringContainsString('/admin/blox_editor.php?home=1', $source);
         self::assertStringContainsString('/admin/blox_templates.php?type=', $source);
     }
+
+    public function testTemplateLibraryExposesAResolvedAreaAssignmentMatrix(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/admin/blox_templates.php');
+
+        self::assertIsString($source);
+        self::assertStringContainsString('BloxAreaAssignmentMatrix::build(', $source);
+        self::assertStringContainsString('data-testid="blox-assignment-matrix"', $source);
+        self::assertStringContainsString('data-testid="blox-assignment-matrix-search"', $source);
+        self::assertStringContainsString('data-testid="blox-assignment-row"', $source);
+        self::assertStringContainsString('data-testid="blox-assignment-template"', $source);
+        self::assertStringContainsString("'home:' . \$languageCode", $source);
+    }
 }

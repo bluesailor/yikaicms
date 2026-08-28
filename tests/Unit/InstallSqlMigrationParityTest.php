@@ -38,16 +38,37 @@ final class InstallSqlMigrationParityTest extends TestCase
         $sql = str_replace('yikai_', '', $sql);
         db()->getPdo()->exec($sql);
 
-        // settingModel() 是进程级单例、带行缓存：前面的用例可能已把它暖成旧站状态
-        //（executionOrder="defects" 还会轮换用例顺序，暖不暖因此不稳定 → 本测试薛定谔红绿）。
-        // 导入全新 install SQL 后必须失效该缓存，否则迁移 check() 读到的是上个用例的设置。
+        // PHPUnit 的轻量 config() 桩读 _test_config，不会自动读取刚导入的 settings 表。
+        // 显式用安装 SQL 的设置构造本轮快照，否则 executionOrder="defects" 下会继承前序
+        // 用例留下的首页 Blox 状态，令迁移 check() 随执行顺序随机红绿。
         $cacheProp = new \ReflectionProperty(\SettingModel::class, 'cache');
         $cacheProp->setValue(settingModel(), null);
+        $previousTestConfig = $GLOBALS['_test_config'] ?? null;
+        $previousRuntimeOverrides = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        $settings = db()->fetchAll('SELECT key,value FROM settings');
+        $GLOBALS['_test_config'] = [];
+        foreach ($settings as $setting) {
+            $GLOBALS['_test_config'][(string) $setting['key']] = $setting['value'];
+        }
+        unset($GLOBALS['yikai_config_runtime_overrides']);
 
-        $pending = [];
-        foreach (\Migrator::loadAll() as $m) {
-            if (!\Migrator::isApplied($m)) {
-                $pending[] = $m['id'];
+        try {
+            $pending = [];
+            foreach (\Migrator::loadAll() as $m) {
+                if (!\Migrator::isApplied($m)) {
+                    $pending[] = $m['id'];
+                }
+            }
+        } finally {
+            if ($previousTestConfig === null) {
+                unset($GLOBALS['_test_config']);
+            } else {
+                $GLOBALS['_test_config'] = $previousTestConfig;
+            }
+            if ($previousRuntimeOverrides === null) {
+                unset($GLOBALS['yikai_config_runtime_overrides']);
+            } else {
+                $GLOBALS['yikai_config_runtime_overrides'] = $previousRuntimeOverrides;
             }
         }
         sort($pending);
