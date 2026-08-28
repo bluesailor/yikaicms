@@ -49,7 +49,9 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await page.goto(editorHref, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
-    await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
+    // 2026-08-28 起 Blox 全部能力对免费版开放，免费模式下该标记同样是 1；
+    // 仍受授权限制的只有远程模板包下载（见下方 free mode 用例）。
+    await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '1');
     await expect(page.getByTestId('blox-prebuilt-open')).toBeVisible();
     await page.getByTestId('blox-design-open').click();
     await expect(page.getByTestId('blox-design-tab-colors')).toBeVisible();
@@ -207,7 +209,9 @@ test('free mode opens homepage and local templates while remote resolve stays lo
 
   const consoleEntries = observeConsole(page);
   await openEditor(page);
-  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
+  // Blox 能力对免费版全开，标记为 1；本用例现在验的是「免费版拿得到全部编辑能力，
+  // 但远程模板解析仍被授权闸挡住」。
+  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '1');
 
   await page.getByTestId('blox-prebuilt-open').click();
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
