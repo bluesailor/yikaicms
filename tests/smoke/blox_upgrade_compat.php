@@ -229,8 +229,11 @@ if ($hadPublishedBloxHome) {
 upgradeCheck(settingValue($pdo, 'blox_editor_enabled') === '1', 'upgrade enables the Blox editor by default');
 upgradeCheck(bloxPageEditorEnabled(), 'free Blox page editing is available after upgrade');
 upgradeCheck(bloxPageEditorEnabled(), 'the Blox editor switch is on without a commercial license');
-upgradeCheck(!bloxAdvancedFeaturesEnabled(), 'advanced Blox remains behind the entitlement gate');
-upgradeCheck(!bloxEditorEnabled(), 'legacy advanced modules remain behind the entitlement gate');
+// 2026-08-28 起 Blox 全部能力对免费版开放：无授权的老站升级后同样拿得到
+// Header/Footer/Popup、全局样式与 Query Loop，本闸只反映后台开关。
+upgradeCheck(bloxAdvancedFeaturesEnabled(), 'advanced Blox is available without a commercial license');
+// bloxEditorEnabled() 是委托给同一个闸的旧别名，随之一并放开。
+upgradeCheck(bloxEditorEnabled(), 'legacy advanced alias follows the same open gate');
 upgradeCheck(settingValue($pdo, 'home_blocks_config') === $homeLayoutBefore, 'legacy homepage layout data remains unchanged');
 
 $migratedLegacyHtml = $pdo->query('SELECT content FROM yikai_contents WHERE id = ' . $contentId)->fetchColumn();

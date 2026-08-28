@@ -138,9 +138,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </button>
             </form>
         </div>
-        <?php if (bloxPageEditorEnabled() && !bloxAdvancedFeaturesEnabled()): ?>
-        <p class="mt-3 text-sm text-amber-600"><i class="ti ti-alert-triangle mr-1"></i><?php echo __('blox_switch_needs_license'); ?></p>
-        <?php endif; ?>
     </div>
 
     <!-- 授权码 -->
