@@ -61,6 +61,16 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
                 updated_at INTEGER NOT NULL DEFAULT 0,
                 published_at INTEGER NOT NULL DEFAULT 0
             )",
+            "CREATE TABLE blox_remote_template_states (
+                template_id INTEGER PRIMARY KEY,
+                installed_version TEXT NOT NULL DEFAULT '',
+                backup_version TEXT NOT NULL DEFAULT '',
+                backup_draft TEXT,
+                backup_requirements TEXT,
+                backup_metadata TEXT,
+                backup_created_at INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            )",
         ];
     }
 
@@ -103,11 +113,57 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $this->assertSame('pricing-3col', $row['source_ref']);
         $this->assertStringContainsString('Pricing plans', (string) $row['draft_data']);
         $this->assertSame(9, (int) $row['admin_id']);
+        $state = db()->fetchOne('SELECT * FROM blox_remote_template_states WHERE template_id = ?', [$first['id']]);
+        $this->assertSame('1.0.0', $state['installed_version']);
+        $this->assertStringContainsString('Pricing plans', (string) $state['backup_draft']);
         $this->assertNotEmpty($canonical);
         $this->assertSame('pricing-3col|1.0.0|' . $hash, $canonical[0]);
         $this->assertNotEmpty($catalogUrls);
         $this->assertStringContainsString('key=service-key-123', $catalogUrls[0]);
         $this->assertStringContainsString('domain=licensed.example.test', $catalogUrls[0]);
+    }
+
+    public function testUpdateProtectsDraftAndRollbackNeverChangesPublishedDocument(): void
+    {
+        $v1Package = $this->package($this->templateJson('Original draft'));
+        $v1Item = $this->catalogItem([
+            'version' => '1.0.0',
+            'hash' => 'sha256:' . hash('sha256', $v1Package),
+            'download_url' => 'https://update.yikaicms.com/packages/templates/pricing-3col-v1.0.0.zip',
+        ]);
+        $v1Installer = new BloxRemoteTemplateInstaller($this->provider($v1Package, $v1Item, true));
+        $installed = $v1Installer->install('pricing-3col', 9);
+        bloxTemplateModel()->publishDraft($installed['id']);
+
+        $v2Package = $this->package($this->templateJson('Updated remote draft'));
+        $v2Item = $this->catalogItem([
+            'version' => '1.1.0',
+            'hash' => 'sha256:' . hash('sha256', $v2Package),
+            'download_url' => 'https://update.yikaicms.com/packages/templates/pricing-3col-v1.1.0.zip',
+        ]);
+        $v2Installer = new BloxRemoteTemplateInstaller($this->provider($v2Package, $v2Item, true));
+        $updated = $v2Installer->install('pricing-3col', 9);
+
+        $this->assertTrue($updated['updated']);
+        $this->assertTrue($updated['backup_created']);
+        $row = db()->fetchOne('SELECT * FROM blox_templates WHERE id = ?', [$installed['id']]);
+        $this->assertStringContainsString('Updated remote draft', (string) $row['draft_data']);
+        $this->assertStringContainsString('Original draft', (string) $row['published_data']);
+        $this->assertStringNotContainsString('Updated remote draft', (string) $row['published_data']);
+        $state = db()->fetchOne('SELECT * FROM blox_remote_template_states WHERE template_id = ?', [$installed['id']]);
+        $this->assertSame('1.1.0', $state['installed_version']);
+        $this->assertSame('1.0.0', $state['backup_version']);
+        $this->assertStringContainsString('Original draft', (string) $state['backup_draft']);
+
+        $rolledBack = $v2Installer->rollback($installed['id']);
+        $this->assertSame('1.0.0', $rolledBack['version']);
+        $row = db()->fetchOne('SELECT * FROM blox_templates WHERE id = ?', [$installed['id']]);
+        $this->assertStringContainsString('Original draft', (string) $row['draft_data']);
+        $this->assertStringContainsString('Original draft', (string) $row['published_data']);
+        $state = db()->fetchOne('SELECT * FROM blox_remote_template_states WHERE template_id = ?', [$installed['id']]);
+        $this->assertSame('1.0.0', $state['installed_version']);
+        $this->assertNull($state['backup_draft']);
+        $this->assertSame(0, (int) $state['backup_created_at']);
     }
 
     public function testExpiredServiceLocksBrowseAndPreventsPackageDownloadOrPersistence(): void
@@ -218,7 +274,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
-    private function templateJson(): string
+    private function templateJson(string $heading = 'Pricing plans'): string
     {
         return json_encode([
             'format' => BloxTemplateImporter::FORMAT,
@@ -234,7 +290,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
                     'span' => 12,
                     'elements' => [[
                         'type' => 'heading',
-                        'data' => ['text' => 'Pricing plans'],
+                        'data' => ['text' => $heading],
                     ]],
                 ]],
             ]],

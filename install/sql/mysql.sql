@@ -269,6 +269,19 @@ CREATE TABLE `yikai_blox_templates` (
   KEY `idx_blox_templates_source` (`source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+DROP TABLE IF EXISTS `yikai_blox_remote_template_states`;
+CREATE TABLE `yikai_blox_remote_template_states` (
+  `template_id` int(11) unsigned NOT NULL,
+  `installed_version` varchar(50) NOT NULL DEFAULT '',
+  `backup_version` varchar(50) NOT NULL DEFAULT '',
+  `backup_draft` longtext,
+  `backup_requirements` longtext,
+  `backup_metadata` longtext,
+  `backup_created_at` int(11) unsigned NOT NULL DEFAULT 0,
+  `updated_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`template_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 DROP TABLE IF EXISTS `yikai_blox_page_drafts`;
 CREATE TABLE `yikai_blox_page_drafts` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

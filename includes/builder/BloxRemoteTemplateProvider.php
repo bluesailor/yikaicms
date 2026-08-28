@@ -101,11 +101,19 @@ final class BloxRemoteTemplateProvider
     /**
      * 下载并验证官方模板包，返回包 JSON 原文（安装走 BloxTemplateImporter::importJson，
      * 与文件导入同一安全链）。复用 resolve 同一 hash+RSA 签名校验。
+     * @psalm-suppress PossiblyUnusedMethod 保留给插件侧只需要 JSON 的兼容入口。
      */
     public function fetchPackageJson(string $slug): string
     {
         [, $json] = $this->verifiedPackage($slug);
         return $json;
+    }
+
+    /** @return array{item:array<string,mixed>,json:string} */
+    public function fetchVerifiedPackage(string $slug): array
+    {
+        [$item, $json] = $this->verifiedPackage($slug);
+        return ['item' => $item, 'json' => $json];
     }
 
     /**
