@@ -172,7 +172,13 @@ async function restoreClean(page) {
 }
 
 async function dragElement(source, target, page) {
-  const sourceBox = await source.locator('[data-element-drag-handle]').boundingBox();
+  // 结构树是 overflow-y-auto 的滚动容器。目标若在可视区之外，boundingBox() 照样返回
+  // 布局坐标，但鼠标事件会落到裁剪区外的元素上（实测落在底部「添加区块」工具条），
+  // 拖放静默失效。先把两端滚进视野——先目标后源，保证 mousedown 时源可见。
+  const handle = source.locator('[data-element-drag-handle]');
+  await target.scrollIntoViewIfNeeded();
+  await handle.scrollIntoViewIfNeeded();
+  const sourceBox = await handle.boundingBox();
   const targetBox = await target.boundingBox();
   if (!sourceBox || !targetBox) throw new Error('Sortable drag target is not visible');
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
