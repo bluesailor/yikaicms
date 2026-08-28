@@ -41,11 +41,36 @@ SVG 本体自 v1.18.6 起打包为同目录下的 `icons.bin` + 索引，仅改�
 
 | 组件 | 版本 | 协议 | 项目地址 |
 |---|---|---|---|
-| overtrue/pinyin | 4.1.0 | MIT | https://github.com/overtrue/pinyin |
 | composer 运行时组件（autoload） | — | MIT | https://github.com/composer |
 
 开发依赖（PHPUnit、Psalm、PHP-Parser 等）不随发行包分发，见 `composer.json` 的
 `require-dev`。
+
+## 内置数据（includes/）
+
+### 拼音词库（includes/pinyin/）
+
+`includes/Pinyin.php` 的词库派生自 Rime 官方项目的简体拼音词典：
+
+- Project: `rime/rime-pinyin-simp`
+- Source: <https://github.com/rime/rime-pinyin-simp>
+- Commit: `0c6861ef7420ee780270ca6d993d18d4101049d0`
+- Original file: `pinyin_simp.dict.yaml`
+- Original SHA256: `E341598343A0F0F2035BB1AAFC34A7F3BB7887DEEECB3F60796262AAA2983E6B`
+- License: Apache License 2.0
+- 许可副本：`includes/pinyin/LICENSE.txt`，作者名单：`includes/pinyin/AUTHORS.txt`
+
+上游 README 载明该词典派生自 Android 开源项目的 PinyinIME（同为 Apache-2.0）。
+
+**本项目所做的修改**（Apache-2.0 §4(b) 要求声明）：由 `tools/build_pinyin_dict.php`
+按词频权重为每个汉字选定默认读音，去掉与逐字默认读音一致的冗余词条，并把单字表
+改写为「音节 → 汉字」反向索引以压缩体积。产物为 `includes/pinyin/chars.php` 与
+`includes/pinyin/phrases.php`；`includes/pinyin/overrides.php` 是本项目自行编写的
+人工修正表，不属于上游数据。
+
+> 选型说明：本词库替换了此前的 `overtrue/pinyin`。该包代码为 MIT，但其词库
+> 载明派生自 **CC-CEDICT（CC BY-SA，copyleft）**，与下方「维护约定」第 2 条
+> 冲突；改用 Apache-2.0 来源后不再有该问题。
 
 ## 维护约定
 
