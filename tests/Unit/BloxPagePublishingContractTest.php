@@ -107,7 +107,13 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$areaContext, \$isHomeLayout ? 'home' : '')", $canvas);
         $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
         $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
-        $this->assertStringContainsString('$body = $headerBody . $pageBody . $footerBody;', $canvas);
+        // 空文档不挂站点页头页脚：新建单页只显示空态引导卡。空态卡是 appendChild 到
+        // body 的，挂着 chrome 会让它落在页脚下方（看着像页脚的一部分）。
+        $this->assertStringContainsString(
+            '$body = $hasCanvasContent ? ($headerBody . $pageBody . $footerBody) : $pageBody;',
+            $canvas
+        );
+        $this->assertStringContainsString('$hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
