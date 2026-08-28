@@ -5721,4 +5721,7 @@ voltage|电压|220V',
     'blox_page_library_restore_done' => '已恢复到已发布内容',
     'blox_page_library_no_published' => '此页面还没有已发布的 Blox 内容',
     'blox_page_library_templates' => '整页模板',
+    'blox_cond_language' => '语言',
+    'blox_cond_all_languages' => '全部语言',
+    'blox_cond_unknown_language' => '语言条件无效：:lang',
 ];

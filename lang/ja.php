@@ -5794,4 +5794,7 @@ voltage|電圧|220V',
     'blox_page_library_restore_done' => '公開内容を復元しました',
     'blox_page_library_no_published' => 'このページには公開済みの Blox 内容がありません',
     'blox_page_library_templates' => 'ページテンプレート',
+    'blox_cond_language' => '言語',
+    'blox_cond_all_languages' => 'すべての言語',
+    'blox_cond_unknown_language' => '言語条件が無効です: :lang',
 ];

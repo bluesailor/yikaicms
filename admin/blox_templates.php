@@ -334,6 +334,7 @@ if (in_array($filterType, ['header', 'footer'], true)) {
     ));
 }
 $conditionEntities = BloxAreaConditions::entityOptions();
+$conditionLanguages = enabledLanguages();
 $areaConditionSummaries = [];
 $areaConflicts = [];
 $designDiagnostics = [];
@@ -364,20 +365,20 @@ $customAreaEnabled = [
 $areaContexts = [[
     'key' => 'home',
     'label' => __('blox_current_context_home'),
-    'context' => ['home' => true, 'channel_id' => 0, 'page_id' => 0],
+    'context' => ['home' => true, 'channel_id' => 0, 'page_id' => 0, 'lang' => siteLang()],
 ]];
 foreach ($conditionEntities['channel'] as $entity) {
     $areaContexts[] = [
         'key' => 'channel:' . (int) $entity['id'],
         'label' => __('blox_cond_channel') . ' · ' . (string) $entity['label'],
-        'context' => ['home' => false, 'channel_id' => (int) $entity['id'], 'page_id' => 0],
+        'context' => ['home' => false, 'channel_id' => (int) $entity['id'], 'page_id' => 0, 'lang' => (string) ($entity['lang'] ?: siteLang())],
     ];
 }
 foreach ($conditionEntities['page'] as $entity) {
     $areaContexts[] = [
         'key' => 'page:' . (int) $entity['id'],
         'label' => __('blox_cond_page') . ' · ' . (string) $entity['label'],
-        'context' => ['home' => false, 'channel_id' => 0, 'page_id' => (int) $entity['id']],
+        'context' => ['home' => false, 'channel_id' => 0, 'page_id' => (int) $entity['id'], 'lang' => (string) ($entity['lang'] ?: siteLang())],
     ];
 }
 $areaContextKey = trim((string) get('context', 'home'));
@@ -517,22 +518,24 @@ $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <script>
-function condForm(initial, entities) {
+function condForm(initial, entities, languages) {
     var normalized = Array.isArray(initial) ? initial : [];
     return {
         rows: normalized.map(function (row) {
             return {
                 main: row && typeof row.main === "string" ? row.main : "any",
                 ids: row && Array.isArray(row.ids) ? row.ids.map(Number).filter(function (id) { return id > 0; }) : [],
+                language: row && Array.isArray(row.langs) && typeof row.langs[0] === "string" ? row.langs[0] : "",
                 exclude: !!(row && row.exclude),
                 _query: "",
                 _open: false
             };
         }),
         entities: entities || { channel: [], page: [] },
+        languages: languages || {},
         payload: function () {
             return JSON.stringify(this.rows.map(function (row) {
-                return { main: row.main, ids: row.ids, exclude: row.exclude };
+                return { main: row.main, ids: row.ids, langs: row.language ? [row.language] : [], exclude: row.exclude };
             }));
         },
         choices: function (row) {
@@ -1046,7 +1049,7 @@ function confirmAreaPublish(form) {
                         <tr x-show="condOpen === <?php echo (int) $template['id']; ?>" x-cloak>
                             <td colspan="6" class="px-5 py-4 bg-indigo-50/50">
                                 <form method="post" data-testid="blox-condition-form"
-                                      x-data='condForm(<?php echo json_encode(BloxAreaResolver::parse($template['conditions'] ?? null), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo json_encode($conditionEntities, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>
+                                      x-data='condForm(<?php echo json_encode(BloxAreaResolver::parse($template['conditions'] ?? null), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo json_encode($conditionEntities, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo json_encode($conditionLanguages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="save_conditions">
                                     <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">
@@ -1094,6 +1097,16 @@ function confirmAreaPublish(form) {
                                                     </div>
                                                 </div>
                                             </div>
+                                            <label class="inline-flex h-9 items-center gap-1.5 border border-gray-300 bg-white px-2 text-xs text-gray-600">
+                                                <span class="sr-only"><?php echo e(__('blox_cond_language')); ?></span>
+                                                <i class="ti ti-language text-sm text-gray-400"></i>
+                                                <select x-model="row.language" class="border-0 bg-transparent pr-6 text-xs outline-none" data-testid="blox-condition-language">
+                                                    <option value=""><?php echo e(__('blox_cond_all_languages')); ?></option>
+                                                    <?php foreach ($conditionLanguages as $languageCode => $languageLabel): ?>
+                                                    <option value="<?php echo e($languageCode); ?>"><?php echo e($languageLabel); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </label>
                                             <label class="inline-flex h-9 items-center gap-1 text-xs text-gray-600">
                                                 <input type="checkbox" x-model="row.exclude"><?php echo e(__('blox_cond_exclude')); ?>
                                             </label>
@@ -1102,7 +1115,7 @@ function confirmAreaPublish(form) {
                                         </div>
                                     </template>
                                     <div class="flex flex-wrap items-center gap-3">
-                                        <button type="button" @click="rows.push({main:'any', ids:[], exclude:false, _query:'', _open:false})"
+                                        <button type="button" @click="rows.push({main:'any', ids:[], language:'', exclude:false, _query:'', _open:false})"
                                                 data-testid="blox-condition-add"
                                                 class="border border-indigo-200 px-2 py-1 text-xs text-indigo-600 hover:text-indigo-800">
                                             + <?php echo e(__('blox_cond_add')); ?>

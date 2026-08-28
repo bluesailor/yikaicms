@@ -75,6 +75,20 @@ final class BloxAreaResolverTest extends TestCase
         $this->assertSame(9, BloxAreaResolver::resolve($tied, self::HOME)['id']);
     }
 
+    public function testLanguageCanLimitAndRefineAnyExistingScope(): void
+    {
+        $englishHome = BloxAreaResolver::parse('[{"main":"home","langs":["en"]}]');
+        $genericHome = BloxAreaResolver::parse('[{"main":"home"}]');
+
+        $this->assertSame(10, BloxAreaResolver::score($englishHome, self::HOME + ['lang' => 'en']));
+        $this->assertNull(BloxAreaResolver::score($englishHome, self::HOME + ['lang' => 'ja']));
+        $winner = BloxAreaResolver::resolve([
+            ['id' => 20, 'conditions' => $genericHome],
+            ['id' => 10, 'conditions' => $englishHome],
+        ], self::HOME + ['lang' => 'en']);
+        $this->assertSame(10, $winner['id'], 'language-specific condition should beat a newer generic condition');
+    }
+
     public function testResolveReturnsNullWhenNothingApplies(): void
     {
         $templates = [
@@ -115,6 +129,7 @@ final class BloxAreaResolverTest extends TestCase
         // 坏条目丢弃、好条目保留；ids 去重且滤非正数
         $mixed = BloxAreaResolver::parse('[{"main":"bogus"},{"main":"channel","ids":[5,"5",-1,0]}]');
         $this->assertCount(1, $mixed);
-        $this->assertSame(['main' => 'channel', 'ids' => [5], 'exclude' => false], $mixed[0]);
+        $this->assertSame(['main' => 'channel', 'ids' => [5], 'langs' => [], 'exclude' => false], $mixed[0]);
+        $this->assertSame([], BloxAreaResolver::parse('[{"main":"any","langs":["bad_language"]}]'));
     }
 }

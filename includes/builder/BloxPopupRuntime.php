@@ -68,7 +68,7 @@ final class BloxPopupRuntime
         }
     }
 
-    /** @return array{home:bool,channel_id:int,page_id:int} */
+    /** @return array{home:bool,channel_id:int,page_id:int,lang:string} */
     private static function context(): array
     {
         $script = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
@@ -76,6 +76,7 @@ final class BloxPopupRuntime
             'home' => $script === 'index.php',
             'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),
             'page_id' => (int) ($GLOBALS['ykBloxPageId'] ?? 0),
+            'lang' => siteLang(),
         ];
     }
 }

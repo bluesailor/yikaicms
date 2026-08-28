@@ -3,7 +3,7 @@
  * Blox 头尾模板激活裁决：条件 → 特异性评分 → 取最大。
  *
  * 条件 JSON（blox_templates.conditions 列）：
- *   [ {"main":"any|home|channel|page", "ids":[int...], "exclude":bool}, ... ]
+ *   [ {"main":"any|home|channel|page", "ids":[int...], "langs":["zh-CN"...], "exclude":bool}, ... ]
  *
  * 评分（借鉴 Bricks 的特异性模型，用户永远不用手排优先级——更具体的赢）：
  *   0  无条件（兜底默认，仅头尾类型享受）
@@ -11,6 +11,7 @@
  *   8  栏目 channel（ids 空 = 所有栏目页）
  *   9  首页 home
  *   10 单页 page（ids 必填，空 ids 不命中）
+ *   +1 指定语言（在同一页面范围内优先于全部语言规则）
  *
  * exclude=true 的条件命中即整个模板出局（一票否决，先于正向评分）。
  * 平票裁决：id 大者（后创建者）赢，保证确定性。
@@ -26,12 +27,13 @@ final class BloxAreaResolver
     public const SCORE_CHANNEL = 8;
     public const SCORE_HOME = 9;
     public const SCORE_PAGE = 10;
+    public const SCORE_LANGUAGE_BONUS = 1;
 
     /**
      * 从候选模板行中裁决当前上下文的激活模板。
      *
      * @param array<int,array<string,mixed>> $templates 已发布的同类型模板行（含 id / conditions）
-     * @param array{home?:bool,channel_id?:int,page_id?:int} $context
+     * @param array{home?:bool,channel_id?:int,page_id?:int,lang?:string} $context
      * @return array<string,mixed>|null 胜出的模板行
      */
     public static function resolve(array $templates, array $context): ?array
@@ -66,8 +68,8 @@ final class BloxAreaResolver
     /**
      * 单模板评分。null = 不适用（被 exclude 否决，或有条件但无一命中）。
      *
-     * @param array<int,array{main:string,ids:array<int,int>,exclude:bool}> $conditions
-     * @param array{home?:bool,channel_id?:int,page_id?:int} $context
+     * @param array<int,array{main:string,ids:array<int,int>,langs:list<string>,exclude:bool}> $conditions
+     * @param array{home?:bool,channel_id?:int,page_id?:int,lang?:string} $context
      */
     public static function score(array $conditions, array $context): ?int
     {
@@ -78,9 +80,13 @@ final class BloxAreaResolver
         $isHome = !empty($context['home']);
         $channelId = (int) ($context['channel_id'] ?? 0);
         $pageId = (int) ($context['page_id'] ?? 0);
+        $language = self::language((string) ($context['lang'] ?? ''));
 
         $max = null;
         foreach ($conditions as $condition) {
+            if ($condition['langs'] !== [] && ($language === '' || !in_array($language, $condition['langs'], true))) {
+                continue;
+            }
             $hit = match ($condition['main']) {
                 'any' => self::SCORE_ANY,
                 'home' => $isHome ? self::SCORE_HOME : null,
@@ -97,6 +103,9 @@ final class BloxAreaResolver
             }
             if ($condition['exclude']) {
                 return null; // 排除条件命中：一票否决
+            }
+            if ($condition['langs'] !== []) {
+                $hit += self::SCORE_LANGUAGE_BONUS;
             }
             if ($max === null || $hit > $max) {
                 $max = $hit;
@@ -118,7 +127,7 @@ final class BloxAreaResolver
     /**
      * 解析并净化 conditions JSON。坏数据静默丢弃（单条粒度），不让一条脏数据拖垮整站头尾。
      *
-     * @return array<int,array{main:string,ids:array<int,int>,exclude:bool}>
+     * @return array<int,array{main:string,ids:array<int,int>,langs:list<string>,exclude:bool}>
      */
     public static function parse(mixed $raw): array
     {
@@ -149,8 +158,33 @@ final class BloxAreaResolver
                     $ids[] = $id;
                 }
             }
-            $out[] = ['main' => $main, 'ids' => $ids, 'exclude' => !empty($item['exclude'])];
+            $langs = [];
+            $rawLangs = $item['langs'] ?? [];
+            if (!is_array($rawLangs)) {
+                continue;
+            }
+            $invalidLanguage = false;
+            foreach ($rawLangs as $lang) {
+                $lang = self::language(is_string($lang) ? $lang : '');
+                if ($lang === '') {
+                    $invalidLanguage = true;
+                    break;
+                }
+                if (!in_array($lang, $langs, true)) {
+                    $langs[] = $lang;
+                }
+            }
+            if ($invalidLanguage) {
+                continue;
+            }
+            $out[] = ['main' => $main, 'ids' => $ids, 'langs' => $langs, 'exclude' => !empty($item['exclude'])];
         }
         return $out;
+    }
+
+    private static function language(string $value): string
+    {
+        $value = trim($value);
+        return preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/', $value) === 1 ? $value : '';
     }
 }

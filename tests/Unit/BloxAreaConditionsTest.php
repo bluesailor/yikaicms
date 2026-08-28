@@ -18,12 +18,13 @@ final class BloxAreaConditionsTest extends TestCase
             'page' => [['id' => 15, 'label' => '联系我们', 'search' => '联系 contact 15']],
         ];
         $conditions = [
-            ['main' => 'channel', 'ids' => [7], 'exclude' => false],
-            ['main' => 'page', 'ids' => [15], 'exclude' => true],
+            ['main' => 'channel', 'ids' => [7], 'langs' => ['en'], 'exclude' => false],
+            ['main' => 'page', 'ids' => [15], 'langs' => [], 'exclude' => true],
         ];
 
         self::assertStringContainsString('产品中心', BloxAreaConditions::summary($conditions, $entities));
         self::assertStringContainsString('联系我们', BloxAreaConditions::summary($conditions, $entities));
+        self::assertStringContainsString('[en]', BloxAreaConditions::summary($conditions, $entities));
         self::assertSame('blox_cond_summary_default', BloxAreaConditions::summary(null, $entities));
         self::assertSame('blox_cond_summary_invalid', BloxAreaConditions::summary('{bad', $entities));
     }
@@ -80,13 +81,13 @@ final class BloxAreaConditionsTest extends TestCase
     {
         self::assertSame([], BloxAreaConditions::parseForSave('[]'));
         self::assertSame(
-            [['main' => 'channel', 'ids' => [7], 'exclude' => false]],
+            [['main' => 'channel', 'ids' => [7], 'langs' => [], 'exclude' => false]],
             BloxAreaConditions::parseForSave('[{"main":"channel","ids":[7,7],"exclude":false}]')
         );
         self::assertSame(
-            [['main' => 'page', 'ids' => [15], 'exclude' => false]],
+            [['main' => 'page', 'ids' => [15], 'langs' => ['en'], 'exclude' => false]],
             BloxAreaConditions::parseForSave(
-                '[{"main":"page","ids":[15],"exclude":false}]',
+                '[{"main":"page","ids":[15],"langs":["en"],"exclude":false}]',
                 ['channel' => [], 'page' => [['id' => 15, 'label' => 'Contact']]]
             )
         );
@@ -105,5 +106,21 @@ final class BloxAreaConditionsTest extends TestCase
             '[{"main":"page","ids":[99],"exclude":false}]',
             ['channel' => [], 'page' => [['id' => 15, 'label' => 'Contact']]]
         );
+    }
+
+    public function testDifferentLanguageAssignmentsDoNotConflict(): void
+    {
+        $english = [
+            'id' => 10,
+            'type' => 'header',
+            'conditions' => [['main' => 'any', 'ids' => [], 'langs' => ['en'], 'exclude' => false]],
+        ];
+        $japanese = [
+            'id' => 11,
+            'name' => 'Japanese header',
+            'conditions' => [['main' => 'any', 'ids' => [], 'langs' => ['ja'], 'exclude' => false]],
+        ];
+
+        self::assertSame([], BloxAreaConditions::conflicts($english, [$japanese]));
     }
 }

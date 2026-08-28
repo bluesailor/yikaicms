@@ -1551,4 +1551,18 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-pick-section-hint"', $workspace);
         $this->assertStringContainsString('aria-live="polite"', $overlays);
     }
+
+    public function testAreaRulesExposeLanguageScopeAndPersistIt(): void
+    {
+        $templates = $this->source('admin/blox_templates.php');
+
+        foreach ([
+            'data-testid="blox-condition-language"',
+            "langs: row.language ? [row.language] : []",
+            'condForm(initial, entities, languages)',
+            'language: row && Array.isArray(row.langs) && typeof row.langs[0] === "string" ? row.langs[0] : ""',
+        ] as $token) {
+            $this->assertStringContainsString($token, $templates, "area language condition token {$token} missing");
+        }
+    }
 }
