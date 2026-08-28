@@ -5665,4 +5665,6 @@ voltage|Voltage|220V',
     'blox_assignment_matrix_language' => 'Language',
     'blox_assignment_matrix_action' => 'View details',
     'blox_assignment_matrix_disabled' => 'Disabled, using theme',
+    'blox_responsive_summary_overrides' => ':count custom setting(s) on this item',
+    'blox_responsive_summary_inherit' => 'This item inherits the larger breakpoint',
 ];

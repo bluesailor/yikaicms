@@ -1433,6 +1433,8 @@ $canManageBloxDesign = hasPermission('*');
                 'inheritsDesktop' => __('blox_responsive_inherits_desktop'),
                 'inheritsTablet' => __('blox_responsive_inherits_tablet'),
                 'resetInherit' => __('blox_responsive_reset_inherit'),
+                'summaryOverrides' => __('blox_responsive_summary_overrides'),
+                'summaryInherit' => __('blox_responsive_summary_inherit'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             padOptions: [
                 { k: "none", label: <?= $jt('blox_spacing_none') ?> }, { k: "sm", label: <?= $jt('blox_spacing_sm') ?> }, { k: "md", label: <?= $jt('blox_spacing_md') ?> },
@@ -3875,6 +3877,36 @@ $canManageBloxDesign = hasPermission('*');
                 return state.source === "t"
                     ? this.responsiveText.inheritsTablet
                     : this.responsiveText.inheritsDesktop;
+            },
+
+            selectedResponsiveOverrideCount(device) {
+                if (device === "desktop") return 0;
+                if (this.selEl) {
+                    var self = this;
+                    return (this.elSchema(this.selEl.type).controls || []).filter(function (control) {
+                        return control.responsive && self.controlResponsiveState(control, device).overridden;
+                    }).length;
+                }
+                if (this.sel && this.selectedEi < 0 && this.selLayer === "sec") {
+                    return [
+                        this.sectionResponsiveState("padding", "md", device),
+                        this.sectionResponsiveState("gap", "lg", device),
+                    ].filter(function (state) { return state.overridden; }).length;
+                }
+                return 0;
+            },
+
+            responsiveDeviceTitle(device) {
+                var item = this.devices.find(function (candidate) { return candidate.key === device; });
+                var label = item ? item.label : device;
+                if (device === "desktop" || (!this.selEl && !(this.sel && this.selectedEi < 0 && this.selLayer === "sec"))) {
+                    return label;
+                }
+                var count = this.selectedResponsiveOverrideCount(device);
+                var status = count > 0
+                    ? this.responsiveText.summaryOverrides.replace(":count", count)
+                    : this.responsiveText.summaryInherit;
+                return label + " · " + status;
             },
 
             controlResponsiveState(ctrl, device) {

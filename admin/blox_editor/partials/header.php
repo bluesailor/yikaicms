@@ -77,10 +77,15 @@ declare(strict_types=1);
         <!-- 设备切换 -->
         <div class="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
             <template x-for="d in devices" :key="d.key">
-                <button type="button" @click="previewDevice = d.key" :title="d.label" :aria-label="d.label" :data-testid="'blox-device-' + d.key"
-                        class="w-8 h-7 rounded-md inline-flex items-center justify-center transition"
+                <button type="button" @click="previewDevice = d.key" :title="responsiveDeviceTitle(d.key)" :aria-label="responsiveDeviceTitle(d.key)"
+                        :data-testid="'blox-device-' + d.key"
+                        :data-responsive-state="selectedResponsiveOverrideCount(d.key) > 0 ? 'override' : 'inherit'"
+                        :data-responsive-overrides="selectedResponsiveOverrideCount(d.key)"
+                        class="relative w-8 h-7 rounded-md inline-flex items-center justify-center transition"
                         :class="previewDevice === d.key ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'">
                     <i class="ti text-base" :class="d.icon"></i>
+                    <span x-show="selectedResponsiveOverrideCount(d.key) > 0"
+                          class="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-amber-400 ring-1 ring-gray-800"></span>
                 </button>
             </template>
         </div>

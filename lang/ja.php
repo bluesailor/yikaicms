@@ -5806,4 +5806,6 @@ voltage|電圧|220V',
     'blox_assignment_matrix_language' => '言語',
     'blox_assignment_matrix_action' => '詳細を見る',
     'blox_assignment_matrix_disabled' => '無効、テーマを使用',
+    'blox_responsive_summary_overrides' => 'この項目に :count 件の個別設定があります',
+    'blox_responsive_summary_inherit' => 'この項目は上位サイズの設定を継承します',
 ];

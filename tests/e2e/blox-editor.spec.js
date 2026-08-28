@@ -109,6 +109,26 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(pageOverflow).toBe(0);
 
+  const deviceButtons = page.locator('[data-testid^="blox-device-"]');
+  await expect(deviceButtons).toHaveCount(3);
+  const deviceMetrics = await deviceButtons.evaluateAll((buttons) => buttons.map((button) => {
+    const rect = button.getBoundingClientRect();
+    return {
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      state: button.getAttribute('data-responsive-state'),
+      overrides: button.getAttribute('data-responsive-overrides'),
+      title: button.getAttribute('title'),
+    };
+  }));
+  expect(deviceMetrics.every((item) => item.left >= 0 && item.right <= page.viewportSize().width)).toBe(true);
+  expect(deviceMetrics.every((item) => item.top >= 0 && item.bottom <= page.viewportSize().height)).toBe(true);
+  expect(deviceMetrics.every((item) => ['inherit', 'override'].includes(item.state))).toBe(true);
+  expect(deviceMetrics.every((item) => /^\d+$/.test(item.overrides || ''))).toBe(true);
+  expect(deviceMetrics.every((item) => (item.title || '').trim() !== '')).toBe(true);
+
   const contentFrame = await frame(page);
   const frameOverflow = await contentFrame.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(frameOverflow).toBe(0);
@@ -686,8 +706,11 @@ test('heading visual size overrides one device without changing its level @ci', 
   const { sectionIndex } = await addTemporaryHeading(page);
   await page.getByTestId('blox-style-tab').click();
   const tabletDevice = page.getByTestId('blox-control-visual_size-device-tablet');
+  const globalTabletDevice = page.getByTestId('blox-device-tablet');
   const sizeControl = page.getByTestId('blox-control-visual_size');
   const inheritButton = page.getByTestId('blox-control-visual_size-inherit');
+  await expect(globalTabletDevice).toHaveAttribute('data-responsive-state', 'inherit');
+  await expect(globalTabletDevice).toHaveAttribute('data-responsive-overrides', '0');
   await tabletDevice.click();
   await expect(inheritButton).toBeHidden();
 
@@ -702,6 +725,8 @@ test('heading visual size overrides one device without changing its level @ci', 
   const data = document.sections[sectionIndex].columns[0].elements[0].data;
   expect(data.visual_size).toEqual({ d: 'auto', t: 'xl' });
   await expect(tabletDevice).toHaveAttribute('data-responsive-state', 'override');
+  await expect(globalTabletDevice).toHaveAttribute('data-responsive-state', 'override');
+  await expect(globalTabletDevice).toHaveAttribute('data-responsive-overrides', '1');
   await expect(inheritButton).toBeVisible();
 
   const contentFrame = await frame(page);
@@ -710,6 +735,8 @@ test('heading visual size overrides one device without changing its level @ci', 
   await expect(heading).toHaveClass(/lg:text-2xl/);
   await inheritButton.click();
   await expect(tabletDevice).toHaveAttribute('data-responsive-state', 'inherit');
+  await expect(globalTabletDevice).toHaveAttribute('data-responsive-state', 'inherit');
+  await expect(globalTabletDevice).toHaveAttribute('data-responsive-overrides', '0');
   await restoreClean(page);
 });
 
