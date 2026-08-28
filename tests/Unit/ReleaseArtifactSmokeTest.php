@@ -35,11 +35,11 @@ final class ReleaseArtifactSmokeTest extends TestCase
     public function testMissingPinyinRuntimeFailsArtifactSmoke(): void
     {
         $root = $this->tempDir . '/yikaicms-v9.9.9';
-        $this->removeTree($root . '/vendor/overtrue/pinyin');
+        unlink($root . '/includes/pinyin/chars.php');
 
         $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
         self::assertNotSame([], $errors);
-        self::assertStringContainsString('vendor/overtrue/pinyin/src/Pinyin.php', implode("\n", $errors));
+        self::assertStringContainsString('includes/pinyin/chars.php', implode("\n", $errors));
         self::assertStringContainsString('Chinese slug probe returned an unreadable value', implode("\n", $errors));
     }
 
@@ -55,6 +55,12 @@ final class ReleaseArtifactSmokeTest extends TestCase
         file_put_contents($root . '/tests/leak.php', '<?php');
         $this->zipDirectory($root, $zipPath, 'yikaicms-v9.9.9');
         self::assertStringContainsString('Forbidden release path: tests', implode("\n", $smoke->inspect($zipPath)));
+
+        $this->removeTree($root . '/tests');
+        mkdir($root . '/vendor/overtrue', 0700, true);
+        file_put_contents($root . '/vendor/overtrue/stale.php', '<?php');
+        $this->zipDirectory($root, $zipPath, 'yikaicms-v9.9.9');
+        self::assertStringContainsString('Forbidden release path: vendor', implode("\n", $smoke->inspect($zipPath)));
     }
 
     public function testBuildAndCiRunTheZipLevelArtifactSmoke(): void
@@ -63,7 +69,9 @@ final class ReleaseArtifactSmokeTest extends TestCase
         $workflow = (string) file_get_contents(ROOT_PATH . '/.github/workflows/ci.yml');
 
         self::assertStringContainsString('"config/release-runtime.php"', $build);
-        self::assertStringContainsString('"vendor/overtrue/pinyin/src/Pinyin.php"', $build);
+        self::assertStringContainsString('"includes/Pinyin.php"', $build);
+        self::assertStringContainsString('"includes/pinyin/chars.php"', $build);
+        self::assertStringNotContainsString('cp -r "$ROOT_DIR/vendor"', $build);
         self::assertStringContainsString('php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"', $build);
         self::assertStringContainsString('php tools/release-artifact-smoke.php "$ZIP"', $workflow);
     }

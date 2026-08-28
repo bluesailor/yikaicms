@@ -37,14 +37,10 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 许可原文随**插件包**分发，安装后见 `plugins/logo-maker/assets/icon-library/licenses/`。
 SVG 本体自 v1.18.6 起打包为同目录下的 `icons.bin` + 索引，仅改变存放形式，不改变授权。
 
-## PHP 依赖（Composer，随包只保留生产依赖）
+## PHP 依赖
 
-| 组件 | 版本 | 协议 | 项目地址 |
-|---|---|---|---|
-| composer 运行时组件（autoload） | — | MIT | https://github.com/composer |
-
-开发依赖（PHPUnit、Psalm、PHP-Parser 等）不随发行包分发，见 `composer.json` 的
-`require-dev`。
+核心发行包没有根目录 Composer 运行依赖，也不分发 `vendor/`。Composer、PHPUnit、
+Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `require-dev`。
 
 ## 内置数据（includes/）
 
