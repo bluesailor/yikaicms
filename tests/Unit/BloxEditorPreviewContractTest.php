@@ -658,6 +658,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('setBoxOverall(kind, ev)', $editor);
         $this->assertStringContainsString(':value="controlValue(ctrl)"', $editor);
         $this->assertStringContainsString(':selected="controlValue(ctrl) === val"', $editor);
+        $this->assertStringContainsString('ctrl.key === "block_type"', $editor);
+        $this->assertStringContainsString('options[current] = String((this.selEl.data || {}).label || current);', $editor);
         $this->assertStringContainsString('controlValue(ctrl) {', $editor);
         $this->assertStringContainsString('delete this.selEl.data[key]', $editor);
         $this->assertStringContainsString("setBoxSide(kind, side, ev)", $editor);

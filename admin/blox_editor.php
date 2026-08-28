@@ -3666,8 +3666,17 @@ $canManageBloxDesign = hasPermission('*');
 
             controlOptions(ctrl) {
                 var groups = ctrl.source_options || null;
-                if (!groups) return ctrl.options || {};
-                return groups[this.dynamicSourceKind()] || ctrl.options || {};
+                var options = groups
+                    ? (groups[this.dynamicSourceKind()] || ctrl.options || {})
+                    : (ctrl.options || {});
+                if (this.selEl && this.selEl.type === "home-block" && ctrl.key === "block_type") {
+                    var current = String((this.selEl.data || {}).block_type || "");
+                    if (current && !Object.prototype.hasOwnProperty.call(options, current)) {
+                        options = Object.assign({}, options);
+                        options[current] = String((this.selEl.data || {}).label || current);
+                    }
+                }
+                return options;
             },
 
             normalizeSourceControls() {
