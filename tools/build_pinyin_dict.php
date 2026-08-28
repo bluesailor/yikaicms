@@ -10,10 +10,17 @@
  */
 declare(strict_types=1);
 
+const PINYIN_SOURCE_SHA256 = 'E341598343A0F0F2035BB1AAFC34A7F3BB7887DEEECB3F60796262AAA2983E6B';
+
 $src = $argv[1] ?? '';
 $maxLen = (int) ($argv[2] ?? 4);
 if ($src === '' || !is_file($src)) {
     fwrite(STDERR, "用法: php tools/build_pinyin_dict.php <pinyin_simp.dict.yaml> [max_phrase_len]\n");
+    exit(1);
+}
+$sourceHash = strtoupper((string) hash_file('sha256', $src));
+if (!hash_equals(PINYIN_SOURCE_SHA256, $sourceHash)) {
+    fwrite(STDERR, "词库 SHA256 不匹配，拒绝生成。\n期望: " . PINYIN_SOURCE_SHA256 . "\n实际: {$sourceHash}\n");
     exit(1);
 }
 

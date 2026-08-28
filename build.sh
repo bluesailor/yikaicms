@@ -80,10 +80,10 @@ rm -rf "$TMP_DIR"
 mkdir -p "$PKG_DIR"
 mkdir -p "$RELEASE_DIR"
 
-# ---- 复制文件（当前工作树源码 + vendor 生产依赖）----
+# ---- 复制文件（当前工作树源码）----
 # tracked + 未忽略的新文件构成当前源码；再过滤已从工作树移走但索引尚未提交删除的路径。
 # 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等，不会把市场源码带进运行包。
-echo "[1/5] 复制项目文件（当前工作树源码 + vendor 生产依赖）..."
+echo "[1/5] 复制项目文件（当前工作树源码）..."
 if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
     FILE_LIST="$TMP_DIR/worktree-files.list"
     : > "$FILE_LIST"
@@ -96,9 +96,6 @@ else
     cp -r "$ROOT_DIR"/* "$PKG_DIR/" 2>/dev/null || true
     cp "$ROOT_DIR"/.htaccess "$PKG_DIR/" 2>/dev/null || true
 fi
-# vendor 被 gitignore 但运行时需要（overtrue/pinyin 生成中文 slug），单独复制，随后裁剪为生产依赖
-cp -r "$ROOT_DIR/vendor" "$PKG_DIR/" 2>/dev/null || true
-
 # 基础单页编辑器与前台运行时属于免费能力，但源码可由私库在发版工作树中注入，
 # 未必出现在公开仓库的 git ls-files 结果里。按策略显式复制，缺任一项直接中止。
 for scope in core runtime; do
@@ -184,15 +181,13 @@ EXCLUDES=(
     # 测试 / 工具脚本（dev only）
     "tests"
     "tools"
+    "vendor"
 
     # 试验/中间产物目录：不是运行时目录（代码零引用）。v1.18.5 的包里带进了 640KB
     # PDF 试验残留——因为它们既未被 git 跟踪、又未被 .gitignore 忽略，恰好落进
     # `ls-files --others --exclude-standard` 的采集范围。.gitignore 里也有一份。
     "tmp"
     "output"
-
-    # 注：vendor 不整体排除 —— 运行时需 overtrue/pinyin（生成中文 slug）。
-    #     dev 依赖（psalm/phpunit 等）在下方循环后单独剔除，只保留生产部分。
 
     # CSS 源码（编译产物 tailwind.css 已包含）
     "assets/css/src"
@@ -259,17 +254,6 @@ for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
 
-# vendor：只保留生产依赖（autoload + composer 元数据 + overtrue/pinyin），剔除 psalm/phpunit 等 dev 包
-if [ -d "$PKG_DIR/vendor" ]; then
-    find "$PKG_DIR/vendor" -mindepth 1 -maxdepth 1 \
-        ! -name 'autoload.php' ! -name 'composer' ! -name 'overtrue' \
-        -exec rm -rf {} +
-    # composer/ 下还嵌着 dev 依赖（pcre / semver / xdebug-handler 是 psalm 拉进来的），
-    # 只留 autoload 运行时必需的类与元数据文件。
-    find "$PKG_DIR/vendor/composer" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
-    echo "  ✓ vendor 已精简为生产依赖（overtrue/pinyin）"
-fi
-
 # 清空 uploads 和 storage 内容，但保留目录
 rm -rf "$PKG_DIR/uploads/"*
 rm -rf "$PKG_DIR/storage/"*
@@ -333,9 +317,12 @@ MUST_EXIST=(
     "deploy/aliyun-nginx-minimal.txt"
     "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
-    "vendor/overtrue/pinyin/src/Pinyin.php"
-    "vendor/overtrue/pinyin/data/words_0"
-    "vendor/overtrue/pinyin/data/words_5"
+    "includes/Pinyin.php"
+    "includes/pinyin/chars.php"
+    "includes/pinyin/phrases.php"
+    "includes/pinyin/overrides.php"
+    "includes/pinyin/LICENSE.txt"
+    "includes/pinyin/AUTHORS.txt"
     "uploads/.gitkeep"
     "storage/.gitkeep"
     ".htaccess"
@@ -410,7 +397,7 @@ SHA_FILE="$RELEASE_DIR/${PACKAGE_NAME}.sha256"
 sha256sum "$ZIP_FILE" > "$SHA_FILE"
 
 # Source checks are insufficient: validate the actual ZIP after all copy, prune and
-# compression steps. This catches missing ignored runtime dependencies such as pinyin.
+# compression steps. This catches missing runtime data such as the pinyin dictionaries.
 echo "[5a/5] 运行 Release Artifact Smoke Test..."
 VERIFY_ZIP_FILE="$ZIP_FILE"
 if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
@@ -424,12 +411,11 @@ php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"
 #         让在线升级下载几 KB、只覆盖几个文件 —— 根治共享主机上
 #         「解压 22MB + 逐个覆盖 800 文件」的代理超时（升级卡住）。
 #   结构：delta-<from>-to-<VERSION>.zip = .delta-manifest.json + payload/ 镜像树
-#   安全：两版本间若触碰 composer 依赖则跳过（vendor 不在 git，delta 带不了其变化），
-#         客户端只在「当前版本 == delta.from」时用，否则回退全量包。
+#   安全：客户端只在「当前版本 == delta.from」时使用，否则回退全量包。
 # ============================================================
 echo "[+] 生成增量升级包（delta）..."
 DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境变量覆盖）
-DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：不为更老版本生成增量（含 vendor 结构差异大，走全量更稳）
+DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：更老版本的历史目录差异大，统一走全量包更稳
 DELTA_EXTRA_FILE="${DELTA_EXTRA_FILE:-$ROOT_DIR/tools/delta-bases.txt}"
 DELTA_JSON_ITEMS=()                    # 收集 releases.json 用的片段
 # 同一目标版本可能残留灰度时代或中断构建的 delta。新构建开始前先清掉，最终允许
@@ -464,14 +450,6 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
             continue
         fi
         tag="v$base"
-        # 依赖变化：composer.* 动过意味着目标版的 vendor 与该基线不同。vendor 不在 git 里，
-        # 从 diff 推不出来——但它在包里只有 31 个文件 / 0.44MB，直接整份带上即可，
-        # 比「跳过该基线、强制走全量包」划算得多（老版本一律 composer 有变化，原逻辑等于
-        # 把所有老站排除在增量之外，而它们恰恰是最需要小包的那批）。
-        DELTA_WITH_VENDOR=0
-        if git -C "$ROOT_DIR" diff --name-only "$tag" -- composer.json composer.lock 2>/dev/null | grep -q .; then
-            DELTA_WITH_VENDOR=1
-        fi
         DELTA_DIR="$TMP_DIR/delta-$base"
         PAYLOAD="$DELTA_DIR/payload"
         mkdir -p "$PAYLOAD"
@@ -521,14 +499,6 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
                 ( cd "$PKG_DIR" && cp --parents "$path" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
             fi
         done < <(git -C "$ROOT_DIR" ls-files --others --exclude-standard -z)
-
-        # composer 变过：整份 vendor 随包（见上方 DELTA_WITH_VENDOR 处的说明）。
-        # vendor 不在 git，git diff 看不见它，只能显式复制。
-        if [ "$DELTA_WITH_VENDOR" = "1" ] && [ -d "$PKG_DIR/vendor" ]; then
-            ( cd "$PKG_DIR" && cp -a --parents vendor "$PAYLOAD/" ) \
-                && ADDED=$((ADDED + 1)) \
-                && echo "  · $base：composer 有变化，已随包携带 vendor/"
-        fi
 
         # Blox 基础编辑器可由私库注入并被公开仓库忽略，永远不会出现在 git diff 中。
         # 每个 delta 强制携带完整 core/runtime，避免升级成功后编辑器因缺文件白屏。
