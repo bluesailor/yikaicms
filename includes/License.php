@@ -178,10 +178,17 @@ function license_has_module(string $module): bool
 }
 
 /** 是否可下载/升级付费插件（到期即失去该资格，但已装功能不受影响） */
+/** @param array<string,mixed>|null $state */
+function license_service_active(?array $state = null): bool
+{
+    $state ??= license();
+    return !empty($state['valid']) && empty($state['expired']);
+}
+
 function license_can_update(): bool
 {
     $st = license();
-    return !empty($st['modules']) && empty($st['expired']);
+    return license_service_active($st) && !empty($st['modules']);
 }
 
 function license_plan(): string

@@ -166,24 +166,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'install_remote') {
-            // r16 官方模板库一键安装：下载+hash+RSA 验签（provider 安检段）→ importJson
-            // 完整校验落库——与文件导入同一安全链，官方包不是绕过安检的后门。
-            // 审计 r17-3：按 (source=remote, source_ref=slug) 幂等——重放/重试/并发
-            // 二次提交更新既有记录草稿而非新建行（无唯一约束迁移的轻量方案：入口
-            // 唯一（本分支）+ 先查后写；决策记录见 r17 轮次文档）。
             $slug = trim((string) post('slug', ''));
-            $provider = new BloxRemoteTemplateProvider();
-            $json = $provider->fetchPackageJson($slug);
-            $existing = bloxTemplateModel()->findWhere(['source' => 'remote', 'source_ref' => $slug]);
-            if ($existing) {
-                $prepared = BloxTemplateImporter::prepare($json);
-                bloxTemplateModel()->updateDraft((int) $existing['id'], $prepared['draft_json'], $prepared['requirements']);
-                bloxTemplateModel()->saveMetadata((int) $existing['id'], $prepared['metadata']);
-                adminLog('blox_template', 'install_remote', '重装官方模板 ' . $slug . ' → #' . $existing['id']);
-                redirect('/admin/blox_templates.php?imported=' . (int) $existing['id']);
-            }
-            $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0), 'remote', $slug);
-            adminLog('blox_template', 'install_remote', '安装官方模板 ' . $slug . ' → #' . $result['id']);
+            $result = (new BloxRemoteTemplateInstaller())->install($slug, (int) ($_SESSION['admin_id'] ?? 0));
+            adminLog(
+                'blox_template',
+                'install_remote',
+                (!empty($result['updated']) ? '重装' : '安装') . '官方模板 ' . $slug . ' → #' . $result['id']
+            );
             redirect('/admin/blox_templates.php?imported=' . $result['id']);
         }
 
