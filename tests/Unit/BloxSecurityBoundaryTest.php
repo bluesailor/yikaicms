@@ -175,6 +175,12 @@ final class BloxSecurityBoundaryTest extends TestCase
         self::assertBefore($templates, "str_starts_with(\$key, 'remote:')", 'BloxTemplateCatalog::resolve($key, $context)');
         self::assertGreaterThanOrEqual(4, substr_count($templates, 'requireBloxTemplateTypePermission('));
         self::assertStringContainsString("if (\$_SERVER['REQUEST_METHOD'] === 'POST') {\n    verifyCsrf();", $templateManager);
+        self::assertStringContainsString("if (\$action === 'rollback_remote')", $templateManager);
+        self::assertStringContainsString('data-testid="blox-official-update"', $templateManager);
+        self::assertStringContainsString('data-testid="blox-official-rollback"', $templateManager);
+        $remoteInstaller = $this->source('includes/builder/BloxRemoteTemplateInstaller.php');
+        self::assertBefore($remoteInstaller, '$stateModel->stageUpdate(', 'bloxTemplateModel()->updateDraft(');
+        self::assertStringContainsString('$existingDraft', $remoteInstaller);
         self::assertSame(2, substr_count($media, 'verifyCsrf();'));
         self::assertSame(1, substr_count($upload, 'verifyCsrf();'));
     }

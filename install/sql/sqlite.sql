@@ -213,6 +213,19 @@ CREATE INDEX "idx_blox_templates_type_yikai_blox_templates" ON "yikai_blox_templ
 CREATE INDEX "idx_blox_templates_source_yikai_blox_templates" ON "yikai_blox_templates" ("source");
 
 
+DROP TABLE IF EXISTS "yikai_blox_remote_template_states";
+CREATE TABLE "yikai_blox_remote_template_states" (
+  "template_id" INTEGER PRIMARY KEY,
+  "installed_version" TEXT NOT NULL DEFAULT '',
+  "backup_version" TEXT NOT NULL DEFAULT '',
+  "backup_draft" TEXT,
+  "backup_requirements" TEXT,
+  "backup_metadata" TEXT,
+  "backup_created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+
+
 DROP TABLE IF EXISTS "yikai_blox_page_drafts";
 CREATE TABLE "yikai_blox_page_drafts" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

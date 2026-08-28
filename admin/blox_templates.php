@@ -36,6 +36,12 @@ if (isset($_GET['status'])) {
 if (isset($_GET['metadata_saved'])) {
     $notice = __('blox_tpl_metadata_saved');
 }
+if (isset($_GET['remote_updated'])) {
+    $notice = __('blox_tpl_remote_updated_msg');
+}
+if (isset($_GET['remote_rolled_back'])) {
+    $notice = __('blox_tpl_remote_rolled_back_msg');
+}
 if (isset($_GET['area_enabled'])) {
     $noticeArea = (string) get('area', 'header') === 'footer' ? 'footer' : 'header';
     $noticeEnabled = (string) get('area_enabled', '0') === '1';
@@ -173,7 +179,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'install_remote',
                 (!empty($result['updated']) ? '重装' : '安装') . '官方模板 ' . $slug . ' → #' . $result['id']
             );
-            redirect('/admin/blox_templates.php?imported=' . $result['id']);
+            redirect('/admin/blox_templates.php?'
+                . (!empty($result['updated']) ? 'remote_updated=1' : 'imported=' . $result['id']));
+        }
+
+        if ($action === 'rollback_remote') {
+            $id = max(0, (int) post('id', 0));
+            $result = (new BloxRemoteTemplateInstaller())->rollback($id);
+            adminLog(
+                'blox_template',
+                'rollback_remote',
+                '恢复官方模板更新前草稿 #' . $result['id'] . ' v' . $result['version']
+            );
+            redirect('/admin/blox_templates.php?remote_rolled_back=1');
         }
 
         if ($action === 'install_builtin_area') {
@@ -219,7 +237,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!in_array((string) ($row['source'] ?? ''), ['user', 'import', 'remote'], true)) {
                 throw new RuntimeException(__('blox_tpl_provider_undeletable'));
             }
-            bloxTemplateModel()->deleteById($id);
+            db()->beginTransaction();
+            try {
+                if (db()->tableExists('blox_remote_template_states')) {
+                    bloxRemoteTemplateStateModel()->deleteById($id);
+                }
+                bloxTemplateModel()->deleteById($id);
+                db()->commit();
+            } catch (Throwable $e) {
+                db()->rollback();
+                throw $e;
+            }
             adminLog('blox_template', 'delete', '删除 Blox 模板草稿 #' . $id);
             redirect('/admin/blox_templates.php?deleted=1');
         }
@@ -315,6 +343,10 @@ foreach ($allStoredTemplates as $t) {
         $builtinInstalledRefs[(string) $t['source_ref']] = (int) $t['id'];
     }
 }
+$remoteStateReady = db()->tableExists('blox_remote_template_states');
+$remoteStates = $remoteStateReady
+    ? bloxRemoteTemplateStateModel()->mapForTemplates(array_values($installedRefs))
+    : [];
 $areaPresets = BloxAreaTemplatePresets::catalog();
 if (in_array($filterType, ['header', 'footer'], true)) {
     $areaPresets = array_values(array_filter(
@@ -938,27 +970,70 @@ function confirmAreaPublish(form) {
             <?php foreach ($officialTemplates as $ot):
                 $slug = str_replace('remote:', '', (string) $ot['key']);
                 $installedId = $installedRefs[$slug] ?? 0;
+                $remoteState = $installedId > 0 ? ($remoteStates[$installedId] ?? null) : null;
+                $installedVersion = is_array($remoteState) ? trim((string) ($remoteState['installed_version'] ?? '')) : '';
+                $remoteVersion = trim((string) ($ot['version'] ?? ''));
+                $versionCurrent = $installedVersion !== '' && $remoteVersion !== ''
+                    && hash_equals($installedVersion, $remoteVersion);
+                $updateAvailable = $installedId > 0 && $remoteVersion !== '' && !$versionCurrent;
+                $hasRemoteBackup = is_array($remoteState)
+                    && trim((string) ($remoteState['backup_draft'] ?? '')) !== '';
             ?>
-            <div class="rounded-xl border border-gray-200 p-4 flex flex-col gap-2">
+            <div class="rounded-lg border border-gray-200 p-4 flex flex-col gap-2" data-testid="blox-official-card-<?php echo e($slug); ?>">
                 <div class="flex items-center gap-2">
                     <span class="font-medium text-gray-900"><?php echo e((string) $ot['name']); ?></span>
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"><?php echo e($typeLabels[(string) $ot['type']] ?? (string) $ot['type']); ?></span>
                     <?php if (!empty($ot['paid'])): ?><span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">Pro</span><?php endif; ?>
                 </div>
                 <p class="text-xs text-gray-500 flex-1"><?php echo e((string) ($ot['description'] ?? '')); ?></p>
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] text-gray-400">v<?php echo e((string) ($ot['version'] ?? '')); ?></span>
-                    <?php if ($installedId > 0): ?>
-                    <span class="text-xs text-emerald-600"><i class="ti ti-check"></i> <?php echo __('blox_tpl_installed'); ?></span>
+                <div class="flex items-center justify-between gap-3 text-[11px]">
+                    <span class="text-gray-400">v<?php echo e($remoteVersion); ?></span>
+                    <?php if ($installedId > 0 && $versionCurrent): ?>
+                    <span class="text-emerald-600"><i class="ti ti-check"></i> <?php echo __('blox_tpl_remote_current'); ?></span>
+                    <?php elseif ($installedId > 0 && $installedVersion === ''): ?>
+                    <span class="text-amber-600"><i class="ti ti-history"></i> <?php echo __('blox_tpl_remote_version_unknown'); ?></span>
+                    <?php elseif ($installedId > 0): ?>
+                    <span class="text-amber-600" data-testid="blox-official-update-status"><i class="ti ti-arrow-up"></i> <?php echo e(__('blox_tpl_remote_version_change', ['from' => $installedVersion, 'to' => $remoteVersion])); ?></span>
                     <?php elseif (!empty($ot['locked'])): ?>
-                    <span class="text-xs text-gray-400"><i class="ti ti-lock"></i> <?php echo __('blox_tpl_locked'); ?></span>
-                    <?php else: ?>
+                    <span class="text-gray-400"><i class="ti ti-lock"></i> <?php echo __('blox_tpl_locked'); ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php if ($installedId > 0): ?>
+                <p class="text-[11px] text-gray-500"><i class="ti ti-shield-check"></i> <?php echo __('blox_tpl_remote_draft_protected'); ?></p>
+                <?php endif; ?>
+                <div class="mt-1 flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-3">
+                    <?php if (!$remoteStateReady): ?>
+                    <a href="/admin/upgrade.php" class="text-xs text-amber-600 hover:text-amber-700">
+                        <i class="ti ti-database-cog"></i> <?php echo __('blox_tpl_remote_upgrade_first'); ?>
+                    </a>
+                    <?php elseif ($installedId === 0 && empty($ot['locked'])): ?>
                     <form method="post">
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="install_remote">
                         <input type="hidden" name="slug" value="<?php echo e($slug); ?>">
                         <button type="submit" class="text-xs text-primary hover:opacity-80" data-testid="blox-official-install">
                             <i class="ti ti-download"></i> <?php echo __('blox_tpl_install'); ?>
+                        </button>
+                    </form>
+                    <?php elseif ($installedId > 0 && !empty($ot['locked'])): ?>
+                    <span class="text-xs text-gray-400"><i class="ti ti-lock"></i> <?php echo __('blox_tpl_remote_update_locked'); ?></span>
+                    <?php elseif ($updateAvailable): ?>
+                    <form method="post">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="install_remote">
+                        <input type="hidden" name="slug" value="<?php echo e($slug); ?>">
+                        <button type="submit" class="text-xs text-primary hover:opacity-80" data-testid="blox-official-update">
+                            <i class="ti ti-download"></i> <?php echo __('blox_tpl_remote_update'); ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if ($hasRemoteBackup): ?>
+                    <form method="post" onsubmit="return confirm(<?php echo e((string) json_encode(__('blox_tpl_remote_rollback_confirm'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>)">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="rollback_remote">
+                        <input type="hidden" name="id" value="<?php echo $installedId; ?>">
+                        <button type="submit" class="text-xs text-gray-500 hover:text-gray-900" data-testid="blox-official-rollback">
+                            <i class="ti ti-history"></i> <?php echo __('blox_tpl_remote_rollback'); ?>
                         </button>
                     </form>
                     <?php endif; ?>
