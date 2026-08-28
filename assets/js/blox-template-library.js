@@ -44,7 +44,58 @@
             || normalized.locked === 1
             || normalized.locked === "1";
         normalized.locked_reason = String(normalized.locked_reason || "");
+        normalized.metadata = normalizeMetadata(normalized.metadata);
         return normalized;
+    }
+
+    function normalizeMetadata(raw) {
+        var metadata = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+        var allowedPageTypes = [
+            "general", "home", "about", "product-list", "product-detail", "content-list",
+            "case", "contact", "jobs", "service", "landing",
+        ];
+        var pageTypes = Array.isArray(metadata.page_types) ? metadata.page_types.filter(function (value, index, list) {
+            return typeof value === "string" && allowedPageTypes.indexOf(value) !== -1
+                && list.indexOf(value) === index;
+        }).slice(0, 12) : [];
+        var priority = Number(metadata.priority);
+        return Object.assign({}, metadata, {
+            schema: 1,
+            page_types: pageTypes.length > 0 ? pageTypes : ["general"],
+            priority: Number.isFinite(priority) ? Math.max(0, Math.min(100, Math.round(priority))) : 0,
+        });
+    }
+
+    function recommendationScore(item, pageType) {
+        if (!item || item.type !== "section") return -1;
+        var metadata = normalizeMetadata(item.metadata);
+        var intent = allowedIntent(pageType);
+        if (metadata.page_types.indexOf(intent) === -1) return -1;
+        return 100 + metadata.priority;
+    }
+
+    function allowedIntent(pageType) {
+        var value = String(pageType || "general").trim().toLowerCase();
+        return [
+            "general", "home", "about", "product-list", "product-detail", "content-list",
+            "case", "contact", "jobs", "service", "landing",
+        ].indexOf(value) !== -1 ? value : "general";
+    }
+
+    function recommend(items, pageType) {
+        return (Array.isArray(items) ? items : []).map(function (item, index) {
+            return { item: item, index: index, score: recommendationScore(item, pageType) };
+        }).filter(function (entry) {
+            return entry.score >= 0;
+        }).sort(function (a, b) {
+            return a.score === b.score ? a.index - b.index : b.score - a.score;
+        }).map(function (entry) {
+            return entry.item;
+        });
+    }
+
+    function isRecommended(item, pageType) {
+        return recommendationScore(item, pageType) >= 0;
     }
 
     function resolve(endpoint, context, key, fallbackMessage, csrf) {
@@ -181,6 +232,9 @@
     global.BloxTemplateLibrary = {
         list: list,
         resolve: resolve,
+        normalizeMetadata: normalizeMetadata,
+        recommend: recommend,
+        isRecommended: isRecommended,
         filter: filter,
         categories: categories,
         categoryLabel: categoryLabel,

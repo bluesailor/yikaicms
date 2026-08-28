@@ -37,6 +37,7 @@ final class BloxTemplateCatalog
                     'provider' => (string) ($row['source'] ?? 'user'),
                     'category' => $type,
                     'thumbnail' => self::safeLocalThumbnail($row['thumbnail'] ?? ''),
+                    'metadata' => BloxSectionMetadata::normalize([]),
                     'updated_at' => (int) ($row['updated_at'] ?? 0),
                 ];
             }
@@ -63,6 +64,7 @@ final class BloxTemplateCatalog
                 'provider' => $slug,
                 'category' => mb_substr(trim((string) ($template['category'] ?? $type)), 0, 50),
                 'thumbnail' => self::safeLocalThumbnail($template['thumbnail'] ?? ''),
+                'metadata' => BloxSectionMetadata::normalize($template['metadata'] ?? $template['meta'] ?? []),
                 'updated_at' => 0,
             ];
         }
@@ -79,7 +81,10 @@ final class BloxTemplateCatalog
             }
         }
 
-        return $items;
+        return array_map(static function (array $item): array {
+            $item['metadata'] = BloxSectionMetadata::normalize($item['metadata'] ?? []);
+            return $item;
+        }, $items);
     }
 
     public static function remoteError(): string

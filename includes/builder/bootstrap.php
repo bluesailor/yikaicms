@@ -38,6 +38,7 @@ require_once __DIR__ . '/BloxThemeHeaderDocument.php';
 require_once __DIR__ . '/BloxPopupDocument.php';
 require_once __DIR__ . '/BloxTemplateImporter.php';
 require_once __DIR__ . '/BloxAreaTemplatePresets.php';
+require_once __DIR__ . '/BloxSectionMetadata.php';
 require_once __DIR__ . '/BloxBuiltinTemplateProvider.php';
 require_once __DIR__ . '/BloxRemoteTemplateProvider.php';
 require_once __DIR__ . '/BloxTemplateCatalog.php';

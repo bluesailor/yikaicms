@@ -303,6 +303,7 @@ final class BloxRemoteTemplateProvider
             'provider' => self::PROVIDER,
             'category' => $this->safeCategory($raw['category'] ?? $type, $type),
             'thumbnail' => $this->safeThumbnail($raw['thumbnail'] ?? $raw['thumbnail_url'] ?? ''),
+            'metadata' => BloxSectionMetadata::normalize($raw['metadata'] ?? $raw['meta'] ?? []),
             'version' => trim((string) ($raw['version'] ?? '')),
             'paid' => $paid,
             'locked' => !$entitled,

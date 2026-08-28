@@ -1447,7 +1447,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
 
         foreach ([
-            'templateSectionViewStorageKey: "yikai:blox:template-section-view:v1"',
+            'templateSectionViewStorageKey: "yikai:blox:template-section-view:v2"',
             'templateSectionScrollTop: 0',
             'restoreTemplateSectionViewState()',
             'normalizeTemplateSectionViewState()',
@@ -1480,7 +1480,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             'clearTemplateSectionFilters()',
             'this.templateQuery = "";',
             'this.templateCategory = "all";',
-            'this.templateQuickFilter = "all";',
+            'this.templateQuickFilter = this.templateQuickCount("recommended") > 0 ? "recommended" : "all";',
             'this.templateSectionScrollTop = 0;',
             'this.persistTemplateSectionViewState();',
         ] as $token) {

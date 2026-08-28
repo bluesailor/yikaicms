@@ -6,6 +6,11 @@ use PHPUnit\Framework\TestCase;
 
 final class BloxTemplateCatalogPresentationTest extends TestCase
 {
+    public static function setUpBeforeClass(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+    }
+
     public function testRemoteThumbnailOnlyAcceptsOfficialTemplateImages(): void
     {
         $response = json_encode([

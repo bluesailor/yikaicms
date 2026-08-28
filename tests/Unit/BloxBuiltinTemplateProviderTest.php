@@ -56,4 +56,18 @@ final class BloxBuiltinTemplateProviderTest extends TestCase
         $this->expectException(RuntimeException::class);
         (new BloxBuiltinTemplateProvider())->resolve('404-route-lost', 'home');
     }
+
+    public function testSectionCatalogIncludesNormalizedRecommendationMetadata(): void
+    {
+        $items = [];
+        foreach ((new BloxBuiltinTemplateProvider())->items('home') as $item) {
+            $items[$item['key']] = $item;
+        }
+
+        self::assertSame(1, $items['builtin:hero-intro']['metadata']['schema']);
+        self::assertSame('hero', $items['builtin:hero-intro']['metadata']['purpose']);
+        self::assertContains('home', $items['builtin:hero-intro']['metadata']['page_types']);
+        self::assertSame(95, $items['builtin:hero-intro']['metadata']['priority']);
+        self::assertContains('service', $items['builtin:process-steps']['metadata']['page_types']);
+    }
 }
