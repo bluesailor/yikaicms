@@ -1183,12 +1183,19 @@ test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
 
-test('built-in section library filters previews and inserts a fresh section @ci', async ({ page }, testInfo) => {
+test('built-in prebuilt section library filters previews and inserts a fresh section @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
 
   await page.getByTestId('blox-prebuilt-open').click();
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('推荐用于：首页')).toBeVisible();
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(12);
+  await expect.poll(() => page.getByTestId('blox-template-panel').evaluate((panel) => (
+    panel.scrollWidth <= panel.clientWidth
+  ))).toBe(true);
+  await page.getByTestId('blox-template-quick-all').click();
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
   await expect(builtins).toHaveCount(14);
@@ -1306,7 +1313,7 @@ test('prebuilt compact density shortens the library and persists locally @ci', a
 
 test('prebuilt library restores session filters and scroll after closing or inserting @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template session continuity baseline');
-  await page.evaluate(() => sessionStorage.removeItem('yikai:blox:template-section-view:v1'));
+  await page.evaluate(() => sessionStorage.removeItem('yikai:blox:template-section-view:v2'));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
 
@@ -1316,8 +1323,8 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await search.fill('图文');
   await page.getByTestId('blox-template-close').click();
   await expect.poll(() => page.evaluate(() => JSON.parse(
-    sessionStorage.getItem('yikai:blox:template-section-view:v1') || '{}'
-  ))).toMatchObject({ scope: 'local', category: 'content', quickFilter: 'all', query: '图文' });
+    sessionStorage.getItem('yikai:blox:template-section-view:v2') || '{}'
+  ))).toMatchObject({ scope: 'local', category: 'content', quickFilter: 'recommended', query: '图文' });
 
   await page.getByTestId('blox-prebuilt-open').click();
   await expect(category).toHaveValue('content');
@@ -1340,7 +1347,7 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await waitPreviewSettled(page);
   await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
   await expect.poll(() => page.evaluate(() => JSON.parse(
-    sessionStorage.getItem('yikai:blox:template-section-view:v1') || '{}'
+    sessionStorage.getItem('yikai:blox:template-section-view:v2') || '{}'
   ).query)).toBe('图文');
   await undo(page);
 
@@ -1361,7 +1368,7 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await page.evaluate(() => {
     localStorage.removeItem('yikai:blox:template-favorites:v1');
     localStorage.removeItem('yikai:blox:template-recent:v1');
-    sessionStorage.removeItem('yikai:blox:template-section-view:v1');
+    sessionStorage.removeItem('yikai:blox:template-section-view:v2');
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
@@ -1372,8 +1379,8 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await expect(empty).toHaveAttribute('data-empty-reason', 'favorites');
   await expect(clear).toBeVisible();
   await clear.click();
-  await expect(page.getByTestId('blox-template-quick-all')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(15);
+  await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(12);
 
   const search = page.getByTestId('blox-template-search');
   await search.fill('__missing_section__');
@@ -1383,8 +1390,8 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await expect(page.getByTestId('blox-template-category')).toHaveValue('all');
   await expect(page.locator('[x-ref="templateScroll"]')).toHaveJSProperty('scrollTop', 0);
   await expect.poll(() => page.evaluate(() => JSON.parse(
-    sessionStorage.getItem('yikai:blox:template-section-view:v1') || '{}'
-  ))).toMatchObject({ category: 'all', quickFilter: 'all', query: '', scrollTop: 0 });
+    sessionStorage.getItem('yikai:blox:template-section-view:v2') || '{}'
+  ))).toMatchObject({ category: 'all', quickFilter: 'recommended', query: '', scrollTop: 0 });
 });
 
 test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {

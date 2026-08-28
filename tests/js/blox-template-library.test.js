@@ -152,3 +152,33 @@ test("saved local template is inserted immediately and replaces a stale copy", f
     assert.equal(merged.remoteError, "offline");
     assert.deepEqual(global.BloxTemplateLibrary.upsertLocal(items, { key: "remote:x", type: "section", source: "remote" }), items);
 });
+
+test("recommendations match page intent and keep priority ordering stable", function () {
+    const items = [
+        { key: "builtin:generic", type: "section", metadata: { page_types: ["general"], priority: 100 } },
+        { key: "builtin:service-low", type: "section", metadata: { page_types: ["service"], priority: 20 } },
+        { key: "builtin:service-high", type: "section", metadata: { page_types: ["service"], priority: 90 } },
+        { key: "builtin:service-high-2", type: "section", metadata: { page_types: ["service"], priority: 90 } },
+        { key: "builtin:page", type: "page", metadata: { page_types: ["service"], priority: 100 } },
+    ];
+
+    assert.deepEqual(
+        global.BloxTemplateLibrary.recommend(items, "service").map((item) => item.key),
+        ["builtin:service-high", "builtin:service-high-2", "builtin:service-low"]
+    );
+    assert.equal(global.BloxTemplateLibrary.isRecommended(items[0], "service"), false);
+    assert.equal(global.BloxTemplateLibrary.isRecommended(items[2], "service"), true);
+});
+
+test("metadata normalization gives old templates a bounded general fallback", function () {
+    const old = global.BloxTemplateLibrary.normalizeMetadata(null);
+    const unsafe = global.BloxTemplateLibrary.normalizeMetadata({
+        page_types: ["about", "<script>", "about"],
+        priority: 900,
+    });
+
+    assert.deepEqual(old.page_types, ["general"]);
+    assert.equal(old.priority, 0);
+    assert.deepEqual(unsafe.page_types, ["about"]);
+    assert.equal(unsafe.priority, 100);
+});

@@ -14,6 +14,11 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_hero_desc',
             'category' => 'landing',
             'thumbnail' => '/assets/images/blox-templates/section-hero-intro.png',
+            'metadata' => [
+                'purpose' => 'hero', 'page_types' => ['home', 'landing'],
+                'content_slots' => ['heading', 'text', 'image', 'button'],
+                'cta_type' => 'learn-more', 'image_ratio' => '16:9', 'priority' => 95,
+            ],
         ],
         'image-text' => [
             'type' => 'section',
@@ -23,6 +28,11 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_image_text_desc',
             'category' => 'content',
             'thumbnail' => '/assets/images/blox-templates/section-image-text.jpg',
+            'metadata' => [
+                'purpose' => 'company-intro', 'page_types' => ['general', 'home', 'about', 'service'],
+                'content_slots' => ['heading', 'text', 'image', 'button'],
+                'cta_type' => 'learn-more', 'image_ratio' => '4:3', 'priority' => 85,
+            ],
         ],
         'image-text-reverse' => [
             'type' => 'section',
@@ -33,6 +43,11 @@ final class BloxBuiltinTemplateProvider
             'keywords_key' => 'blox_builtin_section_image_text_reverse_keywords',
             'category' => 'content',
             'thumbnail' => '/assets/images/blox-templates/section-image-text-reverse.png',
+            'metadata' => [
+                'purpose' => 'content', 'page_types' => ['general', 'home', 'about', 'service'],
+                'content_slots' => ['heading', 'text', 'image', 'button'],
+                'cta_type' => 'learn-more', 'image_ratio' => '4:3', 'priority' => 80,
+            ],
         ],
         'text-columns' => [
             'type' => 'section',
@@ -43,6 +58,10 @@ final class BloxBuiltinTemplateProvider
             'keywords_key' => 'blox_builtin_section_text_columns_keywords',
             'category' => 'content',
             'thumbnail' => '/assets/images/blox-templates/section-text-columns.png',
+            'metadata' => [
+                'purpose' => 'content', 'page_types' => ['general', 'about', 'service'],
+                'content_slots' => ['heading', 'text'], 'priority' => 70,
+            ],
         ],
         'stats-band' => [
             'type' => 'section',
@@ -52,6 +71,10 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_stats_desc',
             'category' => 'business',
             'thumbnail' => '/assets/images/blox-templates/section-stats-band.png',
+            'metadata' => [
+                'purpose' => 'stats', 'page_types' => ['home', 'about'],
+                'content_slots' => ['heading', 'stats'], 'priority' => 78,
+            ],
         ],
         'feature-grid' => [
             'type' => 'section',
@@ -61,6 +84,10 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_feature_desc',
             'category' => 'business',
             'thumbnail' => '/assets/images/blox-templates/section-feature-grid.png',
+            'metadata' => [
+                'purpose' => 'features', 'page_types' => ['general', 'home', 'about', 'service', 'product-list'],
+                'content_slots' => ['heading', 'icon', 'text'], 'priority' => 88,
+            ],
         ],
         'process-steps' => [
             'type' => 'section',
@@ -71,6 +98,10 @@ final class BloxBuiltinTemplateProvider
             'keywords_key' => 'blox_builtin_section_process_steps_keywords',
             'category' => 'business',
             'thumbnail' => '/assets/images/blox-templates/section-process-steps.png',
+            'metadata' => [
+                'purpose' => 'process', 'page_types' => ['service', 'about'],
+                'content_slots' => ['heading', 'steps', 'icon'], 'priority' => 92,
+            ],
         ],
         'trust-grid' => [
             'type' => 'section',
@@ -81,6 +112,10 @@ final class BloxBuiltinTemplateProvider
             'keywords_key' => 'blox_builtin_section_trust_grid_keywords',
             'category' => 'business',
             'thumbnail' => '/assets/images/blox-templates/section-trust-grid.png',
+            'metadata' => [
+                'purpose' => 'features', 'page_types' => ['home', 'about', 'service'],
+                'content_slots' => ['heading', 'icon', 'text'], 'priority' => 75,
+            ],
         ],
         'card-grid' => [
             'type' => 'section',
@@ -90,6 +125,10 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_cards_desc',
             'category' => 'marketing',
             'thumbnail' => '/assets/images/blox-templates/section-card-grid.jpg',
+            'metadata' => [
+                'purpose' => 'features', 'page_types' => ['general', 'home', 'service', 'product-list', 'content-list'],
+                'content_slots' => ['heading', 'cards', 'image'], 'priority' => 72,
+            ],
         ],
         'case-grid' => [
             'type' => 'section',
@@ -100,6 +139,10 @@ final class BloxBuiltinTemplateProvider
             'keywords_key' => 'blox_builtin_section_case_grid_keywords',
             'category' => 'marketing',
             'thumbnail' => '/assets/images/blox-templates/section-case-grid.png',
+            'metadata' => [
+                'purpose' => 'cases', 'page_types' => ['home', 'case'],
+                'content_slots' => ['heading', 'cards', 'image'], 'image_ratio' => '4:3', 'priority' => 90,
+            ],
         ],
         'testimonial-quote' => [
             'type' => 'section',
@@ -109,6 +152,10 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_quote_desc',
             'category' => 'content',
             'thumbnail' => '/assets/images/blox-templates/section-testimonial-quote.png',
+            'metadata' => [
+                'purpose' => 'testimonials', 'page_types' => ['home', 'about'],
+                'content_slots' => ['quote', 'author'], 'priority' => 68,
+            ],
         ],
         'faq-accordion' => [
             'type' => 'section',
@@ -118,6 +165,10 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_faq_desc',
             'category' => 'content',
             'thumbnail' => '/assets/images/blox-templates/section-faq-accordion.png',
+            'metadata' => [
+                'purpose' => 'faq', 'page_types' => ['general', 'home', 'service', 'contact', 'product-detail'],
+                'content_slots' => ['heading', 'faq'], 'priority' => 82,
+            ],
         ],
         'cta-banner' => [
             'type' => 'section',
@@ -127,6 +178,10 @@ final class BloxBuiltinTemplateProvider
             'description_key' => 'blox_builtin_section_cta_desc',
             'category' => 'marketing',
             'thumbnail' => '/assets/images/blox-templates/section-cta-banner.png',
+            'metadata' => [
+                'purpose' => 'cta', 'page_types' => ['general', 'home', 'about', 'service', 'contact', 'landing'],
+                'content_slots' => ['heading', 'text', 'button'], 'cta_type' => 'contact', 'priority' => 76,
+            ],
         ],
         'contact-strip' => [
             'type' => 'section',
@@ -137,6 +192,10 @@ final class BloxBuiltinTemplateProvider
             'keywords_key' => 'blox_builtin_section_contact_strip_keywords',
             'category' => 'marketing',
             'thumbnail' => '/assets/images/blox-templates/section-contact-strip.png',
+            'metadata' => [
+                'purpose' => 'contact', 'page_types' => ['home', 'contact', 'service'],
+                'content_slots' => ['heading', 'text', 'button'], 'cta_type' => 'contact', 'priority' => 94,
+            ],
         ],
         'company-intro' => [
             'type' => 'page',
@@ -195,6 +254,7 @@ final class BloxBuiltinTemplateProvider
                 'provider' => 'yikaicms',
                 'category' => (string) $preset['category'],
                 'thumbnail' => (string) $preset['thumbnail'],
+                'metadata' => BloxSectionMetadata::normalize($preset['metadata'] ?? []),
                 'updated_at' => (int) (filemtime($path) ?: 0),
             ];
         }

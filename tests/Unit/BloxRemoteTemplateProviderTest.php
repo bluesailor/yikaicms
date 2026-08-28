@@ -80,6 +80,29 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame('section', $provider->items()[0]['category']);
     }
 
+    public function testCatalogNormalizesRemoteRecommendationMetadata(): void
+    {
+        $catalog = $this->catalogResponse([$this->catalogItem([
+            'metadata' => [
+                'purpose' => 'cta',
+                'page_types' => ['service', 'service', '<script>'],
+                'required_plugins' => ['forms', '../escape'],
+                'priority' => 150,
+            ],
+        ])]);
+        $provider = new BloxRemoteTemplateProvider(
+            static fn (): string => $catalog,
+            static fn (): bool => true,
+            'en'
+        );
+
+        $metadata = $provider->items()[0]['metadata'];
+        $this->assertSame('cta', $metadata['purpose']);
+        $this->assertSame(['service'], $metadata['page_types']);
+        $this->assertSame(['forms'], $metadata['required_plugins']);
+        $this->assertSame(100, $metadata['priority']);
+    }
+
     public function testResolveUsesFreshEntitlementCacheVerifiesEachPackageAndDoesNotPersist(): void
     {
         $package = $this->package($this->templateJson());

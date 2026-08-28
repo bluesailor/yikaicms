@@ -377,6 +377,28 @@ if ($isHomeBlox) {
     }
 }
 
+$templatePageIntent = BloxSectionMetadata::inferPageType(
+    $isHomeBlox,
+    $templateId > 0,
+    $isContactBlox,
+    $isProductBlox,
+    $isContentListBlox,
+    $page
+);
+$templatePageIntentKey = match ($templatePageIntent) {
+    'home' => 'blox_page_intent_home',
+    'about' => 'blox_page_intent_about',
+    'product-list' => 'blox_page_intent_product_list',
+    'product-detail' => 'blox_page_intent_product_detail',
+    'content-list' => 'blox_page_intent_content_list',
+    'case' => 'blox_page_intent_case',
+    'contact' => 'blox_page_intent_contact',
+    'jobs' => 'blox_page_intent_jobs',
+    'service' => 'blox_page_intent_service',
+    'landing' => 'blox_page_intent_landing',
+    default => 'blox_page_intent_general',
+};
+
 // 所有 boot 形态先过统一 schema 门：旧裸数组惰性升级，未来版本直接拒绝，
 // 防止旧编辑器把未知字段打开后再以 v1 覆盖保存。
 try {
@@ -1254,6 +1276,9 @@ $canManageBloxDesign = hasPermission('*');
                 'insertSection' => __('blox_prebuilt_insert'),
                 'dragHint' => __('blox_prebuilt_drag_hint'),
                 'quickAll' => __('all'),
+                'recommended' => __('blox_recommended_sections'),
+                'recommendedFor' => __('blox_recommended_for'),
+                'pageIntent' => __($templatePageIntentKey),
                 'favorites' => __('blox_favorite_sections'),
                 'recent' => __('blox_recent_sections'),
                 'addFavorite' => __('blox_add_section_favorite'),
@@ -1287,6 +1312,7 @@ $canManageBloxDesign = hasPermission('*');
                 'emptySearch' => __('blox_template_empty_search'),
                 'emptyFavorites' => __('blox_template_empty_favorites'),
                 'emptyRecent' => __('blox_template_empty_recent'),
+                'emptyRecommended' => __('blox_template_empty_recommended'),
                 'emptyCategory' => __('blox_template_empty_category'),
                 'clearFilters' => __('blox_template_clear_filters'),
                 'manage' => __('blox_template_manage'),
@@ -1827,14 +1853,15 @@ $canManageBloxDesign = hasPermission('*');
             templateQuery: "",
             templateFilter: "all",
             templateCategory: "all",
-            templateQuickFilter: "all",
+            templateQuickFilter: "recommended",
+            templatePageIntent: <?php echo json_encode($templatePageIntent, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             templateDensity: "standard",
             favoriteTemplateKeys: [],
             recentTemplateKeys: [],
             favoriteTemplatesStorageKey: "yikai:blox:template-favorites:v1",
             recentTemplatesStorageKey: "yikai:blox:template-recent:v1",
             templateDensityStorageKey: "yikai:blox:template-density:v1",
-            templateSectionViewStorageKey: "yikai:blox:template-section-view:v1",
+            templateSectionViewStorageKey: "yikai:blox:template-section-view:v2",
             templateSectionScrollTop: 0,
             legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
@@ -2031,6 +2058,9 @@ $canManageBloxDesign = hasPermission('*');
                 );
                 if (this.templateEntry !== "sections") return items;
                 var self = this;
+                if (this.templateQuickFilter === "recommended") {
+                    return window.BloxTemplateLibrary.recommend(items, this.templatePageIntent);
+                }
                 if (this.templateQuickFilter === "favorites") {
                     return items.filter(function (item) { return self.isTemplateFavorite(item.key); });
                 }
@@ -2060,6 +2090,7 @@ $canManageBloxDesign = hasPermission('*');
             templateQuickCount(mode) {
                 var self = this;
                 var items = this.templateEntryItems();
+                if (mode === "recommended") return window.BloxTemplateLibrary.recommend(items, this.templatePageIntent).length;
                 if (mode === "favorites") return items.filter(function (item) { return self.isTemplateFavorite(item.key); }).length;
                 if (mode === "recent") return items.filter(function (item) { return self.isTemplateRecent(item.key); }).length;
                 return items.length;
@@ -2068,6 +2099,7 @@ $canManageBloxDesign = hasPermission('*');
             templateEmptyReason() {
                 if (this.templateEntry === "sections") {
                     if (String(this.templateQuery || "").trim()) return "search";
+                    if (this.templateQuickFilter === "recommended") return "recommended";
                     if (this.templateQuickFilter === "favorites") return "favorites";
                     if (this.templateQuickFilter === "recent") return "recent";
                     if (this.templateCategory !== "all") return "category";
@@ -2082,6 +2114,7 @@ $canManageBloxDesign = hasPermission('*');
                 }
                 if (reason === "favorites") return this.templateText.emptyFavorites;
                 if (reason === "recent") return this.templateText.emptyRecent;
+                if (reason === "recommended") return this.templateText.emptyRecommended;
                 if (reason === "category") return this.templateText.emptyCategory;
                 return reason === "remote" ? this.templateText.emptyRemote : this.templateText.emptyLocal;
             },
@@ -2091,6 +2124,7 @@ $canManageBloxDesign = hasPermission('*');
                 if (reason === "search") return "ti-search-off";
                 if (reason === "favorites") return "ti-star";
                 if (reason === "recent") return "ti-history";
+                if (reason === "recommended") return "ti-sparkles";
                 if (reason === "category") return "ti-category";
                 return reason === "remote" ? "ti-cloud-off" : "ti-template-off";
             },
@@ -2099,7 +2133,7 @@ $canManageBloxDesign = hasPermission('*');
                 return this.templateEntry === "sections" && (
                     String(this.templateQuery || "").trim() !== ""
                     || this.templateCategory !== "all"
-                    || this.templateQuickFilter !== "all"
+                    || !["recommended", "all"].includes(this.templateQuickFilter)
                 );
             },
 
@@ -2107,7 +2141,7 @@ $canManageBloxDesign = hasPermission('*');
                 if (this.templateEntry !== "sections") return;
                 this.templateQuery = "";
                 this.templateCategory = "all";
-                this.templateQuickFilter = "all";
+                this.templateQuickFilter = this.templateQuickCount("recommended") > 0 ? "recommended" : "all";
                 var scroller = this.$refs.templateScroll;
                 if (scroller) scroller.scrollTop = 0;
                 this.templateSectionScrollTop = 0;
@@ -2138,9 +2172,9 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateCategory = typeof state.category === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.category)
                     ? state.category
                     : "all";
-                this.templateQuickFilter = ["all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
+                this.templateQuickFilter = ["recommended", "all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
                     ? state.quickFilter
-                    : "all";
+                    : "recommended";
                 this.templateQuery = typeof state.query === "string" ? state.query.slice(0, 120) : "";
                 var scrollTop = Number(state.scrollTop);
                 this.templateSectionScrollTop = Number.isFinite(scrollTop)
@@ -2154,6 +2188,14 @@ $canManageBloxDesign = hasPermission('*');
                     this.templateCategory = "all";
                     this.templateSectionScrollTop = 0;
                 }
+                if (this.templateQuickFilter === "recommended" && this.templateQuickCount("recommended") === 0) {
+                    this.templateQuickFilter = "all";
+                    this.templateSectionScrollTop = 0;
+                }
+            },
+
+            templateItemRecommended(item) {
+                return window.BloxTemplateLibrary.isRecommended(item, this.templatePageIntent);
             },
 
             rememberTemplateSectionScroll(scrollTop) {
