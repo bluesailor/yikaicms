@@ -391,24 +391,21 @@ function bloxPageEditorEnabled(): bool
 }
 
 /**
- * Blox 的商业高级能力边界。
+ * Blox 全部能力的总开关。
  *
- * 编辑器本身、首页和受支持栏目文档对免费版开放；远程模板下载、Header/Footer、
- * Popup、全局样式与高级数据能力仍通过此函数统一校验，避免再次把“能否编辑内容”
- * 和授权状态绑在一起。
+ * **2026-08-28 起不再校验授权**：Header/Footer/Popup 全站区域模板、全局命名样式、
+ * Query Loop 等原「高级能力」一并对免费版开放，本函数只反映
+ * `blox_editor_enabled` 这个后台开关。
+ *
+ * 保留函数名与调用点（13 个产品文件），是为了保住「Blox 能力是否可用」这个语义位置：
+ * 后台关掉编辑器时仍要统一收敛，且日后若需重划边界只改这一处。
+ *
+ * 付费边界现只剩下**远程模板包下载与插件市场**（服务端 `LICENSE_MODULES` 与
+ * `api/plugins/_entitlement.php` 把关），不再由本函数承担。
  */
 function bloxAdvancedFeaturesEnabled(): bool
 {
-    if (!bloxPageEditorEnabled()) {
-        return false;
-    }
-    if (defined('DEBUG') && DEBUG) {
-        return true;
-    }
-    if (!function_exists('license_valid')) {
-        return false;
-    }
-    return license_has_module('blox') || license_valid();
+    return bloxPageEditorEnabled();
 }
 
 /**

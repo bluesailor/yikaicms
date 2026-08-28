@@ -57,8 +57,13 @@ final class BloxPagePublishingContractTest extends TestCase
         $advancedGate = substr($functions, (int) $advancedGateStart, 520);
         $this->assertStringContainsString("config('blox_editor_enabled', '1')", $editorGate);
         $this->assertStringNotContainsString('license_valid', $editorGate);
-        $this->assertStringContainsString('license_valid', $advancedGate);
-        $this->assertStringContainsString("license_has_module('blox')", $advancedGate);
+        // 2026-08-28：Blox 全部能力对免费版开放。原先由本闸把关的 Header/Footer/Popup
+        // 全站区域模板、全局命名样式、Query Loop 一并放开；付费边界只剩远程模板包下载
+        // 与插件市场（服务端 LICENSE_MODULES / _entitlement.php 把关）。
+        // 这两条反向断言防的是「授权判定悄悄回潮」。
+        $this->assertStringNotContainsString('license_valid', $advancedGate);
+        $this->assertStringNotContainsString("license_has_module('blox')", $advancedGate);
+        $this->assertStringContainsString('return bloxPageEditorEnabled();', $advancedGate);
 
         $legacyGateStart = strpos($functions, 'function bloxEditorEnabled(): bool');
         $this->assertNotFalse($legacyGateStart);
