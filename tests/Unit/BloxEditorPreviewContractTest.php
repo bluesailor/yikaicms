@@ -97,18 +97,21 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         // 编辑器：切换重建预览客户端（先 cancel 防旧上下文响应覆盖），黄条按命中 id 显隐
         $this->assertStringContainsString('data-testid="blox-ctx-select"', $editor);
+        $this->assertStringContainsString('$areaCtxOptionGroups[$ctxLang][]', $editor);
+        $this->assertStringContainsString('<optgroup label="<?php echo e($ctxGroup[\'label\']); ?>">', $editor);
         $this->assertStringContainsString('this._previewClient.cancel();', $editor);
         $this->assertStringContainsString('onAreaHit: function (id)', $editor);
         $this->assertStringContainsString('self.ctxHit = id;', $editor);
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
     }
 
-    /** 空画布双入口 + 顶栏元素/预制区块分流。 */
+    /** 空画布双入口 + 元素库/预制区块分流。 */
     public function testEmptyCanvasEntryPointsAndTemplateButtonLabel(): void
     {
         $advance = $this->source('admin/page_edit_advance.php');
         $editor = $this->source('admin/blox_editor.php');
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         // 画布注入：文档级空态卡（每次预览更新先清后建），动作经 postMessage 白名单出画布
         $this->assertStringContainsString('yk-empty-doc', $advance);
@@ -117,11 +120,11 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('data.ykEmptyAction === "templates" || data.ykEmptyAction === "section"', $bridge);
 
-        // 编辑器：空态接线到模板库/插空白区块；工具栏提供两个语义明确的独立入口。
+        // 编辑器：空态接线到模板库/插空白区块；元素入口在顶栏，预制区块入口固定在结构面板上方。
         $this->assertStringContainsString('onEmptyAction: function (action)', $editor);
         $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
-        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
-        $this->assertStringContainsString('ti-layout-grid-add', $editor);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $workspace);
+        $this->assertStringContainsString('<span class="truncate"><?php echo e(__(\'blox_prebuilt_sections\')); ?></span>', $workspace);
     }
 
     public function testDesktopElementPanelHasAccessiblePersistentResizer(): void
@@ -759,6 +762,30 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isTopLevelElementPath(value.target.path)'] as $token) {
             $this->assertStringContainsString($token, $bridge, "canvas bridge drop contract {$token} missing");
         }
+    }
+
+    public function testHeaderEditorUsesDedicatedPresetsAndAnIsolatedCanvas(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $header = $this->source('admin/blox_editor/partials/header.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+
+        foreach (['BloxAreaTemplatePresets::editorCatalog(\'header\')', 'headerPresets:', 'openHeaderPresets()', 'applyHeaderPreset(preset)', 'apply-header-preset'] as $token) {
+            $this->assertStringContainsString($token, $editor, "header preset editor token {$token} missing");
+        }
+        $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
+        $this->assertStringContainsString('if (!title && this.headerTemplateMode)', $editor);
+        $this->assertStringNotContainsString('data-testid="blox-header-presets-open"', $header);
+        $this->assertStringContainsString('data-testid="blox-header-presets-open"', $workspace);
+        $this->assertStringContainsString('<span class="truncate"><?php echo e(__(\'blox_header_presets\')); ?></span>', $workspace);
+        $this->assertStringContainsString('@media (max-width: 1199px)', $editor);
+        $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
+        $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
+        $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
+        $this->assertStringContainsString('? $editableArea', $preview);
+        $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);
     }
 
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void

@@ -84,23 +84,30 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $editor = $this->source('admin/blox_editor.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $this->assertStringContainsString('$advancedBloxEnabled = bloxAdvancedFeaturesEnabled();', $editor);
         $this->assertStringContainsString('data-blox-advanced="<?php echo $advancedBloxEnabled', $editor);
         $this->assertStringContainsString('advancedMode: <?php echo $advancedBloxEnabled', $editor);
         $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
         $this->assertStringNotContainsString("loadTemplates(force) {\n                if (!this.advancedMode)", $editor);
-        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $header);
+        $this->assertStringNotContainsString('data-testid="blox-prebuilt-open"', $header);
+        $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $workspace);
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $this->assertStringContainsString("'@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false'", $canvas);
-        $this->assertStringContainsString('$renderPublishedArea = static function (string $area): string', $canvas);
-        $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\') : \'\';', $canvas);
-        $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\') : \'\';', $canvas);
+        $this->assertStringContainsString('$renderPublishedArea = static function (string $area, array $context, string $scriptName): string', $canvas);
+        $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\', $areaContext, $contextScript) : \'\';', $canvas);
+        $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\', $areaContext, $contextScript) : \'\';', $canvas);
+        $this->assertStringContainsString("\$GLOBALS['currentChannelId'] = \$context['channel_id'];", $canvas);
+        $this->assertStringContainsString("\$GLOBALS['ykBloxPageId'] = \$context['page_id'];", $canvas);
+        $this->assertStringContainsString("require_once ROOT_PATH . '/includes/customer_service.php';", $canvas);
         $this->assertStringContainsString('yk-home-context-area', $canvas);
         $this->assertStringContainsString('data-testid="blox-context-edit-\' . $area', $canvas);
         // v1.18.6：首页画布的页头编辑入口带 back=home——编辑完页头一键返回首页编辑器
-        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$homeAreaContext, 'home')", $canvas);
-        $this->assertStringContainsString('$body = $headerBody . $homeBody . $footerBody;', $canvas);
+        $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$areaContext, \$isHomeLayout ? 'home' : '')", $canvas);
+        $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
+        $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
+        $this->assertStringContainsString('$body = $headerBody . $pageBody . $footerBody;', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
@@ -188,9 +195,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString('/admin/page_edit_advance.php?home=1', $page);
         $this->assertStringNotContainsString("__('page_mode_blocks_edit')", $page);
         $this->assertStringNotContainsString('/admin/page_edit_advance.php?id=', $page);
+        $this->assertStringNotContainsString('/admin/setting_home.php', $page);
+        $this->assertStringNotContainsString("__('admin_setting_home')", $page);
         $this->assertStringNotContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/page_edit.php')", $page);
         $this->assertStringNotContainsString("\$__isBlox ? '/admin/blox_editor.php?id=' : '/admin/page_edit.php?id='", $page);
         $this->assertStringContainsString('/admin/blox_editor.php?home=1', $page);
+        $this->assertStringContainsString("__('site_design_open_home')", $page);
         $this->assertStringContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/blox_editor.php')", $page);
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditUrl($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditTarget($item)'));

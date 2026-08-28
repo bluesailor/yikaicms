@@ -182,8 +182,9 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(page.getByTestId('blox-desktop-actions')).toBeVisible();
     await expect(page.getByTestId('blox-mobile-actions')).toBeHidden();
     await expect(page.getByTestId('blox-elements-open')).toBeVisible();
-    const templateEntry = page.getByTestId('blox-prebuilt-open');
+    const templateEntry = page.getByTestId('blox-right-panel').getByTestId('blox-prebuilt-open');
     await expect(templateEntry).toBeVisible();
+    await expect(templateEntry).toContainText('预制区块');
     await expect(templateEntry.locator('.ti-layout-grid-add')).toBeVisible();
   }
 });
@@ -535,6 +536,7 @@ test('footer template opens with the editable footer visible at the bottom of th
   const contentFrame = await frame(page);
   const footerArea = contentFrame.locator('[data-yk-area="footer"]');
   await expect(footerArea).toBeVisible();
+  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
   await expect.poll(async () => contentFrame.evaluate(() => {
     const footer = document.querySelector('[data-yk-area="footer"]');
     if (!footer) return false;
@@ -739,6 +741,25 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   expect(data.gap).toEqual({ d: 'md', t: 'xl' });
   await expect(tabletDevice).toHaveAttribute('data-responsive-state', 'override');
   await expect(inheritButton).toBeVisible();
+
+  const layoutPreview = page.getByTestId('blox-layout-preview');
+  const layoutItems = page.getByTestId('blox-layout-preview-item');
+  await expect(layoutItems).toHaveCount(3);
+  const previewMetrics = await layoutPreview.evaluate((preview) => {
+    const style = getComputedStyle(preview);
+    const items = Array.from(preview.querySelectorAll('[data-testid="blox-layout-preview-item"]'));
+    return {
+      gap: style.gap,
+      overflowX: preview.scrollWidth - preview.clientWidth,
+      items: items.map((item) => ({
+        whiteSpace: getComputedStyle(item).whiteSpace,
+        overflowX: item.scrollWidth - item.clientWidth,
+      })),
+    };
+  });
+  expect(previewMetrics.gap).toBe('8px');
+  expect(previewMetrics.overflowX).toBeLessThanOrEqual(0);
+  expect(previewMetrics.items.every((item) => item.whiteSpace === 'nowrap' && item.overflowX <= 0)).toBe(true);
 
   const contentFrame = await frame(page);
   const container = contentFrame.locator(`[data-yk-el="${before}.0.0"] .yk-container`);
@@ -1704,8 +1725,8 @@ test('template manager exposes safe local header and footer starters @ci', async
 
   const presets = page.getByTestId('blox-area-presets');
   await expect(presets).toBeVisible();
-  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(6);
-  await expect(presets.locator('.ti-layout-navbar')).toHaveCount(4);
+  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(8);
+  await expect(presets.locator('.ti-layout-navbar')).toHaveCount(6);
   await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(2);
   await expect(page.getByTestId('blox-default-theme-status')).toBeVisible();
 
@@ -1731,7 +1752,7 @@ test('template manager exposes safe local header and footer starters @ci', async
   await expect(form.locator('[name="conditions_json"]')).toHaveValue(/"main":"page","ids":\[\d+\]/);
 });
 
-test('template mode edits header draft with dimmed context @ci', async ({ page }, testInfo) => {
+test('template mode edits an isolated header and applies bundled starters @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -1745,11 +1766,34 @@ test('template mode edits header draft with dimmed context @ci', async ({ page }
       && frame.contentDocument.querySelectorAll('[data-yk-sec]').length > 0;
   });
 
-  // 画布合成契约：可编辑模板段 + 灰罩上下文（上下文不带编辑标记）
+  // 网页头是独立编辑对象：画布不附带正文，避免长页面干扰页头设计。
   const contentFrame = await frame(page);
-  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
-  const dimEditable = await contentFrame.locator('.yk-ctx-dim [data-yk-sec]').count();
-  expect(dimEditable, 'context body must not be editable').toBe(0);
+  await expect(contentFrame.locator('[data-yk-area="header"]')).toHaveCount(1);
+  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(0);
+  await expect(page.getByTestId('blox-tree-section-label')).toHaveText('网页页头');
+
+  // 网页头模式给专属样式库，不再把普通正文区块入口伪装成网页头模板。
+  await expect(page.getByTestId('blox-prebuilt-open')).toHaveCount(0);
+  const headerPresetEntry = page.getByTestId('blox-right-panel').getByTestId('blox-header-presets-open');
+  await expect(headerPresetEntry).toContainText('网页头样式');
+  await expect(page.getByText('预览页面', { exact: true })).toBeVisible();
+  const contextLanguages = await page.getByTestId('blox-ctx-select').locator('optgroup')
+    .evaluateAll((groups) => groups.map((group) => group.label));
+  expect(contextLanguages).toEqual(expect.arrayContaining(['中文', 'English', '日本語']));
+  await headerPresetEntry.click();
+  const headerPresets = page.getByTestId('blox-header-presets');
+  await expect(headerPresets).toBeVisible();
+  await expect(headerPresets.getByTestId('blox-header-preset-apply')).toHaveCount(6);
+  const initialCount = await countSections(page);
+  await headerPresets.getByTestId('blox-header-preset-search-site-header')
+    .getByTestId('blox-header-preset-apply').click();
+  await expect(headerPresets).toBeHidden();
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
+  await expect(page.getByTestId('blox-tree-section-label')).toHaveText(['网页页头 1', '网页页头 2']);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+  await undo(page);
+  await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount);
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
 
   // 模板模式工具栏：发布模板按钮在场；首页发布/回退不在场
   await expect(page.getByTestId('blox-publish-template')).toBeAttached();
@@ -1921,7 +1965,7 @@ test('template publishing retries only after explicit conflict confirmation @ci'
 });
 
 // ── 模板模式（r9）：预览上下文选择器——换正文 + Resolver 命中上报 ──
-test('template mode context selector swaps body and reports resolver hit @ci', async ({ page }, testInfo) => {
+test('header context selector reports resolver hit without rendering page body @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -1941,16 +1985,14 @@ test('template mode context selector swaps body and reports resolver hit @ci', a
   let contentFrame = await frame(page);
   await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
 
-  // 切到第二个选项（真实栏目/单页）→ 画布重载：正文换上下文、灰罩契约不变、命中标记仍在
+  // 切到第二个选项后只更新命中判断，画布仍保持纯网页头。
   const second = await ctxSelect.locator('option').nth(1).getAttribute('value');
   expect(second).toBeTruthy();
   await ctxSelect.selectOption(second);
   await canvasReady();
   contentFrame = await frame(page);
   await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
-  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
-  expect(await contentFrame.locator('.yk-ctx-dim [data-yk-sec]').count(),
-    'context body must not be editable').toBe(0);
+  await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(0);
 
   // 切回首页 → 同契约
   await ctxSelect.selectOption('home');

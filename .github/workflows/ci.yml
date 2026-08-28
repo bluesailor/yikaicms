@@ -414,6 +414,7 @@ jobs:
           unzip -q "$ZIP" -d /tmp/yikaicms-free-package
           PACKAGE_ROOT="/tmp/yikaicms-free-package/yikaicms-v${VERSION}"
           test -d "$PACKAGE_ROOT"
+          php tools/release-artifact-smoke.php "$ZIP"
           php bin/blox-assets.php verify-free "$PACKAGE_ROOT"
           test ! -e "$PACKAGE_ROOT/config/config.php"
           test ! -e "$PACKAGE_ROOT/tests"

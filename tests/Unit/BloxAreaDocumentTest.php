@@ -170,8 +170,10 @@ final class BloxAreaDocumentTest extends TestCase
             'clean-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
             'full-width-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
             'centered-site-header.json' => ['header', ['container', 'logo', 'nav', 'nav-drawer'], 1],
-            'clean-site-footer.json' => ['footer', ['logo', 'nav', 'site-copyright'], 2],
             'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
+            'topbar-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact'], 2],
+            'search-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-search'], 2],
+            'clean-site-footer.json' => ['footer', ['logo', 'nav', 'site-copyright'], 2],
             'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'social-links'], 2],
         ];
         foreach ($expected as $file => [$type, $elements, $sectionCount]) {
@@ -195,21 +197,40 @@ final class BloxAreaDocumentTest extends TestCase
     {
         $catalog = BloxAreaTemplatePresets::catalog();
         self::assertSame(
-            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'clean-site-footer', 'corporate-site-header', 'corporate-site-footer'],
+            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'clean-site-footer', 'corporate-site-footer'],
             array_column($catalog, 'slug')
         );
-        self::assertSame(['header', 'header', 'header', 'footer', 'header', 'footer'], array_column($catalog, 'type'));
+        self::assertSame(['header', 'header', 'header', 'header', 'header', 'header', 'footer', 'footer'], array_column($catalog, 'type'));
         self::assertSame(
             [
                 'content-left',
                 'viewport-left',
                 'centered-brand',
-                'footer-columns',
                 'corporate',
+                'topbar',
+                'search',
+                'footer-columns',
                 'footer-columns-dark',
             ],
             array_column($catalog, 'preview')
         );
+    }
+
+    public function testHeaderEditorCatalogProvidesReadyToApplyDocuments(): void
+    {
+        $catalog = BloxAreaTemplatePresets::editorCatalog('header');
+        self::assertCount(6, $catalog);
+        self::assertSame(
+            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header'],
+            array_column($catalog, 'slug')
+        );
+        foreach ($catalog as $preset) {
+            self::assertSame('header', $preset['type']);
+            self::assertNotSame('', $preset['name']);
+            self::assertNotEmpty($preset['sections']);
+            self::assertArrayHasKey('sticky', $preset['settings']);
+        }
+        self::assertSame([], BloxAreaTemplatePresets::editorCatalog('popup'));
     }
 
     public function testHeaderStartersKeepDistinctWidthAndBrandAlignmentContracts(): void
@@ -239,6 +260,14 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame('column', $centeredContainer['direction']);
         self::assertSame('center', $centeredContainer['align']);
         self::assertSame(['logo', 'nav', 'nav-drawer'], array_column($centeredContainer['children'], 'type'));
+
+        $topbar = $readPackage('topbar-site-header.json');
+        self::assertSame(['m'], $topbar['document']['sections'][0]['settings']['hide_on']);
+        self::assertSame('site-contact', $topbar['document']['sections'][0]['columns'][0]['elements'][0]['type']);
+
+        $search = $readPackage('search-site-header.json');
+        self::assertSame('wide', $search['document']['sections'][0]['columns'][1]['elements'][0]['data']['layout']);
+        self::assertSame('#111827', $search['document']['sections'][1]['settings']['bg_color']);
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */

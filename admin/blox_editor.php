@@ -80,7 +80,9 @@ $templateStoredDraft = '';
 if ($isHomeBlox) {
     requirePermission('*');
 }
-$areaCtxOptions = []; // 头尾模板的预览上下文选项（首页/单页/栏目），仅 header/footer 模板非空
+$areaCtxOptions = []; // 头尾模板的首页预览入口，仅 header/footer 模板非空
+$areaCtxOptionGroups = []; // 其余单页/栏目按语言分组，避免多语言站点混排
+$areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $documentIdentity = '';
 $homeBannerSeeds = [];
 $pageHasPublished = false;
@@ -176,20 +178,45 @@ if ($isHomeBlox) {
         ? 'current-theme-header:' . (string) config('current_theme', 'default')
         : 'template:' . $templateId;
     if (in_array($templateType, ['header', 'footer'], true)) {
-        // 头尾模板：预览 = 可编辑模板段 + 正文只读上下文（Bricks 的「可编辑区+上下文」模型）。
-        // r9：上下文可切换（首页/单页/栏目），服务端按所选上下文渲染正文并用前台同一套
-        // Resolver 报告命中模板——预览命中即线上命中。
+        // 页头只显示可编辑区域；页尾保留正文落底上下文。上下文选择仍使用前台同一套
+        // Resolver 报告命中模板，避免编辑中的适用范围与线上实际命中脱节。
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType;
+        if ($templateType === 'header') {
+            $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog('header');
+        }
         $areaCtxOptions[] = ['value' => 'home', 'label' => __('blox_ctx_home')];
         foreach (channelModel()->where(['status' => 1]) as $ctxCh) {
             $ctxChType = (string) ($ctxCh['type'] ?? '');
             if ($ctxChType === 'redirect') {
                 continue;
             }
-            $areaCtxOptions[] = [
+            $ctxLang = trim((string) ($ctxCh['lang'] ?? ''));
+            if ($ctxLang === '') {
+                $ctxLang = (string) config('site_lang', 'zh-CN');
+            }
+            $areaCtxOptionGroups[$ctxLang][] = [
                 'value' => ($ctxChType === 'page' ? 'page:' : 'channel:') . (int) $ctxCh['id'],
                 'label' => (string) $ctxCh['name'],
             ];
+        }
+        if ($areaCtxOptionGroups !== []) {
+            $contextLanguageLabels = availableLanguages();
+            $contextLanguageOrder = array_values(array_unique(array_merge(
+                [getLang()],
+                array_keys(enabledLanguages()),
+                array_keys($areaCtxOptionGroups)
+            )));
+            $orderedContextGroups = [];
+            foreach ($contextLanguageOrder as $contextLanguage) {
+                if (!isset($areaCtxOptionGroups[$contextLanguage])) {
+                    continue;
+                }
+                $orderedContextGroups[$contextLanguage] = [
+                    'label' => $contextLanguageLabels[$contextLanguage] ?? $contextLanguage,
+                    'options' => $areaCtxOptionGroups[$contextLanguage],
+                ];
+            }
+            $areaCtxOptionGroups = $orderedContextGroups;
         }
     } else {
         // section/page 模板：纯段落预览，借沙盒页通道
@@ -630,6 +657,41 @@ $canManageBloxDesign = hasPermission('*');
         .blox-palette-drag-ghost { position: fixed; left: -9999px; top: -9999px; z-index: 9999; display: flex; max-width: 220px; align-items: center; gap: 8px; overflow: hidden; border-radius: 6px; background: #fff; padding: 7px 10px 7px 7px; color: #1e3a8a; box-shadow: 0 8px 20px rgba(15, 23, 42, .18); font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
         .blox-palette-drag-ghost-icon { display: flex; width: 26px; height: 26px; flex: 0 0 26px; align-items: center; justify-content: center; border-radius: 4px; background: #eff6ff; color: #2563eb; }
         .blox-palette-drag-ghost-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .blox-layout-preview {
+            gap: var(--blox-preview-gap, 0);
+            padding: var(--blox-preview-padding, 0);
+            overflow: hidden;
+        }
+        .blox-layout-preview-item {
+            box-sizing: border-box;
+            display: flex;
+            min-width: 1rem;
+            min-height: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .blox-preview-row .blox-layout-preview-item {
+            width: 1.5rem;
+            height: 2rem;
+            flex: 0 1 1.5rem;
+        }
+        .blox-preview-row.blox-preview-align-stretch .blox-layout-preview-item { height: auto; }
+        .blox-preview-column .blox-layout-preview-item {
+            width: 2rem;
+            min-height: .875rem;
+            flex: 0 1 1.125rem;
+        }
+        .blox-preview-column.blox-preview-align-stretch .blox-layout-preview-item { width: auto; }
+        .blox-layout-preview-item[data-placeholder="true"]::after {
+            width: .5rem;
+            height: 1px;
+            border-radius: 1px;
+            background: #cbd5e1;
+            content: "";
+        }
         .blox-tree-drop-node { position: relative; }
         .blox-tree-drop-line {
             position: absolute; left: .25rem; right: .25rem; z-index: 20; height: 2px;
@@ -802,7 +864,7 @@ $canManageBloxDesign = hasPermission('*');
             }
             main { padding: .75rem .5rem calc(4.25rem + env(safe-area-inset-bottom)) !important; }
         }
-        @media (max-width: 1023px) {
+        @media (max-width: 1199px) {
             .blox-editor-header { padding-right: .5rem; padding-left: .5rem; gap: .25rem; }
             .blox-header-brand { gap: 0; }
             .blox-header-brand-copy,
@@ -885,6 +947,15 @@ $canManageBloxDesign = hasPermission('*');
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
+            headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            headerPresetOpen: false,
+            headerPresetText: <?php echo json_encode([
+                'title' => __('blox_header_presets'),
+                'hint' => __('blox_header_presets_hint'),
+                'apply' => __('blox_header_preset_apply'),
+                'applied' => __('blox_header_preset_applied'),
+                'close' => __('close'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
             initialPanel: <?php echo json_encode($initialPanel); ?>,
             initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -1127,6 +1198,8 @@ $canManageBloxDesign = hasPermission('*');
                 'settingsWord' => __('blox_ctx_settings'),
                 'settingsOf' => __('blox_settings_of'),
                 'sectionWord' => __('blox_section_word'),
+                'headerSection' => __('blox_header_section_name'),
+                'headerSectionIndexed' => __('blox_header_section_name_indexed'),
                 'colWord' => __('blox_col_word'),
                 'containerWord' => __('blox_tree_container'),
                 'elementWord' => __('blox_element_label'),
@@ -1832,6 +1905,42 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateQuickFilter = "all";
                 this.templateQuery = "";
                 this.openTemplateDialog();
+            },
+
+            openHeaderPresets() {
+                if (!this.headerTemplateMode || this.headerPresets.length === 0) return;
+                this.headerPresetOpen = true;
+                this.focusDialog(this.$refs.headerPresetDialog, "[data-dialog-initial]");
+            },
+
+            closeHeaderPresets() {
+                if (!this.headerPresetOpen) return;
+                var root = this.$refs.headerPresetDialog;
+                this.headerPresetOpen = false;
+                this.releaseDialog(root);
+            },
+
+            applyHeaderPreset(preset) {
+                if (!this.headerTemplateMode || !preset || !Array.isArray(preset.sections)
+                    || preset.sections.length === 0) return;
+                var self = this;
+                var applied = this.commandRunner().execute("apply-header-preset", function () {
+                    var fresh = window.BloxTemplateLibrary.freshSections(
+                        preset.sections,
+                        function (prefix) { return self.uid(prefix); }
+                    );
+                    self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
+                    self.docSettings = JSON.parse(JSON.stringify(preset.settings || {}));
+                    self.normalizeHeaderSettings();
+                    self.selectedSi = fresh.length > 0 ? 0 : -1;
+                    self.selectedCi = -1;
+                    self.selectedEi = -1;
+                    self.selectedSubEi = -1;
+                    self.selLayer = fresh.length > 0 ? "sec" : "";
+                    self.closeHeaderPresets();
+                });
+                if (!applied.ok) return;
+                this.toast(this.headerPresetText.applied.replace(":name", preset.name || ""));
             },
 
             openPrebuiltSections() {
@@ -2784,6 +2893,10 @@ $canManageBloxDesign = hasPermission('*');
                 return ((this.selEl.data && this.selEl.data.children) || []).length;
             },
 
+            containerPreviewItemCount() {
+                return Math.min(Math.max(this.containerChildCount(), 3), 6);
+            },
+
             containerControl(key) {
                 if (!this.isSelectedContainerEl()) return null;
                 return (this.elSchema(this.selEl.type).controls || []).find(function (control) {
@@ -2828,14 +2941,15 @@ $canManageBloxDesign = hasPermission('*');
                 var isRow = this.containerControlValue("direction") === "row";
                 var cls = isFlex ? (isRow ? "flex flex-row" : "flex flex-col") : "block";
                 if (isFlex) {
+                    cls += isRow ? " blox-preview-row" : " blox-preview-column";
                     var wrap = d.wrap || "auto";
                     if (wrap === "wrap" || (wrap === "auto" && isRow)) cls += " flex-wrap";
                     else if (wrap === "nowrap") cls += " flex-nowrap";
-                    cls += " " + ({none:"gap-0", sm:"gap-1", md:"gap-2", lg:"gap-4", xl:"gap-6"}[this.containerControlValue("gap")] || "gap-0");
-                    cls += " " + ({stretch:"items-stretch", start:"items-start", center:"items-center", end:"items-end", baseline:"items-baseline"}[d.align || "stretch"] || "items-stretch");
+                    var align = d.align || "stretch";
+                    cls += align === "stretch" ? " blox-preview-align-stretch" : "";
+                    cls += " " + ({stretch:"items-stretch", start:"items-start", center:"items-center", end:"items-end", baseline:"items-baseline"}[align] || "items-stretch");
                     cls += " " + ({start:"justify-start", center:"justify-center", end:"justify-end", between:"justify-between", around:"justify-around", evenly:"justify-evenly"}[d.justify || "start"] || "justify-start");
                 }
-                cls += " " + ({none:"", sm:"p-2", md:"p-4", lg:"p-6", xl:"p-8"}[this.containerControlValue("padding")] || "");
                 cls += " " + ({none:"rounded", md:"rounded-lg", xl:"rounded-2xl"}[d.radius || "none"] || "rounded");
                 return cls;
             },
@@ -2843,7 +2957,13 @@ $canManageBloxDesign = hasPermission('*');
             containerPreviewStyle() {
                 if (!this.isSelectedContainerEl()) return "";
                 var bg = (this.selEl.data && this.selEl.data.bg_color) || "#f8fafc";
-                return "background:" + bg;
+                var gap = ({none:"0px", sm:"2px", md:"4px", lg:"6px", xl:"8px"}[this.containerControlValue("gap")] || "0px");
+                var padding = ({none:"0px", sm:"4px", md:"6px", lg:"8px", xl:"10px"}[this.containerControlValue("padding")] || "0px");
+                return {
+                    background: bg,
+                    "--blox-preview-gap": gap,
+                    "--blox-preview-padding": padding,
+                };
             },
 
             /** 树里显示的元素名：自定义命名 > 自己的文字 > 类型名 */
@@ -2974,6 +3094,13 @@ $canManageBloxDesign = hasPermission('*');
                     }
                 }
 
+                // 网页头是一个完整编辑对象，不应因首个 Logo 元素而显示成“站点标识”。
+                // 用户填写的自定义区块名仍优先；仅改写自动命名的最后兜底。
+                if (!title && this.headerTemplateMode) {
+                    return this.sections.length > 1
+                        ? this.uiText.headerSectionIndexed.replace(":n", si + 1)
+                        : this.uiText.headerSection;
+                }
                 if (typeLabel && title && typeLabel.toLocaleLowerCase() !== title.toLocaleLowerCase()) {
                     return this.sectionLabelText(typeLabel + " · " + title, labelMax);
                 }

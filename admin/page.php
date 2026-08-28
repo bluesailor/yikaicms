@@ -155,7 +155,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                 </tr>
             </thead>
             <tbody class="divide-y">
-                <tr class="bg-blue-50/60 hover:bg-blue-50">
+                <tr class="bg-blue-50/60 hover:bg-blue-50" data-testid="page-home-row">
                     <td class="px-4 py-3 text-gray-400">-</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
@@ -165,7 +165,6 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                                     <?php echo e(__('admin_home')); ?>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 whitespace-nowrap"><?php echo e(__('admin_label_fixed')); ?></span>
                                 </div>
-                                <div class="text-xs text-gray-400"><?php echo e(__('admin_setting_home')); ?></div>
                             </div>
                         </div>
                     </td>
@@ -184,18 +183,13 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                     </td>
                     <td class="px-4 py-3 text-center text-gray-300">-</td>
                     <td class="px-4 py-3 text-center">
-                        <a href="/admin/setting_home.php"
-                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
-                           title="<?php echo e(__('admin_setting_home')); ?>">
-                            <i class="ti ti-settings text-sm"></i>
-                            <?php echo __('admin_setting_home'); ?>
-                        </a>
                         <?php if (bloxPageEditorEnabled()): ?>
                         <a href="/admin/blox_editor.php?home=1"
-                           class="text-gray-500 hover:text-gray-900 hover:underline text-sm mr-2 inline-flex items-center gap-1"
-                           title="<?php echo e(__('page_mode_blox_tip')); ?>">
-                            <i class="ti ti-stack-2 text-sm"></i>
-                            <?php echo __('page_mode_blox'); ?>
+                           data-testid="page-home-edit"
+                           class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
+                           title="<?php echo e(__('site_design_open_home')); ?>">
+                            <i class="ti ti-pencil text-sm"></i>
+                            <?php echo e(__('site_design_open_home')); ?>
                         </a>
                         <?php endif; ?>
                         <a href="/" target="_blank"
