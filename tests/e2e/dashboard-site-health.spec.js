@@ -20,11 +20,14 @@ test('dashboard Site Health notice keeps all actions usable across viewports @ci
 
   await page.getByTestId('dashboard-health-close').click();
   await expect(notice).toHaveCount(0);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  // 两次 reload 之间只隔了立即返回的断言与 evaluate。若第一次只等到
+  // domcontentloaded，子资源仍在飞，紧接着的第二次导航会被 Chromium 判为
+  // net::ERR_ABORTED（CI 上稳定复现、本机复现不出）。等到 load 再往下走。
+  await page.reload({ waitUntil: 'load' });
   await expect(page.getByTestId('dashboard-health-notice')).toHaveCount(0);
 
   await page.evaluate((key) => sessionStorage.removeItem(key), SESSION_KEY);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.reload({ waitUntil: 'load' });
   await expect(page.getByTestId('dashboard-health-notice')).toBeVisible();
   expect(consoleEntries, 'dashboard notice must keep the console clean').toEqual([]);
 });
