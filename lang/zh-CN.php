@@ -5733,4 +5733,6 @@ voltage|电压|220V',
     'blox_assignment_matrix_language' => '语言',
     'blox_assignment_matrix_action' => '查看详情',
     'blox_assignment_matrix_disabled' => '已停用，使用主题',
+    'blox_responsive_summary_overrides' => '当前对象有 :count 项单独设置',
+    'blox_responsive_summary_inherit' => '当前对象沿用上级尺寸',
 ];

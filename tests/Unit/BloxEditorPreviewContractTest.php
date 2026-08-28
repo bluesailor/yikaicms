@@ -1578,4 +1578,26 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("__('blox_header_settings')", $header);
         $this->assertStringNotContainsString('$homeHeaderSettingsUrl', $editor . $header);
     }
+
+    public function testGlobalDeviceSwitchExposesSelectedResponsiveOverrideState(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $header = $this->source('admin/blox_editor/partials/header.php');
+
+        foreach ([
+            'selectedResponsiveOverrideCount(device)',
+            'responsiveDeviceTitle(device)',
+            'summaryOverrides',
+            'summaryInherit',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "responsive summary token {$token} missing");
+        }
+        foreach ([
+            ':title="responsiveDeviceTitle(d.key)"',
+            ':data-responsive-state="selectedResponsiveOverrideCount(d.key) > 0 ? \'override\' : \'inherit\'"',
+            ':data-responsive-overrides="selectedResponsiveOverrideCount(d.key)"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $header, "global device state token {$token} missing");
+        }
+    }
 }
