@@ -118,9 +118,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </dd>
             </div>
         </dl>
+
+        <div class="mt-5 pt-4 border-t border-gray-100">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <div class="text-sm font-medium text-gray-800"><?php echo __('lic_support_title'); ?></div>
+                    <p class="mt-0.5 text-sm text-gray-500">
+                        <?php echo e($valid ? __('lic_support_active') : __('lic_support_inactive')); ?>
+                    </p>
+                </div>
+                <a href="https://www.yikaicms.com/feedback.html" target="_blank" rel="noopener"
+                   data-testid="lic-support-forum"
+                   class="inline-flex items-center gap-1 shrink-0 border border-gray-300 px-3 py-1.5 rounded text-sm text-gray-700 hover:border-primary hover:text-primary transition">
+                    <i class="ti ti-messages"></i><?php echo __('lic_support_forum'); ?>
+                </a>
+            </div>
+        </div>
     </div>
 
-    <!-- Blox 总开关默认开启且不依赖授权；高级能力由独立授权闸控制。 -->
+    <!-- Blox 总开关默认开启；2026-08-28 起全部 Blox 能力对免费版开放，本开关是唯一闸。 -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
             <div>
