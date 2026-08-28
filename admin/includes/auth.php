@@ -88,6 +88,14 @@ function checkLogin(): void
                 error(__('auth_demo_readonly'));
             }
         }
+
+        // 演示沙盒：可写，但会锁死/破坏演示站的页面仍拦（清单见 DemoSandbox::protectedPages）
+        if (defined('DEMO_SANDBOX') && DEMO_SANDBOX) {
+            require_once ROOT_PATH . '/includes/DemoSandbox.php';
+            if (DemoSandbox::isProtectedPage((string) ($_SERVER['SCRIPT_NAME'] ?? ''))) {
+                error(__('auth_demo_sandbox_protected'));
+            }
+        }
     }
 }
 

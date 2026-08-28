@@ -755,6 +755,13 @@ return [
 
     'admin_backend' => '管理画面',
     'admin_demo_mode' => 'デモモードでは変更操作はできません',
+    'admin_demo_sandbox' => 'デモサンドボックス：変更は :minutes 分間保持され、その後自動的に元へ戻ります',
+    'admin_demo_sandbox_last' => '前回の復元：:time',
+    'admin_demo_sandbox_reset_link' => '今すぐ復元',
+    'auth_demo_sandbox_protected' => 'デモサンドボックスでは、デモサイトが操作不能にならないようこのページを開放していません',
+    'cron_demo_reset' => 'デモサンドボックスの定期復元',
+    'cron_demo_reset_done' => '復元しました：SQL :n 件、ファイル :files 件',
+    'cron_demo_reset_skipped' => 'デモサンドボックスが無効のためスキップしました',
     'admin_actions' => '操作',
     'admin_confirm' => '確認',
     'admin_title_label' => 'タイトル',

@@ -43,11 +43,17 @@ class Compatibility
     // ─────────────────────────────────────────────────────
     private static function initDemoMode(): void
     {
-        if (defined('DEMO_MODE')) return;
+        // demo_mode：0 关 / 1 只读（拦所有写）/ 2 沙盒（可写，按快照定时重置，见 DemoSandbox）
+        $mode = '0';
         try {
-            define('DEMO_MODE', (string)config('demo_mode', '0') === '1');
+            $mode = (string)config('demo_mode', '0');
         } catch (\Throwable $e) {
-            define('DEMO_MODE', false);
+        }
+        if (!defined('DEMO_MODE')) {
+            define('DEMO_MODE', $mode === '1');
+        }
+        if (!defined('DEMO_SANDBOX')) {
+            define('DEMO_SANDBOX', $mode === '2');
         }
     }
 

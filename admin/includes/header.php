@@ -793,6 +793,20 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             <div class="bg-amber-500 text-white text-center py-2 text-sm font-medium">
                 <?php echo __('admin_demo_mode'); ?>
             </div>
+            <?php elseif (defined('DEMO_SANDBOX') && DEMO_SANDBOX): ?>
+            <?php
+                require_once ROOT_PATH . '/includes/DemoSandbox.php';
+                $__sandboxMinutes = (int) ceil(DemoSandbox::interval() / 60);
+                $__sandboxLast = DemoSandbox::lastReset();
+            ?>
+            <div class="bg-sky-600 text-white text-center py-2 text-sm font-medium" data-testid="demo-sandbox-banner">
+                <i class="ti ti-flask mr-1"></i>
+                <?php echo e(__('admin_demo_sandbox', ['minutes' => (string) $__sandboxMinutes])); ?>
+                <?php if ($__sandboxLast !== null): ?>
+                <span class="opacity-80 ml-2"><?php echo e(__('admin_demo_sandbox_last', ['time' => (string) ($__sandboxLast['at'] ?? '')])); ?></span>
+                <?php endif; ?>
+                <a href="/admin/setting_demo.php" class="underline ml-3"><?php echo e(__('admin_demo_sandbox_reset_link')); ?></a>
+            </div>
             <?php endif; ?>
 
             <!-- 页面内容 -->
