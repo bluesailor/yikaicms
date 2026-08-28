@@ -101,6 +101,16 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             ? $editableArea
             : '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>' . $editableArea;
     } else {
+        // 空文档不渲染站点页头页脚：新建单页只该看到空态引导卡。挂着 chrome 有两个坏处——
+        // 空态卡是 appendChild 到 body 的，会落在页脚**下方**（看着像页脚的一部分）；
+        // 而且页头页脚在这里是只读上下文，喧宾夺主，把注意力从「先加内容」上引开。
+        // 数据源用 POST 的 blocks_data：画布预览全程由编辑器 POST 当前文档驱动。
+        $canvasBlocks = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
+        if (is_array($canvasBlocks) && isset($canvasBlocks['sections']) && is_array($canvasBlocks['sections'])) {
+            $canvasBlocks = $canvasBlocks['sections'];
+        }
+        $hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];
+
         if ($isHomeLayout) {
             $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
             if (is_array($previewSections) && isset($previewSections['sections']) && is_array($previewSections['sections'])) {
@@ -305,7 +315,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             BloxAreaEditorTarget::url('footer', $areaContext, $isHomeLayout ? 'home' : '')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
-        $body = $headerBody . $pageBody . $footerBody;
+        $body = $hasCanvasContent ? ($headerBody . $pageBody . $footerBody) : $pageBody;
     }
 
     $bloxInject = '';
