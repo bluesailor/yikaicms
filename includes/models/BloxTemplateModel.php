@@ -33,7 +33,8 @@ final class BloxTemplateModel extends Model
         array $requirements = [],
         string $thumbnail = '',
         int $adminId = 0,
-        string $sourceRef = ''
+        string $sourceRef = '',
+        array $metadata = []
     ): int {
         $type = trim($type);
         $name = trim($name);
@@ -60,6 +61,10 @@ final class BloxTemplateModel extends Model
                 self::normalizeRequirements($requirements),
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             ),
+            'metadata' => json_encode(
+                self::normalizeMetadata($metadata),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            ),
             'thumbnail' => mb_substr(trim($thumbnail), 0, 500),
             'status' => 0,
             'admin_id' => max(0, $adminId),
@@ -78,12 +83,12 @@ final class BloxTemplateModel extends Model
         try {
             if ($type === null) {
                 return db()->fetchAll(
-                    'SELECT id,type,name,source,source_ref,schema_version,requirements,conditions,thumbnail,status,admin_id,created_at,updated_at,published_at'
+                    'SELECT id,type,name,source,source_ref,schema_version,requirements,metadata,conditions,thumbnail,status,admin_id,created_at,updated_at,published_at'
                     . ' FROM ' . DB_PREFIX . 'blox_templates ORDER BY updated_at DESC, id DESC'
                 );
             }
             return db()->fetchAll(
-                'SELECT id,type,name,source,source_ref,schema_version,requirements,conditions,thumbnail,status,admin_id,created_at,updated_at,published_at'
+                'SELECT id,type,name,source,source_ref,schema_version,requirements,metadata,conditions,thumbnail,status,admin_id,created_at,updated_at,published_at'
                 . ' FROM ' . DB_PREFIX . 'blox_templates WHERE type = ? ORDER BY updated_at DESC, id DESC',
                 [$type]
             );
@@ -100,7 +105,7 @@ final class BloxTemplateModel extends Model
         }
 
         return db()->fetchOne(
-            'SELECT id,type,name,source,source_ref,schema_version,draft_data,published_data,requirements,conditions,thumbnail,status,updated_at,published_at'
+            'SELECT id,type,name,source,source_ref,schema_version,draft_data,published_data,requirements,metadata,conditions,thumbnail,status,updated_at,published_at'
             . ' FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?',
             [$id]
         );
@@ -133,7 +138,7 @@ final class BloxTemplateModel extends Model
     {
         try {
             return db()->fetchAll(
-                'SELECT id,type,name,source,source_ref,requirements,thumbnail,updated_at,published_at'
+                'SELECT id,type,name,source,source_ref,requirements,metadata,thumbnail,updated_at,published_at'
                 . ' FROM ' . DB_PREFIX . 'blox_templates'
                 . ' WHERE status = 1 AND type IN (?, ?) AND published_data IS NOT NULL'
                 . ' ORDER BY updated_at DESC, id DESC',
@@ -152,7 +157,7 @@ final class BloxTemplateModel extends Model
         }
 
         return db()->fetchOne(
-            'SELECT id,type,name,source,source_ref,schema_version,published_data,requirements,thumbnail,updated_at,published_at'
+            'SELECT id,type,name,source,source_ref,schema_version,published_data,requirements,metadata,thumbnail,updated_at,published_at'
             . ' FROM ' . DB_PREFIX . 'blox_templates'
             . ' WHERE id = ? AND status = 1 AND type IN (?, ?) AND published_data IS NOT NULL',
             [$id, 'section', 'page']
@@ -210,6 +215,25 @@ final class BloxTemplateModel extends Model
         }
     }
 
+    /** 保存目录推荐元数据；正文和发布状态不受影响。 */
+    public function saveMetadata(int $id, array $metadata): void
+    {
+        $affected = db()->execute(
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET metadata = ?, updated_at = ? WHERE id = ?',
+            [
+                json_encode(
+                    self::normalizeMetadata($metadata),
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                ),
+                time(),
+                $id,
+            ]
+        );
+        if ($affected < 1 && !$this->find($id)) {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
+    }
+
     public function publishDraft(int $id): void
     {
         $row = $this->find($id);
@@ -263,5 +287,14 @@ final class BloxTemplateModel extends Model
             'design_tokens' => $normalize($requirements['design_tokens'] ?? []),
             'design_styles' => $normalize($requirements['design_styles'] ?? []),
         ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeMetadata(array $metadata): array
+    {
+        if (!class_exists('BloxSectionMetadata', false)) {
+            require_once ROOT_PATH . '/includes/builder/BloxSectionMetadata.php';
+        }
+        return BloxSectionMetadata::normalize($metadata);
     }
 }

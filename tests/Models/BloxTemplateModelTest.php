@@ -24,6 +24,7 @@ final class BloxTemplateModelTest extends TestCase
                 draft_data TEXT NOT NULL,
                 published_data TEXT,
                 requirements TEXT,
+                metadata TEXT,
                 conditions TEXT,
                 thumbnail TEXT NOT NULL DEFAULT '',
                 status INTEGER NOT NULL DEFAULT 0,
@@ -56,6 +57,7 @@ final class BloxTemplateModelTest extends TestCase
             ['elements' => ['heading', 'nav'], 'plugins' => [], 'design_tokens' => [], 'design_styles' => []],
             json_decode((string) $row['requirements'], true)
         );
+        $this->assertSame('general', json_decode((string) $row['metadata'], true)['purpose']);
 
         bloxTemplateModel()->publishDraft($id);
         $published = bloxTemplateModel()->find($id);
@@ -87,6 +89,24 @@ final class BloxTemplateModelTest extends TestCase
         $this->assertSame('[{"id":"s1","columns":[]}]', $row['draft_data']);
         $this->assertSame($row['draft_data'], $row['published_data']);
         $this->assertArrayHasKey('requirements', $row);
+        $this->assertArrayHasKey('metadata', $row);
+    }
+
+    public function testMetadataIsNormalizedAndSavedWithoutChangingDraft(): void
+    {
+        $id = bloxTemplateModel()->createDraft('section', 'Catalog card', '[]');
+        bloxTemplateModel()->saveMetadata($id, [
+            'purpose' => 'features',
+            'page_types' => ['home', 'bad-value'],
+            'priority' => 180,
+        ]);
+
+        $row = bloxTemplateModel()->findForExport($id);
+        $metadata = json_decode((string) $row['metadata'], true);
+        $this->assertSame('features', $metadata['purpose']);
+        $this->assertSame(['home'], $metadata['page_types']);
+        $this->assertSame(100, $metadata['priority']);
+        $this->assertSame('[]', $row['draft_data']);
     }
 
     public function testDraftCompareAndSwapRejectsAStaleEditor(): void

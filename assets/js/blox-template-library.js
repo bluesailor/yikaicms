@@ -118,20 +118,29 @@
         return value || String(item && item.type || "").trim().toLowerCase();
     }
 
-    function filter(items, query, type, source, category) {
+    function purposeValue(item) {
+        return String(normalizeMetadata(item && item.metadata).purpose || "general").trim().toLowerCase();
+    }
+
+    function filter(items, query, type, source, category, purpose) {
         var q = String(query || "").trim().toLowerCase();
         var wantedCategory = String(category || "all").trim().toLowerCase();
+        var wantedPurpose = String(purpose || "all").trim().toLowerCase();
         return (Array.isArray(items) ? items : []).filter(function (item) {
             if (type !== "all" && item.type !== type) return false;
             if (source && source !== "all" && item.source !== source) return false;
             if (wantedCategory !== "all" && categoryValue(item) !== wantedCategory) return false;
+            if (wantedPurpose !== "all" && purposeValue(item) !== wantedPurpose) return false;
             if (!q) return true;
+            var metadata = normalizeMetadata(item.metadata);
             return String(item.name || "").toLowerCase().indexOf(q) !== -1
                 || String(item.provider || "").toLowerCase().indexOf(q) !== -1
                 || String(item.description || "").toLowerCase().indexOf(q) !== -1
                 || (Array.isArray(item.keywords) ? item.keywords.join(" ") : String(item.keywords || ""))
                     .toLowerCase().indexOf(q) !== -1
-                || String(item.category || "").toLowerCase().indexOf(q) !== -1;
+                || String(item.category || "").toLowerCase().indexOf(q) !== -1
+                || String(metadata.purpose || "").toLowerCase().indexOf(q) !== -1
+                || metadata.page_types.join(" ").toLowerCase().indexOf(q) !== -1;
         });
     }
 
@@ -147,6 +156,22 @@
     function categoryLabel(category, text) {
         var value = String(category || "").trim().toLowerCase();
         var key = "category" + value.charAt(0).toUpperCase() + value.slice(1);
+        return text && text[key] ? text[key] : value;
+    }
+
+    function purposes(items) {
+        var seen = {};
+        (Array.isArray(items) ? items : []).forEach(function (item) {
+            if (item && item.type === "section") seen[purposeValue(item)] = true;
+        });
+        return Object.keys(seen).sort();
+    }
+
+    function purposeLabel(purpose, text) {
+        var value = String(purpose || "general").trim().toLowerCase();
+        var key = "purpose" + value.split("-").map(function (part) {
+            return part.charAt(0).toUpperCase() + part.slice(1);
+        }).join("");
         return text && text[key] ? text[key] : value;
     }
 
@@ -238,6 +263,8 @@
         filter: filter,
         categories: categories,
         categoryLabel: categoryLabel,
+        purposes: purposes,
+        purposeLabel: purposeLabel,
         scope: scope,
         scopeCount: scopeCount,
         upsertLocal: upsertLocal,

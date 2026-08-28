@@ -15,6 +15,18 @@ final class BloxSectionMetadata
     ];
     private const CTA_TYPES = ['none', 'learn-more', 'contact', 'quote', 'download', 'purchase', 'subscribe'];
 
+    /** @return list<string> */
+    public static function pageTypes(): array
+    {
+        return self::PAGE_TYPES;
+    }
+
+    /** @return list<string> */
+    public static function purposes(): array
+    {
+        return self::PURPOSES;
+    }
+
     /** @return array<string,mixed> */
     public static function normalize(mixed $raw, string $fallbackPurpose = 'general'): array
     {

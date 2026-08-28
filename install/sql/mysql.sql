@@ -256,6 +256,7 @@ CREATE TABLE `yikai_blox_templates` (
   `draft_data` longtext NOT NULL,
   `published_data` longtext,
   `requirements` longtext,
+  `metadata` longtext,
   `conditions` longtext,
   `thumbnail` varchar(500) NOT NULL DEFAULT '',
   `status` tinyint(1) unsigned NOT NULL DEFAULT 0,

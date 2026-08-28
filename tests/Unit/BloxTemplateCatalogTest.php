@@ -23,6 +23,7 @@ final class BloxTemplateCatalogTest extends TestCase
                 draft_data TEXT NOT NULL,
                 published_data TEXT,
                 requirements TEXT,
+                metadata TEXT,
                 thumbnail TEXT NOT NULL DEFAULT '',
                 status INTEGER NOT NULL DEFAULT 0,
                 admin_id INTEGER NOT NULL DEFAULT 0,
@@ -41,7 +42,11 @@ final class BloxTemplateCatalogTest extends TestCase
             $this->sectionJson('old-section', 'old-element'),
             'user',
             1,
-            ['elements' => ['heading'], 'plugins' => []]
+            ['elements' => ['heading'], 'plugins' => []],
+            '',
+            0,
+            '',
+            ['purpose' => 'hero', 'page_types' => ['home'], 'priority' => 90]
         );
         bloxTemplateModel()->publishDraft($published);
         bloxTemplateModel()->createDraft('page', 'Draft page', $this->sectionJson('draft', 'draft-el'));
@@ -64,6 +69,9 @@ final class BloxTemplateCatalogTest extends TestCase
         $this->assertCount(1, $local);
         $this->assertSame('local:' . $published, $local[0]['key']);
         $this->assertSame('section', $local[0]['type']);
+        $this->assertSame('hero', $local[0]['metadata']['purpose']);
+        $this->assertSame(['home'], $local[0]['metadata']['page_types']);
+        $this->assertSame(90, $local[0]['metadata']['priority']);
         $this->assertContains('builtin:404-route-lost', array_column($items, 'key'));
     }
 

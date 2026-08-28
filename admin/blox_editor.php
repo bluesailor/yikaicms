@@ -1346,6 +1346,21 @@ $canManageBloxDesign = hasPermission('*');
                 'categoryContent' => __('blox_template_category_content'),
                 'categoryPage' => __('blox_template_category_page'),
                 'categoryBusiness' => __('blox_template_category_business'),
+                'purpose' => __('blox_template_purpose'),
+                'purposeAll' => __('blox_template_purpose_all'),
+                'purposeGeneral' => __('blox_template_purpose_general'),
+                'purposeHero' => __('blox_template_purpose_hero'),
+                'purposeCompanyIntro' => __('blox_template_purpose_company_intro'),
+                'purposeFeatures' => __('blox_template_purpose_features'),
+                'purposeStats' => __('blox_template_purpose_stats'),
+                'purposeProducts' => __('blox_template_purpose_products'),
+                'purposeCases' => __('blox_template_purpose_cases'),
+                'purposeProcess' => __('blox_template_purpose_process'),
+                'purposeFaq' => __('blox_template_purpose_faq'),
+                'purposeCta' => __('blox_template_purpose_cta'),
+                'purposeContact' => __('blox_template_purpose_contact'),
+                'purposeTestimonials' => __('blox_template_purpose_testimonials'),
+                'purposeContent' => __('blox_template_purpose_content'),
                 'resultCount' => __('blox_template_result_count'),
                 'localLibrary' => __('blox_template_tab_local'),
                 'remoteLibrary' => __('blox_template_tab_remote'),
@@ -1900,6 +1915,7 @@ $canManageBloxDesign = hasPermission('*');
             templateQuery: "",
             templateFilter: "all",
             templateCategory: "all",
+            templatePurpose: "all",
             templateQuickFilter: "recommended",
             templatePageIntent: <?php echo json_encode($templatePageIntent, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             templateDensity: "standard",
@@ -1976,6 +1992,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateEntry = "all";
                 this.templateFilter = "all";
                 this.templateCategory = "all";
+                this.templatePurpose = "all";
                 this.templateQuickFilter = "all";
                 this.templateQuery = "";
                 this.openTemplateDialog();
@@ -2101,7 +2118,8 @@ $canManageBloxDesign = hasPermission('*');
                     this.templateQuery,
                     this.templateFilter,
                     "all",
-                    this.templateCategory
+                    this.templateCategory,
+                    this.templatePurpose
                 );
                 if (this.templateEntry !== "sections") return items;
                 var self = this;
@@ -2150,6 +2168,7 @@ $canManageBloxDesign = hasPermission('*');
                     if (this.templateQuickFilter === "favorites") return "favorites";
                     if (this.templateQuickFilter === "recent") return "recent";
                     if (this.templateCategory !== "all") return "category";
+                    if (this.templatePurpose !== "all") return "category";
                 }
                 return this.templateScope === "remote" ? "remote" : "local";
             },
@@ -2180,6 +2199,7 @@ $canManageBloxDesign = hasPermission('*');
                 return this.templateEntry === "sections" && (
                     String(this.templateQuery || "").trim() !== ""
                     || this.templateCategory !== "all"
+                    || this.templatePurpose !== "all"
                     || !["recommended", "all"].includes(this.templateQuickFilter)
                 );
             },
@@ -2188,6 +2208,7 @@ $canManageBloxDesign = hasPermission('*');
                 if (this.templateEntry !== "sections") return;
                 this.templateQuery = "";
                 this.templateCategory = "all";
+                this.templatePurpose = "all";
                 this.templateQuickFilter = this.templateQuickCount("recommended") > 0 ? "recommended" : "all";
                 var scroller = this.$refs.templateScroll;
                 if (scroller) scroller.scrollTop = 0;
@@ -2208,6 +2229,14 @@ $canManageBloxDesign = hasPermission('*');
                 return window.BloxTemplateLibrary.categoryLabel(category, this.templateText);
             },
 
+            templatePurposeOptions() {
+                return window.BloxTemplateLibrary.purposes(this.templateEntryItems());
+            },
+
+            templatePurposeLabel(purpose) {
+                return window.BloxTemplateLibrary.purposeLabel(purpose, this.templateText);
+            },
+
             restoreTemplateSectionViewState() {
                 var state = {};
                 try {
@@ -2218,6 +2247,9 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateScope = state.scope === "remote" ? "remote" : "local";
                 this.templateCategory = typeof state.category === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.category)
                     ? state.category
+                    : "all";
+                this.templatePurpose = typeof state.purpose === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.purpose)
+                    ? state.purpose
                     : "all";
                 this.templateQuickFilter = ["recommended", "all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
                     ? state.quickFilter
@@ -2233,6 +2265,11 @@ $canManageBloxDesign = hasPermission('*');
                 if (this.templateCategory !== "all"
                     && this.templateCategoryOptions().indexOf(this.templateCategory) === -1) {
                     this.templateCategory = "all";
+                    this.templateSectionScrollTop = 0;
+                }
+                if (this.templatePurpose !== "all"
+                    && this.templatePurposeOptions().indexOf(this.templatePurpose) === -1) {
+                    this.templatePurpose = "all";
                     this.templateSectionScrollTop = 0;
                 }
                 if (this.templateQuickFilter === "recommended" && this.templateQuickCount("recommended") === 0) {
@@ -2261,6 +2298,7 @@ $canManageBloxDesign = hasPermission('*');
                     window.sessionStorage.setItem(this.templateSectionViewStorageKey, JSON.stringify({
                         scope: this.templateScope === "remote" ? "remote" : "local",
                         category: this.templateCategory,
+                        purpose: this.templatePurpose,
                         quickFilter: this.templateQuickFilter,
                         query: String(this.templateQuery || "").slice(0, 120),
                         scrollTop: this.templateSectionScrollTop,
@@ -5395,6 +5433,7 @@ $canManageBloxDesign = hasPermission('*');
                 body.set("action", "save_section");
                 body.set("name", name);
                 body.set("section", JSON.stringify(sec));
+                body.set("page_intent", this.templatePageIntent);
                 body.set("_token", this.csrf);
                 fetch("/admin/blox_template_api.php", { method: "POST", body: body })
                     .then(function (r) { return r.json(); })

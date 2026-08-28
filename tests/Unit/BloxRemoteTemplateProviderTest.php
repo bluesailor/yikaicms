@@ -28,6 +28,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
                 draft_data TEXT NOT NULL,
                 published_data TEXT,
                 requirements TEXT,
+                metadata TEXT,
                 thumbnail TEXT NOT NULL DEFAULT '',
                 status INTEGER NOT NULL DEFAULT 0,
                 admin_id INTEGER NOT NULL DEFAULT 0,
