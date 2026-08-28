@@ -2,6 +2,102 @@
 
 declare(strict_types=1);
 ?>
+    <!-- 元素、区块、列和容器共用的颜色选择器。值仍保存为 HEX 或稳定站点令牌引用。 -->
+    <div x-show="colorPicker.open" x-cloak @keydown.escape.window="closeEditorColorPicker()"
+         class="fixed inset-0 z-[170]" data-testid="blox-editor-color-picker-layer">
+        <button type="button" class="absolute inset-0 cursor-default bg-transparent" @click="closeEditorColorPicker()"
+                tabindex="-1" aria-hidden="true"></button>
+        <section role="dialog" aria-modal="false" :aria-label="colorPicker.title"
+                 data-testid="blox-editor-color-picker"
+                 class="absolute w-[304px] max-w-[calc(100vw-24px)] border border-gray-200 bg-white shadow-xl"
+                 :style="colorPicker.style">
+            <header class="flex h-11 items-center justify-between border-b border-gray-100 px-3">
+                <h3 class="min-w-0 truncate text-sm font-semibold text-gray-900" x-text="colorPicker.title"></h3>
+                <button type="button" @click="closeEditorColorPicker()"
+                        class="inline-flex h-8 w-8 shrink-0 items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        :aria-label="designText.close" :title="designText.close">
+                    <i class="ti ti-x"></i>
+                </button>
+            </header>
+            <div class="max-h-[min(520px,calc(100vh-90px))] overflow-y-auto p-3">
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="text-xs font-medium text-gray-600" x-text="designText.siteColors"></span>
+                        <a href="/admin/blox_design.php" target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800"
+                           :title="designText.manageColors">
+                            <span x-text="designText.manageColors"></span><i class="ti ti-external-link"></i>
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-8 gap-2" data-testid="blox-editor-color-site-colors">
+                        <template x-for="token in activeColorTokens()" :key="'editor-picker-token-' + token.id">
+                            <button type="button" @click="applyEditorColor(colorTokenRef(token.id), false)"
+                                    :title="token.name + ' · ' + token.value" :aria-label="token.name + ' ' + token.value"
+                                    :data-testid="'blox-editor-color-token-' + token.id"
+                                    class="relative h-7 w-7 border border-black/10 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                    :class="colorPicker.raw === colorTokenRef(token.id) ? 'ring-2 ring-blue-500 ring-offset-2' : ''"
+                                    :style="'background:' + token.value">
+                                <i x-show="colorPicker.raw === colorTokenRef(token.id)" class="ti ti-check absolute inset-0 flex items-center justify-center text-sm" :class="colorPickerCheckClass(token.value)"></i>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mt-4 border-t border-gray-100 pt-3">
+                    <span class="mb-2 block text-xs font-medium text-gray-600" x-text="designText.recommended"></span>
+                    <div class="space-y-2">
+                        <template x-for="group in colorPaletteGroups" :key="group.id">
+                            <div class="grid grid-cols-8 gap-2">
+                                <template x-for="color in group.colors" :key="group.id + '-' + color">
+                                    <button type="button" @click="applyEditorColor(color, true)" :title="color" :aria-label="color"
+                                            class="relative h-7 w-7 border border-black/10 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                                            :class="colorPicker.raw.toLowerCase() === color ? 'ring-2 ring-blue-500 ring-offset-1' : ''" :style="'background:' + color">
+                                        <i x-show="colorPicker.raw.toLowerCase() === color" class="ti ti-check absolute inset-0 flex items-center justify-center text-sm" :class="colorPickerCheckClass(color)"></i>
+                                    </button>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div x-show="colorRecent.length" class="mt-4 border-t border-gray-100 pt-3">
+                    <span class="mb-2 block text-xs font-medium text-gray-600" x-text="designText.recent"></span>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="color in colorRecent" :key="'editor-recent-' + color">
+                            <button type="button" @click="applyEditorColor(color, true)" :title="color" :aria-label="color"
+                                    class="h-7 w-7 border border-black/10 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" :style="'background:' + color"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="mt-4 border-t border-gray-100 pt-3">
+                    <label class="mb-2 block text-xs font-medium text-gray-600" for="blox-editor-custom-color" x-text="designText.custom"></label>
+                    <div class="flex h-10 items-center gap-2 border bg-white px-2 focus-within:ring-2"
+                         :class="colorPicker.invalid ? 'border-red-400 focus-within:border-red-500 focus-within:ring-red-100' : 'border-gray-300 focus-within:border-blue-500 focus-within:ring-blue-100'">
+                        <input id="blox-editor-custom-color" type="color" :value="colorPicker.custom"
+                               @input="applyEditorColor($event.target.value, true)"
+                               class="h-7 w-9 shrink-0 cursor-pointer border-0 bg-transparent p-0" data-testid="blox-editor-color-native">
+                        <input type="text" :value="colorPicker.custom" @input="colorPicker.invalid = false"
+                               @change="applyEditorColorText($event.target.value, $event.target)"
+                               @keydown.enter.prevent="applyEditorColorText($event.target.value, $event.target)"
+                               x-bind:aria-invalid="colorPicker.invalid" pattern="#[0-9a-fA-F]{6}" maxlength="7" spellcheck="false"
+                               class="min-w-0 flex-1 border-0 bg-transparent font-mono text-sm uppercase outline-none"
+                               data-testid="blox-editor-color-text">
+                    </div>
+                    <p x-show="colorPicker.invalid" class="mt-2 text-[11px] leading-4 text-red-600" role="alert" x-text="designText.invalidColor"></p>
+                    <p class="mt-2 text-[11px] leading-4 text-gray-400" x-text="designText.pickerHint"></p>
+                </div>
+            </div>
+            <footer x-show="colorPicker.allowClear" class="flex h-11 items-center justify-end border-t border-gray-100 px-3">
+                <button type="button" @click="applyEditorColor('', false); closeEditorColorPicker()"
+                        class="inline-flex h-8 items-center gap-1.5 px-3 text-xs text-gray-600 hover:bg-gray-100 hover:text-red-600"
+                        data-testid="blox-editor-color-clear">
+                    <i class="ti ti-eraser"></i><span x-text="designText.clear"></span>
+                </button>
+            </footer>
+        </section>
+    </div>
+
     <!-- 未发布变化摘要：轻量侧栏，不打断画布操作，关闭后按稳定区块 ID 精确定位。 -->
     <div x-show="draftSummaryOpen" x-cloak class="fixed inset-0 z-[115] pointer-events-none"
          @keydown.escape.window="closeDraftSummary()">

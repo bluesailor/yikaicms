@@ -77,9 +77,15 @@ test('token catalog and named preset apply through stable references @ci', async
   await page.getByTestId('blox-add-element-icon').press('Enter');
   await page.getByTestId('blox-style-tab').click();
 
-  await performPreviewUpdate(page, () => page.getByTestId('blox-color-token-select').selectOption('c_accent'));
+  await performPreviewUpdate(page, async () => {
+    await page.getByTestId('blox-color-picker-trigger').click();
+    await expect(page.getByTestId('blox-editor-color-picker')).toBeVisible();
+    await page.getByTestId('blox-editor-color-token-c_accent').click();
+  });
   const canvas = await frame(page);
   await expect(canvas.locator('[data-yk-el-type="icon"] i')).toHaveAttribute('style', /color:var\(--yk-color-c_accent\)/);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
 
   await performPreviewUpdate(page, () => page.getByTestId('blox-global-style-select').selectOption('s_card'));
   const styled = canvas.locator('[data-yk-global-style="s_card"]');

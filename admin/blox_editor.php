@@ -684,6 +684,7 @@ $canManageBloxDesign = hasPermission('*');
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <script src="/assets/sortable/Sortable.min.js"></script>
+    <script src="/assets/js/blox-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-color-picker.js') ?>"></script>
     <script src="/assets/js/blox-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-template-library.js') ?>"></script>
     <script src="/assets/js/blox-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-media-client.js') ?>"></script>
     <script src="/assets/js/blox-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-dialog-focus.js') ?>"></script>
@@ -1023,6 +1024,9 @@ $canManageBloxDesign = hasPermission('*');
             canManageDesign: <?php echo $canManageBloxDesign ? 'true' : 'false'; ?>,
             designSystem: <?php echo json_encode($bloxDesignSystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             designUsage: { tokens: {}, styles: {} },
+            colorPaletteGroups: window.YikaiBloxColorPicker.paletteGroups,
+            colorRecent: window.YikaiBloxColorPicker.loadRecent(),
+            colorPicker: { open: false, key: '', title: '', raw: '', custom: '#000000', fallback: '#000000', allowClear: true, invalid: false, style: '', apply: null },
             designOpen: false,
             designTab: "colors",
             designBusy: false,
@@ -1042,6 +1046,14 @@ $canManageBloxDesign = hasPermission('*');
                 'usageDraft' => __('blox_design_usage_draft'),
                 'usagePublished' => __('blox_design_usage_published'),
                 'usageCurrent' => __('blox_design_usage_current'),
+                'siteColors' => __('blox_color_site_colors'),
+                'recommended' => __('blox_color_recommended'),
+                'recent' => __('blox_color_recent'),
+                'pickerHint' => __('blox_color_picker_hint'),
+                'invalidColor' => __('blox_color_invalid'),
+                'manageColors' => __('blox_color_manage'),
+                'clear' => __('blox_clear'),
+                'close' => __('close'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             conditionChannels: <?php echo json_encode($displayConditionChannels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             conditionText: <?php echo json_encode([
@@ -1723,6 +1735,85 @@ $canManageBloxDesign = hasPermission('*');
                     if (token && /^#[0-9a-f]{6}$/i.test(String(token.value || ""))) return token.value;
                 }
                 return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
+            },
+
+            colorFieldPreview(value, fallback) {
+                return this.colorPickerValue(value, fallback || "#000000");
+            },
+
+            colorFieldLabel(value, emptyLabel) {
+                var raw = String(value || "").trim();
+                if (!raw) return emptyLabel || this.designText.custom;
+                var id = this.colorTokenId(raw);
+                if (id) {
+                    var token = (this.designSystem.tokens || []).find(function (item) { return item.id === id; });
+                    if (token) return this.colorTokenLabel(token);
+                }
+                return raw;
+            },
+
+            openEditorColorPicker(event, key, title, value, fallback, allowClear, apply) {
+                var rect = event.currentTarget.getBoundingClientRect();
+                var width = 304;
+                var left = Math.min(rect.right + 8, window.innerWidth - width - 12);
+                if (left < 12) left = 12;
+                var top = rect.top;
+                if (top + 520 > window.innerHeight) top = Math.max(56, window.innerHeight - 532);
+                if (window.innerWidth < 640) {
+                    this.colorPicker.style = "left:12px;right:12px;bottom:12px;top:auto;width:auto";
+                } else {
+                    this.colorPicker.style = "left:" + left + "px;top:" + top + "px";
+                }
+                this.colorPicker.key = String(key || "");
+                this.colorPicker.title = String(title || this.designText.custom);
+                this.colorPicker.raw = String(value || "");
+                this.colorPicker.fallback = String(fallback || "#000000");
+                this.colorPicker.custom = this.colorPickerValue(value, this.colorPicker.fallback);
+                this.colorPicker.allowClear = allowClear !== false;
+                this.colorPicker.invalid = false;
+                this.colorPicker.apply = apply;
+                this.colorPicker.open = true;
+            },
+
+            closeEditorColorPicker() {
+                this.colorPicker.open = false;
+                this.colorPicker.apply = null;
+            },
+
+            applyEditorColor(value, remember) {
+                if (typeof this.colorPicker.apply !== "function") return;
+                var raw = String(value || "");
+                var id = this.colorTokenId(raw);
+                if (id && !(this.designSystem.tokens || []).some(function (token) { return token.id === id; })) return;
+                if (!id && raw !== "") {
+                    raw = window.YikaiBloxColorPicker.normalizeHex(raw, "");
+                    if (!raw) return;
+                }
+                this.colorPicker.raw = raw;
+                this.colorPicker.custom = this.colorPickerValue(raw, this.colorPicker.fallback);
+                this.colorPicker.invalid = false;
+                this.colorPicker.apply(raw);
+                if (remember !== false && raw && !id) {
+                    this.colorRecent = window.YikaiBloxColorPicker.remember(raw);
+                }
+            },
+
+            applyEditorColorText(value, input) {
+                var normalized = window.YikaiBloxColorPicker.normalizeHex(value, "");
+                if (!normalized) {
+                    this.colorPicker.invalid = true;
+                    if (input) input.value = this.colorPicker.custom;
+                    return;
+                }
+                this.applyEditorColor(normalized, true);
+            },
+
+            colorPickerCheckClass(value) {
+                var color = this.colorPickerValue(value, "#ffffff");
+                var red = parseInt(color.slice(1, 3), 16);
+                var green = parseInt(color.slice(3, 5), 16);
+                var blue = parseInt(color.slice(5, 7), 16);
+                return ((red * 299 + green * 587 + blue * 114) / 1000) > 150 ? "text-gray-900" : "text-white";
             },
 
             applyGlobalStyle(id) {

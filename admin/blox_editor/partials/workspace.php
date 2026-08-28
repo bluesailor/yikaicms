@@ -847,32 +847,13 @@ declare(strict_types=1);
                                         </div>
                                     </template>
                                     <template x-if="selectedHomeFieldDefinition().control === 'color'">
-                                        <div>
-                                            <div class="flex items-center gap-1 mb-2">
-                                                <select :value="colorTokenId(selectedHomeFieldValue())"
-                                                        @change="$event.target.value && setSelectedHomeFieldValue(colorTokenRef($event.target.value))"
-                                                        class="flex-1 min-w-0 border border-cyan-200 bg-white rounded px-2 py-1 text-xs">
-                                                    <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                                    <template x-for="token in colorTokenOptions(selectedHomeFieldValue())" :key="'home-color-'+token.id">
-                                                        <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                                    </template>
-                                                </select>
-                                                <template x-for="token in activeColorTokens().slice(0, 4)" :key="'home-color-swatch-'+token.id">
-                                                    <button type="button" @click="setSelectedHomeFieldValue(colorTokenRef(token.id))" :title="token.name"
-                                                            class="w-6 h-6 rounded border border-cyan-200 shrink-0"
-                                                            :class="colorTokenId(selectedHomeFieldValue()) === token.id ? 'ring-2 ring-cyan-400' : ''"
-                                                            :style="'background:' + token.value"></button>
-                                                </template>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <input type="color" :value="colorPickerValue(selectedHomeFieldValue(), '#ffffff')"
-                                                       @input="setSelectedHomeFieldValue($event.target.value)"
-                                                       class="w-10 h-9 border border-cyan-200 bg-white rounded p-1">
-                                                <input type="text" :value="selectedHomeFieldValue()"
-                                                       @input="setSelectedHomeFieldValue($event.target.value)" placeholder="#ffffff"
-                                                       class="min-w-0 flex-1 border border-cyan-200 bg-white rounded px-2.5 py-2 text-sm">
-                                            </div>
-                                        </div>
+                                        <button type="button"
+                                                @click="openEditorColorPicker($event, 'home-' + selectedHomeFieldDefinition().key, selectedHomeFieldDefinition().label, selectedHomeFieldValue(), '#ffffff', true, value => setSelectedHomeFieldValue(value))"
+                                                class="flex h-10 w-full items-center gap-2 rounded border border-cyan-200 bg-white px-2 text-left hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100">
+                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(selectedHomeFieldValue(), '#ffffff')"></span>
+                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(selectedHomeFieldValue(), <?= e($jt('blox_empty_default')) ?>)"></span>
+                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                        </button>
                                     </template>
                                     <template x-if="selectedHomeFieldDefinition().control === 'text' || selectedHomeFieldDefinition().control === 'url'">
                                         <input type="text" :value="selectedHomeFieldValue()"
@@ -1178,32 +1159,13 @@ declare(strict_types=1);
 
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
-                                        <div class="flex items-center gap-1 mb-2">
-                                            <select :value="colorTokenId(selEl.data.bg_color)"
-                                                    @change="selEl.data.bg_color = $event.target.value ? colorTokenRef($event.target.value) : selEl.data.bg_color"
-                                                    class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                                                <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                                <template x-for="token in colorTokenOptions(selEl.data.bg_color)" :key="'div-bg-'+token.id">
-                                                    <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                                </template>
-                                            </select>
-                                            <template x-for="token in activeColorTokens().slice(0, 4)" :key="'div-bg-swatch-'+token.id">
-                                                <button type="button" @click="selEl.data.bg_color = colorTokenRef(token.id)" :title="token.name"
-                                                        class="w-6 h-6 rounded border border-gray-200 shrink-0"
-                                                        :class="colorTokenId(selEl.data.bg_color) === token.id ? 'ring-2 ring-blue-400' : ''"
-                                                        :style="'background:' + token.value"></button>
-                                            </template>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
-                                                   :value="colorPickerValue(selEl.data.bg_color, '#ffffff')"
-                                                   @input="selEl.data.bg_color = $event.target.value">
-                                            <input type="text" x-model="selEl.data.bg_color" placeholder="<?= e(__('blox_empty_transparent')) ?>"
-                                                   class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                            <button type="button" @click="selEl.data.bg_color = ''"
-                                                    class="text-gray-400 hover:text-red-500 p-1" title="<?= e(__('blox_clear')) ?>">
-                                                <i class="ti ti-x text-sm"></i></button>
-                                        </div>
+                                        <button type="button"
+                                                @click="openEditorColorPicker($event, 'div-bg', <?= e($jt('blox_bg_color')) ?>, selEl.data.bg_color, '#ffffff', true, value => selEl.data.bg_color = value)"
+                                                class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(selEl.data.bg_color, '#ffffff')"></span>
+                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(selEl.data.bg_color, <?= e($jt('blox_empty_transparent')) ?>)"></span>
+                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                        </button>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-3">
@@ -1822,35 +1784,14 @@ declare(strict_types=1);
                                     </template>
 
                                     <template x-if="ctrl.type === 'color'">
-                                        <div>
-                                            <div class="flex items-center gap-1 mb-2">
-                                                <select :value="colorTokenId(controlValue(ctrl))"
-                                                        @change="$event.target.value && setControlValue(ctrl, colorTokenRef($event.target.value))"
-                                                        data-testid="blox-color-token-select"
-                                                        class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                                                    <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                                    <template x-for="token in colorTokenOptions(controlValue(ctrl))" :key="ctrl.key+'-'+token.id">
-                                                        <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                                    </template>
-                                                </select>
-                                                <template x-for="token in activeColorTokens().slice(0, 4)" :key="ctrl.key+'-swatch-'+token.id">
-                                                    <button type="button" @click="setControlValue(ctrl, colorTokenRef(token.id))" :title="token.name"
-                                                            class="w-6 h-6 rounded border border-gray-200 shrink-0"
-                                                            :class="colorTokenId(controlValue(ctrl)) === token.id ? 'ring-2 ring-blue-400' : ''"
-                                                            :style="'background:' + token.value"></button>
-                                                </template>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
-                                                       :value="colorPickerValue(controlValue(ctrl), '#000000')"
-                                                       @input="setControlValue(ctrl, $event.target.value)">
-                                                <input type="text" :value="controlValue(ctrl)" @input="setControlValue(ctrl, $event.target.value)" placeholder="<?= e(__('blox_empty_default')) ?>"
-                                                       class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                <button type="button" @click="setControlValue(ctrl, '')"
-                                                        class="text-gray-400 hover:text-red-500 p-1" title="<?= e(__('blox_clear')) ?>">
-                                                    <i class="ti ti-x text-sm"></i></button>
-                                            </div>
-                                        </div>
+                                        <button type="button"
+                                                @click="openEditorColorPicker($event, 'control-' + ctrl.key, ctrl.label, controlValue(ctrl), '#000000', true, value => setControlValue(ctrl, value))"
+                                                data-testid="blox-color-picker-trigger"
+                                                class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(controlValue(ctrl), '#000000')"></span>
+                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(controlValue(ctrl), <?= e($jt('blox_empty_default')) ?>)"></span>
+                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                        </button>
                                     </template>
 
                                     <?php // icon：旧值无前缀时使用 Tabler；Bootstrap 图标保存为 bi:<name>。 ?>
@@ -2032,33 +1973,13 @@ declare(strict_types=1);
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_text_color') ?></label>
-                                    <div class="flex items-center gap-1 mb-2">
-                                        <select :value="colorTokenId(sel.settings[selectedSectionField + '_color'])"
-                                                @change="sel.settings[selectedSectionField + '_color'] = $event.target.value ? colorTokenRef($event.target.value) : sel.settings[selectedSectionField + '_color']"
-                                                class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                                            <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                            <template x-for="token in colorTokenOptions(sel.settings[selectedSectionField + '_color'])" :key="'sec-title-'+token.id">
-                                                <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                            </template>
-                                        </select>
-                                        <template x-for="token in activeColorTokens().slice(0, 4)" :key="'sec-title-swatch-'+token.id">
-                                            <button type="button" @click="sel.settings[selectedSectionField + '_color'] = colorTokenRef(token.id)" :title="token.name"
-                                                    class="w-6 h-6 rounded border border-gray-200 shrink-0"
-                                                    :class="colorTokenId(sel.settings[selectedSectionField + '_color']) === token.id ? 'ring-2 ring-blue-400' : ''"
-                                                    :style="'background:' + token.value"></button>
-                                        </template>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
-                                               :value="colorPickerValue(sel.settings[selectedSectionField + '_color'], selectedSectionField === 'subtitle' ? '#6b7280' : '#111827')"
-                                               @input="sel.settings[selectedSectionField + '_color'] = $event.target.value">
-                                        <input type="text" x-model="sel.settings[selectedSectionField + '_color']" placeholder="<?= e(__('blox_empty_theme_default')) ?>"
-                                               class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                        <button type="button" @click="sel.settings[selectedSectionField + '_color'] = ''"
-                                                class="text-gray-400 hover:text-red-500 p-1" title="<?= e(__('blox_clear')) ?>">
-                                            <i class="ti ti-x text-sm"></i>
-                                        </button>
-                                    </div>
+                                    <button type="button"
+                                            @click="openEditorColorPicker($event, 'section-field-color', <?= e($jt('blox_text_color')) ?>, sel.settings[selectedSectionField + '_color'], selectedSectionField === 'subtitle' ? '#6b7280' : '#111827', true, value => sel.settings[selectedSectionField + '_color'] = value)"
+                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings[selectedSectionField + '_color'], selectedSectionField === 'subtitle' ? '#6b7280' : '#111827')"></span>
+                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings[selectedSectionField + '_color'], <?= e($jt('blox_empty_theme_default')) ?>)"></span>
+                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2142,32 +2063,13 @@ declare(strict_types=1);
                                 <!-- 背景色 -->
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
-                                    <div class="flex items-center gap-1 mb-2">
-                                        <select :value="colorTokenId(sel.settings.bg_color)"
-                                                @change="sel.settings.bg_color = $event.target.value ? colorTokenRef($event.target.value) : sel.settings.bg_color"
-                                                class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                                            <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                            <template x-for="token in colorTokenOptions(sel.settings.bg_color)" :key="'sec-bg-'+token.id">
-                                                <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                            </template>
-                                        </select>
-                                        <template x-for="token in activeColorTokens().slice(0, 4)" :key="'sec-bg-swatch-'+token.id">
-                                            <button type="button" @click="sel.settings.bg_color = colorTokenRef(token.id)" :title="token.name"
-                                                    class="w-6 h-6 rounded border border-gray-200 shrink-0"
-                                                    :class="colorTokenId(sel.settings.bg_color) === token.id ? 'ring-2 ring-blue-400' : ''"
-                                                    :style="'background:' + token.value"></button>
-                                        </template>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
-                                               :value="colorPickerValue(sel.settings.bg_color, '#ffffff')"
-                                               @input="sel.settings.bg_color = $event.target.value">
-                                        <input type="text" class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm"
-                                               placeholder="<?= e(__('blox_empty_transparent')) ?>" x-model="sel.settings.bg_color">
-                                        <button type="button" @click="sel.settings.bg_color = ''"
-                                                class="text-gray-400 hover:text-red-500 p-1" title="<?= e(__('blox_clear')) ?>">
-                                            <i class="ti ti-x text-sm"></i></button>
-                                    </div>
+                                    <button type="button"
+                                            @click="openEditorColorPicker($event, 'section-bg', <?= e($jt('blox_bg_color')) ?>, sel.settings.bg_color, '#ffffff', true, value => sel.settings.bg_color = value)"
+                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.bg_color, '#ffffff')"></span>
+                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.bg_color, <?= e($jt('blox_empty_transparent')) ?>)"></span>
+                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                    </button>
                                 </div>
                                 <!-- 渐变背景：无/预置色板/自定义双色。叠在背景色/背景图之上 -->
                                 <div>
@@ -2227,13 +2129,13 @@ declare(strict_types=1);
                                     <div x-show="sel.settings.bg_image" class="mt-3 space-y-3">
                                         <div>
                                             <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
-                                            <div class="flex items-center gap-2">
-                                                <input type="color" class="w-8 h-8 rounded border border-gray-200 cursor-pointer p-0.5"
-                                                       :value="colorPickerValue(sel.settings.bg_overlay_color, '#000000')"
-                                                       @input="sel.settings.bg_overlay_color = $event.target.value">
-                                                <input type="text" x-model="sel.settings.bg_overlay_color" placeholder="#000000"
-                                                       class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                            </div>
+                                            <button type="button"
+                                                    @click="openEditorColorPicker($event, 'section-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.bg_overlay_color, '#000000', true, value => sel.settings.bg_overlay_color = value)"
+                                                    class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.bg_overlay_color, '#000000')"></span>
+                                                <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.bg_overlay_color, '#000000')"></span>
+                                                <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                            </button>
                                         </div>
                                         <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
                                             <span><?= __('blox_overlay_opacity') ?></span>
@@ -2372,32 +2274,14 @@ declare(strict_types=1);
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_bg') ?></label>
-                                        <div class="flex items-center gap-1 mb-2">
-                                            <select :value="colorTokenId(selectedColData().card_bg)"
-                                                    @change="selectedColData().card_bg = $event.target.value ? colorTokenRef($event.target.value) : selectedColData().card_bg"
-                                                    class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                                                <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                                <template x-for="token in colorTokenOptions(selectedColData().card_bg)" :key="'col-bg-'+token.id">
-                                                    <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                                </template>
-                                            </select>
-                                            <template x-for="token in activeColorTokens().slice(0, 4)" :key="'col-bg-swatch-'+token.id">
-                                                <button type="button" @click="selectedColData().card_bg = colorTokenRef(token.id)" :title="token.name"
-                                                        class="w-6 h-6 rounded border border-gray-200 shrink-0"
-                                                        :class="colorTokenId(selectedColData().card_bg) === token.id ? 'ring-2 ring-green-400' : ''"
-                                                        :style="'background:' + token.value"></button>
-                                            </template>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
-                                                   :value="colorPickerValue(selectedColData().card_bg, '#ffffff')"
-                                                   @input="selectedColData().card_bg = $event.target.value">
-                                            <input type="text" x-model="selectedColData().card_bg" placeholder="<?= e(__('blox_empty_default')) ?>"
-                                                   class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                            <button type="button" @click="selectedColData().card_bg = ''"
-                                                    class="text-gray-400 hover:text-red-500 p-1" title="<?= e(__('blox_clear')) ?>">
-                                                <i class="ti ti-x text-sm"></i></button>
-                                        </div>
+                                        <button type="button"
+                                                @click="openEditorColorPicker($event, 'column-bg', <?= e($jt('blox_col_bg')) ?>, selectedColData().card_bg, '#ffffff', true, value => selectedColData().card_bg = value)"
+                                                data-testid="blox-column-color-picker-trigger"
+                                                class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(selectedColData().card_bg, '#ffffff')"></span>
+                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(selectedColData().card_bg, <?= e($jt('blox_empty_default')) ?>)"></span>
+                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                        </button>
                                         <p class="text-[10px] text-gray-400 mt-1"><?= __('blox_col_bg_hint') ?></p>
                                         <div class="mt-3" data-testid="blox-column-background-image">
                                             <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
@@ -2424,14 +2308,14 @@ declare(strict_types=1);
                                             <div x-show="selectedColData().card_bg_image" class="mt-3 space-y-3">
                                                 <div>
                                                     <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
-                                                    <div class="flex items-center gap-2">
-                                                        <input type="color" class="w-8 h-8 rounded border border-gray-200 cursor-pointer p-0.5"
-                                                               :value="colorPickerValue(selectedColData().card_bg_overlay_color, '#000000')"
-                                                               @input="selectedColData().card_bg_overlay_color = $event.target.value">
-                                                        <input type="text" x-model="selectedColData().card_bg_overlay_color" placeholder="#000000"
-                                                               data-testid="blox-column-overlay-color"
-                                                               class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                    </div>
+                                                    <button type="button"
+                                                            @click="openEditorColorPicker($event, 'column-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, selectedColData().card_bg_overlay_color, '#000000', true, value => selectedColData().card_bg_overlay_color = value)"
+                                                            data-testid="blox-column-overlay-color"
+                                                            class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                        <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(selectedColData().card_bg_overlay_color, '#000000')"></span>
+                                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(selectedColData().card_bg_overlay_color, '#000000')"></span>
+                                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                                    </button>
                                                 </div>
                                                 <div>
                                                     <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
@@ -2597,32 +2481,14 @@ declare(strict_types=1);
                                 <!-- 容器背景：与区块背景分层，常用「区块深色 + 容器白底圆角」 -->
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
-                                    <div class="flex items-center gap-1 mb-2">
-                                        <select :value="colorTokenId(sel.settings.container_bg)"
-                                                @change="sel.settings.container_bg = $event.target.value ? colorTokenRef($event.target.value) : sel.settings.container_bg"
-                                                class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-                                            <option value=""><?= e(__('blox_design_custom')) ?></option>
-                                            <template x-for="token in colorTokenOptions(sel.settings.container_bg)" :key="'container-bg-'+token.id">
-                                                <option :value="token.id" x-text="colorTokenLabel(token)"></option>
-                                            </template>
-                                        </select>
-                                        <template x-for="token in activeColorTokens().slice(0, 4)" :key="'container-bg-swatch-'+token.id">
-                                            <button type="button" @click="sel.settings.container_bg = colorTokenRef(token.id)" :title="token.name"
-                                                    class="w-6 h-6 rounded border border-gray-200 shrink-0"
-                                                    :class="colorTokenId(sel.settings.container_bg) === token.id ? 'ring-2 ring-blue-400' : ''"
-                                                    :style="'background:' + token.value"></button>
-                                        </template>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <input type="color" class="w-9 h-9 rounded border border-gray-200 cursor-pointer p-0.5"
-                                               :value="colorPickerValue(sel.settings.container_bg, '#ffffff')"
-                                               @input="sel.settings.container_bg = $event.target.value">
-                                        <input type="text" x-model="sel.settings.container_bg" placeholder="<?= e(__('blox_empty_transparent')) ?>"
-                                               class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                        <button type="button" @click="sel.settings.container_bg = ''"
-                                                class="text-gray-400 hover:text-red-500 p-1" title="<?= e(__('blox_clear')) ?>">
-                                            <i class="ti ti-x text-sm"></i></button>
-                                    </div>
+                                    <button type="button"
+                                            @click="openEditorColorPicker($event, 'container-bg', <?= e($jt('blox_container_bg')) ?>, sel.settings.container_bg, '#ffffff', true, value => sel.settings.container_bg = value)"
+                                            data-testid="blox-container-color-picker-trigger"
+                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg, '#ffffff')"></span>
+                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg, <?= e($jt('blox_empty_transparent')) ?>)"></span>
+                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                    </button>
                                     <div class="mt-3" data-testid="blox-container-background-image">
                                         <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
                                         <div class="flex items-center gap-2">
@@ -2648,14 +2514,14 @@ declare(strict_types=1);
                                         <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
                                             <div>
                                                 <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
-                                                <div class="flex items-center gap-2">
-                                                    <input type="color" class="w-8 h-8 rounded border border-gray-200 cursor-pointer p-0.5"
-                                                           :value="colorPickerValue(sel.settings.container_bg_overlay_color, '#000000')"
-                                                           @input="sel.settings.container_bg_overlay_color = $event.target.value">
-                                                    <input type="text" x-model="sel.settings.container_bg_overlay_color" placeholder="#000000"
-                                                           data-testid="blox-container-overlay-color"
-                                                           class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                </div>
+                                                <button type="button"
+                                                        @click="openEditorColorPicker($event, 'container-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.container_bg_overlay_color, '#000000', true, value => sel.settings.container_bg_overlay_color = value)"
+                                                        data-testid="blox-container-overlay-color"
+                                                        class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                    <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg_overlay_color, '#000000')"></span>
+                                                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg_overlay_color, '#000000')"></span>
+                                                    <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                                </button>
                                             </div>
                                             <div>
                                                 <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
