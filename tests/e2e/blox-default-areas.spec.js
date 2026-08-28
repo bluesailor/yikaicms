@@ -393,7 +393,9 @@ test('area preset gallery wireframes fit the viewport @ci', async ({ page }) => 
   const presets = page.locator('[data-testid="blox-area-presets"]');
   await expect(presets).toBeVisible();
   const wires = presets.locator('[data-testid="blox-preset-wire"]');
-  await expect(wires).toHaveCount(4); // 四种页头预设各一张示意图
+  // 每个页头预设各一张示意图。数字随 BloxAreaTemplatePresets::catalog() 的 header 条目走——
+  // 加预设时这里要同步改（v1.19.2：clean/full-width/centered/corporate/topbar/search 共 6 个）。
+  await expect(wires).toHaveCount(6);
   await expect(wires.first()).toBeVisible();
 
   // 「当前网页头」卡片也带示意图（type=header 视图只显示 header 一张卡）
