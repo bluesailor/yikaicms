@@ -738,6 +738,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($token, $workspace . $this->source('admin/blox_editor/partials/overlays.php'), "prebuilt dock token {$token} missing");
         }
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $this->assertStringContainsString('@keydown="templateDialogKeydown($event)"', $overlays);
         $this->assertStringContainsString('pt-14 pointer-events-none', $overlays);
         $this->assertStringContainsString('calc(100vh-3.5rem)', str_replace(' ', '', $overlays));
@@ -1498,6 +1499,37 @@ final class BloxEditorPreviewContractTest extends TestCase
         ] as $token) {
             $this->assertStringContainsString($token, $overlays, "prebuilt empty UI token {$token} missing");
         }
+    }
+
+    public function testPageLibraryOffersUndoableBlankAndPublishedRestoreActions(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'startBlankPage()',
+            'this.commandRunner().execute("blank-page"',
+            'restorePublishedPage()',
+            'this.commandRunner().execute("restore-published-page"',
+            'self.publishedDocument',
+            'self.sections.splice.apply(self.sections, [0, self.sections.length].concat(sections));',
+            'self.docSettings = published.settings',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "page library action token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-page-library-actions"',
+            'data-testid="blox-page-library-blank"',
+            'data-testid="blox-page-library-restore"',
+            '@click="startBlankPage()"',
+            '@click="restorePublishedPage()"',
+            ':disabled="!pagePublished"',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "page library UI token {$token} missing");
+        }
+        $this->assertStringContainsString('data-testid="blox-page-library-open"', $workspace);
+        $this->assertStringContainsString('@click="openPageTemplates()"', $workspace);
     }
 
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void

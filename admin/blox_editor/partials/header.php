@@ -471,6 +471,11 @@ declare(strict_types=1);
                 <button type="button" @click="openPrebuiltSections(); mobileActionsOpen = false">
                     <i class="ti ti-layout-grid-add"></i><?php echo e(__('blox_prebuilt_sections')); ?>
                 </button>
+<?php if (!$isHomeBlox && !$templateId): ?>
+                <button type="button" @click="openPageTemplates(); mobileActionsOpen = false">
+                    <i class="ti ti-files"></i><?php echo e(__('blox_page_library')); ?>
+                </button>
+<?php endif; ?>
 <?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
                 <button type="button" @click="openDesignSystem(); mobileActionsOpen = false">
