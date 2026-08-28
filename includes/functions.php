@@ -19,6 +19,7 @@ require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/LegacyInstallCleanup.php';
 require_once __DIR__ . '/SiteHealth.php';
+require_once __DIR__ . '/Pinyin.php';     // 汉字转拼音（slug 用），自建词库、无 vendor 依赖
 
 // ============================================================
 // 全局错误自检测（装在这里而非 config.php：升级不覆盖客户的
@@ -473,52 +474,20 @@ function getDefaults(string $group = ''): array
  */
 function generateSlug(string $title, int $maxChars = 6): string
 {
-    // 取前 N 个中文字符
-    $short = mb_substr(trim($title), 0, $maxChars);
-    if ($short === '') {
+    $title = trim($title);
+    if ($title === '') {
         return '';
     }
-    // 纯 ASCII 标题（英文/数字）不需要拼音库，直接转换——也规避 pinyin v4 对
-    // 纯英文输入丢字符的怪癖
-    if (preg_match('/^[\x20-\x7E]+$/', trim($title))) {
-        $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', mb_substr(trim($title), 0, 60)));
+    // 纯 ASCII 标题（英文/数字）按词切分，保留到 60 字符——比拼音路径的 N 字上限宽，
+    // 英文标题本来就该多留信息量。
+    if (preg_match('/^[\x20-\x7E]+$/', $title) === 1) {
+        $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', mb_substr($title, 0, 60)));
         return trim($slug, '-');
     }
-    // 只【定向】加载 overtrue/pinyin（PSR-4，自包含、仅依赖 php），绝不 require 全量 composer autoload——
-    // 后者的 files 段会 require 被打包裁掉的 dev 依赖（如 amphp）而致命；此处只注册 pinyin 命名空间的加载器。
-    // 缺失则降级返回空、由调用方兜底，绝不致命。
-    if (!class_exists(\Overtrue\Pinyin\Pinyin::class, false)) {
-        $pinyinSrc = ROOT_PATH . '/vendor/overtrue/pinyin/src/';
-        if (is_dir($pinyinSrc)) {
-            // v4 的常量定义在 const.php（composer files 段加载；此处手动补，PSR-4 拉不到它）
-            if (is_file($pinyinSrc . 'const.php')) {
-                require_once $pinyinSrc . 'const.php';
-            }
-            spl_autoload_register(static function (string $class) use ($pinyinSrc): void {
-                $prefix = 'Overtrue\\Pinyin\\';
-                if (strncmp($class, $prefix, strlen($prefix)) !== 0) return;
-                $file = $pinyinSrc . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
-                if (is_file($file)) require $file;
-            });
-        }
-    }
-    if (!class_exists(\Overtrue\Pinyin\Pinyin::class)) {
-        return '';
-    }
-    // 任何异常（库版本与 PHP 不匹配的 ParseError、词库缺失等）都不能让保存 500——
-    // 返回空由 resolveSlug 兜底成 item-<time>。v1.13.0 曾因 pinyin v6 需 PHP8.1
-    // 而在 8.0 主机上炸掉文章/产品保存（见 v1.13.1 修复）。
-    try {
-        $pinyin = new \Overtrue\Pinyin\Pinyin();
-        $slug = (string) $pinyin->permalink($short, '-');
-    } catch (\Throwable $e) {
-        error_log('[slug] pinyin failed: ' . $e->getMessage());
-        return '';
-    }
-    // 只保留字母数字和横杠
-    $slug = preg_replace('/[^a-z0-9\-]/', '', $slug);
-    // 去除首尾横杠
-    return trim($slug, '-');
+    // 词库缺失时返回空串，由 resolveSlug 兜底成 item-<time>；这里不会抛异常，
+    // 也不再依赖 vendor——v1.13.0 曾因 overtrue/pinyin v6 需 PHP8.1 而在 8.0 主机上
+    // 炸掉文章/产品保存（见 v1.13.1 修复），换成自建词库后该风险不复存在。
+    return Pinyin::slug(mb_substr($title, 0, $maxChars));
 }
 
 /**
