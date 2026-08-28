@@ -424,8 +424,8 @@ declare(strict_types=1);
              :style="templateSectionsDocked() ? 'max-height:calc(100vh - 3.5rem)' : 'max-height:calc(100vh - 4rem)'">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-template-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
-                    <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : 'ti-template'"></i>
-                    <span x-text="templateEntry === 'sections' ? templateText.prebuiltTitle : templateText.title"></span>
+                    <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : (templateEntry === 'pages' ? 'ti-files' : 'ti-template')"></i>
+                    <span x-text="templateEntry === 'sections' ? templateText.prebuiltTitle : (templateEntry === 'pages' ? templateText.pageLibrary : templateText.title)"></span>
                 </span>
                 <button type="button" @click="closeTemplates()" data-testid="blox-template-close" class="text-gray-400 hover:text-gray-600 p-1"
                         :title="templateText.close" :aria-label="templateText.close">
@@ -548,6 +548,26 @@ declare(strict_types=1);
             </div>
             <div x-ref="templateScroll" @scroll.passive="rememberTemplateSectionScroll($event.target.scrollTop)"
                  class="min-h-[320px] overflow-y-auto blox-scroll p-4">
+                <section x-show="templateEntry === 'pages' && pageMode" data-testid="blox-page-library-actions" class="mb-4 border-b border-gray-100 pb-4">
+                    <div class="mb-3">
+                        <h3 class="text-sm font-semibold text-gray-800" x-text="templateText.pageLibrary"></h3>
+                        <p class="mt-0.5 text-xs text-gray-500" x-text="templateText.pageLibraryHint"></p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button type="button" @click="startBlankPage()" data-testid="blox-page-library-blank"
+                                class="flex min-h-20 items-center gap-3 border border-gray-200 bg-white p-3 text-left hover:border-blue-300 hover:bg-blue-50/40">
+                            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center border border-gray-200 bg-gray-50 text-gray-600"><i class="ti ti-file-plus text-lg"></i></span>
+                            <span class="min-w-0"><strong class="block text-sm text-gray-800" x-text="templateText.blankPage"></strong><span class="mt-0.5 block text-xs text-gray-500" x-text="templateText.blankPageHint"></span></span>
+                        </button>
+                        <button type="button" @click="restorePublishedPage()" :disabled="!pagePublished"
+                                data-testid="blox-page-library-restore" :title="pagePublished ? templateText.restorePublishedHint : templateText.noPublishedPage"
+                                class="flex min-h-20 items-center gap-3 border border-gray-200 bg-white p-3 text-left hover:border-emerald-300 hover:bg-emerald-50/40 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-50">
+                            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center border border-gray-200 bg-gray-50 text-gray-600"><i class="ti ti-history text-lg"></i></span>
+                            <span class="min-w-0"><strong class="block text-sm text-gray-800" x-text="templateText.restorePublished"></strong><span class="mt-0.5 block text-xs text-gray-500" x-text="pagePublished ? templateText.restorePublishedHint : templateText.noPublishedPage"></span></span>
+                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500"><i class="ti ti-template"></i><span x-text="templateText.fullPageTemplates"></span></div>
+                </section>
                 <div x-show="templateLoading" class="py-16 text-center text-sm text-gray-400">
                     <i class="ti ti-loader-2 animate-spin text-xl block mb-2"></i><span x-text="templateText.loading"></span>
                 </div>

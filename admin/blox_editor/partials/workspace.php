@@ -2907,11 +2907,20 @@ declare(strict_types=1);
                     <i class="ti ti-layout-navbar text-base"></i><span class="truncate"><?php echo e(__('blox_header_presets')); ?></span>
                 </button>
 <?php else: ?>
+                <div class="grid gap-2 <?php echo !$isHomeBlox && !$templateId ? 'grid-cols-2' : 'grid-cols-1'; ?>">
                 <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
-                        class="h-9 w-full rounded-md border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
+                        class="h-9 min-w-0 rounded-md border border-blue-200 bg-blue-50 px-2 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
                         title="<?php echo e(__('blox_prebuilt_sections')); ?>" aria-label="<?php echo e(__('blox_prebuilt_sections')); ?>">
                     <i class="ti ti-layout-grid-add text-base"></i><span class="truncate"><?php echo e(__('blox_prebuilt_sections')); ?></span>
                 </button>
+<?php if (!$isHomeBlox && !$templateId): ?>
+                <button type="button" @click="openPageTemplates()" data-testid="blox-page-library-open"
+                        class="h-9 min-w-0 rounded-md border border-gray-200 bg-white px-2 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-700 inline-flex items-center justify-center gap-1.5 transition"
+                        title="<?php echo e(__('blox_page_library')); ?>" aria-label="<?php echo e(__('blox_page_library')); ?>">
+                    <i class="ti ti-files text-base"></i><span class="truncate"><?php echo e(__('blox_page_library')); ?></span>
+                </button>
+<?php endif; ?>
+                </div>
 <?php endif; ?>
             </div>
             <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">

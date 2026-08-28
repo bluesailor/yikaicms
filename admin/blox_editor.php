@@ -1318,6 +1318,18 @@ $canManageBloxDesign = hasPermission('*');
             templateText: <?php echo json_encode([
                 'title' => __('blox_template_library'),
                 'prebuiltTitle' => __('blox_prebuilt_sections'),
+                'pageLibrary' => __('blox_page_library'),
+                'pageLibraryHint' => __('blox_page_library_hint'),
+                'blankPage' => __('blox_page_library_blank'),
+                'blankPageHint' => __('blox_page_library_blank_hint'),
+                'blankPageConfirm' => __('blox_page_library_blank_confirm'),
+                'blankPageDone' => __('blox_page_library_blank_done'),
+                'restorePublished' => __('blox_page_library_restore'),
+                'restorePublishedHint' => __('blox_page_library_restore_hint'),
+                'restorePublishedConfirm' => __('blox_page_library_restore_confirm'),
+                'restorePublishedDone' => __('blox_page_library_restore_done'),
+                'noPublishedPage' => __('blox_page_library_no_published'),
+                'fullPageTemplates' => __('blox_page_library_templates'),
                 'allTemplates' => __('blox_all_templates'),
                 'insertTarget' => __('blox_prebuilt_insert_target'),
                 'insertSection' => __('blox_prebuilt_insert'),
@@ -2067,6 +2079,52 @@ $canManageBloxDesign = hasPermission('*');
                 this.templateCategory = "page";
                 this.templateQuery = "";
                 this.openTemplateDialog();
+            },
+
+            startBlankPage() {
+                if (!this.pageMode || this.templateInserting) return;
+                if (this.sections.length > 0 && !window.confirm(this.templateText.blankPageConfirm)) return;
+                var self = this;
+                var applied = this.commandRunner().execute("blank-page", function () {
+                    var blank = {
+                        id: self.uid("s"),
+                        type: "section",
+                        settings: {},
+                        columns: [{ id: self.uid("c"), span: 12, settings: {}, elements: [] }],
+                    };
+                    self.sections.splice.apply(self.sections, [0, self.sections.length, blank]);
+                    self.docSettings = {};
+                    self.legacyPageContent = false;
+                    self.selectedSi = 0;
+                    self.selectedCi = 0;
+                    self.selectedEi = -1;
+                    self.selectedSubEi = -1;
+                    self.selLayer = "col";
+                    self.closeTemplates();
+                });
+                if (applied.ok) this.toast(this.templateText.blankPageDone);
+            },
+
+            restorePublishedPage() {
+                if (!this.pageMode || !this.pagePublished || this.templateInserting) return;
+                if (!window.confirm(this.templateText.restorePublishedConfirm)) return;
+                var self = this;
+                var applied = this.commandRunner().execute("restore-published-page", function () {
+                    var published = self.publishedDocument && typeof self.publishedDocument === "object"
+                        ? JSON.parse(JSON.stringify(self.publishedDocument))
+                        : { settings: {}, sections: [] };
+                    var sections = Array.isArray(published.sections) ? published.sections : [];
+                    self.sections.splice.apply(self.sections, [0, self.sections.length].concat(sections));
+                    self.docSettings = published.settings && typeof published.settings === "object" ? published.settings : {};
+                    self.legacyPageContent = false;
+                    self.selectedSi = sections.length > 0 ? 0 : -1;
+                    self.selectedCi = -1;
+                    self.selectedEi = -1;
+                    self.selectedSubEi = -1;
+                    self.selLayer = sections.length > 0 ? "sec" : "";
+                    self.closeTemplates();
+                });
+                if (applied.ok) this.toast(this.templateText.restorePublishedDone);
             },
 
             loadTemplates(force) {
