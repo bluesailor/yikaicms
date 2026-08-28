@@ -67,6 +67,7 @@ $reason = (string) ($st['reason'] ?? '');
 $plan   = (string) ($st['plan'] ?? 'free');
 $exp    = $st['expires_at'] ?? null;
 $mods   = (array) ($st['modules'] ?? []);
+$serviceActive = license_service_active($st);
 
 $pageTitle   = __('admin_license');
 $currentMenu = 'license';
@@ -124,7 +125,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div>
                     <div class="text-sm font-medium text-gray-800"><?php echo __('lic_support_title'); ?></div>
                     <p class="mt-0.5 text-sm text-gray-500">
-                        <?php echo e($valid ? __('lic_support_active') : __('lic_support_inactive')); ?>
+                        <?php echo e($serviceActive ? __('lic_support_active') : __('lic_support_inactive')); ?>
                     </p>
                 </div>
                 <a href="https://www.yikaicms.com/feedback.html" target="_blank" rel="noopener"
