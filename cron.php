@@ -21,6 +21,19 @@ if ($token === '' || !hash_equals(Cron::token(), $token)) {
     exit("forbidden\n");
 }
 
+// ?task=<name>：只跑指定任务且无视间隔（如 task=demo_reset 作为站长一键重置链接收藏）
+$task = (string) ($_GET['task'] ?? '');
+if ($task !== '') {
+    $r = Cron::runOne($task);
+    if (!$r['ran']) {
+        http_response_code(404);
+        exit("- {$r['name']}: {$r['msg']}\n");
+    }
+    $tag = $r['ok'] ? 'OK' : 'FAIL';
+    echo "* {$r['name']}: {$tag} ({$r['ms']}ms) {$r['msg']}\ndone\n";
+    exit;
+}
+
 $force = isset($_GET['force']);
 $results = Cron::runDue($force);
 

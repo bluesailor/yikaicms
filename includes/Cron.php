@@ -64,6 +64,10 @@ final class Cron
         require_once ROOT_PATH . '/includes/AutoUpgrade.php';
         AutoUpgrade::register();
 
+        // 演示沙盒定时重置：任务体内自判 demo_mode=2，未开启时是一次早退。
+        require_once ROOT_PATH . '/includes/DemoSandbox.php';
+        DemoSandbox::registerCron();
+
         if (function_exists('do_action')) {
             do_action('cron_register');
         }

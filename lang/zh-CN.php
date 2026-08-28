@@ -732,6 +732,13 @@ return [
     // 后台通用
     'admin_backend' => '后台管理系统',
     'admin_demo_mode' => '演示模式下不允许修改操作',
+    'admin_demo_sandbox' => '演示沙盒：您的改动会保留 :minutes 分钟，之后自动还原',
+    'admin_demo_sandbox_last' => '上次还原：:time',
+    'admin_demo_sandbox_reset_link' => '立即还原',
+    'auth_demo_sandbox_protected' => '演示沙盒下该页面不开放操作，以免演示站被锁死',
+    'cron_demo_reset' => '演示沙盒定时还原',
+    'cron_demo_reset_done' => '已还原：:n 条 SQL，:files 个文件',
+    'cron_demo_reset_skipped' => '未开启演示沙盒，跳过',
 
     // 后台UI标签（补充）
     'admin_actions' => '操作',
