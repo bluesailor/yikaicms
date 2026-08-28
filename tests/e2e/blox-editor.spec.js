@@ -93,6 +93,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   const crossViewportTitles = [
     'viewport contract @ci',
     'header preset chooser adapts across viewports @ci',
+    'shared color picker adapts across viewports @ci',
   ];
   test.skip(testInfo.project.name !== 'desktop-1440' && !crossViewportTitles.includes(testInfo.title), 'desktop interaction baseline');
   consoleEntries = observeConsole(page);
@@ -1963,6 +1964,36 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   const detail = dialog.getByTestId('blox-header-preset-detail');
   if (testInfo.project.name === 'desktop-1440') await expect(detail).toBeVisible();
   else await expect(detail).toBeHidden();
+});
+
+test('shared color picker adapts across viewports @ci', async ({ page }) => {
+  await page.evaluate(() => {
+    const data = window.Alpine.$data(document.body);
+    window.__bloxColorResult = '#ffffff';
+    data.openEditorColorPicker({
+      currentTarget: { getBoundingClientRect: () => ({ left: 12, right: 240, top: 120, bottom: 160 }) },
+    }, 'e2e-color', 'E2E Color', '#ffffff', '#ffffff', true, (value) => {
+      window.__bloxColorResult = value;
+    });
+  });
+
+  const picker = page.getByTestId('blox-editor-color-picker');
+  await expect(picker).toBeVisible();
+  const box = await picker.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+
+  await page.getByTestId('blox-editor-color-token-primary').click();
+  await expect.poll(() => page.evaluate(() => window.__bloxColorResult)).toBe('var(--yk-color-primary)');
+  await page.getByTestId('blox-editor-color-clear').click();
+  await expect.poll(() => page.evaluate(() => window.__bloxColorResult)).toBe('');
+  await expect(picker).toBeHidden();
 });
 
 test('sticky header behavior and device scope reach the preview shell @ci', async ({ page }, testInfo) => {
