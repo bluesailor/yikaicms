@@ -1,0 +1,26 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Download guide",
+    "requires": {"elements": ["heading", "text", "icon-box", "button"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "下载引导",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg"},
+            "columns": [
+                {"elements": [
+                    {"type": "heading", "data": {"text": "资料与下载", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+                    {"type": "text", "data": {"html": "<p>按使用阶段提供对应资料，减少客户在多个页面之间反复查找。</p>"}},
+                    {"type": "button", "data": {"text": "进入下载中心", "url": "/download.html", "variant": "primary", "align": "left"}}
+                ]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "book-2", "title": "产品手册", "text": "产品定位、核心能力与典型应用场景。"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "file-description", "title": "规格与选型", "text": "型号差异、技术参数和选型注意事项。"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "settings-cog", "title": "安装与维护", "text": "安装步骤、日常维护和常见问题处理。"}}]}
+            ]
+        }]
+    }
+}

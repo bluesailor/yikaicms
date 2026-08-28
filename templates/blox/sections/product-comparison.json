@@ -1,0 +1,37 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Product comparison",
+    "requires": {"elements": ["heading", "text", "button", "container"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "产品对比",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+            "columns": [
+                {"elements": [
+                    {"type": "heading", "data": {"text": "选择适合的方案", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+                    {"type": "text", "data": {"html": "<p>先按业务复杂度和交付方式选择，再结合真实需求确认型号与报价。</p>"}}
+                ]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "gap": "md", "padding": {"d": "md", "m": "sm"}, "radius": "md", "bg_color": "#ffffff", "children": [
+                    {"type": "heading", "data": {"text": "标准版", "level": "h3", "visual_size": "xl"}},
+                    {"type": "text", "data": {"html": "<p><strong>适合：</strong>标准流程与快速交付</p><p>核心功能齐全，配置简单，适合首次部署。</p>"}},
+                    {"type": "button", "data": {"text": "咨询标准版", "url": "/contact.html", "variant": "outline", "align": "left"}}
+                ]}}]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "gap": "md", "padding": {"d": "md", "m": "sm"}, "radius": "md", "bg_color": "#eff6ff", "children": [
+                    {"type": "heading", "data": {"text": "专业版", "level": "h3", "visual_size": "xl", "color": "#1d4ed8"}},
+                    {"type": "text", "data": {"html": "<p><strong>适合：</strong>复杂业务与持续扩展</p><p>增加高级配置、数据分析和优先技术支持。</p>"}},
+                    {"type": "button", "data": {"text": "获取专业版报价", "url": "/contact.html", "variant": "primary", "align": "left"}}
+                ]}}]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "gap": "md", "padding": {"d": "md", "m": "sm"}, "radius": "md", "bg_color": "#ffffff", "children": [
+                    {"type": "heading", "data": {"text": "定制版", "level": "h3", "visual_size": "xl"}},
+                    {"type": "text", "data": {"html": "<p><strong>适合：</strong>特殊工况与系统集成</p><p>按需求评估接口、流程、部署和服务边界。</p>"}},
+                    {"type": "button", "data": {"text": "提交定制需求", "url": "/contact.html", "variant": "outline", "align": "left"}}
+                ]}}]}
+            ]
+        }]
+    }
+}
