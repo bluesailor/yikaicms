@@ -241,6 +241,10 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       const editButton = page.locator('#yk-edit-btn');
       await expect(editButton).toHaveText(`✎ ${navigationLabel}`);
       await expect(editButton).toHaveAttribute('href', new RegExp(`focus_element=${encodeURIComponent(navigationId)}`));
+      await editButton.hover();
+      await page.waitForTimeout(350);
+      await expect(editButton).toBeVisible();
+      await expect(editButton).toHaveText(`✎ ${navigationLabel}`);
       const navigationHref = await editButton.getAttribute('href');
       const frontendLocation = new URL(page.url());
       const frontendReturnTo = frontendLocation.pathname + frontendLocation.search;
