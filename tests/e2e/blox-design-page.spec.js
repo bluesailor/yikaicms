@@ -38,14 +38,48 @@ test('standalone design page mutates through the existing API contract @ci', asy
   });
 
   await page.getByTestId('blox-design-page-new-token-name').fill('E2E Accent');
+  await page.getByTestId('blox-design-page-new-token-color').click();
+  await expect(page.getByTestId('blox-color-picker')).toBeVisible();
+  await page.getByTestId('blox-color-picker-text').fill('#0d9488');
+  await page.getByTestId('blox-color-picker-text').press('Enter');
+  await page.keyboard.press('Escape');
   await page.getByTestId('blox-design-page-add-token').click();
   await expect(page.getByTestId('blox-design-page-token-row')).toHaveCount(before + 1);
   await expect(page.getByTestId('blox-design-page-token-row').last().locator('input[type="text"]').first()).toHaveValue('E2E Accent');
   expect(requests).toHaveLength(1);
   expect(requests[0].action).toBe('token_add');
+  expect(requests[0].value).toBe('#0d9488');
   expect(requests[0].revision).toBe(String(initial.revision));
   expect(requests[0]._token).not.toBe('');
   expect(consoleEntries, 'standalone design management must keep the console clean').toEqual([]);
+});
+
+test('color picker remains usable inside every supported viewport @ci', async ({ page }) => {
+  const consoleEntries = observeConsole(page);
+  await page.goto('/admin/blox_design.php', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-design-page-new-token-color').click();
+
+  const picker = page.getByTestId('blox-color-picker');
+  await expect(picker).toBeVisible();
+  const box = await picker.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+
+  const custom = page.getByTestId('blox-color-picker-text');
+  await custom.fill('#zzzzzz');
+  await custom.press('Enter');
+  await expect(custom).toHaveAttribute('aria-invalid', 'true');
+  await expect(custom).toHaveValue('#3b82f6');
+
+  await page.keyboard.press('Escape');
+  await expect(picker).toBeHidden();
+  expect(consoleEntries, 'color picker must keep the console clean').toEqual([]);
 });
 
 // 2026-08-28：Blox 全部能力对免费版开放，命名样式不再受授权限制。
