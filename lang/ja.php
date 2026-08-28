@@ -5797,4 +5797,6 @@ voltage|電圧|220V',
     'blox_cond_language' => '言語',
     'blox_cond_all_languages' => 'すべての言語',
     'blox_cond_unknown_language' => '言語条件が無効です: :lang',
+    'blox_edit_header' => 'ヘッダーを編集',
+    'blox_edit_header_hint' => 'ヘッダーエディターを開き、完了後にホームページ編集に戻れます',
 ];

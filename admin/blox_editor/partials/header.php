@@ -107,10 +107,10 @@ declare(strict_types=1);
 <?php endif; ?>
 <?php if ($isHomeBlox): ?>
             <?php if ($advancedBloxEnabled): ?>
-            <a href="<?= e($homeHeaderSettingsUrl) ?>" data-testid="blox-home-header-settings"
+            <a href="<?= e($homeHeaderEditorUrl) ?>" data-testid="blox-home-header-settings"
                class="text-cyan-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5"
-               title="<?= e(__('blox_header_settings_hint')) ?>">
-                <i class="ti ti-layout-navbar"></i><?= e(__('blox_header_settings')) ?>
+               title="<?= e(__('blox_edit_header_hint')) ?>">
+                <i class="ti ti-layout-navbar"></i><?= e(__('blox_edit_header')) ?>
             </a>
             <?php endif; ?>
             <span x-show="homePublished" x-cloak class="text-[10px] text-emerald-300 inline-flex items-center gap-1">
