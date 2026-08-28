@@ -169,6 +169,40 @@ test("saved local template is inserted immediately and replaces a stale copy", f
     assert.deepEqual(global.BloxTemplateLibrary.upsertLocal(items, { key: "remote:x", type: "section", source: "remote" }), items);
 });
 
+test("document fingerprints ignore generated ids but retain meaningful header changes", function () {
+    const preset = {
+        settings: { sticky: false },
+        sections: [{
+            type: "section",
+            settings: { padding: "sm" },
+            columns: [{ elements: [{ type: "logo", data: { source: "site" } }] }],
+        }],
+    };
+    const applied = {
+        settings: { sticky: false },
+        sections: [{
+            id: "s_runtime",
+            type: "section",
+            library_id: 12,
+            settings: { padding: "sm" },
+            columns: [{
+                id: "c_runtime",
+                elements: [{ id: "e_runtime", type: "logo", data: { source: "site" } }],
+            }],
+        }],
+    };
+
+    assert.equal(
+        global.BloxTemplateLibrary.documentFingerprint(preset),
+        global.BloxTemplateLibrary.documentFingerprint(applied)
+    );
+    applied.sections[0].settings.padding = "lg";
+    assert.notEqual(
+        global.BloxTemplateLibrary.documentFingerprint(preset),
+        global.BloxTemplateLibrary.documentFingerprint(applied)
+    );
+});
+
 test("recommendations match page intent and keep priority ordering stable", function () {
     const items = [
         { key: "builtin:generic", type: "section", metadata: { page_types: ["general"], priority: 100 } },

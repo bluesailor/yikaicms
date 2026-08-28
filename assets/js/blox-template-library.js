@@ -254,6 +254,26 @@
         });
     }
 
+    function canonicalDocumentValue(value) {
+        if (Array.isArray(value)) return value.map(canonicalDocumentValue);
+        if (!value || typeof value !== "object") return value;
+        return Object.keys(value).sort().reduce(function (result, key) {
+            if (key === "id" || key === "library_id" || key === "library_name" || key.charAt(0) === "_") {
+                return result;
+            }
+            result[key] = canonicalDocumentValue(value[key]);
+            return result;
+        }, {});
+    }
+
+    function documentFingerprint(document) {
+        var source = document && typeof document === "object" ? document : {};
+        return JSON.stringify(canonicalDocumentValue({
+            settings: source.settings && typeof source.settings === "object" ? source.settings : {},
+            sections: Array.isArray(source.sections) ? source.sections : [],
+        }));
+    }
+
     global.BloxTemplateLibrary = {
         list: list,
         resolve: resolve,
@@ -274,5 +294,6 @@
         lockLabel: lockLabel,
         hasLockedRemote: hasLockedRemote,
         freshSections: freshSections,
+        documentFingerprint: documentFingerprint,
     };
 })(window);

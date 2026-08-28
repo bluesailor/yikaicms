@@ -228,6 +228,7 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertSame('header', $preset['type']);
             self::assertNotSame('', $preset['name']);
             self::assertNotEmpty($preset['sections']);
+            self::assertNotEmpty($preset['features']);
             self::assertArrayHasKey('sticky', $preset['settings']);
         }
         self::assertSame([], BloxAreaTemplatePresets::editorCatalog('popup'));

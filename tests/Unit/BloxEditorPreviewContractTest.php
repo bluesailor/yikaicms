@@ -775,7 +775,17 @@ final class BloxEditorPreviewContractTest extends TestCase
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
 
-        foreach (['BloxAreaTemplatePresets::editorCatalog(\'header\')', 'headerPresets:', 'openHeaderPresets()', 'applyHeaderPreset(preset)', 'apply-header-preset'] as $token) {
+        foreach ([
+            'BloxAreaTemplatePresets::editorCatalog(\'header\')',
+            'headerPresets:',
+            'selectedHeaderPresetSlug:',
+            'openHeaderPresets()',
+            'selectedHeaderPreset()',
+            'isCurrentHeaderPreset(preset)',
+            'documentFingerprint',
+            'applyHeaderPreset(preset)',
+            'apply-header-preset',
+        ] as $token) {
             $this->assertStringContainsString($token, $editor, "header preset editor token {$token} missing");
         }
         $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
@@ -786,6 +796,14 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('@media (max-width: 1199px)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
+        foreach ([
+            'data-testid="blox-header-preset-preview"',
+            'data-testid="blox-header-preset-detail"',
+            ':data-current="isCurrentHeaderPreset(preset) ? \'true\' : \'false\'"',
+            'preset.features',
+        ] as $token) {
+            $this->assertStringContainsString($token, $overlays, "header preset visual token {$token} missing");
+        }
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
         $this->assertStringContainsString('? $editableArea', $preview);
         $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);
