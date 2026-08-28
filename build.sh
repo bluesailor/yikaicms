@@ -315,6 +315,7 @@ MUST_EXIST=(
     "config/config.php.example"
     "config/database.php"
     "config/build.php"
+    "config/release-runtime.php"
     "includes/functions.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
@@ -332,6 +333,9 @@ MUST_EXIST=(
     "deploy/aliyun-nginx-minimal.txt"
     "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
+    "vendor/overtrue/pinyin/src/Pinyin.php"
+    "vendor/overtrue/pinyin/data/words_0"
+    "vendor/overtrue/pinyin/data/words_5"
     "uploads/.gitkeep"
     "storage/.gitkeep"
     ".htaccess"
@@ -404,6 +408,15 @@ echo "[5/5] 生成 SHA256 校验和..."
 
 SHA_FILE="$RELEASE_DIR/${PACKAGE_NAME}.sha256"
 sha256sum "$ZIP_FILE" > "$SHA_FILE"
+
+# Source checks are insufficient: validate the actual ZIP after all copy, prune and
+# compression steps. This catches missing ignored runtime dependencies such as pinyin.
+echo "[5a/5] 运行 Release Artifact Smoke Test..."
+VERIFY_ZIP_FILE="$ZIP_FILE"
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    VERIFY_ZIP_FILE="$(wslpath -w "$ZIP_FILE")"
+fi
+php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"
 
 # ============================================================
 # 生成增量升级包（delta）
