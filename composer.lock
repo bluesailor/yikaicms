@@ -4,82 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "90241ee83328709a0def7f82d64e5f33",
-    "packages": [
-        {
-            "name": "overtrue/pinyin",
-            "version": "4.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/overtrue/pinyin.git",
-                "reference": "4d0fb4f27f0c79e81c9489e0c0ae4a4f8837eae7"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/pinyin/zipball/4d0fb4f27f0c79e81c9489e0c0ae4a4f8837eae7",
-                "reference": "4d0fb4f27f0c79e81c9489e0c0ae4a4f8837eae7",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=7.1"
-            },
-            "require-dev": {
-                "brainmaestro/composer-git-hooks": "^2.7",
-                "friendsofphp/php-cs-fixer": "^2.16",
-                "phpunit/phpunit": "~8.0"
-            },
-            "type": "library",
-            "extra": {
-                "hooks": {
-                    "pre-push": [
-                        "composer test",
-                        "composer check-style"
-                    ],
-                    "pre-commit": [
-                        "composer test",
-                        "composer fix-style"
-                    ]
-                }
-            },
-            "autoload": {
-                "files": [
-                    "src/const.php"
-                ],
-                "psr-4": {
-                    "Overtrue\\Pinyin\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "overtrue",
-                    "email": "anzhengchao@gmail.com",
-                    "homepage": "http://github.com/overtrue"
-                }
-            ],
-            "description": "Chinese to pinyin translator.",
-            "homepage": "https://github.com/overtrue/pinyin",
-            "keywords": [
-                "Chinese",
-                "Pinyin",
-                "cn2pinyin"
-            ],
-            "support": {
-                "issues": "https://github.com/overtrue/pinyin/issues",
-                "source": "https://github.com/overtrue/pinyin/tree/4.1.0"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/overtrue",
-                    "type": "github"
-                }
-            ],
-            "time": "2023-04-27T10:17:12+00:00"
-        }
-    ],
+    "content-hash": "34ab6a1d2353ec0e8f322f33d02955b0",
+    "packages": [],
     "packages-dev": [
         {
             "name": "amphp/amp",
@@ -4882,6 +4808,7 @@
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.0",
+        "ext-dom": "*",
         "ext-fileinfo": "*",
         "ext-gd": "*",
         "ext-json": "*",
