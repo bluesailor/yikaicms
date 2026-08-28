@@ -1,0 +1,23 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Client logo wall",
+    "requires": {"elements": ["heading", "text", "container"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "客户 Logo 墙",
+            "settings": {"padding": {"d": "lg", "m": "md"}, "max_width": "wide", "gap": "md", "content_v_align": "center"},
+            "columns": [
+                {"elements": [{"type": "heading", "data": {"text": "服务过的客户", "level": "h2", "visual_size": {"d": "2xl", "m": "xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p>将下面的品牌名称替换为真实客户 Logo，并确认已获得展示许可。</p>"}}]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "align": "center", "justify": "center", "padding": "md", "radius": "md", "bg_color": "#f8fafc", "children": [{"type": "text", "data": {"html": "<p style=\"text-align:center;font-size:20px;font-weight:700;color:#334155\">客户品牌 A</p>"}}]}}]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "align": "center", "justify": "center", "padding": "md", "radius": "md", "bg_color": "#f8fafc", "children": [{"type": "text", "data": {"html": "<p style=\"text-align:center;font-size:20px;font-weight:700;color:#334155\">客户品牌 B</p>"}}]}}]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "align": "center", "justify": "center", "padding": "md", "radius": "md", "bg_color": "#f8fafc", "children": [{"type": "text", "data": {"html": "<p style=\"text-align:center;font-size:20px;font-weight:700;color:#334155\">客户品牌 C</p>"}}]}}]},
+                {"elements": [{"type": "container", "data": {"direction": "column", "align": "center", "justify": "center", "padding": "md", "radius": "md", "bg_color": "#f8fafc", "children": [{"type": "text", "data": {"html": "<p style=\"text-align:center;font-size:20px;font-weight:700;color:#334155\">客户品牌 D</p>"}}]}}]}
+            ]
+        }]
+    }
+}

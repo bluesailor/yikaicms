@@ -36,6 +36,10 @@ final class SectionTemplateLibraryTest extends TestCase
             'faq' => ['faq-accordion', 'content', '多久能收到回复'],
             'cta' => ['cta-banner', 'marketing', '立即咨询'],
             'contact strip' => ['contact-strip', 'marketing', '让我们讨论您的项目'],
+            'team and recruiting' => ['team-recruiting', 'business', '和专业的人一起'],
+            'client logo wall' => ['client-logo-wall', 'business', '服务过的客户'],
+            'product comparison' => ['product-comparison', 'marketing', '选择适合的方案'],
+            'download guide' => ['download-guide', 'content', '资料与下载'],
         ];
     }
 
@@ -113,5 +117,30 @@ final class SectionTemplateLibraryTest extends TestCase
             'x-show="templateCategoryOptions().length > 1"',
             $overlay
         );
+    }
+
+    public function testHighFrequencySectionsCarryPageIntentMetadata(): void
+    {
+        $provider = new BloxBuiltinTemplateProvider();
+        $items = [];
+        foreach ($provider->items('page') as $item) {
+            $items[$item['key']] = $item;
+        }
+
+        $expected = [
+            'builtin:team-recruiting' => ['jobs', 'about'],
+            'builtin:client-logo-wall' => ['home', 'case'],
+            'builtin:product-comparison' => ['product-list', 'product-detail'],
+            'builtin:download-guide' => ['product-detail', 'service'],
+            'builtin:contact-strip' => ['contact', 'service'],
+        ];
+        foreach ($expected as $key => $pageTypes) {
+            self::assertArrayHasKey($key, $items);
+            $metadata = $items[$key]['metadata'];
+            self::assertGreaterThanOrEqual(80, $metadata['priority']);
+            foreach ($pageTypes as $pageType) {
+                self::assertContains($pageType, $metadata['page_types']);
+            }
+        }
     }
 }

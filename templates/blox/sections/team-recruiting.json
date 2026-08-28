@@ -1,0 +1,26 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Team and recruiting",
+    "requires": {"elements": ["heading", "text", "icon-box", "button"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "name": "团队与招聘",
+            "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+            "columns": [
+                {"elements": [
+                    {"type": "heading", "data": {"text": "和专业的人一起，把事情做好", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+                    {"type": "text", "data": {"html": "<p>介绍团队如何协作、重视什么，以及正在寻找怎样的伙伴。内容具体，候选人更容易判断是否适合。</p>"}},
+                    {"type": "button", "data": {"text": "查看招聘职位", "url": "/job.html", "variant": "primary", "align": "left"}}
+                ]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "users-group", "title": "跨职能协作", "text": "产品、技术与交付围绕同一目标工作，问题直接沟通。"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "route", "title": "成长路径清晰", "text": "说明岗位目标、能力要求和成长方向，减少模糊承诺。"}}]},
+                {"elements": [{"type": "icon-box", "data": {"icon": "heart-handshake", "title": "重视长期合作", "text": "尊重专业判断，关注持续积累和可靠交付。"}}]}
+            ]
+        }]
+    }
+}
