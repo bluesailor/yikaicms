@@ -90,7 +90,11 @@ async function dragPaletteToTree(page, source, target, ratio, intent, label, val
 test.beforeEach(async ({ page }, testInfo) => {
   consoleEntries = null;
   unsafeWrites = null;
-  test.skip(testInfo.project.name !== 'desktop-1440' && testInfo.title !== 'viewport contract @ci', 'desktop interaction baseline');
+  const crossViewportTitles = [
+    'viewport contract @ci',
+    'header preset chooser adapts across viewports @ci',
+  ];
+  test.skip(testInfo.project.name !== 'desktop-1440' && !crossViewportTitles.includes(testInfo.title), 'desktop interaction baseline');
   consoleEntries = observeConsole(page);
   unsafeWrites = observeUnsafeWrites(page);
   await openEditor(page);
@@ -1819,13 +1823,26 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   const headerPresets = page.getByTestId('blox-header-presets');
   await expect(headerPresets).toBeVisible();
   await expect(headerPresets.getByTestId('blox-header-preset-apply')).toHaveCount(6);
+  await expect(headerPresets.getByTestId('blox-header-preset-preview')).toHaveCount(6);
+  const corporatePreset = headerPresets.getByTestId('blox-header-preset-corporate-site-header');
+  const corporateName = await corporatePreset.locator('h3').innerText();
+  await corporatePreset.getByTestId('blox-header-preset-preview').click();
+  await expect(corporatePreset).toHaveAttribute('data-selected', 'true');
+  await expect(headerPresets.getByTestId('blox-header-preset-detail')).toContainText(corporateName);
   const initialCount = await countSections(page);
-  await headerPresets.getByTestId('blox-header-preset-search-site-header')
-    .getByTestId('blox-header-preset-apply').click();
+  const searchPreset = headerPresets.getByTestId('blox-header-preset-search-site-header');
+  await searchPreset.getByTestId('blox-header-preset-apply').click();
   await expect(headerPresets).toBeHidden();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
   await expect(page.getByTestId('blox-tree-section-label')).toHaveText(['网页页头 1', '网页页头 2']);
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
+  await headerPresetEntry.click();
+  await expect(headerPresets).toBeVisible();
+  await expect(searchPreset).toHaveAttribute('data-current', 'true');
+  await expect(searchPreset).toHaveAttribute('data-selected', 'true');
+  await expect(searchPreset.getByTestId('blox-header-preset-apply')).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(headerPresets).toBeHidden();
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
@@ -1915,6 +1932,37 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await undo(page);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
+
+test('header preset chooser adapts across viewports @ci', async ({ page }, testInfo) => {
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_header_template,
+    { waitUntil: 'domcontentloaded' });
+
+  if (testInfo.project.name === 'desktop-1440') {
+    await page.getByTestId('blox-right-panel').getByTestId('blox-header-presets-open').click();
+  } else {
+    await page.getByTestId('blox-mobile-actions-open').click();
+    await page.getByTestId('blox-mobile-actions').getByRole('button', { name: '网页头样式' }).click();
+  }
+
+  const dialog = page.getByTestId('blox-header-presets');
+  await expect(dialog).toBeVisible();
+  const panel = dialog.locator(':scope > .relative');
+  const box = await panel.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  await expect(dialog.locator('[data-testid^="blox-header-preset-"][data-selected]')).toHaveCount(6);
+  await expect(dialog.locator('[data-testid^="blox-header-preset-"][data-selected]').first().locator('span').filter({ hasText: /内容宽度|全宽|居中品牌|顶栏|站内搜索/ }).first()).toBeVisible();
+
+  const detail = dialog.getByTestId('blox-header-preset-detail');
+  if (testInfo.project.name === 'desktop-1440') await expect(detail).toBeVisible();
+  else await expect(detail).toBeHidden();
 });
 
 test('sticky header behavior and device scope reach the preview shell @ci', async ({ page }, testInfo) => {

@@ -12,6 +12,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_header_name',
             'description_key' => 'blox_area_preset_header_desc',
             'preview' => 'content-left',
+            'feature_keys' => ['blox_header_feature_content_width', 'blox_header_feature_mega_menu'],
         ],
         'full-width-site-header' => [
             'type' => 'header',
@@ -19,6 +20,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_full_width_header_name',
             'description_key' => 'blox_area_preset_full_width_header_desc',
             'preview' => 'viewport-left',
+            'feature_keys' => ['blox_header_feature_full_width', 'blox_header_feature_mega_menu'],
         ],
         'centered-site-header' => [
             'type' => 'header',
@@ -26,6 +28,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_centered_header_name',
             'description_key' => 'blox_area_preset_centered_header_desc',
             'preview' => 'centered-brand',
+            'feature_keys' => ['blox_header_feature_centered_brand', 'blox_header_feature_single_row'],
         ],
         'corporate-site-header' => [
             'type' => 'header',
@@ -33,6 +36,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_corporate_header_name',
             'description_key' => 'blox_area_preset_corporate_header_desc',
             'preview' => 'corporate',
+            'feature_keys' => ['blox_header_feature_dark_topbar', 'blox_header_feature_sticky', 'blox_header_feature_search'],
         ],
         'topbar-site-header' => [
             'type' => 'header',
@@ -40,6 +44,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_topbar_header_name',
             'description_key' => 'blox_area_preset_topbar_header_desc',
             'preview' => 'topbar',
+            'feature_keys' => ['blox_header_feature_light_topbar', 'blox_header_feature_language', 'blox_header_feature_mobile_compact'],
         ],
         'search-site-header' => [
             'type' => 'header',
@@ -47,6 +52,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_search_header_name',
             'description_key' => 'blox_area_preset_search_header_desc',
             'preview' => 'search',
+            'feature_keys' => ['blox_header_feature_search', 'blox_header_feature_two_rows', 'blox_header_feature_language'],
         ],
         'clean-site-footer' => [
             'type' => 'footer',
@@ -64,7 +70,7 @@ final class BloxAreaTemplatePresets
         ],
     ];
 
-    /** @return list<array{slug:string,type:string,name:string,description:string,preview:string}> */
+    /** @return list<array{slug:string,type:string,name:string,description:string,preview:string,features:list<string>}> */
     public static function catalog(): array
     {
         $items = [];
@@ -78,6 +84,10 @@ final class BloxAreaTemplatePresets
                 'name' => __($preset['name_key']),
                 'description' => __($preset['description_key']),
                 'preview' => (string) ($preset['preview'] ?? ''),
+                'features' => array_map(
+                    static fn(string $key): string => __($key),
+                    $preset['feature_keys'] ?? []
+                ),
             ];
         }
         return $items;
@@ -87,7 +97,7 @@ final class BloxAreaTemplatePresets
      * 编辑器直接读取随包预置，避免要求用户先把它们安装成数据库模板。
      *
      * @return list<array{
-     *   slug:string,type:string,name:string,description:string,preview:string,
+     *   slug:string,type:string,name:string,description:string,preview:string,features:list<string>,
      *   settings:array<string,mixed>,sections:array<int,array<string,mixed>>
      * }>
      * @psalm-suppress PossiblyUnusedMethod 独立后台入口 admin/blox_editor.php 在 Psalm 扫描图之外调用
@@ -120,6 +130,10 @@ final class BloxAreaTemplatePresets
                 'name' => __($preset['name_key']),
                 'description' => __($preset['description_key']),
                 'preview' => (string) ($preset['preview'] ?? ''),
+                'features' => array_map(
+                    static fn(string $key): string => __($key),
+                    $preset['feature_keys'] ?? []
+                ),
                 'settings' => $document['settings'],
                 'sections' => $document['sections'],
             ];

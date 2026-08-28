@@ -1003,11 +1003,17 @@ $canManageBloxDesign = hasPermission('*');
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetOpen: false,
+            selectedHeaderPresetSlug: "",
             headerPresetText: <?php echo json_encode([
                 'title' => __('blox_header_presets'),
                 'hint' => __('blox_header_presets_hint'),
                 'apply' => __('blox_header_preset_apply'),
                 'applied' => __('blox_header_preset_applied'),
+                'preview' => __('blox_header_preset_preview'),
+                'previewTitle' => __('blox_header_preset_preview_title'),
+                'currentDraft' => __('blox_header_preset_current_draft'),
+                'currentApply' => __('blox_header_preset_current_apply'),
+                'sectionCount' => __('blox_header_preset_section_count'),
                 'close' => __('close'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
@@ -2014,6 +2020,10 @@ $canManageBloxDesign = hasPermission('*');
 
             openHeaderPresets() {
                 if (!this.headerTemplateMode || this.headerPresets.length === 0) return;
+                var current = this.headerPresets.find(function (preset) {
+                    return this.isCurrentHeaderPreset(preset);
+                }, this);
+                this.selectedHeaderPresetSlug = (current || this.headerPresets[0]).slug;
                 this.headerPresetOpen = true;
                 this.focusDialog(this.$refs.headerPresetDialog, "[data-dialog-initial]");
             },
@@ -2023,6 +2033,34 @@ $canManageBloxDesign = hasPermission('*');
                 var root = this.$refs.headerPresetDialog;
                 this.headerPresetOpen = false;
                 this.releaseDialog(root);
+            },
+
+            headerPresetDocument(preset) {
+                return {
+                    settings: (preset && preset.settings) || {},
+                    sections: (preset && preset.sections) || [],
+                };
+            },
+
+            isCurrentHeaderPreset(preset) {
+                if (!preset || !window.BloxTemplateLibrary
+                    || typeof window.BloxTemplateLibrary.documentFingerprint !== "function") return false;
+                var fingerprint = window.BloxTemplateLibrary.documentFingerprint;
+                return fingerprint(this.headerPresetDocument(preset)) === fingerprint({
+                    settings: this.docSettings || {},
+                    sections: this.sections || [],
+                });
+            },
+
+            selectHeaderPreset(preset) {
+                if (preset && preset.slug) this.selectedHeaderPresetSlug = preset.slug;
+            },
+
+            selectedHeaderPreset() {
+                var slug = this.selectedHeaderPresetSlug;
+                return this.headerPresets.find(function (preset) { return preset.slug === slug; })
+                    || this.headerPresets[0]
+                    || null;
             },
 
             applyHeaderPreset(preset) {
