@@ -657,6 +657,41 @@ $canManageBloxDesign = hasPermission('*');
         .blox-palette-drag-ghost { position: fixed; left: -9999px; top: -9999px; z-index: 9999; display: flex; max-width: 220px; align-items: center; gap: 8px; overflow: hidden; border-radius: 6px; background: #fff; padding: 7px 10px 7px 7px; color: #1e3a8a; box-shadow: 0 8px 20px rgba(15, 23, 42, .18); font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
         .blox-palette-drag-ghost-icon { display: flex; width: 26px; height: 26px; flex: 0 0 26px; align-items: center; justify-content: center; border-radius: 4px; background: #eff6ff; color: #2563eb; }
         .blox-palette-drag-ghost-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .blox-layout-preview {
+            gap: var(--blox-preview-gap, 0);
+            padding: var(--blox-preview-padding, 0);
+            overflow: hidden;
+        }
+        .blox-layout-preview-item {
+            box-sizing: border-box;
+            display: flex;
+            min-width: 1rem;
+            min-height: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .blox-preview-row .blox-layout-preview-item {
+            width: 1.5rem;
+            height: 2rem;
+            flex: 0 1 1.5rem;
+        }
+        .blox-preview-row.blox-preview-align-stretch .blox-layout-preview-item { height: auto; }
+        .blox-preview-column .blox-layout-preview-item {
+            width: 2rem;
+            min-height: .875rem;
+            flex: 0 1 1.125rem;
+        }
+        .blox-preview-column.blox-preview-align-stretch .blox-layout-preview-item { width: auto; }
+        .blox-layout-preview-item[data-placeholder="true"]::after {
+            width: .5rem;
+            height: 1px;
+            border-radius: 1px;
+            background: #cbd5e1;
+            content: "";
+        }
         .blox-tree-drop-node { position: relative; }
         .blox-tree-drop-line {
             position: absolute; left: .25rem; right: .25rem; z-index: 20; height: 2px;
@@ -2858,6 +2893,10 @@ $canManageBloxDesign = hasPermission('*');
                 return ((this.selEl.data && this.selEl.data.children) || []).length;
             },
 
+            containerPreviewItemCount() {
+                return Math.min(Math.max(this.containerChildCount(), 3), 6);
+            },
+
             containerControl(key) {
                 if (!this.isSelectedContainerEl()) return null;
                 return (this.elSchema(this.selEl.type).controls || []).find(function (control) {
@@ -2902,14 +2941,15 @@ $canManageBloxDesign = hasPermission('*');
                 var isRow = this.containerControlValue("direction") === "row";
                 var cls = isFlex ? (isRow ? "flex flex-row" : "flex flex-col") : "block";
                 if (isFlex) {
+                    cls += isRow ? " blox-preview-row" : " blox-preview-column";
                     var wrap = d.wrap || "auto";
                     if (wrap === "wrap" || (wrap === "auto" && isRow)) cls += " flex-wrap";
                     else if (wrap === "nowrap") cls += " flex-nowrap";
-                    cls += " " + ({none:"gap-0", sm:"gap-1", md:"gap-2", lg:"gap-4", xl:"gap-6"}[this.containerControlValue("gap")] || "gap-0");
-                    cls += " " + ({stretch:"items-stretch", start:"items-start", center:"items-center", end:"items-end", baseline:"items-baseline"}[d.align || "stretch"] || "items-stretch");
+                    var align = d.align || "stretch";
+                    cls += align === "stretch" ? " blox-preview-align-stretch" : "";
+                    cls += " " + ({stretch:"items-stretch", start:"items-start", center:"items-center", end:"items-end", baseline:"items-baseline"}[align] || "items-stretch");
                     cls += " " + ({start:"justify-start", center:"justify-center", end:"justify-end", between:"justify-between", around:"justify-around", evenly:"justify-evenly"}[d.justify || "start"] || "justify-start");
                 }
-                cls += " " + ({none:"", sm:"p-2", md:"p-4", lg:"p-6", xl:"p-8"}[this.containerControlValue("padding")] || "");
                 cls += " " + ({none:"rounded", md:"rounded-lg", xl:"rounded-2xl"}[d.radius || "none"] || "rounded");
                 return cls;
             },
@@ -2917,7 +2957,13 @@ $canManageBloxDesign = hasPermission('*');
             containerPreviewStyle() {
                 if (!this.isSelectedContainerEl()) return "";
                 var bg = (this.selEl.data && this.selEl.data.bg_color) || "#f8fafc";
-                return "background:" + bg;
+                var gap = ({none:"0px", sm:"2px", md:"4px", lg:"6px", xl:"8px"}[this.containerControlValue("gap")] || "0px");
+                var padding = ({none:"0px", sm:"4px", md:"6px", lg:"8px", xl:"10px"}[this.containerControlValue("padding")] || "0px");
+                return {
+                    background: bg,
+                    "--blox-preview-gap": gap,
+                    "--blox-preview-padding": padding,
+                };
             },
 
             /** 树里显示的元素名：自定义命名 > 自己的文字 > 类型名 */

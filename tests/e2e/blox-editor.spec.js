@@ -742,6 +742,25 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   await expect(tabletDevice).toHaveAttribute('data-responsive-state', 'override');
   await expect(inheritButton).toBeVisible();
 
+  const layoutPreview = page.getByTestId('blox-layout-preview');
+  const layoutItems = page.getByTestId('blox-layout-preview-item');
+  await expect(layoutItems).toHaveCount(3);
+  const previewMetrics = await layoutPreview.evaluate((preview) => {
+    const style = getComputedStyle(preview);
+    const items = Array.from(preview.querySelectorAll('[data-testid="blox-layout-preview-item"]'));
+    return {
+      gap: style.gap,
+      overflowX: preview.scrollWidth - preview.clientWidth,
+      items: items.map((item) => ({
+        whiteSpace: getComputedStyle(item).whiteSpace,
+        overflowX: item.scrollWidth - item.clientWidth,
+      })),
+    };
+  });
+  expect(previewMetrics.gap).toBe('8px');
+  expect(previewMetrics.overflowX).toBeLessThanOrEqual(0);
+  expect(previewMetrics.items.every((item) => item.whiteSpace === 'nowrap' && item.overflowX <= 0)).toBe(true);
+
   const contentFrame = await frame(page);
   const container = contentFrame.locator(`[data-yk-el="${before}.0.0"] .yk-container`);
   await expect(container).toHaveClass(/gap-12/);

@@ -1039,12 +1039,17 @@ declare(strict_types=1);
                                             <span class="text-xs font-medium text-gray-600"><?= __('blox_layout_preview') ?></span>
                                             <span class="text-[10px] text-gray-400" x-text="<?= e($jt('blox_n_children')) ?>.replace(':n', containerChildCount())"></span>
                                         </div>
-                                        <div class="rounded border border-dashed border-gray-300 p-3 min-h-24 transition"
+                                        <div class="blox-layout-preview rounded border border-dashed border-gray-300 min-h-24 transition"
+                                             data-testid="blox-layout-preview"
                                              :class="containerPreviewClass()"
                                              :style="containerPreviewStyle()">
-                                            <template x-for="n in Math.max(containerChildCount(), 3)" :key="n">
-                                                <div class="rounded bg-white/90 border border-gray-200 shadow-sm h-8 flex items-center justify-center text-[10px] text-gray-400 px-2"
-                                                     x-text="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"></div>
+                                            <template x-for="n in containerPreviewItemCount()" :key="n">
+                                                <div class="blox-layout-preview-item rounded bg-white/90 border border-gray-200 shadow-sm text-[10px] text-gray-400"
+                                                     data-testid="blox-layout-preview-item"
+                                                     :data-placeholder="n > containerChildCount()"
+                                                     :title="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"
+                                                     :aria-label="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"
+                                                     x-text="n <= containerChildCount() ? n : ''"></div>
                                             </template>
                                         </div>
                                     </div>
