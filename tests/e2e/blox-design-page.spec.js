@@ -48,13 +48,16 @@ test('standalone design page mutates through the existing API contract @ci', asy
   expect(consoleEntries, 'standalone design management must keep the console clean').toEqual([]);
 });
 
-test('free mode keeps tokens available and named styles locked @ci', async ({ page }, testInfo) => {
+// 2026-08-28：Blox 全部能力对免费版开放，命名样式不再受授权限制。
+// 本用例改为守住「免费版拿得到完整设计系统」——锁态 UI 仍由 advanced 标记驱动，
+// 保留在 blox_design.php 里以备日后重划边界，但在免费模式下不应出现。
+test('free mode keeps the full design system available @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop free-mode capability baseline');
   test.skip(process.env.SMOKE_BLOX_ADVANCED !== '0', 'free-mode assertion');
 
   await page.goto('/admin/blox_design.php', { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-design-page-colors')).toBeVisible();
   await expect(page.getByTestId('blox-design-page-add-token')).toBeVisible();
-  await expect(page.getByTestId('blox-design-page-tab-styles')).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.getByTestId('blox-design-page-advanced-locked')).toBeVisible();
+  await expect(page.getByTestId('blox-design-page-tab-styles')).toHaveAttribute('aria-disabled', 'false');
+  await expect(page.getByTestId('blox-design-page-advanced-locked')).toBeHidden();
 });

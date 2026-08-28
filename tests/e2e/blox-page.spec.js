@@ -56,12 +56,14 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
     await page.getByTestId('blox-design-open').click();
     await expect(page.getByTestId('blox-design-tab-colors')).toBeVisible();
     await expect(page.getByTestId('blox-design-token-row')).not.toHaveCount(0);
-    await expect(page.getByTestId('blox-design-tab-styles')).toBeHidden();
+    // 全局命名样式随本次边界调整开放，免费模式下该页签同样可见
+    await expect(page.getByTestId('blox-design-tab-styles')).toBeVisible();
     await page.keyboard.press('Escape');
   }
   await addTemporaryHeading(page);
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
-    await expect(page.getByTestId('blox-condition-tab')).toBeHidden();
+    // 显示条件（Query Loop 高级数据能力的一部分）随本次边界调整开放
+    await expect(page.getByTestId('blox-condition-tab')).toBeVisible();
   }
 
   const marker = `R30 page publish ${Date.now()}`;
@@ -232,11 +234,11 @@ test('free mode opens homepage and local templates while remote resolve stays lo
 
   expect(fixtures.channel_list).toBeGreaterThan(0);
   await openPageEditor(page, fixtures.channel_list);
-  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
+  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '1');
 
   expect(fixtures.product_cat).toBeGreaterThan(0);
   await openPageEditor(page, fixtures.product_cat);
-  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '0');
+  await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '1');
   expect(consoleEntries).toEqual([]);
 });
 
