@@ -157,12 +157,6 @@ if ($smokeLang !== 'zh-CN') {
 }
 
 if (!$i18nOnly) {
-    // v1.18 起 blox_editor_enabled 只管「基础编辑器」（免费能力），任何模式都保持开启；
-    // 免费/高级的区分由上方 DEBUG 开关 + 真实授权判定承担（SMOKE_BLOX_ADVANCED=0 → DEBUG=false → 高级关）。
-    $advancedBlox = '1';
-    $enabled = $pdo->prepare('UPDATE yikai_settings SET value = ? WHERE "key" = ?');
-    $enabled->execute([$advancedBlox, 'blox_editor_enabled']);
-
     // 发行种子把演示 Blox 首页以「已发布+激活」出厂（全新安装即新版首页）；
     // 编辑器契约测试的基线是「未发布的经典首页 + 合法转换草稿」（rollback 置灰、
     // 树节点由转换生成的带标题版块构成），故 smoke 站中和这三键——发布/回滚流程
@@ -286,10 +280,6 @@ if (!$i18nOnly) {
     }
     unset($settingExists, $updateSetting, $insertSetting);
 
-    if ($enabled->rowCount() === 0) {
-        $pdo->prepare('INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute(['system', 'blox_editor_enabled', $advancedBlox, 'switch', 'Blox 高级功能', '', null, 4]);
-    }
 }
 
 // 3) 建管理员（bcrypt）

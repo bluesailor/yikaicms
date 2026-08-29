@@ -226,9 +226,10 @@ if ($hadPublishedBloxHome) {
     upgradeCheck(settingValue($pdo, 'home_blox_active') !== '1', 'upgrade does not activate a Blox homepage');
     upgradeCheck(!HomeBloxDocument::hasPublished(), 'upgrade does not publish the Blox homepage');
 }
-upgradeCheck(settingValue($pdo, 'blox_editor_enabled') === '1', 'upgrade enables the Blox editor by default');
+// The historical setting may be absent, 0, or 1 after an upgrade. It is retained only
+// as inert legacy data; availability must no longer depend on that stored value.
 upgradeCheck(bloxPageEditorEnabled(), 'free Blox page editing is available after upgrade');
-upgradeCheck(bloxPageEditorEnabled(), 'the Blox editor switch is on without a commercial license');
+upgradeCheck(bloxPageEditorEnabled(), 'the retired Blox editor switch cannot disable editing');
 // 2026-08-28 起 Blox 全部能力对免费版开放：无授权的老站升级后同样拿得到
 // Header/Footer/Popup、全局样式与 Query Loop，本闸只反映后台开关。
 upgradeCheck(bloxAdvancedFeaturesEnabled(), 'advanced Blox is available without a commercial license');
