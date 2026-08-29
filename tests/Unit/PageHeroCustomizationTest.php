@@ -100,6 +100,9 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-page-hero-style-preview"', $editor);
         $this->assertStringContainsString('data-testid="blox-page-hero-color-picker"', $editor);
         $this->assertStringContainsString("applyPageHeroPreset('minimal')", $editor);
+        $this->assertStringContainsString('copyPageHeroToSelf()', $editor);
+        $this->assertStringContainsString('restorePageHeroInheritance()', $editor);
+        $this->assertStringContainsString('data-testid="blox-page-hero-effective-source"', $editor);
         $this->assertStringContainsString("if (\$action === 'save_page_hero')", $api);
         $this->assertStringContainsString('UrlPolicy::image($heroBgInput)', $api);
         $this->assertStringContainsString('PageHeroStyleResolver::normalizeMode($styleSourceInput)', $api);

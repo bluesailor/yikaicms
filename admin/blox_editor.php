@@ -111,10 +111,12 @@ $pageHero = [
     'source' => 'builtin',
     'resolved_bg' => '',
     'source_channel_name' => '',
+    'inheritance_path' => [],
     'can_inherit' => false,
     'parent_preview_bg' => '',
     'parent_preview_source' => 'builtin',
     'parent_preview_name' => '',
+    'parent_preview_path' => [],
     'parent_preview_options' => PageHeroStyleResolver::defaultOptions(),
     'global_preview_bg' => '',
     'global_preview_source' => 'builtin',
@@ -411,10 +413,12 @@ if ($isHomeBlox) {
         'source' => $pageHeroResolved['source'],
         'resolved_bg' => $pageHeroResolved['background'],
         'source_channel_name' => $pageHeroResolved['source_channel_name'],
+        'inheritance_path' => $pageHeroResolved['inheritance_path'],
         'can_inherit' => $pageHeroResolved['can_inherit'],
         'parent_preview_bg' => $pageHeroParentPreview['background'],
         'parent_preview_source' => $pageHeroParentPreview['source'],
         'parent_preview_name' => $pageHeroParentPreview['source_channel_name'],
+        'parent_preview_path' => $pageHeroParentPreview['inheritance_path'],
         'parent_preview_options' => $pageHeroParentPreview['options'],
         'global_preview_bg' => $pageHeroGlobalPreview['background'],
         'global_preview_source' => $pageHeroGlobalPreview['source'],
@@ -1083,6 +1087,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'toneLight' => __('blox_page_hero_tone_light'),
                 'toneDark' => __('blox_page_hero_tone_dark'),
                 'inheritedReadonly' => __('blox_page_hero_inherited_readonly'),
+                'effectiveSource' => __('blox_page_hero_effective_source'),
+                'effectiveSelf' => __('blox_page_hero_effective_self'),
+                'effectiveParent' => __('blox_page_hero_effective_parent'),
+                'effectiveGlobal' => __('blox_page_hero_effective_global'),
+                'inheritancePath' => __('blox_page_hero_inheritance_path'),
+                'copyToSelf' => __('blox_page_hero_copy_to_self'),
+                'copyToSelfHint' => __('blox_page_hero_copy_to_self_hint'),
+                'restoreInheritance' => __('blox_page_hero_restore_inheritance'),
+                'restoreInheritanceHint' => __('blox_page_hero_restore_inheritance_hint'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             publishedDocument: <?php echo $publishedDocumentJson; ?>,
             draftSummaryOpen: false,
@@ -6150,6 +6163,35 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (mode === "parent") return this.pageHeroText.hintParent;
                 if (mode === "global") return this.pageHeroText.hintGlobal;
                 return this.pageHeroText.hintSelf;
+            },
+
+            pageHeroEffectiveSourceLabel() {
+                var mode = String(this.pageHero.style_source || "self");
+                if (mode === "parent") {
+                    var source = String(this.pageHero.parent_preview_name || "").trim();
+                    return source
+                        ? this.pageHeroText.effectiveParent.replace(":name", source)
+                        : this.pageHeroText.effectiveGlobal;
+                }
+                return mode === "global" ? this.pageHeroText.effectiveGlobal : this.pageHeroText.effectiveSelf;
+            },
+
+            pageHeroInheritancePathLabel() {
+                if (String(this.pageHero.style_source || "self") !== "parent") return "";
+                var path = Array.isArray(this.pageHero.parent_preview_path) ? this.pageHero.parent_preview_path : [];
+                return path.length ? this.pageHeroText.inheritancePath.replace(":path", path.join(" › ")) : "";
+            },
+
+            copyPageHeroToSelf() {
+                if (String(this.pageHero.style_source || "self") === "self") return;
+                this.pageHero.hero_bg = String(this.pageHeroPreviewBackground() || "");
+                this.pageHero.style_options = JSON.parse(JSON.stringify(this.pageHeroPreviewOptions() || {}));
+                this.pageHero.style_source = "self";
+            },
+
+            restorePageHeroInheritance() {
+                if (String(this.pageHero.style_source || "self") !== "self") return;
+                this.pageHero.style_source = this.pageHero.can_inherit ? "parent" : "global";
             },
 
             openPageHeroSettings() {

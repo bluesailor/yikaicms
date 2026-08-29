@@ -49,6 +49,7 @@ final class PageHeroStyleResolverTest extends TestCase
         self::assertSame('/about.jpg', $resolved['background']);
         self::assertSame(5, $resolved['source_channel_id']);
         self::assertSame('About', $resolved['source_channel_name']);
+        self::assertSame(['Middle', 'About'], $resolved['inheritance_path']);
     }
 
     public function testParentModeInheritsLayoutOptionsEvenWithoutAPageSpecificBackground(): void
@@ -109,6 +110,12 @@ final class PageHeroStyleResolverTest extends TestCase
         );
 
         self::assertSame(['global', '/global.jpg'], [$cycle['source'], $cycle['background']]);
+        self::assertSame(['About'], PageHeroStyleResolver::resolve(
+            ['id' => 20, 'parent_id' => 5, 'lang' => 'zh-CN', 'hero_style_source' => 'parent'],
+            false,
+            static fn(int $id): ?array => $id === 5 ? ['id' => 5, 'parent_id' => 0, 'name' => 'About', 'lang' => 'zh-CN', 'hero_style_source' => 'global'] : null,
+            '/global.jpg'
+        )['inheritance_path']);
         self::assertSame(['global', '/global.jpg'], [$crossLanguage['source'], $crossLanguage['background']]);
     }
 
