@@ -447,6 +447,11 @@ if ($isContactBlox) {
 }
 $recoveryKey = 'yikai:blox-recovery:v1:' . (int) ($_SESSION['admin_id'] ?? 0) . ':' . $documentIdentity;
 $docSettings = $bootDoc['settings'];
+$headerPresetSiteData = [
+    'logo' => SiteAsset::availableUrl((string) configRawLang('site_logo', '')) !== '',
+    'navigation' => getDefaultNavigation() !== [],
+    'languages' => count(enabledLanguages()) > 1,
+];
 $customHeaderEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
 $replaceThemeAreaOnPublish = '';
 if ($templateId && isset($templateRow, $templateType)
@@ -1000,6 +1005,7 @@ $canManageBloxDesign = hasPermission('*');
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            headerPresetSiteData: <?php echo json_encode($headerPresetSiteData, JSON_UNESCAPED_SLASHES); ?>,
             headerPresetOpen: false,
             headerPresetPreviewOpen: false,
             headerPresetPreviewDevice: "desktop",
@@ -1027,6 +1033,16 @@ $canManageBloxDesign = hasPermission('*');
                 'currentDraft' => __('blox_header_preset_current_draft'),
                 'currentApply' => __('blox_header_preset_current_apply'),
                 'sectionCount' => __('blox_header_preset_section_count'),
+                'previous' => __('blox_header_preset_previous'),
+                'next' => __('blox_header_preset_next'),
+                'differenceTitle' => __('blox_header_preset_difference_title'),
+                'differenceSame' => __('blox_header_preset_difference_same'),
+                'differenceAdded' => __('blox_header_preset_difference_added'),
+                'differenceRemoved' => __('blox_header_preset_difference_removed'),
+                'differenceSeparator' => __('blox_header_preset_difference_separator'),
+                'missingLogo' => __('blox_header_preset_missing_logo'),
+                'missingNavigation' => __('blox_header_preset_missing_navigation'),
+                'missingLanguages' => __('blox_header_preset_missing_languages'),
                 'close' => __('close'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
@@ -2233,6 +2249,63 @@ $canManageBloxDesign = hasPermission('*');
                 return this.headerPresets.find(function (preset) { return preset.slug === slug; })
                     || this.headerPresets[0]
                     || null;
+            },
+
+            selectAdjacentHeaderPreset(offset) {
+                if (!this.headerPresets.length) return;
+                var current = this.headerPresets.findIndex(function (preset) {
+                    return preset.slug === this.selectedHeaderPresetSlug;
+                }, this);
+                var next = (Math.max(0, current) + offset + this.headerPresets.length) % this.headerPresets.length;
+                this.selectedHeaderPresetSlug = this.headerPresets[next].slug;
+                this.headerPresetPreviewDrawerOpen = false;
+                this.reloadHeaderPresetPreview();
+            },
+
+            headerPresetElementCounts(sections) {
+                var counts = {};
+                var visit = function (element) {
+                    if (!element || !element.type) return;
+                    counts[element.type] = (counts[element.type] || 0) + 1;
+                    var children = element.data && Array.isArray(element.data.children) ? element.data.children : [];
+                    children.forEach(visit);
+                };
+                (sections || []).forEach(function (section) {
+                    (section.columns || []).forEach(function (column) {
+                        (column.elements || []).forEach(visit);
+                    });
+                });
+                return counts;
+            },
+
+            headerPresetComparison(preset) {
+                var before = this.headerPresetElementCounts(this.sections || []);
+                var after = this.headerPresetElementCounts((preset && preset.sections) || []);
+                var types = Array.from(new Set(Object.keys(before).concat(Object.keys(after)))).sort();
+                var label = function (type, count) {
+                    return (this.elSchema(type).label || type) + (count > 1 ? " ×" + count : "");
+                }.bind(this);
+                var added = [];
+                var removed = [];
+                types.forEach(function (type) {
+                    var delta = (after[type] || 0) - (before[type] || 0);
+                    if (delta > 0) added.push(label(type, delta));
+                    if (delta < 0) removed.push(label(type, -delta));
+                });
+                return { added: added, removed: removed, same: added.length === 0 && removed.length === 0 };
+            },
+
+            headerPresetWarnings(preset) {
+                var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
+                var warnings = [];
+                if (counts.logo && !this.headerPresetSiteData.logo) warnings.push(this.headerPresetText.missingLogo);
+                if ((counts.nav || counts["nav-mega"] || counts["nav-drawer"]) && !this.headerPresetSiteData.navigation) {
+                    warnings.push(this.headerPresetText.missingNavigation);
+                }
+                if (counts["language-switcher"] && !this.headerPresetSiteData.languages) {
+                    warnings.push(this.headerPresetText.missingLanguages);
+                }
+                return warnings;
             },
 
             applyHeaderPreset(preset) {

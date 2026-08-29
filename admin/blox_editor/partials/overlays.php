@@ -537,7 +537,19 @@ declare(strict_types=1);
                      class="relative flex max-h-[calc(100vh-2rem)] w-[1360px] max-w-[96vw] flex-col overflow-hidden rounded-lg bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
                     <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
                         <span class="min-w-0">
-                            <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="preset && preset.name"></span>
+                            <span class="flex min-w-0 items-center gap-2">
+                                <button type="button" @click="selectAdjacentHeaderPreset(-1)" data-testid="blox-header-preset-preview-previous"
+                                        class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                        :title="headerPresetText.previous" :aria-label="headerPresetText.previous">
+                                    <i class="ti ti-chevron-left"></i>
+                                </button>
+                                <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="preset && preset.name"></span>
+                                <button type="button" @click="selectAdjacentHeaderPreset(1)" data-testid="blox-header-preset-preview-next"
+                                        class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                        :title="headerPresetText.next" :aria-label="headerPresetText.next">
+                                    <i class="ti ti-chevron-right"></i>
+                                </button>
+                            </span>
                             <span class="mt-0.5 block text-xs text-gray-500" x-text="headerPresetText.previewDataHint"></span>
                         </span>
                         <span class="ml-4 flex shrink-0 items-center gap-3">
@@ -619,6 +631,28 @@ declare(strict_types=1);
                             </template>
                         </div>
                         <p class="mt-3 text-[11px] text-gray-400" x-text="headerPresetText.sectionCount.replace(':count', preset ? preset.sections.length : 0)"></p>
+                        <div class="mt-4 border-t border-gray-200 pt-4" data-testid="blox-header-preset-difference">
+                            <p class="text-xs font-semibold text-gray-700" x-text="headerPresetText.differenceTitle"></p>
+                            <template x-if="preset && headerPresetComparison(preset).same">
+                                <p class="mt-2 text-xs text-emerald-700" x-text="headerPresetText.differenceSame"></p>
+                            </template>
+                            <div x-show="preset && !headerPresetComparison(preset).same" class="mt-2 grid gap-2 sm:grid-cols-2">
+                                <p class="text-xs leading-5 text-gray-600">
+                                    <span class="font-semibold text-emerald-700" x-text="headerPresetText.differenceAdded"></span>
+                                    <span x-text="preset ? headerPresetComparison(preset).added.join(headerPresetText.differenceSeparator) || '—' : '—'"></span>
+                                </p>
+                                <p class="text-xs leading-5 text-gray-600">
+                                    <span class="font-semibold text-amber-700" x-text="headerPresetText.differenceRemoved"></span>
+                                    <span x-text="preset ? headerPresetComparison(preset).removed.join(headerPresetText.differenceSeparator) || '—' : '—'"></span>
+                                </p>
+                            </div>
+                        </div>
+                        <div x-show="preset && headerPresetWarnings(preset).length" class="mt-4 border-l-2 border-amber-400 bg-amber-50 px-3 py-2"
+                             data-testid="blox-header-preset-warnings" role="status">
+                            <template x-for="warning in (preset ? headerPresetWarnings(preset) : [])" :key="warning">
+                                <p class="text-xs leading-5 text-amber-800"><i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i><span x-text="warning"></span></p>
+                            </template>
+                        </div>
                     </div>
                     <div class="flex shrink-0 justify-end gap-2 border-t border-gray-100 px-5 py-3">
                         <button type="button" @click="closeHeaderPresetPreview()"
