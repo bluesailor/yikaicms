@@ -866,6 +866,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
         $this->assertStringContainsString('border border-gray-300 bg-gray-50', $overlays);
         $this->assertStringContainsString('disabled:border-emerald-300 disabled:bg-white', $overlays);
+        $this->assertSame(3, substr_count($overlays, 'data-header-preset-logo'));
+        $this->assertSame(3, substr_count($overlays, '>[LOGO]</span>'));
+        $this->assertStringContainsString('data-header-preset-logo class="inline-flex h-4 min-w-14 shrink-0 items-center justify-center rounded-sm bg-gray-900', $overlays);
         foreach ([
             'data-testid="blox-header-preset-preview"',
             'data-testid="blox-header-preset-preview-dialog"',
