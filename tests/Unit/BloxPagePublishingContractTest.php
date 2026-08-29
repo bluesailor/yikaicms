@@ -114,7 +114,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
         // 空文档不挂站点页头页脚：新建单页只显示空态引导卡。空态卡是 appendChild 到
         // body 的，挂着 chrome 会让它落在页脚下方（看着像页脚的一部分）。
-        $this->assertStringContainsString('$headerBody . $pageHeroBody . $pageBody . $footerBody', $canvas);
+        $this->assertStringContainsString('$headerBody . $pageHeroBody . $pageContentBody . $footerBody', $canvas);
         $this->assertStringContainsString(': ($pageHeroBody . $pageBody);', $canvas);
         $this->assertStringContainsString('$hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];', $canvas);
 

@@ -22,15 +22,17 @@ test('page canvas includes the effective readonly header and footer @ci', async 
 
   await openPageEditor(page, fixtures.blox_page);
   const contentFrame = await frame(page);
+  const headerArea = contentFrame.locator('[data-yk-context-area="header"]');
+  const footerArea = contentFrame.locator('[data-yk-context-area="footer"]');
   const header = contentFrame.getByTestId('blox-context-edit-header');
   const footer = contentFrame.getByTestId('blox-context-edit-footer');
 
   await expect(header).toBeVisible();
   await expect(footer).toBeVisible();
-  await expect(header).toHaveAttribute('target', '_top');
-  await expect(footer).toHaveAttribute('target', '_top');
-  await expect(header).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-header)/);
-  await expect(footer).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)/);
+  await expect(header).not.toHaveAttribute('href', /.+/);
+  await expect(footer).not.toHaveAttribute('href', /.+/);
+  await expect(headerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-header)/);
+  await expect(footerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)/);
   await expect(contentFrame.locator('.yk-home-context-area')).toHaveCount(2);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 });
