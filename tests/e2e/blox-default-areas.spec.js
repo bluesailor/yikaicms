@@ -428,13 +428,35 @@ test('multilingual area manager exposes inheritance without horizontal overflow 
     await expect(page.getByTestId('blox-language-tab-en')).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('blox-language-tab-ja')).toBeVisible();
     await expect(page.getByTestId('blox-language-area-header')).toBeVisible();
-    await expect(page.getByTestId('blox-language-copy-default')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="blox-assignment-row"][data-context="home:en"]')
+        .getByTestId('blox-assignment-template'),
+    ).toHaveAttribute('href', /area_lang=en/);
+
+    const copyDefault = page.getByTestId('blox-language-copy-default');
+    if (await copyDefault.isVisible().catch(() => false)) {
+      await submit(page, copyDefault.locator('xpath=ancestor::form'));
+    } else {
+      await page.getByTestId('blox-language-edit-draft').click();
+      await page.waitForLoadState('domcontentloaded');
+    }
+    await expect(page).toHaveURL(/blox_editor\.php\?template=\d+&area_lang=en/);
+    await expect(page.getByTestId('blox-area-language-context')).toContainText('English');
+    await expect(page.getByTestId('blox-ctx-select').locator('option[value="home"]')).toHaveAttribute('data-language', 'en');
+    await expect(page.frameLocator('[data-testid="blox-canvas"]').locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByTestId('blox-front-preview')).toHaveAttribute('href', /\/en\??.*preview/);
+
+    const contextSelect = page.getByTestId('blox-ctx-select');
+    const japaneseContext = await contextSelect.locator('option[data-language="ja"]').first().getAttribute('value');
+    expect(japaneseContext).toBeTruthy();
+    await contextSelect.selectOption(japaneseContext, { force: true });
+    await expect(page.frameLocator('[data-testid="blox-canvas"]').locator('html')).toHaveAttribute('lang', 'ja');
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
-    expect(overflow, 'multilingual area manager must fit the viewport').toBeLessThanOrEqual(0);
-    expect(consoleEntries, 'multilingual area manager must not log browser errors').toEqual([]);
+    expect(overflow, 'multilingual area editor must fit the viewport').toBeLessThanOrEqual(0);
+    expect(consoleEntries, 'multilingual area flow must not log browser errors').toEqual([]);
   } finally {
     await unpublishAreas(page);
   }

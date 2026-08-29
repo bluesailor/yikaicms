@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'create_area_language_draft',
                 ($result['reused'] ? '继续编辑' : '创建') . ' Blox ' . $area . ' 语言草稿 #' . $result['id'] . ' [' . $language . ']'
             );
-            redirect('/admin/blox_editor.php?template=' . $result['id']);
+            redirect('/admin/blox_editor.php?template=' . $result['id'] . '&area_lang=' . rawurlencode($language));
         }
 
         if ($action === 'restore_area_language_inheritance') {
@@ -457,7 +457,8 @@ foreach ($areaContexts as $candidateContext) {
     }
 }
 $areaContextKey = (string) $selectedAreaContext['key'];
-$areaPreviewUrl = langUrl('/', (string) ($selectedAreaContext['context']['lang'] ?? $siteLanguage));
+$selectedContextLanguage = (string) ($selectedAreaContext['context']['lang'] ?? $siteLanguage);
+$areaPreviewUrl = langUrl('/', $selectedContextLanguage);
 $areaPreviewUrl .= str_contains($areaPreviewUrl, '?') ? '&preview=1' : '?preview=1';
 if (!str_starts_with($areaContextKey, 'home')) {
     $contextParts = explode(':', $areaContextKey, 2);
@@ -860,11 +861,11 @@ function confirmAreaPublish(form) {
                         </button>
                     </form>
                     <?php if ($resolved): ?>
-                    <a href="/admin/blox_editor.php?template=<?php echo (int) $resolved['id']; ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit')); ?></a>
+                    <a href="/admin/blox_editor.php?template=<?php echo (int) $resolved['id']; ?>&amp;area_lang=<?php echo e(rawurlencode($selectedContextLanguage)); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit')); ?></a>
                     <?php elseif (!$areaEnabled && $resolvedCandidate): ?>
-                    <a href="/admin/blox_editor.php?template=<?php echo (int) $resolvedCandidate['id']; ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit')); ?></a>
+                    <a href="/admin/blox_editor.php?template=<?php echo (int) $resolvedCandidate['id']; ?>&amp;area_lang=<?php echo e(rawurlencode($selectedContextLanguage)); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit')); ?></a>
                     <?php elseif ($latestDraft): ?>
-                    <a href="/admin/blox_editor.php?template=<?php echo (int) $latestDraft['id']; ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit_draft')); ?></a>
+                    <a href="/admin/blox_editor.php?template=<?php echo (int) $latestDraft['id']; ?>&amp;area_lang=<?php echo e(rawurlencode($selectedContextLanguage)); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit_draft')); ?></a>
                     <?php else: ?>
                     <a href="/admin/blox_templates.php?type=<?php echo e($areaType); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-layout-grid-add"></i><?php echo e(__('blox_current_choose_design')); ?></a>
                     <?php endif; ?>
@@ -938,7 +939,7 @@ function confirmAreaPublish(form) {
                                     <i class="ti ti-player-pause"></i><?php echo e(__('blox_assignment_matrix_disabled')); ?>
                                 </span>
                                 <?php elseif (is_array($matchedTemplate)): ?>
-                                <a href="/admin/blox_editor.php?template=<?php echo (int) ($matchedTemplate['id'] ?? 0); ?>"
+                                <a href="/admin/blox_editor.php?template=<?php echo (int) ($matchedTemplate['id'] ?? 0); ?>&amp;area_lang=<?php echo e(rawurlencode($languageCode)); ?>"
                                    class="inline-flex items-center gap-1 font-medium text-blue-700 hover:text-blue-900"
                                    data-testid="blox-assignment-template">
                                     <i class="ti <?php echo $areaType === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?>"></i>

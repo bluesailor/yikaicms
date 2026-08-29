@@ -8,11 +8,16 @@ declare(strict_types=1);
             <?php
             // 前台来源优先；没有来源时保留 back=home 与对象管理页的既有返回路径。
             $hasFrontendReturn = ($editorReturnTo ?? '') !== '';
+            $templateManagerBack = $templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)
+                ? '/admin/blox_templates.php?type=' . rawurlencode((string) $templateType)
+                    . ($areaEditorLanguage !== '' ? '&area_lang=' . rawurlencode($areaEditorLanguage) : '')
+                    . '#blox-language-areas'
+                : '/admin/blox_templates.php';
             $bloxBackUrl = $hasFrontendReturn
                 ? $editorReturnTo
                 : (($editorBackTo ?? '') === 'home'
                     ? '/admin/blox_editor.php?home=1'
-                    : ($templateId ? '/admin/blox_templates.php' : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')));
+                    : ($templateId ? $templateManagerBack : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')));
             $bloxBackTitle = $hasFrontendReturn
                 ? __('blox_return_to_page')
                 : (($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back'));
@@ -30,6 +35,13 @@ declare(strict_types=1);
                 <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?= __('label_experimental') ?></span>
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+            <?php if ($areaEditorLanguage !== ''): ?>
+            <span data-testid="blox-area-language-context"
+                  class="blox-header-area-language inline-flex shrink-0 items-center gap-1 rounded bg-cyan-400/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-200"
+                  title="<?php echo e($areaEditorContextTitle); ?>">
+                <i class="ti ti-language"></i><?php echo e($areaEditorContextLabel); ?>
+            </span>
+            <?php endif; ?>
             <?php if ($redirectedFromPage !== null): ?>
             <span data-testid="blox-redirect-source"
                   class="hidden lg:inline-flex items-center gap-1 text-[10px] font-medium bg-blue-500/15 text-blue-200 px-1.5 py-0.5 rounded shrink-0"
@@ -314,12 +326,12 @@ declare(strict_types=1);
                         title="<?php echo e(__('blox_ctx_label')); ?>" aria-label="<?php echo e(__('blox_ctx_label')); ?>"
                         class="bg-gray-800 border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 max-w-[12rem]">
                     <?php foreach ($areaCtxOptions as $ctxOpt): ?>
-                    <option value="<?php echo e($ctxOpt['value']); ?>"><?php echo e($ctxOpt['label']); ?></option>
+                    <option value="<?php echo e($ctxOpt['value']); ?>" data-language="<?php echo e($ctxOpt['lang']); ?>"><?php echo e($ctxOpt['label']); ?></option>
                     <?php endforeach; ?>
                     <?php foreach ($areaCtxOptionGroups as $ctxGroup): ?>
                     <optgroup label="<?php echo e($ctxGroup['label']); ?>">
                         <?php foreach ($ctxGroup['options'] as $ctxOpt): ?>
-                        <option value="<?php echo e($ctxOpt['value']); ?>"><?php echo e($ctxOpt['label']); ?></option>
+                        <option value="<?php echo e($ctxOpt['value']); ?>" data-language="<?php echo e($ctxOpt['lang']); ?>"><?php echo e($ctxOpt['label']); ?></option>
                         <?php endforeach; ?>
                     </optgroup>
                     <?php endforeach; ?>
@@ -371,7 +383,8 @@ declare(strict_types=1);
             $frontPreviewUrl = null;
             if ($templateId) {
                 if (in_array($templateType ?? '', ['header', 'footer'], true)) {
-                    $frontPreviewUrl = '/?preview';
+                    $frontPreviewUrl = langUrl('/', $areaEditorLanguage);
+                    $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview' : '?preview';
                 }
             } elseif ($isHomeBlox) {
                 $frontPreviewUrl = '/?preview';

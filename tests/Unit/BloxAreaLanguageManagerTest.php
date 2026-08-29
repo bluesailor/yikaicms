@@ -13,6 +13,22 @@ require_once ROOT_PATH . '/includes/builder/BloxAreaLanguageManager.php';
 
 final class BloxAreaLanguageManagerTest extends TestCase
 {
+    public function testManagedLanguageOnlyAcceptsOneSiteWideLanguageCondition(): void
+    {
+        self::assertSame('en', BloxAreaLanguageManager::managedLanguage([
+            'type' => 'header',
+            'conditions' => '[{"main":"any","ids":[],"langs":["en"],"exclude":false}]',
+        ]));
+        self::assertSame('', BloxAreaLanguageManager::managedLanguage([
+            'type' => 'footer',
+            'conditions' => '[{"main":"any","ids":[],"langs":["en","ja"],"exclude":false}]',
+        ]));
+        self::assertSame('', BloxAreaLanguageManager::managedLanguage([
+            'type' => 'section',
+            'conditions' => '[{"main":"any","ids":[],"langs":["en"],"exclude":false}]',
+        ]));
+    }
+
     public function testOverviewDistinguishesDefaultInheritanceIndependentAndAdvancedRules(): void
     {
         $published = [

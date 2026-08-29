@@ -7,6 +7,17 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+
+// 本端点不加载 includes/init.php；页头/页脚编辑器需显式提供受控预览语言，
+// 否则导航、站点资料和语言条件始终回落到默认语言。
+$previewLanguage = trim((string) ($_GET['_lang'] ?? ''));
+$previewLanguages = availableLanguages();
+if ($previewLanguage === '' || !isset($previewLanguages[$previewLanguage])) {
+    $previewLanguage = (string) config('site_lang', 'zh-CN');
+}
+if (!defined('SITE_LANG')) {
+    define('SITE_LANG', $previewLanguage);
+}
 // 主题默认 Header 可能包含会员入口，预览接口也必须提供前台会员认证函数。
 require_once ROOT_PATH . '/includes/member_auth.php';
 

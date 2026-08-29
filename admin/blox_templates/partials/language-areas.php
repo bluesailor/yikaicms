@@ -107,11 +107,11 @@ if ($selectedLanguageAreaRow === null || $defaultLanguageAreaRow === null) {
 
             <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
                 <?php if ($draft !== null && $mode !== 'independent'): ?>
-                <a href="/admin/blox_editor.php?template=<?php echo (int) $draft['id']; ?>"
+                <a href="/admin/blox_editor.php?template=<?php echo (int) $draft['id']; ?>&amp;area_lang=<?php echo e(rawurlencode($selectedAreaLanguage)); ?>"
                    class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"
                    data-testid="blox-language-edit-draft"><i class="ti ti-edit"></i><?php echo e(__('blox_language_area_edit_draft')); ?></a>
                 <?php elseif ($candidate !== null && in_array($mode, ['independent', 'advanced', 'default'], true)): ?>
-                <a href="/admin/blox_editor.php?template=<?php echo (int) $candidate['id']; ?>"
+                <a href="/admin/blox_editor.php?template=<?php echo (int) $candidate['id']; ?>&amp;area_lang=<?php echo e(rawurlencode($selectedAreaLanguage)); ?>"
                    class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"
                    data-testid="blox-language-edit-current"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit')); ?></a>
                 <?php elseif (!$selectedLanguageAreaRow['is_default'] && $source !== null): ?>
@@ -126,7 +126,7 @@ if ($selectedLanguageAreaRow === null || $defaultLanguageAreaRow === null) {
                     </button>
                 </form>
                 <?php else: ?>
-                <a href="/admin/blox_templates.php?type=<?php echo e($areaType); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-layout-grid-add"></i><?php echo e(__('blox_current_choose_design')); ?></a>
+                <a href="/admin/blox_templates.php?type=<?php echo e($areaType); ?>&amp;area_lang=<?php echo e(rawurlencode($selectedAreaLanguage)); ?>#blox-language-areas" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-layout-grid-add"></i><?php echo e(__('blox_current_choose_design')); ?></a>
                 <?php endif; ?>
 
                 <?php if (!empty($areaState['managed']) && !$selectedLanguageAreaRow['is_default']): ?>
