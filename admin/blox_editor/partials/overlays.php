@@ -480,11 +480,11 @@ declare(strict_types=1);
                                         <i class="h-1 w-12 rounded bg-gray-400"></i><i class="h-1 w-5 rounded bg-gray-400"></i>
                                     </span>
                                     <span x-show="preset.preview === 'centered-brand'" class="flex h-16 flex-col items-center justify-center gap-2 px-3">
-                                        <i class="h-2.5 w-12 rounded-sm bg-blue-500"></i>
+                                        <span data-header-preset-logo class="inline-flex h-4 min-w-14 shrink-0 items-center justify-center rounded-sm bg-gray-900 px-1.5 text-[7px] font-bold leading-none text-white">[LOGO]</span>
                                         <i class="h-1.5 w-28 rounded bg-gray-300"></i>
                                     </span>
                                     <span x-show="preset.preview === 'search'" class="flex h-12 items-center gap-2 px-3">
-                                        <i class="h-2.5 w-10 shrink-0 rounded-sm bg-blue-500"></i>
+                                        <span data-header-preset-logo class="inline-flex h-4 min-w-14 shrink-0 items-center justify-center rounded-sm bg-gray-900 px-1.5 text-[7px] font-bold leading-none text-white">[LOGO]</span>
                                         <i class="h-5 flex-1 rounded border border-gray-300 bg-gray-50"></i>
                                         <i class="h-2 w-5 rounded bg-gray-300"></i>
                                     </span>
@@ -493,7 +493,7 @@ declare(strict_types=1);
                                     </span>
                                     <span x-show="preset.preview !== 'centered-brand' && preset.preview !== 'search'"
                                           class="flex h-12 items-center justify-between px-3">
-                                        <i class="h-2.5 w-12 rounded-sm bg-blue-500"></i>
+                                        <span data-header-preset-logo class="inline-flex h-4 min-w-14 shrink-0 items-center justify-center rounded-sm bg-gray-900 px-1.5 text-[7px] font-bold leading-none text-white">[LOGO]</span>
                                         <span class="flex items-center gap-1.5"><i class="h-1.5 w-10 rounded bg-gray-300"></i><i class="h-1.5 w-7 rounded bg-gray-300"></i><i class="h-5 w-8 rounded bg-blue-100"></i></span>
                                     </span>
                                 </div>
