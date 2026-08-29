@@ -26,7 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         $name = trim(post('name'));
         $description = trim(post('description'));
-        $permissions = $_POST['permissions'] ?? [];
+        $submittedPermissions = $_POST['permissions'] ?? [];
+        $permissions = is_array($submittedPermissions)
+            ? array_values(array_filter($submittedPermissions, 'is_string'))
+            : [];
 
         if (empty($name)) {
             error(__('role_name_required'));
@@ -34,8 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 过滤无效权限
         $permissions = array_values(array_intersect($permissions, allPermissionKeys()));
-        if (in_array('*', $permissions)) {
+        if (in_array('*', $permissions, true)) {
             $permissions = ['*'];
+        }
+        $permissionError = permissionSetError($permissions);
+        if ($permissionError !== null) {
+            error($permissionError);
         }
 
         $data = [
@@ -186,9 +193,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <!-- 编辑弹窗 -->
-<div id="editModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+<div id="editModal" data-testid="role-edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
-    <div class="relative max-w-lg mx-auto my-10 bg-white rounded-lg shadow-xl">
+    <div class="relative max-w-2xl mx-auto my-10 bg-white rounded-lg shadow-xl">
         <div class="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-lg z-10">
             <h3 class="font-bold text-gray-800" id="modalTitle"><?php echo e(__('role_add')); ?></h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
@@ -217,21 +224,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                data-perm="*" onchange="handlePermChange(this)">
                         <span class="text-sm font-bold text-red-600"><?php echo e(__('perm_all')); ?></span>
                     </label>
-                    <?php foreach ($permCatalog as $group): ?>
-                    <div>
+                    <?php foreach ($permCatalog as $groupKey => $group): ?>
+                    <div data-permission-group="<?php echo e($groupKey); ?>"<?php echo $groupKey === 'blox' ? ' data-testid="role-blox-permissions"' : ''; ?>>
                         <div class="text-xs font-medium text-gray-400 uppercase mb-1.5"><?php echo e($group['label']); ?></div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                        <?php if ($groupKey === 'blox'): ?>
+                        <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_blox_permissions_hint')); ?></p>
+                        <?php endif; ?>
+                        <div class="<?php echo $groupKey === 'blox' ? 'space-y-2' : 'grid grid-cols-2 gap-x-4 gap-y-1.5'; ?>">
                             <?php foreach ($group['caps'] as $key => $label): ?>
-                            <label class="flex items-center gap-2 cursor-pointer">
+                            <label class="flex cursor-pointer <?php echo $groupKey === 'blox' ? 'items-start gap-3 border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300' : 'items-center gap-2'; ?>">
                                 <input type="checkbox" name="permissions[]" value="<?php echo e($key); ?>"
-                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox"
+                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox <?php echo $groupKey === 'blox' ? 'mt-0.5' : ''; ?>"
                                        data-perm="<?php echo e($key); ?>" onchange="handlePermChange(this)">
+                                <?php if ($groupKey === 'blox'): ?>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-medium text-gray-800"><?php echo e($label); ?></span>
+                                    <span class="mt-0.5 block text-xs leading-5 text-gray-500"><?php echo e(permDescription($key)); ?></span>
+                                </span>
+                                <?php else: ?>
                                 <span class="text-sm text-gray-700"><?php echo e($label); ?></span>
+                                <?php endif; ?>
                             </label>
                             <?php endforeach; ?>
                         </div>
                     </div>
                     <?php endforeach; ?>
+                    <div id="bloxPermissionNotice" data-testid="role-blox-permission-notice" class="hidden border-l-4 border-amber-400 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800" role="alert"></div>
                     <p class="text-xs text-gray-400 pt-1"><?php echo e(__('perm_no_delete_hint')); ?></p>
                 </div>
             </div>
@@ -277,6 +295,8 @@ function openEditModal(item = null) {
         }
     }
 
+    updateBloxPermissionState();
+
     document.getElementById('editModal').classList.remove('hidden');
 }
 
@@ -291,11 +311,37 @@ function handlePermChange(checkbox) {
             cb.disabled = checkbox.checked;
             if (checkbox.checked) cb.checked = false;
         });
+    } else if (checkbox.dataset.perm === 'blox_edit' && checkbox.checked) {
+        const pageEdit = document.querySelector('.perm-checkbox[data-perm="edit_page"]');
+        if (pageEdit) pageEdit.checked = true;
+    } else if (checkbox.dataset.perm === 'edit_page' && !checkbox.checked) {
+        const bloxEdit = document.querySelector('.perm-checkbox[data-perm="blox_edit"]');
+        if (bloxEdit) bloxEdit.checked = false;
     }
+    updateBloxPermissionState();
+}
+
+function updateBloxPermissionState() {
+    const checked = key => !!document.querySelector('.perm-checkbox[data-perm="' + key + '"]')?.checked;
+    const notice = document.getElementById('bloxPermissionNotice');
+    let message = '';
+    if (!checked('*') && checked('blox_edit') && !checked('edit_page')) {
+        message = <?php echo json_encode(__('role_blox_edit_requires_page'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    } else if (!checked('*') && checked('blox_code')
+        && !['blox_edit', 'blox_home', 'blox_global'].some(checked)) {
+        message = <?php echo json_encode(__('role_blox_code_requires_scope'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    }
+    notice.textContent = message;
+    notice.classList.toggle('hidden', message === '');
+    return message === '';
 }
 
 document.getElementById('editForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    if (!updateBloxPermissionState()) {
+        showMessage(document.getElementById('bloxPermissionNotice').textContent, 'error');
+        return;
+    }
     const formData = new FormData(this);
     try {
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
