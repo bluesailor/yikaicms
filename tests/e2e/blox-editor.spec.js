@@ -214,6 +214,28 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   }
 });
 
+test('scroll panels reserve a stable Tailwind 4.3 gutter @ci', async ({ page }, testInfo) => {
+  const assertStableScroller = async (locator) => {
+    await expect(locator).toBeVisible();
+    const styles = await locator.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        gutter: computed.scrollbarGutter,
+        width: computed.scrollbarWidth,
+      };
+    });
+    expect(styles.gutter).toContain('stable');
+    expect(styles.width).toBe('thin');
+  };
+
+  await assertStableScroller(page.getByTestId('blox-element-scroll'));
+  await assertStableScroller(page.getByTestId('blox-tree'));
+
+  await page.getByTestId('blox-prebuilt-open').click();
+  await assertStableScroller(page.locator('[x-ref="templateScroll"]'));
+  await page.screenshot({ path: testInfo.outputPath('blox-scroll-panels.png'), fullPage: true });
+});
+
 test('element library keeps favorites and successful recent inserts discoverable @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await page.evaluate(() => {

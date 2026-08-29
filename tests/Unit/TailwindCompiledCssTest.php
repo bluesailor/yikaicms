@@ -48,6 +48,20 @@ final class TailwindCompiledCssTest extends TestCase
         }
     }
 
+    public function testBloxScrollAreasUseTailwind43Utilities(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+        self::assertStringContainsString('.blox-scroll{', $css);
+        self::assertStringContainsString('scrollbar-width:thin', $css);
+        self::assertStringContainsString('scrollbar-gutter:stable', $css);
+        self::assertStringContainsString('--tw-scrollbar-thumb:#cbd5e1', $css);
+        self::assertStringContainsString(
+            'scrollbar-color:var(--tw-scrollbar-thumb) var(--tw-scrollbar-track)',
+            $css
+        );
+    }
+
     public function testBuildContractUsesCanonicalInputAndPinnedVersion(): void
     {
         self::assertFileDoesNotExist(ROOT_PATH . '/assets/css/input.css');

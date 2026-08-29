@@ -37,6 +37,14 @@
     }
 }
 
+/* Blox 的元素库、属性面板、结构树和弹层统一使用 4.3 原生滚动条能力。 */
+.blox-scroll {
+    @apply scrollbar-thin scrollbar-gutter-stable scrollbar-thumb-[#cbd5e1] scrollbar-track-transparent;
+}
+/* 兼容仍使用 WebKit 私有滚动条尺寸的旧 Chromium。 */
+.blox-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.blox-scroll::-webkit-scrollbar-thumb { border-radius: 3px; }
+
 .yk-blox-anchor { scroll-margin-top: 6rem; }
 @media (prefers-reduced-motion: no-preference) {
     html { scroll-behavior: smooth; }

@@ -703,7 +703,6 @@ $canManageBloxDesign = hasPermission('*');
     <style>
         html, body { height: 100%; margin: 0; overflow: hidden; }
         [x-cloak] { display: none !important; }
-        .blox-scroll { scrollbar-width: thin; }
         .blox-sort-ghost { opacity: .45; border: 1px dashed #3b82f6; background: #eff6ff; }
         .blox-palette-drag-ghost { position: fixed; left: -9999px; top: -9999px; z-index: 9999; display: flex; max-width: 220px; align-items: center; gap: 8px; overflow: hidden; border-radius: 6px; background: #fff; padding: 7px 10px 7px 7px; color: #1e3a8a; box-shadow: 0 8px 20px rgba(15, 23, 42, .18); font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
         .blox-palette-drag-ghost-icon { display: flex; width: 26px; height: 26px; flex: 0 0 26px; align-items: center; justify-content: center; border-radius: 4px; background: #eff6ff; color: #2563eb; }
@@ -769,8 +768,6 @@ $canManageBloxDesign = hasPermission('*');
         }
         .blox-tree-drop-inside-valid { outline: 2px solid #60a5fa; outline-offset: -2px; }
         .blox-tree-drop-inside-invalid { outline: 2px solid #ef4444; outline-offset: -2px; }
-        .blox-scroll::-webkit-scrollbar { width: 6px; }
-        .blox-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .blox-panel-resizer {
             display: flex;
             width: 8px;
