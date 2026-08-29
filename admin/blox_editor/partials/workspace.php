@@ -2769,11 +2769,14 @@ declare(strict_types=1);
                 </button>
             </div>
             <div x-show="rightPanelContentVisible()" class="border-b border-gray-100 p-2 shrink-0">
-<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
-                <button type="button" @click="openHeaderPresets()" data-testid="blox-header-presets-open"
+<?php if ($templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
+                <button type="button" @click="openHeaderPresets()"
+                        data-testid="blox-<?php echo e((string) $templateType); ?>-presets-open"
                         class="h-9 w-full rounded-md border border-blue-200 bg-blue-50 px-2.5 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
-                        title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
-                    <i class="ti ti-layout-navbar text-base"></i><span class="truncate"><?php echo e(__('blox_header_presets')); ?></span>
+                        title="<?php echo e(__($templateType === 'footer' ? 'blox_footer_presets' : 'blox_header_presets')); ?>"
+                        aria-label="<?php echo e(__($templateType === 'footer' ? 'blox_footer_presets' : 'blox_header_presets')); ?>">
+                    <i class="ti <?php echo $templateType === 'footer' ? 'ti-layout-bottombar' : 'ti-layout-navbar'; ?> text-base"></i>
+                    <span class="truncate"><?php echo e(__($templateType === 'footer' ? 'blox_footer_presets' : 'blox_header_presets')); ?></span>
                 </button>
 <?php elseif (!$templateId || !in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
                 <div class="grid gap-2 <?php echo !$isHomeBlox && !$templateId ? 'grid-cols-2' : 'grid-cols-1'; ?>">

@@ -60,6 +60,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_footer_name',
             'description_key' => 'blox_area_preset_footer_desc',
             'preview' => 'footer-columns',
+            'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_navigation', 'blox_footer_feature_legal'],
         ],
         'corporate-site-footer' => [
             'type' => 'footer',
@@ -67,6 +68,31 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_corporate_footer_name',
             'description_key' => 'blox_area_preset_corporate_footer_desc',
             'preview' => 'footer-columns-dark',
+            'feature_keys' => ['blox_footer_feature_dark', 'blox_footer_feature_contact', 'blox_footer_feature_social'],
+        ],
+        'compact-site-footer' => [
+            'type' => 'footer',
+            'file' => 'compact-site-footer.json',
+            'name_key' => 'blox_area_preset_compact_footer_name',
+            'description_key' => 'blox_area_preset_compact_footer_desc',
+            'preview' => 'footer-compact',
+            'feature_keys' => ['blox_footer_feature_compact', 'blox_footer_feature_social', 'blox_footer_feature_legal'],
+        ],
+        'contact-site-footer' => [
+            'type' => 'footer',
+            'file' => 'contact-site-footer.json',
+            'name_key' => 'blox_area_preset_contact_footer_name',
+            'description_key' => 'blox_area_preset_contact_footer_desc',
+            'preview' => 'footer-contact',
+            'feature_keys' => ['blox_footer_feature_contact', 'blox_footer_feature_mobile_stack', 'blox_footer_feature_social'],
+        ],
+        'search-site-footer' => [
+            'type' => 'footer',
+            'file' => 'search-site-footer.json',
+            'name_key' => 'blox_area_preset_search_footer_name',
+            'description_key' => 'blox_area_preset_search_footer_desc',
+            'preview' => 'footer-search',
+            'feature_keys' => ['blox_footer_feature_search', 'blox_footer_feature_navigation', 'blox_footer_feature_contact'],
         ],
     ];
 

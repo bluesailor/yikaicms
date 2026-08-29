@@ -47,8 +47,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             }
         }
 
+        $areaOnly = (string) ($_GET['area_only'] ?? '') === '1';
         $contextBody = '';
-        if ($templateArea === 'footer') {
+        if ($templateArea === 'footer' && !$areaOnly) {
             // 页尾需要正文落底参照；参照区不输出编辑标记，画布上不可点选。
             $savedEditChannel = BlockRenderer::$editChannelId;
             BlockRenderer::$editChannelId = 0;
@@ -115,7 +116,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             . ' data-yk-ctx-hit-name="' . htmlspecialchars($ctxHitName, ENT_QUOTES) . '"'
             . ' data-yk-ctx-hit-scope="' . htmlspecialchars($ctxHitScope, ENT_QUOTES) . '"'
             . ' data-yk-ctx-hit-language="' . ($ctxHitLanguageSpecific ? '1' : '0') . '">' . $editableArea . '</div>';
-        $body = $templateArea === 'header'
+        $body = $templateArea === 'header' || $areaOnly
             ? $editableArea
             : '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>' . $editableArea;
     } else {

@@ -205,9 +205,7 @@ if ($isHomeBlox) {
         // 页头只显示可编辑区域；页尾保留正文落底上下文。上下文选择仍使用前台同一套
         // Resolver 报告命中模板，避免编辑中的适用范围与线上实际命中脱节。
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType;
-        if ($templateType === 'header') {
-            $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog('header');
-        }
+        $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog($templateType);
         $areaCtxOptions[] = ['value' => 'home', 'label' => __('blox_ctx_home')];
         foreach (channelModel()->where(['status' => 1]) as $ctxCh) {
             $ctxChType = (string) ($ctxCh['type'] ?? '');
@@ -463,7 +461,15 @@ $headerPresetSiteData = [
     'logo' => SiteAsset::availableUrl((string) configRawLang('site_logo', '')) !== '',
     'navigation' => getDefaultNavigation() !== [],
     'languages' => count(enabledLanguages()) > 1,
+    'contact' => array_filter([
+        trim((string) configRawLang('contact_phone', '')),
+        trim((string) configRawLang('contact_email', '')),
+        trim((string) configRawLang('contact_address', '')),
+        trim((string) configRawLang('contact_hours', '')),
+    ], static fn(string $value): bool => $value !== '') !== [],
+    'social' => SocialLinksElement::decodeLinks((string) config('social_links', '[]')) !== [],
 ];
+$areaPresetIsFooter = $templateId && isset($templateType) && $templateType === 'footer';
 $customHeaderEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
 $replaceThemeAreaOnPublish = '';
 if ($templateId && isset($templateRow, $templateType)
@@ -1029,6 +1035,8 @@ $canManageBloxDesign = hasPermission('*');
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
+            areaTemplateMode: <?php echo $templateId && in_array($templateType, ['header', 'footer'], true) ? 'true' : 'false'; ?>,
+            areaPresetType: <?php echo json_encode($templateId && in_array($templateType, ['header', 'footer'], true) ? $templateType : 'header'); ?>,
             headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetSiteData: <?php echo json_encode($headerPresetSiteData, JSON_UNESCAPED_SLASHES); ?>,
             headerElementLabels: <?php echo json_encode([
@@ -1038,6 +1046,9 @@ $canManageBloxDesign = hasPermission('*');
                 'nav-drawer' => __('blox_header_structure_mobile_nav'),
                 'language-switcher' => __('blox_header_structure_language'),
                 'site-search' => __('blox_header_structure_search'),
+                'site-contact' => __('blox_el_site_contact'),
+                'social-links' => __('blox_el_social_links'),
+                'site-copyright' => __('blox_el_site_copyright'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetOpen: false,
             headerPresetPreviewOpen: false,
@@ -1048,12 +1059,12 @@ $canManageBloxDesign = hasPermission('*');
             headerPresetPreviewNonce: 0,
             selectedHeaderPresetSlug: "",
             headerPresetText: <?php echo json_encode([
-                'title' => __('blox_header_presets'),
-                'hint' => __('blox_header_presets_hint'),
-                'apply' => __('blox_header_preset_apply'),
-                'applied' => __('blox_header_preset_applied'),
+                'title' => __($areaPresetIsFooter ? 'blox_footer_presets' : 'blox_header_presets'),
+                'hint' => __($areaPresetIsFooter ? 'blox_footer_presets_hint' : 'blox_header_presets_hint'),
+                'apply' => __($areaPresetIsFooter ? 'blox_footer_preset_apply' : 'blox_header_preset_apply'),
+                'applied' => __($areaPresetIsFooter ? 'blox_footer_preset_applied' : 'blox_header_preset_applied'),
                 'preview' => __('blox_header_preset_preview'),
-                'previewTitle' => __('blox_header_preset_preview_title'),
+                'previewTitle' => __($areaPresetIsFooter ? 'blox_footer_preset_preview_title' : 'blox_header_preset_preview_title'),
                 'previewDesktop' => __('blox_header_preset_preview_desktop'),
                 'previewMobile' => __('blox_header_preset_preview_mobile'),
                 'previewNormal' => __('blox_header_state_normal'),
@@ -1061,11 +1072,11 @@ $canManageBloxDesign = hasPermission('*');
                 'previewStuck' => __('blox_header_state_stuck'),
                 'previewDrawerOpen' => __('blox_header_preset_preview_drawer_open'),
                 'previewDrawerClose' => __('blox_header_preset_preview_drawer_close'),
-                'previewLoading' => __('blox_header_preset_preview_loading'),
-                'previewDataHint' => __('blox_header_preset_preview_site_data'),
+                'previewLoading' => __($areaPresetIsFooter ? 'blox_footer_preset_preview_loading' : 'blox_header_preset_preview_loading'),
+                'previewDataHint' => __($areaPresetIsFooter ? 'blox_footer_preset_preview_site_data' : 'blox_header_preset_preview_site_data'),
                 'currentDraft' => __('blox_header_preset_current_draft'),
                 'currentApply' => __('blox_header_preset_current_apply'),
-                'sectionCount' => __('blox_header_preset_section_count'),
+                'sectionCount' => __($areaPresetIsFooter ? 'blox_footer_preset_section_count' : 'blox_header_preset_section_count'),
                 'previous' => __('blox_header_preset_previous'),
                 'next' => __('blox_header_preset_next'),
                 'differenceTitle' => __('blox_header_preset_difference_title'),
@@ -1073,13 +1084,16 @@ $canManageBloxDesign = hasPermission('*');
                 'differenceAdded' => __('blox_header_preset_difference_added'),
                 'differenceRemoved' => __('blox_header_preset_difference_removed'),
                 'differenceSeparator' => __('blox_header_preset_difference_separator'),
-                'missingLogo' => __('blox_header_preset_missing_logo'),
-                'missingNavigation' => __('blox_header_preset_missing_navigation'),
+                'missingLogo' => __($areaPresetIsFooter ? 'blox_footer_preset_missing_logo' : 'blox_header_preset_missing_logo'),
+                'missingNavigation' => __($areaPresetIsFooter ? 'blox_footer_preset_missing_navigation' : 'blox_header_preset_missing_navigation'),
                 'missingLanguages' => __('blox_header_preset_missing_languages'),
-                'applyAndEdit' => __('blox_header_preset_apply_and_edit'),
-                'saveLocal' => __('blox_header_save_local_style'),
-                'saveLocalName' => __('blox_header_save_local_style_name'),
-                'saveLocalDone' => __('blox_header_save_local_style_done'),
+                'missingContact' => __('blox_footer_preset_missing_contact'),
+                'missingSocial' => __('blox_footer_preset_missing_social'),
+                'applyAndEdit' => __($areaPresetIsFooter ? 'blox_footer_preset_apply_and_edit' : 'blox_header_preset_apply_and_edit'),
+                'saveLocal' => __($areaPresetIsFooter ? 'blox_footer_save_local_style' : 'blox_header_save_local_style'),
+                'saveLocalName' => __($areaPresetIsFooter ? 'blox_footer_save_local_style_name' : 'blox_header_save_local_style_name'),
+                'saveLocalDone' => __($areaPresetIsFooter ? 'blox_footer_save_local_style_done' : 'blox_header_save_local_style_done'),
+                'localCopySuffix' => __($areaPresetIsFooter ? 'blox_footer_local_copy_suffix' : 'blox_header_local_copy_suffix'),
                 'close' => __('close'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
@@ -2184,7 +2198,7 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             openHeaderPresets() {
-                if (!this.headerTemplateMode || this.headerPresets.length === 0) return;
+                if (!this.areaTemplateMode || this.headerPresets.length === 0) return;
                 var current = this.headerPresets.find(function (preset) {
                     return this.isCurrentHeaderPreset(preset);
                 }, this);
@@ -2236,11 +2250,12 @@ $canManageBloxDesign = hasPermission('*');
 
             headerPresetPreviewUrl(preset) {
                 if (!preset || !/^[a-z0-9-]{1,80}$/.test(String(preset.slug || ""))) return "about:blank";
-                var url = "/admin/blox_preview.php?home=1&template_area=header&header_preset="
+                var area = this.areaPresetType === "footer" ? "footer" : "header";
+                var url = "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
                     + encodeURIComponent(preset.slug);
                 url += "&preview_instance=" + this.headerPresetPreviewNonce;
-                url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
-                if (this.headerPresetPreviewDevice === "mobile" && this.headerPresetPreviewDrawerOpen) {
+                if (area === "header") url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
+                if (area === "header" && this.headerPresetPreviewDevice === "mobile" && this.headerPresetPreviewDrawerOpen) {
                     url += "&drawer_open=1";
                 }
                 if (this.previewContext && this.previewContext !== "home") {
@@ -2257,13 +2272,14 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             setHeaderPresetPreviewState(state) {
+                if (this.areaPresetType !== "header") return;
                 if (!["normal", "overlay", "stuck"].includes(state)) return;
                 this.headerPresetPreviewState = state;
                 this.reloadHeaderPresetPreview();
             },
 
             toggleHeaderPresetPreviewDrawer() {
-                if (this.headerPresetPreviewDevice !== "mobile") return;
+                if (this.areaPresetType !== "header" || this.headerPresetPreviewDevice !== "mobile") return;
                 this.headerPresetPreviewDrawerOpen = !this.headerPresetPreviewDrawerOpen;
                 this.reloadHeaderPresetPreview();
             },
@@ -2342,12 +2358,21 @@ $canManageBloxDesign = hasPermission('*');
                 if (counts["language-switcher"] && !this.headerPresetSiteData.languages) {
                     warnings.push(this.headerPresetText.missingLanguages);
                 }
+                if (counts["site-contact"] && !this.headerPresetSiteData.contact) {
+                    warnings.push(this.headerPresetText.missingContact);
+                }
+                if (counts["social-links"] && !this.headerPresetSiteData.social) {
+                    warnings.push(this.headerPresetText.missingSocial);
+                }
                 return warnings;
             },
 
             headerPresetFocusTypes(preset) {
                 var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
-                return ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"]
+                var candidates = this.areaPresetType === "footer"
+                    ? ["logo", "nav", "site-contact", "site-search", "social-links", "site-copyright"]
+                    : ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"];
+                return candidates
                     .filter(function (type, index, all) { return counts[type] && all.indexOf(type) === index; });
             },
 
@@ -2375,14 +2400,15 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             saveHeaderAsLocalStyle() {
-                if (!this.headerTemplateMode) return;
-                var suggested = <?php echo json_encode((string) ($page['name'] ?? '') . ' - ' . __('blox_header_local_copy_suffix'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+                if (!this.areaTemplateMode) return;
+                var suggested = <?php echo json_encode((string) ($page['name'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
+                    + " - " + this.headerPresetText.localCopySuffix;
                 var name = window.prompt(this.headerPresetText.saveLocalName, suggested);
                 if (!name || !String(name).trim()) return;
                 var self = this;
                 var body = new URLSearchParams({
                     action: "save_area_copy",
-                    type: "header",
+                    type: this.areaPresetType,
                     name: String(name).trim(),
                     blocks_data: this.documentData(),
                     _token: this.csrf,
@@ -2396,17 +2422,17 @@ $canManageBloxDesign = hasPermission('*');
             },
 
             applyHeaderPreset(preset, focusType) {
-                if (!this.headerTemplateMode || !preset || !Array.isArray(preset.sections)
+                if (!this.areaTemplateMode || !preset || !Array.isArray(preset.sections)
                     || preset.sections.length === 0) return;
                 var self = this;
-                var applied = this.commandRunner().execute("apply-header-preset", function () {
+                var applied = this.commandRunner().execute("apply-area-preset", function () {
                     var fresh = window.BloxTemplateLibrary.freshSections(
                         preset.sections,
                         function (prefix) { return self.uid(prefix); }
                     );
                     self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
                     self.docSettings = JSON.parse(JSON.stringify(preset.settings || {}));
-                    self.normalizeHeaderSettings();
+                    if (self.areaPresetType === "header") self.normalizeHeaderSettings();
                     self.selectedSi = fresh.length > 0 ? 0 : -1;
                     self.selectedCi = -1;
                     self.selectedEi = -1;

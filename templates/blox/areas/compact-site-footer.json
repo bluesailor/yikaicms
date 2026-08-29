@@ -1,0 +1,47 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "footer",
+  "name": "Compact Site Footer",
+  "requires": {
+    "elements": ["logo", "site-copyright", "social-links"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "md",
+          "max_width": "wide",
+          "gap": "md",
+          "bg_color": "#111827",
+          "align_items": "center",
+          "tablet_stack": true
+        },
+        "columns": [
+          {
+            "span": 3,
+            "elements": [
+              {"type": "logo", "data": {"display": "image", "height": "sm", "tone": "light", "link_home": true}}
+            ]
+          },
+          {
+            "span": 6,
+            "elements": [
+              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "light"}}
+            ]
+          },
+          {
+            "span": 3,
+            "elements": [
+              {"type": "social-links", "data": {"style": "outline", "align": "right", "tone": "light"}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

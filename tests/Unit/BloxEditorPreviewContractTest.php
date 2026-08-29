@@ -812,7 +812,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
-    public function testHeaderEditorUsesDedicatedPresetsAndAnIsolatedCanvas(): void
+    public function testAreaEditorsUseDedicatedPresetsAndAnIsolatedCanvas(): void
     {
         $editor = $this->source('admin/blox_editor.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
@@ -821,7 +821,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
 
         foreach ([
-            'BloxAreaTemplatePresets::editorCatalog(\'header\')',
+            'BloxAreaTemplatePresets::editorCatalog($templateType)',
+            'areaTemplateMode:',
+            'areaPresetType:',
             'headerPresets:',
             'selectedHeaderPresetSlug:',
             'openHeaderPresets()',
@@ -831,15 +833,16 @@ final class BloxEditorPreviewContractTest extends TestCase
             'setHeaderPresetPreviewDevice(device)',
             'documentFingerprint',
             'applyHeaderPreset(preset)',
-            'apply-header-preset',
+            'apply-area-preset',
         ] as $token) {
             $this->assertStringContainsString($token, $editor, "header preset editor token {$token} missing");
         }
         $this->assertStringContainsString("'headerSection' => __('blox_header_section_name')", $editor);
         $this->assertStringContainsString('if (!title && this.headerTemplateMode)', $editor);
         $this->assertStringNotContainsString('data-testid="blox-header-presets-open"', $header);
-        $this->assertStringContainsString('data-testid="blox-header-presets-open"', $workspace);
-        $this->assertStringContainsString('<span class="truncate"><?php echo e(__(\'blox_header_presets\')); ?></span>', $workspace);
+        $this->assertStringContainsString('data-testid="blox-<?php echo e((string) $templateType); ?>-presets-open"', $workspace);
+        $this->assertStringContainsString("'blox_footer_presets'", $workspace);
+        $this->assertStringContainsString("'blox_header_presets'", $workspace);
         $this->assertStringContainsString('@media (max-width: 1199px)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
@@ -868,6 +871,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         $this->assertStringNotContainsString('data-testid="blox-header-preset-detail"', $overlays);
         $this->assertStringNotContainsString("preset && preset.preview === 'corporate'", $overlays);
+        foreach (["areaPresetType === 'footer'", "preset.preview === 'footer-compact'", "preset.preview === 'footer-contact'", "preset.preview === 'footer-search'"] as $token) {
+            $this->assertStringContainsString($token, $overlays, "footer preset visual token {$token} missing");
+        }
         foreach (['selectAdjacentHeaderPreset(offset)', 'headerPresetComparison(preset)', 'headerPresetWarnings(preset)', 'headerPresetSiteData:', 'focusFirstHeaderElement(type)', 'saveHeaderAsLocalStyle()'] as $token) {
             $this->assertStringContainsString($token, $editor, "header preset comparison token {$token} missing");
         }
@@ -875,29 +881,32 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (["\$action === 'save_area_copy'", "in_array(\$type, ['header', 'footer'], true)", "'editor-copy'"] as $token) {
             $this->assertStringContainsString($token, $api, "header copy API token {$token} missing");
         }
-        $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
+        $this->assertStringContainsString("\$body = \$templateArea === 'header' || \$areaOnly", $preview);
         $this->assertStringContainsString('? $editableArea', $preview);
-        $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);
+        $this->assertStringContainsString("if (\$templateArea === 'footer' && !\$areaOnly)", $preview);
     }
 
-    public function testHeaderPresetPreviewUsesAReadOnlyBundledDocument(): void
+    public function testAreaPresetPreviewUsesAReadOnlyBundledDocument(): void
     {
         $endpoint = $this->source('admin/blox_preview.php');
 
         foreach ([
-            '$isHeaderPresetPreview = $isHomeLayout && $headerPresetSlug !== \'\';',
-            "preg_match('/^[a-z0-9-]{1,80}$/', \$headerPresetSlug)",
-            "BloxAreaTemplatePresets::editorCatalog('header')",
-            "\$_GET['template_area'] = 'header';",
+            '$isAreaPresetPreview = $isHomeLayout && $areaPresetSlug !== \'\';',
+            "preg_match('/^[a-z0-9-]{1,80}$/', \$areaPresetSlug)",
+            "in_array(\$areaPresetType, ['header', 'footer'], true)",
+            'BloxAreaTemplatePresets::editorCatalog($areaPresetType)',
+            "\$_GET['template_area'] = \$areaPresetType;",
+            "\$_GET['area_only'] = '1';",
+            "if (\$areaPresetType === 'header')",
             "in_array(\$headerState, BloxHeaderStates::NAMES, true)",
             "\$_POST['drawer_open'] = (string) (\$_GET['drawer_open'] ?? '') === '1'",
             "\$_POST['blocks_data'] = json_encode([",
             "'settings' => \$preset['settings']",
             "'sections' => \$preset['sections']",
         ] as $token) {
-            $this->assertStringContainsString($token, $endpoint, "header preset preview endpoint token {$token} missing");
+            $this->assertStringContainsString($token, $endpoint, "area preset preview endpoint token {$token} missing");
         }
-        $catalogOffset = strpos($endpoint, "BloxAreaTemplatePresets::editorCatalog('header')");
+        $catalogOffset = strpos($endpoint, 'BloxAreaTemplatePresets::editorCatalog($areaPresetType)');
         $documentOffset = strpos($endpoint, "\$_POST['blocks_data'] = json_encode([");
         self::assertIsInt($catalogOffset);
         self::assertIsInt($documentOffset);

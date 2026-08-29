@@ -15,8 +15,10 @@ requirePermission('edit_page');
 
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
 $pageId = getInt('id');
-$headerPresetSlug = trim((string) ($_GET['header_preset'] ?? ''));
-$isHeaderPresetPreview = $isHomeLayout && $headerPresetSlug !== '';
+$legacyHeaderPresetSlug = trim((string) ($_GET['header_preset'] ?? ''));
+$areaPresetSlug = trim((string) ($_GET['area_preset'] ?? $legacyHeaderPresetSlug));
+$areaPresetType = $legacyHeaderPresetSlug !== '' ? 'header' : trim((string) ($_GET['template_area'] ?? ''));
+$isAreaPresetPreview = $isHomeLayout && $areaPresetSlug !== '';
 if ($isHomeLayout) {
     if (!bloxPageEditorEnabled()) {
         error(__('blox_feature_disabled'));
@@ -30,14 +32,15 @@ if ($isHomeLayout) {
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
-if ($isHeaderPresetPreview) {
+if ($isAreaPresetPreview) {
     if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET'
-        || !preg_match('/^[a-z0-9-]{1,80}$/', $headerPresetSlug)) {
+        || !in_array($areaPresetType, ['header', 'footer'], true)
+        || !preg_match('/^[a-z0-9-]{1,80}$/', $areaPresetSlug)) {
         error(__('blox_bad_request'));
     }
     $preset = null;
-    foreach (BloxAreaTemplatePresets::editorCatalog('header') as $candidate) {
-        if ((string) ($candidate['slug'] ?? '') === $headerPresetSlug) {
+    foreach (BloxAreaTemplatePresets::editorCatalog($areaPresetType) as $candidate) {
+        if ((string) ($candidate['slug'] ?? '') === $areaPresetSlug) {
             $preset = $candidate;
             break;
         }
@@ -45,10 +48,13 @@ if ($isHeaderPresetPreview) {
     if ($preset === null) {
         error(__('blox_area_preset_not_found'));
     }
-    $_GET['template_area'] = 'header';
-    $headerState = trim((string) ($_GET['header_state'] ?? 'normal'));
-    $_POST['header_state'] = in_array($headerState, BloxHeaderStates::NAMES, true) ? $headerState : 'normal';
-    $_POST['drawer_open'] = (string) ($_GET['drawer_open'] ?? '') === '1' ? '1' : '0';
+    $_GET['template_area'] = $areaPresetType;
+    $_GET['area_only'] = '1';
+    if ($areaPresetType === 'header') {
+        $headerState = trim((string) ($_GET['header_state'] ?? 'normal'));
+        $_POST['header_state'] = in_array($headerState, BloxHeaderStates::NAMES, true) ? $headerState : 'normal';
+        $_POST['drawer_open'] = (string) ($_GET['drawer_open'] ?? '') === '1' ? '1' : '0';
+    }
     $_POST['blocks_data'] = json_encode([
         'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
         'settings' => $preset['settings'],

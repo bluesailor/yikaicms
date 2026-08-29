@@ -1,0 +1,72 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "footer",
+  "name": "Contact Site Footer",
+  "requires": {
+    "elements": ["container", "logo", "site-contact", "site-copyright", "social-links"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "xl",
+          "max_width": "wide",
+          "gap": "xl",
+          "bg_color": "#f8fafc",
+          "align_items": "start",
+          "tablet_stack": true
+        },
+        "columns": [
+          {
+            "span": 4,
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "column",
+                  "wrap": "nowrap",
+                  "gap": "md",
+                  "align": "start",
+                  "justify": "start",
+                  "padding": "none",
+                  "radius": "none",
+                  "children": [
+                    {"type": "logo", "data": {"display": "both", "height": "md", "link_home": true}},
+                    {"type": "social-links", "data": {"style": "outline", "align": "left", "tone": "dark"}}
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "span": 8,
+            "elements": [
+              {"type": "site-contact", "data": {"show_phone": true, "show_email": true, "show_address": true, "show_hours": true, "show_icons": true, "layout": "stacked", "tone": "dark"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#e2e8f0"
+        },
+        "columns": [
+          {
+            "elements": [
+              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "left", "tone": "dark"}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
