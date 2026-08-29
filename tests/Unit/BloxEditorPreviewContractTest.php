@@ -864,6 +864,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('@media (max-width: 1199px)', $editor);
         $this->assertStringContainsString('data-testid="blox-header-presets"', $overlays);
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
+        $this->assertStringContainsString('border border-gray-300 bg-gray-50', $overlays);
+        $this->assertStringContainsString('disabled:border-emerald-300 disabled:bg-white', $overlays);
         foreach ([
             'data-testid="blox-header-preset-preview"',
             'data-testid="blox-header-preset-preview-dialog"',

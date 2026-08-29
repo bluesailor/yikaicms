@@ -535,8 +535,8 @@ declare(strict_types=1);
                                     </button>
                                     <button type="button" @click="applyHeaderPreset(preset)" data-header-preset-apply
                                             data-testid="blox-header-preset-apply" :disabled="isCurrentHeaderPreset(preset)"
-                                            class="inline-flex h-9 items-center justify-center gap-1.5 rounded bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-default disabled:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
-                                        <i class="ti text-sm" :class="isCurrentHeaderPreset(preset) ? 'ti-check' : 'ti-arrow-right'"></i>
+                                            class="inline-flex h-9 items-center justify-center gap-1.5 rounded border border-gray-300 bg-gray-50 px-3 text-xs font-semibold text-gray-700 hover:border-blue-300 hover:bg-gray-100 hover:text-blue-700 disabled:cursor-default disabled:border-emerald-300 disabled:bg-white disabled:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2">
+                                        <i class="ti text-sm" :class="isCurrentHeaderPreset(preset) ? 'ti-check text-emerald-600' : 'ti-arrow-right text-blue-500'"></i>
                                         <span x-text="isCurrentHeaderPreset(preset) ? headerPresetText.currentApply : headerPresetText.apply"></span>
                                     </button>
                                 </div>
