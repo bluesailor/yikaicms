@@ -272,6 +272,75 @@
     transform: scale(1.05);
 }
 
+/* 企业语义图标：只在用户指向时短促反馈，不循环、不改变布局尺寸。 */
+.yk-icon-motion {
+    transform-origin: center;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .yk-icon-interactive:hover .yk-icon-motion--pulse,
+    .yk-icon-interactive:focus-within .yk-icon-motion--pulse {
+        animation: yk-icon-pulse 360ms cubic-bezier(.16, 1, .3, 1);
+    }
+    .yk-icon-interactive:hover .yk-icon-motion--ring,
+    .yk-icon-interactive:focus-within .yk-icon-motion--ring {
+        animation: yk-icon-ring 420ms cubic-bezier(.16, 1, .3, 1);
+        transform-origin: 50% 20%;
+    }
+    .yk-icon-interactive:hover .yk-icon-motion--slide,
+    .yk-icon-interactive:focus-within .yk-icon-motion--slide {
+        animation: yk-icon-slide 380ms cubic-bezier(.16, 1, .3, 1);
+    }
+    .yk-icon-interactive:hover .yk-icon-motion--spin,
+    .yk-icon-interactive:focus-within .yk-icon-motion--spin {
+        animation: yk-icon-spin 460ms cubic-bezier(.16, 1, .3, 1);
+    }
+    .yk-icon-interactive:hover .yk-icon-motion--sparkle,
+    .yk-icon-interactive:focus-within .yk-icon-motion--sparkle {
+        animation: yk-icon-sparkle 400ms cubic-bezier(.16, 1, .3, 1);
+    }
+    .yk-icon-interactive:hover .yk-icon-motion--lift,
+    .yk-icon-interactive:focus-within .yk-icon-motion--lift {
+        animation: yk-icon-lift 380ms cubic-bezier(.16, 1, .3, 1);
+    }
+}
+
+@keyframes yk-icon-pulse {
+    0%, 100% { transform: scale(1); }
+    48% { transform: scale(1.14); }
+    72% { transform: scale(.98); }
+}
+@keyframes yk-icon-ring {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-9deg); }
+    52% { transform: rotate(8deg); }
+    76% { transform: rotate(-4deg); }
+}
+@keyframes yk-icon-slide {
+    0%, 100% { transform: translateX(0); }
+    52% { transform: translateX(5px); }
+    76% { transform: translateX(-2px); }
+}
+@keyframes yk-icon-spin {
+    0%, 100% { transform: rotate(0); }
+    58% { transform: rotate(105deg); }
+}
+@keyframes yk-icon-sparkle {
+    0%, 100% { transform: scale(1) rotate(0); }
+    52% { transform: scale(1.16) rotate(8deg); }
+}
+@keyframes yk-icon-lift {
+    0%, 100% { transform: translateY(0); }
+    52% { transform: translateY(-5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yk-icon-motion {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
 /* ========== Scroll-anim（替代 AOS） ========== */
 [data-aos] {
     opacity: 0;

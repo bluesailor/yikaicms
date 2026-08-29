@@ -740,6 +740,7 @@ $bootstrapIcons = [];
 if (preg_match_all('/\.bi-([a-z0-9-]+)::before/', (string) @file_get_contents(ROOT_PATH . '/assets/bootstrap-icons/bootstrap-icons.min.css'), $_biM)) {
     $bootstrapIcons = array_map(static fn (string $name): string => 'bi:' . $name, array_values(array_unique($_biM[1])));
 }
+$businessIconPresets = BloxIcon::businessPresets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
 $canManageBloxDesign = hasPermission('blox_global');
 ?>
@@ -1742,6 +1743,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             // ── 图标选择器（icon 控件） ─────────────────────
             tablerIcons: <?php echo json_encode($tablerIcons); ?>,
             bootstrapIcons: <?php echo json_encode($bootstrapIcons); ?>,
+            businessIconPresets: <?php echo json_encode($businessIconPresets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             iconPick: "",               // 当前展开选择器的控件 key（"" = 都收起）
             iconQuery: "",
             iconProvider: "tabler",
@@ -1757,6 +1759,15 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             iconClass(value) {
                 return window.BloxIconUtils.className(value);
+            },
+
+            selectBusinessIcon(controlKey, preset) {
+                if (!this.selEl || !preset) return;
+                this.selEl.data[controlKey] = preset.icon;
+                var supportsMotion = (this.elSchema(this.selEl.type).controls || []).some(function (control) {
+                    return control.key === "icon_motion";
+                });
+                if (supportsMotion) this.selEl.data.icon_motion = preset.motion;
             },
 
             toggleIconPicker(key, value) {

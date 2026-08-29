@@ -14,6 +14,8 @@ final class IconBoxElement extends AbstractElement
         return [
             // type=icon：编辑器渲染成带图标库选择器的控件（blox 全量库 / 排版编辑器精选集）
             ['key' => 'icon', 'type' => 'icon', 'label' => __('blox_ctl_icon'), 'default' => 'star'],
+            ['key' => 'icon_motion', 'type' => 'select', 'label' => __('blox_icon_motion'), 'default' => 'none',
+                'options' => BloxIcon::motionOptions()],
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2],
             ...$this->animationControls(),
@@ -25,8 +27,8 @@ final class IconBoxElement extends AbstractElement
         $icon = $data['icon'] ?? 'star';
         $title = htmlspecialchars($data['title'] ?? '');
         $text = htmlspecialchars($data['text'] ?? '');
-        $html = '<div class="text-center px-4 py-6"' . $this->animationAttrs($data) . '>';
-        $html .= '<i class="' . BloxIcon::classes($icon) . ' inline-block text-primary" style="font-size:40px;line-height:1"></i>';
+        $html = '<div class="yk-icon-interactive text-center px-4 py-6"' . $this->animationAttrs($data) . '>';
+        $html .= '<i aria-hidden="true" class="' . BloxIcon::classes($icon) . ' inline-block text-primary' . BloxIcon::motionClass($data['icon_motion'] ?? '') . '" style="font-size:40px;line-height:1"></i>';
         if ($title !== '') {
             $html .= '<h3 class="text-lg font-semibold mt-3 mb-1">' . $title . '</h3>';
         }

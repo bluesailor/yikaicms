@@ -39,13 +39,16 @@ function builderPresets(): array
                     'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg', 'col_card' => true],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'award', 'title' => __('blox_ps_f1_t'), 'text' => __('blox_ps_f1_x')]],
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'award', 'icon_motion' => 'sparkle', 'title' => __('blox_ps_f1_t'), 'text' => __('blox_ps_f1_x')]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'shield', 'title' => __('blox_ps_f2_t'), 'text' => __('blox_ps_f2_x')]],
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'shield-check', 'icon_motion' => 'pulse', 'title' => __('blox_ps_f2_t'), 'text' => __('blox_ps_f2_x')]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'headset', 'title' => __('blox_ps_f3_t'), 'text' => __('blox_ps_f3_x')]],
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'headset', 'icon_motion' => 'ring', 'title' => __('blox_ps_f3_t'), 'text' => __('blox_ps_f3_x')]],
+                        ]],
+                        ['id' => 'c', 'elements' => [
+                            ['id' => 'e', 'type' => 'icon-box', 'data' => ['icon' => 'bolt', 'icon_motion' => 'slide', 'title' => __('blox_ps_f4_t'), 'text' => __('blox_ps_f4_x')]],
                         ]],
                     ],
                 ]],

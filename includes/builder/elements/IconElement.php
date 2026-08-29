@@ -26,6 +26,8 @@ final class IconElement extends AbstractElement
                 'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'color', 'type' => 'color', 'label' => __('blox_ctl_color'), 'default' => ''],
             ['key' => 'text', 'type' => 'text', 'label' => __('blox_ctl_text'), 'default' => ''],
+            ['key' => 'icon_motion', 'type' => 'select', 'label' => __('blox_icon_motion'), 'default' => 'none',
+                'options' => BloxIcon::motionOptions()],
         ];
     }
 
@@ -39,8 +41,8 @@ final class IconElement extends AbstractElement
         $iconColor = AbstractElement::cssColor($data['color'] ?? null) ?? '';
         $style = 'font-size:' . $iconSize . ';line-height:1;' . ($iconColor ? 'color:' . $iconColor . ';' : '');
         $iconText = htmlspecialchars($data['text'] ?? '');
-        $html = '<div class="text-center my-2">';
-        $html .= '<i class="' . BloxIcon::classes($iconValue) . ' inline-block" style="' . $style . '"></i>';
+        $html = '<div class="yk-icon-interactive text-center my-2">';
+        $html .= '<i aria-hidden="true" class="' . BloxIcon::classes($iconValue) . ' inline-block' . BloxIcon::motionClass($data['icon_motion'] ?? '') . '" style="' . $style . '"></i>';
         if ($iconText) {
             $html .= '<div class="mt-1 text-sm">' . $iconText . '</div>';
         }
