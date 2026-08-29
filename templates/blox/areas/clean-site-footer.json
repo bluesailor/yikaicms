@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Clean Site Footer",
   "requires": {
-    "elements": ["logo", "nav", "site-copyright"],
+    "elements": ["heading", "nav", "site-copyright", "text"],
     "plugins": []
   },
   "document": {
@@ -24,7 +24,8 @@
           {
             "span": 4,
             "elements": [
-              {"type": "logo", "data": {"display": "both", "height": "md", "link_home": true}}
+              {"type": "heading", "data": {"site_field": "site_name", "level": "h3", "visual_size": "lg", "align": "left"}},
+              {"type": "text", "data": {"site_field": "site_description"}}
             ]
           },
           {

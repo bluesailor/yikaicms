@@ -2784,7 +2784,7 @@ return [
     'blox_area_preset_centered_header_name' => '居中品牌页头',
     'blox_area_preset_centered_header_desc' => 'Logo 居中显示，主导航位于下方，适合品牌展示型网站。',
     'blox_area_preset_footer_name' => '简洁网页脚',
-    'blox_area_preset_footer_desc' => '浅色 Logo、导航与动态版权备案组合，适合信息量适中的企业网站。',
+    'blox_area_preset_footer_desc' => '站点名称、公司简介、导航与动态版权备案组合，无需准备页脚专用 Logo。',
     'blox_area_preset_corporate_header_name' => '企业站点页头',
     'blox_area_preset_corporate_header_desc' => '顶部联络条、语言切换与站内搜索，下方组合桌面 Mega Menu 和移动抽屉导航。',
     'blox_area_preset_topbar_header_name' => '浅色顶栏页头',

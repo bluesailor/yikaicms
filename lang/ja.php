@@ -2885,7 +2885,7 @@ return [
     'blox_area_preset_centered_header_name' => '中央ブランドヘッダー',
     'blox_area_preset_centered_header_desc' => 'ロゴを中央に置き、その下にメインナビゲーションを配置します。ブランド訴求型サイト向けです。',
     'blox_area_preset_footer_name' => 'シンプルなサイトフッター',
-    'blox_area_preset_footer_desc' => 'サイトロゴ、ナビゲーション、動的な著作権・登録情報を組み合わせた明るいフッターです。',
+    'blox_area_preset_footer_desc' => 'サイト名、会社概要、ナビゲーション、動的な著作権・登録情報をまとめた、フッター専用ロゴ不要の明るいフッターです。',
     'blox_area_preset_corporate_header_name' => '企業サイトヘッダー',
     'blox_area_preset_corporate_header_desc' => '連絡先、言語切替、サイト内検索のトップバーと、メガメニュー・モバイルドロワーを組み合わせます。',
     'blox_area_preset_topbar_header_name' => 'ライトトップバーヘッダー',
