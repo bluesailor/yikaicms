@@ -9,10 +9,15 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('edit_page');
+if (!hasAnyBloxPermission()) {
+    requirePermission('blox_edit');
+}
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 $isAdministrator = hasPermission('*');
+$canEditPages = hasPermission('blox_edit') && hasPermission('edit_page');
+$canEditHome = hasPermission('blox_home');
+$canManageGlobalBlox = hasPermission('blox_global');
 $basicBloxEnabled = bloxPageEditorEnabled();
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
 $currentTheme = (string) config('current_theme', 'default');
@@ -105,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) post('action', '');
     try {
         if ($action === 'seed_default_area') {
-            if (!$advancedBloxEnabled || !$isAdministrator) {
+            if (!$advancedBloxEnabled || !$canManageGlobalBlox) {
                 throw new RuntimeException(__('blox_feature_disabled'));
             }
             if (!db()->tableExists('blox_templates')) {
@@ -147,11 +152,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php echo e($errorMessage); ?>
         </div>
         <?php endif; ?>
-        <?php if ($basicBloxEnabled && $isAdministrator): ?>
+        <?php if ($basicBloxEnabled && $canEditHome): ?>
         <a href="/admin/blox_editor.php?home=1" class="inline-flex h-10 items-center gap-2 bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-700">
             <i class="ti ti-home-edit"></i><?php echo e(__('site_design_open_home')); ?>
         </a>
-        <?php else: ?>
+        <?php elseif ($canEditPages): ?>
         <a href="/admin/page.php" class="inline-flex h-10 items-center gap-2 bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-700">
             <i class="ti ti-files"></i><?php echo e(__('site_design_manage_pages')); ?>
         </a>
@@ -188,7 +193,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="font-medium text-gray-900"><?php echo e(__('site_design_home')); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e($homeStatus); ?></div>
                 </div>
-                <?php if ($basicBloxEnabled && $isAdministrator): ?>
+                <?php if ($basicBloxEnabled && $canEditHome): ?>
                 <a href="/admin/blox_editor.php?home=1" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
                     <?php echo e(__('site_design_open')); ?><i class="ti ti-arrow-right"></i>
                 </a>
@@ -202,9 +207,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="font-medium text-gray-900"><?php echo e(__('site_design_pages')); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e(__('site_design_pages_hint', ['count' => $pageCount])); ?></div>
                 </div>
+                <?php if ($canEditPages): ?>
                 <a href="/admin/page.php" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
                     <?php echo e(__('site_design_manage')); ?><i class="ti ti-arrow-right"></i>
                 </a>
+                <?php else: ?>
+                <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
+                <?php endif; ?>
             </div>
         </div>
     </section>
@@ -225,7 +234,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="font-medium text-gray-900"><?php echo e($area['label']); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e($statusLabel); ?></div>
                 </div>
-                <?php if ($advancedBloxEnabled && $isAdministrator): ?>
+                <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
                 <div class="flex flex-wrap items-center gap-2">
                     <?php if (in_array($type, ['header', 'footer'], true) && $currentDraftTemplateId > 0): ?>
                     <a href="/admin/blox_editor.php?template=<?php echo $currentDraftTemplateId; ?>" class="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
@@ -269,7 +278,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="font-medium text-gray-900"><?php echo e(__('site_design_design_system')); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e(__('site_design_design_counts', ['tokens' => $activeTokenCount, 'styles' => $activeStyleCount])); ?></div>
                 </div>
-                <?php if ($isAdministrator): ?>
+                <?php if ($canManageGlobalBlox): ?>
                 <a href="/admin/blox_design.php" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
                     <?php echo e(__('site_design_manage')); ?><i class="ti ti-arrow-right"></i>
                 </a>
@@ -283,7 +292,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div class="font-medium text-gray-900"><?php echo e(__('site_design_templates')); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e(__('site_design_template_counts', ['total' => $templateTotal, 'published' => $templatePublished])); ?></div>
                 </div>
-                <?php if ($advancedBloxEnabled && $isAdministrator): ?>
+                <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
                 <a href="/admin/blox_templates.php" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
                     <?php echo e(__('site_design_manage')); ?><i class="ti ti-arrow-right"></i>
                 </a>
@@ -308,7 +317,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </section>
 
-    <?php if (!$advancedBloxEnabled || !$isAdministrator): ?>
+    <?php if (!$advancedBloxEnabled || !$canManageGlobalBlox): ?>
     <div class="border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-800">
         <strong><?php echo e(__('site_design_advanced_locked')); ?></strong>
         <span class="ml-1"><?php echo e(__('site_design_advanced_locked_hint')); ?></span>

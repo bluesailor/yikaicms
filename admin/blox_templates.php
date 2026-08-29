@@ -9,7 +9,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('blox_global');
 
 if (!bloxAdvancedFeaturesEnabled()) {
     error(__('blox_feature_disabled'));
@@ -692,11 +692,13 @@ function confirmAreaPublish(form) {
             <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('admin_blox_templates')); ?></h1>
             <p class="mt-1 text-sm text-gray-500"><?php echo __('blox_tpl_page_intro'); ?></p>
         </div>
+        <?php if (hasPermission('blox_home')): ?>
         <a href="/admin/blox_editor.php?home=1"
            class="inline-flex items-center gap-2 rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700">
             <i class="ti ti-layout-dashboard"></i>
             <?php echo __('blox_tpl_home_badge'); ?>
         </a>
+        <?php endif; ?>
     </div>
 
     <?php if (!$tableReady): ?>
@@ -1417,7 +1419,7 @@ function confirmAreaPublish(form) {
     <section class="border-y border-gray-200 bg-white">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
             <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_reusable_blocks'); ?></h2>
-            <?php if (bloxAdvancedFeaturesEnabled()): ?>
+            <?php if (bloxAdvancedFeaturesEnabled() && hasPermission('blox_home')): ?>
             <a href="/admin/blox_editor.php?home=1" class="text-sm text-blue-600 hover:text-blue-800"><?php echo __('blox_tpl_layout_editor'); ?></a>
             <?php endif; ?>
         </div>

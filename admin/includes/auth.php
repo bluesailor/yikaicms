@@ -492,14 +492,19 @@ function requirePermission(string $permission): void
     }
 }
 
-/** Header/Footer 会改变全站输出，只允许具备全权限的管理员管理。 */
+/** Header/Footer/Popup 会改变全站输出，归入 Blox 全站设计权限。 */
 function bloxTemplateTypeRequiresAdmin(string $type): bool
 {
     return in_array(strtolower(trim($type)), ['header', 'footer', 'popup'], true);
 }
 
-/** 区块/页面模板沿用 edit_page；全站区域模板提升到超级管理员。 */
+/** 区块/页面模板要求 Blox 编辑 + 单页编辑；全站区域模板要求全站设计。 */
 function requireBloxTemplateTypePermission(string $type): void
 {
-    requirePermission(bloxTemplateTypeRequiresAdmin($type) ? '*' : 'edit_page');
+    if (bloxTemplateTypeRequiresAdmin($type)) {
+        requirePermission('blox_global');
+        return;
+    }
+    requirePermission('blox_edit');
+    requirePermission('edit_page');
 }

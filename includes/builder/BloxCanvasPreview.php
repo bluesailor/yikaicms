@@ -284,7 +284,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 : '';
         };
 
-        $wrapContextArea = static function (string $area, string $html, string $source, string $editUrl): string {
+        $canEditContextArea = function_exists('hasPermission') && hasPermission('blox_global');
+        $wrapContextArea = static function (string $area, string $html, string $source, string $editUrl) use ($canEditContextArea): string {
             if ($html === '') {
                 return '';
             }
@@ -292,13 +293,16 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $label .= ' · ' . ($source === 'theme' ? __('blox_preview_theme_default') : __('blox_preview_readonly'));
             $editLabel = $area === 'header' ? __('blox_context_edit_header') : __('blox_context_edit_footer');
             $icon = $area === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar';
+            $editAction = $canEditContextArea
+                ? '<a class="yk-home-context-edit" data-yk-area-edit="' . $area
+                    . '" data-testid="blox-context-edit-' . $area . '" href="'
+                    . htmlspecialchars($editUrl, ENT_QUOTES, 'UTF-8') . '" target="_top" aria-label="'
+                    . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '"><i class="ti ' . $icon
+                    . '" aria-hidden="true"></i><span>' . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '</span></a>'
+                : '';
             return '<div class="yk-home-context-area" data-yk-preview-label="'
                 . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">'
-                . '<a class="yk-home-context-edit" data-yk-area-edit="' . $area
-                . '" data-testid="blox-context-edit-' . $area . '" href="'
-                . htmlspecialchars($editUrl, ENT_QUOTES, 'UTF-8') . '" target="_top" aria-label="'
-                . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '"><i class="ti ' . $icon
-                . '" aria-hidden="true"></i><span>' . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '</span></a>'
+                . $editAction
                 . $html . '</div>';
         };
 

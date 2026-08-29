@@ -31,14 +31,17 @@ final class BloxSiteDesignContractTest extends TestCase
         self::assertSame('switch', $defaults['system']['blox_custom_footer_enabled']['type'] ?? null);
     }
 
-    public function testHomepageEntryUsesBasicEditorGateWhileSiteAreasStayAdvanced(): void
+    public function testDashboardSeparatesPageHomeAndGlobalBloxCapabilities(): void
     {
         $source = file_get_contents(ROOT_PATH . '/admin/site_design.php');
 
         self::assertIsString($source);
         self::assertStringContainsString('$basicBloxEnabled = bloxPageEditorEnabled();', $source);
-        self::assertStringContainsString('if ($basicBloxEnabled && $isAdministrator)', $source);
-        self::assertStringContainsString('if ($advancedBloxEnabled && $isAdministrator)', $source);
+        self::assertStringContainsString("\$canEditPages = hasPermission('blox_edit') && hasPermission('edit_page');", $source);
+        self::assertStringContainsString("\$canEditHome = hasPermission('blox_home');", $source);
+        self::assertStringContainsString("\$canManageGlobalBlox = hasPermission('blox_global');", $source);
+        self::assertStringContainsString('if ($basicBloxEnabled && $canEditHome)', $source);
+        self::assertStringContainsString('if ($advancedBloxEnabled && $canManageGlobalBlox)', $source);
         self::assertStringContainsString('/admin/blox_editor.php?home=1', $source);
         self::assertStringContainsString('/admin/blox_templates.php?type=', $source);
     }

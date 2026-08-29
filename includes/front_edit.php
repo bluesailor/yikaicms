@@ -20,7 +20,7 @@ function renderFrontEdit(): void
         adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? '')),
         $frontendReturnTo
     );
-    if (!str_starts_with($bloxEditUrl, '/admin/blox_editor.php?')) {
+    if (!str_starts_with($bloxEditUrl, '/admin/blox_editor.php?') || !adminBarCanOpenBloxUrl($bloxEditUrl)) {
         $bloxEditUrl = '';
     }
     // 覆盖层对任何登录管理员都渲染（专用编辑入口与白名单 Blox 元素定位全站可用）。

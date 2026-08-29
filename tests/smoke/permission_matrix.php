@@ -61,6 +61,7 @@ $pdo->prepare(
     . " VALUES (0,'page','权限矩阵测试单页','pm-test-page','x',1,'zh-CN',0,?,?,?)"
 )->execute([$t, $t, $t]);
 $PAGE_ID = (int) $pdo->lastInsertId();
+$BLOX_PAGE_ID = (int) $pdo->query("SELECT id FROM yikai_channels WHERE type = 'page' ORDER BY id LIMIT 1")->fetchColumn();
 echo "测试单页 id={$PAGE_ID}\n\n";
 unset($pdo);
 
@@ -147,6 +148,18 @@ $add('会员设置（超管专属）', 'GET', '/admin/setting_member.php', ['con
 $add('产品列表',    'GET', '/admin/product.php', ['contributor' => 'deny',  'editor' => 'allow']);
 $add('单页列表',    'GET', '/admin/page.php',    ['contributor' => 'deny',  'editor' => 'allow']);
 $add('案例列表',    'GET', '/admin/case.php',    ['contributor' => 'deny',  'editor' => 'allow']);
+
+// —— Blox 场景权限：普通页面与首页/全站设计分开授权 ——
+$add('Blox 普通页面', 'GET', '/admin/blox_editor.php?id=' . $BLOX_PAGE_ID,
+     ['contributor' => 'deny', 'editor' => 'allow']);
+$add('Blox 首页', 'GET', '/admin/blox_editor.php?home=1',
+     ['contributor' => 'deny', 'editor' => 'deny']);
+$add('Blox 站点设计', 'GET', '/admin/site_design.php',
+     ['contributor' => 'deny', 'editor' => 'allow']);
+$add('Blox 全局设计系统', 'GET', '/admin/blox_design.php',
+     ['contributor' => 'deny', 'editor' => 'deny']);
+$add('Blox 模板管理', 'GET', '/admin/blox_templates.php',
+     ['contributor' => 'deny', 'editor' => 'deny']);
 
 // —— 超管专属结构项 ——
 $add('栏目管理', 'GET', '/admin/channel.php',  ['contributor' => 'deny', 'editor' => 'deny']);

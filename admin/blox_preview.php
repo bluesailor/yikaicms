@@ -22,7 +22,6 @@ if (!defined('SITE_LANG')) {
 require_once ROOT_PATH . '/includes/member_auth.php';
 
 checkLogin();
-requirePermission('edit_page');
 
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
 $pageId = getInt('id');
@@ -30,11 +29,19 @@ $legacyHeaderPresetSlug = trim((string) ($_GET['header_preset'] ?? ''));
 $areaPresetSlug = trim((string) ($_GET['area_preset'] ?? $legacyHeaderPresetSlug));
 $areaPresetType = $legacyHeaderPresetSlug !== '' ? 'header' : trim((string) ($_GET['template_area'] ?? ''));
 $isAreaPresetPreview = $isHomeLayout && $areaPresetSlug !== '';
+$isAreaTemplatePreview = $isHomeLayout && in_array($areaPresetType, ['header', 'footer'], true);
+if ($isAreaTemplatePreview) {
+    requirePermission('blox_global');
+} elseif ($isHomeLayout) {
+    requirePermission('blox_home');
+} else {
+    requirePermission('blox_edit');
+    requirePermission('edit_page');
+}
 if ($isHomeLayout) {
     if (!bloxPageEditorEnabled()) {
         error(__('blox_feature_disabled'));
     }
-    requirePermission('*');
 } elseif (!bloxPageEditorEnabled()) {
     error(__('blox_feature_disabled'));
 } elseif (!$pageId || !channelModel()->findWhere(['id' => $pageId, 'type' => 'page'])) {

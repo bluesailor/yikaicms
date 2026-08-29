@@ -22,10 +22,18 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 // checkLogin() 不能省：它会 refreshAdminIdentity()，让「停用某人 / 收紧角色」
 // 对已登录会话立即生效——只调 requirePermission 用的是登录那一刻的权限快照。
 checkLogin();
-requirePermission('edit_page');
+$isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
+$id = getInt('id');
+$templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
+if ($isHomeBlox) {
+    requirePermission('blox_home');
+} elseif ($templateId < 1) {
+    requirePermission('blox_edit');
+    requirePermission('edit_page');
+}
 
-// 首页、页面与受支持栏目文档均属于基础编辑能力。模板类型在读取记录后再分级：
-// section/page 可免费编辑，Header/Footer/Popup 仍需高级授权。
+// 模板类型在读取记录后再分级：section/page 还受内容编辑范围约束，
+// Header/Footer/Popup 则走独立的全站设计权限。
 if (!bloxPageEditorEnabled()) {
     header('Location: /admin/page.php');
     exit;
@@ -66,21 +74,15 @@ $initialFocusElementId = $normalizeFocusId(get('focus_element', ''));
 /** JS 字面量内联文案：json_encode(__(key))，供 Alpine data() 里 this 不可用的位置使用。 */
 $jt = static fn (string $key): string => (string) json_encode(__($key), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 
-$isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
 // 返回目的地（白名单）：从首页编辑器画布跳来编辑页头/页尾时，顶栏返回键
 // 指回首页编辑器而不是模板列表页——否则改完页头就迷路（2026-08-22 走查主断点）
 $editorBackTo = BloxAreaEditorTarget::isAllowedBack((string) ($_GET['back'] ?? ''))
     ? (string) $_GET['back']
     : '';
 $editorReturnTo = BloxAreaEditorTarget::normalizeReturnTo($_GET['return_to'] ?? '');
-$id = getInt('id');
-$templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
 $isCurrentThemeHeaderEdit = false;
 $templateStoredDraft = '';
 $publishedDocumentSource = '[]';
-if ($isHomeBlox) {
-    requirePermission('*');
-}
 $areaCtxOptions = []; // 头尾模板的首页预览入口，仅 header/footer 模板非空
 $areaCtxOptionGroups = []; // 其余单页/栏目按语言分组，避免多语言站点混排
 $areaCtxLanguages = []; // 每个预览上下文对应的前台语言，画布导航与站点资料据此渲染
@@ -734,7 +736,7 @@ if (preg_match_all('/\.bi-([a-z0-9-]+)::before/', (string) @file_get_contents(RO
     $bootstrapIcons = array_map(static fn (string $name): string => 'bi:' . $name, array_values(array_unique($_biM[1])));
 }
 $bloxDesignSystem = BloxDesignSystem::snapshot();
-$canManageBloxDesign = hasPermission('*');
+$canManageBloxDesign = hasPermission('blox_global');
 ?>
 <!doctype html>
 <html lang="<?php echo htmlspecialchars(siteLang()); ?>">

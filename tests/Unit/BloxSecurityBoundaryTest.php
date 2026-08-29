@@ -166,9 +166,11 @@ final class BloxSecurityBoundaryTest extends TestCase
         $upload = $this->source('admin/upload.php');
 
         self::assertStringContainsString("['header', 'footer', 'popup']", $auth);
-        self::assertStringContainsString("requirePermission('*');", $editor);
+        self::assertStringContainsString("requirePermission('blox_home');", $editor);
+        self::assertStringContainsString("requirePermission('blox_edit');", $editor);
         self::assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
         self::assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
+        self::assertStringContainsString("requirePermission('blox_global');", $templateManager);
         self::assertStringContainsString('if (!bloxPageEditorEnabled())', $templates);
         self::assertStringContainsString('$requireTemplateLicense($type);', $templates);
         self::assertStringContainsString("\$item['locked_reason'] = 'license_missing';", $templates);
