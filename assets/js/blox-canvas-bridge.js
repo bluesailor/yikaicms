@@ -199,6 +199,7 @@
         this.onAreaMatch = options.onAreaMatch || noop;
         this.onEditArea = options.onEditArea || noop;
         this.onEditPageHero = options.onEditPageHero || noop;
+        this.onEditPageContent = options.onEditPageContent || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onQuickAdd = options.onQuickAdd || noop;
         this.onInsertAt = options.onInsertAt || noop;
@@ -353,6 +354,10 @@
         }
         if (data.ykEditPageHero === true) {
             this.onEditPageHero();
+            return true;
+        }
+        if (data.ykEditPageContent === true) {
+            this.onEditPageContent();
             return true;
         }
         if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {
