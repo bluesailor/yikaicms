@@ -319,33 +319,12 @@ declare(strict_types=1);
                 </div>
             </details>
 <?php endif; ?>
-<?php if (count($areaPreviewLanguages) > 1): ?>
-            <div data-testid="blox-preview-language-control" role="group"
-                 aria-label="<?php echo e(__('blox_preview_language_label')); ?>"
-                 title="<?php echo e(__('blox_preview_language_help', ['area' => $areaLabel])); ?>"
-                 class="inline-flex h-8 min-w-0 items-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-300">
-                <span class="inline-flex shrink-0 items-center gap-1.5 px-2">
-                    <i class="ti ti-language text-sm text-gray-400" aria-hidden="true"></i>
-                    <span class="whitespace-nowrap"><?php echo e(__('blox_preview_language_label')); ?></span>
-                </span>
-                <span class="inline-flex h-full border-l border-gray-700 bg-gray-800 p-0.5">
-                    <?php foreach ($areaPreviewLanguages as $languageCode => $languageLabel): ?>
-                    <button type="button" @click="setPreviewLanguage('<?php echo e($languageCode); ?>')"
-                            data-preview-language="<?php echo e($languageCode); ?>"
-                            :aria-pressed="previewLanguage === '<?php echo e($languageCode); ?>' ? 'true' : 'false'"
-                            :class="previewLanguage === '<?php echo e($languageCode); ?>' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'"
-                            class="inline-flex h-6 items-center justify-center rounded px-2 text-[11px] font-medium transition"
-                            title="<?php echo e($languageLabel); ?>"><?php echo e($languageLabel); ?></button>
-                    <?php endforeach; ?>
-                </span>
-            </div>
             <span x-show="ctxHit !== null && ctxHit !== <?php echo (int) $templateId; ?>" x-cloak
                   data-testid="blox-ctx-warn"
                   class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]">
                 <i class="ti ti-eye-off"></i>
                 <span x-text="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)"></span>
             </span>
-<?php endif; ?>
 <?php endif; ?>
             <button type="button" x-show="draftSummary().changed" x-cloak @click="openDraftSummary()"
                     data-testid="blox-draft-summary-open"
