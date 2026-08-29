@@ -643,7 +643,13 @@ function bloxDesignManager() {
         pageHeroPreviewTone() {
             var tone = String(this.pageHero.options.text_tone || 'auto');
             if (tone !== 'auto') return tone;
-            return 'light';
+            if (String(this.pageHero.background || '')) return 'light';
+            var color = colorPicker.normalizeHex(this.pageHero.options.background_color || '', '');
+            if (!color) return 'light';
+            var red = parseInt(color.slice(1, 3), 16);
+            var green = parseInt(color.slice(3, 5), 16);
+            var blue = parseInt(color.slice(5, 7), 16);
+            return ((red * 299 + green * 587 + blue * 114) / 1000) > 150 ? 'dark' : 'light';
         },
         async mutatePageHero(action) {
             if (this.pageHeroBusy) return false;

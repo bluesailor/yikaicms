@@ -50,7 +50,10 @@ final class BloxAreaAssignmentManager
         } else {
             throw new RuntimeException(__('blox_assignment_target_invalid'));
         }
-        if (preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/', $language) !== 1) {
+        $languageAvailable = function_exists('availableLanguages')
+            ? isset(availableLanguages()[$language])
+            : preg_match('/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/', $language) === 1;
+        if (!$languageAvailable) {
             throw new RuntimeException(__('blox_assignment_target_invalid'));
         }
         return [[

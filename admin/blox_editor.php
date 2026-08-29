@@ -39,7 +39,7 @@ if (!bloxPageEditorEnabled()) {
     exit;
 }
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
-$canManageSiteLogo = hasPermission('basic');
+$canManageSiteLogo = hasPermission('*');
 $canManageGlobalSettings = hasPermission('*');
 $canManageLogoMaker = hasPermission('*');
 $logoMakerInstalled = is_dir(ROOT_PATH . '/plugins/logo-maker');
@@ -553,14 +553,6 @@ if ($templateId && isset($templateRow, $templateType)
     if ($isCurrentThemeHeaderEdit || (string) config($areaEnabledKey, '1') !== '1') {
         $replaceThemeAreaOnPublish = $templateType;
     }
-}
-$homeHeaderEditorUrl = '/admin/blox_templates.php?type=header';
-if ($isHomeBlox && $advancedBloxEnabled && db()->tableExists('blox_templates')) {
-    $homeHeaderEditorUrl = BloxAreaEditorTarget::url('header', [
-        'home' => true,
-        'channel_id' => 0,
-        'page_id' => 0,
-    ], 'home');   // 从首页编辑器出发——页头编辑器顶栏给「返回首页编辑」
 }
 $initBlocks = json_encode(
     $bootDoc['sections'],
@@ -6162,9 +6154,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var options = this.pageHeroPreviewOptions();
                 var tone = String(options.text_tone || "auto");
                 if (tone !== "auto") return tone;
-                return this.pageHero.compact && !this.pageHeroPreviewBackground() && !String(options.background_color || "")
-                    ? "dark"
-                    : "light";
+                if (this.pageHeroPreviewBackground()) return "light";
+                var color = window.YikaiBloxColorPicker.normalizeHex(options.background_color || "", "");
+                if (color) {
+                    var red = parseInt(color.slice(1, 3), 16);
+                    var green = parseInt(color.slice(3, 5), 16);
+                    var blue = parseInt(color.slice(5, 7), 16);
+                    return ((red * 299 + green * 587 + blue * 114) / 1000) > 150 ? "dark" : "light";
+                }
+                return this.pageHero.compact ? "dark" : "light";
             },
 
             applyPageHeroPreset(name) {

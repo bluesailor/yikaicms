@@ -18,9 +18,7 @@ $contactHeroOptions = $contactHeroStyle['options'];
 $contactHeroBgColor = $contactHeroOptions['background_color'];
 $contactHeroHeightClass = PageHeroStyleResolver::heightClasses($contactHeroOptions, true);
 $contactHeroCentered = $contactHeroOptions['alignment'] === 'center';
-$contactHeroTone = $contactHeroOptions['text_tone'] === 'auto'
-    ? ($contactHeroBg !== '' ? 'light' : 'dark')
-    : $contactHeroOptions['text_tone'];
+$contactHeroTone = PageHeroStyleResolver::textTone($contactHeroOptions, $contactHeroBg, true);
 $contactHeroLinkHoverClass = $contactHeroTone === 'light' ? 'hover:text-white' : 'hover:text-primary';
 $contactHeroStyles = [];
 if ($contactHeroBg !== '') {

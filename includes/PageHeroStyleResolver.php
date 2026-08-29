@@ -112,6 +112,31 @@ final class PageHeroStyleResolver
         return $options['focal_x'] . '% ' . $options['focal_y'] . '%';
     }
 
+    /** @param array<string,mixed>|string|null $raw */
+    public static function textTone(array|string|null $raw, string $background = '', bool $compactContact = false): string
+    {
+        $options = self::normalizeOptions($raw, $compactContact);
+        if ($options['text_tone'] !== 'auto') {
+            return $options['text_tone'];
+        }
+        if ($background !== '') {
+            return 'light';
+        }
+
+        $color = $options['background_color'];
+        if (preg_match('/^#([0-9a-f]{6})$/', $color, $matches) === 1) {
+            $hex = $matches[1];
+            $brightness = (
+                hexdec(substr($hex, 0, 2)) * 299
+                + hexdec(substr($hex, 2, 2)) * 587
+                + hexdec(substr($hex, 4, 2)) * 114
+            ) / 1000;
+            return $brightness > 150 ? 'dark' : 'light';
+        }
+
+        return $compactContact ? 'dark' : 'light';
+    }
+
     /**
      * @param array<string,mixed> $channel
      * @param null|callable(int):(?array<string,mixed>) $channelLoader

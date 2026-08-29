@@ -359,6 +359,7 @@ public static function isActive(): bool
     private static function normalizeSections(array $sections): array
     {
         $out = [];
+        $channelSiblingIds = [];
         foreach ($sections as $si => $section) {
             $columns = is_array($section['columns'] ?? null) ? $section['columns'] : [];
             $normalizedColumns = [];
@@ -376,7 +377,7 @@ public static function isActive(): bool
                     $normalizedElements[] = [
                         'id'   => (string) ($element['id'] ?? 'home_e_' . $si . '_' . $ci . '_' . $ei),
                         'type' => (string) ($element['type'] ?? 'home-block'),
-                        'data' => self::normalizeChannelSourceForCurrentLanguage($elementData),
+                        'data' => self::normalizeChannelSourceForCurrentLanguage($elementData, $channelSiblingIds),
                     ];
                 }
                 $normalizedColumn = [
@@ -419,8 +420,12 @@ public static function isActive(): bool
         return $out;
     }
 
-    /** @param array<string,mixed> $data @return array<string,mixed> */
-    private static function normalizeChannelSourceForCurrentLanguage(array $data): array
+    /**
+     * @param array<string,mixed> $data
+     * @param array<int,int> $channelSiblingIds
+     * @return array<string,mixed>
+     */
+    private static function normalizeChannelSourceForCurrentLanguage(array $data, array &$channelSiblingIds): array
     {
         $type = trim((string) ($data['block_type'] ?? ''));
         if (!str_starts_with($type, 'channel:')) {
@@ -432,12 +437,15 @@ public static function isActive(): bool
             return $data;
         }
 
-        try {
-            $sibling = channelModel()->siblingForLang($channelId);
-        } catch (Throwable) {
-            return $data;
+        if (!array_key_exists($channelId, $channelSiblingIds)) {
+            try {
+                $sibling = channelModel()->siblingForLang($channelId);
+                $channelSiblingIds[$channelId] = (int) ($sibling['id'] ?? 0);
+            } catch (Throwable) {
+                $channelSiblingIds[$channelId] = 0;
+            }
         }
-        $siblingId = (int) ($sibling['id'] ?? 0);
+        $siblingId = $channelSiblingIds[$channelId];
         if ($siblingId > 0) {
             $data['block_type'] = 'channel:' . $siblingId;
         }

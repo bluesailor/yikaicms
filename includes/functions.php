@@ -306,18 +306,6 @@ function config(string $key, mixed $default = ''): mixed
 }
 
 /**
- * Blox 高级编辑能力是否可用。
- *
- * 两道闸，必须同时满足：
- *   1. Blox 总开关 system.blox_editor_enabled = 1（默认 1）；
- *   2. 持有有效授权——优先认 blox 付费模块，其次认整体授权有效。
- *
- * 关闭时首页布局、模板库与 Header/Footer 等高级入口不可用；基础单页编辑
- * 是 CMS 核心能力，不继承此授权状态。
- * 本机开发（DEBUG=true）跳过授权检查，便于无授权环境继续开发；
- * 该常量只能由 config/config.php 设置，改得动它的人本来就控制了整站。
- */
-/**
  * Blox 头尾区域前台渲染（r6 渲染契约）。
  *
  * 无发布的头/尾模板时返回 ''——主题壳据此走原 PHP 模板（黄金对拍：
@@ -389,18 +377,17 @@ function bloxAreaHtml(string $area): string
 
 function bloxPageEditorEnabled(): bool
 {
-    return (string) config('blox_editor_enabled', '1') === '1';
+    return true;
 }
 
 /**
  * Blox 全部能力的总开关。
  *
  * **2026-08-28 起不再校验授权**：Header/Footer/Popup 全站区域模板、全局命名样式、
- * Query Loop 等原「高级能力」一并对免费版开放，本函数只反映
- * `blox_editor_enabled` 这个后台开关。
+ * Query Loop 等原「高级能力」一并对免费版开放。
  *
  * 保留函数名与调用点（13 个产品文件），是为了保住「Blox 能力是否可用」这个语义位置：
- * 后台关掉编辑器时仍要统一收敛，且日后若需重划边界只改这一处。
+ * 日后若需重划边界只改这一处。
  *
  * 付费边界现只剩下**远程模板包下载与插件市场**（服务端 `LICENSE_MODULES` 与
  * `api/plugins/_entitlement.php` 把关），不再由本函数承担。
