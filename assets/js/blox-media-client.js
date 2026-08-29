@@ -26,6 +26,22 @@
         });
     }
 
+    function latestRequestGuard() {
+        var revision = 0;
+        return {
+            begin: function () {
+                revision += 1;
+                return revision;
+            },
+            invalidate: function () {
+                revision += 1;
+            },
+            isCurrent: function (requestId) {
+                return requestId === revision;
+            },
+        };
+    }
+
     function imageOptions(options) {
         var value = options && typeof options === "object" ? options : {};
         var hasMaxDimension = Object.prototype.hasOwnProperty.call(value, "maxDimension");
@@ -227,6 +243,7 @@
 
     global.BloxMediaClient = {
         list: list,
+        latestRequestGuard: latestRequestGuard,
         formatBytes: formatBytes,
         prepareImage: prepareImage,
         upload: upload,

@@ -35,6 +35,18 @@ test("list forwards the wide background usage without changing ordinary requests
     assert.doesNotMatch(lastRequest.url, /usage=/);
 });
 
+test("latest request guard rejects stale responses and invalidates pending work", function () {
+    const guard = global.BloxMediaClient.latestRequestGuard();
+    const first = guard.begin();
+    const second = guard.begin();
+
+    assert.equal(guard.isCurrent(first), false);
+    assert.equal(guard.isCurrent(second), true);
+
+    guard.invalidate();
+    assert.equal(guard.isCurrent(second), false);
+});
+
 test("formatBytes keeps upload metrics compact and readable", function () {
     assert.equal(global.BloxMediaClient.formatBytes(0), "0 B");
     assert.equal(global.BloxMediaClient.formatBytes(1536), "1.5 KB");

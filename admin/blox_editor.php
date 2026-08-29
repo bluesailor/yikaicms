@@ -3127,6 +3127,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaLoading: false,
             mediaUsage: "",
             mediaPreferredMinWidth: 0,
+            mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
             _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
 
             openMedia(setter, options) {
@@ -3147,17 +3148,21 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this._mediaTarget = null;
                 this.mediaUsage = "";
                 this.mediaPreferredMinWidth = 0;
+                this.mediaRequestGuard.invalidate();
+                this.mediaLoading = false;
                 this.releaseDialog(root);
             },
 
             loadMedia(page) {
                 var self = this;
+                var requestId = this.mediaRequestGuard.begin();
                 this.mediaLoading = true;
                 this.mediaPage = page;
                 window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
                     usage: this.mediaUsage,
                 })
                     .then(function (result) {
+                        if (!self.mediaRequestGuard.isCurrent(requestId)) return;
                         if (result.ok) {
                             self.mediaItems = result.items;
                             self.mediaPages = result.pages;
@@ -3167,8 +3172,14 @@ $canManageBloxDesign = hasPermission('blox_global');
                             self.toast(result.message || self.uiText.mediaLoadFailed);
                         }
                     })
-                    .catch(function () { self.mediaItems = []; self.toast(self.uiText.mediaFailed); })
-                    .finally(function () { self.mediaLoading = false; });
+                    .catch(function () {
+                        if (!self.mediaRequestGuard.isCurrent(requestId)) return;
+                        self.mediaItems = [];
+                        self.toast(self.uiText.mediaFailed);
+                    })
+                    .finally(function () {
+                        if (self.mediaRequestGuard.isCurrent(requestId)) self.mediaLoading = false;
+                    });
             },
 
             mediaRecommended(item) {
