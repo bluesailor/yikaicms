@@ -143,6 +143,20 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringNotContainsString('@pointermove.window="resizeLeftPanel($event); resizeRightPanel($event)"', $editor);
     }
 
+    public function testPropertyPanelUsesContainerResponsiveFieldGrids(): void
+    {
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $css = $this->source('assets/css/src/app.css');
+
+        $this->assertStringContainsString('class="blox-mobile-panel blox-property-panel', $workspace);
+        $this->assertStringContainsString('data-testid="blox-property-scroll"', $workspace);
+        foreach (['element', 'section', 'column', 'container'] as $layer) {
+            $this->assertStringContainsString('data-testid="blox-' . $layer . '-property-grid"', $workspace);
+        }
+        $this->assertStringContainsString('container-name: blox-property-panel;', $css);
+        $this->assertStringContainsString('@container blox-property-panel (min-width: 24rem)', $css);
+    }
+
     public function testDesktopStructurePanelHasAccessiblePersistentResizerAndCollapseControl(): void
     {
         $editor = $this->source('admin/blox_editor.php');
