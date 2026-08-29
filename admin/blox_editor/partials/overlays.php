@@ -536,7 +536,7 @@ declare(strict_types=1);
                 <div x-show="preset" data-testid="blox-header-preset-preview-panel"
                      class="relative flex max-h-[calc(100vh-2rem)] w-[1360px] max-w-[96vw] flex-col overflow-hidden rounded-lg bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
                     <div class="flex min-h-14 shrink-0 flex-col items-start justify-between gap-3 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center">
-                        <span class="min-w-0">
+                        <span class="flex min-w-0 flex-1 flex-col">
                             <span class="flex min-w-0 items-center gap-2">
                                 <button type="button" @click="selectAdjacentHeaderPreset(-1)" data-testid="blox-header-preset-preview-previous"
                                         class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
@@ -550,9 +550,9 @@ declare(strict_types=1);
                                     <i class="ti ti-chevron-right"></i>
                                 </button>
                             </span>
-                            <span class="mt-0.5 block text-xs text-gray-500" x-text="headerPresetText.previewDataHint"></span>
+                            <span class="mt-0.5 block max-w-full text-xs text-gray-500" x-text="headerPresetText.previewDataHint"></span>
                         </span>
-                        <span class="flex w-full shrink-0 flex-wrap items-center gap-2 sm:ml-4 sm:w-auto sm:flex-nowrap sm:gap-3">
+                        <span class="flex w-full flex-none flex-wrap items-center gap-2 sm:ml-4 sm:w-auto sm:flex-nowrap sm:gap-3">
                             <span class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
                                 <template x-for="state in ['normal', 'overlay', 'stuck']" :key="'preset-state-' + state">
                                     <button type="button" @click="setHeaderPresetPreviewState(state)"
@@ -601,12 +601,12 @@ declare(strict_types=1);
                     </div>
                     <div class="min-h-0 flex-1 overflow-y-auto bg-gray-100 p-4 blox-scroll">
                         <div class="flex min-h-[320px] items-start justify-center overflow-auto rounded border border-gray-200 bg-gray-200 p-3">
-                            <div class="relative shrink-0 overflow-hidden bg-white shadow-lg"
+                            <div class="relative max-w-full shrink-0 overflow-hidden bg-white shadow-lg"
                                  data-testid="blox-header-preset-preview-viewport"
                                  :data-device="headerPresetPreviewDevice"
                                  :style="headerPresetPreviewDevice === 'mobile'
-                                     ? 'width:min(390px, calc(100vw - 3rem));height:320px'
-                                     : 'width:min(1280px, calc(100vw - 3rem));height:320px'">
+                                     ? 'width:min(390px, 100%);height:320px'
+                                     : 'width:min(1280px, 100%);height:320px'">
                                 <iframe data-testid="blox-header-preset-preview-frame"
                                         :src="headerPresetPreviewUrl(preset)"
                                         @load="headerPresetPreviewLoading = false"
