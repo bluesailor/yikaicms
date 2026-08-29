@@ -1289,6 +1289,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-media-wide-background-hint"', $overlays);
         $this->assertStringContainsString('mediaRecommended(it)', $overlays);
         $this->assertStringContainsString("\$usage === 'hero-bg' ? 1920 : 0", $api);
+        $this->assertStringContainsString('mediaRequestGuard: window.BloxMediaClient.latestRequestGuard()', $editor);
+        $this->assertStringContainsString('if (!self.mediaRequestGuard.isCurrent(requestId)) return;', $editor);
     }
 
     public function testAboutBlockUsesRealDesktopViewportAndClickableInternalFields(): void
