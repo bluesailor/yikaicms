@@ -2715,7 +2715,7 @@ return [
     'blox_area_preset_centered_header_name' => 'Centered brand header',
     'blox_area_preset_centered_header_desc' => 'A centered logo with the primary navigation below, suited to brand-led sites.',
     'blox_area_preset_footer_name' => 'Clean site footer',
-    'blox_area_preset_footer_desc' => 'A light footer combining the site logo, navigation, and dynamic legal information.',
+    'blox_area_preset_footer_desc' => 'A light footer with the site name, company summary, navigation, and dynamic legal information; no footer-specific logo required.',
     'blox_area_preset_corporate_header_name' => 'Corporate site header',
     'blox_area_preset_corporate_header_desc' => 'A contact bar with language switcher and site search above desktop mega menu and mobile drawer navigation.',
     'blox_area_preset_topbar_header_name' => 'Light top-bar header',

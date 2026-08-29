@@ -504,7 +504,11 @@ declare(strict_types=1);
                                     </span>
                                     <span class="flex items-start justify-between gap-3 px-3"
                                           :class="preset.preview === 'footer-compact' ? 'h-8 items-center bg-gray-800' : (preset.preview === 'footer-columns-dark' || preset.preview === 'footer-search' ? 'h-12 bg-gray-700 py-2' : 'h-12 bg-gray-50 py-2')">
-                                        <i class="h-2 w-10 rounded" :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-blue-400' : 'bg-blue-500'"></i>
+                                        <span x-show="preset.preview === 'footer-columns'" class="flex flex-col gap-1">
+                                            <i class="h-2 w-10 rounded bg-gray-500"></i>
+                                            <i class="h-1.5 w-16 rounded bg-gray-300"></i>
+                                        </span>
+                                        <i x-show="preset.preview !== 'footer-columns'" class="h-2 w-10 rounded" :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-blue-400' : 'bg-blue-500'"></i>
                                         <span class="flex flex-1 justify-end gap-2">
                                             <i class="h-1.5 w-8 rounded" :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-gray-400' : 'bg-gray-300'"></i>
                                             <i class="h-1.5 w-6 rounded" :class="preset.preview === 'footer-contact' ? 'bg-blue-300' : (preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-gray-400' : 'bg-gray-300')"></i>

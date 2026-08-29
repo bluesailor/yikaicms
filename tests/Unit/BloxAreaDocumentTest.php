@@ -173,7 +173,7 @@ final class BloxAreaDocumentTest extends TestCase
             'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
             'topbar-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact'], 2],
             'search-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-search'], 2],
-            'clean-site-footer.json' => ['footer', ['logo', 'nav', 'site-copyright'], 2],
+            'clean-site-footer.json' => ['footer', ['heading', 'nav', 'site-copyright', 'text'], 2],
             'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'social-links'], 2],
             'compact-site-footer.json' => ['footer', ['logo', 'site-copyright', 'social-links'], 1],
             'contact-site-footer.json' => ['footer', ['container', 'logo', 'site-contact', 'site-copyright', 'social-links'], 2],
@@ -194,6 +194,19 @@ final class BloxAreaDocumentTest extends TestCase
                 self::assertSame(['m'], $prepared['sections'][0]['settings']['hide_on']);
             }
         }
+    }
+
+    public function testDefaultFooterUsesCompanySummaryWithoutRequiringALogo(): void
+    {
+        $json = file_get_contents(ROOT_PATH . '/templates/blox/areas/clean-site-footer.json');
+        self::assertIsString($json);
+        $package = json_decode($json, true, 128, JSON_THROW_ON_ERROR);
+
+        self::assertNotContains('logo', $package['requires']['elements']);
+        $intro = $package['document']['sections'][0]['columns'][0]['elements'];
+        self::assertSame(['heading', 'text'], array_column($intro, 'type'));
+        self::assertSame('site_name', $intro[0]['data']['site_field']);
+        self::assertSame('site_description', $intro[1]['data']['site_field']);
     }
 
     public function testPresetCatalogContainsOnlyHeaderAndFooterStarters(): void

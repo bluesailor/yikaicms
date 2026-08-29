@@ -640,10 +640,11 @@ $presetPreviewHtml = static function (string $kind): string {
             . '<span class="h-4 flex-1 rounded-sm border border-gray-300 bg-gray-50"></span>'
             . '<span class="h-1 w-5 rounded-sm bg-gray-300"></span></div>'
             . '<div class="flex justify-center bg-gray-800 px-2 py-1">' . $menu . '</div></div>',
-        // 简洁页尾：LOGO+链接列 / 底部版权条
+        // 简洁页尾：公司简介+链接列 / 底部版权条
         'footer-columns' => '<div class="flex flex-col">'
             . '<div class="flex items-start justify-between rounded-t-sm border border-b-0 border-gray-200 bg-white px-2 py-1.5">'
-            . '<span class="flex flex-col gap-1">' . $logo . '</span>' . $lines(3, 'bg-gray-300') . $lines(3, 'bg-gray-300') . '</div>'
+            . '<span class="flex flex-col gap-1"><span class="h-1.5 w-10 rounded-sm bg-gray-500"></span><span class="h-1 w-14 rounded-sm bg-gray-300"></span></span>'
+            . $lines(3, 'bg-gray-300') . $lines(3, 'bg-gray-300') . '</div>'
             . '<div class="flex justify-center rounded-b-sm bg-gray-200 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-gray-400"></span></div></div>',
         // 企业页尾：深色多列 + 更深版权条
         'footer-columns-dark' => '<div class="flex flex-col">'
