@@ -1445,6 +1445,18 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('homeDynamicText.iconSearch', $editor);
     }
 
+    public function testElementIconPickerOffersBusinessSemanticsAndSuggestedMotion(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        $this->assertStringContainsString('BloxIcon::businessPresets()', $editor);
+        $this->assertStringContainsString('businessIconPresets:', $editor);
+        $this->assertStringContainsString('selectBusinessIcon(controlKey, preset)', $editor);
+        $this->assertStringContainsString('data-testid="blox-business-icon-presets"', $workspace);
+        $this->assertStringContainsString('this.selEl.data.icon_motion = preset.motion', $editor);
+    }
+
     public function testCanvasMultiColumnDividersPreserveTwelveColumnGrid(): void
     {
         $editor = $this->source('admin/blox_editor.php');

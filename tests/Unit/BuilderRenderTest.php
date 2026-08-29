@@ -600,6 +600,18 @@ final class BuilderRenderTest extends TestCase
         $faqItems = $faqPreset['sections'][0]['columns'][0]['elements'][0]['data']['items'];
         $this->assertIsArray($faqItems);
         $this->assertSame(['question', 'answer'], array_keys($faqItems[0]));
+        $featuresPreset = array_values(array_filter(
+            $presets['sections'],
+            static fn(array $preset): bool => ($preset['key'] ?? '') === 'features'
+        ))[0];
+        $this->assertCount(4, $featuresPreset['sections'][0]['columns']);
+        $this->assertSame(
+            ['sparkle', 'pulse', 'ring', 'slide'],
+            array_map(
+                static fn(array $column): string => (string) $column['elements'][0]['data']['icon_motion'],
+                $featuresPreset['sections'][0]['columns']
+            )
+        );
         $this->assertContains('company_intro', array_column($presets['pages'], 'key'));
 
         foreach (array_merge($presets['sections'], $presets['pages']) as $preset) {

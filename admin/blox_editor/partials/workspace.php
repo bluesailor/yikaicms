@@ -1812,6 +1812,22 @@ declare(strict_types=1);
                                             </div>
                                             <div x-show="iconPick === ctrl.key" x-cloak
                                                  class="mt-2 border border-gray-200 rounded-lg p-2 bg-gray-50">
+                                                <div class="mb-2" data-testid="blox-business-icon-presets">
+                                                    <div class="mb-1.5 flex items-center justify-between gap-2">
+                                                        <span class="text-[10px] font-semibold text-gray-600"><?= e(__('blox_business_icons')) ?></span>
+                                                        <span class="text-[10px] text-gray-400"><?= e(__('blox_business_icons_hint')) ?></span>
+                                                    </div>
+                                                    <div class="grid grid-cols-3 gap-1">
+                                                        <template x-for="preset in businessIconPresets" :key="preset.icon">
+                                                            <button type="button" @click="selectBusinessIcon(ctrl.key, preset)"
+                                                                    :title="preset.label" :data-testid="'blox-business-icon-' + preset.icon"
+                                                                    class="yk-icon-interactive min-h-10 rounded border border-gray-200 bg-white px-1 py-1 text-gray-600 transition hover:border-blue-400 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                                <i aria-hidden="true" class="text-base" :class="[iconClass(preset.icon), 'yk-icon-motion yk-icon-motion--' + preset.motion]"></i>
+                                                                <span class="mt-0.5 block truncate text-[10px] leading-tight" x-text="preset.label"></span>
+                                                            </button>
+                                                        </template>
+                                                    </div>
+                                                </div>
                                                 <div class="grid grid-cols-2 gap-1 mb-2" role="group" aria-label="Icon library">
                                                     <button type="button" @click="setIconProvider('tabler')" data-testid="blox-icon-provider-tabler"
                                                             class="h-7 rounded border text-[10px] font-medium transition"

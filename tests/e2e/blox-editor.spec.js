@@ -2887,3 +2887,24 @@ test('Bootstrap icon picker selects and renders without reload @ci', async ({ pa
 
   await restoreClean(page);
 });
+
+test('business icon preset applies semantic icon and hover motion @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const { sectionIndex } = await addTemporaryHeading(page);
+
+  await page.getByTestId('blox-library-open').click();
+  await page.getByTestId('blox-add-element-icon-box').press('Enter');
+  await page.getByTestId('blox-icon-library-toggle').click();
+
+  const businessPresets = page.getByTestId('blox-business-icon-presets');
+  await expect(businessPresets).toBeVisible();
+  await expect(businessPresets.locator('button')).toHaveCount(12);
+  await performPreviewUpdate(page, () => page.getByTestId('blox-business-icon-headset').click());
+
+  await expect(page.getByTestId('blox-icon-value')).toHaveValue('headset');
+  await expect(page.getByTestId('blox-control-icon_motion')).toHaveValue('ring');
+  const contentFrame = await frame(page);
+  await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.1"] i.ti-headset.yk-icon-motion--ring`)).toHaveCount(1);
+
+  await restoreClean(page);
+});
