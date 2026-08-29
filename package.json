@@ -2,17 +2,17 @@
   "name": "yikaicms",
   "private": true,
   "scripts": {
-    "css": "tailwindcss -i assets/css/input.css -o assets/css/tailwind.css --minify",
-    "css:watch": "tailwindcss -i assets/css/input.css -o assets/css/tailwind.css --watch",
+    "css": "tailwindcss -i assets/css/src/app.css -o assets/css/tailwind.css --minify",
+    "css:watch": "tailwindcss -i assets/css/src/app.css -o assets/css/tailwind.css --watch",
     "test:e2e": "playwright test",
     "test:e2e:local": "node tests/e2e/run-local.js"
   },
   "dependencies": {
-    "@tailwindcss/cli": "^4.2.2",
-    "tailwindcss": "^4.2.2"
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
   },
   "optionalDependencies": {
-    "@parcel/watcher-linux-x64-glibc": "^2.5.6"
+    "@parcel/watcher-linux-x64-glibc": "2.5.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"

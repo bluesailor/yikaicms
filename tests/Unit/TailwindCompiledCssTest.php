@@ -23,7 +23,7 @@ final class TailwindCompiledCssTest extends TestCase
                 $selector,
                 $css,
                 "编译产物缺少 {$selector}——大概率 app.css 的 blox_editor @source 豁免被移除，" .
-                '或编译时源文件是旧版。重跑 tailwindcss 编译并核对 CLAUDE.md 的 Tailwind 备忘。'
+                '或编译时源文件是旧版。重跑 Tailwind CSS 编译并核对 AGENTS.md 的构建约定。'
             );
         }
 
@@ -46,5 +46,34 @@ final class TailwindCompiledCssTest extends TestCase
                 "编译产物缺少 {$selector}——改动 admin/blox_templates.php 线框类后需重跑 tailwindcss 编译。"
             );
         }
+    }
+
+    public function testBuildContractUsesCanonicalInputAndPinnedVersion(): void
+    {
+        self::assertFileDoesNotExist(ROOT_PATH . '/assets/css/input.css');
+        self::assertFileExists(ROOT_PATH . '/assets/css/src/app.css');
+
+        $package = json_decode((string) file_get_contents(ROOT_PATH . '/package.json'), true);
+        self::assertIsArray($package);
+        self::assertSame('4.3.3', $package['dependencies']['tailwindcss'] ?? null);
+        self::assertSame('4.3.3', $package['dependencies']['@tailwindcss/cli'] ?? null);
+        self::assertStringContainsString(
+            '-i assets/css/src/app.css -o assets/css/tailwind.css',
+            (string) ($package['scripts']['css'] ?? '')
+        );
+        self::assertStringNotContainsString(
+            'assets/css/input.css',
+            implode("\n", array_map('strval', $package['scripts'] ?? []))
+        );
+
+        $script = file_get_contents(ROOT_PATH . '/tools/build_css.sh');
+        self::assertNotFalse($script);
+        self::assertStringContainsString('EXPECTED_VERSION="4.3.3"', $script);
+        self::assertStringContainsString('INPUT="assets/css/src/app.css"', $script);
+        self::assertStringNotContainsString('assets/css/input.css', $script);
+
+        $compiled = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($compiled);
+        self::assertStringStartsWith('/*! tailwindcss v4.3.3 ', $compiled);
     }
 }
