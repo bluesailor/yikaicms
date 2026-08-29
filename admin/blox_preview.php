@@ -46,6 +46,9 @@ if ($isHeaderPresetPreview) {
         error(__('blox_area_preset_not_found'));
     }
     $_GET['template_area'] = 'header';
+    $headerState = trim((string) ($_GET['header_state'] ?? 'normal'));
+    $_POST['header_state'] = in_array($headerState, BloxHeaderStates::NAMES, true) ? $headerState : 'normal';
+    $_POST['drawer_open'] = (string) ($_GET['drawer_open'] ?? '') === '1' ? '1' : '0';
     $_POST['blocks_data'] = json_encode([
         'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
         'settings' => $preset['settings'],

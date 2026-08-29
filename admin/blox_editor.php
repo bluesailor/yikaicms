@@ -1003,6 +1003,8 @@ $canManageBloxDesign = hasPermission('*');
             headerPresetOpen: false,
             headerPresetPreviewOpen: false,
             headerPresetPreviewDevice: "desktop",
+            headerPresetPreviewState: "normal",
+            headerPresetPreviewDrawerOpen: false,
             headerPresetPreviewLoading: false,
             headerPresetPreviewNonce: 0,
             selectedHeaderPresetSlug: "",
@@ -1015,6 +1017,11 @@ $canManageBloxDesign = hasPermission('*');
                 'previewTitle' => __('blox_header_preset_preview_title'),
                 'previewDesktop' => __('blox_header_preset_preview_desktop'),
                 'previewMobile' => __('blox_header_preset_preview_mobile'),
+                'previewNormal' => __('blox_header_state_normal'),
+                'previewOverlay' => __('blox_header_state_overlay'),
+                'previewStuck' => __('blox_header_state_stuck'),
+                'previewDrawerOpen' => __('blox_header_preset_preview_drawer_open'),
+                'previewDrawerClose' => __('blox_header_preset_preview_drawer_close'),
                 'previewLoading' => __('blox_header_preset_preview_loading'),
                 'previewDataHint' => __('blox_header_preset_preview_site_data'),
                 'currentDraft' => __('blox_header_preset_current_draft'),
@@ -2166,6 +2173,8 @@ $canManageBloxDesign = hasPermission('*');
                 if (!preset || !preset.slug) return;
                 this.selectHeaderPreset(preset);
                 this.headerPresetPreviewDevice = "desktop";
+                this.headerPresetPreviewState = "normal";
+                this.headerPresetPreviewDrawerOpen = false;
                 this.headerPresetPreviewLoading = true;
                 this.headerPresetPreviewNonce += 1;
                 this.headerPresetPreviewOpen = true;
@@ -2177,6 +2186,10 @@ $canManageBloxDesign = hasPermission('*');
                 var url = "/admin/blox_preview.php?home=1&template_area=header&header_preset="
                     + encodeURIComponent(preset.slug);
                 url += "&preview_instance=" + this.headerPresetPreviewNonce;
+                url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
+                if (this.headerPresetPreviewDevice === "mobile" && this.headerPresetPreviewDrawerOpen) {
+                    url += "&drawer_open=1";
+                }
                 if (this.previewContext && this.previewContext !== "home") {
                     url += "&preview_context=" + encodeURIComponent(this.previewContext);
                 }
@@ -2186,6 +2199,26 @@ $canManageBloxDesign = hasPermission('*');
             setHeaderPresetPreviewDevice(device) {
                 if (device !== "desktop" && device !== "mobile") return;
                 this.headerPresetPreviewDevice = device;
+                if (device !== "mobile") this.headerPresetPreviewDrawerOpen = false;
+                this.reloadHeaderPresetPreview();
+            },
+
+            setHeaderPresetPreviewState(state) {
+                if (!["normal", "overlay", "stuck"].includes(state)) return;
+                this.headerPresetPreviewState = state;
+                this.reloadHeaderPresetPreview();
+            },
+
+            toggleHeaderPresetPreviewDrawer() {
+                if (this.headerPresetPreviewDevice !== "mobile") return;
+                this.headerPresetPreviewDrawerOpen = !this.headerPresetPreviewDrawerOpen;
+                this.reloadHeaderPresetPreview();
+            },
+
+            reloadHeaderPresetPreview() {
+                if (!this.headerPresetPreviewOpen) return;
+                this.headerPresetPreviewLoading = true;
+                this.headerPresetPreviewNonce += 1;
             },
 
             closeHeaderPresetPreview() {

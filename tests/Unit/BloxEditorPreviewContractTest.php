@@ -837,6 +837,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-header-preset-preview-frame"',
             'data-testid="blox-header-preset-preview-desktop"',
             'data-testid="blox-header-preset-preview-mobile"',
+            ':data-testid="\'blox-header-preset-preview-state-\' + state"',
+            'data-testid="blox-header-preset-preview-drawer"',
             'data-testid="blox-header-preset-preview-close"',
             'data-testid="blox-header-preset-preview-apply"',
             ':data-current="isCurrentHeaderPreset(preset) ? \'true\' : \'false\'"',
@@ -860,6 +862,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             "preg_match('/^[a-z0-9-]{1,80}$/', \$headerPresetSlug)",
             "BloxAreaTemplatePresets::editorCatalog('header')",
             "\$_GET['template_area'] = 'header';",
+            "in_array(\$headerState, BloxHeaderStates::NAMES, true)",
+            "\$_POST['drawer_open'] = (string) (\$_GET['drawer_open'] ?? '') === '1'",
             "\$_POST['blocks_data'] = json_encode([",
             "'settings' => \$preset['settings']",
             "'sections' => \$preset['sections']",
@@ -877,6 +881,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         self::assertIsInt($csrfOffset);
         self::assertIsInt($renderOffset);
         self::assertLessThan($renderOffset, $csrfOffset);
+        $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $this->assertStringContainsString("document.querySelector('[data-yk-drawer-open]')?.click();", $preview);
     }
 
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void

@@ -542,6 +542,18 @@ declare(strict_types=1);
                         </span>
                         <span class="ml-4 flex shrink-0 items-center gap-3">
                             <span class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
+                                <template x-for="state in ['normal', 'overlay', 'stuck']" :key="'preset-state-' + state">
+                                    <button type="button" @click="setHeaderPresetPreviewState(state)"
+                                            :data-testid="'blox-header-preset-preview-state-' + state"
+                                            :aria-pressed="headerPresetPreviewState === state ? 'true' : 'false'"
+                                            :title="state === 'normal' ? headerPresetText.previewNormal : (state === 'overlay' ? headerPresetText.previewOverlay : headerPresetText.previewStuck)"
+                                            class="inline-flex h-7 min-w-9 items-center justify-center rounded px-2 text-[11px] font-semibold text-gray-500 transition"
+                                            :class="headerPresetPreviewState === state ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-800'">
+                                        <span x-text="state === 'normal' ? headerPresetText.previewNormal : (state === 'overlay' ? headerPresetText.previewOverlay : headerPresetText.previewStuck)"></span>
+                                    </button>
+                                </template>
+                            </span>
+                            <span class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
                                 <button type="button" @click="setHeaderPresetPreviewDevice('desktop')"
                                         data-testid="blox-header-preset-preview-desktop"
                                         :aria-pressed="headerPresetPreviewDevice === 'desktop' ? 'true' : 'false'"
@@ -559,6 +571,15 @@ declare(strict_types=1);
                                     <i class="ti ti-device-mobile text-base"></i>
                                 </button>
                             </span>
+                            <button type="button" x-show="headerPresetPreviewDevice === 'mobile'"
+                                    @click="toggleHeaderPresetPreviewDrawer()"
+                                    data-testid="blox-header-preset-preview-drawer"
+                                    :aria-pressed="headerPresetPreviewDrawerOpen ? 'true' : 'false'"
+                                    :title="headerPresetPreviewDrawerOpen ? headerPresetText.previewDrawerClose : headerPresetText.previewDrawerOpen"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded border border-gray-200 text-gray-500 transition hover:bg-gray-50 hover:text-gray-800"
+                                    :class="headerPresetPreviewDrawerOpen ? 'border-blue-200 bg-blue-50 text-blue-600' : ''">
+                                <i class="ti" :class="headerPresetPreviewDrawerOpen ? 'ti-layout-sidebar-right-collapse' : 'ti-menu-2'"></i>
+                            </button>
                             <button type="button" @click="closeHeaderPresetPreview()" data-dialog-initial data-testid="blox-header-preset-preview-close"
                                     class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                                     :title="headerPresetText.close" :aria-label="headerPresetText.close">
