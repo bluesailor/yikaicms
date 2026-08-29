@@ -10,7 +10,7 @@ final class ReleaseArtifactSmokeTest extends TestCase
 {
     private string $tempDir;
 
-    /** @var array{required_files:list<string>,forbidden_paths:list<string>} */
+    /** @var array{required_files:list<string>,generated_files?:list<string>,forbidden_paths:list<string>} */
     private array $manifest;
 
     protected function setUp(): void
@@ -87,6 +87,14 @@ final class ReleaseArtifactSmokeTest extends TestCase
                 mkdir($directory, 0700, true);
             }
             copy($source, $destination);
+        }
+        foreach ($this->manifest['generated_files'] ?? [] as $path) {
+            $destination = $target . '/' . $path;
+            $directory = dirname($destination);
+            if (!is_dir($directory)) {
+                mkdir($directory, 0700, true);
+            }
+            file_put_contents($destination, "<?php\nreturn [];\n");
         }
     }
 

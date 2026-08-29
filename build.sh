@@ -260,16 +260,26 @@ rm -rf "$PKG_DIR/storage/"*
 touch "$PKG_DIR/uploads/.gitkeep"
 touch "$PKG_DIR/storage/.gitkeep"
 
+# ---- 写入产品来源清单 ----
+# 清单由包内实际文件计算，不能在复制/排除前生成。source_dirty 明确记录当前源码
+# 是否含未提交修改，避免只写 commit 却把工作树内容误装成该提交的正式产物。
+VERIFY_PKG_DIR="$PKG_DIR"
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    VERIFY_PKG_DIR="$(wslpath -w "$PKG_DIR")"
+fi
+SOURCE_COMMIT=$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "")
+SOURCE_DIRTY=0
+if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1 \
+   && [ -n "$(git -C "$ROOT_DIR" status --porcelain --untracked-files=normal)" ]; then
+    SOURCE_DIRTY=1
+fi
+php "tools/build-product-manifest.php" "$VERIFY_PKG_DIR" "$VERSION" "$BUILD_ID" "$SOURCE_COMMIT" "$SOURCE_DIRTY"
+
 # ---- 验证关键文件 ----
 echo "[3/5] 验证打包内容..."
 
 ERRORS=0
 
-VERIFY_PKG_DIR="$PKG_DIR"
-# WSL 中项目惯用 Windows php.exe；脚本可用相对路径，但 /tmp 参数必须转成 UNC 路径。
-if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
-    VERIFY_PKG_DIR="$(wslpath -w "$PKG_DIR")"
-fi
 if ! php "bin/blox-assets.php" verify-free "$VERIFY_PKG_DIR"; then
     ERRORS=$((ERRORS + 1))
 fi
@@ -299,7 +309,10 @@ MUST_EXIST=(
     "config/config.php.example"
     "config/database.php"
     "config/build.php"
+    "config/product.php"
+    "config/provenance.php"
     "config/release-runtime.php"
+    "includes/ProductIdentity.php"
     "includes/functions.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
@@ -454,10 +467,12 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
         PAYLOAD="$DELTA_DIR/payload"
         mkdir -p "$PAYLOAD"
         DELETED=()
-        # build.php 不在 git diff 中，但每个增量包都必须覆盖它来切换 HTML 缓存命名空间。
+        # build.php / provenance.php 不在 git diff 中，但每个增量包都必须覆盖它们，
+        # 同时切换 HTML 缓存命名空间和产品来源证明。
         mkdir -p "$PAYLOAD/config"
         cp "$PKG_DIR/config/build.php" "$PAYLOAD/config/build.php"
-        ADDED=1
+        cp "$PKG_DIR/config/provenance.php" "$PAYLOAD/config/provenance.php"
+        ADDED=2
         # name-status：A/M/C 复制新内容；D 记删除；R 旧路径删、新路径复制
         while IFS=$'\t' read -r status path newpath; do
             [ -z "$status" ] && continue

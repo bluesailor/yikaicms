@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/SiteAsset.php';
+require_once __DIR__ . '/ProductIdentity.php';
 
 final class SiteHealth
 {
@@ -41,6 +42,7 @@ final class SiteHealth
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
             self::checkBrandAssets($root),
+            self::checkProductIntegrity($root),
         ];
 
         if (function_exists('apply_filters')) {
@@ -434,6 +436,7 @@ final class SiteHealth
     public static function diagnosticInfo(?string $root = null): array
     {
         $root ??= ROOT_PATH;
+        $build = YikaiProductIdentity::buildInfo($root);
         $disk = function_exists('disk_free_space') ? @disk_free_space($root) : false;
         $databaseVersion = '';
         try {
@@ -448,7 +451,13 @@ final class SiteHealth
         }
 
         return [
+            'product_id' => $build['product_id'],
+            'vendor_id' => $build['vendor_id'],
             'cms_version' => defined('CMS_VERSION') ? CMS_VERSION : '',
+            'build_id' => $build['build_id'],
+            'build_fingerprint' => $build['core_tree_sha256'],
+            'build_integrity' => $build['integrity'],
+            'source_commit' => $build['source_commit'],
             'php_version' => PHP_VERSION,
             'php_sapi' => PHP_SAPI,
             'server' => self::truncate((string) ($_SERVER['SERVER_SOFTWARE'] ?? ''), 120),
@@ -478,6 +487,34 @@ final class SiteHealth
         $bad = (defined('DEBUG') && DEBUG) || $displayOn;
         return self::result('debug_mode', $bad ? self::CRITICAL : self::GOOD, 'security',
             'health_debug_title', $bad ? 'health_debug_bad' : 'health_debug_good', '/admin/system.php');
+    }
+
+    /** @return array<string,mixed> */
+    private static function checkProductIntegrity(string $root): array
+    {
+        $build = YikaiProductIdentity::buildInfo($root);
+        $integrity = $build['integrity'];
+        if ($integrity === 'verified') {
+            return self::result('product_integrity', self::GOOD, 'security',
+                'health_product_integrity_title', 'health_product_integrity_good');
+        }
+        if ($integrity === 'development') {
+            return self::result('product_integrity', self::UNKNOWN, 'security',
+                'health_product_integrity_title', 'health_product_integrity_development');
+        }
+        if ($integrity === 'uncommitted') {
+            return self::result('product_integrity', self::RECOMMENDED, 'security',
+                'health_product_integrity_title', 'health_product_integrity_uncommitted');
+        }
+        if ($integrity === 'invalid') {
+            return self::result('product_integrity', self::RECOMMENDED, 'security',
+                'health_product_integrity_title', 'health_product_integrity_invalid');
+        }
+
+        return self::result('product_integrity', self::RECOMMENDED, 'security',
+            'health_product_integrity_title', 'health_product_integrity_changed', '', [
+                'count' => (string) count($build['changed_files']),
+            ]);
     }
 
     /** @return array<string,mixed> */
@@ -774,6 +811,10 @@ final class SiteHealth
         }
         if ($key === 'disk_free_bytes' && is_int($value)) {
             return self::formatBytes($value);
+        }
+        if ($key === 'build_integrity') {
+            $status = preg_replace('/[^a-z_]/', '', (string) $value) ?: 'invalid';
+            return self::t('health_build_integrity_' . $status);
         }
         $text = trim((string) ($value ?? ''));
         return $text === '' ? self::t('health_info_unavailable') : $text;

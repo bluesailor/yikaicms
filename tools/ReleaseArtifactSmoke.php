@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 final class ReleaseArtifactSmoke
 {
-    /** @var array{required_files:list<string>,forbidden_paths:list<string>} */
+    /** @var array{required_files:list<string>,generated_files?:list<string>,forbidden_paths:list<string>} */
     private array $manifest;
 
-    /** @param array{required_files:list<string>,forbidden_paths:list<string>} $manifest */
+    /** @param array{required_files:list<string>,generated_files?:list<string>,forbidden_paths:list<string>} $manifest */
     public function __construct(array $manifest)
     {
         $this->manifest = $manifest;
@@ -31,7 +31,7 @@ final class ReleaseArtifactSmoke
         $root = rtrim(str_replace('\\', '/', $root), '/');
         $errors = [];
 
-        foreach ($this->manifest['required_files'] as $path) {
+        foreach ($this->requiredFiles() as $path) {
             if (!is_file($root . '/' . $path)) {
                 $errors[] = 'Missing runtime file: ' . $path;
             }
@@ -42,7 +42,7 @@ final class ReleaseArtifactSmoke
             }
         }
 
-        foreach ($this->manifest['required_files'] as $path) {
+        foreach ($this->requiredFiles() as $path) {
             if (!str_ends_with($path, '.php') || !is_file($root . '/' . $path)) {
                 continue;
             }
@@ -58,6 +58,15 @@ final class ReleaseArtifactSmoke
         }
 
         return $errors;
+    }
+
+    /** @return list<string> */
+    private function requiredFiles(): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->manifest['required_files'],
+            $this->manifest['generated_files'] ?? []
+        )));
     }
 
     /** @return list<string> */

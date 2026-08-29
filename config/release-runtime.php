@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Production artifact contract. Paths are relative to the extracted package root.
  * Keep runtime dependencies here instead of relying on broad directory-copy rules.
  *
- * @return array{required_files:list<string>,forbidden_paths:list<string>}
+ * @return array{required_files:list<string>,generated_files:list<string>,forbidden_paths:list<string>}
  */
 return [
     'required_files' => [
@@ -14,10 +14,12 @@ return [
         'admin/index.php',
         'config/config.sample.php',
         'config/database.php',
+        'config/product.php',
         'config/release-runtime.php',
         'config/version.php',
         'includes/init.php',
         'includes/functions.php',
+        'includes/ProductIdentity.php',
         'includes/frontend_preview.php',
         'includes/ThemeRuntime.php',
         'includes/security.php',
@@ -52,6 +54,10 @@ return [
         'deploy/nginx-baota.conf',
         'deploy/aliyun-nginx-minimal.txt',
         'assets/css/tailwind.css',
+    ],
+    'generated_files' => [
+        'config/build.php',
+        'config/provenance.php',
     ],
     'forbidden_paths' => [
         '.git',

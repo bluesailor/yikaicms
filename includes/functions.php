@@ -18,6 +18,7 @@ require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeE
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/LegacyInstallCleanup.php';
+require_once __DIR__ . '/ProductIdentity.php';
 require_once __DIR__ . '/SiteHealth.php';
 require_once __DIR__ . '/Pinyin.php';     // 汉字转拼音（slug 用），自建词库、无 vendor 依赖
 

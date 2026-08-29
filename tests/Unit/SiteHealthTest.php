@@ -138,6 +138,19 @@ final class SiteHealthTest extends TestCase
         // 空值不能渲染成空白格子，要明确说「取不到」
         self::assertNotSame('', SiteHealth::formatDiagnosticValue('server', ''));
         self::assertNotSame('', SiteHealth::formatDiagnosticValue('disk_free_bytes', null));
+        self::assertSame('health_build_integrity_verified', SiteHealth::formatDiagnosticValue('build_integrity', 'verified'));
+    }
+
+    public function testDiagnosticInfoIncludesProductAndBuildIdentity(): void
+    {
+        $info = SiteHealth::diagnosticInfo(ROOT_PATH);
+
+        self::assertSame('cn.yikai.yikaicms', $info['product_id']);
+        self::assertSame('cn.yikai', $info['vendor_id']);
+        self::assertArrayHasKey('build_id', $info);
+        self::assertArrayHasKey('build_fingerprint', $info);
+        self::assertArrayHasKey('build_integrity', $info);
+        self::assertArrayHasKey('source_commit', $info);
     }
 
     /**
