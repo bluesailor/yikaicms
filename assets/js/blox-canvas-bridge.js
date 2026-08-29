@@ -198,6 +198,7 @@
         this.onAreaHit = options.onAreaHit || noop;
         this.onAreaMatch = options.onAreaMatch || noop;
         this.onEditArea = options.onEditArea || noop;
+        this.onEditPageHero = options.onEditPageHero || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onQuickAdd = options.onQuickAdd || noop;
         this.onInsertAt = options.onInsertAt || noop;
@@ -348,6 +349,10 @@
         payload = areaEditPayload(data.ykEditArea);
         if (payload) {
             this.onEditArea(payload);
+            return true;
+        }
+        if (data.ykEditPageHero === true) {
+            this.onEditPageHero();
             return true;
         }
         if (data.ykEmptyAction === "templates" || data.ykEmptyAction === "section") {

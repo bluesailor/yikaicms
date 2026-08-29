@@ -264,7 +264,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <p class="text-xs text-gray-400 mt-1"><?php echo __('page_show_cover_tip'); ?></p>
             </div>
 
-            <div>
+            <div id="page-hero-settings" class="scroll-mt-6">
                 <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_hero_bg'); ?></label>
                 <input type="text" name="hero_bg" id="heroBgInput" value="<?php echo e($page['hero_bg'] ?? ''); ?>"
                        class="w-full border rounded px-3 py-2 text-sm mb-2">

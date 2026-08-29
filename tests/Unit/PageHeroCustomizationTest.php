@@ -72,6 +72,29 @@ final class PageHeroCustomizationTest extends TestCase
         }
     }
 
+    public function testBloxCanvasShowsAndEditsTheSystemPageHeroWithoutTouchingDocumentData(): void
+    {
+        $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
+        $editor = $this->source('admin/blox_editor.php')
+            . $this->source('admin/blox_editor/partials/overlays.php');
+        $api = $this->source('admin/blox_page_api.php');
+        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+
+        $this->assertStringContainsString('data-yk-page-hero', $canvas);
+        $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $canvas);
+        $this->assertStringContainsString('ykEditPageHero: true', $canvas);
+        $this->assertStringContainsString('data-testid="blox-page-hero-dialog"', $editor);
+        $this->assertStringContainsString('body.set("action", "save_page_hero")', $editor);
+        $this->assertStringContainsString("if (\$action === 'save_page_hero')", $api);
+        $this->assertStringContainsString('UrlPolicy::image($heroBgInput)', $api);
+        $this->assertStringContainsString('onEditPageHero', $bridge);
+        $this->assertStringNotContainsString('blocks_data', substr(
+            $api,
+            (int) strpos($api, "if (\$action === 'save_page_hero')"),
+            (int) strpos($api, "if (\$action === 'preview')") - (int) strpos($api, "if (\$action === 'save_page_hero')")
+        ));
+    }
+
     private function source(string $path): string
     {
         return (string) file_get_contents(ROOT_PATH . '/' . $path);

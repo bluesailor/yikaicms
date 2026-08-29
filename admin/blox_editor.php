@@ -97,6 +97,17 @@ $pageHasPublished = false;
 $pageHasUnpublishedChanges = false;
 $pageUsesLegacyHtml = false;
 $pageLanguageVersions = [];
+$pageHero = [
+    'available' => false,
+    'id' => 0,
+    'name' => '',
+    'description' => '',
+    'hero_bg' => '',
+    'image' => '',
+    'show_hero' => true,
+    'source' => 'builtin',
+    'fallback_source' => 'builtin',
+];
 $redirectedFromPage = null;
 $isContactBlox = false;
 $isProductBlox = false;
@@ -366,6 +377,21 @@ if ($isHomeBlox) {
     $saveEndpoint = '/admin/blox_page_api.php?id=' . $id;
     $previewEndpoint = $saveEndpoint;
     $documentIdentity = ($isContentListBlox ? 'content-list:' : ($isProductBlox ? 'product:' : 'page:')) . $id;
+    $pageHeroFallbackSource = trim((string) ($page['image'] ?? '')) !== ''
+        ? 'cover'
+        : (trim((string) config('page_hero_default_bg', '')) !== '' ? 'global' : 'builtin');
+    $pageHeroSource = trim((string) ($page['hero_bg'] ?? '')) !== '' ? 'custom' : $pageHeroFallbackSource;
+    $pageHero = [
+        'available' => true,
+        'id' => (int) $page['id'],
+        'name' => (string) ($page['name'] ?? ''),
+        'description' => (string) ($page['description'] ?? ''),
+        'hero_bg' => (string) ($page['hero_bg'] ?? ''),
+        'image' => (string) ($page['image'] ?? ''),
+        'show_hero' => (int) ($page['show_hero'] ?? 1) === 1,
+        'source' => $pageHeroSource,
+        'fallback_source' => $pageHeroFallbackSource,
+    ];
 
     $enabledPageLanguages = enabledLanguages();
     if (count($enabledPageLanguages) > 1) {
@@ -984,6 +1010,25 @@ $canManageBloxDesign = hasPermission('blox_global');
     function bloxEditor() {
         return {
             sections: <?php echo $initBlocks; ?>,
+            pageHero: <?php echo json_encode($pageHero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            pageHeroOpen: false,
+            pageHeroSaving: false,
+            pageHeroText: <?php echo json_encode([
+                'title' => __('blox_page_hero_title'),
+                'description' => __('blox_page_hero_description'),
+                'visible' => __('blox_page_hero_visible'),
+                'background' => __('blox_page_hero_background'),
+                'backgroundHint' => __('blox_page_hero_background_hint'),
+                'source' => __('blox_page_hero_source'),
+                'sourceCustom' => __('blox_page_hero_source_custom'),
+                'sourceCover' => __('blox_page_hero_source_cover'),
+                'sourceGlobal' => __('blox_page_hero_source_global'),
+                'sourceBuiltin' => __('blox_page_hero_source_builtin'),
+                'saved' => __('blox_page_hero_saved'),
+                'saveFailed' => __('blox_page_hero_save_failed'),
+                'save' => __('save'),
+                'saving' => __('blox_saving'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             publishedDocument: <?php echo $publishedDocumentJson; ?>,
             draftSummaryOpen: false,
             _draftSummaryKey: "",
@@ -5956,6 +6001,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     },
                     onAreaMatch: function (match) { self.ctxMatch = match; },
                     onEditArea: function (payload) { window.location.assign(payload.url); },
+                    onEditPageHero: function () { self.openPageHeroSettings(); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
                         if (action === "templates") {
@@ -5977,6 +6023,73 @@ $canManageBloxDesign = hasPermission('blox_global');
                     },
                 });
                 return this._canvasBridge;
+            },
+
+            pageHeroSource() {
+                if (String(this.pageHero.hero_bg || "").trim()) return "custom";
+                return ["cover", "global", "builtin"].includes(this.pageHero.fallback_source)
+                    ? this.pageHero.fallback_source
+                    : "builtin";
+            },
+
+            pageHeroSourceLabel() {
+                var key = this.pageHeroSource();
+                if (key === "custom") return this.pageHeroText.sourceCustom;
+                if (key === "cover") return this.pageHeroText.sourceCover;
+                if (key === "global") return this.pageHeroText.sourceGlobal;
+                return this.pageHeroText.sourceBuiltin;
+            },
+
+            openPageHeroSettings() {
+                if (!this.pageHero.available) return;
+                this.pageHeroOpen = true;
+                this.focusDialog(this.$refs.pageHeroDialog, "[data-dialog-initial]");
+            },
+
+            closePageHeroSettings() {
+                if (!this.pageHeroOpen || this.pageHeroSaving) return;
+                var root = this.$refs.pageHeroDialog;
+                this.pageHeroOpen = false;
+                this.releaseDialog(root);
+            },
+
+            pickPageHeroBackground() {
+                var self = this;
+                this.openMedia(function (url) { self.pageHero.hero_bg = url; });
+            },
+
+            savePageHeroSettings() {
+                if (!this.pageHero.available || this.pageHeroSaving) return;
+                var self = this;
+                var body = new URLSearchParams();
+                body.set("action", "save_page_hero");
+                body.set("id", String(this.pageHero.id || 0));
+                body.set("hero_bg", String(this.pageHero.hero_bg || "").trim());
+                body.set("show_hero", this.pageHero.show_hero ? "1" : "0");
+                body.set("_token", this.csrf);
+                this.pageHeroSaving = true;
+                fetch(this.endpoint, { method: "POST", body: body })
+                    .then(function (response) { return response.json().catch(function () { return { success: false }; }); })
+                    .then(function (result) {
+                        var ok = result && result.success !== false
+                            && (typeof result.code === "undefined" || Number(result.code) === 0);
+                        if (!ok) {
+                            self.toast((result && (result.message || result.msg)) || self.pageHeroText.saveFailed);
+                            return;
+                        }
+                        if (result.data) {
+                            self.pageHero.hero_bg = String(result.data.hero_bg || "");
+                            self.pageHero.show_hero = !!result.data.show_hero;
+                            self.pageHero.source = String(result.data.source || self.pageHeroSource());
+                            if (self.pageHero.source !== "custom") self.pageHero.fallback_source = self.pageHero.source;
+                        }
+                        self.pageHeroOpen = false;
+                        self.releaseDialog(self.$refs.pageHeroDialog);
+                        self.refreshPreview();
+                        self.toast(self.pageHeroText.saved);
+                    })
+                    .catch(function () { self.toast(self.pageHeroText.saveFailed); })
+                    .finally(function () { self.pageHeroSaving = false; });
             },
 
             openElementLibraryAt(payload) {

@@ -167,6 +167,76 @@ declare(strict_types=1);
         </aside>
     </div>
 
+    <!-- 页面标题区：系统区域不进入正文文档，单独保存现有 hero_bg/show_hero 字段。 -->
+    <div x-show="pageHeroOpen" x-cloak x-ref="pageHeroDialog" tabindex="-1"
+         data-testid="blox-page-hero-dialog"
+         @keydown="dialogKeydown($event, $refs.pageHeroDialog, () => closePageHeroSettings())"
+         role="dialog" aria-modal="true" aria-labelledby="blox-page-hero-dialog-title"
+         class="fixed inset-0 z-[145] flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-black/50" @click="closePageHeroSettings()"></div>
+        <div class="relative w-[620px] max-w-full overflow-hidden rounded-lg bg-white shadow-2xl">
+            <header class="flex min-h-14 items-center gap-3 border-b border-gray-100 px-4 py-3">
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-900 text-white">
+                    <i class="ti ti-layout-navbar-collapse text-lg"></i>
+                </span>
+                <span class="min-w-0 flex-1">
+                    <strong id="blox-page-hero-dialog-title" class="block text-sm font-semibold text-gray-900" x-text="pageHeroText.title"></strong>
+                    <span class="mt-0.5 block text-xs leading-5 text-gray-500" x-text="pageHeroText.description"></span>
+                </span>
+                <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"
+                        class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
+                        :aria-label="templateText.close" :title="templateText.close">
+                    <i class="ti ti-x"></i>
+                </button>
+            </header>
+            <div class="space-y-5 p-4 sm:p-5">
+                <label class="flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                    <span>
+                        <strong class="block text-sm font-medium text-gray-800" x-text="pageHeroText.visible"></strong>
+                        <span class="mt-1 block text-xs text-gray-500" x-text="pageHero.name"></span>
+                    </span>
+                    <input type="checkbox" x-model="pageHero.show_hero" data-dialog-initial
+                           class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </label>
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <label class="text-sm font-medium text-gray-800" for="blox-page-hero-bg" x-text="pageHeroText.background"></label>
+                        <span class="text-xs text-gray-500">
+                            <span x-text="pageHeroText.source"></span>: <strong class="font-medium text-gray-700" x-text="pageHeroSourceLabel()"></strong>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <template x-if="pageHero.hero_bg || pageHero.image">
+                            <img :src="pageHero.hero_bg || pageHero.image" class="h-11 w-16 shrink-0 border border-gray-200 object-cover" alt="">
+                        </template>
+                        <input id="blox-page-hero-bg" type="text" x-model="pageHero.hero_bg"
+                               placeholder="/uploads/images/page-hero.jpg"
+                               class="min-w-0 flex-1 border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <button type="button" @click="pickPageHeroBackground()"
+                                class="h-10 shrink-0 border border-gray-300 px-3 text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700 inline-flex items-center gap-1.5">
+                            <i class="ti ti-photo"></i><?= e(__('admin_media')) ?>
+                        </button>
+                        <button type="button" @click="pageHero.hero_bg = ''" :disabled="!pageHero.hero_bg"
+                                class="inline-flex h-10 w-10 shrink-0 items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                                :title="designText.clear" :aria-label="designText.clear">
+                            <i class="ti ti-eraser"></i>
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroText.backgroundHint"></p>
+                </div>
+            </div>
+            <footer class="flex min-h-14 items-center justify-end gap-2 border-t border-gray-100 px-4 py-3">
+                <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"
+                        class="h-9 border border-gray-300 px-4 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40"><?= e(__('cancel')) ?></button>
+                <button type="button" @click="savePageHeroSettings()" :disabled="pageHeroSaving"
+                        class="h-9 bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-wait disabled:opacity-60 inline-flex items-center gap-2">
+                    <i class="ti" :class="pageHeroSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'"></i>
+                    <span x-text="pageHeroSaving ? pageHeroText.saving : pageHeroText.save"></span>
+                </button>
+            </footer>
+        </div>
+    </div>
+
     <!-- 富文本编辑弹窗（系统 TinyMCE；不做点遮罩关闭——误点会丢内容） -->
     <div x-show="rteOpen" x-cloak x-ref="rteDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.rteDialog, () => closeRte())"
