@@ -98,7 +98,11 @@ final class PageHeroCustomizationTest extends TestCase
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
 
         $this->assertStringContainsString('data-yk-page-hero', $canvas);
-        $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $canvas);
+        $this->assertStringContainsString("(string) (\$pageRow['slug'] ?? '') === 'contact'", $canvas);
+        $this->assertStringContainsString("channelModel()->find((int) \$pageRow['translation_group_id'])", $canvas);
+        $this->assertStringContainsString('PageHeroStyleResolver::resolve($pageRow, $isContactPage)', $canvas);
+        $this->assertStringContainsString("\$isContactPage ? 'partials/contact-hero.php' : 'partials/page-hero.php'", $canvas);
+        $this->assertStringContainsString('require theme_path($heroPartial);', $canvas);
         $this->assertStringContainsString('ykEditPageHero: true', $canvas);
         $this->assertStringContainsString('data-testid="blox-page-hero-dialog"', $editor);
         $this->assertStringContainsString('body.set("action", "save_page_hero")', $editor);
