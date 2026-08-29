@@ -391,23 +391,22 @@ if ($isHomeBlox) {
     $saveEndpoint = '/admin/blox_page_api.php?id=' . $id;
     $previewEndpoint = $saveEndpoint;
     $documentIdentity = ($isContentListBlox ? 'content-list:' : ($isProductBlox ? 'product:' : 'page:')) . $id;
-    $pageHeroResolved = PageHeroStyleResolver::resolve($page, $isContactBlox);
+    $pageHeroResolved = PageHeroStyleResolver::resolve($page);
     $pageHeroParentPreview = PageHeroStyleResolver::resolve(array_merge($page, [
         'hero_style_source' => PageHeroStyleResolver::MODE_PARENT,
-    ]), $isContactBlox);
+    ]));
     $pageHeroGlobalPreview = PageHeroStyleResolver::resolve(array_merge($page, [
         'hero_style_source' => PageHeroStyleResolver::MODE_GLOBAL,
-    ]), $isContactBlox);
+    ]));
     $pageHero = [
         'available' => true,
-        'compact' => $isContactBlox,
         'id' => (int) $page['id'],
         'name' => (string) ($page['name'] ?? ''),
         'description' => (string) ($page['description'] ?? ''),
         'hero_bg' => (string) ($page['hero_bg'] ?? ''),
         'image' => (string) ($page['image'] ?? ''),
         'show_hero' => (int) ($page['show_hero'] ?? 1) === 1,
-        'style_options' => PageHeroStyleResolver::normalizeOptions($page['hero_style_options'] ?? '', $isContactBlox),
+        'style_options' => PageHeroStyleResolver::normalizeOptions($page['hero_style_options'] ?? ''),
         'resolved_options' => $pageHeroResolved['options'],
         'style_source' => $pageHeroResolved['mode'],
         'source' => $pageHeroResolved['source'],
@@ -6193,7 +6192,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     var blue = parseInt(color.slice(5, 7), 16);
                     return ((red * 299 + green * 587 + blue * 114) / 1000) > 150 ? "dark" : "light";
                 }
-                return this.pageHero.compact ? "dark" : "light";
+                return "light";
             },
 
             applyPageHeroPreset(name) {

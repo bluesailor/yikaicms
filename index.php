@@ -187,6 +187,9 @@ $ykHomeHeaderOverlay = is_array($homeBloxDocument)
     )
     : (is_array($homeBannerGroup)
         && HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner($blocksConfig, $homeBannerGroup));
+$ykHomeHeaderOverlayMobile = $ykHomeHeaderOverlay
+    && (!is_array($homeBloxDocument)
+        || HomeBloxRenderer::startsWithMobileVisibleBanner($homeBloxDocument['sections']));
 
 // Swiper轮播图资源
 // banner 高度：全屏模式用 100svh-头部(JS 量)，否则用配置的像素高度
@@ -207,8 +210,11 @@ $extraCss = '
 .banner-swiper .swiper-slide-active .pointer-events-auto { pointer-events: auto !important; }
 </style>';
 if ($ykHomeHeaderOverlay) {
+    $headerOverlayScript = $ykHomeHeaderOverlayMobile
+        ? 'document.documentElement.classList.add("yk-home-header-overlay");'
+        : '(function(){var q=window.matchMedia("(min-width: 768px)");function s(){document.documentElement.classList.toggle("yk-home-header-overlay",q.matches);}if(q.addEventListener){q.addEventListener("change",s);}else if(q.addListener){q.addListener(s);}s();})();';
     $extraCss .= '
-<script>document.documentElement.classList.add("yk-home-header-overlay");</script>
+<script>' . $headerOverlayScript . '</script>
 <style>
 html.yk-home-header-overlay body > [data-yk-topbar] {
     position: absolute !important;

@@ -45,6 +45,15 @@ final class HomeBloxRenderer
         return is_array($data) && ($data['block_type'] ?? '') === 'banner';
     }
 
+    /** @param array<int, array<string, mixed>> $sections */
+    public static function startsWithMobileVisibleBanner(array $sections): bool
+    {
+        $data = self::firstVisibleHomeBlockData($sections);
+        return is_array($data)
+            && ($data['block_type'] ?? '') === 'banner'
+            && ($data['banner_mobile_mode'] ?? 'inherit') !== 'hidden';
+    }
+
     /**
      * Header 只能覆盖文档的第一个可见元素，避免透明导航压在普通内容上。
      *

@@ -17,6 +17,7 @@ trait HomeBloxRuntimeTrait
         $contentMotion = (string) ($data['banner_content_motion'] ?? 'none');
         $backgroundMotion = (string) ($data['banner_background_motion'] ?? 'none');
         $heightMode = (string) ($data['banner_height_mode'] ?? 'inherit');
+        $mobileMode = (string) ($data['banner_mobile_mode'] ?? 'inherit');
         $autoplay = (int) ($data['banner_autoplay'] ?? 5);
 
         return [
@@ -25,6 +26,9 @@ trait HomeBloxRuntimeTrait
                 : 'inherit',
             'banner_height_pc' => max(200, min(1600, (int) ($data['banner_height_pc'] ?? 650))),
             'banner_height_mobile' => max(180, min(1200, (int) ($data['banner_height_mobile'] ?? 300))),
+            'banner_mobile_mode' => in_array($mobileMode, ['inherit', 'fixed', 'hidden'], true)
+                ? $mobileMode
+                : 'inherit',
             'banner_effect' => in_array($effect, ['fade', 'slide'], true) ? $effect : 'fade',
             'banner_content_motion' => in_array(
                 $contentMotion,
@@ -61,6 +65,7 @@ trait HomeBloxRuntimeTrait
             'banner_height_mode' => $heightMode,
             'banner_height_pc' => $group['height_pc'] ?? 500,
             'banner_height_mobile' => $group['height_mobile'] ?? 250,
+            'banner_mobile_mode' => 'inherit',
             'banner_effect' => $group['effect'] ?? 'fade',
             'banner_content_motion' => $group['content_motion'] ?? 'none',
             'banner_background_motion' => $group['background_motion'] ?? 'none',
@@ -82,6 +87,7 @@ trait HomeBloxRuntimeTrait
         $attributes = [
             'data-blox-banner' => '',
             'data-blox-height-mode' => (string) $config['banner_height_mode'],
+            'data-blox-mobile-mode' => (string) $config['banner_mobile_mode'],
             'data-blox-effect' => (string) $config['banner_effect'],
             'data-blox-autoplay' => (string) $config['banner_autoplay'],
             'data-blox-speed' => (string) $config['banner_speed'],

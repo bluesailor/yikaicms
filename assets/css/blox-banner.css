@@ -7,6 +7,17 @@
     --blox-banner-offset: 70px;
 }
 
+@media (max-width: 767px) {
+    [data-blox-banner][data-blox-mobile-mode="hidden"] {
+        display: none;
+    }
+
+    [data-blox-banner][data-blox-mobile-mode="fixed"] {
+        height: var(--blox-banner-height-mobile);
+        min-height: 0;
+    }
+}
+
 [data-blox-banner][data-blox-height-mode="fixed"] {
     height: var(--blox-banner-height-mobile);
     min-height: 0;

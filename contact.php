@@ -74,7 +74,7 @@ $breadcrumbItems = [['name' => __('contact_title'), 'url' => '']];
 if (!$channel) {
     $channel = ['name' => __('contact_title'), 'description' => __('contact_subtitle'), 'image' => ''];
 }
-require theme_path('partials/contact-hero.php');
+require theme_path('partials/page-hero.php');
 ?>
 
 <?php // 排过版：整页交给区块（联系卡片/表单/地图作为元素自由摆放、可加任意其它内容）；

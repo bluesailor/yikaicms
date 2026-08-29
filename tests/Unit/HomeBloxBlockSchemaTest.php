@@ -191,9 +191,16 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('layout-navbar-expand', $controls['banner_height_mode']['option_icons']['cover-header']);
         $this->assertSame(1600, $controls['banner_height_pc']['max']);
         $this->assertSame(1200, $controls['banner_height_mobile']['max']);
+        $this->assertSame('select', $controls['banner_mobile_mode']['type']);
+        $this->assertSame('inherit', $controls['banner_mobile_mode']['default']);
+        $this->assertSame('eye-off', $controls['banner_mobile_mode']['option_icons']['hidden']);
         $this->assertSame(
             ['terms' => [['banner_height_mode', '=', 'fixed']]],
             $controls['banner_height_pc']['visible_when']
+        );
+        $this->assertSame(
+            ['terms' => [['banner_mobile_mode', '=', 'fixed']]],
+            $controls['banner_height_mobile']['visible_when']
         );
     }
 
@@ -268,6 +275,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
             'banner_height_mode' => 'unsafe-mode',
             'banner_height_pc' => 9999,
             'banner_height_mobile' => -5,
+            'banner_mobile_mode' => 'hidden',
             'banner_effect' => 'cube',
             'banner_content_motion' => 'javascript:alert(1)',
             'banner_background_motion' => 'zoom-out',
@@ -282,9 +290,16 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('inherit', $normalized['banner_height_mode']);
         $this->assertSame(1600, $normalized['banner_height_pc']);
         $this->assertSame(180, $normalized['banner_height_mobile']);
+        $this->assertSame('hidden', $normalized['banner_mobile_mode']);
         $this->assertSame('fade', $normalized['banner_effect']);
         $this->assertSame('none', $normalized['banner_content_motion']);
         $this->assertSame('zoom-out', $normalized['banner_background_motion']);
+
+        $invalidMobileMode = HomeBloxBlockSchema::normalize([
+            'block_type' => 'banner',
+            'banner_mobile_mode' => 'unsafe-mode',
+        ]);
+        $this->assertSame('inherit', $invalidMobileMode['banner_mobile_mode']);
 
         $impactMotion = HomeBloxBlockSchema::normalize([
             'block_type' => 'banner',
@@ -312,6 +327,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('inherit', $legacy['banner_height_mode']);
         $this->assertSame(650, $legacy['banner_height_pc']);
         $this->assertSame(300, $legacy['banner_height_mobile']);
+        $this->assertSame('inherit', $legacy['banner_mobile_mode']);
         $this->assertSame('fade', $legacy['banner_effect']);
         $this->assertSame(5, $legacy['banner_autoplay']);
         $this->assertSame(700, $legacy['banner_speed']);
@@ -323,6 +339,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertStringContainsString(' data-blox-banner', $attributes);
         $this->assertStringContainsString('data-blox-effect="fade"', $attributes);
         $this->assertStringContainsString('data-blox-height-mode="inherit"', $attributes);
+        $this->assertStringContainsString('data-blox-mobile-mode="hidden"', $attributes);
         $this->assertStringContainsString('data-blox-navigation="0"', $attributes);
         $this->assertStringContainsString('--blox-banner-speed:2000ms', $attributes);
         $this->assertStringContainsString('--blox-banner-height-pc:1600px', $attributes);
@@ -357,6 +374,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('screen', $runtime['banner_height_mode']);
         $this->assertSame(880, $runtime['banner_height_pc']);
         $this->assertSame(360, $runtime['banner_height_mobile']);
+        $this->assertSame('inherit', $runtime['banner_mobile_mode']);
         $this->assertSame(7, $runtime['banner_autoplay']);
         $this->assertSame('slide', $runtime['banner_effect']);
         $this->assertSame(900, $runtime['banner_speed']);

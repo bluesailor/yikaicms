@@ -149,11 +149,6 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 
         $pageHeroBody = '';
         if (!$isHomeLayout && is_array($pageRow)) {
-            $isContactPage = (string) ($pageRow['slug'] ?? '') === 'contact';
-            if (!$isContactPage && !empty($pageRow['translation_group_id'])) {
-                $sourcePage = channelModel()->find((int) $pageRow['translation_group_id']);
-                $isContactPage = (string) ($sourcePage['slug'] ?? '') === 'contact';
-            }
             $breadcrumbItems = [];
             foreach (getBreadcrumb($id) as $breadcrumbRow) {
                 $breadcrumbChannel = getChannel((int) ($breadcrumbRow['id'] ?? 0)) ?: $breadcrumbRow;
@@ -162,7 +157,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                     'url' => channelUrl($breadcrumbChannel),
                 ];
             }
-            $heroStyle = PageHeroStyleResolver::resolve($pageRow, $isContactPage);
+            $heroStyle = PageHeroStyleResolver::resolve($pageRow);
             $heroSource = match ($heroStyle['source']) {
                 'custom' => __('blox_page_hero_source_custom'),
                 'cover' => __('blox_page_hero_source_cover'),
@@ -177,13 +172,12 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             } elseif ($heroStyle['mode'] === PageHeroStyleResolver::MODE_GLOBAL) {
                 $heroSource = __('blox_page_hero_mode_global') . ' / ' . $heroSource;
             }
-            $heroPartial = $isContactPage ? 'partials/contact-hero.php' : 'partials/page-hero.php';
             /**
              * @psalm-suppress UnusedClosureParam 主题局部模板从 require 作用域读取两个参数
              */
-            $renderPageHero = static function (array $channel, array $breadcrumbItems) use ($heroPartial): string {
+            $renderPageHero = static function (array $channel, array $breadcrumbItems): string {
                 ob_start();
-                require theme_path($heroPartial);
+                require theme_path('partials/page-hero.php');
                 return (string) ob_get_clean();
             };
             $pageHeroHtml = $renderPageHero($pageRow, $breadcrumbItems);
