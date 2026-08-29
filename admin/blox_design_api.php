@@ -25,6 +25,25 @@ verifyCsrf();
 
 try {
     $action = trim((string) post('action', ''));
+    if (in_array($action, ['page_hero_save_draft', 'page_hero_publish'], true)) {
+        $backgroundInput = trim((string) post('background', ''));
+        $background = $backgroundInput === '' ? '' : UrlPolicy::image($backgroundInput);
+        if ($backgroundInput !== '' && $background === '') {
+            error(__('blox_page_hero_invalid_image'));
+        }
+        $optionsInput = trim((string) post('options', ''));
+        $options = $optionsInput === '' ? [] : json_decode($optionsInput, true);
+        if (!is_array($options)) {
+            error(__('blox_page_hero_invalid_options'));
+        }
+        $revision = (int) post('revision', '0');
+        $state = ['background' => $background, 'options' => $options];
+        $snapshot = $action === 'page_hero_publish'
+            ? PageHeroDesignDraft::publish($state, $revision)
+            : PageHeroDesignDraft::saveDraft($state, $revision);
+        adminLog('blox_design', $action, 'Blox global page hero ' . $action);
+        success($snapshot);
+    }
     if ($action === 'usage') {
         success(BloxDesignDependencies::usageSnapshot());
     }
