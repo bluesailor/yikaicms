@@ -1875,6 +1875,33 @@ test('real remote template channel @local', async ({ page }, testInfo) => {
   await expect(remote).toBeVisible();
 });
 
+test('verified remote install reaches canvas and one-step undo @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'shared database integration baseline');
+  const root = require('path').resolve(__dirname, '../..');
+  const fixtureScript = require('path').resolve(__dirname, 'remote-template-fixture.php');
+  const installed = JSON.parse(execFileSync('php', [fixtureScript, 'seed'], { cwd: root, encoding: 'utf8' }).trim());
+  try {
+    const fixtures = JSON.parse(require('fs').readFileSync(
+      require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+    await page.goto('/admin/blox_editor.php?id=' + fixtures.blox_page, { waitUntil: 'domcontentloaded' });
+    const initialCount = await countSections(page);
+    await page.getByTestId('blox-prebuilt-open').click();
+    await page.getByTestId('blox-template-tab-local').click();
+    await page.getByTestId('blox-template-quick-all').click();
+    const installedCard = page.getByTestId('blox-template-item').filter({ hasText: installed.name });
+    await expect(installedCard).toBeVisible();
+    await installedCard.getByTestId('blox-template-insert').click();
+    await expect(page.getByTestId('blox-template-dialog')).toBeHidden();
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount + 1);
+    await expect((await frame(page)).getByText('Remote journey verified')).toBeVisible();
+    await expect(page.getByTestId('blox-undo')).toBeEnabled();
+    await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount);
+  } finally {
+    execFileSync('php', [fixtureScript, 'cleanup'], { cwd: root });
+  }
+});
+
 // ── 语言档：编辑器 chrome 三语化验收 ──────────────────────────────
 // en：chrome（顶栏+元素库面板）不得含 CJK。ja 无法用「无 CJK」断言——日语汉字
 // 与中文同在 CJK 统一表意区间——改为断言日语标记文案已生效。

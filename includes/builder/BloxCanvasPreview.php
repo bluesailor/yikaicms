@@ -1804,7 +1804,7 @@ HTML;
     $presetInteraction = '';
     if ((string) ($_POST['drawer_open'] ?? '') === '1') {
         $presetInteraction = '<script' . $nonceAttr . '>'
-            . "document.querySelector('[data-yk-drawer-open]')?.click();"
+            . "window.addEventListener('load',function(){document.querySelector('[data-yk-drawer-open]')?.click();},{once:true});"
             . '</script>';
     }
     $body = (string) preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script' . $nonceAttr, $body);
