@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 内页横幅字段（hero_bg/show_hero 列由 20260819 迁移新增；未跑迁移的库跳过，避免保存整体失败）
         try {
             db()->fetchOne("SELECT hero_bg, hero_style_source FROM " . DB_PREFIX . "channels LIMIT 1");
-            $data['hero_bg'] = post('hero_bg');
+            $data['hero_bg'] = UrlPolicy::image(post('hero_bg'));
             $data['show_hero'] = isset($_POST['show_hero']) ? 1 : 0;
             $data['hero_style_source'] = PageHeroStyleResolver::normalizeMode(post('hero_style_source', 'self'));
         } catch (\Throwable $e) {

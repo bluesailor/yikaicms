@@ -13,7 +13,8 @@ if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
     return;
 }
 $heroStyle = PageHeroStyleResolver::resolve($channel);
-$heroBg = $heroStyle['background'];
+$heroBg = UrlPolicy::image($heroStyle['background']);
+$heroBgCss = UrlPolicy::cssImageLiteral($heroBg);
 $heroOptions = $heroStyle['options'];
 $heroBgColor = $heroOptions['background_color'];
 $heroHeightClass = PageHeroStyleResolver::heightClasses($heroOptions);
@@ -23,7 +24,7 @@ $heroSectionClasses = ['relative', 'overflow-hidden', $heroHeightClass];
 $heroStyles = [];
 if ($heroBg !== '') {
     $heroSectionClasses[] = 'bg-cover';
-    $heroStyles[] = "background-image: url('" . $heroBg . "')";
+    $heroStyles[] = 'background-image: ' . $heroBgCss;
     $heroStyles[] = 'background-position: ' . PageHeroStyleResolver::backgroundPosition($heroOptions);
 }
 if ($heroBgColor !== '') {

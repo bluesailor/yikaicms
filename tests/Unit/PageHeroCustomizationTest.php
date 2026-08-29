@@ -58,6 +58,7 @@ final class PageHeroCustomizationTest extends TestCase
             $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($heroOptions)', $hero, $path . ' 缺响应式高度');
             $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($heroOptions)', $hero, $path . ' 缺背景焦点');
             $this->assertStringContainsString('PageHeroStyleResolver::textTone($heroOptions, $heroBg)', $hero, $path . ' 缺自动文字色');
+            $this->assertStringContainsString('UrlPolicy::cssImageLiteral($heroBg)', $hero, $path . ' 未按 CSS 上下文编码背景图');
         }
     }
 
@@ -69,6 +70,7 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($contactHeroOptions, true)', $contact);
         $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($contactHeroOptions)', $contact);
         $this->assertStringContainsString('PageHeroStyleResolver::textTone($contactHeroOptions, $contactHeroBg, true)', $contact);
+        $this->assertStringContainsString('UrlPolicy::cssImageLiteral($contactHeroBg)', $contact);
         // 默认 self 仍保持紧凑白底；显式 parent/global 由统一解析器处理。
         $this->assertStringContainsString('bg-white border-y border-gray-100', $contact);
     }
@@ -78,7 +80,7 @@ final class PageHeroCustomizationTest extends TestCase
         foreach (['admin/page_edit.php', 'admin/channel.php'] as $path) {
             $admin = $this->source($path);
             $this->assertStringContainsString("SELECT hero_bg, hero_style_source FROM", $admin, $path . ' 缺列存在性守卫');
-            $this->assertStringContainsString("post('hero_bg')", $admin, $path . ' 未保存 hero_bg');
+            $this->assertStringContainsString("UrlPolicy::image(post('hero_bg'))", $admin, $path . ' 未校验 hero_bg');
             $this->assertStringContainsString("isset(\$_POST['show_hero']) ? 1 : 0", $admin, $path . ' 未保存 show_hero');
             $this->assertStringContainsString("post('hero_style_source', 'self')", $admin, $path . ' 未保存 hero_style_source');
             $this->assertStringContainsString('name="hero_bg"', $admin, $path . ' 表单缺 hero_bg 输入');

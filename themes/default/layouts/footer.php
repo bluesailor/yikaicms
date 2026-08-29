@@ -110,8 +110,9 @@ function renderFooterContent(string $content): string {
 }
 
 $footerBgStyle = 'background-color: ' . e($footerBgColor) . ';';
-if ($footerBgImage) {
-    $footerBgStyle .= ' background-image: url(' . e($footerBgImage) . '); background-size: cover; background-position: center;';
+$footerBgLiteral = UrlPolicy::cssImageLiteral($footerBgImage);
+if ($footerBgLiteral !== '') {
+    $footerBgStyle .= ' background-image: ' . e($footerBgLiteral) . '; background-size: cover; background-position: center;';
 }
 ?>
 

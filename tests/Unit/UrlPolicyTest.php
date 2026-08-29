@@ -61,6 +61,20 @@ final class UrlPolicyTest extends TestCase
         $this->assertSame('', UrlPolicy::image('a.png'));   // 裸相对名（无 / 前缀）历来拒绝
     }
 
+    public function testCssImageLiteralCannotEscapeUrlContext(): void
+    {
+        $payload = "/a.jpg'); position:fixed; inset:0; background-image:url('https://evil.example/x.png";
+        $literal = UrlPolicy::cssImageLiteral($payload);
+
+        $this->assertSame(
+            'url("/a.jpg%27); position:fixed; inset:0; background-image:url(%27https://evil.example/x.png")',
+            $literal
+        );
+        $this->assertStringNotContainsString("url('/a.jpg')", $literal);
+        $this->assertSame('url("/uploads/a%22b%5Cc.jpg")', UrlPolicy::cssImageLiteral('/uploads/a"b\\c.jpg'));
+        $this->assertSame('', UrlPolicy::cssImageLiteral('javascript:alert(1)'));
+    }
+
     public function testStoredImageCompatibilityIsNarrowAndRasterOnly(): void
     {
         $data = 'data:image/png;base64,iVBORw0KGgo=';

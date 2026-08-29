@@ -1558,7 +1558,12 @@ function getBlockBg(array $block, string $defaultClass = ''): array
     );
 
     if ($bgImage) {
-        $style = "background:url('" . e($bgImage) . "') center/cover no-repeat;";
+        $bgImageLiteral = UrlPolicy::cssImageLiteral($bgImage);
+        if ($bgImageLiteral !== '') {
+            $style = 'background:' . e($bgImageLiteral) . ' center/cover no-repeat;';
+        } else {
+            $bgImage = '';
+        }
     }
 
     if ($hasExplicitOverlay) {
