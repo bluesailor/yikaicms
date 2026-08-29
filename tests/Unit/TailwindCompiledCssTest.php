@@ -73,6 +73,16 @@ final class TailwindCompiledCssTest extends TestCase
         self::assertStringContainsString('@container blox-template-panel (max-width:27.5rem)', $css);
     }
 
+    public function testBloxPropertyPanelContainerQueriesAreCompiled(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+        self::assertStringContainsString('container:blox-property-panel/inline-size', $css);
+        self::assertStringContainsString('.blox-property-pair-grid{', $css);
+        self::assertStringContainsString('.blox-property-span-full{', $css);
+        self::assertStringContainsString('@container blox-property-panel (min-width:24rem)', $css);
+    }
+
     public function testBuildContractUsesCanonicalInputAndPinnedVersion(): void
     {
         self::assertFileDoesNotExist(ROOT_PATH . '/assets/css/input.css');

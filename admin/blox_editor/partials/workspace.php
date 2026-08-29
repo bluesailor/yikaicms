@@ -8,7 +8,7 @@ declare(strict_types=1);
         <?php // 左栏：元素库 ↔ 设置在同一容器切换。选中区块/元素自动进设置，
               // 「＋ 元素」把 libOpen 置真强制回元素库；结构树移右栏常驻。 ?>
         <aside data-testid="blox-left-panel"
-               class="blox-mobile-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
+               class="blox-mobile-panel blox-property-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
                :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''"
                :style="leftPanelStyle()">
 
@@ -176,7 +176,7 @@ declare(strict_types=1);
                     </button>
                 </div>
 
-                <div class="flex-1 overflow-y-auto blox-scroll p-4">
+                <div class="flex-1 overflow-y-auto blox-scroll p-4" data-testid="blox-property-scroll">
                     <template x-if="panelTab === 'content' && isNavigationElementSelected()">
                         <div class="mb-4 space-y-3 border-b border-gray-100 pb-4" data-testid="blox-navigation-quick-settings">
                             <div>
@@ -1464,8 +1464,10 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <div class="blox-property-pair-grid" data-testid="blox-element-property-grid">
                             <template x-for="ctrl in visibleCtrls()" :key="ctrl.key">
-                                <div :data-control-key="ctrl.key">
+                                <div :data-control-key="ctrl.key"
+                                     :class="ctrl.responsive || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
                                     <template x-if="ctrl.type !== 'checkbox'">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-xs font-medium text-gray-600" x-text="ctrl.label"></label>
@@ -1916,6 +1918,7 @@ declare(strict_types=1);
                                     </template>
                                 </div>
                             </template>
+                            </div>
                         </div>
                     </template>
 
@@ -2059,9 +2062,9 @@ declare(strict_types=1);
                             <div x-show="panelTab === 'style'" class="space-y-5">
                                 <?php // 分层随结构树选中：树里选「区块」→ 全宽背景层设置，
                                       // 选「容器」节点 → 内容层设置。一次只显示当前层。 ?>
-                                <div x-show="selLayer === 'sec'" class="space-y-5">
+                                <div x-show="selLayer === 'sec'" class="blox-property-pair-grid" data-testid="blox-section-property-grid">
                                 <!-- 背景色 -->
-                                <div>
+                                <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
                                     <button type="button"
                                             @click="openEditorColorPicker($event, 'section-bg', <?= e($jt('blox_bg_color')) ?>, sel.settings.bg_color, '#ffffff', true, value => sel.settings.bg_color = value)"
@@ -2072,7 +2075,7 @@ declare(strict_types=1);
                                     </button>
                                 </div>
                                 <!-- 渐变背景：无/预置色板/自定义双色。叠在背景色/背景图之上 -->
-                                <div>
+                                <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_gradient_bg') ?></label>
                                     <div class="grid grid-cols-5 gap-1.5">
                                         <?php // 显式「无」清除项：比「再点一次取消」可发现得多 ?>
@@ -2110,7 +2113,7 @@ declare(strict_types=1);
                                        x-text="<?= e($jt('blox_current_gradient')) ?>.replace(':g', (gradientPresets.find(g => g.css === sel.settings.bg_gradient) || {}).label || <?= e($jt('blox_custom_gradient')) ?>)"></p>
                                 </div>
                                 <!-- 背景图 + 独立遮罩 + 焦点 -->
-                                <div>
+                                <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
                                     <div class="flex items-center gap-2">
                                         <template x-if="sel.settings.bg_image">
@@ -2234,7 +2237,7 @@ declare(strict_types=1);
                                         <span x-text="responsiveStatusText(sectionResponsiveState('padding', 'md'))"></span>
                                     </p>
                                 </div>
-                                <div>
+                                <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                     <div class="flex gap-1">
                                         <template x-for="dev in [{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'secvis'+dev.k">
@@ -2249,8 +2252,8 @@ declare(strict_types=1);
 
                                 </div>
 
-                                <div x-show="selLayer === 'col'" class="space-y-5">
-                                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                <div x-show="selLayer === 'col'" class="blox-property-pair-grid" data-testid="blox-column-property-grid">
+                                    <div class="blox-property-span-full rounded-lg border border-gray-200 bg-gray-50 p-3">
                                         <div class="flex items-center justify-between mb-2">
                                             <span class="text-xs font-medium text-gray-600 inline-flex items-center gap-1">
                                                 <i class="ti ti-columns-1 text-sm text-green-500"></i><?= __('blox_col_settings') ?>
@@ -2261,7 +2264,7 @@ declare(strict_types=1);
                                             <span class="rounded bg-green-400" :style="'grid-column: span ' + columnSpan(selectedCol()) + ' / span ' + columnSpan(selectedCol())"></span>
                                         </div>
                                     </div>
-                                    <div>
+                                    <div class="blox-property-span-full">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_ratio') ?></label>
                                         <div class="grid grid-cols-4 gap-1">
                                             <template x-for="n in [2,3,4,6,8,9,10,12]" :key="'span'+n">
@@ -2272,7 +2275,7 @@ declare(strict_types=1);
                                             </template>
                                         </div>
                                     </div>
-                                    <div>
+                                    <div class="blox-property-span-full">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_bg') ?></label>
                                         <button type="button"
                                                 @click="openEditorColorPicker($event, 'column-bg', <?= e($jt('blox_col_bg')) ?>, selectedColData().card_bg, '#ffffff', true, value => selectedColData().card_bg = value)"
@@ -2339,7 +2342,7 @@ declare(strict_types=1);
                                             <template x-for="n in 12" :key="'tspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
                                         </select>
                                     </div>
-                                    <div>
+                                    <div :class="sel.columns.length > 1 && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                         <div class="flex gap-1">
                                             <template x-for="dev in [{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'colvis'+dev.k">
@@ -2352,8 +2355,8 @@ declare(strict_types=1);
                                         <p class="text-[10px] text-gray-400 mt-1"><?= __('blox_visible_hint') ?></p>
                                     </div>
                                 </div>
-                                <div x-show="selLayer === 'con'" class="space-y-5">
-                                <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                <div x-show="selLayer === 'con'" class="blox-property-pair-grid" data-testid="blox-container-property-grid">
+                                <div class="blox-property-span-full rounded-lg border border-gray-200 bg-gray-50 p-3">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-xs font-medium text-gray-600 inline-flex items-center gap-1">
                                             <i class="ti ti-layout-columns text-sm text-blue-500"></i><?= __('blox_layout_section_label') ?>
@@ -2479,7 +2482,7 @@ declare(strict_types=1);
                                     </div>
                                 </div>
                                 <!-- 容器背景：与区块背景分层，常用「区块深色 + 容器白底圆角」 -->
-                                <div>
+                                <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
                                     <button type="button"
                                             @click="openEditorColorPicker($event, 'container-bg', <?= e($jt('blox_container_bg')) ?>, sel.settings.container_bg, '#ffffff', true, value => sel.settings.container_bg = value)"
@@ -2536,7 +2539,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-3">
+                                <div class="blox-property-span-full grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_padding') ?></label>
                                         <div class="grid grid-cols-4 gap-1">
@@ -2561,7 +2564,7 @@ declare(strict_types=1);
                                     </div>
                                 </div>
                                 <!-- 列间距 -->
-                                <div>
+                                <div class="blox-property-span-full">
                                     <div class="flex items-center justify-between gap-2 mb-1.5">
                                         <label class="block text-xs font-medium text-gray-600"><?= __('blox_col_gap') ?></label>
                                         <div class="flex items-center gap-1">
@@ -2603,7 +2606,7 @@ declare(strict_types=1);
                                 </div>
 
                                 <!-- 对齐 -->
-                                <div>
+                                <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_align') ?></label>
                                     <div class="text-[10px] text-gray-400 mb-1"><?= __('blox_v_axis') ?></div>
                                     <div class="grid grid-cols-4 gap-1">
@@ -2627,7 +2630,7 @@ declare(strict_types=1);
                                     </div>
                                 </div>
                                 <!-- 列卡片化：渲染器仅在列数 > 1 时生效 -->
-                                <div x-show="sel.columns.length > 1">
+                                <div x-show="sel.columns.length > 1" class="blox-property-span-full">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" class="rounded border-gray-300"
                                                :checked="!!sel.settings.col_card"
@@ -2825,6 +2828,7 @@ declare(strict_types=1);
                         <div x-show="selectedSi === si" x-collapse>
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"
+                                     data-testid="blox-tree-container"
                                      @contextmenu.prevent.stop="openCtx($event, 'container', {si: si})"
                                      @dragover="treeColumnDragOver($event, si, 0, 'section-container:' + si + '.0')"
                                      @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"

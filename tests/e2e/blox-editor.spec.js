@@ -417,6 +417,70 @@ test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, 
   await expect(resizer).toHaveAttribute('aria-valuenow', '288');
 });
 
+test('property controls respond to panel width without losing field state @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop property-panel baseline');
+  const panel = page.getByTestId('blox-left-panel');
+  const resizer = page.getByTestId('blox-left-panel-resizer');
+  const scroll = page.getByTestId('blox-property-scroll');
+  const columnCount = (locator) => locator.evaluate((element) => (
+    getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
+  ));
+  const expectNoHorizontalOverflow = async () => {
+    await expect.poll(() => scroll.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  };
+
+  await page.getByTestId('blox-tree-section').first().click();
+  await page.getByTestId('blox-style-tab').click();
+  const sectionGrid = page.getByTestId('blox-section-property-grid');
+  await resizer.dblclick();
+  await expect.poll(() => columnCount(sectionGrid)).toBe(1);
+
+  for (let step = 0; step < 7; step += 1) await resizer.press('ArrowRight');
+  await expect(resizer).toHaveAttribute('aria-valuenow', '400');
+  await expect.poll(() => columnCount(sectionGrid)).toBe(2);
+  await expectNoHorizontalOverflow();
+
+  const minHeight = page.getByTestId('blox-section-min-height');
+  await minHeight.focus();
+  const scrollTop = await scroll.evaluate((element) => {
+    element.scrollTop = Math.min(80, element.scrollHeight - element.clientHeight);
+    return element.scrollTop;
+  });
+  await panel.evaluate((element) => { element.style.width = '416px'; });
+  await expect(minHeight).toBeFocused();
+  await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBe(scrollTop);
+  await expect.poll(() => columnCount(sectionGrid)).toBe(2);
+
+  const firstSection = page.getByTestId('blox-tree-section').first();
+  await firstSection.getByTestId('blox-tree-container').click();
+  await expect.poll(() => columnCount(page.getByTestId('blox-container-property-grid'))).toBe(2);
+  await expectNoHorizontalOverflow();
+
+  const firstColumn = firstSection.getByTestId('blox-tree-column').first();
+  await firstColumn.locator(':scope > div').first().click();
+  await expect.poll(() => columnCount(page.getByTestId('blox-column-property-grid'))).toBe(2);
+  await expectNoHorizontalOverflow();
+
+  const sections = page.getByTestId('blox-tree-section');
+  let selectedExistingElement = false;
+  for (let index = 0; index < await sections.count(); index += 1) {
+    const candidateSection = sections.nth(index);
+    await candidateSection.click();
+    const candidate = candidateSection.getByTestId('blox-tree-element').first();
+    if (!await candidate.isVisible().catch(() => false)) continue;
+    await candidate.locator('[data-element-drag-handle]').click();
+    selectedExistingElement = true;
+    break;
+  }
+  expect(selectedExistingElement, 'fixture must expose an existing editable element').toBe(true);
+  await expect.poll(() => columnCount(page.getByTestId('blox-element-property-grid'))).toBe(2);
+  await expectNoHorizontalOverflow();
+
+  await resizer.dblclick();
+  await expect.poll(() => (panel.boundingBox()).then((box) => box.width)).toBe(288);
+  await expect.poll(() => columnCount(page.getByTestId('blox-element-property-grid'))).toBe(1);
+});
+
 test('desktop structure panel resizes and collapses persistently @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-right-panel');

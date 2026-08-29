@@ -73,6 +73,21 @@
     .blox-template-provider { max-width: 9rem; }
 }
 
+/* 属性面板按自身宽度提升信息密度，不依赖浏览器视口。 */
+.blox-property-panel {
+    container-name: blox-property-panel;
+    container-type: inline-size;
+}
+.blox-property-pair-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem 0.75rem;
+}
+.blox-property-span-full { grid-column: 1 / -1; }
+@container blox-property-panel (min-width: 24rem) {
+    .blox-property-pair-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .yk-blox-anchor { scroll-margin-top: 6rem; }
 @media (prefers-reduced-motion: no-preference) {
     html { scroll-behavior: smooth; }
