@@ -113,6 +113,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('rawurlencode($selectedContextLanguage)', $templates);
         $this->assertStringContainsString('rawurlencode($languageCode)', $templates);
         $this->assertStringContainsString('$areaCtxLanguages[$ctxValue] = $ctxLang;', $editor);
+        $this->assertStringContainsString("get('preview_context', '')", $editor);
+        $this->assertStringContainsString('previewContext: <?php echo json_encode($initialPreviewContext', $editor);
         $this->assertStringContainsString('previewContextLanguages:', $editor);
         $this->assertStringContainsString('endpoint.searchParams.set("_lang", previewLanguage);', $editor);
         $this->assertStringContainsString('$previewLanguages = availableLanguages();', $preview);

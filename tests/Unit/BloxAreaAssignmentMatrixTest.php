@@ -9,6 +9,7 @@ use BloxAreaAssignmentMatrix;
 use PHPUnit\Framework\TestCase;
 
 require_once ROOT_PATH . '/includes/builder/BloxAreaResolver.php';
+require_once ROOT_PATH . '/includes/builder/BloxAreaAssignmentManager.php';
 require_once ROOT_PATH . '/includes/builder/BloxAreaAssignmentMatrix.php';
 
 final class BloxAreaAssignmentMatrixTest extends TestCase
@@ -43,6 +44,7 @@ final class BloxAreaAssignmentMatrixTest extends TestCase
         self::assertTrue($rows[0]['areas']['header']['match']['language_specific'] ?? false);
         self::assertSame(20, $rows[0]['areas']['footer']['template']['id'] ?? null);
         self::assertSame(10, $rows[1]['areas']['header']['template']['id'] ?? null);
+        self::assertSame([], $rows[1]['areas']['header']['dedicated']);
         self::assertNull($rows[1]['areas']['footer']['template']);
     }
 
@@ -61,5 +63,24 @@ final class BloxAreaAssignmentMatrixTest extends TestCase
         self::assertNull($rows[0]['areas']['header']['template']);
         self::assertNull($rows[0]['areas']['header']['match']);
         self::assertTrue($rows[0]['areas']['footer']['enabled']);
+    }
+
+    public function testBuildReportsSameScopeDedicatedConflicts(): void
+    {
+        $conditions = '[{"main":"page","ids":[8],"langs":["ja"]}]';
+        $rows = BloxAreaAssignmentMatrix::build([[
+            'key' => 'page:8',
+            'label' => 'Page · About',
+            'context' => ['home' => false, 'channel_id' => 0, 'page_id' => 8, 'lang' => 'ja'],
+        ]], [
+            'header' => [
+                ['id' => 3, 'name' => 'Older', 'conditions' => $conditions],
+                ['id' => 4, 'name' => 'Newer', 'conditions' => $conditions],
+            ],
+            'footer' => [],
+        ], ['header' => true, 'footer' => true]);
+
+        self::assertSame(4, $rows[0]['areas']['header']['template']['id'] ?? null);
+        self::assertSame([3, 4], array_column($rows[0]['areas']['header']['dedicated'], 'id'));
     }
 }
