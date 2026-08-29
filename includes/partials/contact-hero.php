@@ -11,9 +11,9 @@
 if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
     return;
 }
-// 联系页页头默认保持紧凑白底（给表单留首屏空间），仅在显式设置 hero_bg 时切换为
-// 图片横幅——不继承 image/全局默认，避免升级改变存量站的既有观感。
-$contactHeroBg = (string) ($channel['hero_bg'] ?? '');
+// 默认 self 仍只认显式 hero_bg，保持老站白底；只有主动选择 parent/global 才启用共享背景。
+$contactHeroStyle = PageHeroStyleResolver::resolve($channel, true);
+$contactHeroBg = $contactHeroStyle['background'];
 ?>
 <?php echo breadcrumbJsonLd($breadcrumbItems ?? []); ?>
 <?php if ($contactHeroBg !== ''): ?>
