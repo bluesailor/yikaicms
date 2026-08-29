@@ -534,38 +534,58 @@ declare(strict_types=1);
             <div class="absolute inset-0 bg-black/60" @click="closeHeaderPresetPreview()"></div>
             <template x-for="preset in [selectedHeaderPreset()]" :key="preset ? 'preview-' + preset.slug : 'empty-preview'">
                 <div x-show="preset" data-testid="blox-header-preset-preview-panel"
-                     class="relative flex max-h-[calc(100vh-2rem)] w-[760px] max-w-[94vw] flex-col overflow-hidden rounded-lg bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
+                     class="relative flex max-h-[calc(100vh-2rem)] w-[1360px] max-w-[96vw] flex-col overflow-hidden rounded-lg bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
                     <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
                         <span class="min-w-0">
                             <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="preset && preset.name"></span>
-                            <span class="mt-0.5 block text-xs text-gray-400" x-text="headerPresetText.previewTitle"></span>
+                            <span class="mt-0.5 block text-xs text-gray-500" x-text="headerPresetText.previewDataHint"></span>
                         </span>
-                        <button type="button" @click="closeHeaderPresetPreview()" data-dialog-initial data-testid="blox-header-preset-preview-close"
-                                class="ml-4 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                                :title="headerPresetText.close" :aria-label="headerPresetText.close">
-                            <i class="ti ti-x text-base"></i>
-                        </button>
+                        <span class="ml-4 flex shrink-0 items-center gap-3">
+                            <span class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
+                                <button type="button" @click="setHeaderPresetPreviewDevice('desktop')"
+                                        data-testid="blox-header-preset-preview-desktop"
+                                        :aria-pressed="headerPresetPreviewDevice === 'desktop' ? 'true' : 'false'"
+                                        :title="headerPresetText.previewDesktop" :aria-label="headerPresetText.previewDesktop"
+                                        class="inline-flex h-7 min-w-9 items-center justify-center rounded px-2 text-gray-500 transition"
+                                        :class="headerPresetPreviewDevice === 'desktop' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-800'">
+                                    <i class="ti ti-device-desktop text-base"></i>
+                                </button>
+                                <button type="button" @click="setHeaderPresetPreviewDevice('mobile')"
+                                        data-testid="blox-header-preset-preview-mobile"
+                                        :aria-pressed="headerPresetPreviewDevice === 'mobile' ? 'true' : 'false'"
+                                        :title="headerPresetText.previewMobile" :aria-label="headerPresetText.previewMobile"
+                                        class="inline-flex h-7 min-w-9 items-center justify-center rounded px-2 text-gray-500 transition"
+                                        :class="headerPresetPreviewDevice === 'mobile' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-800'">
+                                    <i class="ti ti-device-mobile text-base"></i>
+                                </button>
+                            </span>
+                            <button type="button" @click="closeHeaderPresetPreview()" data-dialog-initial data-testid="blox-header-preset-preview-close"
+                                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                    :title="headerPresetText.close" :aria-label="headerPresetText.close">
+                                <i class="ti ti-x text-base"></i>
+                            </button>
+                        </span>
                     </div>
-                    <div class="min-h-0 flex-1 overflow-y-auto p-5 blox-scroll sm:p-6">
-                        <div class="flex min-h-48 items-center justify-center border border-gray-200 bg-gray-50 px-5 py-8 sm:min-h-64 sm:px-10" aria-hidden="true">
-                            <div class="flex w-full max-w-2xl flex-col overflow-hidden border border-gray-200 bg-white shadow-sm">
-                                <span x-show="preset && preset.preview === 'corporate'" class="flex h-8 items-center justify-end gap-2 bg-gray-800 px-4">
-                                    <i class="h-1.5 w-14 rounded bg-gray-500"></i><i class="h-1.5 w-8 rounded bg-gray-500"></i>
-                                </span>
-                                <span x-show="preset && preset.preview === 'topbar'" class="flex h-8 items-center justify-between bg-gray-200 px-4">
-                                    <i class="h-1.5 w-20 rounded bg-gray-400"></i><i class="h-1.5 w-10 rounded bg-gray-400"></i>
-                                </span>
-                                <span x-show="preset && preset.preview === 'centered-brand'" class="flex h-32 flex-col items-center justify-center gap-4 px-5">
-                                    <i class="h-5 w-24 rounded-sm bg-blue-500"></i><i class="h-2.5 w-48 max-w-[70%] rounded bg-gray-300"></i>
-                                </span>
-                                <span x-show="preset && preset.preview === 'search'" class="flex h-24 items-center gap-4 px-5">
-                                    <i class="h-5 w-20 shrink-0 rounded-sm bg-blue-500"></i><i class="h-10 flex-1 rounded border border-gray-300 bg-gray-50"></i><i class="h-3 w-10 rounded bg-gray-300"></i>
-                                </span>
-                                <span x-show="preset && preset.preview === 'search'" class="flex h-9 items-center justify-center bg-gray-800 px-4"><i class="h-1.5 w-40 max-w-[60%] rounded bg-gray-500"></i></span>
-                                <span x-show="preset && preset.preview !== 'centered-brand' && preset.preview !== 'search'" class="flex h-24 items-center justify-between px-5">
-                                    <i class="h-5 w-24 rounded-sm bg-blue-500"></i>
-                                    <span class="flex items-center gap-3"><i class="h-2 w-16 rounded bg-gray-300"></i><i class="h-2 w-12 rounded bg-gray-300"></i><i class="h-9 w-12 rounded bg-blue-100"></i></span>
-                                </span>
+                    <div class="min-h-0 flex-1 overflow-y-auto bg-gray-100 p-4 blox-scroll">
+                        <div class="flex min-h-[320px] items-start justify-center overflow-auto rounded border border-gray-200 bg-gray-200 p-3">
+                            <div class="relative shrink-0 overflow-hidden bg-white shadow-lg"
+                                 data-testid="blox-header-preset-preview-viewport"
+                                 :data-device="headerPresetPreviewDevice"
+                                 :style="headerPresetPreviewDevice === 'mobile'
+                                     ? 'width:min(390px, calc(100vw - 3rem));height:320px'
+                                     : 'width:min(1280px, calc(100vw - 3rem));height:320px'">
+                                <iframe data-testid="blox-header-preset-preview-frame"
+                                        :src="headerPresetPreviewUrl(preset)"
+                                        @load="headerPresetPreviewLoading = false"
+                                        title="<?= e(__('blox_header_preset_preview_title')) ?>"
+                                        tabindex="-1" aria-hidden="true"
+                                        class="h-full w-full border-0 bg-white"></iframe>
+                                <div x-show="headerPresetPreviewLoading"
+                                     class="absolute inset-0 flex items-center justify-center bg-white text-xs font-medium text-gray-500"
+                                     role="status">
+                                    <i class="ti ti-loader-2 mr-2 animate-spin text-base text-blue-500"></i>
+                                    <span x-text="headerPresetText.previewLoading"></span>
+                                </div>
                             </div>
                         </div>
                         <div class="mt-5 flex items-start justify-between gap-3">

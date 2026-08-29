@@ -15,6 +15,8 @@ requirePermission('edit_page');
 
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
 $pageId = getInt('id');
+$headerPresetSlug = trim((string) ($_GET['header_preset'] ?? ''));
+$isHeaderPresetPreview = $isHomeLayout && $headerPresetSlug !== '';
 if ($isHomeLayout) {
     if (!bloxPageEditorEnabled()) {
         error(__('blox_feature_disabled'));
@@ -26,13 +28,37 @@ if ($isHomeLayout) {
     error(__('blox_page_not_found'));
 }
 
-if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST'
-    || (string) ($_POST['action'] ?? '') !== 'preview') {
-    error(__('blox_bad_request'));
-}
-verifyCsrf();
-
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
+if ($isHeaderPresetPreview) {
+    if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET'
+        || !preg_match('/^[a-z0-9-]{1,80}$/', $headerPresetSlug)) {
+        error(__('blox_bad_request'));
+    }
+    $preset = null;
+    foreach (BloxAreaTemplatePresets::editorCatalog('header') as $candidate) {
+        if ((string) ($candidate['slug'] ?? '') === $headerPresetSlug) {
+            $preset = $candidate;
+            break;
+        }
+    }
+    if ($preset === null) {
+        error(__('blox_area_preset_not_found'));
+    }
+    $_GET['template_area'] = 'header';
+    $_POST['blocks_data'] = json_encode([
+        'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
+        'settings' => $preset['settings'],
+        'sections' => $preset['sections'],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+} else {
+    if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST'
+        || (string) ($_POST['action'] ?? '') !== 'preview') {
+        error(__('blox_bad_request'));
+    }
+    verifyCsrf();
+}
+
 // 默认主题页脚包含客服挂件，回退预览必须和前台具备同一渲染函数。
 require_once ROOT_PATH . '/includes/customer_service.php';
 require_once ROOT_PATH . '/includes/builder/BloxCanvasPreview.php';

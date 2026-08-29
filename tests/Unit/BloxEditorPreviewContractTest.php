@@ -813,6 +813,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             'openHeaderPresets()',
             'selectedHeaderPreset()',
             'isCurrentHeaderPreset(preset)',
+            'headerPresetPreviewUrl(preset)',
+            'setHeaderPresetPreviewDevice(device)',
             'documentFingerprint',
             'applyHeaderPreset(preset)',
             'apply-header-preset',
@@ -831,6 +833,10 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-header-preset-preview"',
             'data-testid="blox-header-preset-preview-dialog"',
             'data-testid="blox-header-preset-preview-panel"',
+            'data-testid="blox-header-preset-preview-viewport"',
+            'data-testid="blox-header-preset-preview-frame"',
+            'data-testid="blox-header-preset-preview-desktop"',
+            'data-testid="blox-header-preset-preview-mobile"',
             'data-testid="blox-header-preset-preview-close"',
             'data-testid="blox-header-preset-preview-apply"',
             ':data-current="isCurrentHeaderPreset(preset) ? \'true\' : \'false\'"',
@@ -839,9 +845,38 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($token, $overlays, "header preset visual token {$token} missing");
         }
         $this->assertStringNotContainsString('data-testid="blox-header-preset-detail"', $overlays);
+        $this->assertStringNotContainsString("preset && preset.preview === 'corporate'", $overlays);
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
         $this->assertStringContainsString('? $editableArea', $preview);
         $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);
+    }
+
+    public function testHeaderPresetPreviewUsesAReadOnlyBundledDocument(): void
+    {
+        $endpoint = $this->source('admin/blox_preview.php');
+
+        foreach ([
+            '$isHeaderPresetPreview = $isHomeLayout && $headerPresetSlug !== \'\';',
+            "preg_match('/^[a-z0-9-]{1,80}$/', \$headerPresetSlug)",
+            "BloxAreaTemplatePresets::editorCatalog('header')",
+            "\$_GET['template_area'] = 'header';",
+            "\$_POST['blocks_data'] = json_encode([",
+            "'settings' => \$preset['settings']",
+            "'sections' => \$preset['sections']",
+        ] as $token) {
+            $this->assertStringContainsString($token, $endpoint, "header preset preview endpoint token {$token} missing");
+        }
+        $catalogOffset = strpos($endpoint, "BloxAreaTemplatePresets::editorCatalog('header')");
+        $documentOffset = strpos($endpoint, "\$_POST['blocks_data'] = json_encode([");
+        self::assertIsInt($catalogOffset);
+        self::assertIsInt($documentOffset);
+        self::assertLessThan($documentOffset, $catalogOffset);
+
+        $csrfOffset = strpos($endpoint, 'verifyCsrf();');
+        $renderOffset = strpos($endpoint, 'outputBloxCanvasPreview(');
+        self::assertIsInt($csrfOffset);
+        self::assertIsInt($renderOffset);
+        self::assertLessThan($renderOffset, $csrfOffset);
     }
 
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void

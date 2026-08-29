@@ -1002,6 +1002,9 @@ $canManageBloxDesign = hasPermission('*');
             headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetOpen: false,
             headerPresetPreviewOpen: false,
+            headerPresetPreviewDevice: "desktop",
+            headerPresetPreviewLoading: false,
+            headerPresetPreviewNonce: 0,
             selectedHeaderPresetSlug: "",
             headerPresetText: <?php echo json_encode([
                 'title' => __('blox_header_presets'),
@@ -1010,6 +1013,10 @@ $canManageBloxDesign = hasPermission('*');
                 'applied' => __('blox_header_preset_applied'),
                 'preview' => __('blox_header_preset_preview'),
                 'previewTitle' => __('blox_header_preset_preview_title'),
+                'previewDesktop' => __('blox_header_preset_preview_desktop'),
+                'previewMobile' => __('blox_header_preset_preview_mobile'),
+                'previewLoading' => __('blox_header_preset_preview_loading'),
+                'previewDataHint' => __('blox_header_preset_preview_site_data'),
                 'currentDraft' => __('blox_header_preset_current_draft'),
                 'currentApply' => __('blox_header_preset_current_apply'),
                 'sectionCount' => __('blox_header_preset_section_count'),
@@ -2158,8 +2165,27 @@ $canManageBloxDesign = hasPermission('*');
             previewHeaderPreset(preset) {
                 if (!preset || !preset.slug) return;
                 this.selectHeaderPreset(preset);
+                this.headerPresetPreviewDevice = "desktop";
+                this.headerPresetPreviewLoading = true;
+                this.headerPresetPreviewNonce += 1;
                 this.headerPresetPreviewOpen = true;
                 this.focusDialog(this.$refs.headerPresetPreviewDialog, "[data-dialog-initial]");
+            },
+
+            headerPresetPreviewUrl(preset) {
+                if (!preset || !/^[a-z0-9-]{1,80}$/.test(String(preset.slug || ""))) return "about:blank";
+                var url = "/admin/blox_preview.php?home=1&template_area=header&header_preset="
+                    + encodeURIComponent(preset.slug);
+                url += "&preview_instance=" + this.headerPresetPreviewNonce;
+                if (this.previewContext && this.previewContext !== "home") {
+                    url += "&preview_context=" + encodeURIComponent(this.previewContext);
+                }
+                return url;
+            },
+
+            setHeaderPresetPreviewDevice(device) {
+                if (device !== "desktop" && device !== "mobile") return;
+                this.headerPresetPreviewDevice = device;
             },
 
             closeHeaderPresetPreview() {
