@@ -251,7 +251,9 @@ declare(strict_types=1);
                     </span>
                 </div>
                 <div class="flex justify-center overflow-hidden border border-gray-200 bg-gray-100 p-2" data-testid="blox-page-hero-style-preview">
-                    <div class="w-full overflow-hidden bg-gray-900 transition-[max-width] duration-200" :class="pageHeroPreviewDevice === 'mobile' ? 'max-w-[390px]' : 'max-w-full'">
+                    <div class="w-full overflow-hidden bg-gray-900 transition-[max-width] duration-200"
+                         data-testid="blox-page-hero-preview-frame"
+                         :style="'max-width:' + (pageHeroPreviewDevice === 'mobile' ? '390px' : '100%')">
                     <div class="relative bg-cover px-5 transition-[height] duration-200"
                          :class="[
                             pageHeroPreviewHeight() === 'large' ? 'h-36' : (pageHeroPreviewHeight() === 'compact' ? 'h-20' : 'h-28'),
@@ -392,8 +394,8 @@ declare(strict_types=1);
                         <div x-show="pageHeroPreviewBackground()">
                             <span class="mb-1.5 block text-xs font-medium text-gray-600" x-text="pageHeroText.focus"></span>
                             <div class="grid grid-cols-2 gap-3">
-                                <label class="text-[11px] text-gray-500"><span class="flex justify-between"><span x-text="pageHeroText.focusX"></span><span x-text="pageHero.style_options.focal_x + '%'"></span></span><input type="range" min="0" max="100" step="5" x-model.number="pageHero.style_options.focal_x" :disabled="pageHero.style_source !== 'self'" class="h-7 w-full accent-gray-900"></label>
-                                <label class="text-[11px] text-gray-500"><span class="flex justify-between"><span x-text="pageHeroText.focusY"></span><span x-text="pageHero.style_options.focal_y + '%'"></span></span><input type="range" min="0" max="100" step="5" x-model.number="pageHero.style_options.focal_y" :disabled="pageHero.style_source !== 'self'" class="h-7 w-full accent-gray-900"></label>
+                                <label class="text-[11px] text-gray-500"><span class="flex justify-between"><span x-text="pageHeroText.focusX"></span><span x-text="pageHero.style_options.focal_x + '%'"></span></span><input type="range" min="0" max="100" step="5" x-model.number="pageHero.style_options.focal_x" :disabled="pageHero.style_source !== 'self'" data-testid="blox-page-hero-focus-x" class="h-7 w-full accent-gray-900"></label>
+                                <label class="text-[11px] text-gray-500"><span class="flex justify-between"><span x-text="pageHeroText.focusY"></span><span x-text="pageHero.style_options.focal_y + '%'"></span></span><input type="range" min="0" max="100" step="5" x-model.number="pageHero.style_options.focal_y" :disabled="pageHero.style_source !== 'self'" data-testid="blox-page-hero-focus-y" class="h-7 w-full accent-gray-900"></label>
                             </div>
                         </div>
                     </div>

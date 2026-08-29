@@ -1411,8 +1411,9 @@ function confirmAreaPublish(form) {
                                     <div class="mb-2 text-xs text-gray-500"><?php echo __('blox_tpl_conditions_hint'); ?></div>
                                     <template x-for="(row, i) in rows" :key="'c' + i">
                                         <div class="mb-3 flex flex-wrap items-start gap-2">
-                                            <select x-model="row.main" @change="row.ids = []; row._query = ''; row._open = false"
-                                                    class="h-9 border border-gray-300 bg-white px-2 text-sm">
+                                             <select x-model="row.main" @change="row.ids = []; row._query = ''; row._open = false"
+                                                     data-testid="blox-condition-main"
+                                                     class="h-9 border border-gray-300 bg-white px-2 text-sm">
                                                 <option value="any"><?php echo e(__('blox_cond_any')); ?></option>
                                                 <option value="home"><?php echo e(__('blox_cond_home')); ?></option>
                                                 <option value="channel"><?php echo e(__('blox_cond_channel')); ?></option>

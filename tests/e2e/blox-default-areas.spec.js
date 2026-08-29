@@ -442,15 +442,9 @@ test('multilingual area manager exposes inheritance without horizontal overflow 
     }
     await expect(page).toHaveURL(/blox_editor\.php\?template=\d+&area_lang=en/);
     await expect(page.getByTestId('blox-area-language-context')).toContainText('English');
-    await expect(page.getByTestId('blox-ctx-select').locator('option[value="home"]')).toHaveAttribute('data-language', 'en');
+    await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
     await expect(page.frameLocator('[data-testid="blox-canvas"]').locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByTestId('blox-front-preview')).toHaveAttribute('href', /\/en\??.*preview/);
-
-    const contextSelect = page.getByTestId('blox-ctx-select');
-    const japaneseContext = await contextSelect.locator('option[data-language="ja"]').first().getAttribute('value');
-    expect(japaneseContext).toBeTruthy();
-    await contextSelect.selectOption(japaneseContext, { force: true });
-    await expect(page.frameLocator('[data-testid="blox-canvas"]').locator('html')).toHaveAttribute('lang', 'ja');
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -483,7 +477,8 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     await expect(page).toHaveURL(/blox_editor\.php\?template=\d+&area_lang=.*preview_context=page%3A/);
     dedicatedId = Number(new URL(page.url()).searchParams.get('template'));
     expect(dedicatedId).toBeGreaterThan(0);
-    await expect(page.getByTestId('blox-ctx-select')).toHaveValue(contextKey);
+    expect(new URL(page.url()).searchParams.get('preview_context')).toBe(contextKey);
+    await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
 
     page.on('dialog', async (dialog) => dialog.accept());
     const publishResults = [];

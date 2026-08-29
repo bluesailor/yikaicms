@@ -82,6 +82,52 @@ test('color picker remains usable inside every supported viewport @ci', async ({
   expect(consoleEntries, 'color picker must keep the console clean').toEqual([]);
 });
 
+test('page title design previews languages and responsive focus without overflow @ci', async ({ page }) => {
+  const consoleEntries = observeConsole(page);
+  await page.goto('/admin/blox_design.php', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-design-page-tab-page-hero').click();
+
+  const section = page.getByTestId('blox-design-page-hero');
+  await expect(section).toBeVisible();
+  const samples = await page.evaluate(() => {
+    const data = window.Alpine.$data(document.querySelector('[data-testid="blox-design-page"]'));
+    return Object.fromEntries(Object.entries(data.pageHeroSamples).map(([code, sample]) => [code, {
+      language: sample.language,
+      title: sample.title,
+      description: sample.description,
+      home: sample.home,
+    }]));
+  });
+  expect(Object.keys(samples).sort()).toEqual(['en', 'ja', 'zh-CN']);
+  expect(samples['zh-CN'].home).toBe('首页');
+  expect(samples.en.home).toBe('Home');
+  expect(samples.ja.home).toBe('ホーム');
+  for (const sample of Object.values(samples)) {
+    expect(sample.language).not.toBe('');
+    expect(sample.title).not.toBe('');
+  }
+
+  await page.getByTestId('blox-design-page-hero-mobile').click();
+  await expect(page.getByTestId('blox-design-page-hero-mobile')).toHaveAttribute('aria-pressed', 'true');
+  const previewFrame = page.getByTestId('blox-design-page-hero-frame');
+  await expect(previewFrame).toHaveAttribute('style', /max-width:\s*390px/);
+  await expect.poll(() => previewFrame.evaluate((node) => node.offsetWidth)).toBeLessThanOrEqual(390);
+
+  await section.locator('#blox-design-page-hero-bg').fill('/images/product-demo.jpg');
+  await section.locator('#blox-design-page-hero-focus-x').fill('0');
+  await section.locator('#blox-design-page-hero-focus-y').fill('100');
+  const previewHero = section.locator('.relative.bg-cover').first();
+  await expect(previewHero).toHaveAttribute('style', /background-position:\s*0% 100%/);
+
+  await page.evaluate(() => {
+    const data = window.Alpine.$data(document.querySelector('[data-testid="blox-design-page"]'));
+    data.pageHeroSamples[data.pageHeroLanguage].title = '这是一个用于验证三百九十像素手机画布不会横向溢出的很长页面标题';
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  expect(await previewHero.locator('h3').evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+  expect(consoleEntries, 'page title design preview must keep the console clean').toEqual([]);
+});
+
 // 2026-08-28：Blox 全部能力对免费版开放，命名样式不再受授权限制。
 // 本用例改为守住「免费版拿得到完整设计系统」——锁态 UI 仍由 advanced 标记驱动，
 // 保留在 blox_design.php 里以备日后重划边界，但在免费模式下不应出现。

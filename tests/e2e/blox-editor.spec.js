@@ -1968,9 +1968,9 @@ test('template manager exposes safe local header and footer starters @ci', async
 
   const presets = page.getByTestId('blox-area-presets');
   await expect(presets).toBeVisible();
-  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(8);
+  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(11);
   await expect(presets.locator('.ti-layout-navbar')).toHaveCount(6);
-  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(2);
+  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(5);
   await expect(page.getByTestId('blox-default-theme-status')).toBeVisible();
 
   const areaRow = page.locator('tbody tr').filter({ has: page.getByTestId('blox-condition-toggle') }).first();
@@ -1979,7 +1979,7 @@ test('template manager exposes safe local header and footer starters @ci', async
   const form = page.getByTestId('blox-condition-form').first();
   await expect(form).toBeVisible();
   await form.getByTestId('blox-condition-add').click();
-  await form.locator('select').last().selectOption('page');
+  await form.getByTestId('blox-condition-main').last().selectOption('page');
 
   const picker = form.getByTestId('blox-condition-picker').last();
   await picker.click();
@@ -2407,8 +2407,8 @@ test('template publishing retries only after explicit conflict confirmation @ci'
   unsafeWrites.length = 0;
 });
 
-// ── 模板模式（r9）：预览上下文选择器——换正文 + Resolver 命中上报 ──
-test('header context selector reports resolver hit without rendering page body @ci', async ({ page }, testInfo) => {
+// ── 模板模式（r9）：URL 上下文驱动隔离预览 + Resolver 命中上报 ──
+test('header preview context reports resolver hit without rendering page body @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2421,27 +2421,19 @@ test('header context selector reports resolver hit without rendering page body @
   });
   await canvasReady();
 
-  // 头尾模板独有：上下文 select 在场，默认首页；命中 id 由画布上报（属性契约）
-  const ctxSelect = page.getByTestId('blox-ctx-select');
-  await expect(ctxSelect).toBeVisible();
-  await expect(ctxSelect).toHaveValue('home');
+  // 上下文由入口 URL 决定，编辑器不再展示难以理解的上下文下拉。
+  await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
   let contentFrame = await frame(page);
   await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
 
-  // 切到第二个选项后只更新命中判断，画布仍保持纯网页头。
-  const second = await ctxSelect.locator('option').nth(1).getAttribute('value');
-  expect(second).toBeTruthy();
-  await ctxSelect.selectOption(second);
+  // 页面上下文仍由 Resolver 命中，但画布保持纯网页头。
+  await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_header_template
+    + '&preview_context=' + encodeURIComponent(`page:${fixtures.process_page}`),
+  { waitUntil: 'domcontentloaded' });
   await canvasReady();
   contentFrame = await frame(page);
   await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(0);
-
-  // 切回首页 → 同契约
-  await ctxSelect.selectOption('home');
-  await canvasReady();
-  contentFrame = await frame(page);
-  await expect(contentFrame.locator('[data-yk-area][data-yk-ctx-hit]')).toHaveCount(1);
 });
 
 // ── 画布插入轨道（r13）：区块边界精确插入 + 末尾常驻入口 ──
@@ -2945,6 +2937,17 @@ test('page title area presets preview safely and inheritance is read only @ci', 
   await expect(dialog.getByTestId('blox-page-hero-color-picker')).toBeDisabled();
   await dialog.getByTestId('blox-page-hero-mode-self').click();
   await expect(dialog.getByTestId('blox-page-hero-preset-standard')).toBeEnabled();
+  await dialog.getByTestId('blox-page-hero-preview-mobile').click();
+  await expect(dialog.getByTestId('blox-page-hero-preview-mobile')).toHaveAttribute('aria-pressed', 'true');
+  const previewFrame = dialog.getByTestId('blox-page-hero-preview-frame');
+  await expect.poll(() => previewFrame.evaluate((node) => node.offsetWidth)).toBeLessThanOrEqual(390);
+  await dialog.locator('#blox-page-hero-bg').fill('/images/product-demo.jpg');
+  await dialog.getByTestId('blox-page-hero-focus-x').fill('0');
+  await dialog.getByTestId('blox-page-hero-focus-y').fill('100');
+  await expect(dialog.getByTestId('blox-page-hero-style-preview').locator('.relative.bg-cover')).toHaveAttribute(
+    'style',
+    /background-position:\s*0% 100%/
+  );
 
   await dialog.getByRole('button', { name: '取消' }).click();
   await expect(dialog).toBeHidden();

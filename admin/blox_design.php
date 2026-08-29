@@ -17,7 +17,16 @@ $designState = BloxDesignSystem::snapshot();
 $designUsage = BloxDesignDependencies::usageSnapshot();
 $pageHeroDesign = PageHeroDesignDraft::snapshot();
 $pageHeroSamples = [];
+$pageHeroLanguagePack = static function (string $languageCode): array {
+    $languageFile = ROOT_PATH . '/lang/' . basename($languageCode) . '.php';
+    if (!is_file($languageFile)) {
+        return [];
+    }
+    $languageData = require $languageFile;
+    return is_array($languageData) ? $languageData : [];
+};
 foreach (enabledLanguages() as $languageCode => $languageLabel) {
+    $languageData = $pageHeroLanguagePack((string) $languageCode);
     $sample = db()->fetchOne(
         'SELECT id, name, description, lang FROM ' . DB_PREFIX . 'channels'
         . ' WHERE lang = ? AND status = 1 AND type <> ? ORDER BY sort_order ASC, id ASC LIMIT 1',
@@ -27,15 +36,17 @@ foreach (enabledLanguages() as $languageCode => $languageLabel) {
         'language' => (string) $languageLabel,
         'title' => (string) ($sample['name'] ?? config('site_name_' . $languageCode, config('site_name', 'Yikai CMS'))),
         'description' => (string) ($sample['description'] ?? config('site_description_' . $languageCode, config('site_description', ''))),
-        'home' => __('breadcrumb_home'),
+        'home' => (string) ($languageData['breadcrumb_home'] ?? __('breadcrumb_home')),
     ];
 }
 if ($pageHeroSamples === []) {
+    $fallbackLanguage = siteLang();
+    $languageData = $pageHeroLanguagePack($fallbackLanguage);
     $pageHeroSamples[siteLang()] = [
         'language' => siteLang(),
         'title' => (string) config('site_name', 'Yikai CMS'),
         'description' => (string) config('site_description', ''),
-        'home' => __('breadcrumb_home'),
+        'home' => (string) ($languageData['breadcrumb_home'] ?? __('breadcrumb_home')),
     ];
 }
 
@@ -331,7 +342,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <div class="bg-gray-100 p-3 sm:p-5">
                 <div class="mx-auto w-full overflow-hidden bg-white shadow-sm transition-[max-width] duration-200"
-                     :class="pageHeroPreviewDevice === 'mobile' ? 'max-w-[390px]' : 'max-w-[1180px]'">
+                     data-testid="blox-design-page-hero-frame"
+                     :style="'max-width:' + (pageHeroPreviewDevice === 'mobile' ? '390px' : '1180px')">
                     <div class="relative bg-cover px-5 transition-[min-height] duration-200 sm:px-8"
                          :class="pageHeroPreviewHeightClass()"
                          :style="pageHeroPreviewStyle()">

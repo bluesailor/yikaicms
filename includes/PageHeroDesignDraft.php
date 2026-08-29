@@ -63,6 +63,8 @@ final class PageHeroDesignDraft
             'page_hero_style_options' => PageHeroStyleResolver::encodeOptions($draft['options']),
             self::PUBLISHED_REVISION_KEY => (string) $snapshot['revision'],
         ]);
+        // 设计 API 是轻量入口，不加载 HtmlCache 钩子；发布时仍须主动清掉烤入旧标题区的页面缓存。
+        cacheClear();
 
         return self::snapshot();
     }
