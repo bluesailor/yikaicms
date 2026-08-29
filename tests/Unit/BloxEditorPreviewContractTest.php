@@ -81,6 +81,10 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $advance = $this->source('admin/page_edit_advance.php');
         $editor = $this->source('admin/blox_editor.php');
+        $preview = $this->source('admin/blox_preview.php');
+        $header = $this->source('admin/blox_editor/partials/header.php');
+        $templates = $this->source('admin/blox_templates.php');
+        $languageAreas = $this->source('admin/blox_templates/partials/language-areas.php');
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
 
         // 服务端：显式 DTO 解析（fail-closed 回退首页），redirect 栏目不可作上下文
@@ -103,6 +107,18 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('onAreaHit: function (id)', $editor);
         $this->assertStringContainsString('self.ctxHit = id;', $editor);
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
+
+        // 语言管理入口、编辑器上下文与独立预览端点使用同一受控语言。
+        $this->assertStringContainsString('&amp;area_lang=', $languageAreas);
+        $this->assertStringContainsString('rawurlencode($selectedContextLanguage)', $templates);
+        $this->assertStringContainsString('rawurlencode($languageCode)', $templates);
+        $this->assertStringContainsString('$areaCtxLanguages[$ctxValue] = $ctxLang;', $editor);
+        $this->assertStringContainsString('previewContextLanguages:', $editor);
+        $this->assertStringContainsString('endpoint.searchParams.set("_lang", previewLanguage);', $editor);
+        $this->assertStringContainsString('$previewLanguages = availableLanguages();', $preview);
+        $this->assertStringContainsString("define('SITE_LANG', \$previewLanguage);", $preview);
+        $this->assertStringContainsString('data-testid="blox-area-language-context"', $header);
+        $this->assertStringContainsString('tplAreaLanguagePublishConfirm', $editor);
     }
 
     /** 空画布双入口 + 元素库/预制区块分流。 */

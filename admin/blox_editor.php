@@ -83,7 +83,14 @@ if ($isHomeBlox) {
 }
 $areaCtxOptions = []; // 头尾模板的首页预览入口，仅 header/footer 模板非空
 $areaCtxOptionGroups = []; // 其余单页/栏目按语言分组，避免多语言站点混排
+$areaCtxLanguages = []; // 每个预览上下文对应的前台语言，画布导航与站点资料据此渲染
 $areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
+$areaEditorLanguage = '';
+$areaEditorLanguageLabel = '';
+$areaEditorLanguageManaged = false;
+$areaEditorContextLabel = '';
+$areaEditorContextTitle = '';
+$areaEditorPublishConfirm = '';
 $documentIdentity = '';
 $homeBannerSeeds = [];
 $pageHasPublished = false;
@@ -171,6 +178,38 @@ if ($isHomeBlox) {
         exit;
     }
     requireBloxTemplateTypePermission($templateType);
+    if (in_array($templateType, ['header', 'footer'], true)) {
+        $areaAvailableLanguages = availableLanguages();
+        $areaDefaultLanguage = (string) config('site_lang', 'zh-CN');
+        $requestedAreaLanguage = trim((string) get('area_lang', ''));
+        $managedAreaLanguage = BloxAreaLanguageManager::managedLanguage($templateRow);
+        if ($managedAreaLanguage !== '' && isset($areaAvailableLanguages[$managedAreaLanguage])) {
+            $areaEditorLanguage = $managedAreaLanguage;
+            $areaEditorLanguageManaged = true;
+        } elseif ($requestedAreaLanguage !== '' && isset($areaAvailableLanguages[$requestedAreaLanguage])) {
+            $areaEditorLanguage = $requestedAreaLanguage;
+        } else {
+            $areaEditorLanguage = isset($areaAvailableLanguages[$areaDefaultLanguage])
+                ? $areaDefaultLanguage
+                : (string) array_key_first($areaAvailableLanguages);
+        }
+        $areaEditorLanguageLabel = (string) ($areaAvailableLanguages[$areaEditorLanguage] ?? $areaEditorLanguage);
+        $areaLabel = __($templateType === 'header' ? 'blox_tpl_type_header' : 'blox_tpl_type_footer');
+        $areaEditorContextLabel = __(
+            $areaEditorLanguageManaged ? 'blox_area_language_context_managed' : 'blox_area_language_context_preview',
+            ['language' => $areaEditorLanguageLabel, 'area' => $areaLabel]
+        );
+        $areaEditorContextTitle = __(
+            $areaEditorLanguageManaged ? 'blox_area_language_context_title_managed' : 'blox_area_language_context_title_preview',
+            ['language' => $areaEditorLanguageLabel, 'area' => $areaLabel]
+        );
+        if ($areaEditorLanguageManaged) {
+            $areaEditorPublishConfirm = __('blox_area_language_publish_confirm', [
+                'language' => $areaEditorLanguageLabel,
+                'area' => $areaLabel,
+            ]);
+        }
+    }
     $page = [
         'id' => 0,
         'name' => (string) $templateRow['name'],
@@ -204,9 +243,11 @@ if ($isHomeBlox) {
     if (in_array($templateType, ['header', 'footer'], true)) {
         // 页头只显示可编辑区域；页尾保留正文落底上下文。上下文选择仍使用前台同一套
         // Resolver 报告命中模板，避免编辑中的适用范围与线上实际命中脱节。
-        $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType;
+        $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType
+            . '&_lang=' . rawurlencode($areaEditorLanguage);
         $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog($templateType);
-        $areaCtxOptions[] = ['value' => 'home', 'label' => __('blox_ctx_home')];
+        $areaCtxOptions[] = ['value' => 'home', 'label' => __('blox_ctx_home'), 'lang' => $areaEditorLanguage];
+        $areaCtxLanguages['home'] = $areaEditorLanguage;
         foreach (channelModel()->where(['status' => 1]) as $ctxCh) {
             $ctxChType = (string) ($ctxCh['type'] ?? '');
             if ($ctxChType === 'redirect') {
@@ -216,10 +257,13 @@ if ($isHomeBlox) {
             if ($ctxLang === '') {
                 $ctxLang = (string) config('site_lang', 'zh-CN');
             }
+            $ctxValue = ($ctxChType === 'page' ? 'page:' : 'channel:') . (int) $ctxCh['id'];
             $areaCtxOptionGroups[$ctxLang][] = [
-                'value' => ($ctxChType === 'page' ? 'page:' : 'channel:') . (int) $ctxCh['id'],
+                'value' => $ctxValue,
                 'label' => (string) $ctxCh['name'],
+                'lang' => $ctxLang,
             ];
+            $areaCtxLanguages[$ctxValue] = $ctxLang;
         }
         if ($areaCtxOptionGroups !== []) {
             $contextLanguageLabels = availableLanguages();
@@ -940,6 +984,7 @@ $canManageBloxDesign = hasPermission('*');
             .blox-header-brand { gap: 0; }
             .blox-header-brand-copy,
             .blox-header-page,
+            .blox-header-area-language,
             .blox-header-legacy,
             .blox-header-languages,
             .blox-header-actions { display: none !important; }
@@ -1018,6 +1063,8 @@ $canManageBloxDesign = hasPermission('*');
             endpoint: "<?php echo $saveEndpoint; ?>",
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
             previewContext: "home",
+            areaLanguage: <?php echo json_encode($areaEditorLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            previewContextLanguages: <?php echo json_encode($areaCtxLanguages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctxHit: null,
             ctxMatch: null,
             areaMatchText: <?php echo json_encode([
@@ -1385,6 +1432,7 @@ $canManageBloxDesign = hasPermission('*');
                 'restoreConfirmDirty' => __('blox_restore_confirm_dirty'),
                 'restoreConfirm' => __('blox_restore_confirm'),
                 'tplPublishConfirm' => __('blox_tpl_publish_confirm'),
+                'tplAreaLanguagePublishConfirm' => $areaEditorPublishConfirm,
                 'tplPublishReplaceConfirm' => __('blox_tpl_publish_replace_confirm'),
                 'tplPublished' => __('blox_tpl_published_toast'),
                 'tplPublishedAndUsed' => __('blox_tpl_published_and_used_toast'),
@@ -2253,6 +2301,8 @@ $canManageBloxDesign = hasPermission('*');
                 var area = this.areaPresetType === "footer" ? "footer" : "header";
                 var url = "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
                     + encodeURIComponent(preset.slug);
+                var previewLanguage = this.previewContextLanguages[this.previewContext] || this.areaLanguage;
+                if (previewLanguage) url += "&_lang=" + encodeURIComponent(previewLanguage);
                 url += "&preview_instance=" + this.headerPresetPreviewNonce;
                 if (area === "header") url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
                 if (area === "header" && this.headerPresetPreviewDevice === "mobile" && this.headerPresetPreviewDrawerOpen) {
@@ -5973,10 +6023,12 @@ $canManageBloxDesign = hasPermission('*');
 
             /** 头尾模板：切换预览上下文（首页/单页/栏目）。重建预览客户端换 endpoint，立即刷新。 */
             ctxChanged() {
-                var base = "<?php echo $previewEndpoint; ?>";
-                this.previewEndpoint = this.previewContext === "home"
-                    ? base
-                    : base + "&preview_context=" + encodeURIComponent(this.previewContext);
+                var endpoint = new URL("<?php echo $previewEndpoint; ?>", window.location.origin);
+                var previewLanguage = this.previewContextLanguages[this.previewContext] || this.areaLanguage;
+                if (previewLanguage) endpoint.searchParams.set("_lang", previewLanguage);
+                if (this.previewContext === "home") endpoint.searchParams.delete("preview_context");
+                else endpoint.searchParams.set("preview_context", this.previewContext);
+                this.previewEndpoint = endpoint.pathname + endpoint.search;
                 this.ctxHit = null; // 旧命中作废，等新画布上报
                 this.ctxMatch = null;
                 if (this._previewClient) {
@@ -8407,7 +8459,10 @@ $canManageBloxDesign = hasPermission('*');
                 var savedData = this.historyData();
                 var payload = this.documentData();
                 var replaceThemeArea = "<?php echo e($replaceThemeAreaOnPublish); ?>";
-                if (!confirm(replaceThemeArea ? this.uiText.tplPublishReplaceConfirm : this.uiText.tplPublishConfirm)) return;
+                var publishConfirm = replaceThemeArea
+                    ? this.uiText.tplPublishReplaceConfirm
+                    : (this.uiText.tplAreaLanguagePublishConfirm || this.uiText.tplPublishConfirm);
+                if (!confirm(publishConfirm)) return;
                 this.saving = true;
                 this.submitTemplatePublish(false, payload, savedData)
                     .catch(function () { self.toast(self.uiText.saveFailed); })

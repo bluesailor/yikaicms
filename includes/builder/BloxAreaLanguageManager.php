@@ -5,6 +5,28 @@ declare(strict_types=1);
 
 final class BloxAreaLanguageManager
 {
+    /** @param array<string,mixed> $template */
+    public static function managedLanguage(array $template): string
+    {
+        $area = (string) ($template['type'] ?? '');
+        if (!in_array($area, ['header', 'footer'], true)) {
+            return '';
+        }
+        $conditions = BloxAreaResolver::parse($template['conditions'] ?? null);
+        if (count($conditions) !== 1) {
+            return '';
+        }
+        $condition = $conditions[0];
+        $languages = is_array($condition['langs'] ?? null) ? array_values($condition['langs']) : [];
+        return ($condition['main'] ?? '') === 'any'
+            && ($condition['ids'] ?? null) === []
+            && ($condition['exclude'] ?? null) === false
+            && count($languages) === 1
+            && is_string($languages[0])
+            ? $languages[0]
+            : '';
+    }
+
     /**
      * @param array<string,string> $languages
      * @param array{header?:list<array<string,mixed>>,footer?:list<array<string,mixed>>} $publishedByType
@@ -172,17 +194,8 @@ final class BloxAreaLanguageManager
     /** @param array<string,mixed> $template */
     private static function isManagedTemplate(array $template, string $area, string $language): bool
     {
-        if ((string) ($template['type'] ?? $area) !== $area) {
-            return false;
-        }
-        $conditions = BloxAreaResolver::parse($template['conditions'] ?? null);
-        return count($conditions) === 1
-            && $conditions[0] === [
-                'main' => 'any',
-                'ids' => [],
-                'langs' => [$language],
-                'exclude' => false,
-            ];
+        return (string) ($template['type'] ?? $area) === $area
+            && self::managedLanguage($template) === $language;
     }
 
     /** @param array<string,string> $languages */
