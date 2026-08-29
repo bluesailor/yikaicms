@@ -5704,4 +5704,6 @@ voltage|Voltage|220V',
     'blox_tpl_remote_rollback_confirm' => 'Restore the pre-update draft? The current draft will be replaced; published content is unaffected.',
     'blox_tpl_remote_no_backup' => 'No remote template draft is available to restore.',
     'blox_tpl_remote_upgrade_first' => 'Upgrade database first',
+    'blox_resize_template_panel' => 'Resize the prebuilt section panel',
+    'blox_resize_template_panel_hint' => 'Drag to resize the prebuilt section panel. Use arrow keys for fine adjustments; double-click to reset.',
 ];

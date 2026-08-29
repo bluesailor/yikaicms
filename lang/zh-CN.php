@@ -5772,4 +5772,6 @@ voltage|电压|220V',
     'blox_tpl_remote_rollback_confirm' => '恢复更新前草稿？当前草稿会被替换，已发布内容不受影响。',
     'blox_tpl_remote_no_backup' => '没有可恢复的远程模板草稿',
     'blox_tpl_remote_upgrade_first' => '先升级数据库',
+    'blox_resize_template_panel' => '调整预置区块面板宽度',
+    'blox_resize_template_panel_hint' => '拖动调整预置区块面板宽度；方向键微调，双击恢复默认',
 ];

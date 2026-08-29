@@ -45,6 +45,34 @@
 .blox-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .blox-scroll::-webkit-scrollbar-thumb { border-radius: 3px; }
 
+/* 模板库按面板自身宽度重排；停靠侧栏与宽弹层共用同一套内容驱动断点。 */
+.blox-template-panel {
+    container-name: blox-template-panel;
+    container-type: inline-size;
+}
+.blox-template-panel-resizer {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    z-index: 20;
+    height: 100%;
+    border-inline-start: 1px solid #e2e8f0;
+    border-inline-end: 0;
+}
+.blox-template-section-grid {
+    grid-template-columns: minmax(0, 1fr);
+}
+@container blox-template-panel (min-width: 35rem) {
+    .blox-template-section-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container blox-template-panel (min-width: 64rem) {
+    .blox-template-section-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container blox-template-panel (max-width: 27.5rem) {
+    .blox-template-purpose-badge { display: none; }
+    .blox-template-provider { max-width: 9rem; }
+}
+
 .yk-blox-anchor { scroll-margin-top: 6rem; }
 @media (prefers-reduced-motion: no-preference) {
     html { scroll-behavior: smooth; }

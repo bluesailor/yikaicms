@@ -581,12 +581,31 @@ declare(strict_types=1);
          class="fixed inset-0 z-[130] flex"
          :class="templateSectionsDocked() ? 'items-stretch justify-start pt-14 pointer-events-none' : 'items-center justify-center p-6'">
         <div x-show="!templateSectionsDocked()" class="absolute inset-0 bg-black/50" @click="closeTemplates()"></div>
-        <div data-testid="blox-template-panel"
-             class="relative bg-white shadow-2xl max-w-[94vw] flex flex-col pointer-events-auto"
+        <div id="blox-template-panel" data-testid="blox-template-panel"
+             class="blox-template-panel relative bg-white shadow-2xl max-w-[94vw] flex flex-col pointer-events-auto"
              :class="templateSectionsDocked()
-                 ? 'w-[520px] max-w-[calc(100vw-320px)] h-[calc(100vh-3.5rem)] rounded-none border-r border-gray-200'
+                 ? 'max-w-[calc(100vw-320px)] h-[calc(100vh-3.5rem)] rounded-none border-r border-gray-200'
                 : (templateEntry === 'sections' ? 'w-[1180px] rounded-xl' : 'w-[900px] rounded-xl')"
-             :style="templateSectionsDocked() ? 'max-height:calc(100vh - 3.5rem)' : 'max-height:calc(100vh - 4rem)'">
+             :style="templatePanelStyle()">
+            <div x-show="templateSectionsDocked()" data-testid="blox-template-panel-resizer"
+                 class="blox-panel-resizer blox-template-panel-resizer"
+                 :class="templatePanelResizing ? 'is-active' : ''"
+                 role="separator" aria-orientation="vertical" tabindex="0"
+                 :aria-valuemin="templatePanelMin" :aria-valuemax="templatePanelMaximum()"
+                 :aria-valuenow="templatePanelCurrentWidth()" :aria-valuetext="templatePanelCurrentWidth() + 'px'"
+                 aria-controls="blox-template-panel"
+                 title="<?= e(__('blox_resize_template_panel_hint')) ?>"
+                 aria-label="<?= e(__('blox_resize_template_panel')) ?>"
+                 @pointerdown="startTemplatePanelResize($event)"
+                 @pointermove="resizeTemplatePanel($event)"
+                 @pointerup="finishTemplatePanelResize($event)"
+                 @pointercancel="finishTemplatePanelResize($event)"
+                 @dblclick="resetTemplatePanelWidth()"
+                 @keydown.left.prevent="resizeTemplatePanelBy(-16)"
+                 @keydown.right.prevent="resizeTemplatePanelBy(16)"
+                 @keydown.home.prevent="resetTemplatePanelWidth()">
+                <span aria-hidden="true"></span>
+            </div>
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-template-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
                     <i class="ti text-base text-blue-500" :class="templateEntry === 'sections' ? 'ti-layout-grid-add' : (templateEntry === 'pages' ? 'ti-files' : 'ti-template')"></i>
@@ -756,7 +775,7 @@ declare(strict_types=1);
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length > 0"
                      class="grid"
-                     :class="templateEntry === 'sections' ? [(templateSectionsDocked() ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'), (templateCompactSections() ? 'gap-2' : 'gap-3')] : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'">
+                     :class="templateEntry === 'sections' ? ['blox-template-section-grid', (templateCompactSections() ? 'gap-2' : 'gap-3')] : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'">
                     <template x-for="item in filteredTemplates()" :key="item.key">
                         <article data-testid="blox-template-item" :data-template-key="item.key"
                                  :draggable="templateSectionDraggable(item)"
@@ -795,13 +814,13 @@ declare(strict_types=1);
                                              <span x-show="item.paid" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
                                                    x-text="templateText.premium"></span>
                                             <span x-show="item.metadata && item.metadata.purpose && item.metadata.purpose !== 'general'"
-                                                  class="shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-500"
+                                                  class="blox-template-purpose-badge shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-500"
                                                   x-text="templatePurposeLabel(item.metadata.purpose)"></span>
                                         </span>
                                         <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
                                               :class="item.locked ? 'text-amber-700' : 'text-gray-400'">
                                             <i class="ti shrink-0" :class="item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user'))"></i>
-                                            <span class="truncate" x-text="item.locked ? templateLockLabel(item) : templateProviderLabel(item)"></span>
+                                            <span class="blox-template-provider truncate" x-text="item.locked ? templateLockLabel(item) : templateProviderLabel(item)"></span>
                                         </span>
                                     </span>
                                     <template x-if="canEditLocalTemplate(item)">

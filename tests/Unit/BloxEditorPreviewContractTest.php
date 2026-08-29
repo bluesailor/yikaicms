@@ -157,6 +157,23 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('yikai:blox:right-panel-collapsed:v1', $editor);
     }
 
+    public function testPrebuiltPanelUsesPersistentResizeAndContainerResponsiveGrid(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $css = $this->source('assets/css/src/app.css');
+
+        $this->assertStringContainsString('data-testid="blox-template-panel-resizer"', $overlays);
+        $this->assertStringContainsString('@pointermove="resizeTemplatePanel($event)"', $overlays);
+        $this->assertStringContainsString('@keydown.right.prevent="resizeTemplatePanelBy(16)"', $overlays);
+        $this->assertStringContainsString('@dblclick="resetTemplatePanelWidth()"', $overlays);
+        $this->assertStringContainsString('blox-template-section-grid', $overlays);
+        $this->assertStringContainsString('yikai:blox:template-panel-width:v1', $editor);
+        $this->assertStringContainsString('container-name: blox-template-panel;', $css);
+        $this->assertStringContainsString('@container blox-template-panel (min-width: 35rem)', $css);
+        $this->assertStringContainsString('@container blox-template-panel (min-width: 64rem)', $css);
+    }
+
     /**
      * 空画布提示只能有一处。
      *
@@ -734,7 +751,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['startTemplateDrag(item, event)', 'templateSectionsDocked()', 'if (this.templateDragItem) this.finishPaletteDrag();', 'onTemplateDrop: function (payload)', 'handleTemplateDrop(payload)', 'insertTemplateAt(item, payload.index)', 'requestedIndex === null'] as $token) {
             $this->assertStringContainsString($token, $editor, "prebuilt drag contract {$token} missing");
         }
-        foreach ([':draggable="templateSectionDraggable(item)"', '@dragstart="startTemplateDrag(item, $event)"', "templateSectionsDocked() ? 'grid-cols-1'", "pointer-events-none"] as $token) {
+        foreach ([':draggable="templateSectionDraggable(item)"', '@dragstart="startTemplateDrag(item, $event)"', 'blox-template-section-grid', "pointer-events-none"] as $token) {
             $this->assertStringContainsString($token, $workspace . $this->source('admin/blox_editor/partials/overlays.php'), "prebuilt dock token {$token} missing");
         }
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');

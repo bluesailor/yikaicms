@@ -2034,6 +2034,14 @@ $canManageBloxDesign = hasPermission('*');
             templateDensityStorageKey: "yikai:blox:template-density:v1",
             templateSectionViewStorageKey: "yikai:blox:template-section-view:v2",
             templateSectionScrollTop: 0,
+            templatePanelWidth: 520,
+            templatePanelMin: 400,
+            templatePanelMax: 720,
+            templatePanelResizing: false,
+            templatePanelStorageKey: "yikai:blox:template-panel-width:v1",
+            _templatePanelResizeStartX: 0,
+            _templatePanelResizeStartWidth: 520,
+            _templatePanelPointerId: null,
             legacyPageContent: <?php echo $pageUsesLegacyHtml ? 'true' : 'false'; ?>,
             templateScope: "local",
             templateError: "",
@@ -2081,6 +2089,7 @@ $canManageBloxDesign = hasPermission('*');
             closeTemplates() {
                 if (!this.templateOpen) return;
                 var root = this.$refs.templateDialog;
+                this.finishTemplatePanelResize();
                 if (this.templateDragItem) this.finishPaletteDrag();
                 this.persistTemplateSectionViewState();
                 this.templateOpen = false;
@@ -2188,6 +2197,95 @@ $canManageBloxDesign = hasPermission('*');
             templateSectionsDocked() {
                 this.canvasViewportTick;
                 return this.templateEntry === "sections" && window.innerWidth >= 1200 && !this.paletteTapMode;
+            },
+
+            templatePanelMaximum() {
+                return Math.min(
+                    this.templatePanelMax,
+                    Math.max(this.templatePanelMin, window.innerWidth - 720)
+                );
+            },
+
+            templatePanelCurrentWidth() {
+                var width = Number(this.templatePanelWidth);
+                if (!Number.isFinite(width)) width = 520;
+                return Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMaximum(), width)));
+            },
+
+            templatePanelStyle() {
+                this.canvasViewportTick;
+                var maxHeight = this.templateSectionsDocked()
+                    ? "max-height:calc(100vh - 3.5rem);"
+                    : "max-height:calc(100vh - 4rem);";
+                return this.templateSectionsDocked()
+                    ? maxHeight + "width:" + this.templatePanelCurrentWidth() + "px;"
+                    : maxHeight;
+            },
+
+            restoreTemplatePanelWidth() {
+                try {
+                    var stored = window.localStorage.getItem(this.templatePanelStorageKey);
+                    if (stored !== null && Number.isFinite(Number(stored))) {
+                        this.templatePanelWidth = Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMax, Number(stored))));
+                    }
+                } catch (error) {
+                    this.templatePanelWidth = 520;
+                }
+            },
+
+            persistTemplatePanelWidth() {
+                try {
+                    window.localStorage.setItem(this.templatePanelStorageKey, String(this.templatePanelWidth));
+                } catch (error) {
+                    // 禁用本地存储时仍保留当前页面生命周期内的宽度。
+                }
+            },
+
+            setTemplatePanelWidth(value, persist) {
+                var width = Number(value);
+                if (!Number.isFinite(width)) width = 520;
+                this.templatePanelWidth = Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMaximum(), width)));
+                this.canvasViewportTick++;
+                if (persist !== false) this.persistTemplatePanelWidth();
+            },
+
+            startTemplatePanelResize(event) {
+                if (!this.templateSectionsDocked() || !event || event.button !== 0) return;
+                event.preventDefault();
+                this.templatePanelResizing = true;
+                this._templatePanelPointerId = event.pointerId;
+                this._templatePanelResizeStartX = event.clientX;
+                this._templatePanelResizeStartWidth = this.templatePanelCurrentWidth();
+                document.body.classList.add("blox-panel-resizing");
+                if (event.currentTarget && typeof event.currentTarget.setPointerCapture === "function") {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                }
+            },
+
+            resizeTemplatePanel(event) {
+                if (!this.templatePanelResizing || !event) return;
+                if (this._templatePanelPointerId !== null && event.pointerId !== this._templatePanelPointerId) return;
+                this.setTemplatePanelWidth(
+                    this._templatePanelResizeStartWidth + event.clientX - this._templatePanelResizeStartX,
+                    false
+                );
+            },
+
+            finishTemplatePanelResize(event) {
+                if (!this.templatePanelResizing) return;
+                if (event && this._templatePanelPointerId !== null && event.pointerId !== this._templatePanelPointerId) return;
+                this.templatePanelResizing = false;
+                this._templatePanelPointerId = null;
+                document.body.classList.remove("blox-panel-resizing");
+                this.persistTemplatePanelWidth();
+            },
+
+            resizeTemplatePanelBy(delta) {
+                this.setTemplatePanelWidth(this.templatePanelCurrentWidth() + Number(delta || 0));
+            },
+
+            resetTemplatePanelWidth() {
+                this.setTemplatePanelWidth(520);
             },
 
             templateCompactSections() {
@@ -5438,6 +5536,7 @@ $canManageBloxDesign = hasPermission('*');
                 this.syncPaletteInputMode();
                 this.restoreLeftPanelWidth();
                 this.restoreRightPanelState();
+                this.restoreTemplatePanelWidth();
                 this.restoreElementLibraryPreferences();
                 this.restoreTemplateLibraryPreferences();
                 this.normalizeHeaderSettings();
@@ -5470,6 +5569,7 @@ $canManageBloxDesign = hasPermission('*');
                 window.addEventListener("pagehide", function () {
                     self.finishLeftPanelResize();
                     self.finishRightPanelResize();
+                    self.finishTemplatePanelResize();
                     if (self._draftRecovery) self._draftRecovery.dispose(self.dirty);
                     if (self._previewClient) self._previewClient.cancel();
                     if (self._canvasBridge) self._canvasBridge.dispose();
