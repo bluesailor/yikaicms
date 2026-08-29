@@ -1006,6 +1006,14 @@ $canManageBloxDesign = hasPermission('*');
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetSiteData: <?php echo json_encode($headerPresetSiteData, JSON_UNESCAPED_SLASHES); ?>,
+            headerElementLabels: <?php echo json_encode([
+                'logo' => __('blox_header_structure_logo'),
+                'nav' => __('blox_header_structure_nav'),
+                'nav-mega' => __('blox_header_structure_nav'),
+                'nav-drawer' => __('blox_header_structure_mobile_nav'),
+                'language-switcher' => __('blox_header_structure_language'),
+                'site-search' => __('blox_header_structure_search'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetOpen: false,
             headerPresetPreviewOpen: false,
             headerPresetPreviewDevice: "desktop",
@@ -1043,6 +1051,10 @@ $canManageBloxDesign = hasPermission('*');
                 'missingLogo' => __('blox_header_preset_missing_logo'),
                 'missingNavigation' => __('blox_header_preset_missing_navigation'),
                 'missingLanguages' => __('blox_header_preset_missing_languages'),
+                'applyAndEdit' => __('blox_header_preset_apply_and_edit'),
+                'saveLocal' => __('blox_header_save_local_style'),
+                'saveLocalName' => __('blox_header_save_local_style_name'),
+                'saveLocalDone' => __('blox_header_save_local_style_done'),
                 'close' => __('close'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             currentThemeHeaderMode: <?php echo $isCurrentThemeHeaderEdit ? 'true' : 'false'; ?>,
@@ -2308,7 +2320,57 @@ $canManageBloxDesign = hasPermission('*');
                 return warnings;
             },
 
-            applyHeaderPreset(preset) {
+            headerPresetFocusTypes(preset) {
+                var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
+                return ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"]
+                    .filter(function (type, index, all) { return counts[type] && all.indexOf(type) === index; });
+            },
+
+            focusFirstHeaderElement(type) {
+                for (var si = 0; si < this.sections.length; si++) {
+                    var columns = this.sections[si].columns || [];
+                    for (var ci = 0; ci < columns.length; ci++) {
+                        var elements = columns[ci].elements || [];
+                        for (var ei = 0; ei < elements.length; ei++) {
+                            if (elements[ei].type === type) {
+                                this.selectElement(si, ci, ei);
+                                return true;
+                            }
+                            var children = elements[ei].data && Array.isArray(elements[ei].data.children)
+                                ? elements[ei].data.children : [];
+                            var childIndex = children.findIndex(function (child) { return child.type === type; });
+                            if (childIndex >= 0) {
+                                this.selectChild(si, ci, ei, childIndex);
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            },
+
+            saveHeaderAsLocalStyle() {
+                if (!this.headerTemplateMode) return;
+                var suggested = <?php echo json_encode((string) ($page['name'] ?? '') . ' - ' . __('blox_header_local_copy_suffix'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+                var name = window.prompt(this.headerPresetText.saveLocalName, suggested);
+                if (!name || !String(name).trim()) return;
+                var self = this;
+                var body = new URLSearchParams({
+                    action: "save_area_copy",
+                    type: "header",
+                    name: String(name).trim(),
+                    blocks_data: this.documentData(),
+                    _token: this.csrf,
+                });
+                fetch("/admin/blox_template_api.php", { method: "POST", body: body })
+                    .then(function (response) { return response.json(); })
+                    .then(function (result) {
+                        self.toast(Number(result.code) === 0 ? self.headerPresetText.saveLocalDone : (result.msg || self.uiText.saveFailed));
+                    })
+                    .catch(function () { self.toast(self.uiText.saveFailed); });
+            },
+
+            applyHeaderPreset(preset, focusType) {
                 if (!this.headerTemplateMode || !preset || !Array.isArray(preset.sections)
                     || preset.sections.length === 0) return;
                 var self = this;
@@ -2329,6 +2391,10 @@ $canManageBloxDesign = hasPermission('*');
                 });
                 if (!applied.ok) return;
                 this.toast(this.headerPresetText.applied.replace(":name", preset.name || ""));
+                if (focusType) {
+                    var self = this;
+                    this.$nextTick(function () { self.focusFirstHeaderElement(focusType); });
+                }
             },
 
             openPrebuiltSections() {
@@ -3540,6 +3606,9 @@ $canManageBloxDesign = hasPermission('*');
                 txt = txt || d.text || d.title || d.html || d.number || "";
                 txt = String(txt).replace(/<[^>]*>/g, "").trim();
                 var name = schema.label || el.type;
+                if (this.headerTemplateMode && this.headerElementLabels[el.type]) {
+                    name = this.headerElementLabels[el.type];
+                }
                 return txt ? (name + "：" + (txt.length > 12 ? txt.slice(0, 12) + "…" : txt)) : name;
             },
 

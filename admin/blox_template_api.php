@@ -151,6 +151,33 @@ try {
             ],
         ]);
     }
+    if ($action === 'save_area_copy' && $method === 'POST') {
+        verifyCsrf();
+        $type = strtolower(trim((string) post('type', '')));
+        if (!in_array($type, ['header', 'footer'], true)) {
+            error(__('blox_tpl_bad_type_short'));
+        }
+        $requireTemplateLicense($type);
+        requireBloxTemplateTypePermission($type);
+        $name = mb_substr(trim((string) post('name', '')), 0, 150);
+        if ($name === '') {
+            error(__('blox_tpl_name_required'));
+        }
+        $processed = $processTemplateDocument($type, 0, (string) post('blocks_data', '[]'));
+        $id = bloxTemplateModel()->createDraft(
+            $type,
+            $name,
+            $processed['json'],
+            'user',
+            BloxDocumentPipeline::SCHEMA_VERSION,
+            BloxTemplateImporter::deriveRequirements($processed['sections']),
+            '',
+            (int) ($_SESSION['admin_id'] ?? 0),
+            'editor-copy'
+        );
+        adminLog('blox_template', 'save_area_copy', '另存 Blox ' . $type . ' 模板 #' . $id . ' ' . $name);
+        success(['id' => $id, 'edit_url' => '/admin/blox_editor.php?template=' . $id]);
+    }
     if ($action === 'publish' && $method === 'POST') {
         verifyCsrf();
         $id = (int) post('id', '0');

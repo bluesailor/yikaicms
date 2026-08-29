@@ -535,7 +535,7 @@ declare(strict_types=1);
             <template x-for="preset in [selectedHeaderPreset()]" :key="preset ? 'preview-' + preset.slug : 'empty-preview'">
                 <div x-show="preset" data-testid="blox-header-preset-preview-panel"
                      class="relative flex max-h-[calc(100vh-2rem)] w-[1360px] max-w-[96vw] flex-col overflow-hidden rounded-lg bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
-                    <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
+                    <div class="flex min-h-14 shrink-0 flex-col items-start justify-between gap-3 border-b border-gray-100 px-5 py-3 sm:flex-row sm:items-center">
                         <span class="min-w-0">
                             <span class="flex min-w-0 items-center gap-2">
                                 <button type="button" @click="selectAdjacentHeaderPreset(-1)" data-testid="blox-header-preset-preview-previous"
@@ -552,7 +552,7 @@ declare(strict_types=1);
                             </span>
                             <span class="mt-0.5 block text-xs text-gray-500" x-text="headerPresetText.previewDataHint"></span>
                         </span>
-                        <span class="ml-4 flex shrink-0 items-center gap-3">
+                        <span class="flex w-full shrink-0 flex-wrap items-center gap-2 sm:ml-4 sm:w-auto sm:flex-nowrap sm:gap-3">
                             <span class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
                                 <template x-for="state in ['normal', 'overlay', 'stuck']" :key="'preset-state-' + state">
                                     <button type="button" @click="setHeaderPresetPreviewState(state)"
@@ -593,7 +593,7 @@ declare(strict_types=1);
                                 <i class="ti" :class="headerPresetPreviewDrawerOpen ? 'ti-layout-sidebar-right-collapse' : 'ti-menu-2'"></i>
                             </button>
                             <button type="button" @click="closeHeaderPresetPreview()" data-dialog-initial data-testid="blox-header-preset-preview-close"
-                                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                    class="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 sm:ml-0"
                                     :title="headerPresetText.close" :aria-label="headerPresetText.close">
                                 <i class="ti ti-x text-base"></i>
                             </button>
@@ -653,8 +653,24 @@ declare(strict_types=1);
                                 <p class="text-xs leading-5 text-amber-800"><i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i><span x-text="warning"></span></p>
                             </template>
                         </div>
+                        <div x-show="preset && headerPresetFocusTypes(preset).length" class="mt-4 flex flex-wrap items-center gap-2"
+                             data-testid="blox-header-preset-edit-targets">
+                            <template x-for="type in (preset ? headerPresetFocusTypes(preset) : [])" :key="'edit-' + type">
+                                <button type="button" @click="applyHeaderPreset(preset, type)"
+                                        class="inline-flex h-8 items-center gap-1.5 rounded border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-700">
+                                    <i class="ti" :class="'ti-' + elIcon(type)" aria-hidden="true"></i>
+                                    <span x-text="headerPresetText.applyAndEdit.replace(':name', headerElementLabels[type] || elSchema(type).label || type)"></span>
+                                </button>
+                            </template>
+                        </div>
                     </div>
-                    <div class="flex shrink-0 justify-end gap-2 border-t border-gray-100 px-5 py-3">
+                    <div class="flex shrink-0 items-center justify-between gap-2 border-t border-gray-100 px-5 py-3">
+                        <button type="button" @click="saveHeaderAsLocalStyle()" data-testid="blox-header-save-local-style"
+                                class="inline-flex h-9 items-center justify-center gap-1.5 rounded px-3 text-xs font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-800">
+                            <i class="ti ti-copy" aria-hidden="true"></i>
+                            <span x-text="headerPresetText.saveLocal"></span>
+                        </button>
+                        <span class="flex items-center gap-2">
                         <button type="button" @click="closeHeaderPresetPreview()"
                                 class="inline-flex h-9 items-center justify-center rounded border border-gray-200 px-4 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-800"
                                 x-text="headerPresetText.close"></button>
@@ -664,6 +680,7 @@ declare(strict_types=1);
                             <i class="ti" :class="preset && isCurrentHeaderPreset(preset) ? 'ti-check' : 'ti-arrow-right'"></i>
                             <span x-text="preset && isCurrentHeaderPreset(preset) ? headerPresetText.currentApply : headerPresetText.apply"></span>
                         </button>
+                        </span>
                     </div>
                 </div>
             </template>

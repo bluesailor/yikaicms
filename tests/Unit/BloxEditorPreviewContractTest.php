@@ -843,6 +843,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-header-preset-preview-next"',
             'data-testid="blox-header-preset-difference"',
             'data-testid="blox-header-preset-warnings"',
+            'data-testid="blox-header-preset-edit-targets"',
+            'data-testid="blox-header-save-local-style"',
             'data-testid="blox-header-preset-preview-close"',
             'data-testid="blox-header-preset-preview-apply"',
             ':data-current="isCurrentHeaderPreset(preset) ? \'true\' : \'false\'"',
@@ -852,8 +854,12 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         $this->assertStringNotContainsString('data-testid="blox-header-preset-detail"', $overlays);
         $this->assertStringNotContainsString("preset && preset.preview === 'corporate'", $overlays);
-        foreach (['selectAdjacentHeaderPreset(offset)', 'headerPresetComparison(preset)', 'headerPresetWarnings(preset)', 'headerPresetSiteData:'] as $token) {
+        foreach (['selectAdjacentHeaderPreset(offset)', 'headerPresetComparison(preset)', 'headerPresetWarnings(preset)', 'headerPresetSiteData:', 'focusFirstHeaderElement(type)', 'saveHeaderAsLocalStyle()'] as $token) {
             $this->assertStringContainsString($token, $editor, "header preset comparison token {$token} missing");
+        }
+        $api = $this->source('admin/blox_template_api.php');
+        foreach (["\$action === 'save_area_copy'", "in_array(\$type, ['header', 'footer'], true)", "'editor-copy'"] as $token) {
+            $this->assertStringContainsString($token, $api, "header copy API token {$token} missing");
         }
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
         $this->assertStringContainsString('? $editableArea', $preview);
