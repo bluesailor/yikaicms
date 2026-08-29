@@ -222,6 +222,23 @@ declare(strict_types=1);
                     </div>
                     <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
                 </fieldset>
+                <div class="flex flex-wrap items-center gap-3 border-y border-gray-100 bg-gray-50 px-3 py-3" data-testid="blox-page-hero-effective-source">
+                    <span class="min-w-0 flex-1">
+                        <span class="block text-xs text-gray-500" x-text="pageHeroText.effectiveSource"></span>
+                        <strong class="mt-0.5 block text-sm font-medium text-gray-800" x-text="pageHeroEffectiveSourceLabel()"></strong>
+                        <span x-show="pageHeroInheritancePathLabel()" class="mt-1 block break-words text-xs leading-5 text-gray-500" x-text="pageHeroInheritancePathLabel()"></span>
+                    </span>
+                    <button x-show="pageHero.style_source !== 'self'" type="button" @click="copyPageHeroToSelf()"
+                            data-testid="blox-page-hero-copy-self" :title="pageHeroText.copyToSelfHint"
+                            class="inline-flex h-9 items-center gap-1.5 border border-gray-300 bg-white px-3 text-xs font-medium text-gray-700 hover:border-blue-300 hover:text-blue-700">
+                        <i class="ti ti-copy"></i><span x-text="pageHeroText.copyToSelf"></span>
+                    </button>
+                    <button x-show="pageHero.style_source === 'self'" type="button" @click="restorePageHeroInheritance()"
+                            data-testid="blox-page-hero-restore-inheritance" :title="pageHeroText.restoreInheritanceHint"
+                            class="inline-flex h-9 items-center gap-1.5 border border-gray-300 bg-white px-3 text-xs font-medium text-gray-700 hover:border-amber-300 hover:text-amber-700">
+                        <i class="ti ti-arrow-back-up"></i><span x-text="pageHeroText.restoreInheritance"></span>
+                    </button>
+                </div>
                 <div class="overflow-hidden border border-gray-200 bg-gray-900" data-testid="blox-page-hero-style-preview">
                     <div class="relative bg-cover bg-center px-5 transition-[height] duration-200"
                          :class="[

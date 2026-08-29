@@ -80,7 +80,7 @@ final class PageHeroStyleResolver
      * @param array<string,mixed> $channel
      * @param null|callable(int):(?array<string,mixed>) $channelLoader
      * @param array<string,mixed>|string|null $globalOptions
-     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string}}
+     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string}}
      */
     public static function resolve(
         array $channel,
@@ -104,6 +104,7 @@ final class PageHeroStyleResolver
             $parentId = (int) ($channel['parent_id'] ?? 0);
             $channelLang = (string) ($channel['lang'] ?? '');
             $visited = [];
+            $inheritancePath = [];
             $currentId = (int) ($channel['id'] ?? 0);
             if ($currentId > 0) {
                 $visited[$currentId] = true;
@@ -122,10 +123,14 @@ final class PageHeroStyleResolver
                 if ($channelLang !== '' && $parentLang !== '' && $channelLang !== $parentLang) {
                     break;
                 }
+                $parentName = trim((string) ($parent['name'] ?? ''));
+                if ($parentName !== '') {
+                    $inheritancePath[] = $parentName;
+                }
 
                 $parentMode = self::normalizeMode((string) ($parent['hero_style_source'] ?? self::MODE_SELF));
                 if ($parentMode === self::MODE_GLOBAL) {
-                    return self::globalResult($mode, $globalBackground, $canInherit, $normalizedGlobalOptions);
+                    return self::globalResult($mode, $globalBackground, $canInherit, $normalizedGlobalOptions, $inheritancePath);
                 }
 
                 if ($parentMode === self::MODE_SELF) {
@@ -141,6 +146,7 @@ final class PageHeroStyleResolver
                             'source' => 'parent',
                             'source_channel_id' => (int) ($parent['id'] ?? 0),
                             'source_channel_name' => (string) ($parent['name'] ?? ''),
+                            'inheritance_path' => $inheritancePath,
                             'can_inherit' => $canInherit,
                             'options' => self::normalizeOptions($parentOptionsRaw),
                         ];
@@ -149,7 +155,7 @@ final class PageHeroStyleResolver
                 $parentId = (int) ($parent['parent_id'] ?? 0);
             }
 
-            return self::globalResult($mode, $globalBackground, $canInherit, $normalizedGlobalOptions);
+            return self::globalResult($mode, $globalBackground, $canInherit, $normalizedGlobalOptions, $inheritancePath);
         }
 
         $localOptions = self::normalizeOptions($channel['hero_style_options'] ?? '', $compactContact);
@@ -173,7 +179,7 @@ final class PageHeroStyleResolver
 
     /**
      * @param array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string} $options
-     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string}}
+     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string}}
      */
     private static function localResult(string $mode, string $background, string $source, bool $canInherit, array $options): array
     {
@@ -183,6 +189,7 @@ final class PageHeroStyleResolver
             'source' => $source,
             'source_channel_id' => 0,
             'source_channel_name' => '',
+            'inheritance_path' => [],
             'can_inherit' => $canInherit,
             'options' => $options,
         ];
@@ -190,10 +197,19 @@ final class PageHeroStyleResolver
 
     /**
      * @param array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string} $options
-     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string}}
+     * @param list<string> $inheritancePath
+     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,alignment:string,text_tone:string}}
      */
-    private static function globalResult(string $mode, string $background, bool $canInherit, array $options): array
+    private static function globalResult(
+        string $mode,
+        string $background,
+        bool $canInherit,
+        array $options,
+        array $inheritancePath = []
+    ): array
     {
-        return self::localResult($mode, $background, $background !== '' ? 'global' : 'builtin', $canInherit, $options);
+        $result = self::localResult($mode, $background, $background !== '' ? 'global' : 'builtin', $canInherit, $options);
+        $result['inheritance_path'] = $inheritancePath;
+        return $result;
     }
 }
