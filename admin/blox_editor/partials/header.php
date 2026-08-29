@@ -468,9 +468,10 @@ declare(strict_types=1);
                 <button type="button" @click="openElementLibrary(); mobileActionsOpen = false">
                     <i class="ti ti-circle-plus"></i><?php echo e(__('blox_open_elements')); ?>
                 </button>
-<?php if ($templateId && ($templateType ?? '') === 'header'): ?>
+<?php if ($templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
                 <button type="button" @click="openHeaderPresets(); mobileActionsOpen = false">
-                    <i class="ti ti-layout-navbar"></i><?php echo e(__('blox_header_presets')); ?>
+                    <i class="ti <?php echo $templateType === 'footer' ? 'ti-layout-bottombar' : 'ti-layout-navbar'; ?>"></i>
+                    <?php echo e(__($templateType === 'footer' ? 'blox_footer_presets' : 'blox_header_presets')); ?>
                 </button>
 <?php else: ?>
                 <button type="button" @click="openPrebuiltSections(); mobileActionsOpen = false">

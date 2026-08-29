@@ -93,6 +93,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   const crossViewportTitles = [
     'viewport contract @ci',
     'header preset chooser adapts across viewports @ci',
+    'footer style library previews and applies practical starters @ci',
     'shared color picker adapts across viewports @ci',
   ];
   test.skip(testInfo.project.name !== 'desktop-1440' && !crossViewportTitles.includes(testInfo.title), 'desktop interaction baseline');
@@ -2025,7 +2026,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(presetPreview).toContainText(corporateName);
   await expect(presetPreview.getByTestId('blox-header-preset-preview-close')).toBeFocused();
   const presetFrame = presetPreview.getByTestId('blox-header-preset-preview-frame');
-  await expect(presetFrame).toHaveAttribute('src', /header_preset=corporate-site-header/);
+  await expect(presetFrame).toHaveAttribute('src', /template_area=header&area_preset=corporate-site-header/);
   const presetContent = presetFrame.contentFrame();
   await expect(presetContent.locator('#siteHeader')).toBeVisible();
   const hasSiteBrand = await presetContent.locator('#siteHeader').evaluate((header) => (
@@ -2205,13 +2206,13 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   expect(previewHeaderMetrics.titleWidth).toBeGreaterThan(160);
   expect(previewHeaderMetrics.controlsWidth).toBeLessThan(previewHeaderMetrics.headerWidth);
   const presetFrame = previewDialog.getByTestId('blox-header-preset-preview-frame');
-  await expect(presetFrame).toHaveAttribute('src', /header_preset=clean-site-header/);
+  await expect(presetFrame).toHaveAttribute('src', /template_area=header&area_preset=clean-site-header/);
   await expect(presetFrame.contentFrame().locator('#siteHeader')).toBeVisible();
   await expect(previewDialog.getByTestId('blox-header-preset-difference')).toBeVisible();
   await previewDialog.getByTestId('blox-header-preset-preview-next').click();
-  await expect(presetFrame).toHaveAttribute('src', /header_preset=full-width-site-header/);
+  await expect(presetFrame).toHaveAttribute('src', /template_area=header&area_preset=full-width-site-header/);
   await previewDialog.getByTestId('blox-header-preset-preview-previous').click();
-  await expect(presetFrame).toHaveAttribute('src', /header_preset=clean-site-header/);
+  await expect(presetFrame).toHaveAttribute('src', /template_area=header&area_preset=clean-site-header/);
   const previewViewport = previewDialog.getByTestId('blox-header-preset-preview-viewport');
   await previewDialog.getByTestId('blox-header-preset-preview-mobile').click();
   await expect(previewViewport).toHaveAttribute('data-device', 'mobile');
@@ -2228,6 +2229,60 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   await expect(previewDialog).toBeHidden();
   await expect(dialog).toBeVisible();
   await expect(firstPreviewButton).toBeFocused();
+});
+
+test('footer style library previews and applies practical starters @ci', async ({ page }, testInfo) => {
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'footer editing is an advanced feature');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_footer_template,
+    { waitUntil: 'domcontentloaded' });
+
+  if (testInfo.project.name === 'desktop-1440') {
+    const entry = page.getByTestId('blox-right-panel').getByTestId('blox-footer-presets-open');
+    await expect(entry).toContainText('网页脚样式');
+    await entry.click();
+  } else {
+    await page.getByTestId('blox-mobile-actions-open').click();
+    await page.getByTestId('blox-mobile-actions').getByRole('button', { name: '网页脚样式' }).click();
+  }
+
+  const dialog = page.getByTestId('blox-header-presets');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(5);
+  await expect(dialog).toContainText('紧凑网页脚');
+  await expect(dialog).toContainText('联系方式网页脚');
+  await expect(dialog).toContainText('搜索导航网页脚');
+
+  const searchPreset = dialog.getByTestId('blox-header-preset-search-site-footer');
+  await searchPreset.getByTestId('blox-header-preset-preview').click();
+  const preview = page.getByTestId('blox-header-preset-preview-dialog');
+  await expect(preview).toBeVisible();
+  const previewFrame = preview.getByTestId('blox-header-preset-preview-frame');
+  await expect(previewFrame).toHaveAttribute('src', /template_area=footer&area_preset=search-site-footer/);
+  const previewContent = previewFrame.contentFrame();
+  await expect(previewContent.locator('[data-yk-area="footer"]')).toBeVisible();
+  await expect(previewContent.locator('.yk-ctx-dim')).toHaveCount(0);
+  await expect(preview.getByTestId('blox-header-preset-preview-state-normal')).toBeHidden();
+  await expect(preview.getByTestId('blox-header-preset-preview-drawer')).toBeHidden();
+
+  const previewViewport = preview.getByTestId('blox-header-preset-preview-viewport');
+  await preview.getByTestId('blox-header-preset-preview-mobile').click();
+  await expect(previewViewport).toHaveAttribute('data-device', 'mobile');
+  const mobilePreviewBox = await previewViewport.boundingBox();
+  expect(mobilePreviewBox.width).toBeLessThanOrEqual(390);
+  await preview.getByTestId('blox-header-preset-preview-close').click();
+  await expect(preview).toBeHidden();
+
+  if (testInfo.project.name === 'desktop-1440') {
+    await searchPreset.getByTestId('blox-header-preset-apply').click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(3);
+    await expect(page.getByTestId('blox-dirty')).toBeVisible();
+    await undo(page);
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
+    await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  }
 });
 
 test('shared color picker adapts across viewports @ci', async ({ page }) => {

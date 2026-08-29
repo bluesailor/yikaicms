@@ -435,7 +435,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 网页头样式：随包预置直接替换当前页头草稿，应用动作可撤销。 -->
+    <!-- 网页头/网页脚样式：随包预置直接替换当前区域草稿，应用动作可撤销。 -->
     <div x-show="headerPresetOpen" x-cloak x-ref="headerPresetDialog" tabindex="-1"
          data-testid="blox-header-presets"
          @keydown="dialogKeydown($event, $refs.headerPresetDialog, () => closeHeaderPresets())"
@@ -447,7 +447,7 @@ declare(strict_types=1);
             <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
                 <span class="min-w-0">
                     <span id="blox-header-presets-title" class="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                        <i class="ti ti-layout-navbar text-lg text-blue-500"></i>
+                        <i class="ti text-lg text-blue-500" :class="areaPresetType === 'footer' ? 'ti-layout-bottombar' : 'ti-layout-navbar'"></i>
                         <span x-text="headerPresetText.title"></span>
                     </span>
                     <span class="mt-0.5 block text-xs text-gray-400" x-text="headerPresetText.hint"></span>
@@ -471,7 +471,7 @@ declare(strict_types=1);
                                       class="absolute left-2 top-2 inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-[10px] font-semibold text-white">
                                     <i class="ti ti-check"></i><span x-text="headerPresetText.currentDraft"></span>
                                 </span>
-                                <div class="flex flex-col overflow-hidden border border-gray-200 bg-white shadow-sm"
+                                <div x-show="areaPresetType === 'header'" class="flex flex-col overflow-hidden border border-gray-200 bg-white shadow-sm"
                                      :class="preset.preview === 'viewport-left' ? 'w-full' : 'w-5/6'" aria-hidden="true">
                                     <span x-show="preset.preview === 'corporate'" class="flex h-4 items-center justify-end gap-1 bg-gray-800 px-2">
                                         <i class="h-1 w-7 rounded bg-gray-500"></i><i class="h-1 w-4 rounded bg-gray-500"></i>
@@ -496,6 +496,23 @@ declare(strict_types=1);
                                         <i class="h-2.5 w-12 rounded-sm bg-blue-500"></i>
                                         <span class="flex items-center gap-1.5"><i class="h-1.5 w-10 rounded bg-gray-300"></i><i class="h-1.5 w-7 rounded bg-gray-300"></i><i class="h-5 w-8 rounded bg-blue-100"></i></span>
                                     </span>
+                                </div>
+                                <div x-show="areaPresetType === 'footer'"
+                                     class="flex w-5/6 flex-col overflow-hidden border border-gray-300 bg-white shadow-sm" aria-hidden="true">
+                                    <span x-show="preset.preview === 'footer-search'" class="flex h-5 items-center gap-2 bg-gray-800 px-3">
+                                        <i class="h-1.5 w-9 rounded bg-blue-400"></i><i class="h-2.5 flex-1 rounded bg-gray-600"></i>
+                                    </span>
+                                    <span class="flex items-start justify-between gap-3 px-3"
+                                          :class="preset.preview === 'footer-compact' ? 'h-8 items-center bg-gray-800' : (preset.preview === 'footer-columns-dark' || preset.preview === 'footer-search' ? 'h-12 bg-gray-700 py-2' : 'h-12 bg-gray-50 py-2')">
+                                        <i class="h-2 w-10 rounded" :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-blue-400' : 'bg-blue-500'"></i>
+                                        <span class="flex flex-1 justify-end gap-2">
+                                            <i class="h-1.5 w-8 rounded" :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-gray-400' : 'bg-gray-300'"></i>
+                                            <i class="h-1.5 w-6 rounded" :class="preset.preview === 'footer-contact' ? 'bg-blue-300' : (preset.preview === 'footer-columns-dark' || preset.preview === 'footer-compact' || preset.preview === 'footer-search' ? 'bg-gray-400' : 'bg-gray-300')"></i>
+                                            <i x-show="preset.preview !== 'footer-compact'" class="h-1.5 w-7 rounded" :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-search' ? 'bg-gray-400' : 'bg-gray-300'"></i>
+                                        </span>
+                                    </span>
+                                    <span x-show="preset.preview !== 'footer-compact'" class="h-3"
+                                          :class="preset.preview === 'footer-columns-dark' || preset.preview === 'footer-search' ? 'bg-gray-900' : 'bg-gray-200'"></span>
                                 </div>
                             </div>
                             <div class="flex flex-1 flex-col border-t border-gray-100 p-4">
@@ -553,7 +570,7 @@ declare(strict_types=1);
                             <span class="mt-0.5 block max-w-full text-xs text-gray-500" x-text="headerPresetText.previewDataHint"></span>
                         </span>
                         <span class="flex w-full flex-none flex-wrap items-center gap-2 sm:ml-4 sm:w-auto sm:flex-nowrap sm:gap-3">
-                            <span class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
+                            <span x-show="areaPresetType === 'header'" class="inline-flex h-9 items-center rounded border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="headerPresetText.previewTitle">
                                 <template x-for="state in ['normal', 'overlay', 'stuck']" :key="'preset-state-' + state">
                                     <button type="button" @click="setHeaderPresetPreviewState(state)"
                                             :data-testid="'blox-header-preset-preview-state-' + state"
@@ -583,7 +600,7 @@ declare(strict_types=1);
                                     <i class="ti ti-device-mobile text-base"></i>
                                 </button>
                             </span>
-                            <button type="button" x-show="headerPresetPreviewDevice === 'mobile'"
+                            <button type="button" x-show="areaPresetType === 'header' && headerPresetPreviewDevice === 'mobile'"
                                     @click="toggleHeaderPresetPreviewDrawer()"
                                     data-testid="blox-header-preset-preview-drawer"
                                     :aria-pressed="headerPresetPreviewDrawerOpen ? 'true' : 'false'"
@@ -610,7 +627,7 @@ declare(strict_types=1);
                                 <iframe data-testid="blox-header-preset-preview-frame"
                                         :src="headerPresetPreviewUrl(preset)"
                                         @load="headerPresetPreviewLoading = false"
-                                        title="<?= e(__('blox_header_preset_preview_title')) ?>"
+                                        :title="headerPresetText.previewTitle"
                                         tabindex="-1" aria-hidden="true"
                                         class="h-full w-full border-0 bg-white"></iframe>
                                 <div x-show="headerPresetPreviewLoading"
