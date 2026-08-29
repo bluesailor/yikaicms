@@ -39,6 +39,8 @@ final class BloxAreaAssignmentMatrixTest extends TestCase
         self::assertCount(2, $rows);
         self::assertSame('en', $rows[0]['lang']);
         self::assertSame(5, $rows[0]['areas']['header']['template']['id'] ?? null);
+        self::assertSame('home', $rows[0]['areas']['header']['match']['scope'] ?? null);
+        self::assertTrue($rows[0]['areas']['header']['match']['language_specific'] ?? false);
         self::assertSame(20, $rows[0]['areas']['footer']['template']['id'] ?? null);
         self::assertSame(10, $rows[1]['areas']['header']['template']['id'] ?? null);
         self::assertNull($rows[1]['areas']['footer']['template']);
@@ -57,6 +59,7 @@ final class BloxAreaAssignmentMatrixTest extends TestCase
 
         self::assertFalse($rows[0]['areas']['header']['enabled']);
         self::assertNull($rows[0]['areas']['header']['template']);
+        self::assertNull($rows[0]['areas']['header']['match']);
         self::assertTrue($rows[0]['areas']['footer']['enabled']);
     }
 }

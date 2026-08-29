@@ -1001,6 +1001,19 @@ $canManageBloxDesign = hasPermission('*');
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
             previewContext: "home",
             ctxHit: null,
+            ctxMatch: null,
+            areaMatchText: <?php echo json_encode([
+                'theme' => __('blox_assignment_source_theme'),
+                'default' => __('blox_assignment_source_default'),
+                'any' => __('blox_assignment_source_global'),
+                'home' => __('blox_assignment_source_home'),
+                'channel' => __('blox_assignment_source_channel'),
+                'page' => __('blox_assignment_source_page'),
+                'unknown' => __('blox_assignment_source_unknown'),
+                'language' => __('blox_assignment_source_language'),
+                'manage' => __('blox_assignment_manage'),
+                'current' => __('blox_assignment_current_match'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
@@ -5873,6 +5886,7 @@ $canManageBloxDesign = hasPermission('*');
                         self.ctxHit = id;
                         self.scrollInitialFooterIntoView();
                     },
+                    onAreaMatch: function (match) { self.ctxMatch = match; },
                     onEditArea: function (payload) { window.location.assign(payload.url); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
@@ -5926,6 +5940,7 @@ $canManageBloxDesign = hasPermission('*');
                     ? base
                     : base + "&preview_context=" + encodeURIComponent(this.previewContext);
                 this.ctxHit = null; // 旧命中作废，等新画布上报
+                this.ctxMatch = null;
                 if (this._previewClient) {
                     this._previewClient.cancel(); // 丢弃在途请求，防旧上下文响应覆盖
                     this._previewClient = null;

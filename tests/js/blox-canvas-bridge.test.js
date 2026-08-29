@@ -161,6 +161,17 @@ test('ykAreaHit 只接受非负整数（r9 上下文命中上报）', function (
     assert.deepEqual(hits, [0, 12]);
 });
 
+test('ykAreaMatch 只接受完整的命中来源说明', function () {
+    const matches = [];
+    const current = fixture({ onAreaMatch: function (match) { matches.push(match); } });
+    const valid = { id: 12, name: 'English Header', scope: 'home', languageSpecific: true };
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaMatch: valid } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaMatch: { ...valid, id: '12' } } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaMatch: { ...valid, scope: 'evil' } } }), false);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykAreaMatch: { ...valid, languageSpecific: 1 } } }), false);
+    assert.deepEqual(matches, [valid]);
+});
+
 test('ykEmptyAction 白名单：templates/section 过，其余拒', function () {
     const actions = [];
     const current = fixture({ onEmptyAction: function (a) { actions.push(a); } });
