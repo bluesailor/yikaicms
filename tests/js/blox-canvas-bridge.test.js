@@ -279,3 +279,13 @@ test("页面标题区入口只接受来自当前画布的布尔协议", function
     assert.equal(current.bridge.handleMessage({ source: {}, data: { ykEditPageHero: true } }), false);
     assert.deepEqual(current.calls, [["editPageHero"]]);
 });
+
+test("页面内容入口只展开当前编辑器工具，不接受字符串伪协议", function () {
+    const current = fixture({
+        onEditPageContent: function () { current.calls.push(["editPageContent"]); },
+    });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditPageContent: true } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditPageContent: "true" } }), false);
+    assert.equal(current.bridge.handleMessage({ source: {}, data: { ykEditPageContent: true } }), false);
+    assert.deepEqual(current.calls, [["editPageContent"]]);
+});

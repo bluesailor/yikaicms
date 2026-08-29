@@ -907,6 +907,34 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("if (\$templateArea === 'footer' && !\$areaOnly)", $preview);
     }
 
+    public function testCanvasUsesOneRegionContractForHeaderHeroContentAndFooter(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+
+        foreach ([
+            'data-yk-region="page-hero"',
+            'data-yk-region="content"',
+            'data-yk-context-area="',
+            'data-testid="blox-context-edit-content"',
+            'yk-canvas-region-action',
+            'ykEditPageContent: true',
+        ] as $token) {
+            $this->assertStringContainsString($token, $preview, "canvas region token {$token} missing");
+        }
+        $this->assertStringNotContainsString('target="_top"', $preview);
+        $this->assertStringContainsString('onEditPageContent = options.onEditPageContent || noop;', $bridge);
+        $this->assertStringContainsString('if (data.ykEditPageContent === true)', $bridge);
+        $this->assertStringContainsString('onEditPageContent: function () { self.focusPageContentTools(); }', $editor);
+        $this->assertStringContainsString('focusPageContentTools()', $editor);
+        $this->assertStringNotContainsString('scrollIntoView', substr(
+            $editor,
+            (int) strpos($editor, 'focusPageContentTools()'),
+            400
+        ));
+    }
+
     public function testAreaPresetPreviewUsesAReadOnlyBundledDocument(): void
     {
         $endpoint = $this->source('admin/blox_preview.php');

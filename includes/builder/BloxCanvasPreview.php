@@ -184,7 +184,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 $pageHeroHtml = '<div class="yk-page-hero-hidden"><i class="ti ti-eye-off"></i><span>'
                     . htmlspecialchars(__('blox_page_hero_hidden_canvas'), ENT_QUOTES) . '</span></div>';
             }
-            $pageHeroBody = '<div class="yk-page-hero-context" data-yk-page-hero'
+            $pageHeroBody = '<div class="yk-canvas-region yk-page-hero-context" data-yk-region="page-hero" data-yk-page-hero'
                 . ' data-yk-page-hero-label="' . htmlspecialchars(
                     __('blox_page_hero_canvas_label') . ' · ' . $heroSource,
                     ENT_QUOTES
@@ -343,13 +343,14 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $editLabel = $area === 'header' ? __('blox_context_edit_header') : __('blox_context_edit_footer');
             $icon = $area === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar';
             $editAction = $canEditContextArea
-                ? '<a class="yk-home-context-edit" data-yk-area-edit="' . $area
-                    . '" data-testid="blox-context-edit-' . $area . '" href="'
-                    . htmlspecialchars($editUrl, ENT_QUOTES, 'UTF-8') . '" target="_top" aria-label="'
+                ? '<button type="button" class="yk-canvas-region-action yk-home-context-edit"'
+                    . ' data-testid="blox-context-edit-' . $area . '" aria-label="'
                     . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '"><i class="ti ' . $icon
-                    . '" aria-hidden="true"></i><span>' . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '</span></a>'
+                    . '" aria-hidden="true"></i><span>' . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '</span></button>'
                 : '';
-            return '<div class="yk-home-context-area" data-yk-preview-label="'
+            return '<div class="yk-canvas-region yk-home-context-area" data-yk-region="' . $area
+                . '" data-yk-context-area="' . $area . '" data-yk-context-url="'
+                . htmlspecialchars($editUrl, ENT_QUOTES, 'UTF-8') . '" data-yk-preview-label="'
                 . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">'
                 . $editAction
                 . $html . '</div>';
@@ -388,8 +389,17 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             BloxAreaEditorTarget::url('footer', $areaContext, $isHomeLayout ? 'home' : '')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
+        $pageContentBody = $hasCanvasContent
+            ? '<div class="yk-canvas-region yk-page-content-context" data-yk-region="content"'
+                . ' data-yk-preview-label="' . htmlspecialchars(__('blox_page_content_canvas_label'), ENT_QUOTES, 'UTF-8') . '">'
+                . '<button type="button" class="yk-canvas-region-action yk-page-content-edit"'
+                . ' data-yk-page-content-action data-testid="blox-context-edit-content">'
+                . '<i class="ti ti-layout-list" aria-hidden="true"></i><span>'
+                . htmlspecialchars(__('blox_page_content_edit'), ENT_QUOTES, 'UTF-8') . '</span></button>'
+                . $pageBody . '</div>'
+            : $pageBody;
         $body = $hasCanvasContent
-            ? ($headerBody . $pageHeroBody . $pageBody . $footerBody)
+            ? ($headerBody . $pageHeroBody . $pageContentBody . $footerBody)
             : ($pageHeroBody . $pageBody);
     }
 
@@ -405,15 +415,20 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
 .yk-ctx-dim{opacity:.42;pointer-events:none;user-select:none;filter:grayscale(.35);position:relative}
 .yk-ctx-dim:before{content:'';position:absolute;inset:0;z-index:20;background:repeating-linear-gradient(135deg,transparent 0 14px,rgba(100,116,139,.05) 14px 28px)}
-.yk-home-context-area{position:relative;pointer-events:none;user-select:none;opacity:.86;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1}
-.yk-home-context-area:before{content:attr(data-yk-preview-label);position:absolute;z-index:40;top:6px;left:8px;padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;background:rgba(248,250,252,.94);color:#64748b;font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0;pointer-events:none}
-.yk-home-context-edit{position:absolute;z-index:60;top:6px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #2563eb;border-radius:4px;background:#2563eb;color:#fff!important;font:600 11px/1.4 system-ui,sans-serif;text-decoration:none!important;pointer-events:auto;user-select:none;box-shadow:0 2px 8px rgba(37,99,235,.24)}
-.yk-home-context-edit:hover,.yk-home-context-edit:focus{background:#1d4ed8;border-color:#1d4ed8;outline:2px solid rgba(147,197,253,.9);outline-offset:2px}
+.yk-canvas-region{position:relative}
+.yk-home-context-area{cursor:pointer;user-select:none;opacity:.86;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1}
+.yk-home-context-area>*:not(.yk-canvas-region-action){pointer-events:none}
+.yk-home-context-area:before,.yk-page-content-context:before{content:attr(data-yk-preview-label);position:absolute;z-index:64;top:8px;left:8px;max-width:calc(100% - 190px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;background:rgba(248,250,252,.94);color:#64748b;font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0;pointer-events:none}
+.yk-canvas-region-action{position:absolute;z-index:66;top:8px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid rgba(255,255,255,.72);border-radius:4px;background:#1f2937;color:#fff!important;font:600 11px/1.4 system-ui,sans-serif;text-decoration:none!important;cursor:pointer;user-select:none;box-shadow:0 3px 10px rgba(15,23,42,.22)}
+.yk-canvas-region-action:hover,.yk-canvas-region-action:focus-visible{background:#111827;border-color:#111827;outline:2px solid rgba(147,197,253,.9);outline-offset:2px}
 .yk-page-hero-context{position:relative;cursor:pointer;outline:1px dashed rgba(245,158,11,.7);outline-offset:-1px}
 .yk-page-hero-context:before{content:attr(data-yk-page-hero-label);position:absolute;z-index:65;top:8px;left:8px;max-width:calc(100% - 170px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 8px;border-radius:4px;background:rgba(15,23,42,.9);color:#fff;font:600 11px/1.4 system-ui,sans-serif;pointer-events:none;box-shadow:0 3px 10px rgba(15,23,42,.22)}
 .yk-page-hero-context:hover{outline:2px solid #f59e0b;outline-offset:-2px}
-.yk-page-hero-edit{position:absolute;z-index:66;top:8px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid rgba(255,255,255,.75);border-radius:4px;background:#111827;color:#fff;font:600 11px/1.4 system-ui,sans-serif;box-shadow:0 3px 10px rgba(15,23,42,.25)}
+.yk-page-hero-edit{position:absolute;z-index:66;top:8px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid rgba(255,255,255,.75);border-radius:4px;background:#1f2937;color:#fff;font:600 11px/1.4 system-ui,sans-serif;box-shadow:0 3px 10px rgba(15,23,42,.25)}
 .yk-page-hero-edit:hover,.yk-page-hero-edit:focus{background:#f59e0b;color:#111827;outline:2px solid rgba(254,215,170,.95);outline-offset:2px}
+.yk-page-content-context{min-height:96px;outline:1px dashed rgba(37,99,235,.42);outline-offset:-1px}
+.yk-page-content-context:before{border-color:#bfdbfe;background:rgba(239,246,255,.94);color:#1d4ed8}
+.yk-page-content-context:hover{outline-color:rgba(37,99,235,.75)}
 .yk-page-hero-hidden{min-height:92px;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;color:#64748b;font:600 13px/1.5 system-ui,sans-serif;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
 [data-yk-hide-on]{position:relative}
 [data-yk-hide-on]:before{content:'\2298 ' attr(data-yk-hide-on);position:absolute;z-index:28;top:4px;left:4px;padding:2px 7px;border-radius:4px;background:#64748b;color:#fff;font:700 10px/1.4 system-ui,sans-serif;pointer-events:none;opacity:.85}
@@ -936,13 +951,19 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             postToEditor({ ykEditPageHero: true });
             return;
         }
-        var contextEdit = e.target.closest('.yk-home-context-edit');
-        if (contextEdit) {
+        var contextArea = e.target.closest('[data-yk-context-area]');
+        if (contextArea) {
             e.preventDefault();
             postToEditor({ ykEditArea: {
-                area: contextEdit.getAttribute('data-yk-area-edit') || '',
-                url: contextEdit.getAttribute('href') || ''
+                area: contextArea.getAttribute('data-yk-context-area') || '',
+                url: contextArea.getAttribute('data-yk-context-url') || ''
             } });
+            return;
+        }
+        var pageContent = e.target.closest('[data-yk-page-content-action]');
+        if (pageContent) {
+            e.preventDefault();
+            postToEditor({ ykEditPageContent: true });
             return;
         }
         var a = e.target.closest('a');

@@ -660,30 +660,42 @@ test('media API rejects oversized image dimensions before processing @ci', async
   expect(listed.total).toBe(0);
 });
 
-test('home canvas exposes dedicated edit links for the readonly header and footer @ci', async ({ page }, testInfo) => {
+test('home canvas exposes unified region actions without moving page content @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
   const contentFrame = await frame(page);
+  const headerArea = contentFrame.locator('[data-yk-context-area="header"]');
+  const footerArea = contentFrame.locator('[data-yk-context-area="footer"]');
   const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
   const footerEdit = contentFrame.getByTestId('blox-context-edit-footer');
+  const contentEdit = contentFrame.getByTestId('blox-context-edit-content');
   const headerSettings = page.getByTestId('blox-home-header-settings');
   // v1.18.6：画布入口与顶栏「网页头设置」都带 back=home——编辑完页头一键返回首页编辑器
   const expectedHeaderPath = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&back=home&open=header-settings`;
   const expectedCanvasHeaderPath = expectedHeaderPath;
 
   await expect(headerSettings).toBeVisible();
-  await expect(headerSettings).toContainText('网页头设置');
+  await expect(headerSettings).toContainText('编辑网页头');
   await expect(headerSettings).toHaveAttribute('href', expectedHeaderPath);
   await expect(headerEdit).toBeVisible();
   await expect(footerEdit).toBeVisible();
-  await expect(headerEdit).toHaveAttribute('target', '_top');
-  await expect(footerEdit).toHaveAttribute('target', '_top');
-  await expect(headerEdit).toHaveAttribute('href', expectedCanvasHeaderPath);
-  await expect(footerEdit).toHaveAttribute('href', /\/admin\/(?:blox_editor\.php\?template=\d+(?:&back=home)?|site_design\.php#site-design-area-footer)$/);
+  await expect(contentEdit).toBeVisible();
+  await expect(headerEdit).not.toHaveAttribute('href', /.+/);
+  await expect(footerEdit).not.toHaveAttribute('href', /.+/);
+  await expect(headerArea).toHaveAttribute('data-yk-context-url', expectedCanvasHeaderPath);
+  await expect(footerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+(?:&back=home)?|site_design\.php#site-design-area-footer)$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
 
-  const headerHref = await headerEdit.getAttribute('href');
+  const contentUrl = page.url();
+  const hostScrollBefore = await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop);
+  const frameScrollBefore = await contentFrame.evaluate(() => window.scrollY);
+  await pointerClick(page, contentEdit);
+  expect(page.url()).toBe(contentUrl);
+  expect(await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop)).toBe(hostScrollBefore);
+  expect(await contentFrame.evaluate(() => window.scrollY)).toBe(frameScrollBefore);
+
+  const headerHref = await headerArea.getAttribute('data-yk-context-url');
   const expectedHeaderUrl = new URL(headerHref, page.url()).href;
   await Promise.all([
     page.waitForURL(expectedHeaderUrl),
