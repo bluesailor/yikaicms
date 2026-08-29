@@ -43,7 +43,8 @@ function renderFrontEdit(): void
       [data-yk-logo]:hover::after { border-color: #2563eb; background: rgba(37,99,235,.10); }
       .yk-logo-btns { position: absolute; top: -10px; right: -10px; z-index: 99991; display: none; gap: 4px; }
       [data-yk-logo]:hover .yk-logo-btns, .yk-logo-btns:hover { display: flex; }
-      #siteHeader [data-yk-logo]::after, .yk-blox-header [data-yk-logo]::after { display: none; }
+      #siteHeader [data-yk-logo]::after, .yk-blox-header [data-yk-logo]::after,
+      .yk-blox-footer [data-yk-logo]::after { display: none; }
       .yk-return-focus { scroll-margin-top: 50px; outline: 3px solid #2563eb; outline-offset: 4px;
         animation: yk-return-focus 2.4s cubic-bezier(.16,1,.3,1) both; }
       #yk-return-focus-status { position: fixed; z-index: 99998; top: 46px; left: 50%;
@@ -403,8 +404,8 @@ function renderFrontEdit(): void
         sec.addEventListener('mouseenter', function () { cancelHide(); current = sec; place(sec); });
         sec.addEventListener('mouseleave', scheduleHide);
       }
-      function isHeaderEditTarget(target) {
-        return !!(target && target.closest('#siteHeader,.yk-blox-header'));
+      function isSiteChromeEditTarget(target) {
+        return !!(target && target.closest('#siteHeader,.yk-blox-header,.yk-blox-footer'));
       }
       // 本脚本在 ik_footer_before 处执行，页脚等位于其后的元素此刻尚未入 DOM，
       // 故延到 DOMContentLoaded 再扫描绑定（Logo/导航/首页区块在前，也一并延后无碍）。
@@ -414,7 +415,7 @@ function renderFrontEdit(): void
       }
       onReady(function () {
         document.querySelectorAll('[data-yk-element-edit][data-yk-element-id],[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(function (target) {
-          if (isHeaderEditTarget(target)) return;
+          if (isSiteChromeEditTarget(target)) return;
           attach(target);
         });
         buildRegionNavigator();
@@ -444,7 +445,7 @@ function renderFrontEdit(): void
       ); ?>;
       onReady(function () {
         document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
-          if (isHeaderEditTarget(logo)) return;
+          if (isSiteChromeEditTarget(logo)) return;
           var wrap = document.createElement('span');
           wrap.className = 'yk-logo-btns';
           var b = document.createElement('span');
