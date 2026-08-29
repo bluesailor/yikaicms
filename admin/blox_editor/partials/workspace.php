@@ -325,6 +325,22 @@ declare(strict_types=1);
                                        class="flex-1 min-w-0 text-sm font-medium text-gray-700 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
                             </div>
 
+                            <template x-if="selEl && panelTab === 'style'">
+                                <div data-testid="blox-element-visible-devices" class="rounded border border-gray-200 bg-gray-50 p-3">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_visible_devices')) ?></label>
+                                    <div class="grid grid-cols-3 gap-1">
+                                        <template x-for="dev in [{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'elvis-'+dev.k">
+                                            <button type="button" @click="toggleElementDevice(dev.k)"
+                                                    class="h-9 rounded border text-xs inline-flex items-center justify-center transition"
+                                                    :class="elementDeviceVisible(dev.k) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-400 line-through'"
+                                                    :aria-pressed="elementDeviceVisible(dev.k) ? 'true' : 'false'"
+                                                    x-text="dev.l"></button>
+                                        </template>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400 mt-1.5"><?= e(__('blox_visible_hint')) ?></p>
+                                </div>
+                            </template>
+
                             <template x-if="selEl && contactManage[selEl.type] && ['contact_cards', 'contact_form'].indexOf(selEl.type) === -1 && panelTab === 'content'">
                                 <div data-testid="blox-contact-source" class="rounded border border-emerald-200 bg-emerald-50/60 p-3 space-y-2.5">
                                     <div class="flex items-start gap-2.5">
@@ -1311,7 +1327,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
-                            <template x-if="selEl && visibleCtrls().length === 0 && !elSchema(selEl.type).missing && !(isSelectedContainerEl() && panelTab === 'style') && !(panelTab === 'style' && supportsBoxStyles(selEl.type))">
+                            <template x-if="selEl && panelTab !== 'style' && visibleCtrls().length === 0 && !elSchema(selEl.type).missing">
                                 <p class="text-xs text-gray-400 leading-relaxed"
                                    x-text="ctrlQuery.trim() || modifiedOnly ? <?= e($jt('blox_no_matching_settings')) ?>
                                        : (elSchema(selEl.type).container && panelTab === 'content'

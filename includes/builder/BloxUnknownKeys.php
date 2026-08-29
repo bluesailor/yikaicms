@@ -16,7 +16,7 @@ declare(strict_types=1);
 final class BloxUnknownKeys
 {
     /** data 里合法但不来自 controls() 的核心保留键 */
-    public const RESERVED = ['children', 'template', '_global_style', '_global_style_snapshot'];
+    public const RESERVED = ['children', 'template', '_global_style', '_global_style_snapshot', '_hide_on'];
 
     /** @var array<string,array<string,int>> type => key => count（进程内聚合，shutdown 落盘） */
     private static array $pending = [];
