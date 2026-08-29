@@ -196,6 +196,7 @@
         this.onPickSection = options.onPickSection || noop;
         this.onClear = options.onClear || noop;
         this.onAreaHit = options.onAreaHit || noop;
+        this.onAreaMatch = options.onAreaMatch || noop;
         this.onEditArea = options.onEditArea || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onQuickAdd = options.onQuickAdd || noop;
@@ -334,6 +335,14 @@
         }
         if (typeof data.ykAreaHit === "number" && Number.isInteger(data.ykAreaHit) && data.ykAreaHit >= 0) {
             this.onAreaHit(data.ykAreaHit);
+            return true;
+        }
+        if (data.ykAreaMatch && typeof data.ykAreaMatch === "object"
+            && typeof data.ykAreaMatch.id === "number" && Number.isInteger(data.ykAreaMatch.id) && data.ykAreaMatch.id >= 0
+            && typeof data.ykAreaMatch.name === "string" && data.ykAreaMatch.name.length <= 150
+            && ["theme", "default", "any", "home", "channel", "page", "unknown"].indexOf(data.ykAreaMatch.scope) !== -1
+            && typeof data.ykAreaMatch.languageSpecific === "boolean") {
+            this.onAreaMatch(data.ykAreaMatch);
             return true;
         }
         payload = areaEditPayload(data.ykEditArea);

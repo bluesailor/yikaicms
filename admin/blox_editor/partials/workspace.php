@@ -2775,7 +2775,7 @@ declare(strict_types=1);
                         title="<?php echo e(__('blox_header_presets')); ?>" aria-label="<?php echo e(__('blox_header_presets')); ?>">
                     <i class="ti ti-layout-navbar text-base"></i><span class="truncate"><?php echo e(__('blox_header_presets')); ?></span>
                 </button>
-<?php else: ?>
+<?php elseif (!$templateId || !in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
                 <div class="grid gap-2 <?php echo !$isHomeBlox && !$templateId ? 'grid-cols-2' : 'grid-cols-1'; ?>">
                 <button type="button" @click="openPrebuiltSections()" data-testid="blox-prebuilt-open"
                         class="h-9 min-w-0 rounded-md border border-blue-200 bg-blue-50 px-2 text-xs font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 inline-flex items-center justify-center gap-1.5 transition"
@@ -2789,6 +2789,21 @@ declare(strict_types=1);
                     <i class="ti ti-files text-base"></i><span class="truncate"><?php echo e(__('blox_page_library')); ?></span>
                 </button>
 <?php endif; ?>
+                </div>
+<?php endif; ?>
+<?php if ($templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
+                <div x-show="ctxMatch" x-cloak class="mt-2 border-l-2 border-blue-300 bg-blue-50/70 px-2.5 py-2"
+                     data-testid="blox-area-current-match">
+                    <p class="text-[10px] font-semibold uppercase text-blue-500" x-text="areaMatchText.current"></p>
+                    <p class="mt-0.5 truncate text-xs font-medium text-gray-700" x-text="ctxMatch ? ctxMatch.name : ''"></p>
+                    <p class="mt-0.5 text-[10px] text-gray-500">
+                        <span x-text="ctxMatch ? (areaMatchText[ctxMatch.scope] || areaMatchText.unknown) : ''"></span>
+                        <span x-show="ctxMatch && ctxMatch.languageSpecific" x-text="' · ' + areaMatchText.language"></span>
+                    </p>
+                    <a href="/admin/blox_templates.php?type=<?php echo e((string) $templateType); ?>#blox-current-areas"
+                       class="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 hover:text-blue-900">
+                        <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i><span x-text="areaMatchText.manage"></span>
+                    </a>
                 </div>
 <?php endif; ?>
             </div>

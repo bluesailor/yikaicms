@@ -66,6 +66,42 @@ final class BloxAreaResolver
     }
 
     /**
+     * Explain why one already-resolved template matches a concrete context.
+     *
+     * @param array<string,mixed> $template
+     * @param array{home?:bool,channel_id?:int,page_id?:int,lang?:string} $context
+     * @return array{scope:string,language_specific:bool,score:int}
+     */
+    public static function explain(array $template, array $context): array
+    {
+        $raw = $template['conditions'] ?? null;
+        $conditions = self::parse($raw);
+        if ($conditions === []) {
+            return [
+                'scope' => self::hasConditionInput($raw) ? 'unknown' : 'default',
+                'language_specific' => false,
+                'score' => self::hasConditionInput($raw) ? -1 : self::SCORE_DEFAULT,
+            ];
+        }
+
+        $best = ['scope' => 'unknown', 'language_specific' => false, 'score' => -1];
+        foreach ($conditions as $condition) {
+            if ($condition['exclude']) {
+                continue;
+            }
+            $score = self::score([$condition], $context);
+            if ($score !== null && $score > $best['score']) {
+                $best = [
+                    'scope' => $condition['main'],
+                    'language_specific' => $condition['langs'] !== [],
+                    'score' => $score,
+                ];
+            }
+        }
+        return $best;
+    }
+
+    /**
      * 单模板评分。null = 不适用（被 exclude 否决，或有条件但无一命中）。
      *
      * @param array<int,array{main:string,ids:array<int,int>,langs:list<string>,exclude:bool}> $conditions

@@ -466,6 +466,14 @@ $typeLabels = [
     'footer' => __('blox_tpl_type_footer'),
     'popup' => __('blox_tpl_type_popup'),
 ];
+$assignmentSourceLabels = [
+    'default' => __('blox_assignment_source_default'),
+    'any' => __('blox_assignment_source_global'),
+    'home' => __('blox_assignment_source_home'),
+    'channel' => __('blox_assignment_source_channel'),
+    'page' => __('blox_assignment_source_page'),
+    'unknown' => __('blox_assignment_source_unknown'),
+];
 $metadataPurposeLabels = [];
 foreach (BloxSectionMetadata::purposes() as $purpose) {
     $metadataPurposeLabels[$purpose] = __(str_replace('-', '_', 'blox_template_purpose_' . $purpose));
@@ -847,6 +855,7 @@ function confirmAreaPublish(form) {
                             <?php foreach ($overviewTypes as $areaType):
                                 $assignment = $assignmentRow['areas'][$areaType];
                                 $matchedTemplate = $assignment['template'];
+                                $matchExplanation = is_array($assignment['match'] ?? null) ? $assignment['match'] : null;
                             ?>
                             <td class="px-4 py-3">
                                 <?php if (!$assignment['enabled']): ?>
@@ -860,6 +869,14 @@ function confirmAreaPublish(form) {
                                     <i class="ti <?php echo $areaType === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?>"></i>
                                     <span><?php echo e((string) ($matchedTemplate['name'] ?? '')); ?></span>
                                 </a>
+                                <?php if ($matchExplanation !== null): ?>
+                                <p class="mt-1 text-[10px] text-gray-500" data-testid="blox-assignment-source">
+                                    <?php echo e($assignmentSourceLabels[(string) ($matchExplanation['scope'] ?? '')] ?? __('blox_assignment_source_unknown')); ?>
+                                    <?php if (!empty($matchExplanation['language_specific'])): ?>
+                                    <span class="text-blue-600"> · <?php echo e(__('blox_assignment_source_language')); ?></span>
+                                    <?php endif; ?>
+                                </p>
+                                <?php endif; ?>
                                 <?php else: ?>
                                 <span class="inline-flex items-center gap-1 text-gray-500" data-testid="blox-assignment-theme">
                                     <i class="ti ti-palette"></i><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?>

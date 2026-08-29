@@ -87,6 +87,17 @@ final class BloxAreaResolverTest extends TestCase
             ['id' => 10, 'conditions' => $englishHome],
         ], self::HOME + ['lang' => 'en']);
         $this->assertSame(10, $winner['id'], 'language-specific condition should beat a newer generic condition');
+        $explanation = BloxAreaResolver::explain($winner, self::HOME + ['lang' => 'en']);
+        $this->assertSame('home', $explanation['scope']);
+        $this->assertTrue($explanation['language_specific']);
+        $this->assertSame(10, $explanation['score']);
+    }
+
+    public function testExplainDistinguishesDefaultAndGlobalRules(): void
+    {
+        $this->assertSame('default', BloxAreaResolver::explain(['conditions' => null], self::HOME)['scope']);
+        $this->assertSame('any', BloxAreaResolver::explain(['conditions' => '[{"main":"any"}]'], self::HOME)['scope']);
+        $this->assertSame('unknown', BloxAreaResolver::explain(['conditions' => 'bad-json'], self::HOME)['scope']);
     }
 
     public function testResolveReturnsNullWhenNothingApplies(): void

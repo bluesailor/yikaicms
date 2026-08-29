@@ -84,6 +84,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // 命中报告：按所选上下文跑与前台 bloxAreaHtml() 同一套 Resolver 评分，
         // 报告该上下文线上实际激活哪个已发布模板——保证「预览命中 = 线上命中」。
         $ctxHitId = 0;
+        $ctxHitName = __('blox_ctx_theme_default');
+        $ctxHitScope = 'theme';
+        $ctxHitLanguageSpecific = false;
         if (db()->tableExists('blox_templates')) {
             $areaTemplates = bloxTemplateModel()->publishedAreaTemplates($templateArea);
             $resolveHit = $areaTemplates === [] ? null : BloxAreaResolver::resolve($areaTemplates, [
@@ -93,11 +96,25 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 'lang' => trim((string) ($ctxRow['lang'] ?? siteLang())),
             ]);
             $ctxHitId = (int) ($resolveHit['id'] ?? 0);
+            if ($resolveHit !== null) {
+                $ctxHitName = (string) ($resolveHit['name'] ?? ('#' . $ctxHitId));
+                $ctxExplanation = BloxAreaResolver::explain($resolveHit, [
+                    'home' => $ctxType === 'home',
+                    'channel_id' => $ctxType === 'channel' ? (int) ($ctxRow['id'] ?? 0) : 0,
+                    'page_id' => $ctxType === 'page' ? (int) ($ctxRow['id'] ?? 0) : 0,
+                    'lang' => trim((string) ($ctxRow['lang'] ?? siteLang())),
+                ]);
+                $ctxHitScope = $ctxExplanation['scope'];
+                $ctxHitLanguageSpecific = $ctxExplanation['language_specific'];
+            }
         }
 
         // data-yk-area：区域契约标记——画布侧点选/拖放的作用域边界（编辑器据此圈定可编辑区）
         $editableArea = '<div data-yk-area="' . htmlspecialchars($templateArea, ENT_QUOTES) . '"'
-            . ' data-yk-ctx-hit="' . $ctxHitId . '">' . $editableArea . '</div>';
+            . ' data-yk-ctx-hit="' . $ctxHitId . '"'
+            . ' data-yk-ctx-hit-name="' . htmlspecialchars($ctxHitName, ENT_QUOTES) . '"'
+            . ' data-yk-ctx-hit-scope="' . htmlspecialchars($ctxHitScope, ENT_QUOTES) . '"'
+            . ' data-yk-ctx-hit-language="' . ($ctxHitLanguageSpecific ? '1' : '0') . '">' . $editableArea . '</div>';
         $body = $templateArea === 'header'
             ? $editableArea
             : '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>' . $editableArea;
@@ -441,6 +458,12 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     var ykAreaHost = document.querySelector('[data-yk-area][data-yk-ctx-hit]');
     if (ykAreaHost) {
         postToEditor({ ykAreaHit: parseInt(ykAreaHost.getAttribute('data-yk-ctx-hit'), 10) || 0 });
+        postToEditor({ ykAreaMatch: {
+            id: parseInt(ykAreaHost.getAttribute('data-yk-ctx-hit'), 10) || 0,
+            name: ykAreaHost.getAttribute('data-yk-ctx-hit-name') || '',
+            scope: ykAreaHost.getAttribute('data-yk-ctx-hit-scope') || 'theme',
+            languageSpecific: ykAreaHost.getAttribute('data-yk-ctx-hit-language') === '1'
+        }});
     }
 
     function pathParts(path) {
