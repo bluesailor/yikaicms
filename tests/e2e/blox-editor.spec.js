@@ -694,6 +694,22 @@ test('home canvas exposes dedicated edit links for the readonly header and foote
   await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
 });
 
+test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
+  const expectedHeaderUrl = new URL(
+    await page.getByTestId('blox-home-header-settings').getAttribute('href'),
+    page.url()
+  ).href;
+
+  await page.goto('/admin/blox_editor.php?template=2147483647&back=home&open=header-settings', {
+    waitUntil: 'domcontentloaded',
+  });
+
+  await expect(page).toHaveURL(expectedHeaderUrl);
+  await expect(page.getByTestId('blox-header-presets-open')).toBeVisible();
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+});
+
 test('footer template opens with the editable footer visible at the bottom of the canvas @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas position baseline');
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'footer editing is an advanced feature');
@@ -2177,6 +2193,17 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   expect(previewBox.y).toBeGreaterThanOrEqual(0);
   expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(viewport.width);
   expect(previewBox.y + previewBox.height).toBeLessThanOrEqual(viewport.height);
+  const previewHeaderMetrics = await previewPanel.locator(':scope > div').first().evaluate((header) => {
+    const title = header.children[0];
+    const controls = header.children[1];
+    return {
+      titleWidth: title.getBoundingClientRect().width,
+      controlsWidth: controls.getBoundingClientRect().width,
+      headerWidth: header.getBoundingClientRect().width,
+    };
+  });
+  expect(previewHeaderMetrics.titleWidth).toBeGreaterThan(160);
+  expect(previewHeaderMetrics.controlsWidth).toBeLessThan(previewHeaderMetrics.headerWidth);
   const presetFrame = previewDialog.getByTestId('blox-header-preset-preview-frame');
   await expect(presetFrame).toHaveAttribute('src', /header_preset=clean-site-header/);
   await expect(presetFrame.contentFrame().locator('#siteHeader')).toBeVisible();

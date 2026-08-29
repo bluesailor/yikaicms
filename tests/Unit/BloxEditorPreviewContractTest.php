@@ -558,6 +558,20 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
     }
 
+    public function testEditorRecoversStaleHeaderTargetsAndVersionsCompiledStyles(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+
+        foreach ([
+            "get('open', '') === 'header-settings'",
+            "BloxAreaEditorTarget::url('header'",
+            'BloxAreaEditorTarget::withReturnTo($currentHeaderUrl, $editorReturnTo)',
+            "assetVer('/assets/css/tailwind.css')",
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor);
+        }
+    }
+
     public function testStableElementLocatorUsesOpaqueIdsAcrossUrlDomAndCanvasMessages(): void
     {
         $editor = $this->source('admin/blox_editor.php');
