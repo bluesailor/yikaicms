@@ -31,6 +31,12 @@ test('media library repairs responsive image derivatives @ci', async ({ page }, 
     await expect(card.getByTestId('media-health-status')).toHaveAttribute('title', /.+/);
     await expect(page.getByTestId('media-opt-summary')).toBeVisible();
     await expect(page.getByTestId('media-opt-selected')).toBeDisabled();
+    await expect(page.getByTestId('media-opt-select-pending')).toContainText('1');
+    await expect(page.getByTestId('media-opt-current')).toContainText('1');
+
+    await page.getByTestId('media-opt-select-pending').click();
+    await expect(card.locator('[data-media-check]')).toBeChecked();
+    await expect(page.getByTestId('media-opt-selected')).toBeEnabled();
 
     await page.screenshot({ path: testInfo.outputPath('media-pending.png'), fullPage: true });
 

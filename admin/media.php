@@ -219,17 +219,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     'missing' => $mediaHealthSummary['missing'],
                 ])); ?>
             </p>
+            <?php if ($mediaHealthSummary['missing'] > 0): ?>
+            <p class="mt-1 text-xs text-amber-700">
+                <?php echo e(__('media_opt_missing_hint')); ?>
+            </p>
+            <?php endif; ?>
         </div>
     </div>
     <?php if ($mediaPendingIds !== []): ?>
     <div class="flex flex-wrap gap-2 md:justify-end">
-        <button type="button" onclick="selectPendingMedia()" class="border border-gray-300 px-3 py-2 rounded text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
+        <button type="button" data-testid="media-opt-select-pending" onclick="selectPendingMedia()" class="border border-gray-300 px-3 py-2 rounded text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
             <i class="ti ti-checkbox text-base"></i>
-            <?php echo e(__('media_opt_select_pending')); ?>
+            <?php echo e(__('media_opt_select_pending', ['n' => count($mediaPendingIds)])); ?>
         </button>
         <button type="button" data-testid="media-opt-current" data-optimize-button onclick="optimizeCurrentPage(this)" class="bg-primary hover:bg-secondary text-white px-3 py-2 rounded text-sm inline-flex items-center gap-1">
             <i class="ti ti-sparkles text-base"></i>
-            <?php echo e(__('media_opt_current_page')); ?>
+            <?php echo e(__('media_opt_current_page', ['n' => count($mediaPendingIds)])); ?>
         </button>
     </div>
     <?php endif; ?>
