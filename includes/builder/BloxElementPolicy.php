@@ -51,6 +51,15 @@ final class BloxElementPolicy
         }
     }
 
+    public static function assertJsonAllowed(string $json): void
+    {
+        if (self::canUseCode()) {
+            return;
+        }
+        $document = BloxDocumentPipeline::decode($json);
+        self::assertSectionsAllowed($document['sections']);
+    }
+
     /** @param array<string,mixed> $element */
     private static function assertElementAllowed(array $element): void
     {

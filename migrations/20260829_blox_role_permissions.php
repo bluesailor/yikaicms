@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 $normalizeBloxPermissions = static function (array $permissions): array {
     if (in_array('*', $permissions, true)) {
-        return $permissions;
+        return array_values(array_unique($permissions));
     }
     if (in_array('edit_page', $permissions, true) && !in_array('blox_edit', $permissions, true)) {
         $permissions[] = 'blox_edit';

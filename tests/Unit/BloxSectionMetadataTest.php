@@ -48,6 +48,15 @@ final class BloxSectionMetadataTest extends TestCase
         self::assertSame(0, $metadata['priority']);
     }
 
+    public function testLanguageCoverageUsesTheInstalledLanguageCatalog(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxSectionMetadata.php');
+
+        self::assertStringContainsString("function_exists('availableLanguages')", $source);
+        self::assertStringContainsString('isset($available[$language])', $source);
+        self::assertStringNotContainsString("preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/', \$language)", $source);
+    }
+
     /** @dataProvider pageIntentProvider */
     public function testPageIntentInference(array $flags, array $page, string $expected): void
     {

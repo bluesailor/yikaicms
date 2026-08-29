@@ -9,9 +9,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-if (!hasAnyBloxPermission()) {
-    requirePermission('blox_edit');
-}
+requireAnyBloxPermission();
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 $isAdministrator = hasPermission('*');

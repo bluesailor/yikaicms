@@ -86,6 +86,8 @@ final class PageHeroDesignDraftTest extends TestCase
         self::assertStringContainsString("savePageHeroDraft() { return this.mutatePageHero('page_hero_save_draft'); }", $page);
         self::assertStringContainsString("publishPageHero() { return this.mutatePageHero('page_hero_publish'); }", $page);
         self::assertStringContainsString("['page_hero_save_draft', 'page_hero_publish']", $api);
+        self::assertStringContainsString("if (\$e->getMessage() === __('blox_save_conflict'))", $api);
+        self::assertStringContainsString('error($e->getMessage(), 409);', $api);
         $draft = (string) file_get_contents(ROOT_PATH . '/includes/PageHeroDesignDraft.php');
         self::assertStringContainsString('cacheClear();', $draft);
         self::assertStringContainsString('data-testid="blox-design-page-hero"', $page);

@@ -136,6 +136,15 @@ function hasAnyBloxPermission(): bool
     return false;
 }
 
+/** 要求至少拥有一个可进入 Blox 工作区的场景权限。 */
+function requireAnyBloxPermission(): void
+{
+    if (!hasAnyBloxPermission()) {
+        // 走统一权限拒绝响应；此分支已确认 blox_edit 不存在，因此必然拒绝。
+        requirePermission('blox_edit');
+    }
+}
+
 /**
  * 共享内容编辑器守卫：已知内容类型精确要求 edit_{type}（保证类型隔离——
  * 产品编辑者不能借共享编辑器改文章）；未知/自定义类型（faq/模型）放宽到任一内容权限。

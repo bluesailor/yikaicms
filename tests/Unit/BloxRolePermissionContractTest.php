@@ -81,6 +81,7 @@ final class BloxRolePermissionContractTest extends TestCase
         self::assertStringContainsString("in_array('edit_page', \$permissions, true)", $migration);
         self::assertStringContainsString("\$permissions[] = 'blox_edit';", $migration);
         self::assertStringContainsString("in_array('blox_code', \$permissions, true)", $migration);
+        self::assertStringContainsString('return array_values(array_unique($permissions));', $migration);
         self::assertStringContainsString("'title_en'", $migration);
         self::assertStringContainsString("'title_ja'", $migration);
         self::assertGreaterThanOrEqual(3, substr_count($mysql, '\\"blox_edit\\"'));
