@@ -1981,6 +1981,30 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(presetPreview).toBeVisible();
   await expect(presetPreview).toContainText(corporateName);
   await expect(presetPreview.getByTestId('blox-header-preset-preview-close')).toBeFocused();
+  const presetFrame = presetPreview.getByTestId('blox-header-preset-preview-frame');
+  await expect(presetFrame).toHaveAttribute('src', /header_preset=corporate-site-header/);
+  const presetContent = presetFrame.contentFrame();
+  await expect(presetContent.locator('#siteHeader')).toBeVisible();
+  const hasSiteBrand = await presetContent.locator('#siteHeader').evaluate((header) => (
+    /Yikai/i.test(header.textContent || '')
+    || Array.from(header.querySelectorAll('img')).some((image) => /Yikai/i.test(image.alt || ''))
+  ));
+  expect(hasSiteBrand).toBe(true);
+  await expect(presetContent.locator('#siteHeader ul').first()).toBeVisible();
+  await expect(presetContent.locator('#siteHeader [data-yk-language-switcher]').first()).toBeVisible();
+
+  const presetViewport = presetPreview.getByTestId('blox-header-preset-preview-viewport');
+  const desktopToggle = presetPreview.getByTestId('blox-header-preset-preview-desktop');
+  const mobileToggle = presetPreview.getByTestId('blox-header-preset-preview-mobile');
+  await expect(desktopToggle).toHaveAttribute('aria-pressed', 'true');
+  const desktopWidth = await presetViewport.evaluate((element) => element.getBoundingClientRect().width);
+  expect(desktopWidth).toBeGreaterThan(1200);
+  await mobileToggle.click();
+  await expect(mobileToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(presetViewport).toHaveAttribute('data-device', 'mobile');
+  const mobileWidth = await presetViewport.evaluate((element) => element.getBoundingClientRect().width);
+  expect(mobileWidth).toBeLessThanOrEqual(390);
+  expect(mobileWidth).toBeLessThan(desktopWidth);
   await page.keyboard.press('Escape');
   await expect(presetPreview).toBeHidden();
   await expect(headerPresets).toBeVisible();
@@ -2126,6 +2150,16 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   expect(previewBox.y).toBeGreaterThanOrEqual(0);
   expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(viewport.width);
   expect(previewBox.y + previewBox.height).toBeLessThanOrEqual(viewport.height);
+  const presetFrame = previewDialog.getByTestId('blox-header-preset-preview-frame');
+  await expect(presetFrame).toHaveAttribute('src', /header_preset=clean-site-header/);
+  await expect(presetFrame.contentFrame().locator('#siteHeader')).toBeVisible();
+  const previewViewport = previewDialog.getByTestId('blox-header-preset-preview-viewport');
+  await previewDialog.getByTestId('blox-header-preset-preview-mobile').click();
+  await expect(previewViewport).toHaveAttribute('data-device', 'mobile');
+  const mobilePreviewBox = await previewViewport.boundingBox();
+  expect(mobilePreviewBox.width).toBeLessThanOrEqual(390);
+  expect(mobilePreviewBox.x).toBeGreaterThanOrEqual(0);
+  expect(mobilePreviewBox.x + mobilePreviewBox.width).toBeLessThanOrEqual(viewport.width);
   await previewDialog.getByTestId('blox-header-preset-preview-close').click();
   await expect(previewDialog).toBeHidden();
   await expect(dialog).toBeVisible();
