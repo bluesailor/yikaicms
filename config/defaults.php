@@ -246,8 +246,6 @@ return [
     'system' => [
         'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
         'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],
-        // 编辑器默认对免费版开放；远程模板下载、头尾模板等高级能力另行校验授权。
-        'blox_editor_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 可视化编辑器', 'tip' => '默认开启，免费版可编辑首页、单页及受支持栏目；远程模板下载等高级能力单独校验授权', 'sort_order' => 4],
         'blox_design_system' => ['value' => '', 'type' => 'json', 'name' => 'Blox 设计系统', 'tip' => '颜色令牌与命名样式预设，由 Blox 编辑器维护', 'sort_order' => 5],
         'page_hero_style_options' => ['value' => '', 'type' => 'json', 'name' => '全局页面标题区版式', 'tip' => '页面标题区的全局版式参数，由 Blox 编辑器读取', 'sort_order' => 5],
         'page_hero_design_draft' => ['value' => '', 'type' => 'json', 'name' => '全局页面标题区草稿', 'tip' => '页面标题区设计草稿，发布前不影响前台', 'sort_order' => 5],

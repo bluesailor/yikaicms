@@ -44,7 +44,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertNotFalse($start);
         $body = substr($functions, (int) $start, 320);
 
-        $this->assertStringContainsString("config('blox_editor_enabled', '1')", $body);
+        $this->assertStringContainsString('return true;', $body);
+        $this->assertStringNotContainsString("config('blox_editor_enabled', '1')", $body);
         $this->assertStringNotContainsString("config('blox_page_editor_enabled'", $body);
         $this->assertStringNotContainsString('license_valid', $body);
         $this->assertStringNotContainsString('license_has_module', $body);
@@ -55,7 +56,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertNotFalse($advancedGateStart);
         $editorGate = substr($functions, (int) $editorGateStart, (int) $advancedGateStart - (int) $editorGateStart);
         $advancedGate = substr($functions, (int) $advancedGateStart, 520);
-        $this->assertStringContainsString("config('blox_editor_enabled', '1')", $editorGate);
+        $this->assertStringContainsString('return true;', $editorGate);
+        $this->assertStringNotContainsString("config('blox_editor_enabled', '1')", $editorGate);
         $this->assertStringNotContainsString('license_valid', $editorGate);
         // 2026-08-28：Blox 全部能力对免费版开放。原先由本闸把关的 Header/Footer/Popup
         // 全站区域模板、全局命名样式、Query Loop 一并放开；付费边界只剩远程模板包下载
@@ -85,7 +87,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $defaults = require ROOT_PATH . '/config/defaults.php';
 
         $this->assertArrayNotHasKey('blox_page_editor_enabled', $defaults['system']);
-        $this->assertSame('1', $defaults['system']['blox_editor_enabled']['value']);
+        $this->assertArrayNotHasKey('blox_editor_enabled', $defaults['system']);
 
         $editor = $this->source('admin/blox_editor.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
@@ -149,16 +151,16 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("__('blox_tpl_publish_saves_current')", $header);
     }
 
-    public function testInstallAndUpgradePathsEnableTheEditor(): void
+    public function testFreshInstallHasNoEditorSwitchWhileHistoricalUpgradeRemainsCompatible(): void
     {
         $mysql = $this->source('install/sql/mysql.sql');
         $sqlite = $this->source('install/sql/sqlite.sql');
         $migration = $this->source('migrations/20260816_enable_blox_editor_by_default.php');
 
-        $this->assertStringContainsString("'blox_editor_enabled','1','switch','Blox 可视化编辑器'", $mysql);
-        $this->assertStringContainsString("'blox_editor_enabled','1','switch','Blox 可视化编辑器'", $sqlite);
+        $this->assertStringNotContainsString("'blox_editor_enabled','1','switch','Blox 可视化编辑器'", $mysql);
+        $this->assertStringNotContainsString("'blox_editor_enabled','1','switch','Blox 可视化编辑器'", $sqlite);
         $this->assertStringContainsString("'id' => '20260816_enable_blox_editor_by_default'", $migration);
-        $this->assertStringContainsString("settingModel()->set('blox_editor_enabled', '1', 'system')", $migration);
+        $this->assertStringContainsString("'check' => static fn(): bool => true", $migration);
     }
 
     public function testSinglePagePrimaryEntriesUseBloxWithoutLegacyFallback(): void

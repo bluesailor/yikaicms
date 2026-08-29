@@ -18,7 +18,7 @@ $heroOptions = $heroStyle['options'];
 $heroBgColor = $heroOptions['background_color'];
 $heroHeightClass = PageHeroStyleResolver::heightClasses($heroOptions);
 $heroCentered = $heroOptions['alignment'] === 'center';
-$heroTone = $heroOptions['text_tone'] === 'auto' ? 'light' : $heroOptions['text_tone'];
+$heroTone = PageHeroStyleResolver::textTone($heroOptions, $heroBg);
 $heroSectionClasses = ['relative', 'overflow-hidden', $heroHeightClass];
 $heroStyles = [];
 if ($heroBg !== '') {

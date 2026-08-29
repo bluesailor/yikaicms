@@ -9,8 +9,8 @@ declare(strict_types=1);
  *   license_key    客户粘贴的授权码
  *   license_state  缓存的校验结果（JSON：data + sig + checked_at），内部维护、勿手填
  *
- * 原则（务必遵守）：过期 / 无效 / 服务器不可达，只回收「付费模块」，
- *   绝不锁站、绝不影响前台正常访问。
+ * 原则（务必遵守）：服务期到期只停止下载、更新与支持，已购模块继续可用；
+ *   授权无效时才回到免费态。任何状态都绝不锁站、绝不影响前台正常访问。
  *
  * 验签用 RSA 公钥（公开无妨，私钥仅在服务端）；伪造授权需私钥，不可能。
  * 用 openssl（RSA）而非 sodium：sodium 在不少中国共享主机被禁，openssl 几乎都有。
@@ -139,20 +139,23 @@ function license_refresh(bool $force = false): array
  * 生效中的授权状态：在 refresh 结果基础上，本地再判一次到期
  * （处理两次校验之间刚好跨过期日的情况）。
  */
-function license(): array
+function license_apply_local_expiry(array $state, ?int $now = null): array
 {
-    $st = license_refresh(false);
-    $exp = (string) ($st['expires_at'] ?? '');
-    if ($exp !== '' && strtotime($exp . ' 23:59:59') < time()) {
-        $st['valid']   = false;
-        $st['expired'] = true;
-        $st['modules'] = [];
-        $st['plan']    = 'free';
-        if (($st['reason'] ?? '') === 'ok') {
-            $st['reason'] = 'expired';
+    $expiresAt = (string) ($state['expires_at'] ?? '');
+    $expiresTimestamp = $expiresAt !== '' ? strtotime($expiresAt . ' 23:59:59') : false;
+    if ($expiresTimestamp !== false && $expiresTimestamp < ($now ?? time())) {
+        $state['valid'] = false;
+        $state['expired'] = true;
+        if (($state['reason'] ?? '') === 'ok') {
+            $state['reason'] = 'expired';
         }
     }
-    return $st;
+    return $state;
+}
+
+function license(): array
+{
+    return license_apply_local_expiry(license_refresh(false));
 }
 
 /** 授权整体是否有效。 */

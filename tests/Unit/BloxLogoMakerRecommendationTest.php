@@ -12,7 +12,7 @@ final class BloxLogoMakerRecommendationTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
 
-        self::assertStringContainsString("\$canManageSiteLogo = hasPermission('basic');", $editor);
+        self::assertStringContainsString("\$canManageSiteLogo = hasPermission('*');", $editor);
         self::assertStringContainsString("\$canManageLogoMaker = hasPermission('*');", $editor);
         self::assertStringContainsString("is_dir(ROOT_PATH . '/plugins/logo-maker')", $editor);
         self::assertStringContainsString("isPluginAvailable('logo-maker')", $editor);

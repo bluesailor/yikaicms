@@ -83,4 +83,12 @@ final class BloxAreaAssignmentMatrixTest extends TestCase
         self::assertSame(4, $rows[0]['areas']['header']['template']['id'] ?? null);
         self::assertSame([3, 4], array_column($rows[0]['areas']['header']['dedicated'], 'id'));
     }
+
+    public function testDedicatedAssignmentUsesInstalledLanguageFilesAsItsWhitelist(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxAreaAssignmentManager.php');
+
+        self::assertStringContainsString("isset(availableLanguages()[\$language])", $source);
+        self::assertStringNotContainsString("/^[a-z]{2,3}(?:-[A-Z]{2})?$/", $source);
+    }
 }

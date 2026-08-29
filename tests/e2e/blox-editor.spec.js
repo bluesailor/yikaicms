@@ -670,14 +670,11 @@ test('home canvas exposes unified region actions without moving page content @ci
   const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
   const footerEdit = contentFrame.getByTestId('blox-context-edit-footer');
   const contentEdit = contentFrame.getByTestId('blox-context-edit-content');
-  const headerSettings = page.getByTestId('blox-home-header-settings');
-  // v1.18.6：画布入口与顶栏「网页头设置」都带 back=home——编辑完页头一键返回首页编辑器
+  // 画布区域是首页编辑网页头的唯一入口，避免顶栏重复操作分散注意力。
   const expectedHeaderPath = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&back=home&open=header-settings`;
   const expectedCanvasHeaderPath = expectedHeaderPath;
 
-  await expect(headerSettings).toBeVisible();
-  await expect(headerSettings).toContainText('编辑网页头');
-  await expect(headerSettings).toHaveAttribute('href', expectedHeaderPath);
+  await expect(page.getByTestId('blox-home-header-settings')).toHaveCount(0);
   await expect(headerEdit).toBeVisible();
   await expect(footerEdit).toBeVisible();
   await expect(contentEdit).toBeVisible();
@@ -709,8 +706,9 @@ test('home canvas exposes unified region actions without moving page content @ci
 
 test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
+  const contentFrame = await frame(page);
   const expectedHeaderUrl = new URL(
-    await page.getByTestId('blox-home-header-settings').getAttribute('href'),
+    await contentFrame.locator('[data-yk-context-area="header"]').getAttribute('data-yk-context-url'),
     page.url()
   ).href;
 

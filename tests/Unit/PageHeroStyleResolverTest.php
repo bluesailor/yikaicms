@@ -169,6 +169,10 @@ final class PageHeroStyleResolverTest extends TestCase
         self::assertSame('py-20 md:py-24', PageHeroStyleResolver::heightClasses(['height' => 'large']));
         self::assertSame('py-10 md:py-24', PageHeroStyleResolver::heightClasses(['height' => 'large', 'mobile_height' => 'compact']));
         self::assertSame('25% 80%', PageHeroStyleResolver::backgroundPosition(['focal_x' => 25, 'focal_y' => 80]));
+        self::assertSame('dark', PageHeroStyleResolver::textTone(['background_color' => '#f5f5f5', 'text_tone' => 'auto']));
+        self::assertSame('light', PageHeroStyleResolver::textTone(['background_color' => '#111827', 'text_tone' => 'auto']));
+        self::assertSame('light', PageHeroStyleResolver::textTone(['background_color' => '#f5f5f5', 'text_tone' => 'auto'], '/hero.jpg'));
+        self::assertSame('dark', PageHeroStyleResolver::textTone(['text_tone' => 'auto'], '', true));
     }
 
     public function testGlobalModeUsesGlobalLayoutOptions(): void

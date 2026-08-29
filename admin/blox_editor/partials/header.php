@@ -123,13 +123,6 @@ declare(strict_types=1);
             </button>
 <?php endif; ?>
 <?php if ($isHomeBlox): ?>
-            <?php if ($advancedBloxEnabled): ?>
-            <a href="<?= e($homeHeaderEditorUrl) ?>" data-testid="blox-home-header-settings"
-               class="text-cyan-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5"
-               title="<?= e(__('blox_edit_header_hint')) ?>">
-                <i class="ti ti-layout-navbar"></i><?= e(__('blox_edit_header')) ?>
-            </a>
-            <?php endif; ?>
             <span x-show="homePublished" x-cloak class="text-[10px] text-emerald-300 inline-flex items-center gap-1">
                 <i class="ti ti-world-check"></i><?php echo e(__('blox_published')); ?>
             </span>
@@ -145,7 +138,7 @@ declare(strict_types=1);
 <?php if ($templateId && $templateType === 'header'): ?>
             <?php // 默认收起：进入页头编辑不应自动弹出设置层盖住画布，由用户点「网页头设置」展开。 ?>
             <details class="relative" data-testid="blox-sticky-settings">
-                <summary class="list-none rounded bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 hover:text-white text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer font-medium">
+                <summary class="list-none rounded bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25 hover:text-white text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer font-normal">
                     <i class="ti ti-layout-navbar"></i><?php echo e(__('blox_header_settings')); ?>
                 </summary>
                 <div class="absolute right-0 top-full z-50 mt-2 w-96 max-w-[calc(100vw-1rem)] border border-gray-700 bg-gray-900 p-3 shadow-2xl">

@@ -2579,7 +2579,6 @@ IP: {{ip}}
 — {{site_name}}','textarea','Inquiry body (JA)','',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (218,'basic','upload_max_width','1920','select','上传图片最大宽度','客户上传图片超过此宽度时自动等比压缩，节省空间与带宽；选「不压缩」保留原图','{"0":"不压缩","1280":"1280px","1600":"1600px","1920":"1920px (推荐)","2048":"2048px","2560":"2560px"}',18);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (219,'basic','upload_jpeg_quality','85','select','图片压缩质量','JPEG/WebP 重新编码质量，越高越清晰但文件越大','{"75":"75 (更小)","85":"85 (推荐)","92":"92 (更清晰)"}',19);
-INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (220,'system','blox_editor_enabled','1','switch','Blox 可视化编辑器','默认开启，免费版也可编辑、预览和发布单页；高级能力单独校验授权',NULL,4);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (243,'system','migration_20260823_admin_log_redacted','1','text','后台日志历史脱敏迁移','全新安装无需清理历史日志',NULL,999);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (244,'system','migration_20260825_seed_restyle','1','text','出厂内容样式与轮播语言修复迁移','全新安装的种子已是修复后内容',NULL,999);
 DROP TABLE IF EXISTS "yikai_timelines";

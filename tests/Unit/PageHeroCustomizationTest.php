@@ -57,6 +57,7 @@ final class PageHeroCustomizationTest extends TestCase
             $this->assertStringContainsString("\$heroStyle['options']", $hero, $path . ' 未应用版式参数');
             $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($heroOptions)', $hero, $path . ' 缺响应式高度');
             $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($heroOptions)', $hero, $path . ' 缺背景焦点');
+            $this->assertStringContainsString('PageHeroStyleResolver::textTone($heroOptions, $heroBg)', $hero, $path . ' 缺自动文字色');
         }
     }
 
@@ -67,6 +68,7 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel, true)', $contact);
         $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($contactHeroOptions, true)', $contact);
         $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($contactHeroOptions)', $contact);
+        $this->assertStringContainsString('PageHeroStyleResolver::textTone($contactHeroOptions, $contactHeroBg, true)', $contact);
         // 默认 self 仍保持紧凑白底；显式 parent/global 由统一解析器处理。
         $this->assertStringContainsString('bg-white border-y border-gray-100', $contact);
     }
