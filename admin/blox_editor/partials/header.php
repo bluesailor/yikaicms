@@ -320,11 +320,17 @@ declare(strict_types=1);
             </details>
 <?php endif; ?>
 <?php if ($areaCtxOptions !== []): ?>
-            <label class="inline-flex min-w-0 items-center gap-1.5 text-xs text-gray-400">
-                <span class="whitespace-nowrap"><?php echo e(__('blox_ctx_label')); ?></span>
+            <label data-testid="blox-ctx-control"
+                   title="<?php echo e(__('blox_ctx_help', ['area' => $areaLabel])); ?>"
+                   class="inline-flex h-8 min-w-0 items-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-300">
+                <span class="inline-flex shrink-0 items-center gap-1.5 px-2">
+                    <i class="ti ti-eye text-sm text-gray-400" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap"><?php echo e(__('blox_ctx_label')); ?></span>
+                </span>
                 <select x-model="previewContext" @change="ctxChanged()" data-testid="blox-ctx-select"
-                        title="<?php echo e(__('blox_ctx_label')); ?>" aria-label="<?php echo e(__('blox_ctx_label')); ?>"
-                        class="bg-gray-800 border border-gray-700 text-gray-200 text-xs rounded-lg px-2 py-1.5 max-w-[12rem]">
+                        title="<?php echo e(__('blox_ctx_help', ['area' => $areaLabel])); ?>"
+                        aria-label="<?php echo e(__('blox_ctx_help', ['area' => $areaLabel])); ?>"
+                        class="h-full max-w-[12rem] border-0 border-l border-gray-700 bg-gray-800 px-2 text-xs font-medium text-gray-100 outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                     <?php foreach ($areaCtxOptions as $ctxOpt): ?>
                     <option value="<?php echo e($ctxOpt['value']); ?>" data-language="<?php echo e($ctxOpt['lang']); ?>"><?php echo e($ctxOpt['label']); ?></option>
                     <?php endforeach; ?>

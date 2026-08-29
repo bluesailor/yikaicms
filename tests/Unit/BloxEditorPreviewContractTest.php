@@ -120,6 +120,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('$previewLanguages = availableLanguages();', $preview);
         $this->assertStringContainsString("define('SITE_LANG', \$previewLanguage);", $preview);
         $this->assertStringContainsString('data-testid="blox-area-language-context"', $header);
+        $this->assertStringContainsString('data-testid="blox-ctx-control"', $header);
+        $this->assertStringContainsString("__('blox_ctx_help', ['area' => \$areaLabel])", $header);
         $this->assertStringContainsString('tplAreaLanguagePublishConfirm', $editor);
     }
 
