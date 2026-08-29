@@ -2369,6 +2369,8 @@ return [
     'blox_section_word' => 'Section :n',
     'blox_n_elements' => ':n elements',
     'blox_media_total' => ':n images in total',
+    'blox_media_wide_background_hint' => 'For full-width backgrounds, images at least 1920px wide are shown first. Smaller images remain available.',
+    'blox_media_recommended' => 'Recommended',
     'blox_n_revisions' => ':n revisions',
     'blox_pick_revision' => 'Pick a revision on the left to preview',
     'blox_no_matching_settings' => 'No matching settings.',

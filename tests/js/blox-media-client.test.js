@@ -26,6 +26,15 @@ test("list normalizes media pagination and encodes search", async function () {
     assert.equal(lastRequest.options.cache, "no-store");
 });
 
+test("list forwards the wide background usage without changing ordinary requests", async function () {
+    nextResponse = { code: 0, data: { items: [], pages: 1, total: 0 } };
+    await global.BloxMediaClient.list("/media", 1, "", { usage: "hero-bg" });
+    assert.match(lastRequest.url, /usage=hero-bg/);
+
+    await global.BloxMediaClient.list("/media", 1, "");
+    assert.doesNotMatch(lastRequest.url, /usage=/);
+});
+
 test("formatBytes keeps upload metrics compact and readable", function () {
     assert.equal(global.BloxMediaClient.formatBytes(0), "0 B");
     assert.equal(global.BloxMediaClient.formatBytes(1536), "1.5 KB");

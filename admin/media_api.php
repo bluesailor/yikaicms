@@ -46,18 +46,28 @@ if ($action === 'list') {
         $type = 'image';   // 忽略客户端传的 type，强制只列图片
     }
     $keyword = $_GET['keyword'] ?? '';
+    $usage   = (string) ($_GET['usage'] ?? '');
     $page    = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 24;
     $offset  = ($page - 1) * $perPage;
+    $preferredMinWidth = $usage === 'hero-bg' ? 1920 : 0;
 
     $filters = array_filter([
-        'type'    => $type,
-        'keyword' => $keyword,
+        'type'                => $type,
+        'keyword'             => $keyword,
+        'preferred_min_width' => $preferredMinWidth,
     ]);
 
     // 内置主题图片排在上传媒体前面，并与数据库结果共用一套连续分页。
     // 即使当前页已被内置图片填满，仍查询一次媒体模型以取得准确总数。
     $bundledItems = BundledMediaLibrary::search((string) $type, (string) $keyword);
+    if ($preferredMinWidth > 0) {
+        usort($bundledItems, static function (array $left, array $right) use ($preferredMinWidth): int {
+            $leftRank = (int) ($left['width'] ?? 0) >= $preferredMinWidth ? 0 : 1;
+            $rightRank = (int) ($right['width'] ?? 0) >= $preferredMinWidth ? 0 : 1;
+            return $leftRank <=> $rightRank;
+        });
+    }
     $bundledTotal = count($bundledItems);
     $pageBundled = array_slice($bundledItems, $offset, $perPage);
     $databaseLimit = $perPage - count($pageBundled);

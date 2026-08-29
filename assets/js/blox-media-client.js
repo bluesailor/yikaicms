@@ -7,10 +7,12 @@
         });
     }
 
-    function list(endpoint, page, keyword) {
+    function list(endpoint, page, keyword, options) {
         var url = endpoint + "?action=list&type=image&page=" + encodeURIComponent(page);
         var query = String(keyword || "").trim();
+        var usage = String((options && options.usage) || "").trim();
         if (query) url += "&keyword=" + encodeURIComponent(query);
+        if (usage) url += "&usage=" + encodeURIComponent(usage);
 
         return fetch(url, { cache: "no-store" }).then(payload).then(function (result) {
             var data = result.data && typeof result.data === "object" ? result.data : {};

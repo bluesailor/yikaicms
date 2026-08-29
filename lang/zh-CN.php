@@ -2437,6 +2437,8 @@ return [
     'blox_section_word' => '区块 :n',
     'blox_n_elements' => ':n 元素',
     'blox_media_total' => '共 :n 张',
+    'blox_media_wide_background_hint' => '通栏背景建议使用宽度 1920px 以上的图片，已优先排列；较小图片仍可选择。',
+    'blox_media_recommended' => '推荐',
     'blox_n_revisions' => ':n 个版本',
     'blox_pick_revision' => '选择左侧版本预览',
     'blox_no_matching_settings' => '没有匹配的设置项。',

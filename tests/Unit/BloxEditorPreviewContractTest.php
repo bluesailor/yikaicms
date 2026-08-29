@@ -1275,6 +1275,22 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('getBlockBg(', $theme);
     }
 
+    public function testWideBackgroundMediaPickerPrioritizesRecommendedImagesWithoutBlockingFallbacks(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+        $api = $this->source('admin/media_api.php');
+
+        $this->assertStringContainsString('this.mediaUsage === "hero-bg" ? 1920 : 0', $editor);
+        $this->assertStringContainsString('self.pageHero.hero_bg = url; }, { usage: "hero-bg" }', $editor);
+        $this->assertStringContainsString('self.setContainerBackgroundImage(url); }, { usage: "hero-bg" }', $editor);
+        $this->assertStringContainsString("setSectionBackgroundImage(u), { usage: 'hero-bg' }", $workspace);
+        $this->assertStringContainsString('data-testid="blox-media-wide-background-hint"', $overlays);
+        $this->assertStringContainsString('mediaRecommended(it)', $overlays);
+        $this->assertStringContainsString("\$usage === 'hero-bg' ? 1920 : 0", $api);
+    }
+
     public function testAboutBlockUsesRealDesktopViewportAndClickableInternalFields(): void
     {
         $editor = $this->source('admin/blox_editor.php');

@@ -2538,6 +2538,8 @@ return [
     'blox_section_word' => 'セクション :n',
     'blox_n_elements' => ':n 要素',
     'blox_media_total' => '全 :n 枚',
+    'blox_media_wide_background_hint' => '全幅背景では幅 1920px 以上の画像を先に表示します。小さい画像も引き続き選択できます。',
+    'blox_media_recommended' => '推奨',
     'blox_n_revisions' => ':n 個のバージョン',
     'blox_pick_revision' => '左のバージョンを選択してプレビュー',
     'blox_no_matching_settings' => '一致する設定項目がありません。',

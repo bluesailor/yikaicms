@@ -2193,7 +2193,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             pickContainerBackgroundImage() {
                 var self = this;
-                this.openMedia(function (url) { self.setContainerBackgroundImage(url); });
+                this.openMedia(function (url) { self.setContainerBackgroundImage(url); }, { usage: "hero-bg" });
             },
 
             setColumnBackgroundImage(url) {
@@ -3125,10 +3125,15 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaTotal: 0,
             mediaKeyword: "",
             mediaLoading: false,
+            mediaUsage: "",
+            mediaPreferredMinWidth: 0,
             _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
 
-            openMedia(setter) {
+            openMedia(setter, options) {
+                options = options || {};
                 this._mediaTarget = setter;
+                this.mediaUsage = String(options.usage || "");
+                this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
                 this.mediaOpen = true;
                 this.mediaKeyword = "";
                 this.focusDialog(this.$refs.mediaDialog, "[data-dialog-initial]");
@@ -3140,6 +3145,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var root = this.$refs.mediaDialog;
                 this.mediaOpen = false;
                 this._mediaTarget = null;
+                this.mediaUsage = "";
+                this.mediaPreferredMinWidth = 0;
                 this.releaseDialog(root);
             },
 
@@ -3147,7 +3154,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var self = this;
                 this.mediaLoading = true;
                 this.mediaPage = page;
-                window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword)
+                window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
+                    usage: this.mediaUsage,
+                })
                     .then(function (result) {
                         if (result.ok) {
                             self.mediaItems = result.items;
@@ -3160,6 +3169,17 @@ $canManageBloxDesign = hasPermission('blox_global');
                     })
                     .catch(function () { self.mediaItems = []; self.toast(self.uiText.mediaFailed); })
                     .finally(function () { self.mediaLoading = false; });
+            },
+
+            mediaRecommended(item) {
+                return this.mediaPreferredMinWidth > 0
+                    && Number((item && item.width) || 0) >= this.mediaPreferredMinWidth;
+            },
+
+            mediaDimensions(item) {
+                var width = Math.max(0, Number((item && item.width) || 0));
+                var height = Math.max(0, Number((item && item.height) || 0));
+                return width > 0 && height > 0 ? Math.round(width) + "×" + Math.round(height) : "";
             },
 
             pickMedia(url) {
@@ -3391,7 +3411,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     item.data = item.data || {};
                     item.data.image = url;
                     self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, index);
-                });
+                }, { usage: "hero-bg" });
             },
 
             adoptBannerItems(index) {
@@ -6235,7 +6255,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             pickPageHeroBackground() {
                 var self = this;
-                this.openMedia(function (url) { self.pageHero.hero_bg = url; });
+                this.openMedia(function (url) { self.pageHero.hero_bg = url; }, { usage: "hero-bg" });
             },
 
             savePageHeroSettings() {

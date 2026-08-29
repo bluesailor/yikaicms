@@ -13,6 +13,7 @@ class MediaModel extends Model
     {
         $where = [];
         $params = [];
+        $preferredMinWidth = max(0, min(10000, (int) ($filters['preferred_min_width'] ?? 0)));
 
         if (!empty($filters['type'])) {
             $where[] = 'type = ?';
@@ -30,8 +31,13 @@ class MediaModel extends Model
             $params
         );
 
+        $order = $this->defaultOrder;
+        if ($preferredMinWidth > 0 && (($filters['type'] ?? '') === 'image')) {
+            $order = "CASE WHEN width >= {$preferredMinWidth} THEN 0 ELSE 1 END ASC, {$order}";
+        }
+
         $items = db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} {$whereSQL} ORDER BY {$this->defaultOrder} LIMIT ? OFFSET ?",
+            "SELECT * FROM {$this->tableName()} {$whereSQL} ORDER BY {$order} LIMIT ? OFFSET ?",
             array_merge($params, [$limit, $offset])
         );
 

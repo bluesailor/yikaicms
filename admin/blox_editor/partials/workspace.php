@@ -1867,7 +1867,7 @@ declare(strict_types=1);
                                                                 <span class="mt-1 text-[10px]" x-text="homeDynamicText.noImage"></span>
                                                             </div>
                                                         </template>
-                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u)"
+                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'hero-bg' })"
                                                                 data-testid="blox-cta-background-media"
                                                                 class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-blue-600 text-white text-xs inline-flex items-center justify-center gap-1.5 transition">
                                                             <i class="ti ti-photo-edit text-sm"></i><span x-text="homeDynamicText.replaceImage"></span>
@@ -1895,7 +1895,7 @@ declare(strict_types=1);
                                                                 <span class="text-[10px] mt-1" x-text="homeDynamicText.noImage"></span>
                                                             </div>
                                                         </template>
-                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u)"
+                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'hero-bg' })"
                                                                 class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-blue-600 text-white text-xs inline-flex items-center justify-center gap-1.5 transition">
                                                             <i class="ti ti-photo-edit text-sm"></i><span x-text="homeDynamicText.replaceImage"></span>
                                                         </button>
@@ -2139,7 +2139,7 @@ declare(strict_types=1);
                                                @change="setSectionBackgroundImage($event.target.value)"
                                                data-testid="blox-section-bg-image"
                                                class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                        <button type="button" @click="openMedia(u => setSectionBackgroundImage(u))"
+                                        <button type="button" @click="openMedia(u => setSectionBackgroundImage(u), { usage: 'hero-bg' })"
                                                 class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
                                         <button type="button" @click="setSectionBackgroundImage('')"
                                                 class="text-gray-400 hover:text-red-500 p-1 shrink-0" title="<?= e(__('blox_clear')) ?>">

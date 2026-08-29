@@ -482,6 +482,11 @@ declare(strict_types=1);
                     </select>
                 </label>
             </div>
+            <div x-show="mediaUsage === 'hero-bg'"
+                 class="shrink-0 border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs leading-5 text-amber-900"
+                 data-testid="blox-media-wide-background-hint">
+                <i class="ti ti-photo mr-1" aria-hidden="true"></i><?= e(__('blox_media_wide_background_hint')) ?>
+            </div>
             <div class="h-[400px] overflow-y-auto blox-scroll p-3">
                 <p x-show="mediaLoading" class="text-center text-gray-400 text-sm py-12"><?= __('theme_market_loading') ?></p>
                 <p x-show="!mediaLoading && mediaItems.length === 0" class="text-center text-gray-400 text-sm py-12">
@@ -497,7 +502,15 @@ declare(strict_types=1);
                             <span class="block aspect-[3/2] bg-gray-100 p-1.5">
                                 <img :src="it.url" class="w-full h-full object-contain" loading="lazy" alt="">
                             </span>
-                            <span class="block px-2 py-1.5 text-[11px] text-gray-600 truncate" x-text="it.name"></span>
+                            <span class="flex min-w-0 items-center gap-1.5 px-2 pt-1.5">
+                                <span class="min-w-0 flex-1 truncate text-[11px] text-gray-600" x-text="it.name"></span>
+                                <span x-show="mediaRecommended(it)"
+                                      class="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-800"
+                                      x-text="<?= e($jt('blox_media_recommended')) ?>"></span>
+                            </span>
+                            <span x-show="mediaDimensions(it)"
+                                  class="block px-2 pb-1.5 pt-0.5 text-[10px] tabular-nums text-gray-400"
+                                  x-text="mediaDimensions(it)"></span>
                         </button>
                     </template>
                 </div>
