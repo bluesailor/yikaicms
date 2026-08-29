@@ -96,6 +96,24 @@ trait HomeBloxSchemaControlsTrait
                 'visible_when' => ['terms' => [['banner_height_mode', '=', 'fixed']]],
             ],
             [
+                'key' => 'banner_mobile_mode',
+                'type' => 'select',
+                'label' => __('blox_banner_mobile_mode'),
+                'default' => 'inherit',
+                'options' => [
+                    'inherit' => __('blox_banner_mobile_inherit'),
+                    'fixed' => __('blox_banner_mobile_fixed'),
+                    'hidden' => __('blox_banner_mobile_hidden'),
+                ],
+                'option_icons' => [
+                    'inherit' => 'device-mobile',
+                    'fixed' => 'arrows-vertical',
+                    'hidden' => 'eye-off',
+                ],
+                'required' => ['block_type', '=', 'banner'],
+                'help' => __('blox_banner_mobile_mode_help'),
+            ],
+            [
                 'key' => 'banner_height_mobile',
                 'type' => 'number',
                 'label' => __('blox_banner_height_mobile'),
@@ -104,7 +122,7 @@ trait HomeBloxSchemaControlsTrait
                 'max' => 1200,
                 'step' => 10,
                 'required' => ['block_type', '=', 'banner'],
-                'visible_when' => ['terms' => [['banner_height_mode', '=', 'fixed']]],
+                'visible_when' => ['terms' => [['banner_mobile_mode', '=', 'fixed']]],
             ],
             [
                 'key' => 'banner_effect',

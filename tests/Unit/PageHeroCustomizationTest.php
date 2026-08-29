@@ -7,7 +7,7 @@
  * 本测试守住三类契约：
  *   1. schema 三处同步（迁移 + 双 install SQL）；
  *   2. 前台解析链与两份 page-hero 副本不再漂移（includes 版曾缺 default_bg 兜底）；
- *   3. 联系页仅认显式 hero_bg（不继承 image/全局默认——升级不改变存量站观感）。
+ *   3. 联系页与其它单页统一使用通用 page-hero，旧 partial 仅保留兼容入口。
  */
 
 declare(strict_types=1);
@@ -62,17 +62,12 @@ final class PageHeroCustomizationTest extends TestCase
         }
     }
 
-    public function testContactHeroOnlyHonorsExplicitHeroBg(): void
+    public function testLegacyContactHeroDelegatesToGenericPageHero(): void
     {
         $contact = $this->source('includes/partials/contact-hero.php');
-        $this->assertStringContainsString("(int) \$channel['show_hero'] === 0", $contact);
-        $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel, true)', $contact);
-        $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($contactHeroOptions, true)', $contact);
-        $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($contactHeroOptions)', $contact);
-        $this->assertStringContainsString('PageHeroStyleResolver::textTone($contactHeroOptions, $contactHeroBg, true)', $contact);
-        $this->assertStringContainsString('UrlPolicy::cssImageLiteral($contactHeroBg)', $contact);
-        // 默认 self 仍保持紧凑白底；显式 parent/global 由统一解析器处理。
-        $this->assertStringContainsString('bg-white border-y border-gray-100', $contact);
+        $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $contact);
+        $this->assertStringNotContainsString('PageHeroStyleResolver::resolve', $contact);
+        $this->assertStringNotContainsString('<section', $contact);
     }
 
     public function testAdminEditorsPersistHeroFieldsBehindColumnGuard(): void
@@ -98,11 +93,9 @@ final class PageHeroCustomizationTest extends TestCase
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
 
         $this->assertStringContainsString('data-yk-page-hero', $canvas);
-        $this->assertStringContainsString("(string) (\$pageRow['slug'] ?? '') === 'contact'", $canvas);
-        $this->assertStringContainsString("channelModel()->find((int) \$pageRow['translation_group_id'])", $canvas);
-        $this->assertStringContainsString('PageHeroStyleResolver::resolve($pageRow, $isContactPage)', $canvas);
-        $this->assertStringContainsString("\$isContactPage ? 'partials/contact-hero.php' : 'partials/page-hero.php'", $canvas);
-        $this->assertStringContainsString('require theme_path($heroPartial);', $canvas);
+        $this->assertStringContainsString('PageHeroStyleResolver::resolve($pageRow)', $canvas);
+        $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $canvas);
+        $this->assertStringNotContainsString("partials/contact-hero.php", $canvas);
         $this->assertStringContainsString('ykEditPageHero: true', $canvas);
         $this->assertStringContainsString('data-testid="blox-page-hero-dialog"', $editor);
         $this->assertStringContainsString('body.set("action", "save_page_hero")', $editor);
@@ -120,6 +113,7 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('UrlPolicy::image($heroBgInput)', $api);
         $this->assertStringContainsString('PageHeroStyleResolver::normalizeMode($styleSourceInput)', $api);
         $this->assertStringContainsString('PageHeroStyleResolver::encodeOptions($styleOptionsRaw', $api);
+        $this->assertStringNotContainsString('$isCompactContact', $api);
         $this->assertStringContainsString('onEditPageHero', $bridge);
         $this->assertStringNotContainsString('blocks_data', substr(
             $api,

@@ -224,18 +224,18 @@ final class ContactPageLayoutTest extends TestCase
         self::assertStringContainsString("require_once ROOT_PATH . '/includes/HtmlCache.php';", $source);
     }
 
-    public function testContactFrontTemplateUsesCompactHeroAndUsefulFallback(): void
+    public function testContactFrontTemplateUsesGenericHeroAndUsefulFallback(): void
     {
         $pageSource = (string) file_get_contents(ROOT_PATH . '/contact.php');
         $partsSource = (string) file_get_contents(ROOT_PATH . '/includes/contact_parts.php');
         $heroSource = (string) file_get_contents(ROOT_PATH . '/includes/partials/contact-hero.php');
 
-        self::assertStringContainsString("theme_path('partials/contact-hero.php')", $pageSource);
+        self::assertStringContainsString("theme_path('partials/page-hero.php')", $pageSource);
         self::assertStringContainsString("'tel:' . \$phoneTarget", $partsSource);
         self::assertStringContainsString("'mailto:' . \$cardValue", $partsSource);
         self::assertStringContainsString("__('contact_visit_title')", $partsSource);
-        self::assertStringContainsString('border-l-4 border-primary', $heroSource);
-        self::assertStringNotContainsString('bg-gradient', $heroSource);
+        self::assertStringContainsString("theme_path('partials/page-hero.php')", $heroSource);
+        self::assertStringNotContainsString('<section', $heroSource);
     }
 
     public function testStaticHtmlInvalidationAlsoRemovesFilesWhenGenerationIsDisabled(): void

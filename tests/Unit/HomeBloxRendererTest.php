@@ -127,6 +127,9 @@ final class HomeBloxRendererTest extends TestCase
 
         $inheritBanner = array_replace_recursive($coverBanner, ['data' => ['banner_height_mode' => 'inherit']]);
         $this->assertTrue(HomeBloxRenderer::startsWithVisibleBanner([$section([$inheritBanner])]));
+        $this->assertTrue(HomeBloxRenderer::startsWithMobileVisibleBanner([$section([$inheritBanner])]));
+        $mobileHiddenBanner = array_replace_recursive($coverBanner, ['data' => ['banner_mobile_mode' => 'hidden']]);
+        $this->assertFalse(HomeBloxRenderer::startsWithMobileVisibleBanner([$section([$mobileHiddenBanner])]));
         $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner(
             [$section([$inheritBanner])],
             ['height_mode' => 'cover-header']
@@ -135,6 +138,13 @@ final class HomeBloxRendererTest extends TestCase
             [$section([$inheritBanner])],
             ['height_mode' => 'screen']
         ));
+
+        $bannerCss = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-banner.css');
+        $index = (string) file_get_contents(ROOT_PATH . '/index.php');
+        $this->assertStringContainsString('[data-blox-mobile-mode="hidden"]', $bannerCss);
+        $this->assertStringContainsString('[data-blox-mobile-mode="fixed"]', $bannerCss);
+        $this->assertStringContainsString('HomeBloxRenderer::startsWithMobileVisibleBanner', $index);
+        $this->assertStringContainsString('window.matchMedia("(min-width: 768px)")', $index);
     }
 
     public function testLegacyHeaderOverlayRequiresCoverGroupAndFirstEnabledBanner(): void

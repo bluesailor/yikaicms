@@ -38,11 +38,6 @@ try {
     $documentClass::load($pageId);
 
     if ($action === 'save_page_hero') {
-        $isCompactContact = (string) ($targetChannel['slug'] ?? '') === 'contact';
-        if (!$isCompactContact && (int) ($targetChannel['translation_group_id'] ?? 0) > 0) {
-            $sourceChannel = channelModel()->find((int) $targetChannel['translation_group_id']);
-            $isCompactContact = (string) ($sourceChannel['slug'] ?? '') === 'contact';
-        }
         $heroBgInput = trim((string) post('hero_bg', ''));
         $heroBg = $heroBgInput === '' ? '' : UrlPolicy::image($heroBgInput);
         if ($heroBgInput !== '' && $heroBg === '') {
@@ -62,7 +57,7 @@ try {
         if (!is_array($styleOptionsRaw)) {
             error(__('blox_page_hero_invalid_options'));
         }
-        $styleOptions = PageHeroStyleResolver::encodeOptions($styleOptionsRaw, $isCompactContact);
+        $styleOptions = PageHeroStyleResolver::encodeOptions($styleOptionsRaw);
         channelModel()->updateById($pageId, [
             'hero_bg' => $heroBg,
             'show_hero' => $showHero,
@@ -75,13 +70,13 @@ try {
             'show_hero' => $showHero,
             'hero_style_source' => $styleSource,
             'hero_style_options' => $styleOptions,
-        ]), $isCompactContact);
+        ]));
         adminLog($isContentList ? 'channel' : 'page', 'save_page_hero', 'save page hero #' . $pageId);
         success([
             'hero_bg' => $heroBg,
             'show_hero' => $showHero === 1,
             'style_source' => $styleSource,
-            'style_options' => PageHeroStyleResolver::normalizeOptions($styleOptions, $isCompactContact),
+            'style_options' => PageHeroStyleResolver::normalizeOptions($styleOptions),
             'resolved_options' => $resolved['options'],
             'resolved_bg' => $resolved['background'],
             'source' => $resolved['source'],
