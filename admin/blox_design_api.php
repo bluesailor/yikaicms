@@ -65,6 +65,11 @@ try {
     $state = BloxDesignSystem::mutate($action, $input, bloxAdvancedFeaturesEnabled());
     adminLog('blox_design', $action, 'Blox design system ' . $action . ' ' . mb_substr($input['id'], 0, 48));
     success($state);
+} catch (RuntimeException $e) {
+    if ($e->getMessage() === __('blox_save_conflict')) {
+        error($e->getMessage(), 409);
+    }
+    error($e->getMessage());
 } catch (Throwable $e) {
     error($e->getMessage());
 }

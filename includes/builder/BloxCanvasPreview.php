@@ -14,8 +14,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     $bloxCanvas = (($_POST['blox'] ?? '') === '1');
     // 编辑器预览/画布里隐藏的区块照常显示（灰显标注），否则一隐藏就从画布消失、没法再点回来
     require_once ROOT_PATH . '/includes/builder/bootstrap.php';
-    BloxQueryLoopPolicy::assertJsonAllowed((string) ($_POST['blocks_data'] ?? '[]'));
-    BloxDisplayConditions::assertJsonAllowed((string) ($_POST['blocks_data'] ?? '[]'));
+    $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
+    BloxElementPolicy::assertJsonAllowed($previewJson);
+    BloxQueryLoopPolicy::assertJsonAllowed($previewJson);
+    BloxDisplayConditions::assertJsonAllowed($previewJson);
     BlockRenderer::$showHidden = true;
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
@@ -25,7 +27,6 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     // 页头模板只显示可编辑页头；页尾保留正文只读上下文，帮助判断落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');
     if ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
-        $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
         $previewDocument = BloxAreaDocument::decode($templateArea, $previewJson);
         $editableArea = BloxAreaDocument::renderShell(
             $templateArea,

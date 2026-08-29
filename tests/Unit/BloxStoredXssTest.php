@@ -249,6 +249,13 @@ final class BloxStoredXssTest extends TestCase
         BloxDocumentPipeline::process($this->codeDocJson(true));
     }
 
+    public function testPreviewPolicyRejectsCodeElementWithoutBloxCodePermission(): void
+    {
+        $GLOBALS['_test_admin_perms'] = ['edit_page'];
+        $this->expectException(RuntimeException::class);
+        BloxElementPolicy::assertJsonAllowed($this->codeDocJson());
+    }
+
     public function testPipelineAllowsCodeElementWithBloxCodePermission(): void
     {
         $GLOBALS['_test_admin_perms'] = ['edit_page', 'blox_code'];

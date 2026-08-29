@@ -140,6 +140,7 @@ final class BloxSecurityBoundaryTest extends TestCase
         $this->assertBefore($preview, 'verifyCsrf();', 'outputBloxCanvasPreview(');
 
         self::assertStringContainsString('Content-Security-Policy', $this->source('includes/builder/BloxCanvasPreview.php'));
+        self::assertStringContainsString('BloxElementPolicy::assertJsonAllowed($previewJson);', $this->source('includes/builder/BloxCanvasPreview.php'));
         self::assertStringContainsString("script-src 'self' 'nonce-", $this->source('includes/builder/BloxCanvasPreview.php'));
         self::assertStringContainsString('$body = (string) preg_replace', $this->source('includes/builder/BloxCanvasPreview.php'));
     }

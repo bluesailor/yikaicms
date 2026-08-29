@@ -141,10 +141,14 @@ final class BloxSectionMetadata
     private static function languageList(mixed $raw): array
     {
         $values = is_array($raw) ? $raw : [];
+        $available = function_exists('availableLanguages') ? availableLanguages() : [];
         $result = [];
         foreach ($values as $value) {
             $language = trim(is_string($value) ? $value : '');
-            if (preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/', $language) !== 1) {
+            $languageAvailable = $available !== []
+                ? isset($available[$language])
+                : preg_match('/^[a-z][a-z0-9-]{1,49}$/i', $language) === 1;
+            if (!$languageAvailable) {
                 continue;
             }
             $result[$language] = true;

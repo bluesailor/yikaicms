@@ -36,6 +36,7 @@ final class BloxSiteDesignContractTest extends TestCase
         $source = file_get_contents(ROOT_PATH . '/admin/site_design.php');
 
         self::assertIsString($source);
+        self::assertStringContainsString('requireAnyBloxPermission();', $source);
         self::assertStringContainsString('$basicBloxEnabled = bloxPageEditorEnabled();', $source);
         self::assertStringContainsString("\$canEditPages = hasPermission('blox_edit') && hasPermission('edit_page');", $source);
         self::assertStringContainsString("\$canEditHome = hasPermission('blox_home');", $source);
