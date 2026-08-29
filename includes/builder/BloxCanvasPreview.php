@@ -1778,6 +1778,12 @@ HTML;
         '<script' . $nonceAttr,
         BloxAssetCollector::renderScripts()
     );
+    $presetInteraction = '';
+    if ((string) ($_POST['drawer_open'] ?? '') === '1') {
+        $presetInteraction = '<script' . $nonceAttr . '>'
+            . "document.querySelector('[data-yk-drawer-open]')?.click();"
+            . '</script>';
+    }
     $body = (string) preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script' . $nonceAttr, $body);
     $bloxInject = (string) preg_replace('/<script\b(?![^>]*\bnonce=)/i', '<script' . $nonceAttr, $bloxInject);
     $csp = "default-src 'self'; script-src 'self' 'nonce-" . $scriptNonce . "' 'strict-dynamic'; "
@@ -1803,6 +1809,7 @@ HTML;
         . $body
         . '<script' . $nonceAttr . ' src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>'
         . $previewScripts
+        . $presetInteraction
         . $bloxInject
         . '</body></html>';
     exit;

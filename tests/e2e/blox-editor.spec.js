@@ -2160,6 +2160,11 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   expect(mobilePreviewBox.width).toBeLessThanOrEqual(390);
   expect(mobilePreviewBox.x).toBeGreaterThanOrEqual(0);
   expect(mobilePreviewBox.x + mobilePreviewBox.width).toBeLessThanOrEqual(viewport.width);
+  await previewDialog.getByTestId('blox-header-preset-preview-state-overlay').click();
+  await expect(presetFrame.contentFrame().locator('#siteHeader')).toHaveAttribute('data-yk-header-state', 'overlay');
+  await previewDialog.getByTestId('blox-header-preset-preview-drawer').click();
+  await expect(presetFrame.contentFrame().locator('[data-yk-drawer-panel]')).toBeVisible();
+  await expect(presetFrame.contentFrame().locator('[data-yk-drawer-open]')).toHaveAttribute('aria-expanded', 'true');
   await previewDialog.getByTestId('blox-header-preset-preview-close').click();
   await expect(previewDialog).toBeHidden();
   await expect(dialog).toBeVisible();
