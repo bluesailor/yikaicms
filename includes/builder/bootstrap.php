@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../TagEngine.php';
 require_once __DIR__ . '/../UrlPolicy.php';   // AbstractElement::safeHref/cssImageUrl 的权威实现
+require_once __DIR__ . '/../PageHeroStyleResolver.php';
 require_once __DIR__ . '/BloxResponsiveValue.php';
 require_once __DIR__ . '/AbstractElement.php';
 require_once __DIR__ . '/BloxHeaderStates.php';

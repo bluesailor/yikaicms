@@ -156,13 +156,21 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                     'url' => channelUrl($breadcrumbChannel),
                 ];
             }
-            $heroSource = trim((string) ($pageRow['hero_bg'] ?? '')) !== ''
-                ? __('blox_page_hero_source_custom')
-                : (trim((string) ($pageRow['image'] ?? '')) !== ''
-                    ? __('blox_page_hero_source_cover')
-                    : (trim((string) config('page_hero_default_bg', '')) !== ''
-                        ? __('blox_page_hero_source_global')
-                        : __('blox_page_hero_source_builtin')));
+            $heroStyle = PageHeroStyleResolver::resolve($pageRow);
+            $heroSource = match ($heroStyle['source']) {
+                'custom' => __('blox_page_hero_source_custom'),
+                'cover' => __('blox_page_hero_source_cover'),
+                'parent' => __('blox_page_hero_source_parent', [
+                    'name' => $heroStyle['source_channel_name'],
+                ]),
+                'global' => __('blox_page_hero_source_global'),
+                default => __('blox_page_hero_source_builtin'),
+            };
+            if ($heroStyle['mode'] === PageHeroStyleResolver::MODE_PARENT && $heroStyle['source'] !== 'parent') {
+                $heroSource = __('blox_page_hero_mode_parent') . ' / ' . $heroSource;
+            } elseif ($heroStyle['mode'] === PageHeroStyleResolver::MODE_GLOBAL) {
+                $heroSource = __('blox_page_hero_mode_global') . ' / ' . $heroSource;
+            }
             /**
              * @psalm-suppress UnusedClosureParam 主题局部模板从 require 作用域读取两个参数
              */

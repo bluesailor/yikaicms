@@ -44,21 +44,33 @@ try {
             error(__('blox_page_hero_invalid_image'));
         }
         $showHero = (string) post('show_hero', '0') === '1' ? 1 : 0;
+        $styleSourceInput = trim((string) post('hero_style_source', PageHeroStyleResolver::MODE_SELF));
+        $styleSource = PageHeroStyleResolver::normalizeMode($styleSourceInput);
+        if ($styleSource !== $styleSourceInput) {
+            error(__('blox_page_hero_invalid_source'));
+        }
+        if ($styleSource === PageHeroStyleResolver::MODE_PARENT && (int) ($targetChannel['parent_id'] ?? 0) <= 0) {
+            error(__('blox_page_hero_parent_unavailable'));
+        }
         channelModel()->updateById($pageId, [
             'hero_bg' => $heroBg,
             'show_hero' => $showHero,
+            'hero_style_source' => $styleSource,
             'updated_at' => time(),
         ]);
-        $source = $heroBg !== ''
-            ? 'custom'
-            : (trim((string) ($targetChannel['image'] ?? '')) !== ''
-                ? 'cover'
-                : (trim((string) config('page_hero_default_bg', '')) !== '' ? 'global' : 'builtin'));
+        $resolved = PageHeroStyleResolver::resolve(array_merge($targetChannel, [
+            'hero_bg' => $heroBg,
+            'show_hero' => $showHero,
+            'hero_style_source' => $styleSource,
+        ]));
         adminLog($isContentList ? 'channel' : 'page', 'save_page_hero', 'save page hero #' . $pageId);
         success([
             'hero_bg' => $heroBg,
             'show_hero' => $showHero === 1,
-            'source' => $source,
+            'style_source' => $styleSource,
+            'resolved_bg' => $resolved['background'],
+            'source' => $resolved['source'],
+            'source_channel_name' => $resolved['source_channel_name'],
         ]);
     }
 

@@ -167,7 +167,7 @@ declare(strict_types=1);
         </aside>
     </div>
 
-    <!-- 页面标题区：系统区域不进入正文文档，单独保存现有 hero_bg/show_hero 字段。 -->
+    <!-- 页面标题区：系统区域不进入正文文档，单独保存来源、背景与显示开关。 -->
     <div x-show="pageHeroOpen" x-cloak x-ref="pageHeroDialog" tabindex="-1"
          data-testid="blox-page-hero-dialog"
          @keydown="dialogKeydown($event, $refs.pageHeroDialog, () => closePageHeroSettings())"
@@ -198,6 +198,27 @@ declare(strict_types=1);
                     <input type="checkbox" x-model="pageHero.show_hero" data-dialog-initial
                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 </label>
+                <fieldset>
+                    <legend class="mb-2 text-sm font-medium text-gray-800" x-text="pageHeroText.styleSource"></legend>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="cursor-pointer border px-3 py-2.5 text-center text-sm transition"
+                               :class="pageHero.style_source === 'self' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'">
+                            <input type="radio" value="self" x-model="pageHero.style_source" class="sr-only">
+                            <span x-text="pageHeroText.modeSelf"></span>
+                        </label>
+                        <label class="border px-3 py-2.5 text-center text-sm transition"
+                               :class="[pageHero.can_inherit ? 'cursor-pointer' : 'cursor-not-allowed opacity-40', pageHero.style_source === 'parent' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400']">
+                            <input type="radio" value="parent" x-model="pageHero.style_source" :disabled="!pageHero.can_inherit" class="sr-only">
+                            <span x-text="pageHeroText.modeParent"></span>
+                        </label>
+                        <label class="cursor-pointer border px-3 py-2.5 text-center text-sm transition"
+                               :class="pageHero.style_source === 'global' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'">
+                            <input type="radio" value="global" x-model="pageHero.style_source" class="sr-only">
+                            <span x-text="pageHeroText.modeGlobal"></span>
+                        </label>
+                    </div>
+                    <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
+                </fieldset>
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
                         <label class="text-sm font-medium text-gray-800" for="blox-page-hero-bg" x-text="pageHeroText.background"></label>
@@ -206,23 +227,24 @@ declare(strict_types=1);
                         </span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <template x-if="pageHero.hero_bg || pageHero.image">
-                            <img :src="pageHero.hero_bg || pageHero.image" class="h-11 w-16 shrink-0 border border-gray-200 object-cover" alt="">
+                        <template x-if="pageHeroPreviewBackground()">
+                            <img :src="pageHeroPreviewBackground()" class="h-11 w-16 shrink-0 border border-gray-200 object-cover" alt="">
                         </template>
                         <input id="blox-page-hero-bg" type="text" x-model="pageHero.hero_bg"
                                placeholder="/uploads/images/page-hero.jpg"
-                               class="min-w-0 flex-1 border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                        <button type="button" @click="pickPageHeroBackground()"
-                                class="h-10 shrink-0 border border-gray-300 px-3 text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700 inline-flex items-center gap-1.5">
+                               :disabled="pageHero.style_source !== 'self'"
+                               class="min-w-0 flex-1 border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 disabled:text-gray-400">
+                        <button type="button" @click="pickPageHeroBackground()" :disabled="pageHero.style_source !== 'self'"
+                                class="h-10 shrink-0 border border-gray-300 px-3 text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40 inline-flex items-center gap-1.5">
                             <i class="ti ti-photo"></i><?= e(__('admin_media')) ?>
                         </button>
-                        <button type="button" @click="pageHero.hero_bg = ''" :disabled="!pageHero.hero_bg"
+                        <button type="button" @click="pageHero.hero_bg = ''" :disabled="pageHero.style_source !== 'self' || !pageHero.hero_bg"
                                 class="inline-flex h-10 w-10 shrink-0 items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
                                 :title="designText.clear" :aria-label="designText.clear">
                             <i class="ti ti-eraser"></i>
                         </button>
                     </div>
-                    <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroText.backgroundHint"></p>
+                    <p class="mt-2 text-xs leading-5 text-gray-500" x-show="pageHero.style_source === 'self'" x-text="pageHeroText.backgroundHint"></p>
                 </div>
             </div>
             <footer class="flex min-h-14 items-center justify-end gap-2 border-t border-gray-100 px-4 py-3">

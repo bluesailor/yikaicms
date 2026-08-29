@@ -8,12 +8,12 @@
  */
 ?>
 <?php
-// 与主题版 partials/page-hero.php 同步的解析逻辑（此文件是主题缺失时的回退副本，勿再漂移）：
-// show_hero=0 整条不渲染；背景 hero_bg → image → 全局默认 page_hero_default_bg → 渐变。
+// 与主题版 partials/page-hero.php 同步：显示开关仍属当前页面，背景样式可继承父栏目或全局。
 if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
     return;
 }
-$heroBg = ($channel['hero_bg'] ?? '') ?: (($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', ''));
+$heroStyle = PageHeroStyleResolver::resolve($channel);
+$heroBg = $heroStyle['background'];
 ?>
 <?php if ($heroBg): ?>
 <section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($heroBg); ?>')">

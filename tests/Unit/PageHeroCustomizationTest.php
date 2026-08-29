@@ -1,6 +1,6 @@
 <?php
 /**
- * 内页横幅定制（hero_bg / show_hero）契约。
+ * 页面标题区定制（背景、显示开关与样式来源）契约。
  *
  * 背景：客户高频需求「横幅背景单独换一张」，v1.18.0 起 channels 提供
  * hero_bg（与正文头图 image 解耦）与 show_hero（整条横幅开关）。
@@ -33,6 +33,12 @@ final class PageHeroCustomizationTest extends TestCase
         $sqlite = $this->source('install/sql/sqlite.sql');
         $this->assertStringContainsString('"hero_bg" TEXT NOT NULL DEFAULT \'\'', $sqlite);
         $this->assertStringContainsString('"show_hero" INTEGER NOT NULL DEFAULT 1', $sqlite);
+
+        $sourceMigration = $this->source('migrations/20260829_channel_hero_style_source.php');
+        $this->assertStringContainsString("_columnExists('channels', 'hero_style_source')", $sourceMigration);
+        $this->assertStringContainsString('ADD COLUMN `hero_style_source`', $sourceMigration);
+        $this->assertStringContainsString("`hero_style_source` varchar(20) NOT NULL DEFAULT 'self'", $mysql);
+        $this->assertStringContainsString('"hero_style_source" TEXT NOT NULL DEFAULT \'self\'', $sqlite);
     }
 
     public function testThemeHeroResolvesHeroBgFirstAndHonorsToggle(): void
@@ -40,12 +46,7 @@ final class PageHeroCustomizationTest extends TestCase
         foreach (['themes/default/partials/page-hero.php', 'includes/partials/page-hero.php'] as $path) {
             $hero = $this->source($path);
             $this->assertStringContainsString("(int) \$channel['show_hero'] === 0", $hero, $path . ' 缺 show_hero 开关');
-            // 解析链整条表达式逐字断言：hero_bg → image → 全局默认（两份副本必须一字不差，防漂移）
-            $this->assertStringContainsString(
-                "\$heroBg = (\$channel['hero_bg'] ?? '') ?: ((\$channel['image'] ?? '') ?: (string) config('page_hero_default_bg', ''));",
-                $hero,
-                $path . ' 解析链与契约不符'
-            );
+            $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel)', $hero, $path . ' 未使用统一解析器');
         }
     }
 
@@ -53,10 +54,8 @@ final class PageHeroCustomizationTest extends TestCase
     {
         $contact = $this->source('includes/partials/contact-hero.php');
         $this->assertStringContainsString("(int) \$channel['show_hero'] === 0", $contact);
-        $this->assertStringContainsString("\$channel['hero_bg']", $contact);
-        // 联系页不继承 image / 全局默认：留空必须保持紧凑白底
-        $this->assertStringNotContainsString('page_hero_default_bg', $contact);
-        $this->assertStringNotContainsString("\$channel['image']", $contact);
+        $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel, true)', $contact);
+        // 默认 self 仍保持紧凑白底；显式 parent/global 由统一解析器处理。
         $this->assertStringContainsString('bg-white border-y border-gray-100', $contact);
     }
 
@@ -64,11 +63,13 @@ final class PageHeroCustomizationTest extends TestCase
     {
         foreach (['admin/page_edit.php', 'admin/channel.php'] as $path) {
             $admin = $this->source($path);
-            $this->assertStringContainsString("SELECT hero_bg FROM", $admin, $path . ' 缺列存在性守卫');
+            $this->assertStringContainsString("SELECT hero_bg, hero_style_source FROM", $admin, $path . ' 缺列存在性守卫');
             $this->assertStringContainsString("post('hero_bg')", $admin, $path . ' 未保存 hero_bg');
             $this->assertStringContainsString("isset(\$_POST['show_hero']) ? 1 : 0", $admin, $path . ' 未保存 show_hero');
+            $this->assertStringContainsString("post('hero_style_source', 'self')", $admin, $path . ' 未保存 hero_style_source');
             $this->assertStringContainsString('name="hero_bg"', $admin, $path . ' 表单缺 hero_bg 输入');
             $this->assertStringContainsString('name="show_hero"', $admin, $path . ' 表单缺 show_hero 开关');
+            $this->assertStringContainsString('name="hero_style_source"', $admin, $path . ' 表单缺样式来源');
         }
     }
 
@@ -85,8 +86,10 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('ykEditPageHero: true', $canvas);
         $this->assertStringContainsString('data-testid="blox-page-hero-dialog"', $editor);
         $this->assertStringContainsString('body.set("action", "save_page_hero")', $editor);
+        $this->assertStringContainsString('body.set("hero_style_source"', $editor);
         $this->assertStringContainsString("if (\$action === 'save_page_hero')", $api);
         $this->assertStringContainsString('UrlPolicy::image($heroBgInput)', $api);
+        $this->assertStringContainsString('PageHeroStyleResolver::normalizeMode($styleSourceInput)', $api);
         $this->assertStringContainsString('onEditPageHero', $bridge);
         $this->assertStringNotContainsString('blocks_data', substr(
             $api,

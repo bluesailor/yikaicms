@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/PageHeroStyleResolver.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -97,9 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 内页横幅字段（hero_bg/show_hero 列由 20260819 迁移新增；未跑迁移的库跳过，避免保存整体失败）
     try {
-        db()->fetchOne("SELECT hero_bg FROM " . DB_PREFIX . "channels LIMIT 1");
+        db()->fetchOne("SELECT hero_bg, hero_style_source FROM " . DB_PREFIX . "channels LIMIT 1");
         $channelData['hero_bg'] = post('hero_bg');
         $channelData['show_hero'] = isset($_POST['show_hero']) ? 1 : 0;
+        $channelData['hero_style_source'] = PageHeroStyleResolver::normalizeMode(post('hero_style_source', 'self'));
     } catch (\Throwable $e) {
         // 列不存在：不写该字段
     }
@@ -115,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'image'           => $page['image'] ?? '',
             'hero_bg'         => $page['hero_bg'] ?? '',
             'show_hero'       => $page['show_hero'] ?? 1,
+            'hero_style_source' => $page['hero_style_source'] ?? 'self',
             'seo_title'       => $page['seo_title'] ?? '',
             'seo_keywords'    => $page['seo_keywords'] ?? '',
             'seo_description' => $page['seo_description'] ?? '',
@@ -265,6 +268,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div id="page-hero-settings" class="scroll-mt-6">
+                <label class="block text-sm text-gray-700 mb-1"><?php echo __('blox_page_hero_style_source'); ?></label>
+                <select name="hero_style_source" class="w-full border rounded px-3 py-2 text-sm mb-3">
+                    <option value="self" <?php echo ($page['hero_style_source'] ?? 'self') === 'self' ? 'selected' : ''; ?>><?php echo __('blox_page_hero_mode_self'); ?></option>
+                    <option value="parent" <?php echo ($page['hero_style_source'] ?? 'self') === 'parent' ? 'selected' : ''; ?> <?php echo (int) ($page['parent_id'] ?? 0) <= 0 ? 'disabled' : ''; ?>><?php echo __('blox_page_hero_mode_parent'); ?></option>
+                    <option value="global" <?php echo ($page['hero_style_source'] ?? 'self') === 'global' ? 'selected' : ''; ?>><?php echo __('blox_page_hero_mode_global'); ?></option>
+                </select>
                 <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_hero_bg'); ?></label>
                 <input type="text" name="hero_bg" id="heroBgInput" value="<?php echo e($page['hero_bg'] ?? ''); ?>"
                        class="w-full border rounded px-3 py-2 text-sm mb-2">

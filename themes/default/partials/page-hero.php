@@ -12,9 +12,9 @@
 if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
     return;
 }
-// 头部背景：本页专属 hero_bg 最优先（与正文头图 image 解耦，可单独定制）；
-// 其次栏目自带 image；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
-$heroBg = ($channel['hero_bg'] ?? '') ?: (($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', ''));
+// 样式来源可选本页、继承父栏目或全局；标题、简介和面包屑始终来自当前页面。
+$heroStyle = PageHeroStyleResolver::resolve($channel);
+$heroBg = $heroStyle['background'];
 ?>
 <?php if ($heroBg): ?>
 <section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($heroBg); ?>')">
