@@ -2007,7 +2007,8 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(page.getByTestId('blox-prebuilt-open')).toHaveCount(0);
   const headerPresetEntry = page.getByTestId('blox-right-panel').getByTestId('blox-header-presets-open');
   await expect(headerPresetEntry).toContainText('网页头样式');
-  await expect(page.getByText('预览页面', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('blox-ctx-control')).toContainText('查看效果');
+  await expect(page.getByTestId('blox-ctx-select')).toHaveValue('home');
   const contextLanguages = await page.getByTestId('blox-ctx-select').locator('optgroup')
     .evaluateAll((groups) => groups.map((group) => group.label));
   expect(contextLanguages).toEqual(expect.arrayContaining(['中文', 'English', '日本語']));
