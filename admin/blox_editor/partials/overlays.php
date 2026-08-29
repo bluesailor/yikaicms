@@ -442,7 +442,8 @@ declare(strict_types=1);
          role="dialog" aria-modal="true" aria-labelledby="blox-header-presets-title"
          class="fixed inset-0 z-[130] flex items-center justify-center p-6">
         <div class="absolute inset-0 bg-black/50" @click="closeHeaderPresets()"></div>
-        <div class="relative flex max-h-[calc(100vh-4rem)] w-[1120px] max-w-[96vw] flex-col rounded-lg bg-white shadow-2xl">
+        <div class="relative flex max-h-[calc(100vh-4rem)] w-[860px] max-w-[96vw] flex-col rounded-lg bg-white shadow-2xl"
+             :inert="headerPresetPreviewOpen" :aria-hidden="headerPresetPreviewOpen ? 'true' : 'false'">
             <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
                 <span class="min-w-0">
                     <span id="blox-header-presets-title" class="flex items-center gap-2 text-sm font-semibold text-gray-800">
@@ -457,7 +458,7 @@ declare(strict_types=1);
                     <i class="ti ti-x text-base"></i>
                 </button>
             </div>
-            <div class="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_20rem] blox-scroll">
+            <div class="min-h-0 flex-1 overflow-y-auto blox-scroll">
                 <div class="grid content-start grid-cols-1 gap-3 p-4 sm:grid-cols-2">
                     <template x-for="preset in headerPresets" :key="preset.slug">
                         <article class="flex min-h-64 flex-col overflow-hidden rounded border bg-white transition"
@@ -506,9 +507,8 @@ declare(strict_types=1);
                                 </div>
                                 <p class="mt-2 min-h-10 text-xs leading-5 text-gray-500" x-text="preset.description"></p>
                                 <div class="mt-auto grid grid-cols-2 gap-2 pt-3">
-                                    <button type="button" @click="selectHeaderPreset(preset)" data-dialog-initial
+                                    <button type="button" @click="previewHeaderPreset(preset)" data-dialog-initial
                                             data-testid="blox-header-preset-preview"
-                                            :aria-pressed="selectedHeaderPresetSlug === preset.slug"
                                             class="inline-flex h-9 items-center justify-center gap-1.5 rounded border border-gray-200 px-3 text-xs font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600">
                                         <i class="ti ti-eye text-sm"></i><span x-text="headerPresetText.preview"></span>
                                     </button>
@@ -523,53 +523,75 @@ declare(strict_types=1);
                         </article>
                     </template>
                 </div>
-
-                <aside class="hidden border-l border-gray-100 bg-gray-50/70 p-5 lg:block" data-testid="blox-header-preset-detail">
-                    <template x-for="preset in [selectedHeaderPreset()]" :key="preset ? 'detail-' + preset.slug : 'empty'">
-                        <div x-show="preset" class="sticky top-0">
-                            <p class="text-[10px] font-semibold uppercase text-blue-600" x-text="headerPresetText.previewTitle"></p>
-                            <div class="mt-3 flex h-40 items-center justify-center border border-gray-200 bg-white px-4" aria-hidden="true">
-                                <div class="flex w-full flex-col overflow-hidden border border-gray-200 bg-white shadow-sm">
-                                    <span x-show="preset && preset.preview === 'corporate'" class="flex h-6 items-center justify-end gap-1.5 bg-gray-800 px-3">
-                                        <i class="h-1.5 w-10 rounded bg-gray-500"></i><i class="h-1.5 w-6 rounded bg-gray-500"></i>
-                                    </span>
-                                    <span x-show="preset && preset.preview === 'topbar'" class="flex h-6 items-center justify-between bg-gray-200 px-3">
-                                        <i class="h-1.5 w-16 rounded bg-gray-400"></i><i class="h-1.5 w-8 rounded bg-gray-400"></i>
-                                    </span>
-                                    <span x-show="preset && preset.preview === 'centered-brand'" class="flex h-24 flex-col items-center justify-center gap-3 px-4">
-                                        <i class="h-4 w-20 rounded-sm bg-blue-500"></i><i class="h-2 w-40 rounded bg-gray-300"></i>
-                                    </span>
-                                    <span x-show="preset && preset.preview === 'search'" class="flex h-20 items-center gap-3 px-4">
-                                        <i class="h-4 w-16 shrink-0 rounded-sm bg-blue-500"></i><i class="h-8 flex-1 rounded border border-gray-300 bg-gray-50"></i><i class="h-3 w-8 rounded bg-gray-300"></i>
-                                    </span>
-                                    <span x-show="preset && preset.preview === 'search'" class="flex h-7 items-center justify-center bg-gray-800 px-3"><i class="h-1.5 w-32 rounded bg-gray-500"></i></span>
-                                    <span x-show="preset && preset.preview !== 'centered-brand' && preset.preview !== 'search'" class="flex h-20 items-center justify-between px-4">
-                                        <i class="h-4 w-20 rounded-sm bg-blue-500"></i>
-                                        <span class="flex items-center gap-2"><i class="h-2 w-14 rounded bg-gray-300"></i><i class="h-2 w-10 rounded bg-gray-300"></i><i class="h-8 w-10 rounded bg-blue-100"></i></span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex items-start justify-between gap-3">
-                                <h3 class="text-base font-semibold text-gray-800" x-text="preset && preset.name"></h3>
-                                <span x-show="preset && isCurrentHeaderPreset(preset)" class="shrink-0 rounded bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700" x-text="headerPresetText.currentDraft"></span>
-                            </div>
-                            <p class="mt-2 text-xs leading-5 text-gray-500" x-text="preset && preset.description"></p>
-                            <div class="mt-3 flex flex-wrap gap-1.5">
-                                <template x-for="feature in (preset ? preset.features : [])" :key="'detail-' + feature">
-                                    <span class="rounded bg-white px-2 py-1 text-[10px] font-medium text-gray-600 ring-1 ring-gray-200" x-text="feature"></span>
-                                </template>
-                            </div>
-                            <p class="mt-3 text-[11px] text-gray-400" x-text="headerPresetText.sectionCount.replace(':count', preset ? preset.sections.length : 0)"></p>
-                            <button type="button" @click="applyHeaderPreset(preset)" :disabled="!preset || isCurrentHeaderPreset(preset)"
-                                    data-testid="blox-header-preset-detail-apply"
-                                    class="mt-5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-default disabled:bg-emerald-600">
-                                <i class="ti" :class="preset && isCurrentHeaderPreset(preset) ? 'ti-check' : 'ti-arrow-right'"></i>
-                                <span x-text="preset && isCurrentHeaderPreset(preset) ? headerPresetText.currentApply : headerPresetText.apply"></span>
-                            </button>
-                        </div>
-                    </template>
-                </aside>
             </div>
+        </div>
+
+        <div x-show="headerPresetPreviewOpen" x-cloak x-ref="headerPresetPreviewDialog" tabindex="-1"
+             data-testid="blox-header-preset-preview-dialog"
+             @keydown="dialogKeydown($event, $refs.headerPresetPreviewDialog, () => closeHeaderPresetPreview())"
+             role="dialog" aria-modal="true" aria-labelledby="blox-header-preset-preview-title"
+             class="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6">
+            <div class="absolute inset-0 bg-black/60" @click="closeHeaderPresetPreview()"></div>
+            <template x-for="preset in [selectedHeaderPreset()]" :key="preset ? 'preview-' + preset.slug : 'empty-preview'">
+                <div x-show="preset" data-testid="blox-header-preset-preview-panel"
+                     class="relative flex max-h-[calc(100vh-2rem)] w-[760px] max-w-[94vw] flex-col overflow-hidden rounded-lg bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
+                    <div class="flex min-h-14 shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
+                        <span class="min-w-0">
+                            <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="preset && preset.name"></span>
+                            <span class="mt-0.5 block text-xs text-gray-400" x-text="headerPresetText.previewTitle"></span>
+                        </span>
+                        <button type="button" @click="closeHeaderPresetPreview()" data-dialog-initial data-testid="blox-header-preset-preview-close"
+                                class="ml-4 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                :title="headerPresetText.close" :aria-label="headerPresetText.close">
+                            <i class="ti ti-x text-base"></i>
+                        </button>
+                    </div>
+                    <div class="min-h-0 flex-1 overflow-y-auto p-5 blox-scroll sm:p-6">
+                        <div class="flex min-h-48 items-center justify-center border border-gray-200 bg-gray-50 px-5 py-8 sm:min-h-64 sm:px-10" aria-hidden="true">
+                            <div class="flex w-full max-w-2xl flex-col overflow-hidden border border-gray-200 bg-white shadow-sm">
+                                <span x-show="preset && preset.preview === 'corporate'" class="flex h-8 items-center justify-end gap-2 bg-gray-800 px-4">
+                                    <i class="h-1.5 w-14 rounded bg-gray-500"></i><i class="h-1.5 w-8 rounded bg-gray-500"></i>
+                                </span>
+                                <span x-show="preset && preset.preview === 'topbar'" class="flex h-8 items-center justify-between bg-gray-200 px-4">
+                                    <i class="h-1.5 w-20 rounded bg-gray-400"></i><i class="h-1.5 w-10 rounded bg-gray-400"></i>
+                                </span>
+                                <span x-show="preset && preset.preview === 'centered-brand'" class="flex h-32 flex-col items-center justify-center gap-4 px-5">
+                                    <i class="h-5 w-24 rounded-sm bg-blue-500"></i><i class="h-2.5 w-48 max-w-[70%] rounded bg-gray-300"></i>
+                                </span>
+                                <span x-show="preset && preset.preview === 'search'" class="flex h-24 items-center gap-4 px-5">
+                                    <i class="h-5 w-20 shrink-0 rounded-sm bg-blue-500"></i><i class="h-10 flex-1 rounded border border-gray-300 bg-gray-50"></i><i class="h-3 w-10 rounded bg-gray-300"></i>
+                                </span>
+                                <span x-show="preset && preset.preview === 'search'" class="flex h-9 items-center justify-center bg-gray-800 px-4"><i class="h-1.5 w-40 max-w-[60%] rounded bg-gray-500"></i></span>
+                                <span x-show="preset && preset.preview !== 'centered-brand' && preset.preview !== 'search'" class="flex h-24 items-center justify-between px-5">
+                                    <i class="h-5 w-24 rounded-sm bg-blue-500"></i>
+                                    <span class="flex items-center gap-3"><i class="h-2 w-16 rounded bg-gray-300"></i><i class="h-2 w-12 rounded bg-gray-300"></i><i class="h-9 w-12 rounded bg-blue-100"></i></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-5 flex items-start justify-between gap-3">
+                            <p class="text-sm leading-6 text-gray-600" x-text="preset && preset.description"></p>
+                            <span x-show="preset && isCurrentHeaderPreset(preset)" class="shrink-0 rounded bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700" x-text="headerPresetText.currentDraft"></span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-1.5">
+                            <template x-for="feature in (preset ? preset.features : [])" :key="'preview-' + feature">
+                                <span class="rounded bg-gray-100 px-2 py-1 text-[10px] font-medium text-gray-600" x-text="feature"></span>
+                            </template>
+                        </div>
+                        <p class="mt-3 text-[11px] text-gray-400" x-text="headerPresetText.sectionCount.replace(':count', preset ? preset.sections.length : 0)"></p>
+                    </div>
+                    <div class="flex shrink-0 justify-end gap-2 border-t border-gray-100 px-5 py-3">
+                        <button type="button" @click="closeHeaderPresetPreview()"
+                                class="inline-flex h-9 items-center justify-center rounded border border-gray-200 px-4 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                                x-text="headerPresetText.close"></button>
+                        <button type="button" @click="applyHeaderPreset(preset)" :disabled="!preset || isCurrentHeaderPreset(preset)"
+                                data-testid="blox-header-preset-preview-apply"
+                                class="inline-flex h-9 items-center justify-center gap-1.5 rounded bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-default disabled:bg-emerald-600">
+                            <i class="ti" :class="preset && isCurrentHeaderPreset(preset) ? 'ti-check' : 'ti-arrow-right'"></i>
+                            <span x-text="preset && isCurrentHeaderPreset(preset) ? headerPresetText.currentApply : headerPresetText.apply"></span>
+                        </button>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 

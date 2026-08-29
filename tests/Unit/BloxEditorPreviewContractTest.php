@@ -829,12 +829,16 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-header-preset-apply"', $overlays);
         foreach ([
             'data-testid="blox-header-preset-preview"',
-            'data-testid="blox-header-preset-detail"',
+            'data-testid="blox-header-preset-preview-dialog"',
+            'data-testid="blox-header-preset-preview-panel"',
+            'data-testid="blox-header-preset-preview-close"',
+            'data-testid="blox-header-preset-preview-apply"',
             ':data-current="isCurrentHeaderPreset(preset) ? \'true\' : \'false\'"',
             'preset.features',
         ] as $token) {
             $this->assertStringContainsString($token, $overlays, "header preset visual token {$token} missing");
         }
+        $this->assertStringNotContainsString('data-testid="blox-header-preset-detail"', $overlays);
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
         $this->assertStringContainsString('? $editableArea', $preview);
         $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);

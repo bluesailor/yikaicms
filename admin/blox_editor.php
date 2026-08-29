@@ -1001,6 +1001,7 @@ $canManageBloxDesign = hasPermission('*');
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             headerPresets: <?php echo json_encode($areaPresetDocuments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetOpen: false,
+            headerPresetPreviewOpen: false,
             selectedHeaderPresetSlug: "",
             headerPresetText: <?php echo json_encode([
                 'title' => __('blox_header_presets'),
@@ -2128,6 +2129,7 @@ $canManageBloxDesign = hasPermission('*');
             closeHeaderPresets() {
                 if (!this.headerPresetOpen) return;
                 var root = this.$refs.headerPresetDialog;
+                if (this.headerPresetPreviewOpen) this.closeHeaderPresetPreview();
                 this.headerPresetOpen = false;
                 this.releaseDialog(root);
             },
@@ -2151,6 +2153,20 @@ $canManageBloxDesign = hasPermission('*');
 
             selectHeaderPreset(preset) {
                 if (preset && preset.slug) this.selectedHeaderPresetSlug = preset.slug;
+            },
+
+            previewHeaderPreset(preset) {
+                if (!preset || !preset.slug) return;
+                this.selectHeaderPreset(preset);
+                this.headerPresetPreviewOpen = true;
+                this.focusDialog(this.$refs.headerPresetPreviewDialog, "[data-dialog-initial]");
+            },
+
+            closeHeaderPresetPreview() {
+                if (!this.headerPresetPreviewOpen) return;
+                var root = this.$refs.headerPresetPreviewDialog;
+                this.headerPresetPreviewOpen = false;
+                this.releaseDialog(root);
             },
 
             selectedHeaderPreset() {
