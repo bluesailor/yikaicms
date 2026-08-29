@@ -319,30 +319,26 @@ declare(strict_types=1);
                 </div>
             </details>
 <?php endif; ?>
-<?php if ($areaCtxOptions !== []): ?>
-            <label data-testid="blox-ctx-control"
-                   title="<?php echo e(__('blox_ctx_help', ['area' => $areaLabel])); ?>"
-                   class="inline-flex h-8 min-w-0 items-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-300">
+<?php if (count($areaPreviewLanguages) > 1): ?>
+            <div data-testid="blox-preview-language-control" role="group"
+                 aria-label="<?php echo e(__('blox_preview_language_label')); ?>"
+                 title="<?php echo e(__('blox_preview_language_help', ['area' => $areaLabel])); ?>"
+                 class="inline-flex h-8 min-w-0 items-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900 text-xs text-gray-300">
                 <span class="inline-flex shrink-0 items-center gap-1.5 px-2">
-                    <i class="ti ti-eye text-sm text-gray-400" aria-hidden="true"></i>
-                    <span class="whitespace-nowrap"><?php echo e(__('blox_ctx_label')); ?></span>
+                    <i class="ti ti-language text-sm text-gray-400" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap"><?php echo e(__('blox_preview_language_label')); ?></span>
                 </span>
-                <select x-model="previewContext" @change="ctxChanged()" data-testid="blox-ctx-select"
-                        title="<?php echo e(__('blox_ctx_help', ['area' => $areaLabel])); ?>"
-                        aria-label="<?php echo e(__('blox_ctx_help', ['area' => $areaLabel])); ?>"
-                        class="h-full max-w-[12rem] border-0 border-l border-gray-700 bg-gray-800 px-2 text-xs font-medium text-gray-100 outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
-                    <?php foreach ($areaCtxOptions as $ctxOpt): ?>
-                    <option value="<?php echo e($ctxOpt['value']); ?>" data-language="<?php echo e($ctxOpt['lang']); ?>"><?php echo e($ctxOpt['label']); ?></option>
+                <span class="inline-flex h-full border-l border-gray-700 bg-gray-800 p-0.5">
+                    <?php foreach ($areaPreviewLanguages as $languageCode => $languageLabel): ?>
+                    <button type="button" @click="setPreviewLanguage('<?php echo e($languageCode); ?>')"
+                            data-preview-language="<?php echo e($languageCode); ?>"
+                            :aria-pressed="previewLanguage === '<?php echo e($languageCode); ?>' ? 'true' : 'false'"
+                            :class="previewLanguage === '<?php echo e($languageCode); ?>' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-400 hover:text-white'"
+                            class="inline-flex h-6 items-center justify-center rounded px-2 text-[11px] font-medium transition"
+                            title="<?php echo e($languageLabel); ?>"><?php echo e($languageLabel); ?></button>
                     <?php endforeach; ?>
-                    <?php foreach ($areaCtxOptionGroups as $ctxGroup): ?>
-                    <optgroup label="<?php echo e($ctxGroup['label']); ?>">
-                        <?php foreach ($ctxGroup['options'] as $ctxOpt): ?>
-                        <option value="<?php echo e($ctxOpt['value']); ?>" data-language="<?php echo e($ctxOpt['lang']); ?>"><?php echo e($ctxOpt['label']); ?></option>
-                        <?php endforeach; ?>
-                    </optgroup>
-                    <?php endforeach; ?>
-                </select>
-            </label>
+                </span>
+            </div>
             <span x-show="ctxHit !== null && ctxHit !== <?php echo (int) $templateId; ?>" x-cloak
                   data-testid="blox-ctx-warn"
                   class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]">

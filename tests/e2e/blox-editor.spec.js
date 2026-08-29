@@ -2007,11 +2007,13 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(page.getByTestId('blox-prebuilt-open')).toHaveCount(0);
   const headerPresetEntry = page.getByTestId('blox-right-panel').getByTestId('blox-header-presets-open');
   await expect(headerPresetEntry).toContainText('网页头样式');
-  await expect(page.getByTestId('blox-ctx-control')).toContainText('查看效果');
-  await expect(page.getByTestId('blox-ctx-select')).toHaveValue('home');
-  const contextLanguages = await page.getByTestId('blox-ctx-select').locator('optgroup')
-    .evaluateAll((groups) => groups.map((group) => group.label));
-  expect(contextLanguages).toEqual(expect.arrayContaining(['中文', 'English', '日本語']));
+  await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
+  const previewLanguages = page.getByTestId('blox-preview-language-control');
+  await expect(previewLanguages).toContainText('预览语言');
+  for (const language of ['zh-CN', 'en', 'ja']) {
+    await expect(previewLanguages.locator(`[data-preview-language="${language}"]`)).toBeVisible();
+  }
+  await expect(previewLanguages.locator('[data-preview-language="zh-CN"]')).toHaveAttribute('aria-pressed', 'true');
   await headerPresetEntry.click();
   const headerPresets = page.getByTestId('blox-header-presets');
   await expect(headerPresets).toBeVisible();
