@@ -83,10 +83,9 @@ $editorReturnTo = BloxAreaEditorTarget::normalizeReturnTo($_GET['return_to'] ?? 
 $isCurrentThemeHeaderEdit = false;
 $templateStoredDraft = '';
 $publishedDocumentSource = '[]';
-$areaCtxOptions = []; // 头尾模板的首页预览入口，仅 header/footer 模板非空
-$areaCtxOptionGroups = []; // 其余单页/栏目按语言分组，避免多语言站点混排
 $initialPreviewContext = 'home';
-$areaCtxLanguages = []; // 每个预览上下文对应的前台语言，画布导航与站点资料据此渲染
+$areaPreviewLanguages = []; // 头尾模板只切换画布语言；页面适用范围由管理入口负责
+$initialPreviewLanguage = '';
 $areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $areaEditorLanguage = '';
 $areaEditorLanguageLabel = '';
@@ -244,52 +243,45 @@ if ($isHomeBlox) {
         ? 'current-theme-header:' . (string) config('current_theme', 'default')
         : 'template:' . $templateId;
     if (in_array($templateType, ['header', 'footer'], true)) {
-        // 页头只显示可编辑区域；页尾保留正文落底上下文。上下文选择仍使用前台同一套
-        // Resolver 报告命中模板，避免编辑中的适用范围与线上实际命中脱节。
+        // 页头只显示可编辑区域；页尾保留正文落底上下文。页面上下文仅供前台同一套
+        // Resolver 报告模板命中，顶部预览只切换语言，不再伪装成整页预览。
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType
             . '&_lang=' . rawurlencode($areaEditorLanguage);
         $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog($templateType);
-        $areaCtxOptions[] = ['value' => 'home', 'label' => __('blox_ctx_home'), 'lang' => $areaEditorLanguage];
-        $areaCtxLanguages['home'] = $areaEditorLanguage;
-        foreach (channelModel()->where(['status' => 1]) as $ctxCh) {
-            $ctxChType = (string) ($ctxCh['type'] ?? '');
-            if ($ctxChType === 'redirect') {
-                continue;
-            }
-            $ctxLang = trim((string) ($ctxCh['lang'] ?? ''));
-            if ($ctxLang === '') {
-                $ctxLang = (string) config('site_lang', 'zh-CN');
-            }
-            $ctxValue = ($ctxChType === 'page' ? 'page:' : 'channel:') . (int) $ctxCh['id'];
-            $areaCtxOptionGroups[$ctxLang][] = [
-                'value' => $ctxValue,
-                'label' => (string) $ctxCh['name'],
-                'lang' => $ctxLang,
-            ];
-            $areaCtxLanguages[$ctxValue] = $ctxLang;
-        }
-        if ($areaCtxOptionGroups !== []) {
-            $contextLanguageLabels = availableLanguages();
-            $contextLanguageOrder = array_values(array_unique(array_merge(
-                [getLang()],
-                array_keys(enabledLanguages()),
-                array_keys($areaCtxOptionGroups)
+        if ($areaEditorLanguageManaged) {
+            $areaPreviewLanguages = [$areaEditorLanguage => $areaEditorLanguageLabel];
+        } else {
+            $enabledPreviewLanguages = enabledLanguages();
+            $previewLanguageOrder = array_values(array_unique(array_merge(
+                [$areaEditorLanguage],
+                array_keys($enabledPreviewLanguages)
             )));
-            $orderedContextGroups = [];
-            foreach ($contextLanguageOrder as $contextLanguage) {
-                if (!isset($areaCtxOptionGroups[$contextLanguage])) {
-                    continue;
+            foreach ($previewLanguageOrder as $previewLanguageCode) {
+                if ($previewLanguageCode === $areaEditorLanguage) {
+                    $areaPreviewLanguages[$previewLanguageCode] = $areaEditorLanguageLabel;
+                } elseif (isset($enabledPreviewLanguages[$previewLanguageCode])) {
+                    $areaPreviewLanguages[$previewLanguageCode] = $enabledPreviewLanguages[$previewLanguageCode];
                 }
-                $orderedContextGroups[$contextLanguage] = [
-                    'label' => $contextLanguageLabels[$contextLanguage] ?? $contextLanguage,
-                    'options' => $areaCtxOptionGroups[$contextLanguage],
-                ];
             }
-            $areaCtxOptionGroups = $orderedContextGroups;
+        }
+        $initialPreviewLanguage = $areaEditorLanguage;
+        $requestedPreviewLanguage = trim((string) get('preview_lang', ''));
+        if (isset($areaPreviewLanguages[$requestedPreviewLanguage])) {
+            $initialPreviewLanguage = $requestedPreviewLanguage;
         }
         $requestedPreviewContext = trim((string) get('preview_context', ''));
-        if ($requestedPreviewContext !== '' && isset($areaCtxLanguages[$requestedPreviewContext])) {
-            $initialPreviewContext = $requestedPreviewContext;
+        if (preg_match('/^(channel|page):(\d+)$/', $requestedPreviewContext, $contextMatch)) {
+            $contextRow = channelModel()->find((int) $contextMatch[2]);
+            $contextType = (string) ($contextRow['type'] ?? '');
+            if ($contextRow !== null && $contextType !== 'redirect') {
+                $initialPreviewContext = $requestedPreviewContext;
+                $contextLanguage = trim((string) ($contextRow['lang'] ?? ''));
+                if ($requestedPreviewLanguage === ''
+                    && !$areaEditorLanguageManaged
+                    && isset($areaPreviewLanguages[$contextLanguage])) {
+                    $initialPreviewLanguage = $contextLanguage;
+                }
+            }
         }
     } else {
         // section/page 模板：纯段落预览，借沙盒页通道
@@ -1071,8 +1063,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             endpoint: "<?php echo $saveEndpoint; ?>",
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
             previewContext: <?php echo json_encode($initialPreviewContext, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            previewLanguage: <?php echo json_encode($initialPreviewLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            previewLanguages: <?php echo json_encode($areaPreviewLanguages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             areaLanguage: <?php echo json_encode($areaEditorLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            previewContextLanguages: <?php echo json_encode($areaCtxLanguages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctxHit: null,
             ctxMatch: null,
             areaMatchText: <?php echo json_encode([
@@ -2319,7 +2312,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var area = this.areaPresetType === "footer" ? "footer" : "header";
                 var url = "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
                     + encodeURIComponent(preset.slug);
-                var previewLanguage = this.previewContextLanguages[this.previewContext] || this.areaLanguage;
+                var previewLanguage = this.previewLanguage || this.areaLanguage;
                 if (previewLanguage) url += "&_lang=" + encodeURIComponent(previewLanguage);
                 url += "&preview_instance=" + this.headerPresetPreviewNonce;
                 if (area === "header") url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
@@ -6039,11 +6032,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
             },
 
-            /** 头尾模板：切换预览上下文（首页/单页/栏目）。重建预览客户端换 endpoint，立即刷新。 */
-            ctxChanged() {
+            /** 头尾模板：只切换画布语言；页面适用范围保持不变。 */
+            setPreviewLanguage(language) {
+                if (!Object.prototype.hasOwnProperty.call(this.previewLanguages, language)
+                    || this.previewLanguage === language) return;
+                this.previewLanguage = language;
                 var endpoint = new URL("<?php echo $previewEndpoint; ?>", window.location.origin);
-                var previewLanguage = this.previewContextLanguages[this.previewContext] || this.areaLanguage;
-                if (previewLanguage) endpoint.searchParams.set("_lang", previewLanguage);
+                endpoint.searchParams.set("_lang", this.previewLanguage || this.areaLanguage);
                 if (this.previewContext === "home") endpoint.searchParams.delete("preview_context");
                 else endpoint.searchParams.set("preview_context", this.previewContext);
                 this.previewEndpoint = endpoint.pathname + endpoint.search;
