@@ -5,6 +5,7 @@
  * 细粒度 RBAC，借鉴 WordPress capabilities：命名 {动作}_{类型}。
  *   内容类：每类型分 编辑/删除 两档（edit_article / delete_article …）
  *   辅助模块：单权限（media / banner / link / form / member）
+ *   Blox：编辑器 / 首页 / 全站设计 / 高危代码元素分别授权
  *   超管专属（栏目/设置/主题/插件/用户/系统…）：不进此目录，一律 requirePermission('*')
  *
  * role.php 勾选界面、页面 guard、权限迁移 都读这里，避免多处漂移。
@@ -34,15 +35,10 @@ function modulePermKeys(): array
     return ['media', 'banner', 'link', 'form', 'member'];
 }
 
-/**
- * 高危能力单权限。与内容/模块权限分组分开，语义是「明确知道风险才授予」：
- *   blox_code —— 在 Blox 页面使用 代码/HTML 元素（前台原样输出，等于任意
- *                HTML/JavaScript 执行能力）。默认只有超管（*）具备；
- *                edit_page 不再隐含它，服务端由 BloxElementPolicy 强制。
- */
-function advancedPermKeys(): array
+/** Blox 场景能力；内容编辑范围仍由 edit_page 等内容权限约束。 */
+function bloxPermKeys(): array
 {
-    return ['blox_code'];
+    return ['blox_edit', 'blox_home', 'blox_global', 'blox_code'];
 }
 
 /** 全部合法权限键（含通配 *），用于保存时过滤非法值 */
@@ -53,7 +49,7 @@ function allPermissionKeys(): array
         $keys[] = 'edit_' . $t;
         $keys[] = 'delete_' . $t;
     }
-    return array_merge($keys, modulePermKeys(), advancedPermKeys());
+    return array_merge($keys, modulePermKeys(), bloxPermKeys());
 }
 
 /** 类型 → 短名 lang 键（勾选界面与徽章显示用） */
@@ -75,7 +71,9 @@ function permLabel(string $key): string
     }
     $mod = [
         'media' => 'admin_media', 'banner' => 'admin_banner', 'link' => 'admin_link',
-        'form' => 'admin_form', 'member' => 'admin_member', 'blox_code' => 'perm_blox_code',
+        'form' => 'admin_form', 'member' => 'admin_member',
+        'blox_edit' => 'perm_blox_edit', 'blox_home' => 'perm_blox_home',
+        'blox_global' => 'perm_blox_global', 'blox_code' => 'perm_blox_code',
     ];
     return isset($mod[$key]) ? __($mod[$key]) : $key;
 }
@@ -88,6 +86,18 @@ function hasAnyContentPerm(): bool
     }
     foreach (contentPermTypes() as $t) {
         if (hasPermission('edit_' . $t) || hasPermission('delete_' . $t)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** 是否拥有任一可独立进入 Blox 工作区的场景能力（超管恒真）。 */
+function hasAnyBloxPermission(): bool
+{
+    // blox_code 只是高危元素的附加开关，不能单独打开编辑器或清缓存。
+    foreach (['blox_edit', 'blox_home', 'blox_global'] as $permission) {
+        if (hasPermission($permission)) {
             return true;
         }
     }
@@ -299,13 +309,13 @@ function permissionCatalog(): array
     foreach (modulePermKeys() as $m) {
         $module[$m] = permLabel($m);
     }
-    $advanced = [];
-    foreach (advancedPermKeys() as $a) {
-        $advanced[$a] = permLabel($a);
+    $blox = [];
+    foreach (bloxPermKeys() as $permission) {
+        $blox[$permission] = permLabel($permission);
     }
     return [
         'content'  => ['label' => __('perm_group_content'),  'caps' => $content],
         'module'   => ['label' => __('perm_group_module'),   'caps' => $module],
-        'advanced' => ['label' => __('perm_group_advanced'), 'caps' => $advanced],
+        'blox'     => ['label' => __('perm_group_blox'),     'caps' => $blox],
     ];
 }

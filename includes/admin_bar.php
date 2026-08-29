@@ -29,6 +29,30 @@ function adminBarResolveEditUrl(string $editUrl): string
     return '/admin/blox_editor.php?' . $query;
 }
 
+/** 前台不加载后台 auth.php，直接读取每次后台请求刷新过的会话权限快照。 */
+function adminBarHasPermission(string $permission): bool
+{
+    $permissions = (array) ($_SESSION['admin_permissions'] ?? []);
+    return in_array('*', $permissions, true) || in_array($permission, $permissions, true);
+}
+
+/** Blox 前台入口必须和后台端点使用同一场景权限，避免显示点不开的编辑按钮。 */
+function adminBarCanOpenBloxUrl(string $url): bool
+{
+    if ((string) parse_url($url, PHP_URL_PATH) !== '/admin/blox_editor.php') {
+        return true;
+    }
+    $query = (string) parse_url($url, PHP_URL_QUERY);
+    parse_str($query, $params);
+    if ((string) ($params['home'] ?? '') === '1') {
+        return adminBarHasPermission('blox_home');
+    }
+    if ((int) ($params['template'] ?? 0) > 0) {
+        return adminBarHasPermission('blox_global');
+    }
+    return adminBarHasPermission('blox_edit') && adminBarHasPermission('edit_page');
+}
+
 function renderBloxDraftPreviewBar(): void
 {
     $exitUrl = BloxPublicationStatus::exitPreviewUrl((string) ($_SERVER['REQUEST_URI'] ?? '/'));
@@ -71,9 +95,12 @@ function renderAdminBar(): void
         adminBarResolveEditUrl((string) ($GLOBALS['ik_edit_url'] ?? '')),
         $returnTo
     );
+    if (!adminBarCanOpenBloxUrl($editUrl)) {
+        $editUrl = '';
+    }
     $brand = config('site_name', '') ?: adminBrandName();
     $draftEditorUrls = $editUrl !== '' ? [$editUrl] : [];
-    if (bloxAdvancedFeaturesEnabled()) {
+    if (bloxAdvancedFeaturesEnabled() && adminBarHasPermission('blox_global')) {
         $areaContext = [
             'home' => basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'index.php',
             'channel_id' => (int) ($GLOBALS['currentChannelId'] ?? 0),

@@ -182,7 +182,9 @@ final class BloxPagePublishingContractTest extends TestCase
         $frontend = $this->source('page.php');
         $functions = $this->source('includes/functions.php');
         $this->assertStringNotContainsString("\$__isBlox ? '/admin/blox_editor.php?id=' : '/admin/page_edit.php?id='", $pageList);
-        $this->assertStringNotContainsString("? '/admin/blox_editor.php?id=' . \$item['channel_id']", $dashboard);
+        $this->assertStringContainsString("hasPermission('blox_edit') && hasPermission('edit_page')", $dashboard);
+        $this->assertStringContainsString(": '/admin/page.php'", $dashboard);
+        $this->assertStringNotContainsString("'/admin/page_edit.php?id=' . \$item['channel_id']", $dashboard);
         $this->assertStringNotContainsString("'/admin/page_edit.php?id=' . (int) \$channel['id']", $frontend);
         $this->assertStringNotContainsString("return '/admin/page_edit.php?id=' . \$pageId;", $functions);
         $this->assertStringNotContainsString('$__pageModes', $channels);

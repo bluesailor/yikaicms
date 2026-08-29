@@ -10,7 +10,7 @@ require_once ROOT_PATH . '/includes/HtmlCache.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('blox_global');
 
 header('Content-Type: application/json; charset=utf-8');
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {

@@ -9,9 +9,9 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('blox_home');
 
-// 首页文档属于免费基础编辑能力；超级管理员权限仍由上方独立校验。
+// 首页是独立发布面，不能因拥有普通单页编辑权而自动获得。
 if (!bloxPageEditorEnabled()) {
     error(__('blox_feature_disabled'));
 }

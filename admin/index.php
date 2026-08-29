@@ -359,7 +359,11 @@ $__quick = [];
 foreach (($__qkByRole[$__roleId] ?? $__qkByRole[1]) as $__u) {
     if (!isset($__qkCatalog[$__u])) continue;
     [$__icon, $__box, $__color, $__lang, $__perm] = $__qkCatalog[$__u];
-    if (!hasPermission($__perm)) continue;
+    if ($__u === '/admin/site_design.php') {
+        if (!hasAnyBloxPermission()) continue;
+    } elseif (!hasPermission($__perm)) {
+        continue;
+    }
     $__quick[] = [$__u, $__icon, $__box, $__color, $__lang];
 }
 // 标题/图标按当前语言取自侧栏定义（FindItem 返回的就是本地化后的 label）。
@@ -566,7 +570,9 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
                         </span>
                         <?php
                         if (($item['channel_type'] ?? '') === 'page') {
-                            $editUrl = '/admin/blox_editor.php?id=' . $item['channel_id'];
+                            $editUrl = hasPermission('blox_edit') && hasPermission('edit_page')
+                                ? '/admin/blox_editor.php?id=' . $item['channel_id']
+                                : '/admin/page.php';
                         } else {
                             $editUrl = '/admin/article_edit.php?id=' . $item['id'];
                         }

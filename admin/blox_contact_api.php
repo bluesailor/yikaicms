@@ -9,6 +9,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
+requirePermission('blox_edit');
 requirePermission('edit_page');
 
 if (!bloxPageEditorEnabled()) {

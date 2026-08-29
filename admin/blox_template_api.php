@@ -9,7 +9,6 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('edit_page');
 
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
 if (!bloxPageEditorEnabled()) {
@@ -107,6 +106,7 @@ try {
         // r14 画布「另存为区块模板」：客户端只发 section JSON + 名称，服务端组
         // 标准模板包走 Importer 安全链（危险字段/元素白名单/插件依赖/Pipeline 校验
         // 与文件导入完全一致——画布选区不是绕过安检的后门）。发布后目录立即可插回。
+        requireBloxTemplateTypePermission('section');
         verifyCsrf();
         $name = mb_substr(trim((string) post('name', '')), 0, 150);
         if ($name === '') {

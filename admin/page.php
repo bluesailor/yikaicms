@@ -15,6 +15,7 @@ require_once ROOT_PATH . '/admin/includes/list_ui.php';   // 列表共享组件�
 
 checkLogin();
 requirePermission('edit_page');
+$canEditBlox = hasPermission('blox_edit');
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -183,7 +184,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                     </td>
                     <td class="px-4 py-3 text-center text-gray-300">-</td>
                     <td class="px-4 py-3 text-center">
-                        <?php if (bloxPageEditorEnabled()): ?>
+                        <?php if (bloxPageEditorEnabled() && hasPermission('blox_home')): ?>
                         <a href="/admin/blox_editor.php?home=1"
                            data-testid="page-home-edit"
                            class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
@@ -274,7 +275,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         <?php if (($item['type'] ?? '') === 'album'): ?>
                         <span class="text-xs text-gray-300">—</span>
                         <?php else: ?>
+                        <?php if ($canEditBlox): ?>
                         <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/blox_editor.php'); ?>
+                        <?php else: ?>
+                        <span class="text-xs text-gray-300">-</span>
+                        <?php endif; ?>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-center">
@@ -288,6 +293,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         </a>
                         <?php else: ?>
                         <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
+                        <?php if ($isTimelinePage || $canEditBlox): ?>
                         <a href="<?php echo e($itemEditUrl); ?>"
                            data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                             class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
@@ -296,6 +302,9 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                                 ? e(__('page_edit_redirect_target', ['name' => $itemEditTarget['name'] ?? '']))
                                 : ($isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox'))); ?>
                         </a>
+                        <?php else: ?>
+                        <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
+                        <?php endif; ?>
                         <?php if ($__isBlox && !$isTimelinePage && !$itemEditRedirected): ?>
                         <span class="text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 mr-2"
                               title="<?php echo e(__('page_mode_blocks_tip')); ?>"><?php echo __('page_mode_blocks'); ?></span>
@@ -365,6 +374,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <span class="flex-1"></span>
             <?php if (($item['type'] ?? '') !== 'album'): ?>
             <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
+            <?php if ($isTimelinePage || $canEditBlox): ?>
             <a href="<?php echo e($itemEditUrl); ?>"
                data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                class="text-primary hover:underline text-sm inline-flex items-center gap-1 whitespace-nowrap">
@@ -372,6 +382,9 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                     ? e(__('page_edit_redirect_target', ['name' => $itemEditTarget['name'] ?? '']))
                     : ($isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox'))); ?>
             </a>
+            <?php else: ?>
+            <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
+            <?php endif; ?>
             <?php endif; ?>
             <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                     class="text-sm px-3 py-1 rounded border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition cursor-pointer inline-flex items-center gap-1 whitespace-nowrap">
@@ -445,7 +458,7 @@ async function createPage() {
     var data = await safeJson(response);
     if (data.code === 0) {
         showMessage(<?php echo json_encode(__('pg_created'), JSON_UNESCAPED_UNICODE); ?>);
-        setTimeout(function() { location.href = '/admin/blox_editor.php?id=' + data.data.id; }, 500);
+        setTimeout(function() { location.href = <?php echo json_encode($canEditBlox ? '/admin/blox_editor.php?id=' : '/admin/page.php'); ?> + <?php echo $canEditBlox ? 'data.data.id' : "''"; ?>; }, 500);
     } else {
         showMessage(data.msg, 'error');
     }

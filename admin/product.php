@@ -187,7 +187,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
 
         <div class="flex items-center gap-2">
-            <?php if ($productPageChannel && bloxPageEditorEnabled() && hasPermission('edit_page')): ?>
+            <?php if ($productPageChannel && bloxPageEditorEnabled() && hasPermission('blox_edit') && hasPermission('edit_page')): ?>
             <a href="/admin/blox_editor.php?id=<?php echo (int) $productPageChannel['id']; ?>"
                class="border border-primary text-primary hover:bg-primary hover:text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-layout-dashboard text-base"></i>

@@ -9,13 +9,13 @@ use PHPUnit\Framework\TestCase;
 
 final class BloxEditorToolbarContractTest extends TestCase
 {
-    public function testCacheEndpointRequiresAdministratorAndCsrf(): void
+    public function testCacheEndpointRequiresGlobalBloxPermissionAndCsrf(): void
     {
         $api = $this->source('admin/blox_cache_api.php');
         $policy = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
 
         self::assertStringContainsString('checkLogin();', $api);
-        self::assertStringContainsString("requirePermission('*');", $api);
+        self::assertStringContainsString("requirePermission('blox_global');", $api);
         self::assertStringContainsString("!== 'POST'", $api);
         self::assertStringContainsString('verifyCsrf();', $api);
         self::assertStringContainsString('HtmlCache::invalidate();', $api);

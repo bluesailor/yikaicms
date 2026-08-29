@@ -264,7 +264,7 @@ return [
         'items'    => [
             [
                 'key'         => 'site_design',
-                'perm'        => 'edit_page',
+                'visible'     => !function_exists('hasAnyBloxPermission') || hasAnyBloxPermission(),
                 'label'       => __('site_design_title'),
                 'url'         => '/admin/site_design.php',
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16v14H4V5zm0 4h16M8 9v10"></path>',
@@ -272,14 +272,14 @@ return [
             ],
             [
                 'key'   => 'blox_design',
-                'perm'  => '*',
+                'perm'  => 'blox_global',
                 'label' => __('blox_design_system'),
                 'url'   => '/admin/blox_design.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a1.5 1.5 0 000-3H12a2 2 0 010-4h3a6 6 0 000-12h-3zM7.5 10h.01M9 6.5h.01M14.5 6.5h.01M17 10h.01"></path>',
             ],
             [
                 'key'     => 'blox_templates',
-                'perm'    => '*',
+                'perm'    => 'blox_global',
                 'visible' => !function_exists('bloxAdvancedFeaturesEnabled') || bloxAdvancedFeaturesEnabled(),
                 'label'   => __('admin_blox_templates'),
                 'url'     => '/admin/blox_templates.php',
