@@ -9,6 +9,15 @@ require_once ROOT_PATH . '/includes/builder/BloxDesignSystem.php';
 
 final class BloxDesignSystemTest extends TestCase
 {
+    public function testElementVisibilityMetadataIsNormalized(): void
+    {
+        self::assertSame(
+            ['_hide_on' => ['m', 'd']],
+            BloxDesignSystem::normalizeElementData(['_hide_on' => ['m', 'bogus', 'd', 'm']])
+        );
+        self::assertSame([], BloxDesignSystem::normalizeElementData(['_hide_on' => 'bogus']));
+    }
+
     /** @var array<string,mixed> */
     private array $previousConfig = [];
 

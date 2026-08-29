@@ -1806,4 +1806,26 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($token, $header, "global device state token {$token} missing");
         }
     }
+
+    public function testEveryElementExposesSharedDeviceVisibilityControls(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        foreach ([
+            'elementDeviceVisible(key)',
+            'toggleElementDevice(key)',
+            'this.selEl.data._hide_on',
+        ] as $token) {
+            $this->assertStringContainsString($token, $editor, "element visibility token {$token} missing");
+        }
+        foreach ([
+            'data-testid="blox-element-visible-devices"',
+            '@click="toggleElementDevice(dev.k)"',
+            ':class="elementDeviceVisible(dev.k)',
+            "panelTab === 'style'",
+        ] as $token) {
+            $this->assertStringContainsString($token, $workspace, "element visibility UI token {$token} missing");
+        }
+    }
 }

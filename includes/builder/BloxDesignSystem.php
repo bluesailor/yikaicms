@@ -166,6 +166,23 @@ final class BloxDesignSystem
     /** @param array<string,mixed> $data @return array<string,mixed> */
     public static function normalizeElementData(array $data): array
     {
+        if (array_key_exists('_hide_on', $data)) {
+            $raw = is_string($data['_hide_on'])
+                ? explode(',', $data['_hide_on'])
+                : (is_array($data['_hide_on']) ? $data['_hide_on'] : []);
+            $keys = [];
+            foreach ($raw as $key) {
+                $key = trim((string) $key);
+                if (in_array($key, ['m', 't', 'd'], true) && !in_array($key, $keys, true)) {
+                    $keys[] = $key;
+                }
+            }
+            if ($keys === []) {
+                unset($data['_hide_on']);
+            } else {
+                $data['_hide_on'] = $keys;
+            }
+        }
         if (array_key_exists('_global_style', $data)) {
             $id = trim((string) $data['_global_style']);
             $data['_global_style'] = preg_match(self::ID_PATTERN, $id) === 1 ? $id : '';

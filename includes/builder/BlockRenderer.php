@@ -654,14 +654,7 @@ final class BlockRenderer
      */
     private static function hideOn(mixed $hideOn, bool $editMode): array
     {
-        $raw = is_string($hideOn) ? explode(',', $hideOn) : (is_array($hideOn) ? $hideOn : []);
-        $keys = [];
-        foreach ($raw as $k) {
-            $k = trim((string) $k);
-            if (isset(self::HIDE_ON_MAP[$k]) && !in_array($k, $keys, true)) {
-                $keys[] = $k;
-            }
-        }
+        $keys = self::hideOnKeys($hideOn);
         if ($keys === []) {
             return ['', ''];
         }
@@ -673,6 +666,43 @@ final class BlockRenderer
             $classes .= ' ' . self::HIDE_ON_MAP[$k];
         }
         return [$classes, ''];
+    }
+
+    /** @return list<string> */
+    private static function hideOnKeys(mixed $hideOn): array
+    {
+        $raw = is_string($hideOn) ? explode(',', $hideOn) : (is_array($hideOn) ? $hideOn : []);
+        $keys = [];
+        foreach ($raw as $k) {
+            $k = trim((string) $k);
+            if (isset(self::HIDE_ON_MAP[$k]) && !in_array($k, $keys, true)) {
+                $keys[] = $k;
+            }
+        }
+        return $keys;
+    }
+
+    private static function applyElementVisibility(string $html, mixed $hideOn, bool $editMode): string
+    {
+        $keys = self::hideOnKeys($hideOn);
+        if ($html === '' || $keys === []) {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        if ($editMode) {
+            $processor->setAttribute('data-yk-hide-on', implode(',', $keys));
+        } else {
+            $existing = $processor->getAttribute('class');
+            $classes = is_string($existing) ? trim($existing) : '';
+            foreach ($keys as $key) {
+                $classes = trim($classes . ' ' . self::HIDE_ON_MAP[$key]);
+            }
+            $processor->setAttribute('class', $classes);
+        }
+        return $processor->getUpdatedHtml();
     }
 
     private static function applyElementBoxStyle(string $html, array $data, string $type): string
@@ -773,6 +803,7 @@ final class BlockRenderer
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
         $html = self::applyElementBoxStyle($html, $data, $element->type());
         $html = self::applyGlobalStyle($html, $data, $element->type());
+        $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);
         if ($editMode && $hasConditions) {
             $html = self::markElementConditions($html, BloxDisplayConditions::badge($conditions));

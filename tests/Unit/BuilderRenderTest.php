@@ -469,6 +469,30 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('lg:hidden', $out);
     }
 
+    public function testElementHideOnAppliesBreakpointClassesToElementRoot(): void
+    {
+        $out = $this->inner($this->oneEl([
+            'type' => 'heading',
+            'data' => ['text' => 'A', '_hide_on' => ['m', 'd', 'bogus']],
+        ]));
+
+        $this->assertStringContainsString('class="text-2xl font-bold mb-4 max-md:hidden lg:hidden"', $out);
+        $this->assertStringNotContainsString('bogus', $out);
+        $this->assertStringNotContainsString('data-yk-hide-on', $out);
+    }
+
+    public function testElementHideOnEditModeKeepsElementVisibleWithMarker(): void
+    {
+        $out = BlockRenderer::renderElementNode([
+            'id' => 'heading-1',
+            'type' => 'heading',
+            'data' => ['text' => 'A', '_hide_on' => ['t']],
+        ], 0, true, [0, 0, 0]);
+
+        $this->assertStringContainsString('data-yk-hide-on="t"', $out);
+        $this->assertStringNotContainsString('md:max-lg:hidden', $out);
+    }
+
     public function testNoHideOnKeyKeepsLegacyOutputByteIdentical(): void
     {
         $payload = static fn (array $settings): string => json_encode([[

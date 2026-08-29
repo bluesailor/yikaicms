@@ -4075,6 +4075,21 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
 
+            elementDeviceVisible(key) {
+                if (!this.selEl || !this.selEl.data) return true;
+                var raw = this.selEl.data._hide_on;
+                return !Array.isArray(raw) || raw.indexOf(key) === -1;
+            },
+
+            toggleElementDevice(key) {
+                if (!this.selEl) return;
+                this.selEl.data = this.selEl.data && typeof this.selEl.data === 'object' ? this.selEl.data : {};
+                var list = Array.isArray(this.selEl.data._hide_on) ? this.selEl.data._hide_on.slice() : [];
+                var index = list.indexOf(key);
+                if (index === -1) list.push(key); else list.splice(index, 1);
+                if (list.length) this.selEl.data._hide_on = list; else delete this.selEl.data._hide_on;
+            },
+
             conditionTarget() {
                 if (this.selEl) {
                     this.selEl.data = this.selEl.data && typeof this.selEl.data === "object" ? this.selEl.data : {};
