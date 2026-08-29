@@ -50,7 +50,7 @@ CI 上**没有 `config/config.php`**（它不入库）。所以任何**独立入
 1. **前台/主题输出改动** → 在本树 vhost（`http://yikaicms.claude.yikai/`）人工过一遍受影响页面
 2. **Tailwind class 改动** → 重编 CSS 并 `grep` 产物确认新类真的进去了：
    ```bash
-   /mnt/d/phpstudy_pro/WWW/tailwindcss-windows-x64.exe -i assets/css/src/app.css -o assets/css/tailwind.css --minify
+   bash tools/build_css.sh    # 锁死入口 app.css，并校验 CLI 版本必须 4.3.3
    grep -cF 'peer-checked\:translate-x-4' assets/css/tailwind.css   # 转义类名要用 -F
    ```
    由来：`min-h-0`/`pb-16` 没进产物，元素库从不滚动，带病发布两版。

@@ -67,6 +67,7 @@ composer.phar
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/yikai-precheck/
+!.claude/skills/yikai-quality-review/
 .idea/
 .vscode/
 *.swp
