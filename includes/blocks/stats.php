@@ -5,9 +5,10 @@
 $bg = getBlockBg($block ?? [], '');
 if (!$bg['style'] && !$bg['overlay']) {
     $statBgUrl = config('home_stat_bg', 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80');
+    $statBgLiteral = UrlPolicy::cssImageLiteral($statBgUrl);
     $bg = [
         'class'     => 'bg-cover bg-center bg-fixed relative',
-        'style'     => 'style="background-image:url(\'' . e($statBgUrl) . '\');"',
+        'style'     => $statBgLiteral === '' ? '' : 'style="background-image:' . e($statBgLiteral) . ';"',
         'overlay'   => '<div class="absolute inset-0 bg-black/70"></div>',
         'content'   => 'relative',
         'container' => $bg['container'],

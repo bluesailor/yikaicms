@@ -75,7 +75,7 @@ final class UrlPolicy
     }
 
     /**
-     * 可用于 img src / CSS background-image 的图片地址。
+     * 可用于 img src 的图片地址。
      * 仅站内绝对路径与 http(s)；协议相对、data/javascript 及控制字符一律拒绝。
      */
     public static function image(mixed $value): string
@@ -92,6 +92,27 @@ final class UrlPolicy
             return $value;
         }
         return preg_match('#^https?://#i', $value) === 1 ? $value : '';
+    }
+
+    /**
+     * 可安全写入 CSS background-image 的 url() 字面量。
+     *
+     * HTML 转义不能阻止引号在浏览器解析 style 属性后逃出 url()；先走图片
+     * URL 白名单，再编码 CSS 字符串中的引号与反斜杠。返回空串表示拒绝渲染。
+     */
+    public static function cssImageLiteral(mixed $value): string
+    {
+        $url = self::image($value);
+        if ($url === '') {
+            return '';
+        }
+
+        $url = str_replace(
+            ['\\', '"', "'"],
+            ['%5C', '%22', '%27'],
+            $url
+        );
+        return 'url("' . $url . '")';
     }
 
     /**

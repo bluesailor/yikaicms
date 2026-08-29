@@ -13,7 +13,8 @@ if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
 }
 // 默认 self 仍只认显式 hero_bg，保持老站白底；只有主动选择 parent/global 才启用共享背景。
 $contactHeroStyle = PageHeroStyleResolver::resolve($channel, true);
-$contactHeroBg = $contactHeroStyle['background'];
+$contactHeroBg = UrlPolicy::image($contactHeroStyle['background']);
+$contactHeroBgCss = UrlPolicy::cssImageLiteral($contactHeroBg);
 $contactHeroOptions = $contactHeroStyle['options'];
 $contactHeroBgColor = $contactHeroOptions['background_color'];
 $contactHeroHeightClass = PageHeroStyleResolver::heightClasses($contactHeroOptions, true);
@@ -22,7 +23,7 @@ $contactHeroTone = PageHeroStyleResolver::textTone($contactHeroOptions, $contact
 $contactHeroLinkHoverClass = $contactHeroTone === 'light' ? 'hover:text-white' : 'hover:text-primary';
 $contactHeroStyles = [];
 if ($contactHeroBg !== '') {
-    $contactHeroStyles[] = "background-image: url('" . $contactHeroBg . "')";
+    $contactHeroStyles[] = 'background-image: ' . $contactHeroBgCss;
     $contactHeroStyles[] = 'background-position: ' . PageHeroStyleResolver::backgroundPosition($contactHeroOptions);
 }
 if ($contactHeroBgColor !== '') {

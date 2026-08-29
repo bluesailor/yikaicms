@@ -10,9 +10,10 @@
 <?php
 // 头部背景：栏目自带 image 优先；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
 $heroBg = ($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', '');
+$heroBgCss = UrlPolicy::cssImageLiteral($heroBg);
 ?>
-<?php if ($heroBg): ?>
-<section class="relative py-16 bg-cover bg-center" style="background-image: url('<?php echo e($heroBg); ?>')">
+<?php if ($heroBgCss !== ''): ?>
+<section class="relative py-16 bg-cover bg-center" style="background-image: <?php echo e($heroBgCss); ?>">
     <div class="absolute inset-0 bg-black/60"></div>
     <div class="container mx-auto px-4 relative">
         <!-- breadcrumb navigation -->
