@@ -24,13 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success($st, __('lic_reverified'));
     }
 
-    if ($act === 'blox_toggle') {
-        $on = ($_POST['enabled'] ?? '') === '1' ? '1' : '0';
-        settingModel()->saveBatch(['blox_editor_enabled' => $on]);
-        adminLog('license', 'blox_toggle', 'Blox 编辑器开关 → ' . $on);
-        success(['enabled' => $on], __('blox_switch_saved'));
-    }
-
     // 保存授权码：换码即作废旧缓存，立即重新校验
     $key = trim((string) ($_POST['license_key'] ?? ''));
     settingModel()->saveBatch(['license_key' => $key, 'license_state' => '']);
@@ -137,26 +130,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- Blox 总开关默认开启；2026-08-28 起全部 Blox 能力对免费版开放，本开关是唯一闸。 -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="font-bold text-gray-800 mb-1"><?php echo __('blox_switch_title'); ?></h2>
-                <p class="text-sm text-gray-500"><?php echo __('blox_switch_tip'); ?></p>
-            </div>
-            <form method="post" id="bloxSwitchForm">
-                <input type="hidden" name="action" value="blox_toggle">
-                <input type="hidden" name="enabled" value="<?php echo config('blox_editor_enabled', '1') === '1' ? '0' : '1'; ?>">
-                <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
-                <button type="submit" class="px-5 py-2 rounded text-sm font-medium transition <?php echo config('blox_editor_enabled', '1') === '1'
-                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'; ?>">
-                    <?php echo config('blox_editor_enabled', '1') === '1' ? __('blox_switch_on') : __('blox_switch_off'); ?>
-                </button>
-            </form>
-        </div>
-    </div>
-
     <!-- 授权码 -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-1"><?php echo __('lic_key'); ?></h2>
@@ -229,14 +202,6 @@ function licHideInput() {
     f.classList.add('hidden');
     f.querySelector('input[name="license_key"]').value = '';
 }
-document.getElementById('bloxSwitchForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    adminSave(this, {
-        successMsg: <?php echo json_encode(__('blox_switch_saved'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>,
-        reload: true,
-        button: this.querySelector('button[type="submit"]')
-    });
-});
 document.getElementById('licenseForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var v = this.querySelector('input[name="license_key"]').value.trim();
