@@ -55,7 +55,8 @@ final class PageHeroCustomizationTest extends TestCase
             $this->assertStringContainsString("(int) \$channel['show_hero'] === 0", $hero, $path . ' 缺 show_hero 开关');
             $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel)', $hero, $path . ' 未使用统一解析器');
             $this->assertStringContainsString("\$heroStyle['options']", $hero, $path . ' 未应用版式参数');
-            $this->assertStringContainsString("'compact' => 'py-10 md:py-12'", $hero, $path . ' 缺紧凑高度');
+            $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($heroOptions)', $hero, $path . ' 缺响应式高度');
+            $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($heroOptions)', $hero, $path . ' 缺背景焦点');
         }
     }
 
@@ -64,6 +65,8 @@ final class PageHeroCustomizationTest extends TestCase
         $contact = $this->source('includes/partials/contact-hero.php');
         $this->assertStringContainsString("(int) \$channel['show_hero'] === 0", $contact);
         $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel, true)', $contact);
+        $this->assertStringContainsString('PageHeroStyleResolver::heightClasses($contactHeroOptions, true)', $contact);
+        $this->assertStringContainsString('PageHeroStyleResolver::backgroundPosition($contactHeroOptions)', $contact);
         // 默认 self 仍保持紧凑白底；显式 parent/global 由统一解析器处理。
         $this->assertStringContainsString('bg-white border-y border-gray-100', $contact);
     }
@@ -103,6 +106,8 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('copyPageHeroToSelf()', $editor);
         $this->assertStringContainsString('restorePageHeroInheritance()', $editor);
         $this->assertStringContainsString('data-testid="blox-page-hero-effective-source"', $editor);
+        $this->assertStringContainsString('pageHeroPreviewHeight()', $editor);
+        $this->assertStringContainsString('x-model.number="pageHero.style_options.focal_x"', $editor);
         $this->assertStringContainsString("if (\$action === 'save_page_hero')", $api);
         $this->assertStringContainsString('UrlPolicy::image($heroBgInput)', $api);
         $this->assertStringContainsString('PageHeroStyleResolver::normalizeMode($styleSourceInput)', $api);

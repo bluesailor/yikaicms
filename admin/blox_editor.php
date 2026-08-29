@@ -1045,6 +1045,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             pageHero: <?php echo json_encode($pageHero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageHeroOpen: false,
             pageHeroSaving: false,
+            pageHeroPreviewDevice: "desktop",
             pageHeroText: <?php echo json_encode([
                 'title' => __('blox_page_hero_title'),
                 'description' => __('blox_page_hero_description'),
@@ -1087,6 +1088,14 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'toneLight' => __('blox_page_hero_tone_light'),
                 'toneDark' => __('blox_page_hero_tone_dark'),
                 'inheritedReadonly' => __('blox_page_hero_inherited_readonly'),
+                'previewDevice' => __('blox_page_hero_preview_device'),
+                'previewDesktop' => __('blox_preview_desktop'),
+                'previewMobile' => __('blox_preview_mobile'),
+                'mobileHeight' => __('blox_page_hero_mobile_height'),
+                'heightInherit' => __('blox_page_hero_height_inherit'),
+                'focus' => __('blox_page_hero_focus'),
+                'focusX' => __('blox_page_hero_focus_x'),
+                'focusY' => __('blox_page_hero_focus_y'),
                 'effectiveSource' => __('blox_page_hero_effective_source'),
                 'effectiveSelf' => __('blox_page_hero_effective_self'),
                 'effectiveParent' => __('blox_page_hero_effective_parent'),
@@ -6134,7 +6143,18 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var style = "";
                 if (color) style += "background-color:" + this.colorFieldPreview(color, "#111827") + ";";
                 if (background) style += "background-image:url('" + String(background).replace(/'/g, "%27") + "');";
+                style += "background-position:" + Number(options.focal_x ?? 50) + "% " + Number(options.focal_y ?? 50) + "%;";
                 return style;
+            },
+
+            pageHeroPreviewHeight() {
+                var options = this.pageHeroPreviewOptions();
+                var height = String(options.height || "standard");
+                if (this.pageHeroPreviewDevice === "mobile") {
+                    var mobile = String(options.mobile_height || "inherit");
+                    if (mobile !== "inherit") height = mobile;
+                }
+                return height;
             },
 
             pageHeroPreviewTone() {
@@ -6149,10 +6169,10 @@ $canManageBloxDesign = hasPermission('blox_global');
             applyPageHeroPreset(name) {
                 if (String(this.pageHero.style_source || "self") !== "self") return;
                 var presets = {
-                    standard: { background_color: "", overlay_opacity: 60, height: "standard", alignment: "center", text_tone: "auto" },
-                    compact: { background_color: "#111827", overlay_opacity: 55, height: "compact", alignment: "left", text_tone: "light" },
-                    statement: { background_color: "#0f172a", overlay_opacity: 45, height: "large", alignment: "left", text_tone: "light" },
-                    minimal: { background_color: "#f8fafc", overlay_opacity: 0, height: "compact", alignment: "left", text_tone: "dark" },
+                    standard: { background_color: "", overlay_opacity: 60, height: "standard", mobile_height: "inherit", focal_x: 50, focal_y: 50, alignment: "center", text_tone: "auto" },
+                    compact: { background_color: "#111827", overlay_opacity: 55, height: "compact", mobile_height: "inherit", focal_x: 50, focal_y: 50, alignment: "left", text_tone: "light" },
+                    statement: { background_color: "#0f172a", overlay_opacity: 45, height: "large", mobile_height: "standard", focal_x: 50, focal_y: 50, alignment: "left", text_tone: "light" },
+                    minimal: { background_color: "#f8fafc", overlay_opacity: 0, height: "compact", mobile_height: "inherit", focal_x: 50, focal_y: 50, alignment: "left", text_tone: "dark" },
                 };
                 if (!presets[name]) return;
                 this.pageHero.style_options = Object.assign({}, presets[name]);

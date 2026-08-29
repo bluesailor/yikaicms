@@ -312,6 +312,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="border-y border-gray-200 bg-white">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
                 <span class="text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_real_preview')); ?></span>
+                <div class="ml-auto inline-flex border border-gray-200 bg-gray-50 p-1" role="group" aria-label="<?php echo e(__('blox_page_hero_preview_device')); ?>">
+                    <button type="button" @click="pageHeroPreviewDevice = 'desktop'" :aria-pressed="pageHeroPreviewDevice === 'desktop' ? 'true' : 'false'"
+                            data-testid="blox-design-page-hero-desktop" class="inline-flex h-7 w-8 items-center justify-center"
+                            :class="pageHeroPreviewDevice === 'desktop' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'" :title="pageHeroText.desktop"><i class="ti ti-device-desktop"></i></button>
+                    <button type="button" @click="pageHeroPreviewDevice = 'mobile'" :aria-pressed="pageHeroPreviewDevice === 'mobile' ? 'true' : 'false'"
+                            data-testid="blox-design-page-hero-mobile" class="inline-flex h-7 w-8 items-center justify-center"
+                            :class="pageHeroPreviewDevice === 'mobile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'" :title="pageHeroText.mobile"><i class="ti ti-device-mobile"></i></button>
+                </div>
                 <div class="inline-flex border border-gray-200 bg-gray-50 p-1" role="group" aria-label="<?php echo e(__('blox_preview_language')); ?>">
                     <template x-for="(sample, code) in pageHeroSamples" :key="code">
                         <button type="button" @click="pageHeroLanguage = code" :aria-pressed="pageHeroLanguage === code ? 'true' : 'false'"
@@ -322,9 +330,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
             <div class="bg-gray-100 p-3 sm:p-5">
-                <div class="mx-auto max-w-[1180px] overflow-hidden bg-white shadow-sm">
-                    <div class="relative bg-cover bg-center px-5 transition-[min-height] duration-200 sm:px-8"
-                         :class="pageHero.options.height === 'large' ? 'min-h-72' : (pageHero.options.height === 'compact' ? 'min-h-36' : 'min-h-52')"
+                <div class="mx-auto w-full overflow-hidden bg-white shadow-sm transition-[max-width] duration-200"
+                     :class="pageHeroPreviewDevice === 'mobile' ? 'max-w-[390px]' : 'max-w-[1180px]'">
+                    <div class="relative bg-cover px-5 transition-[min-height] duration-200 sm:px-8"
+                         :class="pageHeroPreviewHeightClass()"
                          :style="pageHeroPreviewStyle()">
                         <div x-show="pageHero.background && Number(pageHero.options.overlay_opacity || 0) > 0" class="absolute inset-0 bg-black"
                              :style="'opacity:' + (Number(pageHero.options.overlay_opacity || 0) / 100)"></div>
@@ -371,6 +380,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <span class="flex justify-between"><span><?php echo e(__('blox_page_hero_overlay')); ?></span><span class="tabular-nums" x-text="pageHero.options.overlay_opacity + '%'"></span></span>
                     <input id="blox-design-page-hero-overlay" type="range" min="0" max="90" step="5" x-model.number="pageHero.options.overlay_opacity" class="mt-1 h-10 w-full accent-gray-900">
                 </label>
+                <div x-show="pageHero.background" class="grid grid-cols-2 gap-3">
+                    <label class="block text-xs font-medium text-gray-600" for="blox-design-page-hero-focus-x">
+                        <span class="flex justify-between"><span><?php echo e(__('blox_page_hero_focus_x')); ?></span><span x-text="pageHero.options.focal_x + '%'"></span></span>
+                        <input id="blox-design-page-hero-focus-x" type="range" min="0" max="100" step="5" x-model.number="pageHero.options.focal_x" class="mt-1 h-9 w-full accent-gray-900">
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600" for="blox-design-page-hero-focus-y">
+                        <span class="flex justify-between"><span><?php echo e(__('blox_page_hero_focus_y')); ?></span><span x-text="pageHero.options.focal_y + '%'"></span></span>
+                        <input id="blox-design-page-hero-focus-y" type="range" min="0" max="100" step="5" x-model.number="pageHero.options.focal_y" class="mt-1 h-9 w-full accent-gray-900">
+                    </label>
+                </div>
             </div>
             <div class="space-y-4 border-y border-gray-200 bg-white px-4 py-4">
                 <fieldset>
@@ -379,6 +398,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <template x-for="item in pageHeroHeightOptions" :key="item.value">
                             <label class="cursor-pointer px-2 py-2.5 text-center text-xs" :class="pageHero.options.height === item.value ? 'bg-gray-900 text-white' : 'text-gray-600'">
                                 <input type="radio" class="sr-only" x-model="pageHero.options.height" :value="item.value"><span x-text="item.label"></span>
+                            </label>
+                        </template>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend class="mb-2 text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_mobile_height')); ?></legend>
+                    <div class="grid grid-cols-4 border border-gray-200">
+                        <template x-for="item in pageHeroMobileHeightOptions" :key="item.value">
+                            <label class="cursor-pointer px-1 py-2.5 text-center text-xs" :class="pageHero.options.mobile_height === item.value ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                <input type="radio" class="sr-only" x-model="pageHero.options.mobile_height" :value="item.value"><span x-text="item.label"></span>
                             </label>
                         </template>
                     </div>
@@ -440,6 +469,7 @@ function bloxDesignManager() {
         pageHero: <?php echo json_encode($pageHeroDesign['draft'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         pageHeroSamples: <?php echo json_encode($pageHeroSamples, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         pageHeroLanguage: <?php echo json_encode((string) array_key_first($pageHeroSamples)); ?>,
+        pageHeroPreviewDevice: 'desktop',
         pageHeroBusy: false,
         csrf: <?php echo json_encode(csrfToken()); ?>,
         busy: false,
@@ -451,6 +481,12 @@ function bloxDesignManager() {
         picker: { open: false, key: '', title: '', value: '#3b82f6', style: '', apply: null, invalid: false },
         newStyle: { name: '', category: 'general', color: '', background: '', border_color: '', radius: 'none' },
         pageHeroHeightOptions: <?php echo json_encode([
+            ['value' => 'compact', 'label' => __('blox_page_hero_height_compact')],
+            ['value' => 'standard', 'label' => __('blox_page_hero_height_standard')],
+            ['value' => 'large', 'label' => __('blox_page_hero_height_large')],
+        ], JSON_UNESCAPED_UNICODE); ?>,
+        pageHeroMobileHeightOptions: <?php echo json_encode([
+            ['value' => 'inherit', 'label' => __('blox_page_hero_height_inherit')],
             ['value' => 'compact', 'label' => __('blox_page_hero_height_compact')],
             ['value' => 'standard', 'label' => __('blox_page_hero_height_standard')],
             ['value' => 'large', 'label' => __('blox_page_hero_height_large')],
@@ -471,6 +507,8 @@ function bloxDesignManager() {
             'publishedStatus' => __('blox_page_hero_published_status'),
             'saved' => __('blox_page_hero_draft_saved'),
             'published' => __('blox_page_hero_global_published'),
+            'desktop' => __('blox_preview_desktop'),
+            'mobile' => __('blox_preview_mobile'),
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         styleColorFields: [
             { key: 'color', label: <?php echo json_encode(__('blox_design_text_color'), JSON_UNESCAPED_UNICODE); ?> },
@@ -577,8 +615,18 @@ function bloxDesignManager() {
             var background = String(this.pageHero.background || '');
             if (color) style += 'background-color:' + color + ';';
             if (background) style += "background-image:url('" + background.replace(/'/g, '%27') + "');";
+            style += 'background-position:' + Number(this.pageHero.options.focal_x ?? 50) + '% ' + Number(this.pageHero.options.focal_y ?? 50) + '%;';
             if (!color && !background) style += 'background-color:#111827;';
             return style;
+        },
+        pageHeroPreviewHeightClass() {
+            var height = String(this.pageHero.options.height || 'standard');
+            if (this.pageHeroPreviewDevice === 'mobile') {
+                var mobile = String(this.pageHero.options.mobile_height || 'inherit');
+                if (mobile !== 'inherit') height = mobile;
+                return height === 'large' ? 'min-h-72' : (height === 'compact' ? 'min-h-36' : 'min-h-52');
+            }
+            return height === 'large' ? 'min-h-72' : (height === 'compact' ? 'min-h-36' : 'min-h-52');
         },
         pageHeroPreviewTone() {
             var tone = String(this.pageHero.options.text_tone || 'auto');
