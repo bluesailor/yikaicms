@@ -5845,4 +5845,6 @@ voltage|電圧|220V',
     'blox_tpl_remote_rollback_confirm' => '更新前の下書きを復元しますか？現在の下書きは置き換わりますが、公開内容には影響しません。',
     'blox_tpl_remote_no_backup' => '復元できるリモートテンプレートの下書きがありません。',
     'blox_tpl_remote_upgrade_first' => '先にデータベースを更新',
+    'blox_resize_template_panel' => 'プリセットセクションパネルの幅を調整',
+    'blox_resize_template_panel_hint' => 'ドラッグで幅を調整します。矢印キーで微調整し、ダブルクリックで初期値に戻せます。',
 ];

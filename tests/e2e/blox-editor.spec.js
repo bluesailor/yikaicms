@@ -299,6 +299,65 @@ test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci', as
   await expect(dialog).toBeHidden();
 });
 
+test('prebuilt panel resizes against its own container without losing scroll @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop prebuilt resize baseline');
+  await page.evaluate(() => {
+    localStorage.removeItem('yikai:blox:template-panel-width:v1');
+    localStorage.setItem('yikai:blox:template-density:v1', 'standard');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+
+  const panel = page.getByTestId('blox-template-panel');
+  const resizer = page.getByTestId('blox-template-panel-resizer');
+  const grid = panel.locator('.blox-template-section-grid');
+  const scroller = page.locator('[x-ref="templateScroll"]');
+  const columnCount = () => grid.evaluate((element) => (
+    getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
+  ));
+
+  await expect.poll(async () => Math.round((await panel.boundingBox()).width)).toBe(520);
+  await expect.poll(() => panel.evaluate((element) => getComputedStyle(element).containerType)).toBe('inline-size');
+  await expect.poll(columnCount).toBe(1);
+  await scroller.evaluate((element) => { element.scrollTop = 180; });
+  const scrollBeforeResize = await scroller.evaluate((element) => element.scrollTop);
+
+  const handle = await resizer.boundingBox();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 + 96, handle.y + 100, { steps: 6 });
+  await page.mouse.up();
+
+  await expect.poll(async () => Math.round((await panel.boundingBox()).width)).toBe(616);
+  await expect.poll(columnCount).toBe(2);
+  await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThanOrEqual(scrollBeforeResize - 2);
+  await expect.poll(() => panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:template-panel-width:v1'))).toBe('616');
+  await page.screenshot({ path: testInfo.outputPath('blox-template-docked-resized.png'), fullPage: true });
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('blox-prebuilt-open').click();
+  await expect.poll(async () => Math.round((await page.getByTestId('blox-template-panel').boundingBox()).width)).toBe(616);
+  await expect.poll(columnCount).toBe(2);
+  const visiblePurposeBadges = () => panel.locator('.blox-template-purpose-badge').evaluateAll((elements) => (
+    elements.filter((element) => getComputedStyle(element).display !== 'none').length
+  ));
+  await expect.poll(visiblePurposeBadges).toBeGreaterThan(0);
+  for (let step = 0; step < 14; step += 1) await page.getByTestId('blox-template-panel-resizer').press('ArrowLeft');
+  await expect.poll(async () => Math.round((await page.getByTestId('blox-template-panel').boundingBox()).width)).toBe(400);
+  await expect.poll(columnCount).toBe(1);
+  await expect.poll(visiblePurposeBadges).toBe(0);
+  await page.getByTestId('blox-template-panel-resizer').dblclick();
+  await expect.poll(async () => Math.round((await page.getByTestId('blox-template-panel').boundingBox()).width)).toBe(520);
+  await expect.poll(columnCount).toBe(1);
+
+  await page.setViewportSize({ width: 1190, height: 800 });
+  await expect(page.getByTestId('blox-template-panel-resizer')).toBeHidden();
+  await expect.poll(columnCount).toBe(3);
+  await expect.poll(() => panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('blox-template-container-density.png'), fullPage: true });
+});
+
 test('element category filter narrows the library and resets on reload @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const category = page.getByTestId('blox-element-category');
@@ -1427,6 +1486,8 @@ test('prebuilt empty states explain active filters and clear them in one action 
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
+  const recommendedCount = await page.getByTestId('blox-template-item').count();
+  expect(recommendedCount).toBeGreaterThan(0);
 
   await page.getByTestId('blox-template-quick-favorites').click();
   const empty = page.getByTestId('blox-template-empty');
@@ -1435,7 +1496,7 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await expect(clear).toBeVisible();
   await clear.click();
   await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(12);
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(recommendedCount);
 
   const search = page.getByTestId('blox-template-search');
   await search.fill('__missing_section__');

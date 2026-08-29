@@ -62,6 +62,17 @@ final class TailwindCompiledCssTest extends TestCase
         );
     }
 
+    public function testBloxTemplatePanelContainerQueriesAreCompiled(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+        self::assertStringContainsString('container:blox-template-panel/inline-size', $css);
+        self::assertStringContainsString('.blox-template-section-grid{', $css);
+        self::assertStringContainsString('@container blox-template-panel (min-width:35rem)', $css);
+        self::assertStringContainsString('@container blox-template-panel (min-width:64rem)', $css);
+        self::assertStringContainsString('@container blox-template-panel (max-width:27.5rem)', $css);
+    }
+
     public function testBuildContractUsesCanonicalInputAndPinnedVersion(): void
     {
         self::assertFileDoesNotExist(ROOT_PATH . '/assets/css/input.css');
