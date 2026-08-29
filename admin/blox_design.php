@@ -15,6 +15,29 @@ require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
 $designState = BloxDesignSystem::snapshot();
 $designUsage = BloxDesignDependencies::usageSnapshot();
+$pageHeroDesign = PageHeroDesignDraft::snapshot();
+$pageHeroSamples = [];
+foreach (enabledLanguages() as $languageCode => $languageLabel) {
+    $sample = db()->fetchOne(
+        'SELECT id, name, description, lang FROM ' . DB_PREFIX . 'channels'
+        . ' WHERE lang = ? AND status = 1 AND type <> ? ORDER BY sort_order ASC, id ASC LIMIT 1',
+        [(string) $languageCode, 'redirect']
+    );
+    $pageHeroSamples[(string) $languageCode] = [
+        'language' => (string) $languageLabel,
+        'title' => (string) ($sample['name'] ?? config('site_name_' . $languageCode, config('site_name', 'Yikai CMS'))),
+        'description' => (string) ($sample['description'] ?? config('site_description_' . $languageCode, config('site_description', ''))),
+        'home' => __('breadcrumb_home'),
+    ];
+}
+if ($pageHeroSamples === []) {
+    $pageHeroSamples[siteLang()] = [
+        'language' => siteLang(),
+        'title' => (string) config('site_name', 'Yikai CMS'),
+        'description' => (string) config('site_description', ''),
+        'home' => __('breadcrumb_home'),
+    ];
+}
 
 $GLOBALS['pageTitle'] = __('blox_design_system');
 $GLOBALS['currentMenu'] = 'blox_design';
@@ -55,6 +78,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i class="ti ti-components"></i><?php echo e(__('blox_design_styles')); ?>
             <i x-show="!advanced" class="ti ti-lock text-xs"></i>
             <span x-show="advanced" class="bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="activeStyles().length"></span>
+        </button>
+        <button type="button" role="tab" data-testid="blox-design-page-tab-page-hero"
+                @click="tab = 'pageHero'" :aria-selected="tab === 'pageHero'"
+                class="inline-flex h-11 items-center gap-2 border-b-2 px-4 text-sm font-medium"
+                :class="tab === 'pageHero' ? 'border-amber-500 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-900'">
+            <i class="ti ti-layout-navbar-collapse"></i><?php echo e(__('blox_page_hero_title')); ?>
+            <span x-show="pageHeroState.has_draft" class="bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700"><?php echo e(__('blox_page_hero_draft')); ?></span>
         </button>
         <span x-show="busy" class="ml-auto mb-3 inline-flex items-center gap-1 text-xs text-gray-400">
             <i class="ti ti-loader-2 animate-spin"></i><?php echo e(__('loading')); ?>
@@ -266,6 +296,131 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </details>
     </section>
 
+    <section x-show="tab === 'pageHero'" x-cloak data-testid="blox-design-page-hero" class="space-y-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('blox_page_hero_global_title')); ?></h2>
+                <p class="mt-1 max-w-3xl text-xs leading-5 text-gray-500"><?php echo e(__('blox_page_hero_global_hint')); ?></p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2 py-1 text-xs"
+                  :class="pageHeroState.has_draft ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'">
+                <i class="ti" :class="pageHeroState.has_draft ? 'ti-pencil' : 'ti-circle-check'"></i>
+                <span x-text="pageHeroState.has_draft ? pageHeroText.draftStatus : pageHeroText.publishedStatus"></span>
+            </span>
+        </div>
+
+        <div class="border-y border-gray-200 bg-white">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                <span class="text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_real_preview')); ?></span>
+                <div class="inline-flex border border-gray-200 bg-gray-50 p-1" role="group" aria-label="<?php echo e(__('blox_preview_language')); ?>">
+                    <template x-for="(sample, code) in pageHeroSamples" :key="code">
+                        <button type="button" @click="pageHeroLanguage = code" :aria-pressed="pageHeroLanguage === code ? 'true' : 'false'"
+                                class="h-7 px-2.5 text-xs font-medium"
+                                :class="pageHeroLanguage === code ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'"
+                                x-text="sample.language"></button>
+                    </template>
+                </div>
+            </div>
+            <div class="bg-gray-100 p-3 sm:p-5">
+                <div class="mx-auto max-w-[1180px] overflow-hidden bg-white shadow-sm">
+                    <div class="relative bg-cover bg-center px-5 transition-[min-height] duration-200 sm:px-8"
+                         :class="pageHero.options.height === 'large' ? 'min-h-72' : (pageHero.options.height === 'compact' ? 'min-h-36' : 'min-h-52')"
+                         :style="pageHeroPreviewStyle()">
+                        <div x-show="pageHero.background && Number(pageHero.options.overlay_opacity || 0) > 0" class="absolute inset-0 bg-black"
+                             :style="'opacity:' + (Number(pageHero.options.overlay_opacity || 0) / 100)"></div>
+                        <div class="relative flex min-h-[inherit] flex-col justify-center py-8"
+                             :class="pageHero.options.alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
+                            <span class="max-w-full truncate text-sm" :class="pageHeroPreviewTone() === 'light' ? 'text-white/70' : 'text-gray-500'">
+                                <span x-text="currentPageHeroSample().home"></span> / <span x-text="currentPageHeroSample().title"></span>
+                            </span>
+                            <h3 class="mt-3 max-w-full break-words text-3xl font-semibold sm:text-4xl"
+                                :class="pageHeroPreviewTone() === 'light' ? 'text-white' : 'text-gray-900'"
+                                x-text="currentPageHeroSample().title"></h3>
+                            <p x-show="currentPageHeroSample().description" class="mt-3 max-w-2xl break-words text-sm leading-6 sm:text-base"
+                               :class="pageHeroPreviewTone() === 'light' ? 'text-white/80' : 'text-gray-600'"
+                               x-text="currentPageHeroSample().description"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div class="space-y-4 border-y border-gray-200 bg-white px-4 py-4">
+                <label class="block text-xs font-medium text-gray-600" for="blox-design-page-hero-bg">
+                    <?php echo e(__('blox_page_hero_background')); ?>
+                    <span class="mt-1 flex items-center gap-2">
+                        <input id="blox-design-page-hero-bg" type="text" x-model="pageHero.background" maxlength="500"
+                               placeholder="/uploads/images/page-hero.jpg" class="h-10 min-w-0 flex-1 border border-gray-300 bg-white px-3 text-sm">
+                        <a href="/admin/media.php" target="_blank" rel="noopener" class="inline-flex h-10 items-center gap-1 border border-gray-300 px-3 text-sm text-gray-600 hover:border-amber-400 hover:text-amber-700">
+                            <i class="ti ti-photo"></i><?php echo e(__('admin_media')); ?>
+                        </a>
+                        <button type="button" @click="pageHero.background = ''" class="inline-flex h-10 w-10 items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600" :title="text.clear" :aria-label="text.clear"><i class="ti ti-eraser"></i></button>
+                    </span>
+                </label>
+                <div>
+                    <span class="mb-1.5 block text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_background_color')); ?></span>
+                    <button type="button" @click="openColorPicker($event, pageHeroText.backgroundColor, pageHero.options.background_color || '#111827', value => pageHero.options.background_color = value)"
+                            data-testid="blox-design-page-hero-color" class="flex h-10 w-full items-center gap-2 border border-gray-300 bg-white px-2 text-left hover:border-gray-400">
+                        <span class="h-7 w-9 border border-black/10" :style="'background:' + (pageHero.options.background_color || '#111827')"></span>
+                        <span class="min-w-0 flex-1 text-sm text-gray-700" x-text="pageHero.options.background_color || pageHeroText.builtinBackground"></span>
+                        <i class="ti ti-chevron-down text-gray-400"></i>
+                    </button>
+                </div>
+                <label class="block text-xs font-medium text-gray-600" for="blox-design-page-hero-overlay">
+                    <span class="flex justify-between"><span><?php echo e(__('blox_page_hero_overlay')); ?></span><span class="tabular-nums" x-text="pageHero.options.overlay_opacity + '%'"></span></span>
+                    <input id="blox-design-page-hero-overlay" type="range" min="0" max="90" step="5" x-model.number="pageHero.options.overlay_opacity" class="mt-1 h-10 w-full accent-gray-900">
+                </label>
+            </div>
+            <div class="space-y-4 border-y border-gray-200 bg-white px-4 py-4">
+                <fieldset>
+                    <legend class="mb-2 text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_height')); ?></legend>
+                    <div class="grid grid-cols-3 border border-gray-200">
+                        <template x-for="item in pageHeroHeightOptions" :key="item.value">
+                            <label class="cursor-pointer px-2 py-2.5 text-center text-xs" :class="pageHero.options.height === item.value ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                <input type="radio" class="sr-only" x-model="pageHero.options.height" :value="item.value"><span x-text="item.label"></span>
+                            </label>
+                        </template>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend class="mb-2 text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_alignment')); ?></legend>
+                    <div class="grid grid-cols-2 border border-gray-200">
+                        <template x-for="item in pageHeroAlignmentOptions" :key="item.value">
+                            <label class="cursor-pointer px-2 py-2.5 text-center text-xs" :class="pageHero.options.alignment === item.value ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                <input type="radio" class="sr-only" x-model="pageHero.options.alignment" :value="item.value"><span x-text="item.label"></span>
+                            </label>
+                        </template>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend class="mb-2 text-xs font-medium text-gray-600"><?php echo e(__('blox_page_hero_text_tone')); ?></legend>
+                    <div class="grid grid-cols-3 border border-gray-200">
+                        <template x-for="item in pageHeroToneOptions" :key="item.value">
+                            <label class="cursor-pointer px-2 py-2.5 text-center text-xs" :class="pageHero.options.text_tone === item.value ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                <input type="radio" class="sr-only" x-model="pageHero.options.text_tone" :value="item.value"><span x-text="item.label"></span>
+                            </label>
+                        </template>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4">
+            <p class="text-xs leading-5 text-gray-500"><?php echo e(__('blox_page_hero_publish_hint')); ?></p>
+            <div class="flex items-center gap-2">
+                <button type="button" @click="savePageHeroDraft()" :disabled="pageHeroBusy" data-testid="blox-design-page-hero-save"
+                        class="inline-flex h-10 items-center gap-2 border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                    <i class="ti ti-device-floppy"></i><?php echo e(__('blox_save_draft')); ?>
+                </button>
+                <button type="button" @click="publishPageHero()" :disabled="pageHeroBusy" data-testid="blox-design-page-hero-publish"
+                        class="inline-flex h-10 items-center gap-2 bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
+                    <i class="ti ti-rocket"></i><?php echo e(__('blox_publish')); ?>
+                </button>
+            </div>
+        </div>
+    </section>
+
     <div x-show="!advanced" class="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" data-testid="blox-design-page-advanced-locked">
         <strong><?php echo e(__('blox_design_styles')); ?></strong>
         <span class="ml-1"><?php echo e(__('blox_design_advanced_hint')); ?></span>
@@ -281,6 +436,11 @@ function bloxDesignManager() {
         advanced: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
         state: <?php echo json_encode($designState, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         usage: <?php echo json_encode($designUsage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        pageHeroState: <?php echo json_encode($pageHeroDesign, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        pageHero: <?php echo json_encode($pageHeroDesign['draft'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        pageHeroSamples: <?php echo json_encode($pageHeroSamples, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        pageHeroLanguage: <?php echo json_encode((string) array_key_first($pageHeroSamples)); ?>,
+        pageHeroBusy: false,
         csrf: <?php echo json_encode(csrfToken()); ?>,
         busy: false,
         notice: '',
@@ -290,6 +450,28 @@ function bloxDesignManager() {
         recentColors: colorPicker.loadRecent(),
         picker: { open: false, key: '', title: '', value: '#3b82f6', style: '', apply: null, invalid: false },
         newStyle: { name: '', category: 'general', color: '', background: '', border_color: '', radius: 'none' },
+        pageHeroHeightOptions: <?php echo json_encode([
+            ['value' => 'compact', 'label' => __('blox_page_hero_height_compact')],
+            ['value' => 'standard', 'label' => __('blox_page_hero_height_standard')],
+            ['value' => 'large', 'label' => __('blox_page_hero_height_large')],
+        ], JSON_UNESCAPED_UNICODE); ?>,
+        pageHeroAlignmentOptions: <?php echo json_encode([
+            ['value' => 'left', 'label' => __('blox_page_hero_align_left')],
+            ['value' => 'center', 'label' => __('blox_page_hero_align_center')],
+        ], JSON_UNESCAPED_UNICODE); ?>,
+        pageHeroToneOptions: <?php echo json_encode([
+            ['value' => 'auto', 'label' => __('blox_page_hero_tone_auto')],
+            ['value' => 'light', 'label' => __('blox_page_hero_tone_light')],
+            ['value' => 'dark', 'label' => __('blox_page_hero_tone_dark')],
+        ], JSON_UNESCAPED_UNICODE); ?>,
+        pageHeroText: <?php echo json_encode([
+            'backgroundColor' => __('blox_page_hero_background_color'),
+            'builtinBackground' => __('blox_page_hero_source_builtin'),
+            'draftStatus' => __('blox_page_hero_draft_status'),
+            'publishedStatus' => __('blox_page_hero_published_status'),
+            'saved' => __('blox_page_hero_draft_saved'),
+            'published' => __('blox_page_hero_global_published'),
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         styleColorFields: [
             { key: 'color', label: <?php echo json_encode(__('blox_design_text_color'), JSON_UNESCAPED_UNICODE); ?> },
             { key: 'background', label: <?php echo json_encode(__('blox_design_background'), JSON_UNESCAPED_UNICODE); ?> },
@@ -313,6 +495,7 @@ function bloxDesignManager() {
             'pickerHint' => __('blox_color_picker_hint'),
             'invalidColor' => __('blox_color_invalid'),
             'close' => __('close'),
+            'clear' => __('clear'),
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         activeTokens() { return (this.state.tokens || []).filter((item) => item.status !== 'archived'); },
         archivedTokens() { return (this.state.tokens || []).filter((item) => item.status === 'archived'); },
@@ -385,6 +568,52 @@ function bloxDesignManager() {
             var count = Number(this.usageEntry(kind, id).count || 0);
             return count > 0 ? this.text.used.replace(':count', String(count)) : this.text.unused;
         },
+        currentPageHeroSample() {
+            return this.pageHeroSamples[this.pageHeroLanguage] || Object.values(this.pageHeroSamples)[0] || { home: '', title: '', description: '' };
+        },
+        pageHeroPreviewStyle() {
+            var style = '';
+            var color = String(this.pageHero.options.background_color || '');
+            var background = String(this.pageHero.background || '');
+            if (color) style += 'background-color:' + color + ';';
+            if (background) style += "background-image:url('" + background.replace(/'/g, '%27') + "');";
+            if (!color && !background) style += 'background-color:#111827;';
+            return style;
+        },
+        pageHeroPreviewTone() {
+            var tone = String(this.pageHero.options.text_tone || 'auto');
+            if (tone !== 'auto') return tone;
+            return 'light';
+        },
+        async mutatePageHero(action) {
+            if (this.pageHeroBusy) return false;
+            this.pageHeroBusy = true;
+            this.notice = '';
+            this.error = '';
+            var body = new URLSearchParams();
+            body.set('action', action);
+            body.set('revision', String(this.pageHeroState.revision || 0));
+            body.set('background', String(this.pageHero.background || '').trim());
+            body.set('options', JSON.stringify(this.pageHero.options || {}));
+            body.set('_token', this.csrf);
+            try {
+                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var result = await response.json();
+                if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
+                this.pageHeroState = result.data;
+                this.pageHero = JSON.parse(JSON.stringify(result.data.draft));
+                this.notice = action === 'page_hero_publish' ? this.pageHeroText.published : this.pageHeroText.saved;
+                window.setTimeout(() => { this.notice = ''; }, 2200);
+                return true;
+            } catch (error) {
+                this.error = error && error.message ? error.message : this.text.failed;
+                return false;
+            } finally {
+                this.pageHeroBusy = false;
+            }
+        },
+        savePageHeroDraft() { return this.mutatePageHero('page_hero_save_draft'); },
+        publishPageHero() { return this.mutatePageHero('page_hero_publish'); },
         async mutate(action, input) {
             if (this.busy) return false;
             this.busy = true;
