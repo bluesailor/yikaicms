@@ -37,6 +37,31 @@ try {
     $documentClass = $isContentList ? ChannelBloxDocument::class : PageBloxDocument::class;
     $documentClass::load($pageId);
 
+    if ($action === 'save_page_hero') {
+        $heroBgInput = trim((string) post('hero_bg', ''));
+        $heroBg = $heroBgInput === '' ? '' : UrlPolicy::image($heroBgInput);
+        if ($heroBgInput !== '' && $heroBg === '') {
+            error(__('blox_page_hero_invalid_image'));
+        }
+        $showHero = (string) post('show_hero', '0') === '1' ? 1 : 0;
+        channelModel()->updateById($pageId, [
+            'hero_bg' => $heroBg,
+            'show_hero' => $showHero,
+            'updated_at' => time(),
+        ]);
+        $source = $heroBg !== ''
+            ? 'custom'
+            : (trim((string) ($targetChannel['image'] ?? '')) !== ''
+                ? 'cover'
+                : (trim((string) config('page_hero_default_bg', '')) !== '' ? 'global' : 'builtin'));
+        adminLog($isContentList ? 'channel' : 'page', 'save_page_hero', 'save page hero #' . $pageId);
+        success([
+            'hero_bg' => $heroBg,
+            'show_hero' => $showHero === 1,
+            'source' => $source,
+        ]);
+    }
+
     if ($action === 'preview') {
         require_once ROOT_PATH . '/includes/builder/BloxCanvasPreview.php';
         outputBloxCanvasPreview(false, $pageId);

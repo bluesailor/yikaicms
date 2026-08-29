@@ -146,6 +146,47 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $pageType = (string) ($pageRow['type'] ?? '');
         }
 
+        $pageHeroBody = '';
+        if (!$isHomeLayout && is_array($pageRow)) {
+            $breadcrumbItems = [];
+            foreach (getBreadcrumb($id) as $breadcrumbRow) {
+                $breadcrumbChannel = getChannel((int) ($breadcrumbRow['id'] ?? 0)) ?: $breadcrumbRow;
+                $breadcrumbItems[] = [
+                    'name' => (string) ($breadcrumbRow['name'] ?? ''),
+                    'url' => channelUrl($breadcrumbChannel),
+                ];
+            }
+            $heroSource = trim((string) ($pageRow['hero_bg'] ?? '')) !== ''
+                ? __('blox_page_hero_source_custom')
+                : (trim((string) ($pageRow['image'] ?? '')) !== ''
+                    ? __('blox_page_hero_source_cover')
+                    : (trim((string) config('page_hero_default_bg', '')) !== ''
+                        ? __('blox_page_hero_source_global')
+                        : __('blox_page_hero_source_builtin')));
+            /**
+             * @psalm-suppress UnusedClosureParam 主题局部模板从 require 作用域读取两个参数
+             */
+            $renderPageHero = static function (array $channel, array $breadcrumbItems): string {
+                ob_start();
+                require theme_path('partials/page-hero.php');
+                return (string) ob_get_clean();
+            };
+            $pageHeroHtml = $renderPageHero($pageRow, $breadcrumbItems);
+            if ($pageHeroHtml === '') {
+                $pageHeroHtml = '<div class="yk-page-hero-hidden"><i class="ti ti-eye-off"></i><span>'
+                    . htmlspecialchars(__('blox_page_hero_hidden_canvas'), ENT_QUOTES) . '</span></div>';
+            }
+            $pageHeroBody = '<div class="yk-page-hero-context" data-yk-page-hero'
+                . ' data-yk-page-hero-label="' . htmlspecialchars(
+                    __('blox_page_hero_canvas_label') . ' · ' . $heroSource,
+                    ENT_QUOTES
+                ) . '">'
+                . $pageHeroHtml
+                . '<button type="button" class="yk-page-hero-edit" data-yk-page-hero-action>'
+                . '<i class="ti ti-edit"></i>' . htmlspecialchars(__('blox_page_hero_edit'), ENT_QUOTES)
+                . '</button></div>';
+        }
+
         $areaContext = [
             'home' => $isHomeLayout,
             'channel_id' => $isHomeLayout ? 0 : $id,
@@ -339,7 +380,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             BloxAreaEditorTarget::url('footer', $areaContext, $isHomeLayout ? 'home' : '')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
-        $body = $hasCanvasContent ? ($headerBody . $pageBody . $footerBody) : $pageBody;
+        $body = $hasCanvasContent
+            ? ($headerBody . $pageHeroBody . $pageBody . $footerBody)
+            : ($pageHeroBody . $pageBody);
     }
 
     $bloxInject = '';
@@ -358,6 +401,12 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 .yk-home-context-area:before{content:attr(data-yk-preview-label);position:absolute;z-index:40;top:6px;left:8px;padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;background:rgba(248,250,252,.94);color:#64748b;font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0;pointer-events:none}
 .yk-home-context-edit{position:absolute;z-index:60;top:6px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #2563eb;border-radius:4px;background:#2563eb;color:#fff!important;font:600 11px/1.4 system-ui,sans-serif;text-decoration:none!important;pointer-events:auto;user-select:none;box-shadow:0 2px 8px rgba(37,99,235,.24)}
 .yk-home-context-edit:hover,.yk-home-context-edit:focus{background:#1d4ed8;border-color:#1d4ed8;outline:2px solid rgba(147,197,253,.9);outline-offset:2px}
+.yk-page-hero-context{position:relative;cursor:pointer;outline:1px dashed rgba(245,158,11,.7);outline-offset:-1px}
+.yk-page-hero-context:before{content:attr(data-yk-page-hero-label);position:absolute;z-index:65;top:8px;left:8px;max-width:calc(100% - 170px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 8px;border-radius:4px;background:rgba(15,23,42,.9);color:#fff;font:600 11px/1.4 system-ui,sans-serif;pointer-events:none;box-shadow:0 3px 10px rgba(15,23,42,.22)}
+.yk-page-hero-context:hover{outline:2px solid #f59e0b;outline-offset:-2px}
+.yk-page-hero-edit{position:absolute;z-index:66;top:8px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid rgba(255,255,255,.75);border-radius:4px;background:#111827;color:#fff;font:600 11px/1.4 system-ui,sans-serif;box-shadow:0 3px 10px rgba(15,23,42,.25)}
+.yk-page-hero-edit:hover,.yk-page-hero-edit:focus{background:#f59e0b;color:#111827;outline:2px solid rgba(254,215,170,.95);outline-offset:2px}
+.yk-page-hero-hidden{min-height:92px;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;color:#64748b;font:600 13px/1.5 system-ui,sans-serif;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
 [data-yk-hide-on]{position:relative}
 [data-yk-hide-on]:before{content:'\2298 ' attr(data-yk-hide-on);position:absolute;z-index:28;top:4px;left:4px;padding:2px 7px;border-radius:4px;background:#64748b;color:#fff;font:700 10px/1.4 system-ui,sans-serif;pointer-events:none;opacity:.85}
 [data-yk-conditions]{position:relative}
@@ -873,6 +922,12 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     }, true);
 
     document.addEventListener('click', function (e) {
+        var pageHero = e.target.closest('[data-yk-page-hero]');
+        if (pageHero) {
+            e.preventDefault();
+            postToEditor({ ykEditPageHero: true });
+            return;
+        }
         var contextEdit = e.target.closest('.yk-home-context-edit');
         if (contextEdit) {
             e.preventDefault();

@@ -269,3 +269,13 @@ test("画布区域编辑入口拒绝白名单外的 URL", function () {
     }
     assert.deepEqual(current.calls, []);
 });
+
+test("页面标题区入口只接受来自当前画布的布尔协议", function () {
+    const current = fixture({
+        onEditPageHero: function () { current.calls.push(["editPageHero"]); },
+    });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditPageHero: true } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditPageHero: "true" } }), false);
+    assert.equal(current.bridge.handleMessage({ source: {}, data: { ykEditPageHero: true } }), false);
+    assert.deepEqual(current.calls, [["editPageHero"]]);
+});
