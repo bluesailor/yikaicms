@@ -97,6 +97,8 @@ final class BloxTemplateImporterTest extends TestCase
 
         $package = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('yikaicms-blox-template', $package['format']);
+        $this->assertSame('cn.yikai.yikaicms', $package['producer']['id']);
+        $this->assertSame('https://www.yikaicms.com', $package['producer']['url']);
         $this->assertSame('section', $package['type']);
         $this->assertSame(['heading'], $package['requires']['elements']);
         $this->assertSame('pub', $package['document'][0]['id']);

@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/ProductIdentity.php';
+
 final class BloxTemplateImporter
 {
     public const FORMAT = 'yikaicms-blox-template';
@@ -101,10 +103,17 @@ final class BloxTemplateImporter
         $document = $docSettings !== []
             ? ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $sections]
             : $sections;
+        $identity = YikaiProductIdentity::identity();
 
         return [
             'format' => self::FORMAT,
             'version' => self::VERSION,
+            'producer' => [
+                'id' => $identity['product_id'],
+                'name' => $identity['product_name'],
+                'url' => $identity['product_url'],
+                'version' => defined('CMS_VERSION') ? (string) CMS_VERSION : '',
+            ],
             'type' => $type,
             'name' => $name,
             'thumbnail' => self::safeThumbnail((string) ($template['thumbnail'] ?? '')),

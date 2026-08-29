@@ -13,7 +13,13 @@ CLI::register('info', '系统概览（版本/DB/缓存/插件/配方）', functi
     };
 
     CLI::out('Yikai CMS');
+    $build = YikaiProductIdentity::buildInfo(ROOT_PATH);
+    $line('PRODUCT_ID',   $build['product_id']);
+    $line('VENDOR_ID',    $build['vendor_id']);
     $line('CMS_VERSION',  defined('CMS_VERSION') ? CMS_VERSION : 'unknown');
+    $line('BUILD_ID',     $build['build_id']);
+    $line('SOURCE_COMMIT', $build['source_commit'] !== '' ? $build['source_commit'] : '-');
+    $line('INTEGRITY',    $build['integrity']);
     $line('PHP',          PHP_VERSION);
     $line('OS',           PHP_OS_FAMILY);
     $line('SAPI',         PHP_SAPI);
