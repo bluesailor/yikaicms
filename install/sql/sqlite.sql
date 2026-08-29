@@ -316,6 +316,7 @@ CREATE TABLE "yikai_channels" (
   "hero_bg" TEXT NOT NULL DEFAULT '',
   "show_hero" INTEGER NOT NULL DEFAULT 1,
   "hero_style_source" TEXT NOT NULL DEFAULT 'self',
+  "hero_style_options" TEXT,
   "list_options" TEXT DEFAULT ''
 );
 CREATE UNIQUE INDEX "uk_slug_yikai_channels" ON "yikai_channels" ("slug");

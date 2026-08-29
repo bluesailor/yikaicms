@@ -105,6 +105,8 @@ $pageHero = [
     'hero_bg' => '',
     'image' => '',
     'show_hero' => true,
+    'style_options' => PageHeroStyleResolver::defaultOptions(),
+    'resolved_options' => PageHeroStyleResolver::defaultOptions(),
     'style_source' => 'self',
     'source' => 'builtin',
     'resolved_bg' => '',
@@ -113,8 +115,10 @@ $pageHero = [
     'parent_preview_bg' => '',
     'parent_preview_source' => 'builtin',
     'parent_preview_name' => '',
+    'parent_preview_options' => PageHeroStyleResolver::defaultOptions(),
     'global_preview_bg' => '',
     'global_preview_source' => 'builtin',
+    'global_preview_options' => PageHeroStyleResolver::defaultOptions(),
 ];
 $redirectedFromPage = null;
 $isContactBlox = false;
@@ -385,21 +389,24 @@ if ($isHomeBlox) {
     $saveEndpoint = '/admin/blox_page_api.php?id=' . $id;
     $previewEndpoint = $saveEndpoint;
     $documentIdentity = ($isContentListBlox ? 'content-list:' : ($isProductBlox ? 'product:' : 'page:')) . $id;
-    $pageHeroResolved = PageHeroStyleResolver::resolve($page);
+    $pageHeroResolved = PageHeroStyleResolver::resolve($page, $isContactBlox);
     $pageHeroParentPreview = PageHeroStyleResolver::resolve(array_merge($page, [
         'hero_style_source' => PageHeroStyleResolver::MODE_PARENT,
-    ]));
+    ]), $isContactBlox);
     $pageHeroGlobalPreview = PageHeroStyleResolver::resolve(array_merge($page, [
         'hero_style_source' => PageHeroStyleResolver::MODE_GLOBAL,
-    ]));
+    ]), $isContactBlox);
     $pageHero = [
         'available' => true,
+        'compact' => $isContactBlox,
         'id' => (int) $page['id'],
         'name' => (string) ($page['name'] ?? ''),
         'description' => (string) ($page['description'] ?? ''),
         'hero_bg' => (string) ($page['hero_bg'] ?? ''),
         'image' => (string) ($page['image'] ?? ''),
         'show_hero' => (int) ($page['show_hero'] ?? 1) === 1,
+        'style_options' => PageHeroStyleResolver::normalizeOptions($page['hero_style_options'] ?? '', $isContactBlox),
+        'resolved_options' => $pageHeroResolved['options'],
         'style_source' => $pageHeroResolved['mode'],
         'source' => $pageHeroResolved['source'],
         'resolved_bg' => $pageHeroResolved['background'],
@@ -408,8 +415,10 @@ if ($isHomeBlox) {
         'parent_preview_bg' => $pageHeroParentPreview['background'],
         'parent_preview_source' => $pageHeroParentPreview['source'],
         'parent_preview_name' => $pageHeroParentPreview['source_channel_name'],
+        'parent_preview_options' => $pageHeroParentPreview['options'],
         'global_preview_bg' => $pageHeroGlobalPreview['background'],
         'global_preview_source' => $pageHeroGlobalPreview['source'],
+        'global_preview_options' => $pageHeroGlobalPreview['options'],
     ];
 
     $enabledPageLanguages = enabledLanguages();
@@ -1055,6 +1064,25 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saveFailed' => __('blox_page_hero_save_failed'),
                 'save' => __('save'),
                 'saving' => __('blox_saving'),
+                'presets' => __('blox_page_hero_presets'),
+                'presetStandard' => __('blox_page_hero_preset_standard'),
+                'presetCompact' => __('blox_page_hero_preset_compact'),
+                'presetStatement' => __('blox_page_hero_preset_statement'),
+                'presetMinimal' => __('blox_page_hero_preset_minimal'),
+                'backgroundColor' => __('blox_page_hero_background_color'),
+                'overlay' => __('blox_page_hero_overlay'),
+                'height' => __('blox_page_hero_height'),
+                'heightCompact' => __('blox_page_hero_height_compact'),
+                'heightStandard' => __('blox_page_hero_height_standard'),
+                'heightLarge' => __('blox_page_hero_height_large'),
+                'alignment' => __('blox_page_hero_alignment'),
+                'alignLeft' => __('blox_page_hero_align_left'),
+                'alignCenter' => __('blox_page_hero_align_center'),
+                'textTone' => __('blox_page_hero_text_tone'),
+                'toneAuto' => __('blox_page_hero_tone_auto'),
+                'toneLight' => __('blox_page_hero_tone_light'),
+                'toneDark' => __('blox_page_hero_tone_dark'),
+                'inheritedReadonly' => __('blox_page_hero_inherited_readonly'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             publishedDocument: <?php echo $publishedDocumentJson; ?>,
             draftSummaryOpen: false,
@@ -6079,6 +6107,44 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return String(this.pageHero.hero_bg || this.pageHero.image || this.pageHero.global_preview_bg || "");
             },
 
+            pageHeroPreviewOptions() {
+                var mode = String(this.pageHero.style_source || "self");
+                if (mode === "parent") return this.pageHero.parent_preview_options || this.pageHero.style_options;
+                if (mode === "global") return this.pageHero.global_preview_options || this.pageHero.style_options;
+                return this.pageHero.style_options || {};
+            },
+
+            pageHeroPreviewStyle() {
+                var options = this.pageHeroPreviewOptions();
+                var background = this.pageHeroPreviewBackground();
+                var color = String(options.background_color || "");
+                var style = "";
+                if (color) style += "background-color:" + this.colorFieldPreview(color, "#111827") + ";";
+                if (background) style += "background-image:url('" + String(background).replace(/'/g, "%27") + "');";
+                return style;
+            },
+
+            pageHeroPreviewTone() {
+                var options = this.pageHeroPreviewOptions();
+                var tone = String(options.text_tone || "auto");
+                if (tone !== "auto") return tone;
+                return this.pageHero.compact && !this.pageHeroPreviewBackground() && !String(options.background_color || "")
+                    ? "dark"
+                    : "light";
+            },
+
+            applyPageHeroPreset(name) {
+                if (String(this.pageHero.style_source || "self") !== "self") return;
+                var presets = {
+                    standard: { background_color: "", overlay_opacity: 60, height: "standard", alignment: "center", text_tone: "auto" },
+                    compact: { background_color: "#111827", overlay_opacity: 55, height: "compact", alignment: "left", text_tone: "light" },
+                    statement: { background_color: "#0f172a", overlay_opacity: 45, height: "large", alignment: "left", text_tone: "light" },
+                    minimal: { background_color: "#f8fafc", overlay_opacity: 0, height: "compact", alignment: "left", text_tone: "dark" },
+                };
+                if (!presets[name]) return;
+                this.pageHero.style_options = Object.assign({}, presets[name]);
+            },
+
             pageHeroModeHint() {
                 var mode = String(this.pageHero.style_source || "self");
                 if (mode === "parent") return this.pageHeroText.hintParent;
@@ -6113,6 +6179,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("hero_bg", String(this.pageHero.hero_bg || "").trim());
                 body.set("show_hero", this.pageHero.show_hero ? "1" : "0");
                 body.set("hero_style_source", String(this.pageHero.style_source || "self"));
+                body.set("hero_style_options", JSON.stringify(this.pageHero.style_options || {}));
                 body.set("_token", this.csrf);
                 this.pageHeroSaving = true;
                 fetch(this.endpoint, { method: "POST", body: body })
@@ -6128,6 +6195,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                             self.pageHero.hero_bg = String(result.data.hero_bg || "");
                             self.pageHero.show_hero = !!result.data.show_hero;
                             self.pageHero.style_source = String(result.data.style_source || "self");
+                            self.pageHero.style_options = result.data.style_options || self.pageHero.style_options;
+                            self.pageHero.resolved_options = result.data.resolved_options || self.pageHeroPreviewOptions();
                             self.pageHero.source = String(result.data.source || self.pageHeroSource());
                             self.pageHero.resolved_bg = String(result.data.resolved_bg || "");
                             self.pageHero.source_channel_name = String(result.data.source_channel_name || "");

@@ -174,7 +174,7 @@ declare(strict_types=1);
          role="dialog" aria-modal="true" aria-labelledby="blox-page-hero-dialog-title"
          class="fixed inset-0 z-[145] flex items-center justify-center p-4 sm:p-6">
         <div class="absolute inset-0 bg-black/50" @click="closePageHeroSettings()"></div>
-        <div class="relative w-[620px] max-w-full overflow-hidden rounded-lg bg-white shadow-2xl">
+        <div class="relative flex max-h-[calc(100vh-2rem)] w-[720px] max-w-full flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
             <header class="flex min-h-14 items-center gap-3 border-b border-gray-100 px-4 py-3">
                 <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded bg-gray-900 text-white">
                     <i class="ti ti-layout-navbar-collapse text-lg"></i>
@@ -189,7 +189,7 @@ declare(strict_types=1);
                     <i class="ti ti-x"></i>
                 </button>
             </header>
-            <div class="space-y-5 p-4 sm:p-5">
+            <div class="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
                 <label class="flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
                     <span>
                         <strong class="block text-sm font-medium text-gray-800" x-text="pageHeroText.visible"></strong>
@@ -202,16 +202,19 @@ declare(strict_types=1);
                     <legend class="mb-2 text-sm font-medium text-gray-800" x-text="pageHeroText.styleSource"></legend>
                     <div class="grid grid-cols-3 gap-2">
                         <label class="cursor-pointer border px-3 py-2.5 text-center text-sm transition"
+                               data-testid="blox-page-hero-mode-self"
                                :class="pageHero.style_source === 'self' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'">
                             <input type="radio" value="self" x-model="pageHero.style_source" class="sr-only">
                             <span x-text="pageHeroText.modeSelf"></span>
                         </label>
                         <label class="border px-3 py-2.5 text-center text-sm transition"
+                               data-testid="blox-page-hero-mode-parent"
                                :class="[pageHero.can_inherit ? 'cursor-pointer' : 'cursor-not-allowed opacity-40', pageHero.style_source === 'parent' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400']">
                             <input type="radio" value="parent" x-model="pageHero.style_source" :disabled="!pageHero.can_inherit" class="sr-only">
                             <span x-text="pageHeroText.modeParent"></span>
                         </label>
                         <label class="cursor-pointer border px-3 py-2.5 text-center text-sm transition"
+                               data-testid="blox-page-hero-mode-global"
                                :class="pageHero.style_source === 'global' ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'">
                             <input type="radio" value="global" x-model="pageHero.style_source" class="sr-only">
                             <span x-text="pageHeroText.modeGlobal"></span>
@@ -219,6 +222,29 @@ declare(strict_types=1);
                     </div>
                     <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
                 </fieldset>
+                <div class="overflow-hidden border border-gray-200 bg-gray-900" data-testid="blox-page-hero-style-preview">
+                    <div class="relative bg-cover bg-center px-5 transition-[height] duration-200"
+                         :class="[
+                            pageHeroPreviewOptions().height === 'large' ? 'h-36' : (pageHeroPreviewOptions().height === 'compact' ? 'h-20' : 'h-28'),
+                            !pageHeroPreviewBackground() && !pageHeroPreviewOptions().background_color ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900' : ''
+                         ]"
+                         :style="pageHeroPreviewStyle()">
+                        <div x-show="pageHeroPreviewBackground() && Number(pageHeroPreviewOptions().overlay_opacity || 0) > 0"
+                             class="absolute inset-0 bg-black"
+                             :style="'opacity:' + (Number(pageHeroPreviewOptions().overlay_opacity || 0) / 100)"></div>
+                        <div class="relative flex h-full min-w-0 flex-col justify-center"
+                             :class="pageHeroPreviewOptions().alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
+                            <span class="max-w-full truncate text-[10px]"
+                                  :class="pageHeroPreviewTone() === 'light' ? 'text-white/65' : 'text-gray-500'"><?= e(__('breadcrumb_home')) ?> / <span x-text="pageHero.name"></span></span>
+                            <strong class="mt-1 max-w-full truncate text-base"
+                                    :class="pageHeroPreviewTone() === 'light' ? 'text-white' : 'text-gray-900'"
+                                    x-text="pageHero.name"></strong>
+                            <span x-show="pageHero.description" class="mt-1 max-w-[80%] truncate text-[11px]"
+                                  :class="pageHeroPreviewTone() === 'light' ? 'text-white/75' : 'text-gray-600'"
+                                  x-text="pageHero.description"></span>
+                        </div>
+                    </div>
+                </div>
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
                         <label class="text-sm font-medium text-gray-800" for="blox-page-hero-bg" x-text="pageHeroText.background"></label>
@@ -246,6 +272,83 @@ declare(strict_types=1);
                     </div>
                     <p class="mt-2 text-xs leading-5 text-gray-500" x-show="pageHero.style_source === 'self'" x-text="pageHeroText.backgroundHint"></p>
                 </div>
+                <section class="space-y-4 border-t border-gray-100 pt-4" :class="pageHero.style_source === 'self' ? '' : 'opacity-60'">
+                    <div>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <span class="text-sm font-medium text-gray-800" x-text="pageHeroText.presets"></span>
+                            <span x-show="pageHero.style_source !== 'self'" class="text-xs text-gray-500" x-text="pageHeroText.inheritedReadonly"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            <button type="button" @click="applyPageHeroPreset('standard')" :disabled="pageHero.style_source !== 'self'"
+                                    data-testid="blox-page-hero-preset-standard"
+                                    class="h-9 border border-gray-200 px-2 text-xs text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed" x-text="pageHeroText.presetStandard"></button>
+                            <button type="button" @click="applyPageHeroPreset('compact')" :disabled="pageHero.style_source !== 'self'"
+                                    data-testid="blox-page-hero-preset-compact"
+                                    class="h-9 border border-gray-200 px-2 text-xs text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed" x-text="pageHeroText.presetCompact"></button>
+                            <button type="button" @click="applyPageHeroPreset('statement')" :disabled="pageHero.style_source !== 'self'"
+                                    data-testid="blox-page-hero-preset-statement"
+                                    class="h-9 border border-gray-200 px-2 text-xs text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed" x-text="pageHeroText.presetStatement"></button>
+                            <button type="button" @click="applyPageHeroPreset('minimal')" :disabled="pageHero.style_source !== 'self'"
+                                    data-testid="blox-page-hero-preset-minimal"
+                                    class="h-9 border border-gray-200 px-2 text-xs text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed" x-text="pageHeroText.presetMinimal"></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-600" x-text="pageHeroText.backgroundColor"></label>
+                            <button type="button"
+                                    @click="openEditorColorPicker($event, 'page-hero-bg', pageHeroText.backgroundColor, pageHero.style_options.background_color, '#111827', true, value => pageHero.style_options.background_color = value)"
+                                    :disabled="pageHero.style_source !== 'self'"
+                                    data-testid="blox-page-hero-color-picker"
+                                    class="flex h-10 w-full items-center gap-2 border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed">
+                                <span class="h-7 w-9 shrink-0 border border-black/10" :style="'background:' + colorFieldPreview(pageHero.style_options.background_color, '#111827')"></span>
+                                <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(pageHero.style_options.background_color, designText.clear)"></span>
+                                <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <div class="mb-1.5 flex items-center justify-between gap-2 text-xs font-medium text-gray-600">
+                                <label for="blox-page-hero-overlay" x-text="pageHeroText.overlay"></label>
+                                <span class="tabular-nums" x-text="String(pageHero.style_options.overlay_opacity) + '%' "></span>
+                            </div>
+                            <input id="blox-page-hero-overlay" type="range" min="0" max="90" step="5"
+                                   x-model.number="pageHero.style_options.overlay_opacity" :disabled="pageHero.style_source !== 'self'"
+                                   class="h-10 w-full accent-gray-900 disabled:cursor-not-allowed">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <fieldset>
+                            <legend class="mb-1.5 text-xs font-medium text-gray-600" x-text="pageHeroText.height"></legend>
+                            <div class="grid grid-cols-3 border border-gray-200">
+                                <template x-for="item in [{v:'compact',l:pageHeroText.heightCompact},{v:'standard',l:pageHeroText.heightStandard},{v:'large',l:pageHeroText.heightLarge}]" :key="item.v">
+                                    <label class="cursor-pointer px-1 py-2 text-center text-xs" :class="pageHero.style_options.height === item.v ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                        <input type="radio" class="sr-only" x-model="pageHero.style_options.height" :value="item.v" :disabled="pageHero.style_source !== 'self'"><span x-text="item.l"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend class="mb-1.5 text-xs font-medium text-gray-600" x-text="pageHeroText.alignment"></legend>
+                            <div class="grid grid-cols-2 border border-gray-200">
+                                <template x-for="item in [{v:'left',l:pageHeroText.alignLeft},{v:'center',l:pageHeroText.alignCenter}]" :key="item.v">
+                                    <label class="cursor-pointer px-1 py-2 text-center text-xs" :class="pageHero.style_options.alignment === item.v ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                        <input type="radio" class="sr-only" x-model="pageHero.style_options.alignment" :value="item.v" :disabled="pageHero.style_source !== 'self'"><span x-text="item.l"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </fieldset>
+                        <fieldset>
+                            <legend class="mb-1.5 text-xs font-medium text-gray-600" x-text="pageHeroText.textTone"></legend>
+                            <div class="grid grid-cols-3 border border-gray-200">
+                                <template x-for="item in [{v:'auto',l:pageHeroText.toneAuto},{v:'light',l:pageHeroText.toneLight},{v:'dark',l:pageHeroText.toneDark}]" :key="item.v">
+                                    <label class="cursor-pointer px-1 py-2 text-center text-xs" :class="pageHero.style_options.text_tone === item.v ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                        <input type="radio" class="sr-only" x-model="pageHero.style_options.text_tone" :value="item.v" :disabled="pageHero.style_source !== 'self'"><span x-text="item.l"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </fieldset>
+                    </div>
+                </section>
             </div>
             <footer class="flex min-h-14 items-center justify-end gap-2 border-t border-gray-100 px-4 py-3">
                 <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"

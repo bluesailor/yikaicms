@@ -14,51 +14,48 @@ if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) {
 // 默认 self 仍只认显式 hero_bg，保持老站白底；只有主动选择 parent/global 才启用共享背景。
 $contactHeroStyle = PageHeroStyleResolver::resolve($channel, true);
 $contactHeroBg = $contactHeroStyle['background'];
+$contactHeroOptions = $contactHeroStyle['options'];
+$contactHeroBgColor = $contactHeroOptions['background_color'];
+$contactHeroHeightClass = match ($contactHeroOptions['height']) {
+    'standard' => 'py-14 md:py-16',
+    'large' => 'py-16 md:py-24',
+    default => 'py-10 md:py-14',
+};
+$contactHeroCentered = $contactHeroOptions['alignment'] === 'center';
+$contactHeroTone = $contactHeroOptions['text_tone'] === 'auto'
+    ? ($contactHeroBg !== '' ? 'light' : 'dark')
+    : $contactHeroOptions['text_tone'];
+$contactHeroLinkHoverClass = $contactHeroTone === 'light' ? 'hover:text-white' : 'hover:text-primary';
+$contactHeroStyles = [];
+if ($contactHeroBg !== '') {
+    $contactHeroStyles[] = "background-image: url('" . $contactHeroBg . "')";
+}
+if ($contactHeroBgColor !== '') {
+    $contactHeroStyles[] = 'background-color: ' . $contactHeroBgColor;
+}
 ?>
 <?php echo breadcrumbJsonLd($breadcrumbItems ?? []); ?>
-<?php if ($contactHeroBg !== ''): ?>
-<section class="relative bg-cover bg-center" style="background-image: url('<?php echo e($contactHeroBg); ?>')">
-    <div class="absolute inset-0 bg-black/60"></div>
-    <div class="max-w-6xl mx-auto px-4 py-10 md:py-14 relative">
-        <nav class="flex items-center gap-2 text-sm text-gray-300 mb-6" aria-label="<?php echo e(__('breadcrumb_nav')); ?>">
-            <a href="/" class="hover:text-white transition"><?php echo __('breadcrumb_home'); ?></a>
+<section class="relative <?php echo $contactHeroBg !== '' ? 'bg-cover bg-center' : ($contactHeroBgColor === '' ? 'bg-white border-y border-gray-100' : ''); ?>"<?php if ($contactHeroStyles !== []): ?> style="<?php echo e(implode('; ', $contactHeroStyles)); ?>"<?php endif; ?>>
+    <?php if ($contactHeroBg !== '' && $contactHeroOptions['overlay_opacity'] > 0): ?>
+    <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, <?php echo e((string) ($contactHeroOptions['overlay_opacity'] / 100)); ?>)"></div>
+    <?php endif; ?>
+    <div class="max-w-6xl mx-auto px-4 <?php echo e($contactHeroHeightClass); ?> relative">
+        <nav class="flex items-center gap-2 text-sm mb-6 <?php echo $contactHeroTone === 'light' ? 'text-gray-300' : 'text-gray-500'; ?> <?php echo $contactHeroCentered ? 'justify-center' : ''; ?>" aria-label="<?php echo e(__('breadcrumb_nav')); ?>">
+            <a href="/" class="<?php echo $contactHeroLinkHoverClass; ?> transition"><?php echo __('breadcrumb_home'); ?></a>
             <?php foreach (($breadcrumbItems ?? []) as $i => $item): ?>
-            <span class="text-gray-400">/</span>
+            <span class="<?php echo $contactHeroTone === 'light' ? 'text-gray-400' : 'text-gray-300'; ?>">/</span>
             <?php if ($i === count($breadcrumbItems) - 1): ?>
-            <span class="text-gray-100"><?php echo e((string) ($item['name'] ?? '')); ?></span>
+            <span class="<?php echo $contactHeroTone === 'light' ? 'text-gray-100' : 'text-gray-700'; ?>"><?php echo e((string) ($item['name'] ?? '')); ?></span>
             <?php else: ?>
-            <a href="<?php echo e((string) ($item['url'] ?? '')); ?>" class="hover:text-white transition"><?php echo e((string) ($item['name'] ?? '')); ?></a>
+            <a href="<?php echo e((string) ($item['url'] ?? '')); ?>" class="<?php echo $contactHeroLinkHoverClass; ?> transition"><?php echo e((string) ($item['name'] ?? '')); ?></a>
             <?php endif; ?>
             <?php endforeach; ?>
         </nav>
-        <div class="max-w-3xl border-l-4 border-primary pl-5 md:pl-7">
-            <h1 class="text-3xl md:text-4xl font-bold text-white"><?php echo e((string) ($channel['name'] ?? __('contact_title'))); ?></h1>
+        <div class="max-w-3xl <?php echo $contactHeroCentered ? 'mx-auto text-center' : 'border-l-4 border-primary pl-5 md:pl-7'; ?>">
+            <h1 class="text-3xl md:text-4xl font-bold <?php echo $contactHeroTone === 'light' ? 'text-white' : 'text-gray-900'; ?>"><?php echo e((string) ($channel['name'] ?? __('contact_title'))); ?></h1>
             <?php if (!empty($channel['description'])): ?>
-            <p class="mt-3 text-base md:text-lg text-gray-200 leading-relaxed"><?php echo e((string) $channel['description']); ?></p>
+            <p class="mt-3 text-base md:text-lg leading-relaxed <?php echo $contactHeroTone === 'light' ? 'text-gray-200' : 'text-gray-600'; ?>"><?php echo e((string) $channel['description']); ?></p>
             <?php endif; ?>
         </div>
     </div>
 </section>
-<?php else: ?>
-<section class="bg-white border-y border-gray-100">
-    <div class="max-w-6xl mx-auto px-4 py-10 md:py-14">
-        <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6" aria-label="<?php echo e(__('breadcrumb_nav')); ?>">
-            <a href="/" class="hover:text-primary transition"><?php echo __('breadcrumb_home'); ?></a>
-            <?php foreach (($breadcrumbItems ?? []) as $i => $item): ?>
-            <span class="text-gray-300">/</span>
-            <?php if ($i === count($breadcrumbItems) - 1): ?>
-            <span class="text-gray-700"><?php echo e((string) ($item['name'] ?? '')); ?></span>
-            <?php else: ?>
-            <a href="<?php echo e((string) ($item['url'] ?? '')); ?>" class="hover:text-primary transition"><?php echo e((string) ($item['name'] ?? '')); ?></a>
-            <?php endif; ?>
-            <?php endforeach; ?>
-        </nav>
-        <div class="max-w-3xl border-l-4 border-primary pl-5 md:pl-7">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900"><?php echo e((string) ($channel['name'] ?? __('contact_title'))); ?></h1>
-            <?php if (!empty($channel['description'])): ?>
-            <p class="mt-3 text-base md:text-lg text-gray-600 leading-relaxed"><?php echo e((string) $channel['description']); ?></p>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
-<?php endif; ?>

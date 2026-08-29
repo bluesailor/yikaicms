@@ -2906,3 +2906,35 @@ test('business icon preset applies semantic icon and hover motion @ci', async ({
 
   await restoreClean(page);
 });
+
+test('page title area presets preview safely and inheritance is read only @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  expect(fixtures.channel_any).toBeGreaterThan(0);
+
+  await openPageEditor(page, fixtures.channel_any);
+  const contentFrame = await frame(page);
+  await pointerClick(page, contentFrame.locator('[data-yk-page-hero-action]'));
+
+  const dialog = page.getByTestId('blox-page-hero-dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByTestId('blox-page-hero-preset-minimal').click();
+  await expect(dialog.locator('#blox-page-hero-overlay')).toHaveValue('0');
+  await expect(dialog.getByTestId('blox-page-hero-style-preview').locator('.h-20')).toBeVisible();
+
+  await dialog.getByTestId('blox-page-hero-color-picker').click();
+  await expect(page.getByTestId('blox-editor-color-picker')).toBeVisible();
+  await page.getByTestId('blox-editor-color-clear').click();
+  await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
+
+  await dialog.getByTestId('blox-page-hero-mode-global').click();
+  await expect(dialog.getByTestId('blox-page-hero-preset-standard')).toBeDisabled();
+  await expect(dialog.getByTestId('blox-page-hero-color-picker')).toBeDisabled();
+  await dialog.getByTestId('blox-page-hero-mode-self').click();
+  await expect(dialog.getByTestId('blox-page-hero-preset-standard')).toBeEnabled();
+
+  await dialog.getByRole('button', { name: '取消' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+});
