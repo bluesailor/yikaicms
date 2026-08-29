@@ -76,8 +76,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("require_once __DIR__ . '/../TagEngine.php';", $bootstrap);
     }
 
-    /** 头尾模板保留适用页面上下文，顶部只暴露语言预览。 */
-    public function testAreaPreviewLanguageAndContextContract(): void
+    /** 头尾模板保留适用页面上下文，但独立区域画布不暴露伪整页预览控件。 */
+    public function testAreaPreviewContextContract(): void
     {
         $advance = $this->source('admin/page_edit_advance.php');
         $editor = $this->source('admin/blox_editor.php');
@@ -99,13 +99,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('Number.isInteger(data.ykAreaHit) && data.ykAreaHit >= 0', $bridge);
         $this->assertStringContainsString('this.onAreaHit = options.onAreaHit || noop;', $bridge);
 
-        // 编辑器：页面上下文不再作为下拉框暴露，语言切换仍会重建预览客户端。
+        // 编辑器：页面与语言都不作为顶部预览控件暴露，命中协议仍保留。
         $this->assertStringNotContainsString('data-testid="blox-ctx-select"', $editor);
         $this->assertStringNotContainsString('$areaCtxOptionGroups[$ctxLang][]', $editor);
-        $this->assertStringContainsString('data-testid="blox-preview-language-control"', $header);
-        $this->assertStringContainsString('data-preview-language="<?php echo e($languageCode); ?>"', $header);
-        $this->assertStringContainsString('setPreviewLanguage(language)', $editor);
-        $this->assertStringContainsString('this._previewClient.cancel();', $editor);
+        $this->assertStringNotContainsString('data-testid="blox-preview-language-control"', $header);
+        $this->assertStringNotContainsString('setPreviewLanguage(language)', $editor);
         $this->assertStringContainsString('onAreaHit: function (id)', $editor);
         $this->assertStringContainsString('self.ctxHit = id;', $editor);
         $this->assertStringContainsString('data-testid="blox-ctx-warn"', $editor);
@@ -114,19 +112,12 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('&amp;area_lang=', $languageAreas);
         $this->assertStringContainsString('rawurlencode($selectedContextLanguage)', $templates);
         $this->assertStringContainsString('rawurlencode($languageCode)', $templates);
-        $this->assertStringContainsString('if ($areaEditorLanguageManaged)', $editor);
-        $this->assertStringContainsString('$enabledPreviewLanguages = enabledLanguages();', $editor);
-        $this->assertStringContainsString('[$areaEditorLanguage],', $editor);
         $this->assertStringContainsString("get('preview_context', '')", $editor);
-        $this->assertStringContainsString("get('preview_lang', '')", $editor);
         $this->assertStringContainsString('previewContext: <?php echo json_encode($initialPreviewContext', $editor);
-        $this->assertStringContainsString('previewLanguage: <?php echo json_encode($initialPreviewLanguage', $editor);
-        $this->assertStringContainsString('previewLanguages: <?php echo json_encode($areaPreviewLanguages', $editor);
-        $this->assertStringContainsString('endpoint.searchParams.set("_lang", this.previewLanguage || this.areaLanguage);', $editor);
+        $this->assertStringContainsString('var previewLanguage = this.areaLanguage;', $editor);
         $this->assertStringContainsString('$previewLanguages = availableLanguages();', $preview);
         $this->assertStringContainsString("define('SITE_LANG', \$previewLanguage);", $preview);
         $this->assertStringContainsString('data-testid="blox-area-language-context"', $header);
-        $this->assertStringContainsString("__('blox_preview_language_help', ['area' => \$areaLabel])", $header);
         $this->assertStringContainsString('tplAreaLanguagePublishConfirm', $editor);
     }
 

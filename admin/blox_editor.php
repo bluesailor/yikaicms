@@ -84,8 +84,6 @@ $isCurrentThemeHeaderEdit = false;
 $templateStoredDraft = '';
 $publishedDocumentSource = '[]';
 $initialPreviewContext = 'home';
-$areaPreviewLanguages = []; // 头尾模板只切换画布语言；页面适用范围由管理入口负责
-$initialPreviewLanguage = '';
 $areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $areaEditorLanguage = '';
 $areaEditorLanguageLabel = '';
@@ -244,43 +242,16 @@ if ($isHomeBlox) {
         : 'template:' . $templateId;
     if (in_array($templateType, ['header', 'footer'], true)) {
         // 页头只显示可编辑区域；页尾保留正文落底上下文。页面上下文仅供前台同一套
-        // Resolver 报告模板命中，顶部预览只切换语言，不再伪装成整页预览。
+        // Resolver 报告模板命中，不在独立区域画布里伪装成整页预览入口。
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType
             . '&_lang=' . rawurlencode($areaEditorLanguage);
         $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog($templateType);
-        if ($areaEditorLanguageManaged) {
-            $areaPreviewLanguages = [$areaEditorLanguage => $areaEditorLanguageLabel];
-        } else {
-            $enabledPreviewLanguages = enabledLanguages();
-            $previewLanguageOrder = array_values(array_unique(array_merge(
-                [$areaEditorLanguage],
-                array_keys($enabledPreviewLanguages)
-            )));
-            foreach ($previewLanguageOrder as $previewLanguageCode) {
-                if ($previewLanguageCode === $areaEditorLanguage) {
-                    $areaPreviewLanguages[$previewLanguageCode] = $areaEditorLanguageLabel;
-                } elseif (isset($enabledPreviewLanguages[$previewLanguageCode])) {
-                    $areaPreviewLanguages[$previewLanguageCode] = $enabledPreviewLanguages[$previewLanguageCode];
-                }
-            }
-        }
-        $initialPreviewLanguage = $areaEditorLanguage;
-        $requestedPreviewLanguage = trim((string) get('preview_lang', ''));
-        if (isset($areaPreviewLanguages[$requestedPreviewLanguage])) {
-            $initialPreviewLanguage = $requestedPreviewLanguage;
-        }
         $requestedPreviewContext = trim((string) get('preview_context', ''));
         if (preg_match('/^(channel|page):(\d+)$/', $requestedPreviewContext, $contextMatch)) {
             $contextRow = channelModel()->find((int) $contextMatch[2]);
             $contextType = (string) ($contextRow['type'] ?? '');
             if ($contextRow !== null && $contextType !== 'redirect') {
                 $initialPreviewContext = $requestedPreviewContext;
-                $contextLanguage = trim((string) ($contextRow['lang'] ?? ''));
-                if ($requestedPreviewLanguage === ''
-                    && !$areaEditorLanguageManaged
-                    && isset($areaPreviewLanguages[$contextLanguage])) {
-                    $initialPreviewLanguage = $contextLanguage;
-                }
             }
         }
     } else {
@@ -1063,8 +1034,6 @@ $canManageBloxDesign = hasPermission('blox_global');
             endpoint: "<?php echo $saveEndpoint; ?>",
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
             previewContext: <?php echo json_encode($initialPreviewContext, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            previewLanguage: <?php echo json_encode($initialPreviewLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            previewLanguages: <?php echo json_encode($areaPreviewLanguages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             areaLanguage: <?php echo json_encode($areaEditorLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctxHit: null,
             ctxMatch: null,
@@ -2312,7 +2281,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var area = this.areaPresetType === "footer" ? "footer" : "header";
                 var url = "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
                     + encodeURIComponent(preset.slug);
-                var previewLanguage = this.previewLanguage || this.areaLanguage;
+                var previewLanguage = this.areaLanguage;
                 if (previewLanguage) url += "&_lang=" + encodeURIComponent(previewLanguage);
                 url += "&preview_instance=" + this.headerPresetPreviewNonce;
                 if (area === "header") url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
@@ -6030,25 +5999,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.$nextTick(function () {
                     if (self.$refs.libSearch) self.$refs.libSearch.focus();
                 });
-            },
-
-            /** 头尾模板：只切换画布语言；页面适用范围保持不变。 */
-            setPreviewLanguage(language) {
-                if (!Object.prototype.hasOwnProperty.call(this.previewLanguages, language)
-                    || this.previewLanguage === language) return;
-                this.previewLanguage = language;
-                var endpoint = new URL("<?php echo $previewEndpoint; ?>", window.location.origin);
-                endpoint.searchParams.set("_lang", this.previewLanguage || this.areaLanguage);
-                if (this.previewContext === "home") endpoint.searchParams.delete("preview_context");
-                else endpoint.searchParams.set("preview_context", this.previewContext);
-                this.previewEndpoint = endpoint.pathname + endpoint.search;
-                this.ctxHit = null; // 旧命中作废，等新画布上报
-                this.ctxMatch = null;
-                if (this._previewClient) {
-                    this._previewClient.cancel(); // 丢弃在途请求，防旧上下文响应覆盖
-                    this._previewClient = null;
-                }
-                this.schedulePreview();
             },
 
             /**

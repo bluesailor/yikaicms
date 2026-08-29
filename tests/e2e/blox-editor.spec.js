@@ -2008,12 +2008,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   const headerPresetEntry = page.getByTestId('blox-right-panel').getByTestId('blox-header-presets-open');
   await expect(headerPresetEntry).toContainText('网页头样式');
   await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
-  const previewLanguages = page.getByTestId('blox-preview-language-control');
-  await expect(previewLanguages).toContainText('预览语言');
-  for (const language of ['zh-CN', 'en', 'ja']) {
-    await expect(previewLanguages.locator(`[data-preview-language="${language}"]`)).toBeVisible();
-  }
-  await expect(previewLanguages.locator('[data-preview-language="zh-CN"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-preview-language-control')).toHaveCount(0);
   await headerPresetEntry.click();
   const headerPresets = page.getByTestId('blox-header-presets');
   await expect(headerPresets).toBeVisible();
