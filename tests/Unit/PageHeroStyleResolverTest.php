@@ -25,6 +25,9 @@ final class PageHeroStyleResolverTest extends TestCase
             'background_color' => '',
             'overlay_opacity' => 60,
             'height' => 'standard',
+            'mobile_height' => 'inherit',
+            'focal_x' => 50,
+            'focal_y' => 50,
             'alignment' => 'center',
             'text_tone' => 'auto',
         ], $custom['options']);
@@ -137,6 +140,9 @@ final class PageHeroStyleResolverTest extends TestCase
             'background_color' => 'red;display:none',
             'overlay_opacity' => 999,
             'height' => 'fullscreen',
+            'mobile_height' => 'cinema',
+            'focal_x' => -20,
+            'focal_y' => 140,
             'alignment' => 'right',
             'text_tone' => 'invisible',
         ]);
@@ -151,12 +157,18 @@ final class PageHeroStyleResolverTest extends TestCase
         self::assertSame('', $normalized['background_color']);
         self::assertSame(90, $normalized['overlay_opacity']);
         self::assertSame('standard', $normalized['height']);
+        self::assertSame('inherit', $normalized['mobile_height']);
+        self::assertSame(0, $normalized['focal_x']);
+        self::assertSame(100, $normalized['focal_y']);
         self::assertSame('center', $normalized['alignment']);
         self::assertSame('auto', $normalized['text_tone']);
         self::assertSame('var(--yk-color-primary-500)', $token['background_color']);
         self::assertSame(0, $token['overlay_opacity']);
         self::assertSame('', PageHeroStyleResolver::encodeOptions(PageHeroStyleResolver::defaultOptions()));
         self::assertStringContainsString('"height":"large"', PageHeroStyleResolver::encodeOptions($token));
+        self::assertSame('py-20 md:py-24', PageHeroStyleResolver::heightClasses(['height' => 'large']));
+        self::assertSame('py-10 md:py-24', PageHeroStyleResolver::heightClasses(['height' => 'large', 'mobile_height' => 'compact']));
+        self::assertSame('25% 80%', PageHeroStyleResolver::backgroundPosition(['focal_x' => 25, 'focal_y' => 80]));
     }
 
     public function testGlobalModeUsesGlobalLayoutOptions(): void

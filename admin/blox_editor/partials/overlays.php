@@ -239,10 +239,22 @@ declare(strict_types=1);
                         <i class="ti ti-arrow-back-up"></i><span x-text="pageHeroText.restoreInheritance"></span>
                     </button>
                 </div>
-                <div class="overflow-hidden border border-gray-200 bg-gray-900" data-testid="blox-page-hero-style-preview">
-                    <div class="relative bg-cover bg-center px-5 transition-[height] duration-200"
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-xs font-medium text-gray-600" x-text="pageHeroText.previewDevice"></span>
+                    <span class="inline-flex border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="pageHeroText.previewDevice">
+                        <button type="button" @click="pageHeroPreviewDevice = 'desktop'" :aria-pressed="pageHeroPreviewDevice === 'desktop' ? 'true' : 'false'"
+                                data-testid="blox-page-hero-preview-desktop" class="inline-flex h-7 w-9 items-center justify-center"
+                                :class="pageHeroPreviewDevice === 'desktop' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'" :title="pageHeroText.previewDesktop"><i class="ti ti-device-desktop"></i></button>
+                        <button type="button" @click="pageHeroPreviewDevice = 'mobile'" :aria-pressed="pageHeroPreviewDevice === 'mobile' ? 'true' : 'false'"
+                                data-testid="blox-page-hero-preview-mobile" class="inline-flex h-7 w-9 items-center justify-center"
+                                :class="pageHeroPreviewDevice === 'mobile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'" :title="pageHeroText.previewMobile"><i class="ti ti-device-mobile"></i></button>
+                    </span>
+                </div>
+                <div class="flex justify-center overflow-hidden border border-gray-200 bg-gray-100 p-2" data-testid="blox-page-hero-style-preview">
+                    <div class="w-full overflow-hidden bg-gray-900 transition-[max-width] duration-200" :class="pageHeroPreviewDevice === 'mobile' ? 'max-w-[390px]' : 'max-w-full'">
+                    <div class="relative bg-cover px-5 transition-[height] duration-200"
                          :class="[
-                            pageHeroPreviewOptions().height === 'large' ? 'h-36' : (pageHeroPreviewOptions().height === 'compact' ? 'h-20' : 'h-28'),
+                            pageHeroPreviewHeight() === 'large' ? 'h-36' : (pageHeroPreviewHeight() === 'compact' ? 'h-20' : 'h-28'),
                             !pageHeroPreviewBackground() && !pageHeroPreviewOptions().background_color ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900' : ''
                          ]"
                          :style="pageHeroPreviewStyle()">
@@ -260,6 +272,7 @@ declare(strict_types=1);
                                   :class="pageHeroPreviewTone() === 'light' ? 'text-white/75' : 'text-gray-600'"
                                   x-text="pageHero.description"></span>
                         </div>
+                    </div>
                     </div>
                 </div>
                 <div>
@@ -364,6 +377,25 @@ declare(strict_types=1);
                                 </template>
                             </div>
                         </fieldset>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <fieldset>
+                            <legend class="mb-1.5 text-xs font-medium text-gray-600" x-text="pageHeroText.mobileHeight"></legend>
+                            <div class="grid grid-cols-4 border border-gray-200">
+                                <template x-for="item in [{v:'inherit',l:pageHeroText.heightInherit},{v:'compact',l:pageHeroText.heightCompact},{v:'standard',l:pageHeroText.heightStandard},{v:'large',l:pageHeroText.heightLarge}]" :key="item.v">
+                                    <label class="cursor-pointer px-1 py-2 text-center text-xs" :class="pageHero.style_options.mobile_height === item.v ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                        <input type="radio" class="sr-only" x-model="pageHero.style_options.mobile_height" :value="item.v" :disabled="pageHero.style_source !== 'self'"><span x-text="item.l"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </fieldset>
+                        <div x-show="pageHeroPreviewBackground()">
+                            <span class="mb-1.5 block text-xs font-medium text-gray-600" x-text="pageHeroText.focus"></span>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="text-[11px] text-gray-500"><span class="flex justify-between"><span x-text="pageHeroText.focusX"></span><span x-text="pageHero.style_options.focal_x + '%'"></span></span><input type="range" min="0" max="100" step="5" x-model.number="pageHero.style_options.focal_x" :disabled="pageHero.style_source !== 'self'" class="h-7 w-full accent-gray-900"></label>
+                                <label class="text-[11px] text-gray-500"><span class="flex justify-between"><span x-text="pageHeroText.focusY"></span><span x-text="pageHero.style_options.focal_y + '%'"></span></span><input type="range" min="0" max="100" step="5" x-model.number="pageHero.style_options.focal_y" :disabled="pageHero.style_source !== 'self'" class="h-7 w-full accent-gray-900"></label>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>

@@ -16,11 +16,7 @@ $contactHeroStyle = PageHeroStyleResolver::resolve($channel, true);
 $contactHeroBg = $contactHeroStyle['background'];
 $contactHeroOptions = $contactHeroStyle['options'];
 $contactHeroBgColor = $contactHeroOptions['background_color'];
-$contactHeroHeightClass = match ($contactHeroOptions['height']) {
-    'standard' => 'py-14 md:py-16',
-    'large' => 'py-16 md:py-24',
-    default => 'py-10 md:py-14',
-};
+$contactHeroHeightClass = PageHeroStyleResolver::heightClasses($contactHeroOptions, true);
 $contactHeroCentered = $contactHeroOptions['alignment'] === 'center';
 $contactHeroTone = $contactHeroOptions['text_tone'] === 'auto'
     ? ($contactHeroBg !== '' ? 'light' : 'dark')
@@ -29,13 +25,14 @@ $contactHeroLinkHoverClass = $contactHeroTone === 'light' ? 'hover:text-white' :
 $contactHeroStyles = [];
 if ($contactHeroBg !== '') {
     $contactHeroStyles[] = "background-image: url('" . $contactHeroBg . "')";
+    $contactHeroStyles[] = 'background-position: ' . PageHeroStyleResolver::backgroundPosition($contactHeroOptions);
 }
 if ($contactHeroBgColor !== '') {
     $contactHeroStyles[] = 'background-color: ' . $contactHeroBgColor;
 }
 ?>
 <?php echo breadcrumbJsonLd($breadcrumbItems ?? []); ?>
-<section class="relative <?php echo $contactHeroBg !== '' ? 'bg-cover bg-center' : ($contactHeroBgColor === '' ? 'bg-white border-y border-gray-100' : ''); ?>"<?php if ($contactHeroStyles !== []): ?> style="<?php echo e(implode('; ', $contactHeroStyles)); ?>"<?php endif; ?>>
+<section class="relative <?php echo $contactHeroBg !== '' ? 'bg-cover' : ($contactHeroBgColor === '' ? 'bg-white border-y border-gray-100' : ''); ?>"<?php if ($contactHeroStyles !== []): ?> style="<?php echo e(implode('; ', $contactHeroStyles)); ?>"<?php endif; ?>>
     <?php if ($contactHeroBg !== '' && $contactHeroOptions['overlay_opacity'] > 0): ?>
     <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, <?php echo e((string) ($contactHeroOptions['overlay_opacity'] / 100)); ?>)"></div>
     <?php endif; ?>

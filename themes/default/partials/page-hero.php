@@ -17,19 +17,15 @@ $heroStyle = PageHeroStyleResolver::resolve($channel);
 $heroBg = $heroStyle['background'];
 $heroOptions = $heroStyle['options'];
 $heroBgColor = $heroOptions['background_color'];
-$heroHeightClass = match ($heroOptions['height']) {
-    'compact' => 'py-10 md:py-12',
-    'large' => 'py-20 md:py-24',
-    default => 'py-16',
-};
+$heroHeightClass = PageHeroStyleResolver::heightClasses($heroOptions);
 $heroCentered = $heroOptions['alignment'] === 'center';
 $heroTone = $heroOptions['text_tone'] === 'auto' ? 'light' : $heroOptions['text_tone'];
 $heroSectionClasses = ['relative', 'overflow-hidden', $heroHeightClass];
 $heroStyles = [];
 if ($heroBg !== '') {
     $heroSectionClasses[] = 'bg-cover';
-    $heroSectionClasses[] = 'bg-center';
     $heroStyles[] = "background-image: url('" . $heroBg . "')";
+    $heroStyles[] = 'background-position: ' . PageHeroStyleResolver::backgroundPosition($heroOptions);
 }
 if ($heroBgColor !== '') {
     $heroStyles[] = 'background-color: ' . $heroBgColor;
