@@ -2792,11 +2792,11 @@ declare(strict_types=1);
                 </div>
 <?php endif; ?>
 <?php if ($templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
-                <div x-show="ctxMatch" x-cloak class="mt-2 border-l-2 border-blue-300 bg-blue-50/70 px-2.5 py-2"
+                <div x-show="ctxMatch" x-cloak class="mt-2 border border-blue-200 bg-blue-50/70 px-2.5 py-2"
                      data-testid="blox-area-current-match">
                     <p class="text-[10px] font-semibold uppercase text-blue-500" x-text="areaMatchText.current"></p>
-                    <p class="mt-0.5 truncate text-xs font-medium text-gray-700" x-text="ctxMatch ? ctxMatch.name : ''"></p>
-                    <p class="mt-0.5 text-[10px] text-gray-500">
+                    <p class="mt-0.5 truncate text-xs font-medium text-blue-900" x-text="ctxMatch ? ctxMatch.name : ''"></p>
+                    <p class="mt-0.5 text-[10px] text-blue-700">
                         <span x-text="ctxMatch ? (areaMatchText[ctxMatch.scope] || areaMatchText.unknown) : ''"></span>
                         <span x-show="ctxMatch && ctxMatch.languageSpecific" x-text="' · ' + areaMatchText.language"></span>
                     </p>
