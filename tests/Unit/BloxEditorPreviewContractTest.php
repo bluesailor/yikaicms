@@ -895,7 +895,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         self::assertIsInt($renderOffset);
         self::assertLessThan($renderOffset, $csrfOffset);
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
-        $this->assertStringContainsString("document.querySelector('[data-yk-drawer-open]')?.click();", $preview);
+        $this->assertStringContainsString("window.addEventListener('load',function(){document.querySelector('[data-yk-drawer-open]')?.click();},{once:true});", $preview);
     }
 
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void
