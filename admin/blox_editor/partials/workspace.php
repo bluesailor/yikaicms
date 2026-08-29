@@ -71,7 +71,7 @@ declare(strict_types=1);
                     </template>
                 </div>
                 <?php // pb-24：滚动到底时给最后一排瓦片留出充足空位（用户 2026-08-20 反馈 pb-16 仍紧） ?>
-                <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24">
+                <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24" data-testid="blox-element-scroll">
                     <template x-for="grp in filteredLib()" :key="grp.cat">
                         <div class="mb-3" :data-testid="'blox-element-group-' + grp.cat">
                             <?php // 分类标题可折叠；搜索或单类筛选时忽略折叠态全部展开 ?>

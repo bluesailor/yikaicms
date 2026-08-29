@@ -19,7 +19,7 @@ declare(strict_types=1);
                     <i class="ti ti-x"></i>
                 </button>
             </header>
-            <div class="max-h-[min(520px,calc(100vh-90px))] overflow-y-auto p-3">
+            <div class="max-h-[min(520px,calc(100vh-90px))] overflow-y-auto blox-scroll p-3">
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-2">
                         <span class="text-xs font-medium text-gray-600" x-text="designText.siteColors"></span>
