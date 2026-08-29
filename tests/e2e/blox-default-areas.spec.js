@@ -413,3 +413,29 @@ test('area preset gallery wireframes fit the viewport @ci', async ({ page }) => 
   expect(overflow, 'templates gallery must not overflow horizontally').toBeLessThanOrEqual(0);
   expect(consoleEntries, 'templates gallery must not log browser errors').toEqual([]);
 });
+
+test('multilingual area manager exposes inheritance without horizontal overflow @ci', async ({ page }) => {
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
+  const consoleEntries = observeConsole(page);
+  try {
+    await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
+    for (const template of AREA_TEMPLATES) await installAndPublish(page, template);
+
+    await page.goto('/admin/blox_templates.php?type=header&area_lang=en#blox-language-areas', { waitUntil: 'domcontentloaded' });
+    const panel = page.getByTestId('blox-language-areas');
+    await expect(panel).toBeVisible();
+    await expect(page.getByTestId('blox-language-tab-zh-CN')).toBeVisible();
+    await expect(page.getByTestId('blox-language-tab-en')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('blox-language-tab-ja')).toBeVisible();
+    await expect(page.getByTestId('blox-language-area-header')).toBeVisible();
+    await expect(page.getByTestId('blox-language-copy-default')).toBeVisible();
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, 'multilingual area manager must fit the viewport').toBeLessThanOrEqual(0);
+    expect(consoleEntries, 'multilingual area manager must not log browser errors').toEqual([]);
+  } finally {
+    await unpublishAreas(page);
+  }
+});

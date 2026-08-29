@@ -52,6 +52,9 @@ if (isset($_GET['area_enabled'])) {
         ? __('blox_custom_header_enabled_notice')
         : __('blox_custom_header_disabled_notice');
 }
+if (isset($_GET['language_inherited'])) {
+    $notice = __('blox_language_area_restore_done');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -84,6 +87,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$tableReady) {
             throw new RuntimeException(__('blox_tpl_table_missing'));
+        }
+
+        if ($action === 'create_area_language_draft') {
+            $area = strtolower(trim((string) post('area', '')));
+            $language = trim((string) post('language', ''));
+            $languages = enabledLanguages();
+            if ($language === siteLang()) {
+                throw new RuntimeException(__('blox_invalid_action'));
+            }
+            $result = BloxAreaLanguageManager::createLanguageDraft(
+                max(0, (int) post('source_id', 0)),
+                $area,
+                $language,
+                $languages,
+                (int) ($_SESSION['admin_id'] ?? 0)
+            );
+            adminLog(
+                'blox_template',
+                'create_area_language_draft',
+                ($result['reused'] ? '继续编辑' : '创建') . ' Blox ' . $area . ' 语言草稿 #' . $result['id'] . ' [' . $language . ']'
+            );
+            redirect('/admin/blox_editor.php?template=' . $result['id']);
+        }
+
+        if ($action === 'restore_area_language_inheritance') {
+            $area = strtolower(trim((string) post('area', '')));
+            $language = trim((string) post('language', ''));
+            $languages = enabledLanguages();
+            if ($language === siteLang()) {
+                throw new RuntimeException(__('blox_invalid_action'));
+            }
+            $ids = BloxAreaLanguageManager::restoreInheritance($area, $language, $languages);
+            adminLog(
+                'blox_template',
+                'restore_area_language_inheritance',
+                '恢复 Blox ' . $area . ' 语言继承 [' . $language . '] #' . implode(',', $ids)
+            );
+            redirect('/admin/blox_templates.php?type=' . $area . '&area_lang=' . rawurlencode($language) . '&language_inherited=1#blox-language-areas');
         }
 
         if ($action === 'save_metadata') {
@@ -431,6 +472,29 @@ $publishedAreaTemplates = [
     'header' => $tableReady ? bloxTemplateModel()->publishedAreaTemplates('header') : [],
     'footer' => $tableReady ? bloxTemplateModel()->publishedAreaTemplates('footer') : [],
 ];
+$availableLanguageLabels = availableLanguages();
+$areaManagementLanguages = [
+    $siteLanguage => ($availableLanguageLabels[$siteLanguage] ?? $conditionLanguages[$siteLanguage] ?? $siteLanguage),
+] + $conditionLanguages;
+$languageAreaRows = BloxAreaLanguageManager::overview(
+    $areaManagementLanguages,
+    $siteLanguage,
+    $publishedAreaTemplates,
+    $allStoredTemplates,
+    $customAreaEnabled
+);
+$selectedAreaLanguage = trim((string) get('area_lang', $siteLanguage));
+$selectedLanguageAreaRow = $languageAreaRows[0] ?? null;
+$defaultLanguageAreaRow = $selectedLanguageAreaRow;
+foreach ($languageAreaRows as $languageAreaRow) {
+    if ($languageAreaRow['code'] === $selectedAreaLanguage) {
+        $selectedLanguageAreaRow = $languageAreaRow;
+    }
+    if (!empty($languageAreaRow['is_default'])) {
+        $defaultLanguageAreaRow = $languageAreaRow;
+    }
+}
+$selectedAreaLanguage = (string) ($selectedLanguageAreaRow['code'] ?? $siteLanguage);
 $currentAreas = [];
 foreach (['header', 'footer'] as $areaType) {
     $publishedCandidates = $publishedAreaTemplates[$areaType];
@@ -678,6 +742,17 @@ function confirmAreaPublish(form) {
 
     <?php if (in_array($filterType, ['all', 'header', 'footer'], true)):
         $overviewTypes = in_array($filterType, ['header', 'footer'], true) ? [$filterType] : ['header', 'footer'];
+        $GLOBALS['bloxLanguageAreaView'] = [
+            'rows' => $languageAreaRows,
+            'selected_row' => $selectedLanguageAreaRow,
+            'default_row' => $defaultLanguageAreaRow,
+            'selected_language' => $selectedAreaLanguage,
+            'types' => $overviewTypes,
+            'filter_type' => $filterType,
+            'current_theme' => $currentTheme,
+        ];
+        require ROOT_PATH . '/admin/blox_templates/partials/language-areas.php';
+        unset($GLOBALS['bloxLanguageAreaView']);
     ?>
     <section data-testid="blox-current-areas">
         <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
@@ -697,7 +772,7 @@ function confirmAreaPublish(form) {
                 </select>
             </form>
         </div>
-        <div class="grid gap-3 md:grid-cols-2">
+        <div class="grid gap-3 <?php echo count($overviewTypes) > 1 ? 'md:grid-cols-2' : 'grid-cols-1'; ?>">
             <?php foreach ($overviewTypes as $areaType):
                 $area = $currentAreas[$areaType];
                 $resolved = $area['resolved'];
