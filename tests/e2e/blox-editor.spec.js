@@ -2153,6 +2153,11 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   const presetFrame = previewDialog.getByTestId('blox-header-preset-preview-frame');
   await expect(presetFrame).toHaveAttribute('src', /header_preset=clean-site-header/);
   await expect(presetFrame.contentFrame().locator('#siteHeader')).toBeVisible();
+  await expect(previewDialog.getByTestId('blox-header-preset-difference')).toBeVisible();
+  await previewDialog.getByTestId('blox-header-preset-preview-next').click();
+  await expect(presetFrame).toHaveAttribute('src', /header_preset=full-width-site-header/);
+  await previewDialog.getByTestId('blox-header-preset-preview-previous').click();
+  await expect(presetFrame).toHaveAttribute('src', /header_preset=clean-site-header/);
   const previewViewport = previewDialog.getByTestId('blox-header-preset-preview-viewport');
   await previewDialog.getByTestId('blox-header-preset-preview-mobile').click();
   await expect(previewViewport).toHaveAttribute('data-device', 'mobile');

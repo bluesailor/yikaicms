@@ -839,6 +839,10 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-header-preset-preview-mobile"',
             ':data-testid="\'blox-header-preset-preview-state-\' + state"',
             'data-testid="blox-header-preset-preview-drawer"',
+            'data-testid="blox-header-preset-preview-previous"',
+            'data-testid="blox-header-preset-preview-next"',
+            'data-testid="blox-header-preset-difference"',
+            'data-testid="blox-header-preset-warnings"',
             'data-testid="blox-header-preset-preview-close"',
             'data-testid="blox-header-preset-preview-apply"',
             ':data-current="isCurrentHeaderPreset(preset) ? \'true\' : \'false\'"',
@@ -848,6 +852,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         $this->assertStringNotContainsString('data-testid="blox-header-preset-detail"', $overlays);
         $this->assertStringNotContainsString("preset && preset.preview === 'corporate'", $overlays);
+        foreach (['selectAdjacentHeaderPreset(offset)', 'headerPresetComparison(preset)', 'headerPresetWarnings(preset)', 'headerPresetSiteData:'] as $token) {
+            $this->assertStringContainsString($token, $editor, "header preset comparison token {$token} missing");
+        }
         $this->assertStringContainsString("\$body = \$templateArea === 'header'", $preview);
         $this->assertStringContainsString('? $editableArea', $preview);
         $this->assertStringContainsString("if (\$templateArea === 'footer')", $preview);
