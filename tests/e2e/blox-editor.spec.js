@@ -1974,9 +1974,17 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(headerPresets.getByTestId('blox-header-preset-preview')).toHaveCount(6);
   const corporatePreset = headerPresets.getByTestId('blox-header-preset-corporate-site-header');
   const corporateName = await corporatePreset.locator('h3').innerText();
-  await corporatePreset.getByTestId('blox-header-preset-preview').click();
+  const corporatePreviewButton = corporatePreset.getByTestId('blox-header-preset-preview');
+  await corporatePreviewButton.click();
   await expect(corporatePreset).toHaveAttribute('data-selected', 'true');
-  await expect(headerPresets.getByTestId('blox-header-preset-detail')).toContainText(corporateName);
+  const presetPreview = page.getByTestId('blox-header-preset-preview-dialog');
+  await expect(presetPreview).toBeVisible();
+  await expect(presetPreview).toContainText(corporateName);
+  await expect(presetPreview.getByTestId('blox-header-preset-preview-close')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(presetPreview).toBeHidden();
+  await expect(headerPresets).toBeVisible();
+  await expect(corporatePreviewButton).toBeFocused();
   const initialCount = await countSections(page);
   const searchPreset = headerPresets.getByTestId('blox-header-preset-search-site-header');
   await searchPreset.getByTestId('blox-header-preset-apply').click();
@@ -2108,9 +2116,20 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   await expect(dialog.locator('[data-testid^="blox-header-preset-"][data-selected]')).toHaveCount(6);
   await expect(dialog.locator('[data-testid^="blox-header-preset-"][data-selected]').first().locator('span').filter({ hasText: /内容宽度|全宽|居中品牌|顶栏|站内搜索/ }).first()).toBeVisible();
 
-  const detail = dialog.getByTestId('blox-header-preset-detail');
-  if (testInfo.project.name === 'desktop-1440') await expect(detail).toBeVisible();
-  else await expect(detail).toBeHidden();
+  const firstPreviewButton = dialog.getByTestId('blox-header-preset-preview').first();
+  await firstPreviewButton.click();
+  const previewDialog = page.getByTestId('blox-header-preset-preview-dialog');
+  await expect(previewDialog).toBeVisible();
+  const previewPanel = previewDialog.getByTestId('blox-header-preset-preview-panel');
+  const previewBox = await previewPanel.boundingBox();
+  expect(previewBox.x).toBeGreaterThanOrEqual(0);
+  expect(previewBox.y).toBeGreaterThanOrEqual(0);
+  expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(viewport.width);
+  expect(previewBox.y + previewBox.height).toBeLessThanOrEqual(viewport.height);
+  await previewDialog.getByTestId('blox-header-preset-preview-close').click();
+  await expect(previewDialog).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await expect(firstPreviewButton).toBeFocused();
 });
 
 test('shared color picker adapts across viewports @ci', async ({ page }) => {
