@@ -78,6 +78,38 @@ function permLabel(string $key): string
     return isset($mod[$key]) ? __($mod[$key]) : $key;
 }
 
+/** Blox 权限用途说明；角色授权界面只为这组高影响能力显示详细描述。 */
+function permDescription(string $key): string
+{
+    $descriptions = [
+        'blox_edit' => 'perm_blox_edit_desc',
+        'blox_home' => 'perm_blox_home_desc',
+        'blox_global' => 'perm_blox_global_desc',
+        'blox_code' => 'perm_blox_code_desc',
+    ];
+    return isset($descriptions[$key]) ? __($descriptions[$key]) : '';
+}
+
+/**
+ * 返回权限组合错误；null 表示组合有效。
+ *
+ * @param list<string> $permissions
+ */
+function permissionSetError(array $permissions): ?string
+{
+    if (in_array('*', $permissions, true)) {
+        return null;
+    }
+    if (in_array('blox_edit', $permissions, true) && !in_array('edit_page', $permissions, true)) {
+        return __('role_blox_edit_requires_page');
+    }
+    if (in_array('blox_code', $permissions, true)
+        && array_intersect(['blox_edit', 'blox_home', 'blox_global'], $permissions) === []) {
+        return __('role_blox_code_requires_scope');
+    }
+    return null;
+}
+
 /** 是否拥有任一内容类型的编辑或删除权限（超管恒真） */
 function hasAnyContentPerm(): bool
 {

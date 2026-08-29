@@ -7,6 +7,8 @@ namespace Yikai\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
+require_once ROOT_PATH . '/includes/permissions.php';
+
 final class BloxRolePermissionContractTest extends TestCase
 {
     public function testPermissionCatalogExposesFourBloxCapabilities(): void
@@ -17,6 +19,21 @@ final class BloxRolePermissionContractTest extends TestCase
         self::assertStringContainsString("return ['blox_edit', 'blox_home', 'blox_global', 'blox_code'];", $permissions);
         self::assertStringContainsString("'blox'     => ['label' => __('perm_group_blox')", $permissions);
         self::assertStringContainsString('$permCatalog = permissionCatalog();', $role);
+    }
+
+    public function testInvalidBloxPermissionCombinationsAreRejected(): void
+    {
+        self::assertSame(__('role_blox_edit_requires_page'), \permissionSetError(['blox_edit']));
+        self::assertSame(__('role_blox_code_requires_scope'), \permissionSetError(['blox_code']));
+        self::assertNull(\permissionSetError(['edit_page', 'blox_edit']));
+        self::assertNull(\permissionSetError(['blox_home', 'blox_code']));
+        self::assertNull(\permissionSetError(['*']));
+
+        $role = $this->source('admin/role.php');
+        self::assertStringContainsString('$permissionError = permissionSetError($permissions);', $role);
+        self::assertStringContainsString('data-permission-group="<?php echo e($groupKey); ?>"', $role);
+        self::assertStringContainsString('updateBloxPermissionState()', $role);
+        self::assertStringContainsString("checkbox.dataset.perm === 'blox_edit'", $role);
     }
 
     public function testEntryPointsEnforceScenarioSpecificCapabilities(): void
