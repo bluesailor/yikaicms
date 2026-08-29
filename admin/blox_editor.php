@@ -85,6 +85,7 @@ $templateStoredDraft = '';
 $publishedDocumentSource = '[]';
 $areaCtxOptions = []; // 头尾模板的首页预览入口，仅 header/footer 模板非空
 $areaCtxOptionGroups = []; // 其余单页/栏目按语言分组，避免多语言站点混排
+$initialPreviewContext = 'home';
 $areaCtxLanguages = []; // 每个预览上下文对应的前台语言，画布导航与站点资料据此渲染
 $areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $areaEditorLanguage = '';
@@ -285,6 +286,10 @@ if ($isHomeBlox) {
                 ];
             }
             $areaCtxOptionGroups = $orderedContextGroups;
+        }
+        $requestedPreviewContext = trim((string) get('preview_context', ''));
+        if ($requestedPreviewContext !== '' && isset($areaCtxLanguages[$requestedPreviewContext])) {
+            $initialPreviewContext = $requestedPreviewContext;
         }
     } else {
         // section/page 模板：纯段落预览，借沙盒页通道
@@ -1064,7 +1069,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             csrf: "<?php echo csrfToken(); ?>",
             endpoint: "<?php echo $saveEndpoint; ?>",
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
-            previewContext: "home",
+            previewContext: <?php echo json_encode($initialPreviewContext, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             areaLanguage: <?php echo json_encode($areaEditorLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             previewContextLanguages: <?php echo json_encode($areaCtxLanguages, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctxHit: null,

@@ -461,3 +461,73 @@ test('multilingual area manager exposes inheritance without horizontal overflow 
     await unpublishAreas(page);
   }
 });
+
+test('assignment matrix copies a page-specific design and restores inheritance @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'one mutating assignment lifecycle is sufficient');
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
+  const consoleEntries = observeConsole(page);
+  let dedicatedId = 0;
+  try {
+    await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
+    await installAndPublish(page, AREA_TEMPLATES[0]);
+
+    const fixtures = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+    const contextKey = `page:${fixtures.process_page}`;
+    await page.goto(`/admin/blox_templates.php?type=header&context=${encodeURIComponent(contextKey)}#blox-assignment-matrix`, {
+      waitUntil: 'domcontentloaded',
+    });
+    let row = page.locator(`[data-testid="blox-assignment-row"][data-context="${contextKey}"]`);
+    let headerCell = row.locator('td[data-area="header"]');
+    await expect(headerCell.getByTestId('blox-assignment-copy-dedicated')).toBeVisible();
+    await submit(page, headerCell.locator('form:has(input[name="action"][value="create_area_assignment_draft"])'));
+    await expect(page).toHaveURL(/blox_editor\.php\?template=\d+&area_lang=.*preview_context=page%3A/);
+    dedicatedId = Number(new URL(page.url()).searchParams.get('template'));
+    expect(dedicatedId).toBeGreaterThan(0);
+    await expect(page.getByTestId('blox-ctx-select')).toHaveValue(contextKey);
+
+    page.on('dialog', async (dialog) => dialog.accept());
+    const publishResults = [];
+    page.on('response', async (response) => {
+      const body = new URLSearchParams(response.request().postData() || '');
+      if (new URL(response.url()).pathname === '/admin/blox_template_api.php'
+        && body.get('action') === 'publish') {
+        publishResults.push(await response.json());
+      }
+    });
+    await page.getByTestId('blox-publish-template').click();
+    await expect.poll(() => publishResults.length).toBe(2);
+    expect(publishResults[0].code).toBe(409);
+    expect(publishResults[1].code).toBe(0);
+
+    await page.goto(`/admin/blox_templates.php?type=header&context=${encodeURIComponent(contextKey)}#blox-assignment-matrix`, {
+      waitUntil: 'domcontentloaded',
+    });
+    row = page.locator(`[data-testid="blox-assignment-row"][data-context="${contextKey}"]`);
+    headerCell = row.locator('td[data-area="header"]');
+    await expect(headerCell.getByTestId('blox-assignment-restore-inherit')).toBeVisible();
+    await row.screenshot({ path: testInfo.outputPath('blox-assignment-dedicated.png') });
+    await submit(page, headerCell.locator('form:has(input[name="action"][value="restore_area_assignment_inheritance"])'));
+    await expect(page.getByText(/已恢复继承|Inheritance restored|継承へ戻しました/)).toBeVisible();
+    await expect(
+      page.locator(`[data-testid="blox-assignment-row"][data-context="${contextKey}"] td[data-area="header"]`)
+        .getByTestId('blox-assignment-continue-draft'),
+    ).toBeVisible();
+    expect(consoleEntries, 'dedicated assignment lifecycle must keep the console clean').toEqual([]);
+  } finally {
+    if (dedicatedId > 0) {
+      await page.goto('/admin/blox_templates.php?type=header', { waitUntil: 'domcontentloaded' });
+      await page.evaluate(async (id) => {
+        const body = new FormData();
+        body.set('action', 'delete');
+        body.set('id', String(id));
+        await fetch('/admin/blox_templates.php', {
+          method: 'POST',
+          body,
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+      }, dedicatedId);
+    }
+    await unpublishAreas(page);
+  }
+});

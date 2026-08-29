@@ -44,6 +44,7 @@ require_once __DIR__ . '/BloxRemoteTemplateProvider.php';
 require_once __DIR__ . '/BloxRemoteTemplateInstaller.php';
 require_once __DIR__ . '/BloxTemplateCatalog.php';
 require_once __DIR__ . '/BloxAreaResolver.php';
+require_once __DIR__ . '/BloxAreaAssignmentManager.php';
 require_once __DIR__ . '/BloxAreaAssignmentMatrix.php';
 require_once __DIR__ . '/BloxAreaLanguageManager.php';
 require_once __DIR__ . '/BloxAreaEditorTarget.php';

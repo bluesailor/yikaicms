@@ -55,6 +55,9 @@ if (isset($_GET['area_enabled'])) {
 if (isset($_GET['language_inherited'])) {
     $notice = __('blox_language_area_restore_done');
 }
+if (isset($_GET['assignment_inherited'])) {
+    $notice = __('blox_assignment_restore_done');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -125,6 +128,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 '恢复 Blox ' . $area . ' 语言继承 [' . $language . '] #' . implode(',', $ids)
             );
             redirect('/admin/blox_templates.php?type=' . $area . '&area_lang=' . rawurlencode($language) . '&language_inherited=1#blox-language-areas');
+        }
+
+        if ($action === 'create_area_assignment_draft') {
+            $area = strtolower(trim((string) post('area', '')));
+            $contextKey = trim((string) post('context', ''));
+            $target = BloxAreaAssignmentManager::contextFromKey(
+                $contextKey,
+                BloxAreaConditions::entityOptions(),
+                siteLang()
+            );
+            $result = BloxAreaAssignmentManager::createDedicatedDraft(
+                max(0, (int) post('source_id', 0)),
+                $area,
+                $target['context'],
+                $target['label'],
+                (int) ($_SESSION['admin_id'] ?? 0)
+            );
+            adminLog(
+                'blox_template',
+                'create_area_assignment_draft',
+                ($result['reused'] ? 'Reuse' : 'Create') . ' dedicated Blox ' . $area
+                    . ' draft #' . $result['id'] . ' [' . $target['key'] . ']'
+            );
+            redirect('/admin/blox_editor.php?template=' . $result['id']
+                . '&area_lang=' . rawurlencode((string) $target['context']['lang'])
+                . '&preview_context=' . rawurlencode($target['key']));
+        }
+
+        if ($action === 'restore_area_assignment_inheritance') {
+            $area = strtolower(trim((string) post('area', '')));
+            $contextKey = trim((string) post('context', ''));
+            $target = BloxAreaAssignmentManager::contextFromKey(
+                $contextKey,
+                BloxAreaConditions::entityOptions(),
+                siteLang()
+            );
+            $ids = BloxAreaAssignmentManager::restoreInheritance($area, $target['context']);
+            adminLog(
+                'blox_template',
+                'restore_area_assignment_inheritance',
+                'Restore Blox ' . $area . ' inheritance [' . $target['key'] . '] #'
+                    . implode(',', $ids)
+            );
+            redirect('/admin/blox_templates.php?type=' . $area
+                . '&context=' . rawurlencode($target['key'])
+                . '&assignment_inherited=1#blox-assignment-matrix');
         }
 
         if ($action === 'save_metadata') {
@@ -934,8 +983,19 @@ function confirmAreaPublish(form) {
                                 $assignment = $assignmentRow['areas'][$areaType];
                                 $matchedTemplate = $assignment['template'];
                                 $matchExplanation = is_array($assignment['match'] ?? null) ? $assignment['match'] : null;
+                                $dedicatedTemplates = is_array($assignment['dedicated'] ?? null) ? $assignment['dedicated'] : [];
+                                $canManageDedicated = str_starts_with((string) $assignmentRow['key'], 'channel:')
+                                    || str_starts_with((string) $assignmentRow['key'], 'page:');
+                                $dedicatedDrafts = $canManageDedicated ? array_values(array_filter(
+                                    BloxAreaAssignmentManager::dedicatedTemplates(
+                                        $allStoredTemplates,
+                                        $areaType,
+                                        is_array($assignmentRow['context'] ?? null) ? $assignmentRow['context'] : []
+                                    ),
+                                    static fn (array $template): bool => (int) ($template['status'] ?? 0) !== 1
+                                )) : [];
                             ?>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3" data-area="<?php echo e($areaType); ?>">
                                 <?php if (!$assignment['enabled']): ?>
                                 <span class="inline-flex items-center gap-1 text-amber-700" data-testid="blox-assignment-disabled">
                                     <i class="ti ti-player-pause"></i><?php echo e(__('blox_assignment_matrix_disabled')); ?>
@@ -954,6 +1014,36 @@ function confirmAreaPublish(form) {
                                     <span class="text-blue-600"> · <?php echo e(__('blox_assignment_source_language')); ?></span>
                                     <?php endif; ?>
                                 </p>
+                                <?php endif; ?>
+                                <?php if ($canManageDedicated && count($dedicatedTemplates) > 1): ?>
+                                <p class="mt-1 text-[10px] leading-4 text-amber-700" data-testid="blox-assignment-conflict">
+                                    <i class="ti ti-alert-triangle mr-0.5"></i><?php echo e(__('blox_assignment_conflict_count', ['count' => count($dedicatedTemplates)])); ?>
+                                </p>
+                                <?php endif; ?>
+                                <?php if ($canManageDedicated && $dedicatedTemplates === []): ?>
+                                <form method="post" class="mt-2">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="create_area_assignment_draft">
+                                    <input type="hidden" name="area" value="<?php echo e($areaType); ?>">
+                                    <input type="hidden" name="context" value="<?php echo e((string) $assignmentRow['key']); ?>">
+                                    <input type="hidden" name="source_id" value="<?php echo (int) ($matchedTemplate['id'] ?? 0); ?>">
+                                    <button type="submit" class="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:opacity-75"
+                                            data-testid="<?php echo $dedicatedDrafts !== [] ? 'blox-assignment-continue-draft' : 'blox-assignment-copy-dedicated'; ?>">
+                                        <i class="ti <?php echo $dedicatedDrafts !== [] ? 'ti-edit' : 'ti-copy-plus'; ?>"></i>
+                                        <?php echo e(__($dedicatedDrafts !== [] ? 'blox_assignment_continue_draft' : 'blox_assignment_copy_dedicated')); ?>
+                                    </button>
+                                </form>
+                                <?php elseif ($canManageDedicated): ?>
+                                <form method="post" class="mt-2" onsubmit="return confirm(<?php echo e(json_encode(__('blox_assignment_restore_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="restore_area_assignment_inheritance">
+                                    <input type="hidden" name="area" value="<?php echo e($areaType); ?>">
+                                    <input type="hidden" name="context" value="<?php echo e((string) $assignmentRow['key']); ?>">
+                                    <button type="submit" class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-red-600"
+                                            data-testid="blox-assignment-restore-inherit">
+                                        <i class="ti ti-arrow-back-up"></i><?php echo e(__('blox_assignment_restore')); ?>
+                                    </button>
+                                </form>
                                 <?php endif; ?>
                                 <?php else: ?>
                                 <span class="inline-flex items-center gap-1 text-gray-500" data-testid="blox-assignment-theme">

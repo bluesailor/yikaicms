@@ -9,7 +9,7 @@ final class BloxAreaAssignmentMatrix
      * @param list<array{key:string,label:string,context:array{home?:bool,channel_id?:int,page_id?:int,lang?:string}}> $contexts
      * @param array{header?:list<array<string,mixed>>,footer?:list<array<string,mixed>>} $templatesByType
      * @param array{header?:bool,footer?:bool} $enabledByType
-     * @return list<array{key:string,label:string,lang:string,context:array<string,mixed>,areas:array<string,array{enabled:bool,template:?array,match:?array}>}>
+     * @return list<array{key:string,label:string,lang:string,context:array<string,mixed>,areas:array<string,array{enabled:bool,template:?array,match:?array,dedicated:list<array<string,mixed>>}>}>
      */
     public static function build(array $contexts, array $templatesByType, array $enabledByType): array
     {
@@ -23,10 +23,14 @@ final class BloxAreaAssignmentMatrix
                     ? $templatesByType[$areaType]
                     : [];
                 $resolved = $enabled ? BloxAreaResolver::resolve($templates, $context) : null;
+                $dedicated = $enabled
+                    ? BloxAreaAssignmentManager::dedicatedTemplates($templates, $areaType, $context)
+                    : [];
                 $areas[$areaType] = [
                     'enabled' => $enabled,
                     'template' => $resolved,
                     'match' => $resolved === null ? null : BloxAreaResolver::explain($resolved, $context),
+                    'dedicated' => $dedicated,
                 ];
             }
             $rows[] = [
