@@ -647,7 +647,7 @@ declare(strict_types=1);
                                 </p>
                             </div>
                         </div>
-                        <div x-show="preset && headerPresetWarnings(preset).length" class="mt-4 border-l-2 border-amber-400 bg-amber-50 px-3 py-2"
+                        <div x-show="preset && headerPresetWarnings(preset).length" class="mt-4 border border-amber-200 bg-amber-50 px-3 py-2"
                              data-testid="blox-header-preset-warnings" role="status">
                             <template x-for="warning in (preset ? headerPresetWarnings(preset) : [])" :key="warning">
                                 <p class="text-xs leading-5 text-amber-800"><i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i><span x-text="warning"></span></p>
