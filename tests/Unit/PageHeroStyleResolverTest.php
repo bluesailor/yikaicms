@@ -21,6 +21,13 @@ final class PageHeroStyleResolverTest extends TestCase
         self::assertSame(['custom', '/hero.jpg'], [$custom['source'], $custom['background']]);
         self::assertSame(['cover', '/cover.jpg'], [$cover['source'], $cover['background']]);
         self::assertSame(['global', '/global.jpg'], [$global['source'], $global['background']]);
+        self::assertSame([
+            'background_color' => '',
+            'overlay_opacity' => 60,
+            'height' => 'standard',
+            'alignment' => 'center',
+            'text_tone' => 'auto',
+        ], $custom['options']);
     }
 
     public function testParentModeUsesNearestAncestorWithAnExplicitBackground(): void
@@ -42,6 +49,30 @@ final class PageHeroStyleResolverTest extends TestCase
         self::assertSame('/about.jpg', $resolved['background']);
         self::assertSame(5, $resolved['source_channel_id']);
         self::assertSame('About', $resolved['source_channel_name']);
+    }
+
+    public function testParentModeInheritsLayoutOptionsEvenWithoutAPageSpecificBackground(): void
+    {
+        $resolved = PageHeroStyleResolver::resolve([
+            'id' => 20,
+            'parent_id' => 10,
+            'lang' => 'zh-CN',
+            'hero_style_source' => 'parent',
+        ], false, static fn(int $id): ?array => $id === 10 ? [
+            'id' => 10,
+            'parent_id' => 0,
+            'name' => 'Services',
+            'lang' => 'zh-CN',
+            'hero_style_source' => 'self',
+            'hero_bg' => '',
+            'image' => '',
+            'hero_style_options' => '{"background_color":"#f8fafc","overlay_opacity":0,"height":"compact","alignment":"left","text_tone":"dark"}',
+        ] : null, '/global.jpg', '');
+
+        self::assertSame('parent', $resolved['source']);
+        self::assertSame('/global.jpg', $resolved['background']);
+        self::assertSame('compact', $resolved['options']['height']);
+        self::assertSame('#f8fafc', $resolved['options']['background_color']);
     }
 
     public function testGlobalModeIgnoresPageAndCoverBackgrounds(): void
@@ -88,5 +119,52 @@ final class PageHeroStyleResolverTest extends TestCase
 
         self::assertSame(['builtin', ''], [$self['source'], $self['background']]);
         self::assertSame(['global', '/global.jpg'], [$global['source'], $global['background']]);
+        self::assertSame('compact', $self['options']['height']);
+        self::assertSame('left', $self['options']['alignment']);
+        self::assertSame('auto', $self['options']['text_tone']);
+    }
+
+    public function testOptionsAreWhitelistedAndEncodedCanonically(): void
+    {
+        $normalized = PageHeroStyleResolver::normalizeOptions([
+            'background_color' => 'red;display:none',
+            'overlay_opacity' => 999,
+            'height' => 'fullscreen',
+            'alignment' => 'right',
+            'text_tone' => 'invisible',
+        ]);
+        $token = PageHeroStyleResolver::normalizeOptions([
+            'background_color' => 'var(--yk-color-primary-500)',
+            'overlay_opacity' => -5,
+            'height' => 'large',
+            'alignment' => 'left',
+            'text_tone' => 'light',
+        ]);
+
+        self::assertSame('', $normalized['background_color']);
+        self::assertSame(90, $normalized['overlay_opacity']);
+        self::assertSame('standard', $normalized['height']);
+        self::assertSame('center', $normalized['alignment']);
+        self::assertSame('auto', $normalized['text_tone']);
+        self::assertSame('var(--yk-color-primary-500)', $token['background_color']);
+        self::assertSame(0, $token['overlay_opacity']);
+        self::assertSame('', PageHeroStyleResolver::encodeOptions(PageHeroStyleResolver::defaultOptions()));
+        self::assertStringContainsString('"height":"large"', PageHeroStyleResolver::encodeOptions($token));
+    }
+
+    public function testGlobalModeUsesGlobalLayoutOptions(): void
+    {
+        $resolved = PageHeroStyleResolver::resolve([
+            'hero_style_source' => 'global',
+        ], false, null, '/global.jpg', [
+            'background_color' => '#0f172a',
+            'overlay_opacity' => 35,
+            'height' => 'large',
+            'alignment' => 'left',
+            'text_tone' => 'light',
+        ]);
+
+        self::assertSame('large', $resolved['options']['height']);
+        self::assertSame(35, $resolved['options']['overlay_opacity']);
     }
 }

@@ -381,6 +381,7 @@ CREATE TABLE `yikai_channels` (
   `hero_bg` varchar(500) NOT NULL DEFAULT '' COMMENT '内页横幅背景图：空=栏目图→全局默认→渐变',
   `show_hero` tinyint(1) NOT NULL DEFAULT 1 COMMENT '内页横幅（面包屑+标题）显示：1是 0否',
   `hero_style_source` varchar(20) NOT NULL DEFAULT 'self' COMMENT '页面标题区样式来源：self/parent/global',
+  `hero_style_options` longtext COMMENT '页面标题区版式参数JSON',
   `list_options` varchar(255) DEFAULT '' COMMENT '列表显示元素配置(JSON数组,空=全显示)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_slug` (`slug`),

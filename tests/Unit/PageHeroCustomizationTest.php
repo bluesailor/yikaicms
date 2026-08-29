@@ -39,6 +39,13 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('ADD COLUMN `hero_style_source`', $sourceMigration);
         $this->assertStringContainsString("`hero_style_source` varchar(20) NOT NULL DEFAULT 'self'", $mysql);
         $this->assertStringContainsString('"hero_style_source" TEXT NOT NULL DEFAULT \'self\'', $sqlite);
+
+        $optionsMigration = $this->source('migrations/20260829_channel_hero_style_options.php');
+        $this->assertStringContainsString("_columnExists('channels', 'hero_style_options')", $optionsMigration);
+        $this->assertStringContainsString('ADD COLUMN `hero_style_options`', $optionsMigration);
+        $this->assertStringContainsString('AFTER `show_hero`', $optionsMigration);
+        $this->assertStringContainsString('`hero_style_options` longtext', $mysql);
+        $this->assertStringContainsString('"hero_style_options" TEXT', $sqlite);
     }
 
     public function testThemeHeroResolvesHeroBgFirstAndHonorsToggle(): void
@@ -47,6 +54,8 @@ final class PageHeroCustomizationTest extends TestCase
             $hero = $this->source($path);
             $this->assertStringContainsString("(int) \$channel['show_hero'] === 0", $hero, $path . ' 缺 show_hero 开关');
             $this->assertStringContainsString('PageHeroStyleResolver::resolve($channel)', $hero, $path . ' 未使用统一解析器');
+            $this->assertStringContainsString("\$heroStyle['options']", $hero, $path . ' 未应用版式参数');
+            $this->assertStringContainsString("'compact' => 'py-10 md:py-12'", $hero, $path . ' 缺紧凑高度');
         }
     }
 
@@ -87,9 +96,14 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-page-hero-dialog"', $editor);
         $this->assertStringContainsString('body.set("action", "save_page_hero")', $editor);
         $this->assertStringContainsString('body.set("hero_style_source"', $editor);
+        $this->assertStringContainsString('body.set("hero_style_options"', $editor);
+        $this->assertStringContainsString('data-testid="blox-page-hero-style-preview"', $editor);
+        $this->assertStringContainsString('data-testid="blox-page-hero-color-picker"', $editor);
+        $this->assertStringContainsString("applyPageHeroPreset('minimal')", $editor);
         $this->assertStringContainsString("if (\$action === 'save_page_hero')", $api);
         $this->assertStringContainsString('UrlPolicy::image($heroBgInput)', $api);
         $this->assertStringContainsString('PageHeroStyleResolver::normalizeMode($styleSourceInput)', $api);
+        $this->assertStringContainsString('PageHeroStyleResolver::encodeOptions($styleOptionsRaw', $api);
         $this->assertStringContainsString('onEditPageHero', $bridge);
         $this->assertStringNotContainsString('blocks_data', substr(
             $api,
