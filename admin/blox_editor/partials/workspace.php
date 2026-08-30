@@ -1883,7 +1883,7 @@ declare(strict_types=1);
                                                                 <span class="mt-1 text-[10px]" x-text="homeDynamicText.noImage"></span>
                                                             </div>
                                                         </template>
-                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'hero-bg' })"
+                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'cta', source: 'official' })"
                                                                 data-testid="blox-cta-background-media"
                                                                 class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-blue-600 text-white text-xs inline-flex items-center justify-center gap-1.5 transition">
                                                             <i class="ti ti-photo-edit text-sm"></i><span x-text="homeDynamicText.replaceImage"></span>
