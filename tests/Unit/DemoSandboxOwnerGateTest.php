@@ -42,7 +42,7 @@ final class DemoSandboxOwnerGateTest extends TestCase
     /**
      * 空口令必须在查库之前就被拒绝。
      *
-     * 「口令不为空但不正确」那条路径要读 settings 表拿 cron_token，单测环境没有库，
+     * 「口令不为空但不正确」那条路径要读 settings 表拿 demo_owner_token，单测环境没有库，
      * 所以不在这里断言；它由 setting_demo.php 的端到端验证覆盖（不带口令 / 错口令 /
      * 对口令三种情况，以及演示模式已开启时能否被关掉）。
      */
@@ -99,15 +99,18 @@ final class DemoSandboxOwnerGateTest extends TestCase
         self::assertNotFalse($source);
 
         self::assertStringContainsString(
-            "\$ownerTokenConfigured = trim((string) settingModel()->get('cron_token', '')) !== '';",
+            "\$ownerTokenConfigured = trim((string) settingModel()->get('demo_owner_token', '')) !== '';",
             $source,
             '必须先判断口令是否已配置。'
         );
         self::assertStringContainsString(
-            "\$issuedToken = \$ownerTokenConfigured ? '' : Cron::token();",
+            "\$issuedToken = !\$ownerTokenConfigured && \$mayIssueOwnerToken ? DemoSandbox::ownerToken() : '';",
             $source,
             '只有在尚未配置时才允许签发并显示口令。'
         );
+        self::assertStringContainsString('$mayIssueOwnerToken = $currentMode === DemoSandbox::MODE_OFF', $source);
+        self::assertStringContainsString("!(defined('DEMO_MODE') && DEMO_MODE)", $source);
+        self::assertStringContainsString("!(defined('DEMO_SANDBOX') && DEMO_SANDBOX)", $source);
         self::assertStringNotContainsString(
             'e(Cron::token())',
             $source,

@@ -417,7 +417,7 @@ document.getElementById('uo-upgrade').onclick = async () => {
         rbBtn.className = 'mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium';
         rbBtn.innerHTML = '<i class="ti ti-arrow-back-up mr-1"></i>一键回滚到升级前';
         rbBtn.onclick = async () => {
-            if (!confirm('确认回滚到升级前的文件状态？（数据库未动过，无需恢复）')) return;
+            if (!confirm(<?php echo json_encode(__('upgrade_rollback_database_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>)) return;
             rbBtn.disabled = true; rbBtn.classList.add('opacity-50');
             const rbRow = UO.row('正在回滚…', 'run');
             const rb = await UO.post('apply_rollback', { backup: fin.backup || '' });

@@ -882,6 +882,17 @@ function upgrade_rollback(string $backup): array
     if (!is_array($rb)) return ['code' => 1, 'msg' => '找不到回滚清单（rollback.json），无法自动回滚，请用主机备份恢复'];
     if (!is_dir($filesDir)) return ['code' => 1, 'msg' => '找不到文件快照目录，无法自动回滚，请用主机备份恢复'];
 
+    // Restore the matching database before replacing executable files. Keep all
+    // recovery evidence on failure; old code with a new schema is not a rollback.
+    require_once __DIR__ . '/UpgradeDatabaseRollback.php';
+    $database = UpgradeDatabaseRollback::restore($bakDir);
+    if ($database['errors'] !== []) {
+        return [
+            'code' => 2, 'msg' => 'Database rollback failed; file restore was not started.',
+            'database' => $database, 'errors' => $database['errors'],
+        ];
+    }
+
     // state 仍在时与清单取并集。正常路径会先写清单再创建文件；这里再合一次，
     // 兼容旧事务和清单最后一次刷新后进程异常退出的情况。
     try {
@@ -938,6 +949,7 @@ function upgrade_rollback(string $backup): array
         'msg' => "回滚完成：恢复 {$restored} 个文件，移除新建 {$removed} 个"
             . (empty($errors) ? '' : ('，' . count($errors) . ' 个失败：' . implode('; ', array_slice($errors, 0, 10)))),
         'restored' => $restored,
+        'database' => $database,
         'removed' => $removed,
         'errors' => array_slice($errors, 0, 20),
         'health' => $health,

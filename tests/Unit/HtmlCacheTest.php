@@ -61,6 +61,34 @@ final class HtmlCacheTest extends TestCase
         return $this->tmpDir;
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testBothSettingEventHooksKeepRuntimeCacheButInvalidateContent(): void
+    {
+        $dir = $this->makeCacheDir();
+        $checked = 0;
+        foreach (['data_changed', 'setting_saved'] as $hook) {
+            foreach ($GLOBALS['ik_actions'][$hook] ?? [] as $callbacks) {
+                foreach ($callbacks as $callback) {
+                    if (!$callback instanceof \Closure) continue;
+                    $source = (new \ReflectionFunction($callback))->getFileName();
+                    if ($source !== realpath(ROOT_PATH . '/includes/HtmlCache.php')) continue;
+                    file_put_contents($dir . '/page.html', 'cached');
+                    $runtime = ['sched_sweep_at' => '123'];
+                    $content = ['site_name' => 'new'];
+                    $hook === 'data_changed' ? $callback('settings', 0, $runtime) : $callback($runtime);
+                    self::assertFileExists($dir . '/page.html');
+                    $hook === 'data_changed' ? $callback('settings', 0, $content) : $callback($content);
+                    self::assertFileDoesNotExist($dir . '/page.html');
+                    $checked++;
+                }
+            }
+        }
+        self::assertSame(2, $checked);
+    }
+
     // ---- isCacheable：查询参数白名单 ----
 
     public function testPlainGetIsCacheable(): void

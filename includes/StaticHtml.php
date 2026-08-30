@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 if (!defined('ROOT_PATH')) exit('Access Denied');
 
+require_once ROOT_PATH . '/includes/StaticHtmlUrlPolicy.php';
+
 final class StaticHtml
 {
     /**
@@ -42,6 +44,13 @@ final class StaticHtml
     public static function enabled(): bool
     {
         return (string) config('static_html_enabled', '0') === '1';
+    }
+
+    public static function baseUrl(?string $candidate = null): string
+    {
+        // Never trust HTTP_HOST as an outbound-request authority. SITE_URL is operator-owned.
+        $site = defined('SITE_URL') && SITE_URL !== '' ? (string) SITE_URL : (string) config('site_url', '');
+        return StaticHtmlUrlPolicy::baseUrl($candidate ?? (string) config('static_html_base_url', ''), $site);
     }
 
     /** 启用的语言列表（默认语言在首位） */
@@ -146,6 +155,7 @@ final class StaticHtml
      */
     public static function generateBatch(array $items, string $baseUrl): array
     {
+        $baseUrl = self::baseUrl($baseUrl);
         $ok = 0; $skip = 0; $fail = 0; $extra = 0; $failed = [];
 
         foreach ($items as $item) {
@@ -215,6 +225,11 @@ final class StaticHtml
      */
     public static function crawl(string $url): array
     {
+        try {
+            if (!StaticHtmlUrlPolicy::allowsRequest($url, self::baseUrl())) return [0, null];
+        } catch (InvalidArgumentException) {
+            return [0, null];
+        }
         if (!function_exists('curl_init')) return [0, null];
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -222,8 +237,9 @@ final class StaticHtml
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_HTTPHEADER     => ['X-Static-Gen: 1'],
             CURLOPT_USERAGENT      => 'YikaiCMS-StaticGen',
         ]);
@@ -323,14 +339,16 @@ final class StaticHtml
 // ============================================================
 // 失效钩子：内容/产品/设置变更后清空静态文件，回落到实时 PHP
 // ============================================================
-add_action('data_changed', function (string $table = '', $id = null): void {
+add_action('data_changed', function (string $table = '', $id = null, array $settings = []): void {
     // 即使静态生成已关闭，也要清掉历史遗留文件；Web 服务器仍可能直出这些文件。
     if (StaticHtml::$mute) return;
     static $skip = ['admin_logs', 'ai_logs', 'login_throttle', 'form_throttle', 'visits'];
     if (in_array($table, $skip, true)) return;
+    if ($table === 'settings' && !SettingModel::affectsPageCache($settings)) return;
     StaticHtml::clearAll();
 });
-add_action('setting_saved', function (): void {
+add_action('setting_saved', function (array $settings = []): void {
     if (StaticHtml::$mute) return;
+    if (!SettingModel::affectsPageCache($settings)) return;
     StaticHtml::clearAll();
 });
