@@ -345,6 +345,7 @@
     <!-- 体积大的外部库放在 helper 后，让 showMessage 等先就绪可被任何按钮调用 -->
     <script src="/assets/swiper/swiper-bundle.min.js"></script>
     <script src="/assets/tinymce/tinymce.min.js"></script>
+    <script src="/assets/js/official-media-client.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js'); ?>"></script>
 
     <!-- 媒体库选择弹窗 -->
     <div id="mediaPickerModal" class="fixed inset-0 hidden" style="z-index:9999">
@@ -354,11 +355,21 @@
                 <h3 class="font-bold text-gray-800"><?php echo e(__('mp_pick_title')); ?></h3>
                 <button onclick="_mpClose()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
+            <div id="mpSourceTabs" class="px-6 pt-3 flex items-center gap-1 flex-shrink-0" role="tablist" aria-label="<?php echo e(__('official_media_source_label')); ?>">
+                <button type="button" id="mpSourceLocal" onclick="_mpSetSource('local')" role="tab"
+                        class="px-3 py-1.5 rounded text-sm font-medium transition">
+                    <i class="ti ti-photo mr-1"></i><?php echo e(__('official_media_source_local')); ?>
+                </button>
+                <button type="button" id="mpSourceOfficial" onclick="_mpSetSource('official')" role="tab"
+                        class="px-3 py-1.5 rounded text-sm font-medium transition">
+                    <i class="ti ti-cloud-download mr-1"></i><?php echo e(__('official_media_source_official')); ?>
+                </button>
+            </div>
             <div class="px-6 py-3 border-b flex flex-wrap gap-3 items-center flex-shrink-0">
                 <input type="text" id="mpKeyword" class="border rounded px-3 py-1.5 text-sm w-48" placeholder="<?php echo e(__('mp_search_ph')); ?>" onkeydown="if(event.key==='Enter'){event.preventDefault();_mpLoad(1)}">
                 <button onclick="_mpLoad(1)" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm"><?php echo e(__('admin_search')); ?></button>
                 <div class="flex-1"></div>
-                <button onclick="document.getElementById('mpFileInput').click()" class="bg-primary hover:bg-secondary text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
+                <button id="mpUploadBtn" onclick="document.getElementById('mpFileInput').click()" class="bg-primary hover:bg-secondary text-white px-3 py-1.5 rounded text-sm inline-flex items-center gap-1">
                     <i class="ti ti-upload text-base"></i>
                     <?php echo e(__('mp_upload_new')); ?>
                 </button>
@@ -384,16 +395,33 @@
         var _mpSelected = null;
         var _mpType = 'image';
         var _mpPage = 1;
+        var _mpSource = 'local';
+        var _mpUsage = '';
+        var _mpImporting = '';
+        var _mpEntitlement = { canImport: false, reason: '' };
+        var _mpOfficialText = <?php echo json_encode([
+            'preview' => __('official_media_preview'),
+            'import' => __('official_media_import_use'),
+            'importing' => __('official_media_importing'),
+            'upgrade' => __('official_media_upgrade_hint'),
+            'empty' => __('official_media_empty'),
+            'failed' => __('official_media_unavailable'),
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
         window.openMediaPicker = function(callback, options) {
             options = options || {};
             _mpCallback = callback;
             _mpSelected = null;
             _mpType = options.type || 'image';
+            _mpUsage = String(options.usage || '');
+            _mpSource = 'local';
+            _mpImporting = '';
+            _mpEntitlement = { canImport: false, reason: '' };
             _mpPage = 1;
             document.getElementById('mpKeyword').value = '';
             document.getElementById('mpConfirmBtn').disabled = true;
             document.getElementById('mediaPickerModal').classList.remove('hidden');
+            _mpSyncSourceUi();
             _mpLoad(1);
         };
 
@@ -401,9 +429,40 @@
             document.getElementById('mediaPickerModal').classList.add('hidden');
             _mpCallback = null;
             _mpSelected = null;
+            _mpImporting = '';
         };
 
+        window._mpSetSource = function(source) {
+            if (source === 'official' && _mpType !== 'image') return;
+            _mpSource = source === 'official' ? 'official' : 'local';
+            _mpSelected = null;
+            _mpImporting = '';
+            document.getElementById('mpConfirmBtn').disabled = true;
+            _mpSyncSourceUi();
+            _mpLoad(1);
+        };
+
+        function _mpSyncSourceUi() {
+            var local = document.getElementById('mpSourceLocal');
+            var official = document.getElementById('mpSourceOfficial');
+            var upload = document.getElementById('mpUploadBtn');
+            var confirm = document.getElementById('mpConfirmBtn');
+            var showOfficial = _mpType === 'image';
+            document.getElementById('mpSourceTabs').classList.toggle('hidden', !showOfficial);
+            official.classList.toggle('hidden', !showOfficial);
+            local.className = 'px-3 py-1.5 rounded text-sm font-medium transition ' + (_mpSource === 'local' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100');
+            official.className = 'px-3 py-1.5 rounded text-sm font-medium transition ' + (_mpSource === 'official' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100') + (showOfficial ? '' : ' hidden');
+            local.setAttribute('aria-selected', _mpSource === 'local' ? 'true' : 'false');
+            official.setAttribute('aria-selected', _mpSource === 'official' ? 'true' : 'false');
+            upload.classList.toggle('hidden', _mpSource === 'official');
+            confirm.classList.toggle('hidden', _mpSource === 'official');
+        }
+
         window._mpLoad = async function(page) {
+            if (_mpSource === 'official') {
+                await _mpLoadOfficial(page);
+                return;
+            }
             _mpPage = page;
             var keyword = document.getElementById('mpKeyword').value.trim();
             var url = '/admin/media_api.php?action=list&type=' + encodeURIComponent(_mpType)
@@ -452,6 +511,105 @@
                 _renderPager(data.data);
             } catch (e) {
                 document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">' + <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + '</div>';
+            }
+        };
+
+        async function _mpLoadOfficial(page) {
+            _mpPage = page;
+            var keyword = document.getElementById('mpKeyword').value.trim();
+            document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">' + <?php echo json_encode(__('admin_loading'), JSON_UNESCAPED_UNICODE); ?> + '</div>';
+
+            try {
+                var result = await window.OfficialMediaClient.list('/admin/media_api.php', page, keyword, { usage: _mpUsage });
+                if (!result.ok) {
+                    document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">' + _escHtml(result.message || _mpOfficialText.failed) + '</div>';
+                    _renderPager({ page: 1, pages: 0, total: 0 });
+                    return;
+                }
+
+                _mpEntitlement = result.entitlement;
+                if (!result.items.length) {
+                    document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">' + _escHtml(_mpOfficialText.empty) + '</div>';
+                    _renderPager(result);
+                    return;
+                }
+
+                var html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+                for (var i = 0; i < result.items.length; i++) {
+                    var it = result.items[i] || {};
+                    var preview = String(it.preview_url || '');
+                    var previewLarge = String(it.preview_large_url || preview);
+                    var assetId = String(it.id || '');
+                    var name = _mpOfficialName(it);
+                    var dimensions = Number(it.width || 0) > 0 && Number(it.height || 0) > 0
+                        ? Math.round(Number(it.width)) + '×' + Math.round(Number(it.height))
+                        : '';
+                    html += '<article class="border border-gray-200 rounded-lg overflow-hidden bg-white">'
+                         + '<div class="aspect-[12/5] bg-gray-100"><img src="' + _escAttr(preview) + '" class="w-full h-full object-cover" loading="lazy" alt=""></div>'
+                         + '<div class="p-3"><div class="flex items-start gap-2"><div class="min-w-0 flex-1">'
+                         + '<div class="text-sm font-medium text-gray-800 truncate">' + _escHtml(name) + '</div>'
+                         + '<div class="mt-0.5 text-xs text-gray-400">' + _escHtml(dimensions) + '</div></div>'
+                         + '<span class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">Yikai</span></div>'
+                         + '<div class="mt-3 flex items-center gap-2">'
+                         + '<button type="button" data-preview="' + _escAttr(previewLarge) + '" onclick="_mpPreviewOfficial(this)" class="px-3 py-1.5 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">' + _escHtml(_mpOfficialText.preview) + '</button>';
+                    if (_mpEntitlement.canImport) {
+                        html += '<button type="button" data-asset-id="' + _escAttr(assetId) + '" onclick="_mpImportOfficial(this)" class="flex-1 px-3 py-1.5 rounded bg-gray-900 text-white text-xs hover:bg-black disabled:opacity-50">' + _escHtml(_mpOfficialText.import) + '</button>';
+                    } else {
+                        html += '<span class="flex-1 text-right text-xs leading-5 text-amber-700">' + _escHtml(_mpOfficialText.upgrade) + '</span>';
+                    }
+                    html += '</div></div></article>';
+                }
+                html += '</div>';
+                document.getElementById('mpContent').innerHTML = html;
+                _renderPager(result);
+            } catch (e) {
+                document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">' + _escHtml(_mpOfficialText.failed) + '</div>';
+            }
+        }
+
+        function _mpOfficialName(item) {
+            var lang = String(document.documentElement.lang || '').toLowerCase();
+            if (lang.indexOf('ja') === 0 && item.name_ja) return String(item.name_ja);
+            if (lang.indexOf('en') === 0 && item.name_en) return String(item.name_en);
+            return String(item.name || item.name_en || item.name_ja || item.id || '');
+        }
+
+        window._mpPreviewOfficial = function(button) {
+            var url = String(button.getAttribute('data-preview') || '');
+            if (!/^https:\/\/(update|media)\.yikaicms\.com\//i.test(url)
+                && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(url)) {
+                showMessage(_mpOfficialText.failed, 'error');
+                return;
+            }
+            window.open(url, '_blank', 'noopener,noreferrer');
+        };
+
+        window._mpImportOfficial = async function(button) {
+            var assetId = String(button.getAttribute('data-asset-id') || '');
+            if (!assetId || _mpImporting) return;
+            _mpImporting = assetId;
+            var original = button.textContent;
+            button.disabled = true;
+            button.textContent = _mpOfficialText.importing;
+            try {
+                var token = document.querySelector('meta[name="csrf-token"]');
+                var result = await window.OfficialMediaClient.importAsset('/admin/media_api.php', assetId, {
+                    csrf: token ? token.content : '',
+                });
+                if (!result.ok) {
+                    showMessage(result.message || _mpOfficialText.failed, 'error');
+                    return;
+                }
+                if (_mpCallback) _mpCallback(result.url, result.data);
+                _mpClose();
+            } catch (e) {
+                showMessage(_mpOfficialText.failed, 'error');
+            } finally {
+                _mpImporting = '';
+                if (document.body.contains(button)) {
+                    button.disabled = false;
+                    button.textContent = original;
+                }
             }
         };
 
@@ -521,7 +679,7 @@
             input.value = '';
         };
 
-        function _escAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+        function _escAttr(s) { return _escHtml(String(s || '')).replace(/'/g, '&#39;'); }
         function _escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     })();
     </script>

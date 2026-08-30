@@ -457,6 +457,20 @@ declare(strict_types=1);
                     <i class="ti ti-x text-base"></i>
                 </button>
             </div>
+            <div class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
+                <button type="button" role="tab" @click="setMediaSource('local')"
+                        :aria-selected="mediaSource === 'local'"
+                        class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        :class="mediaSource === 'local' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'">
+                    <i class="ti ti-photo"></i><span x-text="uiText.mediaSourceLocal"></span>
+                </button>
+                <button type="button" role="tab" @click="setMediaSource('official')"
+                        :aria-selected="mediaSource === 'official'"
+                        class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        :class="mediaSource === 'official' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'">
+                    <i class="ti ti-cloud-download"></i><span x-text="uiText.mediaSourceOfficial"></span>
+                </button>
+            </div>
             <div class="p-3 border-b border-gray-100 shrink-0 flex gap-2">
                 <input type="text" x-model="mediaKeyword" @keydown.enter.prevent="loadMedia(1)"
                        data-dialog-initial
@@ -464,7 +478,7 @@ declare(strict_types=1);
                 <button type="button" @click="loadMedia(1)"
                         class="shrink-0 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 transition"><?= __('search') ?></button>
                 <?php // 上传即选用：上传的目的就是马上要用这张图 ?>
-                <label class="shrink-0 text-sm border rounded px-3 py-1.5 inline-flex items-center gap-1 transition"
+                <label x-show="mediaSource === 'local'" class="shrink-0 text-sm border rounded px-3 py-1.5 inline-flex items-center gap-1 transition"
                        :class="mediaUploading ? 'border-gray-200 text-gray-400 cursor-wait' : 'border-blue-200 text-blue-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer'">
                     <i class="ti text-base" :class="mediaUploading ? 'ti-loader-2 animate-spin' : 'ti-upload'"></i>
                     <span x-text="mediaUploading ? <?= e($jt('blox_uploading')) ?> : <?= e($jt('blox_upload_image')) ?>"></span>
@@ -489,10 +503,10 @@ declare(strict_types=1);
             </div>
             <div class="h-[400px] overflow-y-auto blox-scroll p-3">
                 <p x-show="mediaLoading" class="text-center text-gray-400 text-sm py-12"><?= __('theme_market_loading') ?></p>
-                <p x-show="!mediaLoading && mediaItems.length === 0" class="text-center text-gray-400 text-sm py-12">
-                    <?= __('blox_no_images_hint') ?>
+                <p x-show="!mediaLoading && mediaItems.length === 0" class="text-center text-gray-400 text-sm py-12"
+                   x-text="mediaSource === 'official' ? uiText.officialMediaEmpty : <?= e($jt('blox_no_images_hint')) ?>">
                 </p>
-                <div x-show="!mediaLoading && mediaItems.length > 0"
+                <div x-show="mediaSource === 'local' && !mediaLoading && mediaItems.length > 0"
                      data-testid="blox-media-grid"
                      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     <template x-for="it in mediaItems" :key="it.id">
@@ -512,6 +526,37 @@ declare(strict_types=1);
                                   class="block px-2 pb-1.5 pt-0.5 text-[10px] tabular-nums text-gray-400"
                                   x-text="mediaDimensions(it)"></span>
                         </button>
+                    </template>
+                </div>
+                <div x-show="mediaSource === 'official' && !mediaLoading && mediaItems.length > 0"
+                     data-testid="blox-official-media-grid"
+                     class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    <template x-for="it in mediaItems" :key="it.id">
+                        <article class="min-w-0 border border-gray-200 rounded-lg overflow-hidden bg-white">
+                            <span class="block aspect-[12/5] bg-gray-100">
+                                <img :src="it.preview_url" class="w-full h-full object-cover" loading="lazy" alt="">
+                            </span>
+                            <span class="block p-2.5">
+                                <span class="flex min-w-0 items-start gap-2">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-xs font-medium text-gray-700" x-text="mediaItemName(it)"></span>
+                                        <span class="block mt-0.5 text-[10px] text-gray-400" x-text="mediaDimensions(it)"></span>
+                                    </span>
+                                    <span class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500">Yikai</span>
+                                </span>
+                                <span class="mt-2.5 flex items-center gap-1.5">
+                                    <button type="button" @click="previewOfficialMedia(it)"
+                                            class="px-2.5 py-1.5 border border-gray-200 rounded text-[11px] text-gray-600 hover:bg-gray-50"
+                                            x-text="uiText.officialMediaPreview"></button>
+                                    <button x-show="mediaEntitlement.canImport" type="button" @click="importOfficialMedia(it)"
+                                            :disabled="mediaImporting !== ''"
+                                            class="flex-1 px-2.5 py-1.5 rounded bg-gray-900 text-white text-[11px] hover:bg-black disabled:opacity-50"
+                                            x-text="mediaImporting === it.id ? uiText.officialMediaImporting : uiText.officialMediaImport"></button>
+                                    <span x-show="!mediaEntitlement.canImport" class="flex-1 text-right text-[10px] leading-4 text-amber-700"
+                                          x-text="uiText.officialMediaUpgrade"></span>
+                                </span>
+                            </span>
+                        </article>
                     </template>
                 </div>
             </div>
