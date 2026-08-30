@@ -6122,4 +6122,8 @@ voltage|電圧|220V',
     'blox_home_banner_source_live' => 'バナー管理と同期中',
     'blox_home_banner_edit' => 'スライドを編集',
     'blox_home_banner_empty' => 'スライドはまだありません',
+    'blox_banner_settings_groups' => 'スライド設定',
+    'blox_banner_group_display' => '表示',
+    'blox_banner_group_playback' => '再生',
+    'blox_banner_group_motion' => 'アニメーション',
 ];

@@ -783,6 +783,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-summary.js') ?>"></script>
     <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
+    <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
@@ -1164,6 +1165,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'current' => __('blox_assignment_current_match'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
+            bannerPanelGroup: "common",
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             areaTemplateMode: <?php echo $templateId && in_array($templateType, ['header', 'footer'], true) ? 'true' : 'false'; ?>,
@@ -4333,6 +4335,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             selectChild(si, ci, ei, k, notifyCanvas) {
                 this.selectElement(si, ci, ei, false);
+                this.bannerPanelGroup = "common";
                 this.selectedSubEi = k;
                 this.panelTab = this.isSelectedContainerEl() ? "style" : "content";
                 if (notifyCanvas !== false) this.highlightCanvasSelection(true);
@@ -4437,7 +4440,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (this.isSelectedContainerEl() && this.panelTab === "style") return [];
                 var self = this;
                 var q = this.ctrlQuery.trim().toLowerCase();
-                return (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
+                var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
                     // 页签归属：控件可在 schema 里显式标 tab（如容器的布局控件全在样式页）；
                     // 未标注的按类型推断——color 归样式，其余归内容
                     var tab = c.tab || (c.type === "color" ? "style" : "content");
@@ -4454,6 +4457,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
                     return true;
                 });
+                return window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, !!q || this.modifiedOnly || this.panelTab !== "content");
             },
 
             controlRequirementMet(ctrl) {

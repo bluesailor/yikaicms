@@ -1477,6 +1477,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php require __DIR__ . '/banner-control-groups.php'; ?>
                             <div class="blox-property-pair-grid" data-testid="blox-element-property-grid">
                             <template x-for="ctrl in visibleCtrls()" :key="ctrl.key">
                                 <div :data-control-key="ctrl.key"

@@ -5981,4 +5981,8 @@ voltage|Voltage|220V',
     'blox_home_banner_source_live' => 'Synced with Banner management',
     'blox_home_banner_edit' => 'Edit slide',
     'blox_home_banner_empty' => 'No slides yet',
+    'blox_banner_settings_groups' => 'Carousel settings',
+    'blox_banner_group_display' => 'Display',
+    'blox_banner_group_playback' => 'Playback',
+    'blox_banner_group_motion' => 'Motion',
 ];
