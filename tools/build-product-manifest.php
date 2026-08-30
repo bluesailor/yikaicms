@@ -26,7 +26,11 @@ try {
     );
     $output = rtrim($packageRoot, '/\\') . '/config/provenance.php';
     $php = "<?php\n\ndeclare(strict_types=1);\n\nreturn " . var_export($manifest, true) . ";\n";
-    if (file_put_contents($output, $php, LOCK_EX) === false) {
+    // 不要加 LOCK_EX：打包在 WSL 下把 $TMP_DIR 传成 \\wsl.localhost\... 的 UNC 路径，
+    // Windows php.exe 在 9P 文件系统上取不到独占锁，file_put_contents 直接返回 false
+    // （"Exclusive locks are not supported for this stream"），整个 build.sh 中止。
+    // 本步是一次性 CLI 写入、目标是私有临时目录，没有并发写者，锁本来也没有意义。
+    if (file_put_contents($output, $php) === false) {
         throw new RuntimeException('Unable to write provenance manifest.');
     }
     fwrite(STDOUT, '  Product provenance: ' . $manifest['core_tree_sha256'] . PHP_EOL);
