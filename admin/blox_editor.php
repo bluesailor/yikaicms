@@ -774,6 +774,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-color-picker.js') ?>"></script>
     <script src="/assets/js/blox-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-template-library.js') ?>"></script>
     <script src="/assets/js/blox-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-media-client.js') ?>"></script>
+    <script src="/assets/js/official-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js') ?>"></script>
     <script src="/assets/js/blox-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-dialog-focus.js') ?>"></script>
     <script src="/assets/js/blox-preview-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-preview-client.js') ?>"></script>
     <script src="/assets/js/blox-canvas-bridge.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-canvas-bridge.js') ?>"></script>
@@ -1490,6 +1491,14 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'iconHintMany' => __('blox_icon_hint_many'),
                 'iconHintCount' => __('blox_icon_hint_count'),
                 'mediaLoadFailed' => __('blox_media_load_failed'),
+                'mediaSourceLocal' => __('official_media_source_local'),
+                'mediaSourceOfficial' => __('official_media_source_official'),
+                'officialMediaPreview' => __('official_media_preview'),
+                'officialMediaImport' => __('official_media_import_use'),
+                'officialMediaImporting' => __('official_media_importing'),
+                'officialMediaUpgrade' => __('official_media_upgrade_hint'),
+                'officialMediaEmpty' => __('official_media_empty'),
+                'officialMediaFailed' => __('official_media_unavailable'),
                 'uploadFailedShort' => __('blox_upload_failed_short'),
                 'settingsWord' => __('blox_ctx_settings'),
                 'settingsOf' => __('blox_settings_of'),
@@ -3124,6 +3133,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaTotal: 0,
             mediaKeyword: "",
             mediaLoading: false,
+            mediaSource: "local",
+            mediaEntitlement: { canImport: false, reason: "" },
+            mediaImporting: "",
             mediaUsage: "",
             mediaPreferredMinWidth: 0,
             mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
@@ -3134,6 +3146,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this._mediaTarget = setter;
                 this.mediaUsage = String(options.usage || "");
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
+                this.mediaSource = "local";
+                this.mediaEntitlement = { canImport: false, reason: "" };
+                this.mediaImporting = "";
                 this.mediaOpen = true;
                 this.mediaKeyword = "";
                 this.focusDialog(this.$refs.mediaDialog, "[data-dialog-initial]");
@@ -3147,9 +3162,17 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this._mediaTarget = null;
                 this.mediaUsage = "";
                 this.mediaPreferredMinWidth = 0;
+                this.mediaImporting = "";
                 this.mediaRequestGuard.invalidate();
                 this.mediaLoading = false;
                 this.releaseDialog(root);
+            },
+
+            setMediaSource(source) {
+                this.mediaSource = source === "official" ? "official" : "local";
+                this.mediaEntitlement = { canImport: false, reason: "" };
+                this.mediaImporting = "";
+                this.loadMedia(1);
             },
 
             loadMedia(page) {
@@ -3157,24 +3180,32 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var requestId = this.mediaRequestGuard.begin();
                 this.mediaLoading = true;
                 this.mediaPage = page;
-                window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
-                    usage: this.mediaUsage,
-                })
+                var request = this.mediaSource === "official"
+                    ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
+                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage });
+                request
                     .then(function (result) {
                         if (!self.mediaRequestGuard.isCurrent(requestId)) return;
                         if (result.ok) {
                             self.mediaItems = result.items;
                             self.mediaPages = result.pages;
                             self.mediaTotal = result.total;
+                            self.mediaEntitlement = result.entitlement || { canImport: false, reason: "" };
                         } else {
                             self.mediaItems = [];
-                            self.toast(result.message || self.uiText.mediaLoadFailed);
+                            self.mediaPages = 0;
+                            self.mediaTotal = 0;
+                            self.mediaEntitlement = { canImport: false, reason: "" };
+                            self.toast(result.message || (self.mediaSource === "official" ? self.uiText.officialMediaFailed : self.uiText.mediaLoadFailed));
                         }
                     })
                     .catch(function () {
                         if (!self.mediaRequestGuard.isCurrent(requestId)) return;
                         self.mediaItems = [];
-                        self.toast(self.uiText.mediaFailed);
+                        self.mediaPages = 0;
+                        self.mediaTotal = 0;
+                        self.mediaEntitlement = { canImport: false, reason: "" };
+                        self.toast(self.mediaSource === "official" ? self.uiText.officialMediaFailed : self.uiText.mediaFailed);
                     })
                     .finally(function () {
                         if (self.mediaRequestGuard.isCurrent(requestId)) self.mediaLoading = false;
@@ -3190,6 +3221,47 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var width = Math.max(0, Number((item && item.width) || 0));
                 var height = Math.max(0, Number((item && item.height) || 0));
                 return width > 0 && height > 0 ? Math.round(width) + "×" + Math.round(height) : "";
+            },
+
+            mediaItemName(item) {
+                var lang = String(document.documentElement.lang || "").toLowerCase();
+                if (lang.indexOf("ja") === 0 && item && item.name_ja) return String(item.name_ja);
+                if (lang.indexOf("en") === 0 && item && item.name_en) return String(item.name_en);
+                return String((item && (item.name || item.name_en || item.name_ja || item.id)) || "");
+            },
+
+            officialPreviewUrl(item) {
+                var url = String((item && (item.preview_large_url || item.preview_url)) || "");
+                if (/^https:\/\/(update|media)\.yikaicms\.com\//i.test(url)) return url;
+                if (/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(url)) return url;
+                return "";
+            },
+
+            previewOfficialMedia(item) {
+                var url = this.officialPreviewUrl(item);
+                if (!url) {
+                    this.toast(this.uiText.officialMediaFailed);
+                    return;
+                }
+                window.open(url, "_blank", "noopener,noreferrer");
+            },
+
+            importOfficialMedia(item) {
+                var assetId = String((item && item.id) || "");
+                if (!assetId || this.mediaImporting) return;
+                var self = this;
+                this.mediaImporting = assetId;
+                window.OfficialMediaClient.importAsset("/admin/media_api.php", assetId, { csrf: this.csrf })
+                    .then(function (result) {
+                        if (!result.ok) {
+                            self.toast(result.message || self.uiText.officialMediaFailed);
+                            return;
+                        }
+                        if (self._mediaTarget) self._mediaTarget(result.url, result.data);
+                        self.closeMedia();
+                    })
+                    .catch(function () { self.toast(self.uiText.officialMediaFailed); })
+                    .finally(function () { self.mediaImporting = ""; });
             },
 
             pickMedia(url) {

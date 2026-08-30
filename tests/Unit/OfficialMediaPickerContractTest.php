@@ -1,0 +1,39 @@
+<?php
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+final class OfficialMediaPickerContractTest extends TestCase
+{
+    public function testGlobalMediaPickerSupportsOfficialSourceWithoutSelectingRemoteUrls(): void
+    {
+        $footer = $this->source('admin/includes/footer.php');
+
+        self::assertStringContainsString('/assets/js/official-media-client.js', $footer);
+        self::assertStringContainsString("_mpSetSource('official')", $footer);
+        self::assertStringContainsString('window._mpImportOfficial', $footer);
+        self::assertStringContainsString("OfficialMediaClient.importAsset('/admin/media_api.php', assetId", $footer);
+        self::assertStringContainsString('if (_mpCallback) _mpCallback(result.url, result.data);', $footer);
+    }
+
+    public function testBloxMediaPickerUsesTheSameOfficialMediaClient(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $overlays = $this->source('admin/blox_editor/partials/overlays.php');
+
+        self::assertStringContainsString('/assets/js/official-media-client.js', $editor);
+        self::assertStringContainsString('setMediaSource(source)', $editor);
+        self::assertStringContainsString('window.OfficialMediaClient.list', $editor);
+        self::assertStringContainsString('window.OfficialMediaClient.importAsset', $editor);
+        self::assertStringContainsString('data-testid="blox-official-media-grid"', $overlays);
+        self::assertStringContainsString("@click=\"importOfficialMedia(it)\"", $overlays);
+    }
+
+    private function source(string $relativePath): string
+    {
+        $source = file_get_contents(ROOT_PATH . '/' . $relativePath);
+        self::assertIsString($source);
+        return $source;
+    }
+}
