@@ -393,10 +393,6 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         $pageContentBody = $hasCanvasContent
             ? '<div class="yk-canvas-region yk-page-content-context" data-yk-region="content"'
                 . ' data-yk-preview-label="' . htmlspecialchars(__('blox_page_content_canvas_label'), ENT_QUOTES, 'UTF-8') . '">'
-                . '<button type="button" class="yk-canvas-region-action yk-page-content-edit"'
-                . ' data-yk-page-content-action data-testid="blox-context-edit-content">'
-                . '<i class="ti ti-layout-list" aria-hidden="true"></i><span>'
-                . htmlspecialchars(__('blox_page_content_edit'), ENT_QUOTES, 'UTF-8') . '</span></button>'
                 . $pageBody . '</div>'
             : $pageBody;
         $body = $hasCanvasContent
@@ -959,12 +955,6 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
                 area: contextArea.getAttribute('data-yk-context-area') || '',
                 url: contextArea.getAttribute('data-yk-context-url') || ''
             } });
-            return;
-        }
-        var pageContent = e.target.closest('[data-yk-page-content-action]');
-        if (pageContent) {
-            e.preventDefault();
-            postToEditor({ ykEditPageContent: true });
             return;
         }
         var a = e.target.closest('a');

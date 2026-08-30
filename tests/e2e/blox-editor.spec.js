@@ -660,7 +660,7 @@ test('media API rejects oversized image dimensions before processing @ci', async
   expect(listed.total).toBe(0);
 });
 
-test('home canvas exposes unified region actions without moving page content @ci', async ({ page }, testInfo) => {
+test('home canvas keeps header and footer actions without a redundant page structure action @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -669,7 +669,6 @@ test('home canvas exposes unified region actions without moving page content @ci
   const footerArea = contentFrame.locator('[data-yk-context-area="footer"]');
   const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
   const footerEdit = contentFrame.getByTestId('blox-context-edit-footer');
-  const contentEdit = contentFrame.getByTestId('blox-context-edit-content');
   // 画布区域是首页编辑网页头的唯一入口，避免顶栏重复操作分散注意力。
   const expectedHeaderPath = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&current_header=1&back=home&open=header-settings`;
   const expectedCanvasHeaderPath = expectedHeaderPath;
@@ -677,20 +676,12 @@ test('home canvas exposes unified region actions without moving page content @ci
   await expect(page.getByTestId('blox-home-header-settings')).toHaveCount(0);
   await expect(headerEdit).toBeVisible();
   await expect(footerEdit).toBeVisible();
-  await expect(contentEdit).toBeVisible();
+  await expect(contentFrame.getByTestId('blox-context-edit-content')).toHaveCount(0);
   await expect(headerEdit).not.toHaveAttribute('href', /.+/);
   await expect(footerEdit).not.toHaveAttribute('href', /.+/);
   await expect(headerArea).toHaveAttribute('data-yk-context-url', expectedCanvasHeaderPath);
   await expect(footerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+(?:&back=home)?|site_design\.php#site-design-area-footer)$/);
   await expect(page.getByTestId('blox-dirty')).toBeHidden();
-
-  const contentUrl = page.url();
-  const hostScrollBefore = await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop);
-  const frameScrollBefore = await contentFrame.evaluate(() => window.scrollY);
-  await pointerClick(page, contentEdit);
-  expect(page.url()).toBe(contentUrl);
-  expect(await page.getByTestId('blox-canvas-host').evaluate((node) => node.scrollTop)).toBe(hostScrollBefore);
-  expect(await contentFrame.evaluate(() => window.scrollY)).toBe(frameScrollBefore);
 
   const headerHref = await headerArea.getAttribute('data-yk-context-url');
   const expectedHeaderUrl = new URL(headerHref, page.url()).href;
