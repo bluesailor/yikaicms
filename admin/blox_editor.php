@@ -93,6 +93,7 @@ $areaEditorContextTitle = '';
 $areaEditorPublishConfirm = '';
 $documentIdentity = '';
 $homeBannerSeeds = [];
+$homeBannerRuntime = [];
 $pageHasPublished = false;
 $pageHasUnpublishedChanges = false;
 $pageUsesLegacyHtml = false;
@@ -141,6 +142,10 @@ if ($isHomeBlox) {
         if (is_array($banner)) {
             $homeBannerSeeds[] = HomeBannerItemElement::fromLegacy($banner);
         }
+    }
+    $homeBannerGroup = getBannerGroup('home');
+    if (is_array($homeBannerGroup)) {
+        $homeBannerRuntime = HomeBloxBlockSchema::bannerGroupRuntimeConfig($homeBannerGroup);
     }
 }
 // 无 id 时默认落到 blox 沙盒页，方便直接进来试
@@ -1166,6 +1171,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             bannerPanelGroup: "common",
+            homeBannerRuntime: <?= json_encode($homeBannerRuntime, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             areaTemplateMode: <?php echo $templateId && in_array($templateType, ['header', 'footer'], true) ? 'true' : 'false'; ?>,
@@ -4443,7 +4449,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
             controlValue(ctrl) {
                 if (!this.selEl || !this.selEl.data) return ctrl.default ?? "";
-                var value = this.selEl.data[ctrl.key];
+                var value = this.bannerControlValue(ctrl.key, this.selEl.data[ctrl.key]);
                 var isLegacyCtaOverlay = this.selEl.type === "home-block"
                     && String(this.selEl.data.block_type || "") === "cta"
                     && (ctrl.key === "bg_overlay_color" || ctrl.key === "bg_overlay_opacity")
@@ -4474,6 +4480,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             setControlValue(ctrl, value) {
                 if (!this.selEl) return;
+                this.prepareBannerControlEdit(ctrl.key, value);
                 var oldLabel = String((this.selEl.data || {}).label || "");
                 this.selEl.data[ctrl.key] = ctrl.responsive && window.BloxResponsive
                     ? window.BloxResponsive.setFor(

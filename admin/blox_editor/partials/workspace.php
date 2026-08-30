@@ -169,7 +169,7 @@ declare(strict_types=1);
                         <input type="text" x-model="ctrlQuery" placeholder="<?= e(__('blox_search_settings')) ?>"
                                class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
                     </div>
-                    <button type="button" @click="modifiedOnly = !modifiedOnly" title="<?= e(__('blox_modified_only')) ?>"
+                    <button type="button" @click="modifiedOnly = !modifiedOnly" title="<?= e(__('blox_modified_only')) ?>" data-testid="blox-modified-only"
                             class="w-7 h-7 rounded border inline-flex items-center justify-center transition shrink-0"
                             :class="modifiedOnly ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400 hover:text-gray-600'">
                         <i class="ti ti-adjustments-check text-sm"></i>

@@ -29,6 +29,34 @@
     }
 
     var methods = {
+        inheritedBannerRuntime() {
+            return this.isHomeBannerHost(this.selEl) && (this.selEl.data.banner_height_mode || "inherit") === "inherit"
+                ? this.homeBannerRuntime : null;
+        },
+
+        bannerControlValue(key, fallback) {
+            var runtime = this.inheritedBannerRuntime();
+            if (!runtime || !Object.prototype.hasOwnProperty.call(runtime, key) || key === "banner_height_mode" || key === "banner_mobile_mode") return fallback;
+            if (key === "banner_height_mobile" && ["fixed", "hidden"].includes(this.selEl.data.banner_mobile_mode)) return fallback;
+            return runtime[key];
+        },
+
+        prepareBannerControlEdit(key, value) {
+            var runtime = this.inheritedBannerRuntime();
+            if (!runtime || !Object.prototype.hasOwnProperty.call(runtime, key)
+                || ["banner_mobile_mode", "banner_height_mobile"].includes(key)
+                || (key === "banner_height_mode" && value === "inherit")) return;
+            // Snapshot the currently rendered group settings before a local edit.
+            // Existing documents remain inherited until the user changes a setting.
+            var mobile = this.selEl.data.banner_mobile_mode;
+            var mobileHeight = this.selEl.data.banner_height_mobile;
+            Object.assign(this.selEl.data, runtime);
+            if (["fixed", "hidden"].includes(mobile)) {
+                this.selEl.data.banner_mobile_mode = mobile;
+                this.selEl.data.banner_height_mobile = mobileHeight;
+            }
+        },
+
         bannerImageUrl(key) {
             var data = (this.selEl && this.selEl.data) || {};
             return key === "image_mobile" ? (data.image_mobile || data.image || "") : (data.image || "");
