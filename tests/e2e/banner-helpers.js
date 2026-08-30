@@ -1,4 +1,4 @@
-const { openEditor } = require('./helpers');
+const { openEditor, performPreviewUpdate } = require('./helpers');
 
 async function openBanner(page) {
   await openEditor(page);
@@ -10,4 +10,8 @@ async function openBanner(page) {
   await banner.locator('[data-element-drag-handle]').click();
 }
 
-module.exports = { openBanner };
+async function undoBanner(page) {
+  await performPreviewUpdate(page, () => page.getByTestId('blox-banner-undo').click());
+}
+
+module.exports = { openBanner, undoBanner };

@@ -9,7 +9,16 @@ declare(strict_types=1);
                 <i class="ti ti-carousel-horizontal text-sm"></i>
                 <?php echo e(__('blox_home_banner_items')); ?>
             </span>
-            <span class="text-xs text-gray-600" x-text="homeBannerItemCount() + ' ' + homeDynamicText.items"></span>
+            <span class="inline-flex items-center gap-1">
+                <span class="text-xs text-gray-600" x-text="homeBannerItemCount() + ' ' + homeDynamicText.items"></span>
+                <?php foreach (['undo' => 'arrow-back-up', 'redo' => 'arrow-forward-up'] as $historyAction => $historyIcon): ?>
+                <button type="button" @click="<?= e($historyAction) ?>()" :disabled="!can<?= $historyAction === 'undo' ? 'Undo' : 'Redo' ?>()"
+                        data-testid="blox-banner-<?= e($historyAction) ?>" title="<?= e(__('blox_' . $historyAction)) ?>" aria-label="<?= e(__('blox_' . $historyAction)) ?>"
+                        class="h-7 w-7 rounded text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="ti ti-<?= e($historyIcon) ?> text-sm" aria-hidden="true"></i>
+                </button>
+                <?php endforeach; ?>
+            </span>
         </div>
         <div class="text-xs text-gray-600" role="status" data-testid="blox-banner-source"
              x-text="hasCustomBannerItems() ? homeDynamicText.customItems : <?= e($jt('blox_home_banner_source_live')) ?>"></div>

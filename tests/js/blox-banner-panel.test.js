@@ -6,7 +6,8 @@ const controls = ['banner_height_mode', 'banner_mobile_mode', 'banner_autoplay',
 
 test('banner groups partition controls without changing data or order', () => {
     const original = JSON.stringify(controls);
-    assert.deepEqual(panel.controls(banner, controls, 'common', false).map(c => c.key), ['banner_height_mode', 'banner_mobile_mode', 'label']);
+    assert.deepEqual(panel.controls(banner, controls, 'common', false).map(c => c.key), ['banner_height_mode', 'label']);
+    assert.deepEqual(panel.controls(banner, controls, 'mobile', false).map(c => c.key), ['banner_mobile_mode']);
     assert.deepEqual(panel.controls(banner, controls, 'playback', false).map(c => c.key), ['banner_autoplay']);
     assert.deepEqual(panel.controls(banner, controls, 'motion', false).map(c => c.key), ['banner_speed']);
     assert.equal(JSON.stringify(controls), original);
@@ -21,8 +22,17 @@ test('search and modified-only include every group; unrelated elements stay unch
 test('slide content prioritizes image and text; links and motion retain all fields', () => {
     const slide = { type: 'home-banner-item', data: {} };
     const fields = ['title', 'subtitle', 'content_motion', 'image', 'image_mobile', 'background_motion', 'btn1_text', 'btn1_url', 'btn2_text', 'btn2_url', 'link_url', 'link_target'].map(key => ({ key }));
-    assert.deepEqual(panel.controls(slide, fields, 'common', false).map(c => c.key), ['image', 'title', 'subtitle', 'image_mobile']);
-    const all = ['common', 'playback', 'motion'].flatMap(group => panel.controls(slide, fields, group, false));
+    assert.deepEqual(panel.controls(slide, fields, 'common', false).map(c => c.key), ['image', 'title', 'subtitle']);
+    const all = ['common', 'playback', 'motion', 'mobile'].flatMap(group => panel.controls(slide, fields, group, false));
     assert.deepEqual(all.map(c => c.key).sort(), fields.map(c => c.key).sort());
     assert.equal(panel.controls(slide, fields, 'common', true), fields);
+});
+
+test('mobile thumbnail fallback never materializes an override in the document', () => {
+    const context = { selEl: { type: 'home-banner-item', data: { image: '/desktop.jpg', image_mobile: '' } } };
+    assert.equal(panel.methods.bannerImageUrl.call(context, 'image_mobile'), '/desktop.jpg');
+    assert.equal(context.selEl.data.image_mobile, '');
+    context.selEl.data.image_mobile = '/mobile.jpg';
+    assert.equal(panel.methods.bannerImageUrl.call(context, 'image_mobile'), '/mobile.jpg');
+    assert.equal(panel.methods.bannerImageUrl.call(context, 'image'), '/desktop.jpg');
 });

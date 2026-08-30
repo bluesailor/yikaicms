@@ -8,7 +8,7 @@ test('slide editing starts with image and copy, preserving links across groups @
   await openBanner(page);
   await page.locator('[data-banner-thumb]').first().locator('button').first().click();
   const keys = () => page.locator('[data-testid="blox-element-property-grid"] > [data-control-key]').evaluateAll(nodes => nodes.map(node => node.dataset.controlKey));
-  expect(await keys()).toEqual(['image', 'title', 'subtitle', 'image_mobile']);
+  expect(await keys()).toEqual(['image', 'title', 'subtitle']);
   const field = key => page.locator('[data-control-key="' + key + '"]');
   await field('title').locator('input').fill('A long enterprise carousel title');
   await page.getByTestId('blox-banner-group-playback').click();
