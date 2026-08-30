@@ -4,7 +4,7 @@
  * 变量：$aboutChannel
  */
 $aboutLayout = config('home_about_layout', 'text_left');
-$aboutImage = (string) config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
+$aboutImage = (string) config('home_about_image', '/assets/images/demo/about-office.jpg');
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
 $bg = getBlockBg($block ?? [], 'bg-white');

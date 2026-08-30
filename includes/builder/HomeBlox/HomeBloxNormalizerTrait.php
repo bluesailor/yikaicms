@@ -207,12 +207,12 @@ trait HomeBloxNormalizerTrait
         }
 
         $stats = [];
-        $statDefaults = [
-            ['icon' => 'award', 'number' => '10+', 'label' => __('home_stat_1')],
-            ['icon' => 'users', 'number' => '1000+', 'label' => __('home_stat_2')],
-            ['icon' => 'briefcase', 'number' => '50+', 'label' => __('home_stat_3')],
-            ['icon' => 'thumb-up', 'number' => '100%', 'label' => __('home_stat_4')],
-        ];
+        // 兜底值必须来自「首页设置」的 home_stat_* 配置，不能写死。
+        // 写死的后果：出厂文档里 stats_items 是空的（正常状态），这里把硬编码值填进去，
+        // 再经 runtimeConfigOverrides() 当成配置覆盖压给主题——后台改统计数值/文案
+        // 前台永远不生效，只显示 10+/1000+/50+/100% 和语言包文案。
+        // statsSeedItems() 读的正是这几个设置，与编辑器种子同一来源。
+        $statDefaults = self::statsSeedItems();
         foreach (array_slice(is_array($data['stats_items'] ?? null) ? $data['stats_items'] : [], 0, 4) as $index => $item) {
             if (!is_array($item)) {
                 continue;

@@ -86,7 +86,7 @@ function renderCustomerService(): void
     $btnText     = (string) config('cs_button_text', '在线客服');
     $panelTitle  = (string) config('cs_panel_title', '欢迎咨询');
     $showMobile  = (string) config('cs_show_mobile', '1') === '1';
-    $primary     = (string) config('primary_color', '#3B82F6');
+    $primary     = (string) config('primary_color', '#2563EB');
     $sideStyle   = $position === 'left' ? 'left:0' : 'right:0';
     $hideMobile  = $showMobile ? '' : 'cs-hide-mobile';
     ?>

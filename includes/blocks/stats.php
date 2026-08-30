@@ -4,15 +4,25 @@
  */
 $bg = getBlockBg($block ?? [], '');
 if (!$bg['style'] && !$bg['overlay']) {
-    $statBgUrl = config('home_stat_bg', 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80');
-    $statBgLiteral = UrlPolicy::cssImageLiteral($statBgUrl);
-    $bg = [
-        'class'     => 'bg-cover bg-center bg-fixed relative',
-        'style'     => $statBgLiteral === '' ? '' : 'style="background-image:' . e($statBgLiteral) . ';"',
-        'overlay'   => '<div class="absolute inset-0 bg-black/70"></div>',
-        'content'   => 'relative',
-        'container' => $bg['container'],
-    ];
+    // 默认走实色深底（dark-soft），与页脚/核心优势的 dark 构成同一套深色层次。
+    // 旧做法是「随机外链图 + bg-black/70」，图一压就是脏灰，和另外两个深色块各不相同。
+    $statBgUrl = trim((string) config('home_stat_bg', ''));
+    $statBgLiteral = $statBgUrl === '' ? '' : UrlPolicy::cssImageLiteral($statBgUrl);
+    $bg = $statBgLiteral === ''
+        ? [
+            'class'     => 'bg-dark-soft relative',
+            'style'     => '',
+            'overlay'   => '',
+            'content'   => 'relative',
+            'container' => $bg['container'],
+        ]
+        : [
+            'class'     => 'bg-cover bg-center bg-fixed relative',
+            'style'     => 'style="background-image:' . e($statBgLiteral) . ';"',
+            'overlay'   => '<div class="absolute inset-0 bg-black/70"></div>',
+            'content'   => 'relative',
+            'container' => $bg['container'],
+        ];
 }
 ?>
 <section class="py-12 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>

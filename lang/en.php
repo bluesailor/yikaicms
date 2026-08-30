@@ -1737,6 +1737,7 @@ return [
     'setting_target_self' => 'Current Window',
     'setting_target_blank' => 'New Window',
     'setting_color_presets' => 'Quick Color Scheme',
+    'setting_color_deep_blue' => 'Deep Blue',
     'setting_color_classic_blue' => 'Classic Blue',
     'setting_color_emerald' => 'Emerald',
     'setting_color_red' => 'Red',

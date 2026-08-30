@@ -23,8 +23,8 @@ final class RestyleMigrationBannerGuardTest extends TestCase
     {
         $slides = [
             ['title' => '数字化转型解决方案', 'subtitle' => '助力企业实现智能化升级', 'btn1_text' => '了解更多', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=1', 'btn1_url' => '/about.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'clip-reveal'],
-            ['title' => '专业的技术服务团队', 'subtitle' => '7x24小时为您保驾护航', 'btn1_text' => '', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=2', 'btn1_url' => '', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-left'],
-            ['title' => '创新引领未来', 'subtitle' => '持续创新，追求卓越', 'btn1_text' => '', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=3', 'btn1_url' => '', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-right'],
+            ['title' => '专业的技术服务团队', 'subtitle' => '7x24小时为您保驾护航', 'btn1_text' => '服务支持', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=2', 'btn1_url' => '/service.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-left'],
+            ['title' => '创新引领未来', 'subtitle' => '持续创新，追求卓越', 'btn1_text' => '了解更多', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=3', 'btn1_url' => '/about.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-right'],
         ];
         return array_map(
             static fn (array $data, int $i): array => ['id' => 'e_seed' . $i, 'type' => 'home-banner-item', 'data' => $data],

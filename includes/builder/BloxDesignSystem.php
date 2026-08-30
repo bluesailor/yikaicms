@@ -38,7 +38,7 @@ final class BloxDesignSystem
     {
         return self::fromRaw(
             (string) config(self::SETTING_KEY, ''),
-            (string) config('primary_color', '#3B82F6'),
+            (string) config('primary_color', '#2563EB'),
             (string) config('secondary_color', '#1D4ED8')
         );
     }

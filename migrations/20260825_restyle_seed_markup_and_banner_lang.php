@@ -32,18 +32,32 @@ if (!function_exists('yk_20260825_is_factory_banner_children')) {
         // 与 install/sql 种子逐字一致的出厂三条（提取自 home_blox_data）
         $factory = [
             ['title' => '数字化转型解决方案', 'subtitle' => '助力企业实现智能化升级', 'btn1_text' => '了解更多', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=1', 'image_mobile' => '', 'btn1_url' => '/about.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'clip-reveal', 'background_motion' => 'inherit'],
-            ['title' => '专业的技术服务团队', 'subtitle' => '7x24小时为您保驾护航', 'btn1_text' => '', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=2', 'image_mobile' => '', 'btn1_url' => '', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-left', 'background_motion' => 'inherit'],
-            ['title' => '创新引领未来', 'subtitle' => '持续创新，追求卓越', 'btn1_text' => '', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=3', 'image_mobile' => '', 'btn1_url' => '', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-right', 'background_motion' => 'inherit'],
+            ['title' => '专业的技术服务团队', 'subtitle' => '7x24小时为您保驾护航', 'btn1_text' => '服务支持', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=2', 'image_mobile' => '', 'btn1_url' => '/service.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-left', 'background_motion' => 'inherit'],
+            ['title' => '创新引领未来', 'subtitle' => '持续创新，追求卓越', 'btn1_text' => '了解更多', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=3', 'image_mobile' => '', 'btn1_url' => '/about.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-right', 'background_motion' => 'inherit'],
         ];
         if (count($children) !== count($factory)) {
             return false;
         }
         // 归一：缺省键按元素 schema 的默认值补齐后比对（种子里 background_motion/
         // image_mobile 缺省，而经编辑器重存过的文档会显式带默认值，两者视为等价）
-        $normalize = static function (array $data): array {
+        // v1.19.3 起出厂轮播图由外链 picsum 换成随包 SVG。两种都属「未经修改的出厂内容」：
+        // 老站装的是 picsum，新装的是 SVG，都必须被识别，否则老站会被误判为「已改过」而漏修，
+        // 新站会被误判为「已改过」而漏切 inherit。归一到同一标记后两边等价。
+        $factoryImages = [
+            'https://picsum.photos/1920/600?random=1' => '@factory-banner-1',
+            '/assets/images/demo/banner-1.svg'        => '@factory-banner-1',
+            'https://picsum.photos/1920/600?random=2' => '@factory-banner-2',
+            '/assets/images/demo/banner-2.svg'        => '@factory-banner-2',
+            'https://picsum.photos/1920/600?random=3' => '@factory-banner-3',
+            '/assets/images/demo/banner-3.svg'        => '@factory-banner-3',
+        ];
+        $normalize = static function (array $data) use ($factoryImages): array {
             $out = [];
             foreach (['title', 'subtitle', 'btn1_text', 'btn2_text', 'image', 'image_mobile', 'btn1_url', 'btn2_url', 'link_url', 'link_target', 'content_motion', 'background_motion'] as $key) {
                 $value = (string) ($data[$key] ?? '');
+                if ($key === 'image' && isset($factoryImages[$value])) {
+                    $value = $factoryImages[$value];
+                }
                 if ($value === '' && $key === 'link_target') {
                     $value = '_self';
                 }

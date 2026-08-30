@@ -104,7 +104,7 @@ if ($homeBannerGroup) {
 }
 
 // 主题色
-$primaryColor = config('primary_color', '#3B82F6');
+$primaryColor = config('primary_color', '#2563EB');
 
 // 客户评价数据
 $testimonials = json_decode(configJsonLang('home_testimonials') ?: '[]', true) ?: [];

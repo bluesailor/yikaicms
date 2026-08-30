@@ -71,7 +71,7 @@ $aboutTextEditAttr = $aboutEditMode
 $aboutImageEditAttr = $aboutEditMode
     ? ' data-yk-home-column="image" data-yk-home-column-label="' . e($aboutImageOrder . ' · ' . __('blox_home_about_image_column') . ' · ' . $aboutRatioSpans[1]) . '"' . $aboutColumnPathAttr
     : '';
-$aboutImage = (string) config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
+$aboutImage = (string) config('home_about_image', '/assets/images/demo/about-office.jpg');
 $aboutImageWidth = match ($aboutRatio) {
     '5_7' => '58vw',
     '7_5' => '42vw',

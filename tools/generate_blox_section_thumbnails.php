@@ -99,7 +99,7 @@ function save(GdImage $image, string $path): void
 }
 
 $image = canvas();
-photo($image, $root . '/images/product-demo.jpg', 48, 64, 520, 397);
+photo($image, $root . '/assets/images/demo/product-101.svg', 48, 64, 520, 397);
 text($image, '把复杂问题说清楚', 638, 150, 31, '#0f172a', true);
 imagefilledrectangle($image, 638, 174, 694, 178, color($image, '#2563eb'));
 paragraph($image, '先说明客户面对的具体问题，再介绍您的解决方式和最关键的差异。', 638, 224, 480, 17, 32);
@@ -153,7 +153,7 @@ foreach ($trustTitles as $index => $title) {
 save($image, $output . '/section-trust-grid.png');
 
 $image = canvas('#f8fafc');
-$caseImages = ['/images/case-demo.jpg', '/images/product-demo.jpg', '/images/cert-1.jpg'];
+$caseImages = ['/images/case-demo.jpg', '/assets/images/demo/product-101.svg', '/images/cert-1.jpg'];
 $caseTitles = ['生产流程数字化', '产品体系升级', '质量标准建设'];
 foreach ($caseTitles as $index => $title) {
     $x = 42 + $index * 386;

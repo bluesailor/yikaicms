@@ -46,7 +46,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="swiper-slide">
-                    <img src="https://picsum.photos/1920/600?random=1" alt="Banner 1" class="w-full h-full object-cover" data-blox-banner-bg>
+                    <img src="/assets/images/demo/banner-1.svg" alt="Banner 1" class="w-full h-full object-cover" data-blox-banner-bg>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
                         <div class="text-center text-white px-4 w-full max-w-4xl">
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h2>
@@ -56,7 +56,7 @@
                     </div>
                 </div>
                 <div class="swiper-slide">
-                    <img src="https://picsum.photos/1920/600?random=2" alt="Banner 2" class="w-full h-full object-cover" data-blox-banner-bg>
+                    <img src="/assets/images/demo/banner-2.svg" alt="Banner 2" class="w-full h-full object-cover" data-blox-banner-bg>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
                         <div class="text-center text-white px-4 w-full max-w-4xl">
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo __('quality_service'); ?></h2>
@@ -65,7 +65,7 @@
                     </div>
                 </div>
                 <div class="swiper-slide">
-                    <img src="https://picsum.photos/1920/600?random=3" alt="Banner 3" class="w-full h-full object-cover" data-blox-banner-bg>
+                    <img src="/assets/images/demo/banner-3.svg" alt="Banner 3" class="w-full h-full object-cover" data-blox-banner-bg>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
                         <div class="text-center text-white px-4 w-full max-w-4xl">
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo __('about_us'); ?></h2>
