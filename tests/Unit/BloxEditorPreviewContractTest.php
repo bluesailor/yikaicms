@@ -917,22 +917,14 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-yk-region="page-hero"',
             'data-yk-region="content"',
             'data-yk-context-area="',
-            'data-testid="blox-context-edit-content"',
             'yk-canvas-region-action',
-            'ykEditPageContent: true',
         ] as $token) {
             $this->assertStringContainsString($token, $preview, "canvas region token {$token} missing");
         }
         $this->assertStringNotContainsString('target="_top"', $preview);
-        $this->assertStringContainsString('onEditPageContent = options.onEditPageContent || noop;', $bridge);
-        $this->assertStringContainsString('if (data.ykEditPageContent === true)', $bridge);
-        $this->assertStringContainsString('onEditPageContent: function () { self.focusPageContentTools(); }', $editor);
-        $this->assertStringContainsString('focusPageContentTools()', $editor);
-        $this->assertStringNotContainsString('scrollIntoView', substr(
-            $editor,
-            (int) strpos($editor, 'focusPageContentTools()'),
-            400
-        ));
+        $this->assertStringNotContainsString('data-testid="blox-context-edit-content"', $preview);
+        $this->assertStringNotContainsString('ykEditPageContent', $preview . $bridge . $editor);
+        $this->assertStringNotContainsString('focusPageContentTools()', $editor);
     }
 
     public function testAreaPresetPreviewUsesAReadOnlyBundledDocument(): void

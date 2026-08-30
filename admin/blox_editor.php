@@ -6116,7 +6116,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                     onAreaMatch: function (match) { self.ctxMatch = match; },
                     onEditArea: function (payload) { window.location.assign(payload.url); },
                     onEditPageHero: function () { self.openPageHeroSettings(); },
-                    onEditPageContent: function () { self.focusPageContentTools(); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
                         if (action === "templates") {
@@ -6262,13 +6261,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.pageHero.available) return;
                 this.pageHeroOpen = true;
                 this.focusDialog(this.$refs.pageHeroDialog, "[data-dialog-initial]");
-            },
-
-            focusPageContentTools() {
-                this.rightPanelCollapsed = false;
-                this.canvasViewportTick++;
-                this.persistRightPanelState();
-                if (window.innerWidth < 1440) this.mobilePanel = "structure";
             },
 
             closePageHeroSettings() {
