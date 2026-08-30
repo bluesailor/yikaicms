@@ -16,9 +16,11 @@
 
 /* 主题色（默认值，运行时可被 :root CSS 变量覆盖） */
 @theme {
-    --color-primary: #3B82F6;
+    --color-primary: #2563EB;
     --color-secondary: #1D4ED8;
-    --color-dark: #1f2937;
+    /* 深色统一为两级：dark=页脚/核心优势，dark-soft=数据统计条，形成层次而非三种随机深色 */
+    --color-dark: #0F172A;
+    --color-dark-soft: #1E293B;
     --color-sidebar: #0f172a;
 }
 
@@ -111,6 +113,27 @@
 .prose blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 1em 0; color: #6b7280; font-style: italic; }
 .prose img { max-width: 100%; height: auto; border-radius: 8px; margin: 1em 0; }
 .prose a { color: var(--color-primary); text-decoration: underline; }
+
+/* 数据统计条：图标悬停上浮 + 放大 + 主色辉光。
+   颜色用 color-mix 从 --color-primary 派生，换主题色时动效自动跟随，不用改这里。 */
+.stat-icon {
+    transition: transform .35s cubic-bezier(.2, .8, .2, 1), color .35s ease, filter .35s ease;
+    will-change: transform;
+}
+.stat-item:hover .stat-icon,
+.stat-item:focus-within .stat-icon {
+    transform: translateY(-6px) scale(1.12);
+    color: color-mix(in srgb, var(--color-primary) 55%, white);
+    filter: drop-shadow(0 8px 16px color-mix(in srgb, var(--color-primary) 45%, transparent));
+}
+.stat-item .stat-number { transition: transform .35s cubic-bezier(.2, .8, .2, 1); }
+.stat-item:hover .stat-number { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+    .stat-icon, .stat-item .stat-number { transition: none; }
+    .stat-item:hover .stat-icon { transform: none; }
+    .stat-item:hover .stat-number { transform: none; }
+}
+
 .prose table { width: 100%; border-collapse: collapse; margin: 1em 0; }
 .prose th, .prose td { border: 1px solid #e5e7eb; padding: 0.5em 0.75em; text-align: left; }
 .prose th { background: #f9fafb; font-weight: 600; }

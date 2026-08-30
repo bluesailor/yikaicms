@@ -4,15 +4,25 @@
  */
 $bg = getBlockBg($block ?? [], ''); // 数据统计自带深色大图底，不参与斑马交替
 if (!$bg['style'] && !$bg['overlay']) {
-    $statBgUrl = config('home_stat_bg', 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80');
-    $statBgLiteral = UrlPolicy::cssImageLiteral($statBgUrl);
-    $bg = [
-        'class'     => 'bg-cover bg-center bg-fixed relative',
-        'style'     => $statBgLiteral === '' ? '' : 'style="background-image:' . e($statBgLiteral) . ';"',
-        'overlay'   => '<div class="absolute inset-0 bg-black/70"></div>',
-        'content'   => 'relative',
-        'container' => $bg['container'],
-    ];
+    // 默认走实色深底（dark-soft），与页脚/核心优势的 dark 构成同一套深色层次。
+    // 旧做法是「随机外链图 + bg-black/70」，图一压就是脏灰，和另外两个深色块各不相同。
+    $statBgUrl = trim((string) config('home_stat_bg', ''));
+    $statBgLiteral = $statBgUrl === '' ? '' : UrlPolicy::cssImageLiteral($statBgUrl);
+    $bg = $statBgLiteral === ''
+        ? [
+            'class'     => 'bg-dark-soft relative',
+            'style'     => '',
+            'overlay'   => '',
+            'content'   => 'relative',
+            'container' => $bg['container'],
+        ]
+        : [
+            'class'     => 'bg-cover bg-center bg-fixed relative',
+            'style'     => 'style="background-image:' . e($statBgLiteral) . ';"',
+            'overlay'   => '<div class="absolute inset-0 bg-black/70"></div>',
+            'content'   => 'relative',
+            'container' => $bg['container'],
+        ];
 }
 $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
     ? $ykHomeFieldAttr
@@ -53,9 +63,9 @@ $statGridEditAttr = !empty($ykHomeEdit)
                     ? ' data-count="' . e((string) $statNum) . '"'
                     : '';
             ?>
-            <div>
+            <div class="stat-item">
                 <?php if ($statIcon !== '' && $statIcon !== 'none'): ?>
-                <i<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.icon'); ?> class="<?php echo e(BloxIcon::classes($statIcon, 'award')); ?> text-5xl md:text-6xl text-white/90 mb-3 inline-block leading-none"></i>
+                <i<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.icon'); ?> class="<?php echo e(BloxIcon::classes($statIcon, 'award')); ?> stat-icon text-5xl md:text-6xl text-white/90 mb-3 inline-block leading-none"></i>
                 <?php endif; ?>
                 <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.number'); ?> class="text-4xl font-bold text-white mb-2 stat-number"<?php echo $statCountAttr; ?>><?php echo e($statNum); ?></div>
                 <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.label'); ?> class="text-gray-300"><?php echo e(configLang('home_stat_' . $i . '_text', 'home_stat_' . $i . '_text')); ?></div>

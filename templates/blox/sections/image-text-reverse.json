@@ -12,7 +12,7 @@
             "name": "图文介绍（图片在左）",
             "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center"},
             "columns": [
-                {"elements": [{"type": "image", "data": {"src": "/images/product-demo.jpg", "alt": "产品与服务展示"}}]},
+                {"elements": [{"type": "image", "data": {"src": "/assets/images/demo/about-office.jpg", "alt": "产品与服务展示"}}]},
                 {"elements": [
                     {"type": "heading", "data": {"text": "把复杂问题说清楚", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
                     {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm"}},

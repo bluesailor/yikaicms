@@ -589,7 +589,7 @@ public static function isActive(): bool
             $numberDefaults = ['10+', '1000+', '50+', '100%'];
             $data['override_background'] = (string) (
                 config('home_stat_bg', '')
-                ?: 'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1920&q=80'
+                ?: '/assets/images/demo/stat-bg.svg'
             );
             $data['counter_enabled'] = (string) config('home_stat_counter_enabled', '1') !== '0';
             $data['counter_start'] = max(0, min(1000000, (int) config('home_stat_counter_start', 0)));
@@ -627,7 +627,7 @@ public static function isActive(): bool
         $data['override_content'] = configLang('home_about_content', 'home_about_default');
         $data['override_image'] = (string) config(
             'home_about_image',
-            'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80'
+            '/assets/images/demo/about-office.jpg'
         );
         $data['override_tag_title'] = (string) (configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', ''));
         $data['override_tag_description'] = (string) (configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', ''));

@@ -1803,6 +1803,7 @@ return [
     'setting_target_self' => '本窗口',
     'setting_target_blank' => '新窗口',
     'setting_color_presets' => '快速选择配色方案',
+    'setting_color_deep_blue' => '深蓝',
     'setting_color_classic_blue' => '经典蓝',
     'setting_color_emerald' => '翡翠绿',
     'setting_color_red' => '红色',

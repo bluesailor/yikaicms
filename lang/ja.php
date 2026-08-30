@@ -1888,6 +1888,7 @@ return [
     'setting_target_self' => '同じウィンドウ',
     'setting_target_blank' => '新しいウィンドウ',
     'setting_color_presets' => 'カラープリセット',
+    'setting_color_deep_blue' => 'ディープブルー',
     'setting_color_classic_blue' => 'クラシックブルー',
     'setting_color_emerald' => 'エメラルド',
     'setting_color_red' => 'レッド',

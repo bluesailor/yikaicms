@@ -31,7 +31,7 @@
                             {
                                 "type": "card",
                                 "data": {
-                                    "image": "/images/product-demo.jpg",
+                                    "image": "/assets/images/demo/product-101.svg",
                                     "title": "研发设计",
                                     "text": "自有设计团队，可承接非标定制与结构优化。",
                                     "link": ""

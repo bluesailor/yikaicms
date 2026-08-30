@@ -162,7 +162,7 @@ function getChannelUrl(array $channel): string {
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
-    <style>:root { --color-primary: <?php echo config('primary_color', '#3B82F6'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>
+    <style>:root { --color-primary: <?php echo config('primary_color', '#2563EB'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>
     <?php if (!empty($extraCss)): ?>
     <?php echo $extraCss; ?>
     <?php endif; ?>

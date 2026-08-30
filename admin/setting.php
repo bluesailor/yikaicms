@@ -678,6 +678,7 @@ async function saveAdminLanguages() {
                         <div class="flex flex-wrap gap-2">
                             <?php
                             $presets = [
+                                ['name' => __('setting_color_deep_blue'),    'primary' => '#2563EB', 'secondary' => '#1D4ED8'],
                                 ['name' => __('setting_color_classic_blue'), 'primary' => '#3B82F6', 'secondary' => '#1D4ED8'],
                                 ['name' => __('setting_color_emerald'),      'primary' => '#10B981', 'secondary' => '#059669'],
                                 ['name' => __('setting_color_red'),          'primary' => '#EF4444', 'secondary' => '#DC2626'],
@@ -687,7 +688,7 @@ async function saveAdminLanguages() {
                                 ['name' => __('setting_color_rose'),         'primary' => '#F43F5E', 'secondary' => '#E11D48'],
                                 ['name' => __('setting_color_amber'),        'primary' => '#F59E0B', 'secondary' => '#D97706'],
                             ];
-                            $currentPrimary = config('primary_color', '#3B82F6');
+                            $currentPrimary = config('primary_color', '#2563EB');
                             $currentSecondary = config('secondary_color', '#1D4ED8');
                             foreach ($presets as $preset):
                                 $isActive = strtolower($currentPrimary) === strtolower($preset['primary']);
