@@ -157,3 +157,5 @@ plugins/*/admin-local.php
 # build.sh 的 EXCLUDES 里也有一份，两层都拦。
 /tmp/
 /output/
+.pkgtest/
+.deploytmp/

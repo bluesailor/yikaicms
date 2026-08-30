@@ -86,7 +86,9 @@ PHP_DIR="$(php_dir_for "$PHP_LEG")"
 [ -n "$PHP_DIR" ] && [ -x "$PHP_DIR/php.exe" ] || { echo "${R}找不到 PHP $PHP_LEG：$PHP_DIR/php.exe${X}"; exit 2; }
 case "$DB_KIND" in sqlite|mysql) ;; *) echo "${R}--db 只能是 sqlite 或 mysql${X}"; exit 2 ;; esac
 
-VERSION="$(php -r "require '$ROOT_DIR/config/version.php'; echo CMS_VERSION;" 2>/dev/null)"
+# 必须用相对路径：WSL 里的 php 是 Windows php.exe，它把 /mnt/d/... 当成
+# 当前盘符下的 D:\mnt\d\...，绝对路径必然找不到文件（见 yikai-precheck skill）。
+VERSION="$(php -r "require 'config/version.php'; echo CMS_VERSION;" 2>/dev/null)"
 [ -n "$ZIP" ] || ZIP="releases/yikaicms-v${VERSION}.zip"
 
 echo "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${X}"
@@ -135,7 +137,7 @@ cleanup() {
         return
     fi
     [ "$DB_KIND" = "mysql" ] && mysql_exec "DROP DATABASE IF EXISTS \`$DB_NAME\`" >/dev/null 2>&1
-    rm -rf "$UNPACK_WSL" 2>/dev/null
+    rm -rf "$UNPACK_WSL" "$ROOT_DIR/.pkgtest" 2>/dev/null
 }
 BASE_INTERNAL=""
 trap cleanup EXIT
@@ -179,16 +181,23 @@ ok "已解包到 docroot（$(find "$UNPACK_WSL" -type f | wc -l) 个文件）"
 if [ -n "$BASE" ]; then
     note "vhost 模式：使用 $BASE（请确认其 DocumentRoot 指向 $UNPACK_WIN 且绑定 PHP $PHP_LEG）"
 else
-    BASE="http://127.0.0.1:$PORT"; BASE_INTERNAL=1
+    # WSL 下必须绑 0.0.0.0 并用网关 IP 访问：php.exe 是 Windows 进程，
+    # 它的 127.0.0.1 与 WSL 的回环不是同一个，绑 127.0.0.1 则 curl/Playwright 全都够不着。
+    HOST_IP="127.0.0.1"
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+        HOST_IP="$(ip route show default | awk '{print $3}' | head -1)"
+        [ -n "$HOST_IP" ] || HOST_IP="127.0.0.1"
+    fi
+    BASE="http://$HOST_IP:$PORT"; BASE_INTERNAL=1
     kill_port
-    ( cd "$UNPACK_WSL" && "$PHP_DIR/php.exe" -S "127.0.0.1:$PORT" -t "$UNPACK_WIN" >/tmp/pkgserver.log 2>&1 & )
+    ( cd "$UNPACK_WSL" && "$PHP_DIR/php.exe" -S "0.0.0.0:$PORT" -t "$UNPACK_WIN" >/tmp/pkgserver.log 2>&1 & )
     for i in $(seq 1 40); do
         curl -sf "$BASE/install/index.php" >/dev/null 2>&1 && break
         sleep 0.5
     done
     curl -sf "$BASE/install/index.php" >/dev/null 2>&1 \
       && ok "php -S 已就绪（PHP $PHP_LEG，端口 $PORT）" \
-      || { bad "服务器起不来"; sed 's/^/      /' /tmp/pkgserver.log | head -10; exit 1; }
+      || { bad "服务器起不来（$BASE）"; sed 's/^/      /' /tmp/pkgserver.log | head -10; exit 1; }
 fi
 
 # 真实 PHP 版本自证（不是猜，是问服务器要）
@@ -219,8 +228,11 @@ else
 fi
 
 RESP="$(curl -fsS -X POST "$BASE/install/index.php" "${INSTALL_ARGS[@]}" 2>/tmp/pkginstall.log)" || true
-if INSTALL_RESPONSE="$RESP" php -r '
-    $p = json_decode((string) getenv("INSTALL_RESPONSE"), true);
+# 经文件而非环境变量传给 php：WSL 里的 php 是 Windows php.exe，它不继承 WSL 的环境变量，
+# getenv() 恒为 false，会把成功的安装误判成失败。文件路径也必须是相对的（同上）。
+mkdir -p .pkgtest && printf '%s' "$RESP" > .pkgtest/install-response.json
+if php -r '
+    $p = json_decode((string) @file_get_contents(".pkgtest/install-response.json"), true);
     exit(is_array($p) && !empty($p["success"]) ? 0 : 1);
 '; then
     ok "真实 HTTP 安装器安装成功（$DB_KIND / $SITE_LANG / 含演示数据）"
