@@ -17,6 +17,36 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
 
+# Worktrees created on Windows store a Windows gitdir path. WSL Git cannot resolve that
+# path, so prefer native Git and fall back to git.exe with a Windows-form root.
+GIT_ROOT="$ROOT_DIR"
+GIT_BIN=""
+if git -C "$GIT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    GIT_BIN="git"
+elif command -v git.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
+    GIT_ROOT="$(wslpath -m "$ROOT_DIR")"
+    if git.exe -C "$GIT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+        GIT_BIN="git.exe"
+    fi
+fi
+if [ -z "$GIT_BIN" ]; then
+    echo "Error: 无法验证 Git 仓库状态，正式构建已中止。"
+    echo "       Windows worktree 请确认 WSL 可调用 git.exe。"
+    exit 1
+fi
+repo_git() {
+    "$GIT_BIN" -C "$GIT_ROOT" "$@"
+}
+
+# 正式构建只能来自可追溯的干净提交。未提交和未跟踪文件都会进入当前工作树包，
+# 因而不能仅在 provenance 中标记 source_dirty 后继续生成发行物。
+WORKTREE_STATUS="$(repo_git status --porcelain --untracked-files=normal)"
+if [ -n "$WORKTREE_STATUS" ]; then
+    echo "Error: 工作树存在未提交或未跟踪文件，正式构建已中止。"
+    echo "       请先提交本轮修改，并确认 git status 为空。"
+    exit 1
+fi
+
 # 版本号：优先使用参数，否则从 config/version.php 提取（版本号单一可信来源）
 if [ -n "$1" ]; then
     VERSION="$1"
@@ -84,18 +114,13 @@ mkdir -p "$RELEASE_DIR"
 # tracked + 未忽略的新文件构成当前源码；再过滤已从工作树移走但索引尚未提交删除的路径。
 # 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等，不会把市场源码带进运行包。
 echo "[1/5] 复制项目文件（当前工作树源码）..."
-if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    FILE_LIST="$TMP_DIR/worktree-files.list"
-    : > "$FILE_LIST"
-    while IFS= read -r -d '' item; do
-        [ -e "$ROOT_DIR/$item" ] && printf '%s\0' "$item" >> "$FILE_LIST"
-    done < <(git -C "$ROOT_DIR" ls-files --cached --others --exclude-standard -z)
-    tar -C "$ROOT_DIR" --null -T "$FILE_LIST" -cf - | tar -xf - -C "$PKG_DIR"
-else
-    echo "  ⚠️ 非 git 仓库，回退到 cp -r（注意：可能打入根目录散落文件）"
-    cp -r "$ROOT_DIR"/* "$PKG_DIR/" 2>/dev/null || true
-    cp "$ROOT_DIR"/.htaccess "$PKG_DIR/" 2>/dev/null || true
-fi
+FILE_LIST="$TMP_DIR/worktree-files.list"
+: > "$FILE_LIST"
+while IFS= read -r -d '' item; do
+    item="${item%$'\r'}"
+    [ -e "$ROOT_DIR/$item" ] && printf '%s\0' "$item" >> "$FILE_LIST"
+done < <(repo_git ls-files --cached --others --exclude-standard -z)
+tar -C "$ROOT_DIR" --null -T "$FILE_LIST" -cf - | tar -xf - -C "$PKG_DIR"
 # 基础单页编辑器与前台运行时属于免费能力，但源码可由私库在发版工作树中注入，
 # 未必出现在公开仓库的 git ls-files 结果里。按策略显式复制，缺任一项直接中止。
 for scope in core runtime; do
@@ -267,11 +292,11 @@ VERIFY_PKG_DIR="$PKG_DIR"
 if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
     VERIFY_PKG_DIR="$(wslpath -w "$PKG_DIR")"
 fi
-SOURCE_COMMIT=$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo "")
+SOURCE_COMMIT=$(repo_git rev-parse HEAD 2>/dev/null | tr -d '\r')
 SOURCE_DIRTY=0
-if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1 \
-   && [ -n "$(git -C "$ROOT_DIR" status --porcelain --untracked-files=normal)" ]; then
-    SOURCE_DIRTY=1
+if [ -n "$(repo_git status --porcelain --untracked-files=normal)" ]; then
+    echo "Error: 构建期间工作树发生变化，正式构建已中止。"
+    exit 1
 fi
 php "tools/build-product-manifest.php" "$VERIFY_PKG_DIR" "$VERSION" "$BUILD_ID" "$SOURCE_COMMIT" "$SOURCE_DIRTY"
 
@@ -436,11 +461,10 @@ DELTA_JSON_ITEMS=()                    # 收集 releases.json 用的片段
 rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
       "$RELEASE_DIR"/delta-*-to-"$VERSION".sha256 \
       "$RELEASE_DIR/deltas-v${VERSION}.json"
-if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-    # 基线集合 = 最近 N 个发布 ∪ 在野版本清单（tools/delta-bases.txt）。
-    # 只取最近 N 个远远不够：增量包按 from 精确匹配，客户实际在跑的版本才是要覆盖的对象。
-    # 2026-08-22 实测：63 个在野站点分布在 25 个版本上，最近 3 个版本只覆盖 13 站。
-    ALL_TAGS=$(git -C "$ROOT_DIR" tag -l 'v*' | sed 's/^v//' \
+# 基线集合 = 最近 N 个发布 ∪ 在野版本清单（tools/delta-bases.txt）。
+# 只取最近 N 个远远不够：增量包按 from 精确匹配，客户实际在跑的版本才是要覆盖的对象。
+# 2026-08-22 实测：63 个在野站点分布在 25 个版本上，最近 3 个版本只覆盖 13 站。
+    ALL_TAGS=$(repo_git tag -l 'v*' | tr -d '\r' | sed 's/^v//' \
         | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V \
         | awk -v v="$VERSION" 'v==$0{exit} {print}')
     RECENT_BASES=$(printf '%s\n' "$ALL_TAGS" | tail -n "$DELTA_COUNT")
@@ -505,7 +529,7 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
                     fi
                     ;;
             esac
-        done < <(git -C "$ROOT_DIR" diff --name-status "$tag" -- . 2>/dev/null)
+        done < <(repo_git diff --name-status "$tag" -- . 2>/dev/null | tr -d '\r')
 
         # 发版工作树可能包含尚未提交的新文件；完整包会纳入它们，delta 也必须保持一致。
         # 被打包规则排除的源码在 PKG_DIR 不存在，因此这里天然跳过 tests/marketplace 等。
@@ -513,7 +537,7 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
             if [ -f "$PKG_DIR/$path" ]; then
                 ( cd "$PKG_DIR" && cp --parents "$path" "$PAYLOAD/" ) && ADDED=$((ADDED + 1))
             fi
-        done < <(git -C "$ROOT_DIR" ls-files --others --exclude-standard -z)
+        done < <(repo_git ls-files --others --exclude-standard -z)
 
         # Blox 基础编辑器可由私库注入并被公开仓库忽略，永远不会出现在 git diff 中。
         # 每个 delta 强制携带完整 core/runtime，避免升级成功后编辑器因缺文件白屏。
@@ -597,9 +621,6 @@ if git -C "$ROOT_DIR" rev-parse --git-dir >/dev/null 2>&1; then
         DELTA_META_FILE="$RELEASE_DIR/deltas-v${VERSION}.json"
         { echo '"deltas": ['; printf '  %s,\n' "${DELTA_JSON_ITEMS[@]}" | sed '$ s/,$//'; echo ']'; } > "$DELTA_META_FILE"
         echo "  → deltas 元数据已写入 $(basename "$DELTA_META_FILE")（粘进 releases.json 对应版本条目）"
-    fi
-else
-    echo "  （非 git 仓库，跳过 delta 生成）"
 fi
 
 # ---- 清理 ----

@@ -109,8 +109,8 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringNotContainsString('"assets/js/blox-draft-recovery.js"', $build);
         self::assertStringNotContainsString('"assets/js/blox-dialog-focus.js"', $build);
         self::assertSame(2, substr_count($build, 'for scope in core runtime'));
-        self::assertStringContainsString('git -C "$ROOT_DIR" ls-files --cached --others --exclude-standard -z', $build);
-        self::assertStringContainsString('git -C "$ROOT_DIR" ls-files --others --exclude-standard -z', $build);
+        self::assertStringContainsString('repo_git ls-files --cached --others --exclude-standard -z', $build);
+        self::assertStringContainsString('repo_git ls-files --others --exclude-standard -z', $build);
         self::assertStringContainsString('php "bin/blox-assets.php" verify-free "$VERIFY_DELTA_PAYLOAD"', $build);
         // logo-maker 不得随核心包发布：7618 个 SVG 占全包 91% 文件数，改走插件市场
         // （原断言盯的是 icon-maker，该插件已于 6870ae0 从仓库退役，守卫随之改指）。

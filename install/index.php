@@ -117,20 +117,20 @@ function checkEnvironment(): array
 {
     $checks = [];
 
+    // 版本与扩展清单统一取自 RuntimeRequirements，不在这里另写一份
+    require_once ROOT_PATH . '/includes/RuntimeRequirements.php';
+
     // PHP 版本
     $checks['php'] = [
-        'name' => 'PHP 8.0+',
-        'required' => '8.0.0',
+        'name' => 'PHP ' . RuntimeRequirements::phpMinimumLabel(),
+        'required' => RuntimeRequirements::PHP_MINIMUM,
         'current' => PHP_VERSION,
-        'pass' => version_compare(PHP_VERSION, '8.0.0', '>='),
+        'pass' => RuntimeRequirements::phpMeetsMinimum(),
         'type' => 'required'
     ];
 
-    // 必需扩展
-    // fileinfo v1.18.6 起必需：上传 MIME 检测的安全基线（PHP 8.0 门槛本身已筛选现代主机）
-    // dom：富文本净化（HtmlPolicy）用 DOMDocument 做标签/属性白名单。缺了会降级成
-    // 「转义后的纯文本」——不至于 XSS，但整篇正文会显示成乱码标签，必须当必需项。
-    $requiredExts = ['pdo', 'json', 'mbstring', 'fileinfo', 'dom'];
+    // 必需扩展（缺了核心功能直接坏，理由见 RuntimeRequirements 里逐项注释）
+    $requiredExts = RuntimeRequirements::requiredNames();
     foreach ($requiredExts as $ext) {
         $checks[$ext] = [
             'name' => strtoupper($ext),
@@ -141,26 +141,20 @@ function checkEnvironment(): array
         ];
     }
 
-    // 数据库扩展（至少一个）
-    $hasMysql = extension_loaded('pdo_mysql');
-    $hasSqlite = extension_loaded('pdo_sqlite');
-    $checks['pdo_mysql'] = [
-        'name' => 'PDO MySQL',
-        'required' => false,
-        'current' => $hasMysql,
-        'pass' => $hasMysql || $hasSqlite,
-        'type' => 'database'
-    ];
-    $checks['pdo_sqlite'] = [
-        'name' => 'PDO SQLite',
-        'required' => false,
-        'current' => $hasSqlite,
-        'pass' => $hasMysql || $hasSqlite,
-        'type' => 'database'
-    ];
+    // 数据库扩展：至少要有一个，清单同样取自 RuntimeRequirements
+    $hasDatabaseDriver = RuntimeRequirements::hasDatabaseDriver();
+    foreach (RuntimeRequirements::databaseNames() as $dbExt) {
+        $checks[$dbExt] = [
+            'name' => $dbExt === 'pdo_mysql' ? 'PDO MySQL' : 'PDO SQLite',
+            'required' => false,
+            'current' => extension_loaded($dbExt),
+            'pass' => $hasDatabaseDriver,
+            'type' => 'database'
+        ];
+    }
 
-    // 可选扩展
-    $optionalExts = ['openssl', 'gd'];
+    // 可选扩展（缺了只是降级）
+    $optionalExts = RuntimeRequirements::recommendedNames();
     foreach ($optionalExts as $ext) {
         $checks[$ext] = [
             'name' => strtoupper($ext),

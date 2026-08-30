@@ -65,7 +65,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 
@@ -96,6 +96,8 @@ jobs:
   # ─── 真实形态，且不受 dev 工具链要求 8.2+ 的限制）。v1.13.0 的 pinyin 事故
   # ─── （生产依赖要求 PHP 8.1、8.0 主机保存文章 ParseError 500）由本矩阵
   # ─── 的 8.0 腿拦截：composer 平台约束、vendor 语法、真实保存 三层全覆盖。
+  # ─── extensions 里的 simplexml 是给 product-import 插件的 XlsxReader 测试用的；
+  # ─── 它不是核心必需项（见 RuntimeRequirements），CI 装它只为让那条插件测试能跑。
   smoke:
     name: Admin CRUD Smoke (PHP ${{ matrix.php }} / ${{ matrix.lang }})
     runs-on: ubuntu-latest
@@ -122,7 +124,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, pdo_sqlite, curl, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_sqlite, curl, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 
@@ -237,7 +239,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, pdo_mysql, curl, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_mysql, curl, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 
@@ -335,7 +337,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 
@@ -386,7 +388,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 
@@ -474,7 +476,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, pdo_sqlite, curl, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_sqlite, curl, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 
@@ -546,7 +548,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom
+          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom, simplexml
           tools: composer:v2
           coverage: none
 

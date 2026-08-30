@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 if (!defined('IK_CLI')) return;
 
+require_once ROOT_PATH . '/includes/DemoSandbox.php';
+
 CLI::register('info', '系统概览（版本/DB/缓存/插件/配方）', function (array $args, array $opts): int {
     $line = function (string $k, string $v) {
         printf("  %-18s %s\n", $k, $v);
@@ -55,7 +57,7 @@ CLI::register('info', '系统概览（版本/DB/缓存/插件/配方）', functi
     try {
         $line('Site lang',   (string)config('site_lang', '-'));
         $line('Admin lang',  (string)config('admin_lang', '-'));
-        $line('Demo mode',   ((string)config('demo_mode', '0') === '1' ? 'ON' : 'off'));
+        $line('Demo mode',   DemoSandbox::modeLabel());
         $line('Lang switcher', ((string)config('show_lang_switcher', '0') === '1' ? 'on' : 'off'));
     } catch (\Throwable $e) {
         $line('Settings',    'ERROR: ' . $e->getMessage());

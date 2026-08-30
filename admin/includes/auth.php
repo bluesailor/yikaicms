@@ -27,6 +27,7 @@ initLang();
 require_once ROOT_PATH . '/includes/hooks.php';
 require_once ROOT_PATH . '/includes/Compatibility.php';
 Compatibility::bootstrap();
+require_once ROOT_PATH . '/includes/DemoSandbox.php';
 require_once ROOT_PATH . '/includes/AdminIpPolicy.php';
 
 /** 后台所有入口（含登录页）共用同一 IP 白名单裁决。 */
@@ -76,24 +77,24 @@ function checkLogin(): void
     // 不刷新的话「停用某人」「收紧某个角色」对已登录的人都不生效。
     refreshAdminIdentity();
 
+    // 公开演示账号不应看到授权令牌、SMTP/API 密钥，也不能触发外部服务。
+    // 这类页面在只读与沙盒两种模式下连 GET 都拒绝，而不是只拦提交。
+    if ((defined('DEMO_MODE') && DEMO_MODE) || (defined('DEMO_SANDBOX') && DEMO_SANDBOX)) {
+        if (DemoSandbox::isProtectedPage((string) ($_SERVER['SCRIPT_NAME'] ?? ''))) {
+            error(__('auth_demo_sandbox_protected'));
+        }
+    }
+
     // 自动校验 CSRF：所有 POST 请求必须携带 _token
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
 
-        // 演示模式：拦截写操作（升级、演示开关页除外）
-        if (defined('DEMO_MODE') && DEMO_MODE) {
-            $demoAllowPages = ['upgrade.php', 'setting_demo.php'];
+        // 只读演示：除带 Owner Token 的演示管理页外，拦截全部写操作。
+        if ((defined('DEMO_MODE') && DEMO_MODE) || DemoSandbox::mode() === DemoSandbox::MODE_READONLY) {
+            $demoAllowPages = ['setting_demo.php'];
             $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
             if (!in_array($currentPage, $demoAllowPages)) {
                 error(__('auth_demo_readonly'));
-            }
-        }
-
-        // 演示沙盒：可写，但会锁死/破坏演示站的页面仍拦（清单见 DemoSandbox::protectedPages）
-        if (defined('DEMO_SANDBOX') && DEMO_SANDBOX) {
-            require_once ROOT_PATH . '/includes/DemoSandbox.php';
-            if (DemoSandbox::isProtectedPage((string) ($_SERVER['SCRIPT_NAME'] ?? ''))) {
-                error(__('auth_demo_sandbox_protected'));
             }
         }
     }
