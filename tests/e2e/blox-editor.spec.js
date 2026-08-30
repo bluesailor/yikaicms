@@ -2930,7 +2930,7 @@ test('page title area presets preview safely and inheritance is read only @ci', 
   await expect(dialog.getByTestId('blox-page-hero-preview-mobile')).toHaveAttribute('aria-pressed', 'true');
   const previewFrame = dialog.getByTestId('blox-page-hero-preview-frame');
   await expect.poll(() => previewFrame.evaluate((node) => node.offsetWidth)).toBeLessThanOrEqual(390);
-  await dialog.locator('#blox-page-hero-bg').fill('/images/product-demo.jpg');
+  await dialog.locator('#blox-page-hero-bg').fill('/assets/images/demo/banner-1.svg');
   await dialog.getByTestId('blox-page-hero-focus-x').fill('0');
   await dialog.getByTestId('blox-page-hero-focus-y').fill('100');
   await expect(dialog.getByTestId('blox-page-hero-style-preview').locator('.relative.bg-cover')).toHaveAttribute(
