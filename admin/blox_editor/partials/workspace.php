@@ -881,33 +881,26 @@ declare(strict_types=1);
                             </template>
 
                             <template x-if="isHomeBannerHost(selTopEl) && panelTab === 'content'">
-                                <div class="rounded border border-amber-200 bg-amber-50/60 p-3 space-y-2.5">
+                                <div class="border-y border-gray-200 py-3 space-y-2.5" data-testid="blox-banner-manager">
                                     <div class="flex items-center justify-between gap-2">
-                                        <span class="text-xs font-semibold text-amber-700 inline-flex items-center gap-1.5">
+                                        <span class="text-xs font-semibold text-gray-700 inline-flex items-center gap-1.5">
                                             <i class="ti ti-carousel-horizontal text-sm"></i>
                                             <?php echo e(__('blox_home_banner_items')); ?>
                                         </span>
-                                        <span class="text-[10px] rounded border border-amber-200 bg-white text-amber-700 px-1.5 py-0.5"
-                                              x-text="hasCustomBannerItems() ? (homeBannerItemCount() + ' ' + homeDynamicText.items) : homeDynamicText.inherit"></span>
+                                        <span class="text-xs text-gray-600" x-text="homeBannerItemCount() + ' ' + homeDynamicText.items"></span>
                                     </div>
-                                    <template x-if="!hasCustomBannerItems()">
-                                        <div class="space-y-2">
-                                            <p class="text-[10px] leading-relaxed text-gray-500"><?php echo e(__('blox_home_banner_items_help')); ?></p>
-                                            <button type="button" @click="adoptBannerItems()"
-                                                    class="w-full h-8 rounded border border-amber-200 bg-white text-amber-700 hover:border-amber-300 text-xs inline-flex items-center justify-center gap-1.5">
-                                                <i class="ti ti-copy-plus text-sm"></i>
-                                                <span x-text="homeBannerSeeds.length ? homeDynamicText.adoptItems : homeDynamicText.createItem"></span>
-                                            </button>
-                                        </div>
-                                    </template>
+                                    <div class="text-xs text-gray-600" role="status" data-testid="blox-banner-source"
+                                         x-text="hasCustomBannerItems() ? homeDynamicText.customItems : <?= e($jt('blox_home_banner_source_live')) ?>"></div>
                                     <template x-if="bannerPreviewItems().length">
-                                        <div class="space-y-2.5" data-banner-manager>
+                                        <div data-banner-manager>
                                             <div class="grid grid-cols-3 gap-1.5">
                                                 <template x-for="(item, bi) in bannerPreviewItems()" :key="item.id">
                                                     <div class="relative min-w-0 group/banner" data-banner-thumb>
                                                         <button type="button" @click="selectBannerItem(bi)"
+                                                                :aria-label="homeDynamicText.editSlide + ' ' + (bi + 1)"
+                                                                :title="(item.data || {}).title || (homeDynamicText.editSlide + ' ' + (bi + 1))"
                                                                 class="w-full overflow-hidden rounded border-2 bg-white text-left transition"
-                                                                :class="selectedSubEi === bi ? 'border-blue-500 ring-2 ring-blue-100' : 'border-white hover:border-amber-300'">
+                                                                :class="selectedSubEi === bi ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-400'">
                                                             <span class="block aspect-[16/10] bg-gray-100">
                                                                 <template x-if="item.data && item.data.image">
                                                                     <img :src="item.data.image" class="w-full h-full object-cover" alt="">
@@ -916,28 +909,32 @@ declare(strict_types=1);
                                                                     <span class="w-full h-full flex items-center justify-center text-gray-300"><i class="ti ti-photo-off text-lg"></i></span>
                                                                 </template>
                                                             </span>
-                                                            <span class="block px-1.5 py-1 text-[10px] text-gray-600 truncate"
-                                                                  x-text="homeDynamicText.slide + ' ' + (bi + 1)"></span>
+                                                            <span class="block px-1.5 py-1 text-xs text-gray-700 truncate"
+                                                                  x-text="(item.data || {}).title || (homeDynamicText.slide + ' ' + (bi + 1))"></span>
                                                         </button>
                                                         <button type="button" @click.stop="replaceBannerImage(bi)" data-banner-replace
                                                                 :title="homeDynamicText.replaceImage"
+                                                                :aria-label="homeDynamicText.replaceImage + ' ' + (bi + 1)"
                                                                 class="absolute top-1 right-1 w-6 h-6 rounded bg-white/95 shadow text-blue-600 hover:bg-blue-600 hover:text-white inline-flex items-center justify-center transition">
                                                             <i class="ti ti-photo-edit text-sm"></i>
                                                         </button>
                                                     </div>
                                                 </template>
                                             </div>
-                                            <div class="grid grid-cols-2 gap-1.5">
-                                                <button type="button" @click="addBannerItem()"
-                                                        class="h-8 rounded border border-amber-200 bg-white text-amber-700 hover:border-amber-300 text-xs inline-flex items-center justify-center gap-1">
-                                                    <i class="ti ti-plus text-sm"></i><?php echo e(__('blox_home_banner_add')); ?>
-                                                </button>
-                                                <button type="button" @click="restoreBannerSource()" :disabled="!hasCustomBannerItems()"
-                                                        class="h-8 rounded border border-gray-200 bg-white text-gray-500 hover:border-red-200 hover:text-red-500 disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-500 text-xs inline-flex items-center justify-center gap-1">
-                                                    <i class="ti ti-database text-sm"></i><?php echo e(__('blox_home_banner_restore')); ?>
-                                                </button>
-                                            </div>
                                         </div>
+                                    </template>
+                                    <template x-if="!bannerPreviewItems().length">
+                                        <div class="py-3 text-center text-xs text-gray-600"><?php echo e(__('blox_home_banner_empty')); ?></div>
+                                    </template>
+                                    <button type="button" @click="addBannerItem()" data-testid="blox-banner-add"
+                                            class="w-full min-h-8 rounded border border-gray-200 bg-white px-2 py-1.5 text-gray-700 hover:border-blue-400 hover:text-blue-600 text-xs inline-flex items-center justify-center gap-1">
+                                        <i class="ti ti-plus text-sm"></i><?php echo e(__('blox_home_banner_add')); ?>
+                                    </button>
+                                    <template x-if="hasCustomBannerItems()">
+                                        <button type="button" @click="restoreBannerSource()" data-testid="blox-banner-restore"
+                                                class="w-full min-h-8 px-2 py-1.5 text-gray-600 hover:text-red-600 text-xs inline-flex items-center justify-center gap-1">
+                                            <i class="ti ti-database text-sm shrink-0"></i><?php echo e(__('blox_home_banner_restore')); ?>
+                                        </button>
                                     </template>
                                 </div>
                             </template>

@@ -1378,8 +1378,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'sort' => __('blox_home_sort'),
                 'columns' => __('blox_home_columns'),
                 'items' => __('blox_home_banner_items_unit'),
-                'adoptItems' => __('blox_home_banner_adopt'),
-                'createItem' => __('blox_home_banner_create'),
+                'editSlide' => __('blox_home_banner_edit'),
                 'restoreConfirm' => __('blox_home_banner_restore_confirm'),
                 'customItems' => __('blox_home_banner_custom'),
                 'newItemTitle' => __('blox_home_banner_new_title'),
@@ -3468,18 +3467,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                     item.data.image = url;
                     self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, index);
                 }, { usage: "hero-bg" });
-            },
-
-            adoptBannerItems(index) {
-                var host = this.isHomeBlockHost(this.selTopEl) ? this.selTopEl : this.selEl;
-                if (!this.isHomeBannerHost(host)) return;
-                var items = this.adoptBannerData(host);
-                if (items.length === 0) {
-                    this.addBannerItem();
-                    return;
-                }
-                var selectedIndex = Number.isInteger(index) ? index : 0;
-                this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, Math.min(items.length - 1, selectedIndex));
             },
 
             addBannerItem() {
