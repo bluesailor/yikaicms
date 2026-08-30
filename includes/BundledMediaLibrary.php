@@ -13,28 +13,10 @@ final class BundledMediaLibrary
     /** @var array<int, array{id: string, file: string, label: string, keywords: string}> */
     private const ITEMS = [
         [
-            'id' => 'builtin-cta-technology-services',
-            'file' => 'cta-technology-services.png',
-            'label' => 'blox_media_builtin_cta_technology_services',
-            'keywords' => 'cta technology services tech 科技 技术 服务 テクノロジー 技術 サービス',
-        ],
-        [
             'id' => 'builtin-cta-smart-manufacturing',
             'file' => 'cta-smart-manufacturing.png',
             'label' => 'blox_media_builtin_cta_smart_manufacturing',
             'keywords' => 'cta smart manufacturing factory 智能 制造 工厂 スマート 製造 工場',
-        ],
-        [
-            'id' => 'builtin-cta-corporate-campus',
-            'file' => 'cta-corporate-campus.png',
-            'label' => 'blox_media_builtin_cta_corporate_campus',
-            'keywords' => 'cta corporate campus company office 企业 园区 公司 オフィス 企業 キャンパス',
-        ],
-        [
-            'id' => 'builtin-cta-business-collaboration',
-            'file' => 'cta-business-collaboration.png',
-            'label' => 'blox_media_builtin_cta_business_collaboration',
-            'keywords' => 'cta business collaboration partnership 商务 商业 合作 ビジネス 連携 協業',
         ],
     ];
 
