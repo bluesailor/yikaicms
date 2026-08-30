@@ -113,7 +113,7 @@ test('page title design previews languages and responsive focus without overflow
   await expect(previewFrame).toHaveAttribute('style', /max-width:\s*390px/);
   await expect.poll(() => previewFrame.evaluate((node) => node.offsetWidth)).toBeLessThanOrEqual(390);
 
-  await section.locator('#blox-design-page-hero-bg').fill('/images/product-demo.jpg');
+  await section.locator('#blox-design-page-hero-bg').fill('/assets/images/demo/banner-1.svg');
   await section.locator('#blox-design-page-hero-focus-x').fill('0');
   await section.locator('#blox-design-page-hero-focus-y').fill('100');
   const previewHero = section.locator('.relative.bg-cover').first();
