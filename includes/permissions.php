@@ -332,7 +332,7 @@ function isSensitiveSettingKey(string $key): bool
     if (in_array($key, ['site_keywords', 'site_keywords_en', 'site_keywords_ja'], true)) {
         return false;
     }
-    return preg_match('/(^|_)(key|secret|token|pass|password|credential|appid|appkey|access_id)($|_)/', $key) === 1;
+    return preg_match('/(^|_)(key|secret|token|pass|passwd|password|credential|authorization|auth|appid|appkey|access_id)($|_)/', $key) === 1;
 }
 
 /**

@@ -116,13 +116,16 @@ class Compatibility
     // ─────────────────────────────────────────────────────
     private static function checkRequiredExtensions(): void
     {
-        $required = ['curl', 'mbstring', 'openssl', 'json', 'pdo'];
-        $missing = [];
-        foreach ($required as $ext) {
-            if (!extension_loaded($ext)) $missing[] = $ext;
-        }
+        // 清单统一取自 RuntimeRequirements。此前这里写的是 curl/openssl 必需、
+        // 却不查 fileinfo/dom——与安装器的必需项正好错开，两边谁也说不了算。
+        require_once ROOT_PATH . '/includes/RuntimeRequirements.php';
+        $missing = RuntimeRequirements::missingRequired();
         if ($missing !== []) {
             self::$diagnostics['missing_extensions'] = $missing;
+        }
+        $degraded = RuntimeRequirements::missingRecommended();
+        if ($degraded !== []) {
+            self::$diagnostics['degraded_extensions'] = $degraded;
         }
     }
 

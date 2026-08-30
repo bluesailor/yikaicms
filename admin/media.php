@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deletedFiles = MediaOptimization::deleteArtifacts($media);
         }
 
-        mediaModel()->deleteById($id);
-        adminLog('media', 'delete', "Deleted media ID: $id; artifacts: $deletedFiles");
+        $deletedRows = mediaModel()->deleteById($id);
+        adminLog('media', 'delete', "Deleted media ID: $id; rows: $deletedRows; artifacts: $deletedFiles");
         success();
     }
 
@@ -44,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $deletedFiles += MediaOptimization::deleteArtifacts($media);
             }
 
-            mediaModel()->deleteByIds($normalizedIds);
+            $deletedRows = mediaModel()->deleteByIds($normalizedIds);
             adminLog('media', 'batch_delete', 'Batch deleted media IDs: ' . implode(',', $normalizedIds)
-                . '; artifacts: ' . $deletedFiles);
+                . '; rows: ' . $deletedRows . '; artifacts: ' . $deletedFiles);
         }
         success();
     }

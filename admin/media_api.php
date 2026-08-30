@@ -35,6 +35,12 @@ function ma_deny(string $msg): void
 
 $action = $_GET['action'] ?? 'list';
 
+// 官方目录请求会携带授权与域名信息；公开演示站只开放本站媒体，避免外部副作用。
+if (((defined('DEMO_MODE') && DEMO_MODE) || (defined('DEMO_SANDBOX') && DEMO_SANDBOX))
+    && in_array($action, ['remote_list', 'remote_import'], true)) {
+    ma_deny(__('auth_demo_sandbox_protected'));
+}
+
 // 列表查询
 if ($action === 'list') {
     // 选择器对内容编辑者开放（要插图就得能选图），但**不是媒体管理员的人只能看图片**：
