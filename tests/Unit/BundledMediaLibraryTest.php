@@ -11,11 +11,11 @@ final class BundledMediaLibraryTest extends TestCase
         require_once ROOT_PATH . '/includes/BundledMediaLibrary.php';
     }
 
-    public function testDefaultThemeCtaImagesAreExposedAsReadOnlyMedia(): void
+    public function testDefaultThemeCtaImageIsExposedAsReadOnlyMedia(): void
     {
         $items = BundledMediaLibrary::search('image');
 
-        self::assertCount(4, $items);
+        self::assertCount(1, $items);
         foreach ($items as $item) {
             self::assertStringStartsWith('builtin-cta-', (string) $item['id']);
             self::assertStringStartsWith('/themes/default/assets/images/cta/', (string) $item['url']);
@@ -30,9 +30,9 @@ final class BundledMediaLibraryTest extends TestCase
 
     public function testBundledMediaSupportsEnglishChineseAndJapaneseSearchTerms(): void
     {
-        self::assertSame('builtin-cta-technology-services', BundledMediaLibrary::search('image', 'technology')[0]['id']);
+        self::assertSame('builtin-cta-smart-manufacturing', BundledMediaLibrary::search('image', 'manufacturing')[0]['id']);
         self::assertSame('builtin-cta-smart-manufacturing', BundledMediaLibrary::search('image', '智能')[0]['id']);
-        self::assertSame('builtin-cta-business-collaboration', BundledMediaLibrary::search('image', 'ビジネス')[0]['id']);
+        self::assertSame('builtin-cta-smart-manufacturing', BundledMediaLibrary::search('image', '製造')[0]['id']);
     }
 
     public function testBundledImagesDoNotLeakIntoFilePickerResults(): void
