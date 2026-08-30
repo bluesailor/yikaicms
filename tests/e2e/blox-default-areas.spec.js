@@ -237,15 +237,14 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       const navigationLabel = await navigationTarget.getAttribute('data-yk-element-label');
       expect(navigationId).toBeTruthy();
       expect(navigationLabel).toBeTruthy();
+      // 网页头已移除前台悬停感应（只留顶部区域导航作为入口），但稳定的
+      // data-yk-element-* 定位标记必须保留——深链聚焦与返焦仍依赖它。
       await navigationTarget.hover();
-      const editButton = page.locator('#yk-edit-btn');
-      await expect(editButton).toHaveText(`✎ ${navigationLabel}`);
-      await expect(editButton).toHaveAttribute('href', new RegExp(`focus_element=${encodeURIComponent(navigationId)}`));
-      await editButton.hover();
       await page.waitForTimeout(350);
-      await expect(editButton).toBeVisible();
-      await expect(editButton).toHaveText(`✎ ${navigationLabel}`);
-      const navigationHref = await editButton.getAttribute('href');
+      const editButton = page.locator('#yk-edit-btn');
+      if (await editButton.count()) {
+        await expect(editButton).not.toHaveText(`✎ ${navigationLabel}`);
+      }
       const frontendLocation = new URL(page.url());
       const frontendReturnTo = frontendLocation.pathname + frontendLocation.search;
 
@@ -272,6 +271,8 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       expect(headerEditorHref).toBeTruthy();
       expect(footerEditorHref).toBeTruthy();
 
+      // 悬停入口取消后，导航深链改用与 search/language 同一套组装方式
+      const navigationHref = `${headerEditorHref}&focus_element=${encodeURIComponent(navigationId)}`;
       await page.goto(navigationHref, { waitUntil: 'domcontentloaded' });
       const selectedNavigation = page.locator(`[data-sort-child-item][data-item-id="${navigationId}"]`).first();
       await expect(selectedNavigation).toHaveClass(/bg-blue-100/);
